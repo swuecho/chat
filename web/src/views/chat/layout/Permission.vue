@@ -72,12 +72,12 @@ async function handleSignup() {
 
   // check user_email_v  is valid email
   if (!user_email_v.match(/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/)) {
-    ms.error('email is not valid')
+    ms.error('无效的电子邮件, 请检查')
     return
   }
   // check password is length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character
   if (!user_password_v.match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$/)) {
-    ms.error('password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character')
+    ms.error('密码无效，应该包含长度>= 6、一个数字、一个小写字母、一个大写字母和一个特殊字符。')
     return
   }
   loading.value = true
