@@ -1,0 +1,31 @@
+set dotenv-load := true
+
+version := "0.0.1"
+local_registry:= "192.168.0.100:5555"
+aliyun_registry_bestqa:= "registry.cn-shanghai.aliyuncs.com/bestqa"
+github_pkg_registry_surveyresearch:="docker.pkg.github.com/swuecho/chatgpt_backend"
+
+service_name:="chatgpt_backend"
+
+test:
+        @echo "bestqa go running at: $SURVEY_DATABASE_URL"
+        go test
+tag:
+        git tag release-v{{version}}
+        git push origin tag release-v{{version}}
+
+build:
+        docker build -t {{local_registry}}/chatgpt_backend:{{version}} .
+        docker push {{local_registry}}/chatgpt_backend:{{version}}
+        echo 'pushing to {{local_registry}}'
+        docker tag  {{local_registry}}/chatgpt_backend:{{version}}  {{local_registry}}/chatgpt_backend:latest
+        docker push {{local_registry}}/chatgpt_backend:latest
+
+push:
+        echo 'pushing to {{aliyun_registry_bestqa}}'
+        docker tag  {{local_registry}}/chatgpt_backend:{{version}}  {{aliyun_registry_bestqa}}/chatgpt_backend:{{version}}
+        docker push {{aliyun_registry_bestqa}}/chatgpt_backend:{{version}}
+
+github:
+        docker tag {{aliyun_registry_bestqa}}/chatgpt_backend:{{version}} {{github_pkg_registry_surveyresearch}}/chatgpt_backend:{{version}}
+        #docker push {{github_pkg_registry_surveyresearch}}/chatgpt_backend:{{version}}

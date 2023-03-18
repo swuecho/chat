@@ -1,0 +1,17 @@
+{
+  "name": "e2e",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.31.2",
+    "@types/node": "^18.15.3"
+  },
+  "dependencies": {
+    "pg": "^8.10.0"
+  }
+}

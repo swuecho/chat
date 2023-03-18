@@ -1,0 +1,55 @@
+version: '3'
+
+services:
+  web:
+    container_name: web
+    image: ghcr.io/swuecho/chat_frontend:latest
+    ports:
+      - 8080:80
+    depends_on:
+      - api
+      - db
+  api:
+    container_name: api
+    image: ghcr.io/swuecho/chat_backend:latest 
+    expose:
+      - 8077
+    ports:
+      - 8077:8077
+    environment:
+      - OPENAI_API_KEY=thisisakey
+      - PG_HOST=db
+      - PG_DB=postgres
+      - PG_USER=postgres
+      - PG_PASS=thisisapassword
+      - PG_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      TZ: "Asia/Shanghai"
+      PGTZ: "Asia/Shanghai"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "thisisapassword"
+    expose:
+      - 5432
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready",
+          "-q",
+          "-d",
+          "{YOUR_DATABASE_NAME}",
+          "-U",
+          "{YOUR_DATABASE_USERNAME}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+

@@ -1,0 +1,92 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: '**'
+  pull_request:
+    branches: '**' 
+env:
+  PG_DB: postgres
+  PG_USER: postgres
+  PG_HOST: localhost
+  PG_PASS: thisisapassword
+
+jobs:
+  build_api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - name: Build API
+        run: go build -v ./...
+        working-directory: api
+      - name: Test API
+        run: go test -v ./...
+        working-directory: api
+      - name: Build API image
+        run: |
+          docker build . --file Dockerfile -t ghcr.io/swuecho/chat_backend:latest
+        working-directory: api
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Push API image to GitHub Container Registry
+        run: docker push ghcr.io/swuecho/chat_backend:latest
+        working-directory: api
+  build_ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build UI image
+        run: |
+          docker build . --file Dockerfile -t ghcr.io/swuecho/chat_frontend:latest
+        working-directory: web
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Push UI image to GitHub Container Registry
+        run: docker push ghcr.io/swuecho/chat_frontend:latest
+        working-directory: web
+        
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [build_api, build_ui]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: docker-compose
+        run: docker-compose up -d
+
+      - name: show
+        run: docker-compose ps
+
+      - name: show
+        run: docker-compose logs
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16.x"
+          
+      # Setup cache for node_modules
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: e2e/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('e2e/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+            
+      - name: Install dependencies
+        run: npm ci
+        working-directory: e2e
+
+      - name: Install playwright browsers
+        run: npx playwright install --with-deps
+        working-directory: e2e
+
+      - run: npx playwright test
+        working-directory: e2e
+
