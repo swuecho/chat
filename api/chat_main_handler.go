@@ -130,7 +130,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	userIDInt, err := strconv.Atoi(userIDStr)
 	userID := int32(userIDInt)
 	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", nil)
 		return
 	}
 
@@ -183,7 +183,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 			})
 
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Update chat message error: %v", err), http.StatusInternalServerError)
+			RespondWithError(w, http.StatusInternalServerError, "Update chat message error", err)
 			return
 		}
 		return
@@ -345,7 +345,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		_, err := h.chatService.q.CreateChatMessage(ctx, chatMessage)
 
 		if err != nil {
-			http.Error(w, fmt.Errorf("fail to create message: %w", err).Error(), http.StatusInternalServerError)
+			RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("fail to create message: %w", err).Error(), nil)
 		}
 	}
 
@@ -375,7 +375,7 @@ func chat_stream(ctx context.Context, chat_compeletion_messages []openai.ChatCom
 	}
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("CompletionStream error: %v", err), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("CompletionStream error: %v", err), nil)
 		return "", "", true
 	}
 	defer stream.Close()
@@ -387,7 +387,7 @@ func chat_stream(ctx context.Context, chat_compeletion_messages []openai.ChatCom
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return "", "", true
 	}
 
@@ -406,7 +406,7 @@ func chat_stream(ctx context.Context, chat_compeletion_messages []openai.ChatCom
 			break
 		}
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Stream error: %v", err), http.StatusInternalServerError)
+			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
 			return "", "", true
 		}
 		delta := response.Choices[0].Delta.Content
@@ -437,7 +437,7 @@ func test_replay(w http.ResponseWriter) (string, string, bool) {
 	flusher, ok := w.(http.Flusher)
 
 	if !ok {
-		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return "", "", true
 	}
 	answer := "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."

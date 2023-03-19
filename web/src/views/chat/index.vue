@@ -140,8 +140,10 @@ async function onConversationStream() {
       )
       return response
     }
-    catch (error) {
-      console.error('Error:', error)
+    catch (error: any) {
+      const response = error.response
+      if (response.status === 500)
+        nui_msg.error(response.data.message)
       throw error
     }
     finally {
