@@ -18,7 +18,11 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
-
+  {
+    path: '/user',
+    name: 'User',
+    component: () => import('@/views/user/index.vue'),
+  },
   {
     path: '/404',
     name: '404',
@@ -30,7 +34,6 @@ const routes: RouteRecordRaw[] = [
     name: '500',
     component: () => import('@/views/exception/500/index.vue'),
   },
-
   {
     path: '/:pathMatch(.*)*',
     name: 'notFound',
