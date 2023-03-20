@@ -23,8 +23,8 @@ services:
       - PG_USER=postgres
       - PG_PASS=thisisapassword
       - PG_PORT=5432
-      # !!! change this !!!
-      - JWT_SECRET=Xt0ulHKaYmDoWIO3lO4zHuTm2hF0naCa
+      # !!! change this,with output of : openssl rand -base64 32
+      - JWT_SECRET='RqJrJBINOsL6PVSocqVfVk8a8H9u4juq55YN6PvnlPE='
       - JWT_AUD=bc442bb2b1d848fba5be2aa24123e711
     depends_on:
       db:
