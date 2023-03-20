@@ -39,6 +39,8 @@ test('after clear conversation, only system message remains', async ({ page }) =
   expect(message_counts).toBe(4);
   await page.getByRole('contentinfo').getByRole('button').first().click();
   await page.getByRole('button', { name: '是' }).click();
+  // sleep 500 ms
+  await page.waitForTimeout(500);
   // get message counts in the conversation
   const message_count_after_clear = await page.$$eval('.message-text', (messages) => messages.length);
   expect(message_count_after_clear).toBe(1);
