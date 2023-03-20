@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { getLocalState, setLocalState } from './helper'
 import { router } from '@/router'
 import {
+  clearSessionChatMessages,
   createChatSession,
   createOrUpdateUserActiveChatSession,
   deleteChatData,
@@ -237,6 +238,7 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     clearChatByUuid(uuid: string) {
+      // does this every happen?
       if (!uuid) {
         if (this.chat.length) {
           this.chat[0].data = []
@@ -247,7 +249,8 @@ export const useChatStore = defineStore('chat-store', {
 
       const index = this.chat.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
-        this.chat[index].data = []
+        this.chat[index].data = this.chat[index].data.slice(0, 1)
+        clearSessionChatMessages(uuid)
         this.recordState()
       }
     },

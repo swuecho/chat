@@ -124,6 +124,16 @@ func (q *Queries) DeleteChatMessageByUUID(ctx context.Context, uuid string) erro
 	return err
 }
 
+const deleteChatMessagesBySesionUUID = `-- name: DeleteChatMessagesBySesionUUID :exec
+DELETE FROM chat_message
+WHERE chat_session_uuid = $1
+`
+
+func (q *Queries) DeleteChatMessagesBySesionUUID(ctx context.Context, chatSessionUuid string) error {
+	_, err := q.db.ExecContext(ctx, deleteChatMessagesBySesionUUID, chatSessionUuid)
+	return err
+}
+
 const getAllChatMessages = `-- name: GetAllChatMessages :many
 SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, raw FROM chat_message ORDER BY id
 `

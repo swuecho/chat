@@ -104,3 +104,8 @@ ORDER BY created_at;
 UPDATE chat_message
 SET content = $2, updated_at = now()
 WHERE uuid = $1 ;
+
+
+-- name: DeleteChatMessagesBySesionUUID :exec
+DELETE FROM chat_message
+WHERE chat_session_uuid = $1;
