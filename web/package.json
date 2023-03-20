@@ -28,6 +28,7 @@
     "highlight.js": "^11.7.0",
     "html2canvas": "^1.4.1",
     "katex": "^0.16.4",
+    "lodash": "^4.17.21",
     "markdown-it": "^13.0.1",
     "moment": "^2.29.4",
     "naive-ui": "^2.34.3",

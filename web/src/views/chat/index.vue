@@ -1,9 +1,10 @@
 <script setup lang='ts'>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
 import { NButton, NCard, NInput, NModal, NSlider, useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
+import { debounce } from 'lodash'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
@@ -13,7 +14,7 @@ import HeaderComponent from './components/Header/index.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore } from '@/store'
-import { fetchChatStream } from '@/api'
+import { fetchChatStream, getChatSessionMaxContextLength, setChatSessionMaxContextLength } from '@/api'
 import { t } from '@/locales'
 
 let controller = new AbortController()
@@ -38,7 +39,21 @@ const conversationList = computed(() => dataSources.value.filter(item => (!item.
 
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
-const sliderValue = ref<number>(5)
+
+const sliderValue = ref<number>(10)
+
+const throttledUpdate = debounce(async (newValue: number, oldValue: number) => {
+  await setChatSessionMaxContextLength(uuid, newValue)
+}, 200)
+
+onMounted(async () => {
+  sliderValue.value = await getChatSessionMaxContextLength(uuid)
+})
+
+watch(sliderValue, (newValue, oldValue) => {
+  throttledUpdate(newValue, oldValue)
+})
+
 const showModal = ref<boolean>(false)
 
 function handleSubmit() {
@@ -497,6 +512,18 @@ onUnmounted(() => {
       @toggle-using-context="toggleUsingContext"
     />
     <main class="flex-1 overflow-hidden">
+      <NModal v-model:show="showModal">
+        <NCard style="width: 600px" title="会话设置" :bordered="false" size="huge" role="dialog" aria-modal="true">
+          <!-- <template #header-extra>
+                          Oops!
+                        </template> -->
+          上下文数量, 默认10 (会话开始的两条+ 最近的8条)
+          <NSlider v-model:value="sliderValue" :min="1" :max="20" show-tooltip />
+          <!-- <template #footer>
+                          Footer
+                        </template> -->
+        </NCard>
+      </NModal>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div
           id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
@@ -546,18 +573,7 @@ onUnmounted(() => {
               <SvgIcon icon="ri:chat-history-line" />
             </span>
           </HoverButton>
-          <NModal v-model:show="showModal">
-            <NCard style="width: 600px" title="会话设置" :bordered="false" size="huge" role="dialog" aria-modal="true">
-              <!-- <template #header-extra>
-                      Oops!
-                    </template> -->
-              上下文数量, 默认10 (会话开始的两条+ 最近的8条)
-              <NSlider v-model:value="sliderValue" :min="1" :max="20" />
-              <!-- <template #footer>
-                      Footer
-                    </template> -->
-            </NCard>
-          </NModal>
+
           <NInput
             id="message_textarea" v-model:value="prompt" data-testid="message_textarea" type="textarea"
             :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" :placeholder="placeholder" @keypress="handleEnter"

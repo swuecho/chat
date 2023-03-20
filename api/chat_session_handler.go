@@ -29,7 +29,7 @@ func (h *ChatSessionHandler) Register(router *mux.Router) {
 	router.HandleFunc("/chat_sessions/{id}", h.DeleteChatSession).Methods(http.MethodDelete)
 	router.HandleFunc("/chat_sessions", h.GetAllChatSessions).Methods(http.MethodGet)
 
-	router.HandleFunc("/uuid/chat_sessions/max_conversions/{uuid}", h.UpdateSessionMaxLength).Methods("PUT")
+	router.HandleFunc("/uuid/chat_sessions/max_length/{uuid}", h.UpdateSessionMaxLength).Methods("PUT")
 	router.HandleFunc("/uuid/chat_sessions/topic/{uuid}", h.UpdateChatSessionTopicByUUID).Methods("PUT")
 	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.GetChatSessionByUUID).Methods("GET")
 	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.CreateOrUpdateChatSessionByUUID).Methods("PUT")
@@ -136,7 +136,14 @@ func (h *ChatSessionHandler) GetChatSessionByUUID(w http.ResponseWriter, r *http
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	json.NewEncoder(w).Encode(session)
+	session_resp := &ChatSessionResponse{
+		Uuid:      session.Uuid,
+		Topic:     session.Topic,
+		MaxLength: session.MaxLength,
+		CreatedAt: session.CreatedAt,
+		UpdatedAt: session.UpdatedAt,
+	}
+	json.NewEncoder(w).Encode(session_resp)
 }
 
 // CreateChatSessionByUUID creates a chat session by its UUID
@@ -155,6 +162,7 @@ func (h *ChatSessionHandler) CreateChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 	sessionParams.UserID = int32(userIDInt)
+	sessionParams.MaxLength = 10
 	session, err := h.service.CreateChatSession(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -216,6 +224,7 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 		return
 	}
 	sessionParams.Uuid = uuid
+	sessionParams.MaxLength = 10
 
 	ctx := r.Context()
 	userIDStr := ctx.Value(userContextKey).(string)
