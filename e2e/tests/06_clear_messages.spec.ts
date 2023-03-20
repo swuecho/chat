@@ -29,6 +29,7 @@ test('after clear conversation, only system message remains', async ({ page }) =
   await input_area?.press('Enter');
   // get message counts in the conversation
 
+  await page.waitForTimeout(500);
   const user = await selectUserByEmail(pool, test_email);
   expect(user.email).toBe(test_email);
   // expect(user.id).toBe(37);
