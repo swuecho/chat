@@ -13,9 +13,8 @@ import (
 )
 
 var ErrInvalidToken = errors.New("invalid token")
-var secret = "G0CDa1Jc5Bszr9ad8slcJm5TTAzWKvhv"
 
-func GenerateToken(userID int32) (string, error) {
+func GenerateToken(userID int32, secret string) (string, error) {
 	expires := time.Now().Add(time.Hour * 8).Unix()
 	notBefore := time.Now().Unix()
 	issuer := "https://www.bestqa.net"
@@ -40,7 +39,7 @@ func GenerateToken(userID int32) (string, error) {
 	return signedToken, nil
 }
 
-func ValidateToken(tokenString string) (int32, error) {
+func ValidateToken(tokenString string, secret string) (int32, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Verify the signing algorithm and secret key used to sign the token
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

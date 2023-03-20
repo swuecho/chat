@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/samber/lo"
-	"github.com/swuecho/chatgpt_backend/auth"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
 
@@ -38,35 +36,9 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 
 }
 
-type userIdContextKey string
+//type userIdContextKey string
 
-const userIDKey = userIdContextKey("userID")
-
-func AuthenticateSession(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tokenString := "" //getTokenFromHeader(r.Header)
-		userID, err := auth.ValidateToken(tokenString)
-		if err != nil {
-			http.Error(w, "invalid auth token", http.StatusUnauthorized)
-			return
-		}
-
-		// // Check if the user has permission to read/write messages in the chat
-		// sessionID, err := getSessionIDFromRequest(r)
-		// if err != nil {
-		// 	http.Error(w, "invalid session ID", http.StatusBadRequest)
-		// 	return
-		// }
-		// if !h.sessionService.HasSessionPermission(sessionID, userID) {
-		// 	http.Error(w, "user does not have permission to view or send messages", http.StatusForbidden)
-		// 	return
-		// }
-
-		// Pass on the authenticated user ID to the next handler
-		ctx := context.WithValue(r.Context(), userIDKey, userID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
+//const userIDKey = userIdContextKey("userID")
 
 func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Request) {
 	var messageParams sqlc_queries.CreateChatMessageParams
