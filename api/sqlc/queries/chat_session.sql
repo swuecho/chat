@@ -9,7 +9,7 @@ VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: UpdateChatSession :one
-UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now(), active = $4, max_length = $5
+UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now(), active = $4
 WHERE id = $1
 RETURNING *;
 
@@ -26,21 +26,21 @@ WHERE active = true and uuid = $1
 order by updated_at;
 
 -- name: CreateChatSessionByUUID :one
-INSERT INTO chat_session (user_id, uuid, topic, created_at, active, max_length)
+INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length)
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: UpdateChatSessionByUUID :one
-UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now(), max_length = $4
+UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now()
 WHERE uuid = $1
 RETURNING *;
 
 -- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic)
-VALUES ($1, $2, $3)
+INSERT INTO chat_session(uuid, user_id, topic, max_length)
+VALUES ($1, $2, $3, 10)
 ON CONFLICT (uuid) 
 DO UPDATE SET
--- topic = EXCLUDED.topic, 
+max_length = EXCLUDED.max_length, 
 topic = CASE WHEN chat_session.topic IS NULL THEN EXCLUDED.topic ELSE chat_session.topic END,
 updated_at = now()
 returning *;

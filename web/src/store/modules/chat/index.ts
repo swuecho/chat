@@ -10,7 +10,7 @@ import {
   deleteChatData,
   deleteChatSession,
   getChatMessagesBySessionUUID as getChatSessionHistory,
-  getChatSessionsByUserId,
+  getChatSessionsByUser,
   getUserActiveChatSession,
   renameChatSession,
 } from '@/api'
@@ -50,7 +50,7 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     async syncChatSessions() {
-      const sessions = await getChatSessionsByUserId()
+      const sessions = await getChatSessionsByUser()
       if (sessions.length <= 0)
         return
 

@@ -1,5 +1,9 @@
 package main
 
+import (
+	"time"
+)
+
 type ErrorResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
@@ -38,4 +42,25 @@ type SimpleChatSession struct {
 	Uuid   string `json:"uuid"`
 	IsEdit bool   `json:"isEdit"`
 	Title  string `json:"title"`
+}
+
+type ChatMessageResponse struct {
+	Uuid            string    `json:"uuid"`
+	ChatSessionUuid string    `json:"chatSessionUuid"`
+	Role            string    `json:"role"`
+	Content         string    `json:"content"`
+	Score           float64   `json:"score"`
+	UserID          int32     `json:"userId"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+	CreatedBy       int32     `json:"createdBy"`
+	UpdatedBy       int32     `json:"updatedBy"`
+}
+
+type ChatSessionResponse struct {
+	Uuid      string    `json:"uuid"`
+	Topic     string    `json:"topic"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	MaxLength int32     `json:"maxLength"`
 }

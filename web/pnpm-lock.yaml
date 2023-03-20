@@ -24,6 +24,7 @@ specifiers:
   katex: ^0.16.4
   less: ^4.1.3
   lint-staged: ^13.1.2
+  lodash: ^4.17.21
   markdown-it: ^13.0.1
   moment: ^2.29.4
   naive-ui: ^2.34.3
@@ -47,6 +48,7 @@ dependencies:
   highlight.js: 11.7.0
   html2canvas: 1.4.1
   katex: 0.16.4
+  lodash: 4.17.21
   markdown-it: 13.0.1
   moment: 2.29.4
   naive-ui: 2.34.3_vue@3.2.47

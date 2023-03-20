@@ -125,6 +125,7 @@ func (h *ChatMessageHandler) GetChatMessageByUUID(w http.ResponseWriter, r *http
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
 	json.NewEncoder(w).Encode(message)
 }
 

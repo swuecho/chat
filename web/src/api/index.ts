@@ -110,7 +110,7 @@ export async function fetchSignUp(email: string, password: string) {
   }
 }
 
-export const getChatSessionsByUserId = async () => {
+export const getChatSessionsByUser = async () => {
   try {
     const response = await request.get('/chat_sessions/users')
     return response.data
@@ -168,6 +168,26 @@ export const clearSessionChatMessages = async (sessionUuid: string) => {
   }
 }
 
+export const getChatSessionMaxContextLength = async (sessionUuid: string) => {
+  try {
+    const response = await request.get(`/uuid/chat_sessions/${sessionUuid}`)
+    return response.data.maxLength
+  }
+  catch (error) {
+    console.error(error)
+  }
+}
+
+export const setChatSessionMaxContextLength = async (uuid: string, maxLength: number) => {
+  try {
+    const response = await request.put(`/uuid/chat_sessions/max_length/${uuid}`, { uuid, maxLength })
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
 
 export const deleteChatMessage = async (uuid: string) => {
   try {

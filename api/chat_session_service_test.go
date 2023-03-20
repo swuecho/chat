@@ -36,7 +36,6 @@ func TestChatSessionService(t *testing.T) {
 	updated_params := sqlc_queries.UpdateChatSessionParams{ID: session.ID,
 		UserID: session.UserID,
 		Topic:  "Updated Test Session",
-		Active: session.Active, MaxLength: session.MaxLength,
 	}
 	if _, err := service.UpdateChatSession(context.Background(), updated_params); err != nil {
 		t.Fatalf("failed to update chat session: %v", err)

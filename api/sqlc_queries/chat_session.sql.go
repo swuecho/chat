@@ -45,7 +45,7 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 }
 
 const createChatSessionByUUID = `-- name: CreateChatSessionByUUID :one
-INSERT INTO chat_session (user_id, uuid, topic, created_at, active, max_length)
+INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length)
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, user_id, uuid, topic, created_at, updated_at, active, max_length
 `
@@ -83,10 +83,11 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 }
 
 const createOrUpdateChatSessionByUUID = `-- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic)
-VALUES ($1, $2, $3)
+INSERT INTO chat_session(uuid, user_id, topic, max_length)
+VALUES ($1, $2, $3, 10)
 ON CONFLICT (uuid) 
 DO UPDATE SET
+max_length = EXCLUDED.max_length, 
 topic = CASE WHEN chat_session.topic IS NULL THEN EXCLUDED.topic ELSE chat_session.topic END,
 updated_at = now()
 returning id, user_id, uuid, topic, created_at, updated_at, active, max_length
@@ -98,7 +99,6 @@ type CreateOrUpdateChatSessionByUUIDParams struct {
 	Topic  string
 }
 
-// topic = EXCLUDED.topic,
 func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg CreateOrUpdateChatSessionByUUIDParams) (ChatSession, error) {
 	row := q.db.QueryRowContext(ctx, createOrUpdateChatSessionByUUID, arg.Uuid, arg.UserID, arg.Topic)
 	var i ChatSession
@@ -275,17 +275,16 @@ func (q *Queries) HasChatSessionPermission(ctx context.Context, arg HasChatSessi
 }
 
 const updateChatSession = `-- name: UpdateChatSession :one
-UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now(), active = $4, max_length = $5
+UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now(), active = $4
 WHERE id = $1
 RETURNING id, user_id, uuid, topic, created_at, updated_at, active, max_length
 `
 
 type UpdateChatSessionParams struct {
-	ID        int32
-	UserID    int32
-	Topic     string
-	Active    bool
-	MaxLength int32
+	ID     int32
+	UserID int32
+	Topic  string
+	Active bool
 }
 
 func (q *Queries) UpdateChatSession(ctx context.Context, arg UpdateChatSessionParams) (ChatSession, error) {
@@ -294,7 +293,6 @@ func (q *Queries) UpdateChatSession(ctx context.Context, arg UpdateChatSessionPa
 		arg.UserID,
 		arg.Topic,
 		arg.Active,
-		arg.MaxLength,
 	)
 	var i ChatSession
 	err := row.Scan(
@@ -311,25 +309,19 @@ func (q *Queries) UpdateChatSession(ctx context.Context, arg UpdateChatSessionPa
 }
 
 const updateChatSessionByUUID = `-- name: UpdateChatSessionByUUID :one
-UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now(), max_length = $4
+UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now()
 WHERE uuid = $1
 RETURNING id, user_id, uuid, topic, created_at, updated_at, active, max_length
 `
 
 type UpdateChatSessionByUUIDParams struct {
-	Uuid      string
-	UserID    int32
-	Topic     string
-	MaxLength int32
+	Uuid   string
+	UserID int32
+	Topic  string
 }
 
 func (q *Queries) UpdateChatSessionByUUID(ctx context.Context, arg UpdateChatSessionByUUIDParams) (ChatSession, error) {
-	row := q.db.QueryRowContext(ctx, updateChatSessionByUUID,
-		arg.Uuid,
-		arg.UserID,
-		arg.Topic,
-		arg.MaxLength,
-	)
+	row := q.db.QueryRowContext(ctx, updateChatSessionByUUID, arg.Uuid, arg.UserID, arg.Topic)
 	var i ChatSession
 	err := row.Scan(
 		&i.ID,
