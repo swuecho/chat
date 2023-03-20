@@ -19,27 +19,31 @@ test('after clear conversation, only system message remains', async ({ page }) =
   await page.getByTestId('password').locator('input').fill('@WuHao5');
   await page.getByTestId('signup').click();
   // sleep 1 second
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
   let input_area = await page.$("#message_textarea textarea")
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
   // get message counts in the conversation
 
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
+
+  const message_counts = await page.$$eval('.message-text', (messages) => messages.length);
+  expect(message_counts).toBe(4);
+
   const user = await selectUserByEmail(pool, test_email);
   expect(user.email).toBe(test_email);
   // expect(user.id).toBe(37);
   const sessions = await selectChatSessionsByUserId(pool, user.id);
   const session = sessions[0];
 
-  const message_counts = await page.$$eval('.message-text', (messages) => messages.length);
-  expect(message_counts).toBe(4);
+  // clear
   await page.getByRole('contentinfo').getByRole('button').first().click();
   await page.getByRole('button', { name: '是' }).click();
+
   // sleep 500 ms
   await page.waitForTimeout(500);
   // get message counts in the conversation
