@@ -157,6 +157,18 @@ export const renameChatSession = async (uuid: string, name: string) => {
   }
 }
 
+export const clearSessionChatMessages = async (sessionUuid: string) => {
+  try {
+    const response = await request.delete(`/uuid/chat_messages/chat_sessions/${sessionUuid}`)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+
 export const deleteChatMessage = async (uuid: string) => {
   try {
     const response = await request.delete(`/uuid/chat_messages/${uuid}`)

@@ -201,3 +201,12 @@ func (s *ChatMessageService) GetLastNChatMessages(ctx context.Context, uuid stri
 	}
 	return message, nil
 }
+
+//DeleteChatMessagesBySesionUUID deletes chat messages by session uuid.
+func (s *ChatMessageService) DeleteChatMessagesBySesionUUID(ctx context.Context, uuid string) error {
+	err := s.q.DeleteChatMessagesBySesionUUID(ctx, uuid)
+	if err != nil {
+		return errors.New("failed to delete message")
+	}
+	return nil
+}

@@ -1,2 +1,3 @@
 tmp/
 api/chatgpt_backend
+env.sh

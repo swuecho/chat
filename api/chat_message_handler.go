@@ -33,6 +33,7 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_messages/{uuid}", h.UpdateChatMessageByUUID).Methods(http.MethodPut)
 	router.HandleFunc("/uuid/chat_messages/{uuid}", h.DeleteChatMessageByUUID).Methods(http.MethodDelete)
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.GetChatHistoryBySessionUUID).Methods(http.MethodGet)
+	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.DeleteChatMessagesBySesionUUID).Methods(http.MethodDelete)
 
 }
 
@@ -206,4 +207,15 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 		return
 	}
 	json.NewEncoder(w).Encode(simple_msgs)
+}
+
+// DeleteChatMessagesBySesionUUID delete chat messages by session uuid
+func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWriter, r *http.Request) {
+	uuidStr := mux.Vars(r)["uuid"]
+	err := h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }

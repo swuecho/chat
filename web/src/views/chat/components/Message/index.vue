@@ -95,6 +95,7 @@ function handleRegenerate() {
       >
         <TextComponent
           ref="textRef"
+          class="message-text"
           :inversion="inversion"
           :error="error"
           :text="text"
