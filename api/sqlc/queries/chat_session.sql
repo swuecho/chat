@@ -37,7 +37,7 @@ RETURNING *;
 
 -- name: CreateOrUpdateChatSessionByUUID :one
 INSERT INTO chat_session(uuid, user_id, topic, max_length)
-VALUES ($1, $2, $3, 10)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (uuid) 
 DO UPDATE SET
 max_length = EXCLUDED.max_length, 

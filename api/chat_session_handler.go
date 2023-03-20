@@ -224,6 +224,7 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 		return
 	}
 	sessionParams.Uuid = uuid
+	sessionParams.MaxLength = 10
 
 	ctx := r.Context()
 	userIDStr := ctx.Value(userContextKey).(string)

@@ -145,11 +145,15 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 			http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
 			return
 		}
-
+		chat_session, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
+		if err != nil {
+			http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
+			return
+		}
 		msgs, err := h.chatService.q.GetLastNChatMessages(ctx,
 			sqlc_queries.GetLastNChatMessagesParams{
 				Uuid:  chatUuid,
-				Limit: 10,
+				Limit: chat_session.MaxLength,
 			})
 		if err != nil {
 			http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)

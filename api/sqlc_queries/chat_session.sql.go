@@ -84,7 +84,7 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 
 const createOrUpdateChatSessionByUUID = `-- name: CreateOrUpdateChatSessionByUUID :one
 INSERT INTO chat_session(uuid, user_id, topic, max_length)
-VALUES ($1, $2, $3, 10)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (uuid) 
 DO UPDATE SET
 max_length = EXCLUDED.max_length, 
@@ -94,13 +94,19 @@ returning id, user_id, uuid, topic, created_at, updated_at, active, max_length
 `
 
 type CreateOrUpdateChatSessionByUUIDParams struct {
-	Uuid   string
-	UserID int32
-	Topic  string
+	Uuid      string
+	UserID    int32
+	Topic     string
+	MaxLength int32
 }
 
 func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg CreateOrUpdateChatSessionByUUIDParams) (ChatSession, error) {
-	row := q.db.QueryRowContext(ctx, createOrUpdateChatSessionByUUID, arg.Uuid, arg.UserID, arg.Topic)
+	row := q.db.QueryRowContext(ctx, createOrUpdateChatSessionByUUID,
+		arg.Uuid,
+		arg.UserID,
+		arg.Topic,
+		arg.MaxLength,
+	)
 	var i ChatSession
 	err := row.Scan(
 		&i.ID,
