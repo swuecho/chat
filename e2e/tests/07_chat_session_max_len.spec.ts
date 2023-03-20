@@ -22,7 +22,6 @@ test('test', async ({ page }) => {
   await page.locator('.n-slider').click();
   await page.locator('.n-slider-handles').click();
   await page.locator('.n-slider').click();
-  await page.locator('.n-modal-mask').click();
   await page.getByRole('contentinfo').getByRole('button').nth(2).click();
 });
 
