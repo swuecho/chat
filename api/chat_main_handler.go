@@ -161,10 +161,14 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 				Content: m.Content,
 			}
 		})
-		chatCompletionMessages := lo.Map(msgs, func(m sqlc_queries.ChatMessage, _ int) openai.ChatCompletionMessage {
-			return openai.ChatCompletionMessage{
-				Role:    m.Role,
-				Content: m.Content,
+		chatCompletionMessages := lo.FilterMap(msgs, func(m sqlc_queries.ChatMessage, _ int) (openai.ChatCompletionMessage, bool) {
+			if m.Role == "user" {
+				return openai.ChatCompletionMessage{
+					Role:    m.Role,
+					Content: m.Content,
+				}, true
+			} else {
+				return openai.ChatCompletionMessage{}, false
 			}
 		})
 		// Send the response as JSON
