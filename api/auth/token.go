@@ -14,7 +14,7 @@ import (
 
 var ErrInvalidToken = errors.New("invalid token")
 
-func GenerateToken(userID int32, secret string) (string, error) {
+func GenerateToken(userID int32, secret, jwt_audience string) (string, error) {
 	expires := time.Now().Add(time.Hour * 8).Unix()
 	notBefore := time.Now().Unix()
 	issuer := "https://www.bestqa.net"
@@ -26,7 +26,7 @@ func GenerateToken(userID int32, secret string) (string, error) {
 		"jti":     uuid.Must(uuid.NewV4()).String(),
 		"iss":     issuer,
 		"nbf":     notBefore,
-		"aud":     "bc442bb2b1d848fba5be2aa24312e711",
+		"aud":     jwt_audience,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

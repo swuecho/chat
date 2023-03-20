@@ -8,7 +8,7 @@ import (
 func TestGenerateToken(t *testing.T) {
 	user_id := int32(0)
 	secret := "abedefg"
-	token, err := GenerateToken(user_id, secret)
+	token, err := GenerateToken(user_id, secret, "aud")
 	if err != nil {
 		t.Fatalf("error generating password hash: %v", err)
 	}

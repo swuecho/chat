@@ -114,7 +114,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := auth.GenerateToken(user.ID, JWT_SECRET)
+	tokenString, err := auth.GenerateToken(user.ID, JWT_SECRET, JWT_AUD)
 	if err != nil {
 		http.Error(w, "failed to generate token", http.StatusInternalServerError)
 		return
@@ -147,7 +147,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.GenerateToken(user.ID, JWT_SECRET)
+	token, err := auth.GenerateToken(user.ID, JWT_SECRET, JWT_AUD)
 
 	if err != nil {
 		http.Error(w, "failed to generate token", http.StatusInternalServerError)

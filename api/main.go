@@ -17,6 +17,7 @@ import (
 
 var OPENAI_API_KEY string
 var JWT_SECRET string
+var JWT_AUD string
 var logger *log.Logger
 
 func main() {
@@ -31,6 +32,11 @@ func main() {
 		log.Fatal("JWT_SECRET not set")
 	}
 	JWT_SECRET = os.Getenv("JWT_SECRET")
+
+	if JWT_AUD, exists = os.LookupEnv("JWT_AUD"); !exists {
+		log.Fatal("JWT_AUD not set")
+	}
+	JWT_AUD= os.Getenv("JWT_AUD")
 
 	// Create a new logger instance, configure it as desired
 	logger = log.New()
