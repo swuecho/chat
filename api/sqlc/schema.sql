@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS chat_session (
     created_at timestamp  DEFAULT now() NOT NULL,
     updated_at timestamp  DEFAULT now() NOT NULL,
     active boolean default true NOT NULL,
-    max_length integer DEFAULT 0 NOT NULL
+    max_length integer DEFAULT 0 NOT NULL,
+    temperature float DEFAULT 1.0 NOT NUll
 );
 
 CREATE TABLE IF NOT EXISTS chat_message (
@@ -80,3 +81,5 @@ CREATE TABLE IF NOT EXISTS user_active_chat_session (
 -- UNIQUE (uuid);
 
 -- ALTER TABLE chat_prompt RENAME COLUMN topic TO session_uuid;
+
+ALTER TABLE IF EXISTS chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0;

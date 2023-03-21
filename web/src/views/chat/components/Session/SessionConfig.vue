@@ -1,32 +1,34 @@
 <script setup lang="ts">
-import { defineProps, onMounted, ref, watch } from 'vue'
+import { computed, defineProps, ref, watch } from 'vue'
 import { NCard, NInputNumber, NSlider } from 'naive-ui'
 import { debounce } from 'lodash'
-import { getChatSessionMaxContextLength, setChatSessionMaxContextLength } from '@/api'
+import { useChatStore } from '@/store'
 
 const props = defineProps<{
   uuid: string
 }>()
 
-const slider = ref(10)
+const chatStore = useChatStore()
 
-const temperature = ref(0.1)
+const session = computed(() => chatStore.getChatSessionByUuid(props.uuid))
+
+const slider = ref(session.value?.maxLength ?? 10)
+
+const temperature = ref(session.value?.temperature ?? 1.0)
 const maxTokens = ref(1)
 const topP = ref(0)
 const frequencyPenalty = ref(0)
 const presencePenalty = ref(0)
 
-const throttledUpdate = debounce(async (newValue: number, _: number) => {
-  await setChatSessionMaxContextLength(props.uuid, newValue)
+const throttledUpdate = debounce(async ([newValueSlider, newValueTemperature]: Array<number>) => {
+  chatStore.updateChatSession(props.uuid, {
+    maxLength: newValueSlider,
+    temperature: newValueTemperature,
+  })
 }, 200)
 
-onMounted(async () => {
-  slider.value = await getChatSessionMaxContextLength(props.uuid)
-})
-
-watch(slider, (newValue, oldValue) => {
-  console.log('slider')
-  throttledUpdate(newValue, oldValue)
+watch([slider, temperature], ([newValueSlider, newValueTemperature], _) => {
+  throttledUpdate([newValueSlider, newValueTemperature])
 })
 </script>
 
@@ -48,13 +50,11 @@ watch(slider, (newValue, oldValue) => {
     <NSlider v-model:value="topP" :min="0" :max="1" :step="0.1" :tooltip="false" />
     <NInputNumber v-model:value="topP" size="small" />
 
-    <div>{{ $t('chat.frequencyPenalty') }}</div>
-    <NSlider v-model:value="frequencyPenalty" :min="0" :max="1" :step="0.1" :tooltip="false" />
-    <NInputNumber v-model:value="frequencyPenalty" size="small" />
-
     <div>{{ $t('chat.presencePenalty') }}</div>
-    <NSlider v-model:value="presencePenalty" :min="0" :max="1" :step="0.1" :tooltip="false" />
+    <NSlider v-model:value="presencePenalty" :min="-2" :max="2" :step="0.1" :tooltip="false" />
     <NInputNumber v-model:value="presencePenalty" size="small" />
-
+    <div>{{ $t('chat.frequencyPenalty') }}</div>
+    <NSlider v-model:value="frequencyPenalty" :min="-2" :max="2" :step="0.1" :tooltip="false" />
+    <NInputNumber v-model:value="frequencyPenalty" size="small" />
   </NCard>
 </template>

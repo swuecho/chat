@@ -9,6 +9,7 @@ import {
   createOrUpdateUserActiveChatSession,
   deleteChatData,
   deleteChatSession,
+  updateChatSession as fetchUpdateChatByUuid,
   getChatMessagesBySessionUUID as getChatSessionHistory,
   getChatSessionsByUser,
   getUserActiveChatSession,
@@ -29,6 +30,16 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     getChatSessionByUuid(state: Chat.ChatState) {
+      return (uuid?: string) => {
+        if (uuid)
+          return state.history.find(item => item.uuid === uuid)
+        return (
+          state.history.find(item => item.uuid === state.active)
+        )
+      }
+    },
+
+    getChatSessionDataByUuid(state: Chat.ChatState) {
       return (uuid?: string) => {
         if (uuid)
           return state.chat.find(item => item.uuid === uuid)?.data ?? []
@@ -85,10 +96,12 @@ export const useChatStore = defineStore('chat-store', {
       this.reloadRoute(history.uuid)
     },
 
-    updateChatSession(uuid: string, edit: Partial<Chat.History>) {
+    async updateChatSession(uuid: string, edit: Partial<Chat.History>) {
       const index = this.history.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
         this.history[index] = { ...this.history[index], ...edit }
+        // update chat session
+        await fetchUpdateChatByUuid(uuid, this.history[index])
         this.recordState()
       }
     },
