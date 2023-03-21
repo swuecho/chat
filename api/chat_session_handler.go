@@ -223,8 +223,9 @@ func (h *ChatSessionHandler) UpdateChatSessionByUUID(w http.ResponseWriter, r *h
 type UpdateChatSessionRequest struct {
 	Uuid        string  `json:"uuid"`
 	Topic       string  `json:"topic"`
-	MaxLength   int32     `json:"maxLength"`
+	MaxLength   int32   `json:"maxLength"`
 	Temperature float64 `json:"temperature"`
+	MaxTokens   int32   `json:"maxTokens"`
 }
 
 // UpdateChatSessionByUUID updates a chat session by its UUID
@@ -253,6 +254,7 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.Uuid = sessionReq.Uuid
 	sessionParams.UserID = int32(userIDInt)
 	sessionParams.Temperature = sessionReq.Temperature
+	sessionParams.MaxTokens = sessionReq.MaxTokens
 	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

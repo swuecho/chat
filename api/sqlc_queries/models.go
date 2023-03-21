@@ -62,6 +62,7 @@ type ChatSession struct {
 	Active      bool
 	MaxLength   int32
 	Temperature float64
+	MaxTokens   int32
 }
 
 type UserActiveChatSession struct {

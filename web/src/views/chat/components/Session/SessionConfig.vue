@@ -15,20 +15,21 @@ const session = computed(() => chatStore.getChatSessionByUuid(props.uuid))
 const slider = ref(session.value?.maxLength ?? 10)
 
 const temperature = ref(session.value?.temperature ?? 1.0)
-const maxTokens = ref(1)
-const topP = ref(0)
-const frequencyPenalty = ref(0)
-const presencePenalty = ref(0)
+const maxTokens = ref(session.value?.maxTokens ?? 512)
+// const topP = ref(0)
+// const frequencyPenalty = ref(0)
+// const presencePenalty = ref(0)
 
-const throttledUpdate = debounce(async ([newValueSlider, newValueTemperature]: Array<number>) => {
+const throttledUpdate = debounce(async ([newValueSlider, newValueTemperature, newMaxTokens]: Array<number>) => {
   chatStore.updateChatSession(props.uuid, {
     maxLength: newValueSlider,
     temperature: newValueTemperature,
+    maxTokens: newMaxTokens,
   })
 }, 200)
 
-watch([slider, temperature], ([newValueSlider, newValueTemperature], _) => {
-  throttledUpdate([newValueSlider, newValueTemperature])
+watch([slider, temperature, maxTokens], ([newValueSlider, newValueTemperature, newMaxTokens], _) => {
+  throttledUpdate([newValueSlider, newValueTemperature, newMaxTokens])
 })
 </script>
 
@@ -43,9 +44,9 @@ watch([slider, temperature], ([newValueSlider, newValueTemperature], _) => {
     <NInputNumber v-model:value="temperature" size="small" />
 
     <div>{{ $t('chat.maxTokens') }}</div>
-    <NSlider v-model:value="maxTokens" :min="1" :max="4028" :tooltip="false" />
+    <NSlider v-model:value="maxTokens" :min="256" :max="4096" :step="10" :tooltip="false" />
     <NInputNumber v-model:value="maxTokens" size="small" />
-
+    <!--
     <div>{{ $t('chat.topP') }}</div>
     <NSlider v-model:value="topP" :min="0" :max="1" :step="0.1" :tooltip="false" />
     <NInputNumber v-model:value="topP" size="small" />
@@ -56,5 +57,6 @@ watch([slider, temperature], ([newValueSlider, newValueTemperature], _) => {
     <div>{{ $t('chat.frequencyPenalty') }}</div>
     <NSlider v-model:value="frequencyPenalty" :min="-2" :max="2" :step="0.1" :tooltip="false" />
     <NInputNumber v-model:value="frequencyPenalty" size="small" />
+     -->
   </NCard>
 </template>
