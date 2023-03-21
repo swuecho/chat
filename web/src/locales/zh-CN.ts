@@ -1,6 +1,6 @@
 export default {
   common: {
-    help: '第一条是主题(prompt), 上下午包括10条信息',
+    help: '第一条是主题(prompt), 上下文包括10条信息',
     edit: '编辑',
     delete: '删除',
     save: '保存',
