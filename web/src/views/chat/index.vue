@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
-import { NButton, NCard, NInput, NModal, NSlider, useDialog, useMessage } from 'naive-ui'
+import { NButton, NCard, NInput, NInputNumber, NModal, NSlider, useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import { debounce } from 'lodash'
 import { Message } from './components'
@@ -30,7 +30,7 @@ useCopyCode()
 const { isMobile } = useBasicLayout()
 const { addChat, updateChat, updateChatPartial, updateChatText } = useChat()
 const { scrollRef, scrollToBottom } = useScroll()
-const { usingContext, toggleUsingContext } = useUsingContext()
+const { usingContext } = useUsingContext()
 // session uuid
 const { uuid } = route.params as { uuid: string }
 const sessionUuid = uuid
@@ -42,7 +42,7 @@ const loading = ref<boolean>(false)
 
 const sliderValue = ref<number>(10)
 
-const throttledUpdate = debounce(async (newValue: number, oldValue: number) => {
+const throttledUpdate = debounce(async (newValue: number, _: number) => {
   await setChatSessionMaxContextLength(uuid, newValue)
 }, 200)
 
@@ -507,28 +507,25 @@ onUnmounted(() => {
 
 <template>
   <div class="flex flex-col w-full h-full">
-    <HeaderComponent
-      v-if="isMobile" :using-context="usingContext" @export="handleExport"
-      @toggle-using-context="toggleUsingContext"
-    />
+    <HeaderComponent v-if="isMobile" :using-context="usingContext" @export="handleExport"
+      @toggle-using-context="showModal = true" />
     <main class="flex-1 overflow-hidden">
       <NModal v-model:show="showModal">
         <NCard style="width: 600px" title="会话设置" :bordered="false" size="huge" role="dialog" aria-modal="true">
           <!-- <template #header-extra>
-                          Oops!
-                        </template> -->
-          上下文数量, 默认10 (会话开始的两条+ 最近的8条)
-          <NSlider v-model:value="sliderValue" :min="1" :max="20" show-tooltip />
+                                          Oops!
+                                        </template> -->
+          <div>上下文数量, 默认10 (会话开始的2条+ 最近的8条)</div>
+          <NSlider v-model:value="sliderValue" :min="1" :max="20" :tooltip="false" />
+          <NInputNumber v-model:value="sliderValue" size="small" />
           <!-- <template #footer>
-                          Footer
-                        </template> -->
+                                          Footer
+                                        </template> -->
         </NCard>
       </NModal>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-        <div
-          id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
-          :class="[isMobile ? 'p-2' : 'p-4']"
-        >
+        <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
+          :class="[isMobile ? 'p-2' : 'p-4']">
           <template v-if="!dataSources.length">
             <div class="flex items-center justify-center mt-4 text-center text-neutral-300">
               <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
@@ -537,11 +534,9 @@ onUnmounted(() => {
           </template>
           <template v-else>
             <div>
-              <Message
-                v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime" :text="item.text"
+              <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime" :text="item.text"
                 :inversion="item.inversion" :error="item.error" :loading="item.loading" :index="index"
-                @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @after-edit="handleAfterEdit"
-              />
+                @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @after-edit="handleAfterEdit" />
               <div class="sticky bottom-0 left-0 flex justify-center">
                 <NButton v-if="loading" type="warning" @click="handleStop">
                   <template #icon>
@@ -574,14 +569,10 @@ onUnmounted(() => {
             </span>
           </HoverButton>
 
-          <NInput
-            id="message_textarea" v-model:value="prompt" data-testid="message_textarea" type="textarea"
-            :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" :placeholder="placeholder" @keypress="handleEnter"
-          />
-          <NButton
-            id="send_message_button" data-testid="send_message_button" type="primary" :disabled="buttonDisabled"
-            @click="handleSubmit"
-          >
+          <NInput id="message_textarea" v-model:value="prompt" data-testid="message_textarea" type="textarea"
+            :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" :placeholder="placeholder" @keypress="handleEnter" />
+          <NButton id="send_message_button" data-testid="send_message_button" type="primary" :disabled="buttonDisabled"
+            @click="handleSubmit">
             <template #icon>
               <span class="dark:text-black">
                 <SvgIcon icon="ri:send-plane-fill" />
