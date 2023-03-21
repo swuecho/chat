@@ -378,7 +378,7 @@ func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat
 		Messages:    chat_compeletion_messages,
 		MaxTokens:   int(chatSession.MaxTokens),
 		Temperature: float32(chatSession.Temperature),
-		// TopP:             topP,
+		TopP:        float32(chatSession.TopP),
 		// PresencePenalty:  presencePenalty,
 		// FrequencyPenalty: frequencyPenalty,
 		// N:                n,
