@@ -1,10 +1,9 @@
 <script setup lang='ts'>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
 import { NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
-import { debounce } from 'lodash'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
@@ -15,7 +14,7 @@ import SessionConfig from './components/Session/SessionConfig.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore } from '@/store'
-import { fetchChatStream, getChatSessionMaxContextLength, setChatSessionMaxContextLength } from '@/api'
+import { fetchChatStream } from '@/api'
 import { t } from '@/locales'
 
 let controller = new AbortController()
@@ -40,24 +39,6 @@ const conversationList = computed(() => dataSources.value.filter(item => (!item.
 
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
-
-const sliderValue = ref<number>(10)
-
-function updateSliderValue(newValue: number) {
-  sliderValue.value = newValue
-}
-
-const throttledUpdate = debounce(async (newValue: number, _: number) => {
-  await setChatSessionMaxContextLength(uuid, newValue)
-}, 200)
-
-onMounted(async () => {
-  sliderValue.value = await getChatSessionMaxContextLength(uuid)
-})
-
-watch(sliderValue, (newValue, oldValue) => {
-  throttledUpdate(newValue, oldValue)
-})
 
 const showModal = ref<boolean>(false)
 
@@ -517,8 +498,10 @@ onUnmounted(() => {
       @toggle-using-context="showModal = true"
     />
     <main class="flex-1 overflow-hidden">
-      <NModal v-model:show="showModal">
-        <SessionConfig :slider-value="sliderValue" @update:slider-value="updateSliderValue" />
+      <NModal ref="sessionConfigModal" v-model:show="showModal">
+        <SessionConfig
+          ref="sessionConfig" :uuid="sessionUuid"
+        />
       </NModal>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div
