@@ -33,30 +33,28 @@ watch(slider, (newValue, oldValue) => {
 <template>
   <NCard style="width: 600px" title="会话设置" :bordered="false" size="huge" role="dialog" aria-modal="true">
     <div>{{ $t('chat.slider') }}</div>
-    <NSlider v-model="slider" :min="1" :max="20" :tooltip="false" />
-    <NInputNumber v-model="slider" size="small" />
+    <NSlider v-model:value="slider" :min="1" :max="20" :tooltip="false" />
+    <NInputNumber v-model:value="slider" size="small" />
+
     <div>{{ $t('chat.temperature') }}</div>
-    <NSlider v-model="temperature" :min="0.1" :max="2" :step="0.1" :tooltip="false" />
-    <NInputNumber v-model="temperature" size="small" />
+    <NSlider v-model:value="temperature" :min="0.1" :max="2" :step="0.1" :tooltip="false" />
+    <NInputNumber v-model:value="temperature" size="small" />
 
     <div>{{ $t('chat.maxTokens') }}</div>
-    <NSlider v-model="maxTokens" :min="1" :max="4028" :tooltip="false" />
-    <NInputNumber v-model="maxTokens" size="small" />
+    <NSlider v-model:value="maxTokens" :min="1" :max="4028" :tooltip="false" />
+    <NInputNumber v-model:value="maxTokens" size="small" />
 
     <div>{{ $t('chat.topP') }}</div>
-    <NSlider v-model="topP" :min="0" :max="1" :step="0.1" :tooltip="false" />
-    <NInputNumber v-model="topP" size="small" />
+    <NSlider v-model:value="topP" :min="0" :max="1" :step="0.1" :tooltip="false" />
+    <NInputNumber v-model:value="topP" size="small" />
 
     <div>{{ $t('chat.frequencyPenalty') }}</div>
-    <NSlider v-model="frequencyPenalty" :min="0" :max="1" :step="0.1" :tooltip="false" />
-    <NInputNumber v-model="frequencyPenalty" size="small" />
+    <NSlider v-model:value="frequencyPenalty" :min="0" :max="1" :step="0.1" :tooltip="false" />
+    <NInputNumber v-model:value="frequencyPenalty" size="small" />
 
     <div>{{ $t('chat.presencePenalty') }}</div>
-    <NSlider v-model="presencePenalty" :min="0" :max="1" :step="0.1" :tooltip="false" />
-    <NInputNumber v-model="presencePenalty" size="small" />
+    <NSlider v-model:value="presencePenalty" :min="0" :max="1" :step="0.1" :tooltip="false" />
+    <NInputNumber v-model:value="presencePenalty" size="small" />
 
-    <button type="submit">
-      {{ $t('chat.submit') }}
-    </button>
   </NCard>
 </template>
