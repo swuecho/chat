@@ -53,14 +53,15 @@ type ChatPrompt struct {
 }
 
 type ChatSession struct {
-	ID        int32
-	UserID    int32
-	Uuid      string
-	Topic     string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Active    bool
-	MaxLength int32
+	ID          int32
+	UserID      int32
+	Uuid        string
+	Topic       string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Active      bool
+	MaxLength   int32
+	Temperature float64
 }
 
 type UserActiveChatSession struct {

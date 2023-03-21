@@ -13,9 +13,11 @@ declare namespace Chat {
 	}
 
 	interface History {
+		uuid: string
 		title: string
 		isEdit: boolean
-		uuid: string
+		maxLength?: number
+		temperature?: number
 	}
 
 	interface ChatState {

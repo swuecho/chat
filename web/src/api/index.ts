@@ -184,6 +184,17 @@ export const setChatSessionMaxContextLength = async (uuid: string, maxLength: nu
   }
 }
 
+export const updateChatSession = async (sessionUuid: string, session_data: Chat.History) => {
+  try {
+    const response = await request.put(`/uuid/chat_sessions/${sessionUuid}`, session_data)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
 export const deleteChatMessage = async (uuid: string) => {
   try {
     const response = await request.delete(`/uuid/chat_messages/${uuid}`)

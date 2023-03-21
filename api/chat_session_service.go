@@ -83,6 +83,7 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 			Uuid:   session.Uuid,
 			IsEdit: false,
 			Title:  session.Topic,
+			MaxLength: int(session.MaxLength),
 		}
 	})
 	return simple_sessions, nil

@@ -43,6 +43,11 @@ export default {
     clearHistoryConfirm: '确定清空聊天记录?',
     contextLength: '上下文数量, 默认10 (会话开始的2条 + 最近的8条)',
     stopAnswer: '停止回答',
+    temperature: '温度',
+    maxTokens: '最大令牌数',
+    topP: 'Top P',
+    frequencyPenalty: '频率惩罚',
+    presencePenalty: '存在惩罚',
   },
   setting: {
     setting: '设置',

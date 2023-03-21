@@ -220,17 +220,24 @@ func (h *ChatSessionHandler) UpdateChatSessionByUUID(w http.ResponseWriter, r *h
 	json.NewEncoder(w).Encode(session)
 }
 
+type UpdateChatSessionRequest struct {
+	Uuid        string  `json:"uuid"`
+	Topic       string  `json:"topic"`
+	MaxLength   int32     `json:"maxLength"`
+	Temperature float64 `json:"temperature"`
+}
+
 // UpdateChatSessionByUUID updates a chat session by its UUID
 func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
-	uuid := mux.Vars(r)["uuid"]
-	var sessionParams sqlc_queries.CreateOrUpdateChatSessionByUUIDParams
-	err := json.NewDecoder(r.Body).Decode(&sessionParams)
+	var sessionReq UpdateChatSessionRequest
+	err := json.NewDecoder(r.Body).Decode(&sessionReq)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	sessionParams.Uuid = uuid
-	sessionParams.MaxLength = 10
+	if sessionReq.MaxLength == 0 {
+		sessionReq.MaxLength = 10
+	}
 
 	ctx := r.Context()
 	userIDStr := ctx.Value(userContextKey).(string)
@@ -239,8 +246,13 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
 		return
 	}
+	var sessionParams sqlc_queries.CreateOrUpdateChatSessionByUUIDParams
 
+	sessionParams.MaxLength = sessionReq.MaxLength
+	sessionParams.Topic = sessionReq.Topic
+	sessionParams.Uuid = sessionReq.Uuid
 	sessionParams.UserID = int32(userIDInt)
+	sessionParams.Temperature = sessionReq.Temperature
 	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
