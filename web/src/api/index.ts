@@ -169,13 +169,8 @@ export const clearSessionChatMessages = async (sessionUuid: string) => {
 }
 
 export const getChatSessionMaxContextLength = async (sessionUuid: string) => {
-  try {
-    const response = await request.get(`/uuid/chat_sessions/${sessionUuid}`)
-    return response.data.maxLength
-  }
-  catch (error) {
-    console.error(error)
-  }
+  const response = await request.get(`/uuid/chat_sessions/${sessionUuid}`)
+  return response.data.maxLength
 }
 
 export const setChatSessionMaxContextLength = async (uuid: string, maxLength: number) => {

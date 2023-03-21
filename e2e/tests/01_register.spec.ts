@@ -14,5 +14,6 @@ test('test', async ({ page }) => {
   await page.getByTestId('password').locator('input').click();
   await page.getByTestId('password').locator('input').fill('@WuHao5');
   await page.getByTestId('signup').click();
+
 });
 
