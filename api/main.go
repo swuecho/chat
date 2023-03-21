@@ -162,11 +162,13 @@ func main() {
 		return nil
 	})
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+
 	router.Use(IsAuthorizedMiddleware)
-	// Wrap the router with the logging middleware
-	// 10 min < 100 requests
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)
+	// Wrap the router with the logging middleware
+	// 10 min < 100 requests
 	// loggedMux := loggingMiddleware(router, logger)
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
 	err = http.ListenAndServe(":8077", loggedRouter)
