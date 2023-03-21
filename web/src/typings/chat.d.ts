@@ -18,6 +18,7 @@ declare namespace Chat {
 		isEdit: boolean
 		maxLength?: number
 		temperature?: number
+		topP?: number
 		maxTokens?: number
 	}
 

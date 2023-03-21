@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS chat_session (
     active boolean default true NOT NULL,
     max_length integer DEFAULT 0 NOT NULL,
     temperature float DEFAULT 1.0 NOT NUll,
+    top_p float DEFAULT 1.0 NOT NUll,
     max_tokens int DEFAULT 512 NOT NULL
 );
 
@@ -84,4 +85,5 @@ CREATE TABLE IF NOT EXISTS user_active_chat_session (
 -- ALTER TABLE chat_prompt RENAME COLUMN topic TO session_uuid;
 
 ALTER TABLE IF EXISTS chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0;
+ALTER TABLE IF EXISTS chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0;
 ALTER TABLE IF EXISTS chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 512; 

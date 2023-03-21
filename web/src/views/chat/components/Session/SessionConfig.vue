@@ -16,20 +16,21 @@ const slider = ref(session.value?.maxLength ?? 10)
 
 const temperature = ref(session.value?.temperature ?? 1.0)
 const maxTokens = ref(session.value?.maxTokens ?? 512)
-// const topP = ref(0)
+const topP = ref(session.value?.topP ?? 1.0)
 // const frequencyPenalty = ref(0)
 // const presencePenalty = ref(0)
 
-const throttledUpdate = debounce(async ([newValueSlider, newValueTemperature, newMaxTokens]: Array<number>) => {
+const throttledUpdate = debounce(async ([newValueSlider, newValueTemperature, newMaxTokens, topP]: Array<number>) => {
   chatStore.updateChatSession(props.uuid, {
     maxLength: newValueSlider,
     temperature: newValueTemperature,
     maxTokens: newMaxTokens,
+    topP,
   })
 }, 200)
 
-watch([slider, temperature, maxTokens], ([newValueSlider, newValueTemperature, newMaxTokens], _) => {
-  throttledUpdate([newValueSlider, newValueTemperature, newMaxTokens])
+watch([slider, temperature, maxTokens, topP], ([newValueSlider, newValueTemperature, newMaxTokens, topP], _) => {
+  throttledUpdate([newValueSlider, newValueTemperature, newMaxTokens, topP])
 })
 </script>
 
@@ -43,14 +44,15 @@ watch([slider, temperature, maxTokens], ([newValueSlider, newValueTemperature, n
     <NSlider v-model:value="temperature" :min="0.1" :max="2" :step="0.1" :tooltip="false" />
     <NInputNumber v-model:value="temperature" size="small" />
 
-    <div>{{ $t('chat.maxTokens') }}</div>
-    <NSlider v-model:value="maxTokens" :min="256" :max="4096" :step="10" :tooltip="false" />
-    <NInputNumber v-model:value="maxTokens" size="small" />
-    <!--
     <div>{{ $t('chat.topP') }}</div>
     <NSlider v-model:value="topP" :min="0" :max="1" :step="0.1" :tooltip="false" />
     <NInputNumber v-model:value="topP" size="small" />
 
+    <div>{{ $t('chat.maxTokens') }}</div>
+    <NSlider v-model:value="maxTokens" :min="256" :max="4096" :step="10" :tooltip="false" />
+    <NInputNumber v-model:value="maxTokens" size="small" />
+
+    <!--
     <div>{{ $t('chat.presencePenalty') }}</div>
     <NSlider v-model:value="presencePenalty" :min="-2" :max="2" :step="0.1" :tooltip="false" />
     <NInputNumber v-model:value="presencePenalty" size="small" />
