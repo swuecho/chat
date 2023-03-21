@@ -174,7 +174,9 @@ export const getChatSessionMaxContextLength = async (sessionUuid: string) => {
     return response.data.maxLength
   }
   catch (error) {
-    console.error(error)
+    if (error?.response && error?.response?.data === 'failed to retrieve session by uuid, sql: no rows in result set\n')
+      return 10
+    throw error
   }
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -132,17 +133,22 @@ func (h *ChatSessionHandler) GetChatSessionsByUserID(w http.ResponseWriter, r *h
 func (h *ChatSessionHandler) GetChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
 	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
+	session_resp := &ChatSessionResponse{}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		if err == sql.ErrNoRows {
+			session_resp.Uuid = session.Uuid
+			session_resp.MaxLength = 10
+			json.NewEncoder(w).Encode(session_resp)
+		} else {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 	}
-	session_resp := &ChatSessionResponse{
-		Uuid:      session.Uuid,
-		Topic:     session.Topic,
-		MaxLength: session.MaxLength,
-		CreatedAt: session.CreatedAt,
-		UpdatedAt: session.UpdatedAt,
-	}
+	session_resp.Uuid = session.Uuid
+	session_resp.Topic = session.Topic
+	session_resp.MaxLength = session.MaxLength
+	session_resp.CreatedAt = session.CreatedAt
+	session_resp.UpdatedAt = session.UpdatedAt
 	json.NewEncoder(w).Encode(session_resp)
 }
 
