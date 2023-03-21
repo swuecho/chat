@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "web"
+		},
+		{
+			"path": "api"
+		},
+		{
+			"path": "e2e"
+		}
+	],
+	"settings": {}
+}
