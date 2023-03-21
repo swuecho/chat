@@ -337,8 +337,9 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 			}
 		})
 
+
 		// Set up SSE headers
-		answerText, answerID, shouldReturn := chat_stream(ctx, chatCompletionMessages, w)
+		answerText, answerID, shouldReturn := chat_stream(ctx, chatSession, chatCompletionMessages, w)
 		if shouldReturn {
 			return
 		}
@@ -363,11 +364,11 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 
 }
 
-func chat_stream(ctx context.Context, chat_compeletion_messages []openai.ChatCompletionMessage, w http.ResponseWriter) (string, string, bool) {
+func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, w http.ResponseWriter) (string, string, bool) {
 	apiKey := OPENAI_API_KEY
 
 	client := openai.NewClient(apiKey)
-	maxTokens := 1000
+	maxTokens := 4096
 	// temperature := float32(0.8)
 	// topP := float32(1)
 	// presencePenalty := float32(0)
@@ -378,7 +379,7 @@ func chat_stream(ctx context.Context, chat_compeletion_messages []openai.ChatCom
 		Model:     openai.GPT3Dot5Turbo,
 		Messages:  chat_compeletion_messages,
 		MaxTokens: maxTokens,
-		// Temperature:      temperature,
+		Temperature: float32(chatSession.Temperature),
 		// TopP:             topP,
 		// PresencePenalty:  presencePenalty,
 		// FrequencyPenalty: frequencyPenalty,
