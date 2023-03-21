@@ -109,3 +109,11 @@ WHERE uuid = $1 ;
 -- name: DeleteChatMessagesBySesionUUID :exec
 DELETE FROM chat_message
 WHERE chat_session_uuid = $1;
+
+
+-- name: GetChatMessagesCount :one
+-- Get total chat message count for user in last 10 minutes
+SELECT COUNT(*)
+FROM chat_message
+WHERE user_id = $1
+AND created_at >= NOW() - INTERVAL '10 minutes';

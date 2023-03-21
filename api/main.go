@@ -27,7 +27,6 @@ func main() {
 	}
 	OPENAI_API_KEY = os.Getenv("OPENAI_API_KEY")
 
-
 	if JWT_SECRET, exists = os.LookupEnv("JWT_SECRET"); !exists {
 		log.Fatal("JWT_SECRET not set")
 	}
@@ -36,7 +35,7 @@ func main() {
 	if JWT_AUD, exists = os.LookupEnv("JWT_AUD"); !exists {
 		log.Fatal("JWT_AUD not set")
 	}
-	JWT_AUD= os.Getenv("JWT_AUD")
+	JWT_AUD = os.Getenv("JWT_AUD")
 
 	// Create a new logger instance, configure it as desired
 	logger = log.New()
@@ -165,6 +164,9 @@ func main() {
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	router.Use(IsAuthorizedMiddleware)
 	// Wrap the router with the logging middleware
+	// 10 min < 100 requests
+	limitedRouter := RateLimitByUserID(sqlc_q)
+	router.Use(limitedRouter)
 	// loggedMux := loggingMiddleware(router, logger)
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
 	err = http.ListenAndServe(":8077", loggedRouter)

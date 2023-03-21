@@ -91,6 +91,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 				}
 				ctx := context.WithValue(r.Context(), userContextKey, userID)
 				ctx = context.WithValue(ctx, roleContextKey, role)
+
 				// TODO: get trace id and add it to context
 				//traceID := r.Header.Get("X-Request-Id")
 				//if len(traceID) > 0 {
