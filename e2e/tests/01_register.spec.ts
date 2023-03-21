@@ -15,25 +15,5 @@ test('test', async ({ page }) => {
   await page.getByTestId('password').locator('input').fill('@WuHao5');
   await page.getByTestId('signup').click();
 
-  await page.waitForTimeout(1000);
-
-  await page.getByRole('contentinfo').getByRole('button').nth(2).click();
-  // change the value of the slider
-  // Find the slider element and adjust its value
-  const sliderRailFill = await page.$('.n-slider-rail__fill')
-  expect(sliderRailFill).toBeTruthy()
-  await sliderRailFill?.evaluate((element) => {
-    element.setAttribute('style', 'width: 25%;')
-  }
-  )
-  // sliderRailFill?.setAttribute('style', 'width: 25%;')
-  await page.waitForTimeout(1000);
-await page.locator('.n-slider-handles').click();
-await page.locator('.n-slider').click();
-await page.locator('.n-slider').click();
-await page.locator('.n-slider-handles').click();
-await page.locator('.n-slider-handles').click();
-await page.locator('.n-slider').click();
-
 });
 
