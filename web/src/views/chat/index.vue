@@ -513,14 +513,14 @@ onUnmounted(() => {
       <NModal v-model:show="showModal">
         <NCard style="width: 600px" title="会话设置" :bordered="false" size="huge" role="dialog" aria-modal="true">
           <!-- <template #header-extra>
-                                            Oops!
-                                          </template> -->
-          <div> {{ $t(chat.contextLength) }}</div>
+                                                Oops!
+                                              </template> -->
+          <div> {{ $t('chat.contextLength') }}</div>
           <NSlider v-model:value="sliderValue" :min="1" :max="20" :tooltip="false" />
           <NInputNumber v-model:value="sliderValue" size="small" />
           <!-- <template #footer>
-                                            Footer
-                                          </template> -->
+                                                Footer
+                                              </template> -->
         </NCard>
       </NModal>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
@@ -542,7 +542,7 @@ onUnmounted(() => {
                   <template #icon>
                     <SvgIcon icon="ri:stop-circle-line" />
                   </template>
-                  Stop Responding
+                  {{ $t('chat.stopAnswer') }}
                 </NButton>
               </div>
             </div>

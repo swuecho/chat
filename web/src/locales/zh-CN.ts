@@ -42,6 +42,7 @@ export default {
     deleteChatSessionsConfirm: '确定删除此记录?',
     clearHistoryConfirm: '确定清空聊天记录?',
     contextLength: '上下文数量, 默认10 (会话开始的2条 + 最近的8条)',
+    stopAnswer: '停止回答',
   },
   setting: {
     setting: '设置',
