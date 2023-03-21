@@ -39,9 +39,10 @@ type SimpleChatMessage struct {
 }
 
 type SimpleChatSession struct {
-	Uuid   string `json:"uuid"`
-	IsEdit bool   `json:"isEdit"`
-	Title  string `json:"title"`
+	Uuid      string `json:"uuid"`
+	IsEdit    bool   `json:"isEdit"`
+	Title     string `json:"title"`
+	MaxLength int    `json:"maxLength"`
 }
 
 type ChatMessageResponse struct {
