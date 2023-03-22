@@ -45,10 +45,6 @@ func getFlattenKeys(prefix string, v reflect.Value) (keys []string) {
 		for i := 0; i < v.NumField(); i++ {
 			field := v.Field(i)
 			name := v.Type().Field(i).Name
-			//tags := v.Type().Field(i).Tag
-			// if tags.Get("env") != "" {
-			// 	name = tags.Get("env")
-			// }
 			keys = append(keys, getFlattenKeys(prefix+name+".", field)...)
 		}
 	default:
@@ -57,9 +53,7 @@ func getFlattenKeys(prefix string, v reflect.Value) (keys []string) {
 	return keys
 }
 
-func main() {
-	// Configure viper to read environment variables
-	// auto bind env
+func bindEnvironmentVariables() {
 	appConfig = AppConfig{}
 	for _, key := range getFlattenKeys("", reflect.ValueOf(appConfig)) {
 		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
@@ -68,7 +62,11 @@ func main() {
 			logger.Fatal("config: unable to bind env: " + err.Error())
 		}
 	}
+}
 
+func main() {
+	// Configure viper to read environment variables
+	bindEnvironmentVariables()
 	viper.AutomaticEnv()
 
 	if err := viper.Unmarshal(&appConfig); err != nil {
