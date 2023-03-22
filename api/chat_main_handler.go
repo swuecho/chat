@@ -183,6 +183,9 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		chatCompletionMessages = append(ChatCompletionMessagesFromPrompt, chatCompletionMessages...)
 
 		// Set up SSE headers
+		if chat_session.Debug {
+			log.Printf("%+v\n", chatCompletionMessages)
+		}
 		answerText, _, shouldReturn := chat_stream(ctx, chat_session, chatCompletionMessages, w)
 		if shouldReturn {
 			return
