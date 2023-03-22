@@ -12,44 +12,48 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
 
-var OPENAI_API_KEY string
-var JWT_SECRET string
-var JWT_AUD string
 var logger *log.Logger
 
+type AppConfig struct {
+	OPENAI struct {
+		API_KEY string
+	}
+	JWT struct {
+		SECRET string
+		AUD    string
+	}
+
+	PG struct {
+		HOST string
+		PORT string
+		USER string
+		PASS string
+		DB   string
+	}
+}
+
+var appConfig AppConfig
+
 func main() {
-	var exists bool
-	if OPENAI_API_KEY, exists = os.LookupEnv("OPENAI_API_KEY"); !exists {
-		log.Fatal("OPENAI_API_KEY not set")
+	// Configure viper to read environment variables
+	viper.AutomaticEnv()
+	// Unmarshal environment variables into Config struct
+	err := viper.Unmarshal(&appConfig)
+	if err != nil {
+		panic(err)
 	}
-	OPENAI_API_KEY = os.Getenv("OPENAI_API_KEY")
 
-	if JWT_SECRET, exists = os.LookupEnv("JWT_SECRET"); !exists {
-		log.Fatal("JWT_SECRET not set")
-	}
-	JWT_SECRET = os.Getenv("JWT_SECRET")
-
-	if JWT_AUD, exists = os.LookupEnv("JWT_AUD"); !exists {
-		log.Fatal("JWT_AUD not set")
-	}
-	JWT_AUD = os.Getenv("JWT_AUD")
-
-	// Create a new logger instance, configure it as desired
 	logger = log.New()
 	logger.Formatter = &log.JSONFormatter{}
 
-	host := os.Getenv("PG_HOST")
-	port := os.Getenv("PG_PORT")
-	user := os.Getenv("PG_USER")
-	password := os.Getenv("PG_PASS")
-	dbname := os.Getenv("PG_DB")
-
 	// Establish a database connection
+	pg := appConfig.PG
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+		pg.HOST, pg.DB, pg.USER, pg.PASS, pg.DB)
 	pgdb, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)

@@ -364,7 +364,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 }
 
 func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, w http.ResponseWriter) (string, string, bool) {
-	apiKey := OPENAI_API_KEY
+	apiKey := appConfig.OPENAI.API_KEY
 
 	client := openai.NewClient(apiKey)
 	// temperature := float32(0.8)
