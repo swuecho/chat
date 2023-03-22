@@ -21,7 +21,7 @@ const debug = ref(session.value?.debug ?? false)
 // const frequencyPenalty = ref(0)
 // const presencePenalty = ref(0)
 
-const throttledUpdate = debounce(async ([newValueSlider, newValueTemperature, newMaxTokens, topP]: Array<number>) => {
+const debouneUpdate = debounce(async ([newValueSlider, newValueTemperature, newMaxTokens, topP, debug]: Array<any>) => {
   chatStore.updateChatSession(props.uuid, {
     maxLength: newValueSlider,
     temperature: newValueTemperature,
@@ -32,7 +32,7 @@ const throttledUpdate = debounce(async ([newValueSlider, newValueTemperature, ne
 }, 200)
 
 watch([slider, temperature, maxTokens, topP, debug], ([newValueSlider, newValueTemperature, newMaxTokens, topP, debug], _) => {
-  throttledUpdate([newValueSlider, newValueTemperature, newMaxTokens, topP, debug])
+  debouneUpdate([newValueSlider, newValueTemperature, newMaxTokens, topP, debug])
 })
 </script>
 
