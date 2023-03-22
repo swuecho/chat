@@ -220,17 +220,11 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	// no session exists
 	// create session and prompt
 
-	chatSession, err := h.chatService.q.CreateOrUpdateChatSessionByUUID(ctx, sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
-		Uuid:   chatSessionUuid,
-		UserID: userID,
-		Topic:  firstN(newQuestion, 30),
-	})
+	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 
 	if err != nil {
 		http.Error(w, fmt.Errorf("fail to create or update session: %w", err).Error(), http.StatusInternalServerError)
 	}
-
-	log.Println(chatSession)
 
 	existingPrompt := true
 
