@@ -414,7 +414,9 @@ func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat
 		}
 		delta := response.Choices[0].Delta.Content
 		// log.Println(delta)
-		fmt.Printf("%q\n", delta)
+		if chatSession.Debug {
+			log.Printf("%s", delta)
+		}
 		answer += delta
 		if answer_id == "" {
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
