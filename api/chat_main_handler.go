@@ -327,10 +327,14 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	} else {
 
 		// Send the response as JSON
-		chatCompletionMessages := lo.Map(msgs, func(m Message, _ int) openai.ChatCompletionMessage {
-			return openai.ChatCompletionMessage{
-				Role:    m.Role,
-				Content: m.Content,
+		chatCompletionMessages := lo.FilterMap(msgs, func(m Message, _ int) (openai.ChatCompletionMessage, bool) {
+			if m.Role == "user" {
+				return openai.ChatCompletionMessage{
+					Role:    m.Role,
+					Content: m.Content,
+				}, true
+			} else {
+				return openai.ChatCompletionMessage{}, false
 			}
 		})
 
@@ -403,6 +407,15 @@ func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat
 			if len(answer) > 0 {
 				final_resp := constructChatCompletionStreamReponse(answer_id, answer)
 				data, _ := json.Marshal(final_resp)
+				fmt.Fprintf(w, "data: %v\n\n", string(data))
+				flusher.Flush()
+			}
+			if chatSession.Debug {
+				req_j, _ := json.Marshal(openai_req)
+				log.Println(string(req_j))
+				answer = answer+"\n"+string(req_j)
+				req_as_resp := constructChatCompletionStreamReponse(answer_id, answer)
+				data, _ := json.Marshal(req_as_resp)
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
 				flusher.Flush()
 			}
