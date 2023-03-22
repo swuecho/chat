@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS user_active_chat_session (
 
 -- ALTER TABLE chat_prompt RENAME COLUMN topic TO session_uuid;
 
-ALTER TABLE IF EXISTS chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0;
-ALTER TABLE IF EXISTS chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0;
-ALTER TABLE IF EXISTS chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 512; 
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0;
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0;
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 512; 
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NOT NULL; 

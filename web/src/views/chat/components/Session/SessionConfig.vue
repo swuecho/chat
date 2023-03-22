@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineProps, ref, watch } from 'vue'
-import { NCard, NInputNumber, NSlider } from 'naive-ui'
+import { NCard, NInputNumber, NSlider, NSwitch } from 'naive-ui'
 import { debounce } from 'lodash'
 import { useChatStore } from '@/store'
 
@@ -17,6 +17,7 @@ const slider = ref(session.value?.maxLength ?? 10)
 const temperature = ref(session.value?.temperature ?? 1.0)
 const maxTokens = ref(session.value?.maxTokens ?? 512)
 const topP = ref(session.value?.topP ?? 1.0)
+const debug = ref(session.value?.debug ?? false)
 // const frequencyPenalty = ref(0)
 // const presencePenalty = ref(0)
 
@@ -26,11 +27,12 @@ const throttledUpdate = debounce(async ([newValueSlider, newValueTemperature, ne
     temperature: newValueTemperature,
     maxTokens: newMaxTokens,
     topP,
+    debug,
   })
 }, 200)
 
-watch([slider, temperature, maxTokens, topP], ([newValueSlider, newValueTemperature, newMaxTokens, topP], _) => {
-  throttledUpdate([newValueSlider, newValueTemperature, newMaxTokens, topP])
+watch([slider, temperature, maxTokens, topP, debug], ([newValueSlider, newValueTemperature, newMaxTokens, topP, debug], _) => {
+  throttledUpdate([newValueSlider, newValueTemperature, newMaxTokens, topP, debug])
 })
 </script>
 
@@ -51,7 +53,15 @@ watch([slider, temperature, maxTokens, topP], ([newValueSlider, newValueTemperat
     <div>{{ $t('chat.maxTokens') }}</div>
     <NSlider v-model:value="maxTokens" :min="256" :max="4096" :step="10" :tooltip="false" />
     <NInputNumber v-model:value="maxTokens" size="small" />
-
+    <div> {{ $t('chat.debug') }}</div>
+    <NSwitch v-model:value="debug">
+      <template #checked>
+        启用
+      </template>
+      <template #unchecked>
+        关闭
+      </template>
+    </NSwitch>
     <!--
     <div>{{ $t('chat.presencePenalty') }}</div>
     <NSlider v-model:value="presencePenalty" :min="-2" :max="2" :step="0.1" :tooltip="false" />

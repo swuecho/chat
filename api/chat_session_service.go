@@ -87,6 +87,7 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 			Temperature: float64(session.Temperature),
 			TopP:        float64(session.TopP),
 			MaxTokens:   session.MaxTokens,
+			Debug:       session.Debug,
 		}
 	})
 	return simple_sessions, nil

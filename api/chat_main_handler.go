@@ -367,11 +367,6 @@ func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat
 	apiKey := appConfig.OPENAI.API_KEY
 
 	client := openai.NewClient(apiKey)
-	// temperature := float32(0.8)
-	// topP := float32(1)
-	// presencePenalty := float32(0)
-	// frequencyPenalty := float32(0)
-	// n := 1
 
 	openai_req := openai.ChatCompletionRequest{
 		Model:       openai.GPT3Dot5Turbo,

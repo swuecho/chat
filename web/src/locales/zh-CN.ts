@@ -49,6 +49,7 @@ export default {
     topP: 'Top P',
     frequencyPenalty: '频率惩罚',
     presencePenalty: '存在惩罚',
+    debug: '调试模式',
   },
   setting: {
     setting: '设置',

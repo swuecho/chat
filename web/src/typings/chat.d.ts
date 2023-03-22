@@ -20,6 +20,7 @@ declare namespace Chat {
 		temperature?: number
 		topP?: number
 		maxTokens?: number
+		debug?: boolean
 	}
 
 	interface ChatState {
