@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, defineProps, ref, watch } from 'vue'
 import { NCard, NInputNumber, NSlider, NSwitch } from 'naive-ui'
 import { debounce } from 'lodash'
