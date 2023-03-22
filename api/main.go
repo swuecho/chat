@@ -7,49 +7,80 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
 
-var OPENAI_API_KEY string
-var JWT_SECRET string
-var JWT_AUD string
 var logger *log.Logger
 
+type AppConfig struct {
+	OPENAI struct {
+		API_KEY string
+	}
+	JWT struct {
+		SECRET string
+		AUD    string
+	}
+	PG struct {
+		HOST string
+		PORT int
+		USER string
+		PASS string
+		DB   string
+	}
+}
+
+var appConfig AppConfig
+
+func getFlattenKeys(prefix string, v reflect.Value) (keys []string) {
+	switch v.Kind() {
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			field := v.Field(i)
+			name := v.Type().Field(i).Name
+			keys = append(keys, getFlattenKeys(prefix+name+".", field)...)
+		}
+	default:
+		keys = append(keys, prefix[:len(prefix)-1])
+	}
+	return keys
+}
+
+func bindEnvironmentVariables() {
+	appConfig = AppConfig{}
+	for _, key := range getFlattenKeys("", reflect.ValueOf(appConfig)) {
+		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
+		err := viper.BindEnv(key, envKey)
+		if err != nil {
+			logger.Fatal("config: unable to bind env: " + err.Error())
+		}
+	}
+}
+
 func main() {
-	var exists bool
-	if OPENAI_API_KEY, exists = os.LookupEnv("OPENAI_API_KEY"); !exists {
-		log.Fatal("OPENAI_API_KEY not set")
-	}
-	OPENAI_API_KEY = os.Getenv("OPENAI_API_KEY")
+	// Configure viper to read environment variables
+	bindEnvironmentVariables()
+	viper.AutomaticEnv()
 
-	if JWT_SECRET, exists = os.LookupEnv("JWT_SECRET"); !exists {
-		log.Fatal("JWT_SECRET not set")
+	if err := viper.Unmarshal(&appConfig); err != nil {
+		logger.Fatal("config: unable to decode into struct: " + err.Error())
 	}
-	JWT_SECRET = os.Getenv("JWT_SECRET")
 
-	if JWT_AUD, exists = os.LookupEnv("JWT_AUD"); !exists {
-		log.Fatal("JWT_AUD not set")
-	}
-	JWT_AUD = os.Getenv("JWT_AUD")
-
-	// Create a new logger instance, configure it as desired
+	log.Printf("%+v", appConfig)
 	logger = log.New()
 	logger.Formatter = &log.JSONFormatter{}
 
-	host := os.Getenv("PG_HOST")
-	port := os.Getenv("PG_PORT")
-	user := os.Getenv("PG_USER")
-	password := os.Getenv("PG_PASS")
-	dbname := os.Getenv("PG_DB")
-
 	// Establish a database connection
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	pg := appConfig.PG
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
 	pgdb, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)

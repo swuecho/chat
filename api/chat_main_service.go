@@ -219,7 +219,7 @@ func GetAiAnswerOpenApi(msgs []Message) (ChatCompletionResponse, error) {
 		return ChatCompletionResponse{}, fmt.Errorf("request error: %w", err)
 	}
 	ai_req.Header.Set("Content-Type", "application/json")
-	ai_req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", OPENAI_API_KEY))
+	ai_req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", appConfig.OPENAI.API_KEY))
 
 	ai_res, err := http.DefaultClient.Do(ai_req)
 
