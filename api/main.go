@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -26,10 +28,9 @@ type AppConfig struct {
 		SECRET string
 		AUD    string
 	}
-
 	PG struct {
 		HOST string
-		PORT string
+		PORT int
 		USER string
 		PASS string
 		DB   string
@@ -38,22 +39,50 @@ type AppConfig struct {
 
 var appConfig AppConfig
 
+func getFlattenKeys(prefix string, v reflect.Value) (keys []string) {
+	switch v.Kind() {
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			field := v.Field(i)
+			name := v.Type().Field(i).Name
+			//tags := v.Type().Field(i).Tag
+			// if tags.Get("env") != "" {
+			// 	name = tags.Get("env")
+			// }
+			keys = append(keys, getFlattenKeys(prefix+name+".", field)...)
+		}
+	default:
+		keys = append(keys, prefix[:len(prefix)-1])
+	}
+	return keys
+}
+
 func main() {
 	// Configure viper to read environment variables
-	viper.AutomaticEnv()
-	// Unmarshal environment variables into Config struct
-	err := viper.Unmarshal(&appConfig)
-	if err != nil {
-		panic(err)
+	// auto bind env
+	appConfig = AppConfig{}
+	for _, key := range getFlattenKeys("", reflect.ValueOf(appConfig)) {
+		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
+		err := viper.BindEnv(key, envKey)
+		if err != nil {
+			logger.Fatal("config: unable to bind env: " + err.Error())
+		}
 	}
 
+	viper.AutomaticEnv()
+
+	if err := viper.Unmarshal(&appConfig); err != nil {
+		logger.Fatal("config: unable to decode into struct: " + err.Error())
+	}
+
+	log.Printf("%+v", appConfig)
 	logger = log.New()
 	logger.Formatter = &log.JSONFormatter{}
 
 	// Establish a database connection
 	pg := appConfig.PG
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		pg.HOST, pg.DB, pg.USER, pg.PASS, pg.DB)
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
 	pgdb, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
