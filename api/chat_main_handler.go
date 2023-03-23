@@ -83,30 +83,26 @@ func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Invalid request body: %v", err)
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "Invalid request body"})
+		return
+	}
+	defer r.Body.Close()
+
+	answerMsg, err := h.chatService.chatServiceX(r.Context(), &req)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, ErrInvalidUserID) {
+			statusCode = http.StatusBadRequest
+		} else {
+			statusCode = http.StatusNotFound
+		}
+		w.WriteHeader(statusCode)
+		RespondWithError(w, statusCode, err.Error(), err)
 		return
 	}
 
-	chatSessionUuid := req.SessionUuid
-	chatUuid := req.ChatUuid
-	newQuestion := req.Prompt
-	log.Printf("Received prompt: %s\n", newQuestion)
-	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
-		return
-	}
-	answer_msg, err := h.chatService.Chat(chatSessionUuid, chatUuid, newQuestion, int32(userIDInt))
-	if err != nil {
-		fmt.Fprintf(w, "problem in chat: %v", err)
-		return
-	}
-
-	// Send the response as JSON
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"status": "Success", "text": answer_msg.Content, "chatUuid": answer_msg.Uuid})
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "Success", "text": answerMsg.Content, "chatUuid": answerMsg.Uuid})
 }
 
 // OpenAIChatCompletionAPIWithStreamHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
