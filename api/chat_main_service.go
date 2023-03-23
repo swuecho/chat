@@ -13,6 +13,7 @@ import (
 
 	uuid "github.com/iris-contrib/go.uuid"
 	"github.com/samber/lo"
+	"github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chatgpt_backend/ai"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
@@ -114,11 +115,11 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 	if err != nil {
 		return nil, fmt.Errorf("fail to get latest message: %w", err)
 	}
-	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) Message {
-		return Message{Role: m.Role, Content: m.Content}
+	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) openai.ChatCompletionMessage {
+		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
 	})
-	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) Message {
-		return Message{Role: m.Role, Content: m.Content}
+	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) openai.ChatCompletionMessage {
+		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
 	})
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 
@@ -131,7 +132,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 	var aiAnswer ChatCompletionResponse
 	// if system message is test_demo_bestqa, return a demo message
 	if msgs[0].Content == "test_demo_bestqa" || msgs[len(msgs)-1].Content == "test_demo_bestqa" {
-		message := Message{Role: "assitant", Content: "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."}
+		message := openai.ChatCompletionMessage{Role: "assitant", Content: "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."}
 		aiAnswer.Choices = []Choice{{Message: message}}
 	} else {
 		aiAnswer, err = GetAiAnswerOpenApi(msgs)
@@ -166,7 +167,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 	return &answer_msg, err
 }
 
-func GetAiAnswerProxyLightsail(msgs []Message) (ChatCompletionResponse, error) {
+func GetAiAnswerProxyLightsail(msgs []openai.ChatCompletionMessage) (ChatCompletionResponse, error) {
 	openaiRequest := OpenaiChatRequest{Model: "gpt-3.5-turbo", Messages: msgs}
 	req_bytes, err := json.Marshal(openaiRequest)
 	if err != nil {
@@ -194,7 +195,7 @@ func GetAiAnswerProxyLightsail(msgs []Message) (ChatCompletionResponse, error) {
 	return aiAnswer, nil
 }
 
-func GetAiAnswerOpenApi(msgs []Message) (ChatCompletionResponse, error) {
+func GetAiAnswerOpenApi(msgs []openai.ChatCompletionMessage) (ChatCompletionResponse, error) {
 	openaiRequest := OpenaiChatRequest{Model: "gpt-3.5-turbo", Messages: msgs}
 	req_bytes, err := json.Marshal(openaiRequest)
 	log.Println(string(req_bytes))

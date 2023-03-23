@@ -60,7 +60,7 @@ type ChatCompletionResponse struct {
 }
 
 type Choice struct {
-	Message      Message     `json:"message"`
+	Message      openai.ChatCompletionMessage `json:"message"`
 	FinishReason interface{} `json:"finish_reason"`
 	Index        int         `json:"index"`
 }
@@ -72,11 +72,12 @@ type Message struct {
 
 type OpenaiChatRequest struct {
 	Model    string    `json:"model"`
-	Messages []Message `json:"messages"`
+	Messages []openai.ChatCompletionMessage `json:"messages"`
+
 }
 
-func NewUserMessage(content string) Message {
-	return Message{Role: "user", Content: content}
+func NewUserMessage(content string) openai.ChatCompletionMessage{
+	return openai.ChatCompletionMessage{Role: "user", Content: content}
 }
 
 func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
@@ -140,43 +141,18 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	if req.Regenerate {
 		// TODO: get context
 		// get the 10 chatMessage right before the current chatMessage, order by created_at
-		chat_prompts, err := h.chatService.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
-		if err != nil {
-			http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
-			return
-		}
 		chat_session, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 		if err != nil {
 			http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
 			return
 		}
-		lastN := chat_session.MaxLength
-		if chat_session.MaxLength == 0 {
-			lastN = 10
-		}
-		msgs, err := h.chatService.q.GetLastNChatMessages(ctx,
-			sqlc_queries.GetLastNChatMessagesParams{
-				Uuid:  chatUuid,
-				Limit: lastN,
-			})
+
+		// Send the response as JSON
+		chatCompletionMessages, err := getAskMessages(h, ctx, w, chat_session, chatUuid, true)
 		if err != nil {
-			http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
+			RespondWithError(w, http.StatusInternalServerError, "Get chat message error", err)
 			return
 		}
-		ChatCompletionMessagesFromPrompt := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) openai.ChatCompletionMessage {
-			return openai.ChatCompletionMessage{
-				Role:    m.Role,
-				Content: m.Content,
-			}
-		})
-		chatCompletionMessages := lo.Map(msgs, func(m sqlc_queries.ChatMessage, _ int) openai.ChatCompletionMessage {
-			return openai.ChatCompletionMessage{
-				Role:    m.Role,
-				Content: m.Content,
-			}
-		})
-		// Send the response as JSON
-		chatCompletionMessages = append(ChatCompletionMessagesFromPrompt, chatCompletionMessages...)
 
 		// Set up SSE headers
 		if chat_session.Debug {
@@ -269,25 +245,11 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		log.Printf("%+v\n", chatPrompt)
 	}
 
-	chat_prompts, err := h.chatService.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
-
+	msgs, err := getAskMessages(h, ctx, w, chatSession, chatUuid, false)
 	if err != nil {
-		http.Error(w, fmt.Errorf("fail to get prompt: %w", err).Error(), http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("fail to collect messages: %w", err).Error(), err)
+		return
 	}
-
-	chat_massages, err := h.chatService.q.GetLatestMessagesBySessionUUID(ctx,
-		sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: chatSession.Uuid, Limit: 5})
-
-	if err != nil {
-		http.Error(w, fmt.Errorf("fail to get messages: %w", err).Error(), http.StatusInternalServerError)
-	}
-	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) Message {
-		return Message{Role: m.Role, Content: m.Content}
-	})
-	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) Message {
-		return Message{Role: m.Role, Content: m.Content}
-	})
-	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 
 	if existingPrompt {
 		msgs = append(msgs, NewUserMessage(newQuestion))
@@ -322,16 +284,8 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		}
 	} else {
 
-		// Send the response as JSON
-		chatCompletionMessages := lo.Map(msgs, func(m Message, _ int) openai.ChatCompletionMessage {
-			return openai.ChatCompletionMessage{
-				Role:    m.Role,
-				Content: m.Content,
-			}
-		})
-
 		// Set up SSE headers
-		answerText, answerID, shouldReturn := chat_stream(ctx, chatSession, chatCompletionMessages, w)
+		answerText, answerID, shouldReturn := chat_stream(ctx, chatSession, msgs, w)
 		if shouldReturn {
 			return
 		}
@@ -354,6 +308,46 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		}
 	}
 
+}
+
+func getAskMessages(h *ChatHandler, ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]openai.ChatCompletionMessage, error) {
+	chatSessionUuid := chatSession.Uuid
+
+	lastN := chatSession.MaxLength
+	if chatSession.MaxLength == 0 {
+		lastN = 10
+	}
+
+	chat_prompts, err := h.chatService.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to get prompt: %w", err)
+	}
+
+	var chat_massages []sqlc_queries.ChatMessage
+	if regenerate {
+		chat_massages, err = h.chatService.q.GetLastNChatMessages(ctx,
+			sqlc_queries.GetLastNChatMessagesParams{
+				Uuid:  chatUuid,
+				Limit: lastN,
+			})
+
+	} else {
+		chat_massages, err = h.chatService.q.GetLatestMessagesBySessionUUID(ctx,
+			sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: chatSession.Uuid, Limit: lastN})
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to get messages: %w", err)
+	}
+	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) openai.ChatCompletionMessage {
+		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
+	})
+	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) openai.ChatCompletionMessage {
+		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
+	})
+	msgs := append(chat_prompt_msgs, chat_message_msgs...)
+	return msgs, nil
 }
 
 func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, w http.ResponseWriter) (string, string, bool) {
