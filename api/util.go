@@ -23,8 +23,11 @@ func firstN(s string, n int) string {
 func getUserID(ctx context.Context) (int32, error) {
 	userIDStr := ctx.Value(userContextKey).(string)
 	userIDInt, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		return 0, fmt.Errorf("Error: '"+userIDStr+"' is not a valid user ID. should be a numeric value: %w", err)
+	}
 	userID := int32(userIDInt)
-	return userID, fmt.Errorf("Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID %w", err)
+	return userID, nil
 }
 
 func RespondWithError(w http.ResponseWriter, code int, message string, details interface{}) {

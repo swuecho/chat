@@ -155,11 +155,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 			return
 		}
 		// Update the chatMessage content with chatUuid with new answer
-		err = h.chatService.q.UpdateChatMessageContent(ctx,
-			sqlc_queries.UpdateChatMessageContentParams{
-				Uuid:    chatUuid,
-				Content: answerText,
-			})
+		err = h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
 
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, "Update chat message error", err)
