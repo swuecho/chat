@@ -279,3 +279,18 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 	return msgs, nil
 }
+
+func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion string, userID int32) (sqlc_queries.ChatPrompt, error) {
+	uuidVar, _ := uuid.NewV4()
+	chatPrompt, err := s.q.CreateChatPrompt(context.Background(),
+		sqlc_queries.CreateChatPromptParams{
+			Uuid:            uuidVar.String(),
+			ChatSessionUuid: chatSessionUuid,
+			Role:            "system",
+			Content:         newQuestion,
+			UserID:          userID,
+			CreatedBy:       userID,
+			UpdatedBy:       userID,
+		})
+	return chatPrompt, err
+}
