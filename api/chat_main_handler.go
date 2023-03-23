@@ -87,17 +87,21 @@ func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+	ctx := r.Context()
+	userIDStr, ok := ctx.Value(userContextKey).(string)
+	if !ok {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+	}
 
-	answerMsg, err := h.chatService.chatServiceX(r.Context(), &req)
+	userIDInt, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		statusCode := http.StatusInternalServerError
-		if errors.Is(err, ErrInvalidUserID) {
-			statusCode = http.StatusBadRequest
-		} else {
-			statusCode = http.StatusNotFound
-		}
-		w.WriteHeader(statusCode)
-		RespondWithError(w, statusCode, err.Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+	answerMsg, err := h.chatService.Chat(req.SessionUuid, req.ChatUuid, req.Prompt, int32(userIDInt))
+
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 

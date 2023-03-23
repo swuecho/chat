@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	uuid "github.com/iris-contrib/go.uuid"
@@ -278,26 +277,3 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	return msgs, nil
 }
 
-func (s *ChatService) chatServiceX(ctx context.Context, req *ChatRequest) (*sqlc_queries.ChatMessage, error) {
-	chatSessionUuid := req.SessionUuid
-	chatUuid := req.ChatUuid
-	newQuestion := req.Prompt
-	log.Printf("Received prompt: %s\n", newQuestion)
-
-	userIDStr, ok := ctx.Value(userContextKey).(string)
-	if !ok {
-		return nil, ErrInvalidUserID
-	}
-
-	userIDInt, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		return nil, ErrInvalidUserID
-	}
-
-	answerMsg, err := s.Chat(chatSessionUuid, chatUuid, newQuestion, int32(userIDInt))
-	if err != nil {
-		return nil, err
-	}
-
-	return answerMsg, nil
-}
