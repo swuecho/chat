@@ -30,6 +30,15 @@ func getUserID(ctx context.Context) (int32, error) {
 	return userID, nil
 }
 
+
+func setSSEHeader(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+}
+
+
 func RespondWithError(w http.ResponseWriter, code int, message string, details interface{}) {
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(ErrorResponse{Code: code, Message: message, Details: details})

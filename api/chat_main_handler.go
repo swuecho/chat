@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	uuid "github.com/iris-contrib/go.uuid"
 	openai "github.com/sashabaranov/go-openai"
@@ -238,9 +239,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 }
 
 func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) (string, string, bool) {
-	apiKey := appConfig.OPENAI.API_KEY
-
-	client := openai.NewClient(apiKey)
+	client := openai.NewClient(appConfig.OPENAI.API_KEY)
 
 	openai_req := openai.ChatCompletionRequest{
 		Model:       openai.GPT3Dot5Turbo,
@@ -253,7 +252,8 @@ func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, ch
 		// N:                n,
 		Stream: true,
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("CompletionStream error: %v", err), nil)
@@ -261,10 +261,7 @@ func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, ch
 	}
 	defer stream.Close()
 
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	setSSEHeader(w)
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -321,10 +318,7 @@ func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, ch
 func test_replay(w http.ResponseWriter) (string, string, bool) {
 	//message := Message{Role: "assitant", Content:}
 	uuid, _ := uuid.NewV4()
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	setSSEHeader(w)
 
 	flusher, ok := w.(http.Flusher)
 
