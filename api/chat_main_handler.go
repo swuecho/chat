@@ -91,13 +91,10 @@ func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
 	userIDStr, ok := ctx.Value(userContextKey).(string)
 	if !ok {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
-	}
-
-	userIDInt, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
+
+	userIDInt, _ := strconv.Atoi(userIDStr)
 	answerMsg, err := h.chatService.Chat(req.SessionUuid, req.ChatUuid, req.Prompt, int32(userIDInt))
 
 	if err != nil {
