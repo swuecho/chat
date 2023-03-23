@@ -156,7 +156,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		if chat_session.Debug {
 			log.Printf("%+v\n", chatCompletionMessages)
 		}
-		answerText, _, shouldReturn := chat_stream(ctx, chat_session, chatCompletionMessages, w)
+		answerText, _, shouldReturn := chat_stream(w, chat_session, chatCompletionMessages)
 		if shouldReturn {
 			return
 		}
@@ -265,7 +265,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	} else {
 
 		// Set up SSE headers
-		answerText, answerID, shouldReturn := chat_stream(ctx, chatSession, msgs, w)
+		answerText, answerID, shouldReturn := chat_stream(w, chatSession, msgs)
 		if shouldReturn {
 			return
 		}
@@ -290,7 +290,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 
 }
 
-func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, w http.ResponseWriter) (string, string, bool) {
+func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) (string, string, bool) {
 	apiKey := appConfig.OPENAI.API_KEY
 
 	client := openai.NewClient(apiKey)
@@ -306,6 +306,7 @@ func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat
 		// N:                n,
 		Stream: true,
 	}
+	ctx := context.Background()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("CompletionStream error: %v", err), nil)
