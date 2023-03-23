@@ -294,3 +294,24 @@ func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion
 		})
 	return chatPrompt, err
 }
+
+
+// CreateChatMessage creates a new chat message.
+func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content string, userId int32) (sqlc_queries.ChatMessage, error) {
+
+	chatMessage := sqlc_queries.CreateChatMessageParams{
+		ChatSessionUuid: sessionUuid,
+		Uuid:            uuid,
+		Role:            role,
+		Content:         content,
+		UserID:          userId,
+		CreatedBy:       userId,
+		UpdatedBy:       userId,
+		Raw:             json.RawMessage([]byte("{}")),
+	}
+	message, err := s.q.CreateChatMessage(ctx, chatMessage)
+	if err != nil {
+		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message %w", err)
+	}
+	return message, nil
+}

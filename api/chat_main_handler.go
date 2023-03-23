@@ -21,13 +21,11 @@ import (
 
 type ChatHandler struct {
 	chatService        *ChatService
-	chatMessageService *ChatMessageService
 }
 
-func NewChatHandler(chatService *ChatService, chat_msg *ChatMessageService) *ChatHandler {
+func NewChatHandler(chatService *ChatService ) *ChatHandler {
 	return &ChatHandler{
 		chatService:        chatService,
-		chatMessageService: chat_msg,
 	}
 }
 
@@ -192,7 +190,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	}
 
 	if existingPrompt {
-		_, err := h.chatMessageService.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, int32(userIDInt))
+		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, int32(userIDInt))
 
 		if err != nil {
 			http.Error(w, fmt.Errorf("fail to create message: %w", err).Error(), http.StatusInternalServerError)
@@ -222,7 +220,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		if shouldReturn {
 			return
 		}
-		m, err := h.chatMessageService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, int32(userIDInt))
+		m, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, int32(userIDInt))
 
 		log.Println(m)
 		if err != nil {
@@ -237,7 +235,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 			return
 		}
 		// insert ChatMessage into database
-		_, err := h.chatMessageService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, int32(userIDInt))
+		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, int32(userIDInt))
 
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("fail to create message: %w", err).Error(), nil)

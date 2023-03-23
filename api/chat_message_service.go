@@ -29,25 +29,6 @@ func (s *ChatMessageService) CreateChatMessage(ctx context.Context, message_para
 	return message, nil
 }
 
-// CreateChatMessage creates a new chat message.
-func (s *ChatMessageService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content string, userId int32) (sqlc_queries.ChatMessage, error) {
-
-	chatMessage := sqlc_queries.CreateChatMessageParams{
-		ChatSessionUuid: sessionUuid,
-		Uuid:            uuid,
-		Role:            role,
-		Content:         content,
-		UserID:          userId,
-		CreatedBy:       userId,
-		UpdatedBy:       userId,
-		Raw:             json.RawMessage([]byte("{}")),
-	}
-	message, err := s.q.CreateChatMessage(ctx, chatMessage)
-	if err != nil {
-		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message %w", err)
-	}
-	return message, nil
-}
 
 // GetChatMessageByID returns a chat message by ID.
 func (s *ChatMessageService) GetChatMessageByID(ctx context.Context, id int32) (sqlc_queries.ChatMessage, error) {
