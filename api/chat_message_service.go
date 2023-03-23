@@ -29,6 +29,7 @@ func (s *ChatMessageService) CreateChatMessage(ctx context.Context, message_para
 	return message, nil
 }
 
+
 // GetChatMessageByID returns a chat message by ID.
 func (s *ChatMessageService) GetChatMessageByID(ctx context.Context, id int32) (sqlc_queries.ChatMessage, error) {
 	message, err := s.q.GetChatMessageByID(ctx, id)

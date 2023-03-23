@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	uuid "github.com/iris-contrib/go.uuid"
 	"github.com/samber/lo"
@@ -234,4 +235,91 @@ func GetAiAnswerOpenApi(msgs []openai.ChatCompletionMessage) (ChatCompletionResp
 		return ChatCompletionResponse{}, fmt.Errorf("decode request body err: %w", err)
 	}
 	return aiAnswer, nil
+}
+
+func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]openai.ChatCompletionMessage, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	chatSessionUuid := chatSession.Uuid
+
+	lastN := chatSession.MaxLength
+	if chatSession.MaxLength == 0 {
+		lastN = 10
+	}
+
+	chat_prompts, err := s.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to get prompt: %w", err)
+	}
+
+	var chat_massages []sqlc_queries.ChatMessage
+	if regenerate {
+		chat_massages, err = s.q.GetLastNChatMessages(ctx,
+			sqlc_queries.GetLastNChatMessagesParams{
+				Uuid:  chatUuid,
+				Limit: lastN,
+			})
+
+	} else {
+		chat_massages, err = s.q.GetLatestMessagesBySessionUUID(ctx,
+			sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: chatSession.Uuid, Limit: lastN})
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to get messages: %w", err)
+	}
+	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) openai.ChatCompletionMessage {
+		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
+	})
+	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) openai.ChatCompletionMessage {
+		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
+	})
+	msgs := append(chat_prompt_msgs, chat_message_msgs...)
+	return msgs, nil
+}
+
+func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion string, userID int32) (sqlc_queries.ChatPrompt, error) {
+	uuidVar, _ := uuid.NewV4()
+	chatPrompt, err := s.q.CreateChatPrompt(context.Background(),
+		sqlc_queries.CreateChatPromptParams{
+			Uuid:            uuidVar.String(),
+			ChatSessionUuid: chatSessionUuid,
+			Role:            "system",
+			Content:         newQuestion,
+			UserID:          userID,
+			CreatedBy:       userID,
+			UpdatedBy:       userID,
+		})
+	return chatPrompt, err
+}
+
+// CreateChatMessage creates a new chat message.
+func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content string, userId int32) (sqlc_queries.ChatMessage, error) {
+
+	chatMessage := sqlc_queries.CreateChatMessageParams{
+		ChatSessionUuid: sessionUuid,
+		Uuid:            uuid,
+		Role:            role,
+		Content:         content,
+		UserID:          userId,
+		CreatedBy:       userId,
+		UpdatedBy:       userId,
+		Raw:             json.RawMessage([]byte("{}")),
+	}
+	message, err := s.q.CreateChatMessage(ctx, chatMessage)
+	if err != nil {
+		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message %w", err)
+	}
+	return message, nil
+}
+
+// UpdateChatMessageContent
+func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, content string) (error) {
+	err := s.q.UpdateChatMessageContent(ctx, sqlc_queries.UpdateChatMessageContentParams{
+		Uuid:    uuid,
+		Content: content,
+	})
+	return err 
 }
