@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: fluxninja/openai-pr-reviewer@main
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         with:
           debug: false
