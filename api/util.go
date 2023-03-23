@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 )
 
 // allocation free version
@@ -15,6 +18,13 @@ func firstN(s string, n int) string {
 		i++
 	}
 	return s
+}
+
+func getUserID(ctx context.Context) (int32, error) {
+	userIDStr := ctx.Value(userContextKey).(string)
+	userIDInt, err := strconv.Atoi(userIDStr)
+	userID := int32(userIDInt)
+	return userID, fmt.Errorf("Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID %w", err)
 }
 
 func RespondWithError(w http.ResponseWriter, code int, message string, details interface{}) {

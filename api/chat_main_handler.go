@@ -20,12 +20,12 @@ import (
 )
 
 type ChatHandler struct {
-	chatService        *ChatService
+	chatService *ChatService
 }
 
-func NewChatHandler(chatService *ChatService ) *ChatHandler {
+func NewChatHandler(chatService *ChatService) *ChatHandler {
 	return &ChatHandler{
-		chatService:        chatService,
+		chatService: chatService,
 	}
 }
 
@@ -120,13 +120,10 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	chatSessionUuid := req.SessionUuid
 	chatUuid := req.ChatUuid
 	newQuestion := req.Prompt
-
 	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
-	userID := int32(userIDInt)
+	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", nil)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
@@ -190,7 +187,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	}
 
 	if existingPrompt {
-		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, int32(userIDInt))
+		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, userID)
 
 		if err != nil {
 			http.Error(w, fmt.Errorf("fail to create message: %w", err).Error(), http.StatusInternalServerError)
@@ -220,7 +217,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		if shouldReturn {
 			return
 		}
-		m, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, int32(userIDInt))
+		m, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
 
 		log.Println(m)
 		if err != nil {
@@ -235,7 +232,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 			return
 		}
 		// insert ChatMessage into database
-		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, int32(userIDInt))
+		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
 
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("fail to create message: %w", err).Error(), nil)
