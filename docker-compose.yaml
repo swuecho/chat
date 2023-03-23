@@ -48,9 +48,9 @@ services:
           "pg_isready",
           "-q",
           "-d",
-          "{YOUR_DATABASE_NAME}",
+          "postgres",
           "-U",
-          "{YOUR_DATABASE_USERNAME}"
+          "postgres"
         ]
       interval: 5s
       timeout: 5s
