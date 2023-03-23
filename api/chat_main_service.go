@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	uuid "github.com/iris-contrib/go.uuid"
 	"github.com/samber/lo"
@@ -237,7 +238,9 @@ func GetAiAnswerOpenApi(msgs []openai.ChatCompletionMessage) (ChatCompletionResp
 }
 
 func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]openai.ChatCompletionMessage, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
 	chatSessionUuid := chatSession.Uuid
 
 	lastN := chatSession.MaxLength
@@ -276,4 +279,3 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 	return msgs, nil
 }
-
