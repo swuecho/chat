@@ -235,3 +235,45 @@ func GetAiAnswerOpenApi(msgs []openai.ChatCompletionMessage) (ChatCompletionResp
 	}
 	return aiAnswer, nil
 }
+
+
+func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]openai.ChatCompletionMessage, error) {
+	ctx := context.Background()
+	chatSessionUuid := chatSession.Uuid
+
+	lastN := chatSession.MaxLength
+	if chatSession.MaxLength == 0 {
+		lastN = 10
+	}
+
+	chat_prompts, err := s.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to get prompt: %w", err)
+	}
+
+	var chat_massages []sqlc_queries.ChatMessage
+	if regenerate {
+		chat_massages, err = s.q.GetLastNChatMessages(ctx,
+			sqlc_queries.GetLastNChatMessagesParams{
+				Uuid:  chatUuid,
+				Limit: lastN,
+			})
+
+	} else {
+		chat_massages, err = s.q.GetLatestMessagesBySessionUUID(ctx,
+			sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: chatSession.Uuid, Limit: lastN})
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("fail to get messages: %w", err)
+	}
+	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) openai.ChatCompletionMessage {
+		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
+	})
+	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) openai.ChatCompletionMessage {
+		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
+	})
+	msgs := append(chat_prompt_msgs, chat_message_msgs...)
+	return msgs, nil
+}
