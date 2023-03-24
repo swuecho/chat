@@ -1,5 +1,5 @@
 <template>
-  <NSpin :show="loading">
+  <NSpin>
     <div class="p-4 space-y-4">
       <div class="p-2 space-y-2 rounded-md bg-neutral-100 dark:bg-neutral-700">
         <p>
