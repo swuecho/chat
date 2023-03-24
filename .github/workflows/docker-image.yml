@@ -11,25 +11,11 @@ env:
   PG_HOST: localhost
   PG_PASS: thisisapassword
 
-concurrency:
-  group:
-    ${{ github.repository }}-${{ github.event.number || github.head_ref ||
-    github.sha }}-${{ github.workflow }}-${{ github.event_name ==
-    'pull_request_review_comment' && 'pr_comment' || 'pr' }}
-  cancel-in-progress: ${{ github.event_name != 'pull_request_review_comment' }}
-
 jobs:
   build_api:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: fluxninja/openai-pr-reviewer@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        with:
-          debug: false
-          review_comment_lgtm: false
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
