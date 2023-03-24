@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, defineProps, ref, watch } from 'vue'
 import { NCard, NSlider, NSwitch } from 'naive-ui'
-import { debounce } from 'lodash'
+import { debounce } from 'lodash-es'
 import { useChatStore } from '@/store'
 
 const props = defineProps<{
@@ -13,7 +13,6 @@ const chatStore = useChatStore()
 const session = computed(() => chatStore.getChatSessionByUuid(props.uuid))
 
 const slider = ref(session.value?.maxLength ?? 10)
-
 const temperature = ref(session.value?.temperature ?? 1.0)
 const maxTokens = ref(session.value?.maxTokens ?? 512)
 const topP = ref(session.value?.topP ?? 1.0)
@@ -59,12 +58,12 @@ watch([slider, temperature, maxTokens, topP, debug], ([newValueSlider, newValueT
       </template>
     </NSwitch>
     <!--
-      <div>{{ $t('chat.presencePenalty') }}</div>
-      <NSlider v-model:value="presencePenalty" :min="-2" :max="2" :step="0.1" :tooltip="false" />
-      <NInputNumber v-model:value="presencePenalty" size="small" />
-      <div>{{ $t('chat.frequencyPenalty') }}</div>
-      <NSlider v-model:value="frequencyPenalty" :min="-2" :max="2" :step="0.1" :tooltip="false" />
-      <NInputNumber v-model:value="frequencyPenalty" size="small" />
-       -->
+        <div>{{ $t('chat.presencePenalty') }}</div>
+        <NSlider v-model:value="presencePenalty" :min="-2" :max="2" :step="0.1" :tooltip="false" />
+        <NInputNumber v-model:value="presencePenalty" size="small" />
+        <div>{{ $t('chat.frequencyPenalty') }}</div>
+        <NSlider v-model:value="frequencyPenalty" :min="-2" :max="2" :step="0.1" :tooltip="false" />
+        <NInputNumber v-model:value="frequencyPenalty" size="small" />
+         -->
   </NCard>
 </template>

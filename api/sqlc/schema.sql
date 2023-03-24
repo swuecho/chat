@@ -13,6 +13,15 @@ CREATE TABLE IF NOT EXISTS auth_user (
   date_joined TIMESTAMP default now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS auth_user_management (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    rate_limit INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+
 CREATE TABLE IF NOT EXISTS chat_session (
     id SERIAL PRIMARY KEY,
     user_id integer NOT NULL,

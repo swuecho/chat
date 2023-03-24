@@ -23,6 +23,14 @@ type AuthUser struct {
 	DateJoined  time.Time
 }
 
+type AuthUserManagement struct {
+	ID        int32
+	UserID    int32
+	RateLimit int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type ChatMessage struct {
 	ID              int32
 	Uuid            string

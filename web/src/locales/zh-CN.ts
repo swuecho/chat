@@ -51,9 +51,15 @@ export default {
     presencePenalty: '存在惩罚',
     debug: '调试模式',
   },
+  admin: {
+    title: '管理',
+    permission: '权限',
+    rateLimit: '限流',
+  },
   setting: {
     setting: '设置',
     general: '总览',
+    admin: '管理',
     config: '配置',
     avatarLink: '头像链接',
     name: '名称',

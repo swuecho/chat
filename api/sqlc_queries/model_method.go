@@ -2,6 +2,14 @@ package sqlc_queries
 
 import "context"
 
+func (user *AuthUser) Role() string {
+	role := "user"
+	if user.IsSuperuser {
+		role = "admin"
+	}
+	return role
+}
+
 func (m *ChatMessage) Authenticate(q Queries, userID int32) (bool, error) {
 	messageID := m.ID
 	ctx := context.Background()

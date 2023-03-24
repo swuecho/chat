@@ -6,6 +6,11 @@ import { ChatLayout } from '@/views/chat/layout'
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/admin',
+    name: 'Admin',
+    component: () => import('@/views/admin/index.vue'),
+  },
+  {
     path: '/',
     name: 'Root',
     component: ChatLayout,
@@ -18,25 +23,32 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
-
   {
     path: '/404',
     name: '404',
     component: () => import('@/views/exception/404/index.vue'),
   },
-
   {
     path: '/500',
     name: '500',
     component: () => import('@/views/exception/500/index.vue'),
   },
-
   {
     path: '/:pathMatch(.*)*',
     name: 'notFound',
     redirect: '/404',
   },
 ]
+
+// !!!
+// https://router.vuejs.org/guide/essentials/history-mode.html
+// createWebHashHistory
+// It uses a hash character (#) before the actual URL that is internally passed.
+// Because this section of the URL is never sent to the server,
+// it doesn't require any special treatment on the server level.
+// It does however have a bad impact in SEO. If that's a concern for you, use the HTML5 history mode.
+
+// this is crazy, router in frontend is a nightmare
 
 export const router = createRouter({
   history: createWebHashHistory(),

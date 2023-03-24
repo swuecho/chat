@@ -146,6 +146,17 @@ func (q *Queries) GetAuthUserByID(ctx context.Context, id int32) (AuthUser, erro
 	return i, err
 }
 
+const getTotalActiveUserCount = `-- name: GetTotalActiveUserCount :one
+SELECT COUNT(*) FROM auth_user WHERE is_active = true
+`
+
+func (q *Queries) GetTotalActiveUserCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTotalActiveUserCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, password, last_login, is_superuser, username, first_name, last_name, email, is_staff, is_active, date_joined FROM auth_user WHERE email = $1
 `
@@ -167,6 +178,70 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AuthUser, e
 		&i.DateJoined,
 	)
 	return i, err
+}
+
+const getUserStats = `-- name: GetUserStats :many
+SELECT 
+    auth_user.email AS user_email,
+    COALESCE(user_stats.total_messages, 0) AS total_chat_messages,
+    COALESCE(user_stats.total_messages_3_days, 0) AS total_chat_messages_3_days,
+    COALESCE(auth_user_management.rate_limit, 0) AS rate_limit
+FROM auth_user
+LEFT JOIN (
+    SELECT chat_message_stats.user_id, 
+           SUM(total_messages) AS total_messages, 
+           SUM(CASE WHEN created_at >= NOW() - INTERVAL '3 days' THEN total_messages ELSE 0 END) AS total_messages_3_days
+    FROM (
+        SELECT user_id, COUNT(*) AS total_messages, MAX(created_at) AS created_at
+        FROM chat_message
+        GROUP BY user_id, chat_session_uuid
+    ) AS chat_message_stats
+    GROUP BY chat_message_stats.user_id
+) AS user_stats ON auth_user.id = user_stats.user_id
+LEFT JOIN auth_user_management ON auth_user.id = auth_user_management.user_id
+ORDER BY total_chat_messages DESC, auth_user.id ASC
+OFFSET $2
+LIMIT $1
+`
+
+type GetUserStatsParams struct {
+	Limit  int32
+	Offset int32
+}
+
+type GetUserStatsRow struct {
+	UserEmail              string
+	TotalChatMessages      int64
+	TotalChatMessages3Days int64
+	RateLimit              int32
+}
+
+func (q *Queries) GetUserStats(ctx context.Context, arg GetUserStatsParams) ([]GetUserStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserStats, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserStatsRow
+	for rows.Next() {
+		var i GetUserStatsRow
+		if err := rows.Scan(
+			&i.UserEmail,
+			&i.TotalChatMessages,
+			&i.TotalChatMessages3Days,
+			&i.RateLimit,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAuthUsers = `-- name: ListAuthUsers :many
@@ -254,6 +329,25 @@ func (q *Queries) UpdateAuthUser(ctx context.Context, arg UpdateAuthUserParams) 
 		&i.DateJoined,
 	)
 	return i, err
+}
+
+const updateAuthUserRateLimitByEmail = `-- name: UpdateAuthUserRateLimitByEmail :one
+INSERT INTO auth_user_management (user_id, rate_limit, created_at, updated_at)
+VALUES ((SELECT id FROM auth_user WHERE email = $1), $2, NOW(), NOW())
+ON CONFLICT (user_id) DO UPDATE SET rate_limit = $2, updated_at = NOW()
+RETURNING rate_limit
+`
+
+type UpdateAuthUserRateLimitByEmailParams struct {
+	Email     string
+	RateLimit int32
+}
+
+func (q *Queries) UpdateAuthUserRateLimitByEmail(ctx context.Context, arg UpdateAuthUserRateLimitByEmailParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, updateAuthUserRateLimitByEmail, arg.Email, arg.RateLimit)
+	var rate_limit int32
+	err := row.Scan(&rate_limit)
+	return rate_limit, err
 }
 
 const updateUserPassword = `-- name: UpdateUserPassword :exec
