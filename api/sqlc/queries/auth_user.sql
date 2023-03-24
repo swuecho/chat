@@ -35,10 +35,9 @@ SELECT COUNT(*) FROM auth_user WHERE is_active = true;
 
 
 -- name: UpdateAuthUserRateLimitByEmail :one
-UPDATE auth_user_management
-SET rate_limit = $2, updated_at = NOW()
-FROM auth_user
-WHERE auth_user.id = auth_user_management.user_id AND auth_user.email = $1
+INSERT INTO auth_user_management (user_id, rate_limit, created_at, updated_at)
+VALUES ((SELECT id FROM auth_user WHERE email = $1), $2, NOW(), NOW())
+ON CONFLICT (user_id) DO UPDATE SET rate_limit = $2, updated_at = NOW()
 RETURNING rate_limit;
 
 -- name: GetUserStats :many

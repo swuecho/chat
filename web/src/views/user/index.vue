@@ -4,9 +4,11 @@
 // The data should be fetched from the backend using api 'GetUserData(page, page_size)'
 // The Rate Limit column should be editable, and the value should be updated in the backend using api 'UpdateRateLimit(user_email, rate_limit)'
 // vue3 code should be in <script lang="ts" setup> style.
-import { onMounted, reactive, ref } from 'vue'
-import { NDataTable } from 'naive-ui'
-import { GetUserData } from '@/api'
+import { h, onMounted, reactive, ref } from 'vue'
+import { NDataTable, NInput } from 'naive-ui'
+import { GetUserData, UpdateRateLimit } from '@/api'
+
+const tableData = ref([])
 
 const columns = [
   {
@@ -25,15 +27,16 @@ const columns = [
   {
     title: 'Rate Limit',
     key: 'rateLimit',
-    // render: (row: any) => {
-    //   return {
-    //     type: 'input',
-    //     value: row.rateLimit,
-    //     onUpdate: async (value: any) => {
-    //       await UpdateRateLimit(row.email, value)
-    //     },
-    //   }
-    // },
+    render: (row: any, index: number) => {
+      return h(NInput, {
+        value: row.rateLimit,
+        width: 50,
+        async onUpdateValue(v) {
+          tableData.value[index].rateLimit = v
+          await UpdateRateLimit(row.email, parseInt(v))
+        },
+      })
+    },
   },
 ]
 
@@ -53,8 +56,6 @@ const pagination = reactive({
     await fetchData()
   },
 })
-
-const tableData = ref([])
 
 async function fetchData() {
   const { data, total } = await GetUserData(pagination.page, pagination.pageSize)

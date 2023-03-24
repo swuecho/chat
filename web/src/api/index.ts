@@ -333,7 +333,7 @@ export const GetUserData = async (page: number, size: number) => {
 
 export const UpdateRateLimit = async (email: string, rateLimit: number) => {
   try {
-    const response = await request.put('/admin/rate_limit', {
+    const response = await request.post('/admin/rate_limit', {
       email,
       rateLimit,
     })
