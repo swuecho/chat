@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -91,7 +92,7 @@ func (s *AuthUserService) GetUserStat(ctx context.Context, p Pagination) ([]sqlc
 			Limit:  p.Size,
 		})
 	if err != nil {
-		return nil, 0, errors.New("failed to retrieve user stats")
+		return nil, 0, fmt.Errorf("failed to retrieve user stats %w", err)
 	}
 	total, err := s.q.GetTotalActiveUserCount(ctx)
 	if err != nil {

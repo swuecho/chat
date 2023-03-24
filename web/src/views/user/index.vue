@@ -1,72 +1,74 @@
-<script setup lang="ts">
-// create a data table using naive-ui, with the following columns:
+<script lang="ts" setup>
+// create a data table with pagination using naive-ui, with the following columns:
 // User Email, Total Sessions, Total Messages, Total Sessions (3 days), Total Messages (3 days), Rate Limit
 // The data should be fetched from the backend using api 'GetUserData(page, page_size)'
 // The Rate Limit column should be editable, and the value should be updated in the backend using api 'UpdateRateLimit(user_email, rate_limit)'
-import { NDataTable, NInput } from 'naive-ui'
-import { h } from 'vue'
-import { fetchUserData } from '@/api/user'
+// vue3 code should be in <script lang="ts" setup> style.
+import { onMounted, reactive, ref } from 'vue'
+import { NDataTable } from 'naive-ui'
+import { GetUserData } from '@/api'
 
 const columns = [
   {
     title: 'User Email',
-    key: 'user_email',
-  },
-  {
-    title: 'Total Sessions',
-    key: 'total_session',
+    key: 'email',
+
   },
   {
     title: 'Total Messages',
-    key: 'total_message',
-  },
-  {
-    title: 'Total Sessions (3 days)',
-    key: 'total_sessions_3days',
+    key: 'totalChatMessages',
   },
   {
     title: 'Total Messages (3 days)',
-    key: 'total_messages_3days',
+    key: 'totalChatMessages3Days',
   },
   {
     title: 'Rate Limit',
-    key: 'ratelimit',
-    render(row, index) {
-      return h(NInput, {
-        value: row.age,
-        onUpdateValue(v) {
-          // data.value[index].age = v
-          // TOOD: update the value in the backend
-        },
-      })
-    },
+    key: 'rateLimit',
     // render: (row: any) => {
-    //   return <NInputNumber v-model={[row.ratelimit, 'value']} />
+    //   return {
+    //     type: 'input',
+    //     value: row.rateLimit,
+    //     onUpdate: async (value: any) => {
+    //       await UpdateRateLimit(row.email, value)
+    //     },
+    //   }
     // },
   },
 ]
 
-const tableData = fetchUserData()
-
-const pagination = {
-  pageSize: 2,
+const pagination = reactive({
+  page: 1,
+  showSizePicker: true,
   pageSizes: [10, 20, 50],
-  showSizeChanger: true,
-  showQuickJumper: true,
-  total: 1000,
+  pageSize: 10,
+  itemCount: 10,
+  onChange: async (page: number) => {
+    pagination.page = page
+    await fetchData()
+  },
+  onUpdatePageSize: async (pageSize: number) => {
+    pagination.pageSize = pageSize
+    pagination.page = 1
+    await fetchData()
+  },
+})
+
+const tableData = ref([])
+
+async function fetchData() {
+  const { data, total } = await GetUserData(pagination.page, pagination.pageSize)
+  tableData.value = data
+  pagination.itemCount = total
 }
+
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <template>
-  <div class="table-container">
-    <NDataTable :data="tableData" :columns="columns" :pagination="pagination" />
+  <div>
+    <NDataTable remote :data="tableData" :columns="columns" :pagination="pagination" />
   </div>
 </template>
-
-<style scoped>
-.table-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-}
-</style>
