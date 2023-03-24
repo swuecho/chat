@@ -78,3 +78,37 @@ func (s *AuthUserService) Logout(tokenString string) (*http.Cookie, error) {
 	cookie := auth.GetExpireSecureCookie(strconv.Itoa(int(userID)), false)
 	return cookie, nil
 }
+
+// backend api
+// GetUserStat(page, page_size) -> {data: [{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}], total: 100}
+// GetTotalUserCount
+
+// GetUserStat(page, page_size) ->[{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}]
+func (s *AuthUserService) GetUserStat(ctx context.Context, p Pagination) ([]sqlc_queries.GetUserStatsRow, int64, error) {
+	auth_users_stat, err := s.q.GetUserStats(ctx,
+		sqlc_queries.GetUserStatsParams{
+			Offset: p.Offset(),
+			Limit:  p.Size,
+		})
+	if err != nil {
+		return nil, 0, errors.New("failed to retrieve user stats")
+	}
+	total, err := s.q.GetTotalActiveUserCount(ctx)
+	if err != nil {
+		return nil, 0, errors.New("failed to retrieve total active user count")
+	}
+	return auth_users_stat, total, nil
+}
+
+// UpdateRateLimit(user_email, rate_limit) -> { rate_limit: 100 }
+func (s *AuthUserService) UpdateRateLimit(ctx context.Context, user_email string, rate_limit int32) (int32, error) {
+	auth_user_params := sqlc_queries.UpdateAuthUserRateLimitByEmailParams{
+		Email:     user_email,
+		RateLimit: rate_limit,
+	}
+	rate, err := s.q.UpdateAuthUserRateLimitByEmail(ctx, auth_user_params)
+	if err != nil {
+		return -1, errors.New("failed to update authentication user")
+	}
+	return rate, nil
+}

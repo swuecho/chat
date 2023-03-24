@@ -31,6 +31,11 @@ func (h *AuthUserHandler) Register(router *mux.Router) {
 	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
 	router.HandleFunc("/verify", h.verify).Methods(http.MethodPost)
 	router.HandleFunc("/config", h.configHandler).Methods(http.MethodPost)
+	// rate limit handler
+	router.HandleFunc("/admin/rate_limit", h.UpdateRateLimit).Methods(http.MethodPost)
+	// user stats handler
+	router.HandleFunc("/admin/user_stats", h.UserStatHandler).Methods(http.MethodPost)
+
 }
 
 func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -348,4 +353,74 @@ func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.R
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+type UserStat struct {
+	Email                  string `json:"email"`
+	TotalChatMessages      int64  `json:"totalChatMessages"`
+	TotalChatMessages3Days int64  `json:"totalChatMessages3Days"`
+	RateLimit              int32  `json:"rateLimit"`
+}
+
+func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
+	var pagination Pagination
+	err := json.NewDecoder(r.Body).Decode(&pagination)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	userStatsRows, total, err := h.service.GetUserStat(r.Context(), pagination)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new []interface{} slice with same length as userStatsRows
+	data := make([]interface{}, len(userStatsRows))
+
+	// Copy the contents of userStatsRows into data
+	for i, v := range userStatsRows {
+		data[i] = UserStat{
+			Email:                  v.UserEmail,
+			TotalChatMessages:      v.TotalChatMessages,
+			TotalChatMessages3Days: v.TotalChatMessages3Days,
+			RateLimit:              v.RateLimit,
+		}
+	}
+
+	json.NewEncoder(w).Encode(Pagination{
+		Page:  pagination.Page,
+		Size:  pagination.Size,
+		Total: total,
+		Data:  data,
+	})
+}
+
+type RateLimitRequest struct {
+	Email     string `json:"email"`
+	RateLimit int32  `json:"rateLimit"`
+}
+
+func (h *AuthUserHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
+	var rateLimitRequest RateLimitRequest
+	err := json.NewDecoder(r.Body).Decode(&rateLimitRequest)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	rate, err := h.service.q.UpdateAuthUserRateLimitByEmail(r.Context(),
+		sqlc_queries.UpdateAuthUserRateLimitByEmailParams{
+			Email:     rateLimitRequest.Email,
+			RateLimit: rateLimitRequest.RateLimit,
+		})
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(
+		map[string]interface{}{
+			"rate": rate,
+		})
 }

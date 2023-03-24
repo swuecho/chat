@@ -69,3 +69,16 @@ type ChatSessionResponse struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	MaxLength int32     `json:"maxLength"`
 }
+
+type Pagination struct {
+	Page int32 `json:"page"`
+	Size int32 `json:"size"`
+	Data  []interface{} `json:"data"`
+	Total int64         `json:"total"`
+    
+}
+
+func (p *Pagination) Offset() int32 {
+	return (p.Page - 1) * p.Size
+}
+

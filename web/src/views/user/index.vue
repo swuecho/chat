@@ -1,32 +1,11 @@
 <script setup lang="ts">
-import { NDataTable } from 'naive-ui'
-
-const tableData = [
-  {
-    user_email: 'example1@example.com',
-    total_session: 10,
-    total_message: 30,
-    total_sessions_3days: 5,
-    total_messages_3days: 15,
-    ratelimit: '1msg/s',
-  },
-  {
-    user_email: 'example2@example.com',
-    total_session: 5,
-    total_message: 20,
-    total_sessions_3days: 2,
-    total_messages_3days: 7,
-    ratelimit: '10msg/s',
-  },
-  {
-    user_email: 'example3@example.com',
-    total_session: 20,
-    total_message: 100,
-    total_sessions_3days: 15,
-    total_messages_3days: 50,
-    ratelimit: '1000msg/s',
-  },
-]
+// create a data table using naive-ui, with the following columns:
+// User Email, Total Sessions, Total Messages, Total Sessions (3 days), Total Messages (3 days), Rate Limit
+// The data should be fetched from the backend using api 'GetUserData(page, page_size)'
+// The Rate Limit column should be editable, and the value should be updated in the backend using api 'UpdateRateLimit(user_email, rate_limit)'
+import { NDataTable, NInput } from 'naive-ui'
+import { h } from 'vue'
+import { fetchUserData } from '@/api/user'
 
 const columns = [
   {
@@ -52,15 +31,29 @@ const columns = [
   {
     title: 'Rate Limit',
     key: 'ratelimit',
+    render(row, index) {
+      return h(NInput, {
+        value: row.age,
+        onUpdateValue(v) {
+          // data.value[index].age = v
+          // TOOD: update the value in the backend
+        },
+      })
+    },
+    // render: (row: any) => {
+    //   return <NInputNumber v-model={[row.ratelimit, 'value']} />
+    // },
   },
 ]
+
+const tableData = fetchUserData()
 
 const pagination = {
   pageSize: 2,
   pageSizes: [10, 20, 50],
   showSizeChanger: true,
   showQuickJumper: true,
-  total: tableData.length,
+  total: 1000,
 }
 </script>
 

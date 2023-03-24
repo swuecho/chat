@@ -29,3 +29,37 @@ SELECT * FROM auth_user WHERE email = $1;
 
 -- name: UpdateUserPassword :exec
 UPDATE auth_user SET "password" = $2 WHERE email = $1;
+
+-- name: GetTotalActiveUserCount :one
+SELECT COUNT(*) FROM auth_user WHERE is_active = true;
+
+
+-- name: UpdateAuthUserRateLimitByEmail :one
+UPDATE auth_user_management
+SET rate_limit = $2, updated_at = NOW()
+FROM auth_user
+WHERE auth_user.id = auth_user_management.user_id AND auth_user.email = $1
+RETURNING rate_limit;
+
+-- name: GetUserStats :many
+SELECT 
+    auth_user.email AS user_email,
+    COALESCE(user_stats.total_messages, 0) AS total_chat_messages,
+    COALESCE(user_stats.total_messages_3_days, 0) AS total_chat_messages_3_days,
+    COALESCE(auth_user_management.rate_limit, 0) AS rate_limit
+FROM auth_user
+LEFT JOIN (
+    SELECT chat_message_stats.user_id, 
+           SUM(total_messages) AS total_messages, 
+           SUM(CASE WHEN created_at >= NOW() - INTERVAL '3 days' THEN total_messages ELSE 0 END) AS total_messages_3_days
+    FROM (
+        SELECT user_id, COUNT(*) AS total_messages, MAX(created_at) AS created_at
+        FROM chat_message
+        GROUP BY user_id, chat_session_uuid
+    ) AS chat_message_stats
+    GROUP BY chat_message_stats.user_id
+) AS user_stats ON auth_user.id = user_stats.user_id
+LEFT JOIN auth_user_management ON auth_user.id = auth_user_management.user_id
+ORDER BY total_chat_messages DESC
+OFFSET $2
+LIMIT $1;
