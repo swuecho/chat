@@ -59,6 +59,6 @@ LEFT JOIN (
     GROUP BY chat_message_stats.user_id
 ) AS user_stats ON auth_user.id = user_stats.user_id
 LEFT JOIN auth_user_management ON auth_user.id = auth_user_management.user_id
-ORDER BY total_chat_messages DESC
+ORDER BY total_chat_messages DESC, auth_user.id ASC
 OFFSET $2
 LIMIT $1;
