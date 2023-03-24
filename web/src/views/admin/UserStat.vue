@@ -8,7 +8,13 @@ import { h, onMounted, reactive, ref } from 'vue'
 import { NDataTable, NInput } from 'naive-ui'
 import { GetUserData, UpdateRateLimit } from '@/api'
 
-const tableData = ref([])
+interface UserData {
+  email: string
+  totalChatMessages: number
+  totalChatMessages3Days: number
+  rateLimit: number
+}
+const tableData = ref<UserData[]>([])
 
 const columns = [
   {
@@ -32,7 +38,7 @@ const columns = [
         value: row.rateLimit,
         width: 50,
         async onUpdateValue(v) {
-          tableData.value[index].rateLimit = v
+          tableData.value[index].rateLimit = parseInt(v)
           await UpdateRateLimit(row.email, parseInt(v))
         },
       })
