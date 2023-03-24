@@ -2,6 +2,8 @@
 
 - 第一个消息是系统消息（prompt）
 - 上下文默认附带最新创建的10条消息
+- 第一个注册的用户是管理员
+- 默认限流 100 chatgpt api call /10分钟
 
 ## 如何部署
 
@@ -17,6 +19,8 @@
 
 - The first message is a system message (prompt)
 - by default, the latest 10 messages are context
+- First user is superuser.
+- 100 chatgpt api call / 10 mins
 
 ## How to Deploy
 
