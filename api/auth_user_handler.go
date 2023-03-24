@@ -106,7 +106,6 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to generate password hash: internal server error", http.StatusInternalServerError)
 		return
 	}
-
 	userParams := sqlc_queries.CreateAuthUserParams{
 		Password: hash,
 		Email:    params.Email,

@@ -22,6 +22,14 @@ func NewAuthUserService(q *sqlc_queries.Queries) *AuthUserService {
 
 // CreateAuthUser creates a new authentication user record.
 func (s *AuthUserService) CreateAuthUser(ctx context.Context, auth_user_params sqlc_queries.CreateAuthUserParams) (sqlc_queries.AuthUser, error) {
+	totalUserCount, err := s.q.GetTotalActiveUserCount(ctx)
+	if err != nil {
+		return sqlc_queries.AuthUser{}, errors.New("failed to retrieve total user count")
+	}
+	if totalUserCount == 0 {
+		auth_user_params.IsSuperuser = true
+		fmt.Println("First user is superuser.")
+	}
 	auth_user, err := s.q.CreateAuthUser(ctx, auth_user_params)
 	if err != nil {
 		return sqlc_queries.AuthUser{}, err
