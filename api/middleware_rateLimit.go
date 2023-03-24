@@ -29,14 +29,16 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 					return
 				}
 				maxRate, err := q.GetRateLimit(r.Context(), int32(userIDInt))
-				// Check if the request exceeds the rate limit.
 				if err != nil {
-					if !errors.Is(err, sql.ErrNoRows) {
-						http.Error(w, fmt.Errorf("error: Could not get rate limit. %w", err).Error(), http.StatusInternalServerError)
+					if errors.Is(err, sql.ErrNoRows) {
+						maxRate = 100
+					} else {
+						http.Error(w, "Could not get rate limit.", http.StatusInternalServerError)
 						return
 					}
 				}
-				if messageCount > int64(maxRate) {
+
+				if messageCount >= int64(maxRate) {
 					http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 					return
 				}
