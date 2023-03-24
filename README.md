@@ -3,7 +3,7 @@
 - 第一个消息是系统消息（prompt）
 - 上下文默认附带最新创建的10条消息
 - 第一个注册的用户是管理员
-- 默认限流 100 chatgpt api call /10分钟
+- 默认限流 100 chatGPT call /10分钟 (OPENAI_RATELIMIT=100)
 
 ## 如何部署
 
