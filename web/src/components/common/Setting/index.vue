@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { NCard, NModal, NTabPane, NTabs } from 'naive-ui'
 import General from './General.vue'
 import About from './About.vue'
+import Admin from './Admin.vue'
 import { SvgIcon } from '@/components/common'
 
 const props = defineProps<Props>()
@@ -48,6 +49,13 @@ const show = computed({
             <span class="ml-2">{{ $t('setting.config') }}</span>
           </template>
           <About />
+        </NTabPane>
+        <NTabPane name="Admin" tab="Admin">
+          <template #tab>
+            <SvgIcon class="text-lg" icon="ri:list-settings-line" />
+            <span class="ml-2">{{ $t('setting.admin') }}</span>
+          </template>
+          <Admin />
         </NTabPane>
       </NTabs>
     </NCard>

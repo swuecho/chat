@@ -54,6 +54,7 @@ export default {
   setting: {
     setting: '设置',
     general: '总览',
+    admin: '管理',
     config: '配置',
     avatarLink: '头像链接',
     name: '名称',
