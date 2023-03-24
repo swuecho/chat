@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, defineProps, ref, watch } from 'vue'
 import { NCard, NSlider, NSwitch } from 'naive-ui'
-import { debounce } from 'lodash'
+import { debounce } from 'lodash-es'
 import { useChatStore } from '@/store'
 
 const props = defineProps<{

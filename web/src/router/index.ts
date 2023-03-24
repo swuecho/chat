@@ -6,6 +6,11 @@ import { ChatLayout } from '@/views/chat/layout'
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/admin',
+    name: 'admin',
+    component: () => import('@/views/user/index.vue'),
+  },
+  {
     path: '/',
     name: 'Root',
     component: ChatLayout,
@@ -17,11 +22,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/chat/index.vue'),
       },
     ],
-  },
-  {
-    path: '/user',
-    name: 'User',
-    component: () => import('@/views/user/index.vue'),
   },
   {
     path: '/404',
