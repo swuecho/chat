@@ -81,4 +81,3 @@ type Pagination struct {
 func (p *Pagination) Offset() int32 {
 	return (p.Page - 1) * p.Size
 }
-

@@ -14,7 +14,7 @@ import (
 
 var ErrInvalidToken = errors.New("invalid token")
 
-func GenerateToken(userID int32, secret, jwt_audience string) (string, error) {
+func GenerateToken(userID int32, role string, secret, jwt_audience string) (string, error) {
 	expires := time.Now().Add(time.Hour * 8).Unix()
 	notBefore := time.Now().Unix()
 	issuer := "https://www.bestqa.net"
@@ -22,7 +22,7 @@ func GenerateToken(userID int32, secret, jwt_audience string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": strconv.FormatInt(int64(userID), 10),
 		"exp":     expires,
-		"role":    "user",
+		"role":    role,
 		"jti":     uuid.Must(uuid.NewV4()).String(),
 		"iss":     issuer,
 		"nbf":     notBefore,

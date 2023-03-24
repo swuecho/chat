@@ -119,7 +119,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := auth.GenerateToken(user.ID, appConfig.JWT.SECRET, appConfig.JWT.AUD)
+	tokenString, err := auth.GenerateToken(user.ID, user.Role(), appConfig.JWT.SECRET, appConfig.JWT.AUD)
 	if err != nil {
 		http.Error(w, "failed to generate token", http.StatusInternalServerError)
 		return
@@ -151,8 +151,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Errorf("invalid email or password: %w", err).Error(), http.StatusUnauthorized)
 		return
 	}
-
-	token, err := auth.GenerateToken(user.ID, appConfig.JWT.SECRET, appConfig.JWT.AUD)
+	token, err := auth.GenerateToken(user.ID, user.Role(), appConfig.JWT.SECRET, appConfig.JWT.AUD)
 
 	if err != nil {
 		http.Error(w, "failed to generate token", http.StatusInternalServerError)

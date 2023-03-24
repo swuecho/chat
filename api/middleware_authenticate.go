@@ -91,6 +91,12 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 				}
 				ctx := context.WithValue(r.Context(), userContextKey, userID)
 				ctx = context.WithValue(ctx, roleContextKey, role)
+				// superuser
+				if strings.HasPrefix(r.URL.Path, "/admin") && role != "admin" {
+					w.WriteHeader(http.StatusUnauthorized)
+					fmt.Fprintf(w, "Not Authorized")
+					return
+				}
 
 				// TODO: get trace id and add it to context
 				//traceID := r.Header.Get("X-Request-Id")
