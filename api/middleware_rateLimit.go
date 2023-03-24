@@ -1,6 +1,9 @@
 package main
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -22,14 +25,16 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				}
 				messageCount, err := q.GetChatMessagesCount(r.Context(), int32(userIDInt))
 				if err != nil {
-					http.Error(w, "Error: Could not get message count.", http.StatusInternalServerError)
+					http.Error(w, fmt.Errorf("error: Could not get message count. %w", err).Error(), http.StatusInternalServerError)
 					return
 				}
 				maxRate, err := q.GetRateLimit(r.Context(), int32(userIDInt))
 				// Check if the request exceeds the rate limit.
 				if err != nil {
-					http.Error(w, "Error: Could not get rate limit.", http.StatusInternalServerError)
-					return
+					if !errors.Is(err, sql.ErrNoRows) {
+						http.Error(w, fmt.Errorf("error: Could not get rate limit. %w", err).Error(), http.StatusInternalServerError)
+						return
+					}
 				}
 				if messageCount > int64(maxRate) {
 					http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
