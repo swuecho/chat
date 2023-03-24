@@ -18,6 +18,7 @@ services:
       - 8077:8077
     environment:
       - OPENAI_API_KEY=thisisakey
+      - OPENAI_REATELIMIT=100 # open ai call in 10min
       - PG_HOST=db
       - PG_DB=postgres
       - PG_USER=postgres

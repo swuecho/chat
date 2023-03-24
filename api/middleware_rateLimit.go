@@ -31,7 +31,7 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				maxRate, err := q.GetRateLimit(r.Context(), int32(userIDInt))
 				if err != nil {
 					if errors.Is(err, sql.ErrNoRows) {
-						maxRate = 100
+						maxRate = int32(appConfig.OPENAI.RATELIMIT)
 					} else {
 						http.Error(w, "Could not get rate limit.", http.StatusInternalServerError)
 						return
