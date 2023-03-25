@@ -14,6 +14,7 @@ import (
 	"time"
 
 	uuid "github.com/iris-contrib/go.uuid"
+	"github.com/rotisserie/eris"
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 
@@ -167,7 +168,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 
 	if err != nil {
-		http.Error(w, fmt.Errorf("fail to create or update session: %w", err).Error(), http.StatusInternalServerError)
+		http.Error(w, eris.Wrap(err, "fail to create or update session: ").Error(), http.StatusInternalServerError)
 	}
 
 	existingPrompt := true
@@ -178,7 +179,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		if errors.Is(err, sql.ErrNoRows) {
 			existingPrompt = false
 		} else {
-			http.Error(w, fmt.Errorf("fail to get prompt: %w", err).Error(), http.StatusInternalServerError)
+			http.Error(w, eris.Wrap(err, "fail to get prompt: ").Error(), http.StatusInternalServerError)
 		}
 	}
 
@@ -186,19 +187,19 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, userID)
 
 		if err != nil {
-			http.Error(w, fmt.Errorf("fail to create message: %w", err).Error(), http.StatusInternalServerError)
+			http.Error(w, eris.Wrap(err, "fail to create message: ").Error(), http.StatusInternalServerError)
 		}
 	} else {
 		chatPrompt, err := h.chatService.CreateChatPromptSimple(chatSessionUuid, newQuestion, userID)
 		if err != nil {
-			http.Error(w, fmt.Errorf("fail to create prompt: %w", err).Error(), http.StatusInternalServerError)
+			http.Error(w, eris.Wrap(err, "fail to create prompt: ").Error(), http.StatusInternalServerError)
 		}
 		log.Printf("%+v\n", chatPrompt)
 	}
 
 	msgs, err := h.chatService.getAskMessages(chatSession, chatUuid, false)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("fail to collect messages: %w", err).Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to collect messages: ").Error(), err)
 		return
 	}
 
@@ -218,7 +219,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		log.Println(m)
 		if err != nil {
 			fmt.Println(err.Error())
-			http.Error(w, fmt.Errorf("fail to create message: %w", err).Error(), http.StatusInternalServerError)
+			http.Error(w, eris.Wrap(err, "fail to create message: ").Error(), http.StatusInternalServerError)
 		}
 	} else {
 
@@ -231,7 +232,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
 
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("fail to create message: %w", err).Error(), nil)
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to create message: ").Error(), nil)
 		}
 	}
 

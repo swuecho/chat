@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/rotisserie/eris"
 )
 
 // allocation free version
@@ -24,7 +25,7 @@ func getUserID(ctx context.Context) (int32, error) {
 	userIDStr := ctx.Value(userContextKey).(string)
 	userIDInt, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		return 0, fmt.Errorf("Error: '"+userIDStr+"' is not a valid user ID. should be a numeric value: %w", err)
+		return 0, eris.Wrap(err, "Error: '"+userIDStr+"' is not a valid user ID. should be a numeric value: ")
 	}
 	userID := int32(userIDInt)
 	return userID, nil

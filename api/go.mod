@@ -8,6 +8,7 @@ require (
 	github.com/iris-contrib/go.uuid v2.0.0+incompatible
 	github.com/lib/pq v1.10.7
 	github.com/ory/dockertest/v3 v3.9.1
+	github.com/rotisserie/eris v0.5.4
 	github.com/samber/lo v1.37.0
 	github.com/sashabaranov/go-openai v1.5.2
 	github.com/sirupsen/logrus v1.8.1

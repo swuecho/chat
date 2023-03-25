@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
 
@@ -21,7 +21,7 @@ func NewChatPromptService(q *sqlc_queries.Queries) *ChatPromptService {
 func (s *ChatPromptService) CreateChatPrompt(ctx context.Context, prompt_params sqlc_queries.CreateChatPromptParams) (sqlc_queries.ChatPrompt, error) {
 	prompt, err := s.q.CreateChatPrompt(ctx, prompt_params)
 	if err != nil {
-		return sqlc_queries.ChatPrompt{}, fmt.Errorf("failed to create prompt: %w", err)
+		return sqlc_queries.ChatPrompt{}, eris.Wrap(err, "failed to create prompt: ")
 	}
 	return prompt, nil
 }
@@ -40,7 +40,7 @@ func (s *ChatPromptService) CreateChatPromptWithUUID(ctx context.Context, uuid s
 func (s *ChatPromptService) GetChatPromptByID(ctx context.Context, id int32) (sqlc_queries.ChatPrompt, error) {
 	prompt, err := s.q.GetChatPromptByID(ctx, id)
 	if err != nil {
-		return sqlc_queries.ChatPrompt{}, fmt.Errorf("failed to create prompt: %w", err)
+		return sqlc_queries.ChatPrompt{}, eris.Wrap(err, "failed to create prompt: ")
 	}
 	return prompt, nil
 }

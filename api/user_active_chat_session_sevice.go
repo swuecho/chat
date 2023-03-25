@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 
+	"github.com/rotisserie/eris"
 	sqlc "github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
 
@@ -29,7 +29,7 @@ func (s *UserActiveChatSessionService) CreateUserActiveChatSession(ctx context.C
 func (s *UserActiveChatSessionService) CreateOrUpdateUserActiveChatSession(ctx context.Context, params sqlc.CreateOrUpdateUserActiveChatSessionParams) (sqlc.UserActiveChatSession, error) {
 	session, err := s.q.CreateOrUpdateUserActiveChatSession(ctx, params)
 	if err != nil {
-		return sqlc.UserActiveChatSession{}, fmt.Errorf("failed to update or create active session %w", err)
+		return sqlc.UserActiveChatSession{}, eris.Wrap(err, "failed to update or create active session ")
 	}
 	return session, nil
 }

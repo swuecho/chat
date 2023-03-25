@@ -13,6 +13,7 @@ import (
 	"time"
 
 	uuid "github.com/iris-contrib/go.uuid"
+	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	"github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chatgpt_backend/ai"
@@ -51,7 +52,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("fail to create or update session: %w", err)
+		return nil, eris.Wrap(err, "fail to create or update session: ")
 	}
 
 	log.Println(chatSession)
@@ -65,7 +66,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 		if errors.Is(err, sql.ErrNoRows) {
 			existingPrompt = false
 		} else {
-			return nil, fmt.Errorf("error when get prompt: %w", err)
+			return nil, eris.Wrap(err, "error when get prompt: ")
 		}
 	}
 
@@ -84,7 +85,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 			})
 
 		if err != nil {
-			return nil, fmt.Errorf("add user message when not new session: %w", err)
+			return nil, eris.Wrap(err, "add user message when not new session: ")
 		}
 	} else {
 		uuidVar, _ := uuid.NewV4()
@@ -99,7 +100,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 				UpdatedBy:       userID,
 			})
 		if err != nil {
-			return nil, fmt.Errorf("fail to create prompt: %w", err)
+			return nil, eris.Wrap(err, "fail to create prompt: ")
 		}
 		log.Printf("%+v\n", chatPrompt)
 	}
@@ -107,14 +108,14 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 	chat_prompts, err := s.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
 
 	if err != nil {
-		return nil, fmt.Errorf("fail to get prompt: %w", err)
+		return nil, eris.Wrap(err, "fail to get prompt: ")
 	}
 
 	chat_massages, err := s.q.GetLatestMessagesBySessionUUID(ctx,
 		sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: chatSession.Uuid, Limit: 5})
 
 	if err != nil {
-		return nil, fmt.Errorf("fail to get latest message: %w", err)
+		return nil, eris.Wrap(err, "fail to get latest message: ")
 	}
 	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) openai.ChatCompletionMessage {
 		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
@@ -128,7 +129,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 		msgs = append(msgs, NewUserMessage(newQuestion))
 	}
 	if len(msgs) == 0 {
-		return nil, fmt.Errorf("fail to collect messages: %w", err)
+		return nil, eris.Wrap(err, "fail to collect messages: ")
 	}
 	var aiAnswer ChatCompletionResponse
 	// if system message is test_demo_bestqa, return a demo message
@@ -138,7 +139,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 	} else {
 		aiAnswer, err = GetAiAnswerOpenApi(msgs)
 		if err != nil {
-			return nil, fmt.Errorf("error when try get answer from service %w", err)
+			return nil, eris.Wrap(err, "error when try get answer from service ")
 		}
 	}
 
@@ -147,7 +148,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 
 	jsonMsg, err := json.Marshal(aiAnswer)
 	if err != nil {
-		return nil, fmt.Errorf("error when try to serialize answer %w", err)
+		return nil, eris.Wrap(err, "error when try to serialize answer ")
 	}
 
 	answerUuid, _ := uuid.NewV4()
@@ -163,7 +164,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 			UpdatedBy:       userID,
 		})
 	if err != nil {
-		return nil, fmt.Errorf("add ai answer %w", err)
+		return nil, eris.Wrap(err, "add ai answer ")
 	}
 	return &answer_msg, err
 }
@@ -185,13 +186,13 @@ func GetAiAnswerProxyLightsail(msgs []openai.ChatCompletionMessage) (ChatComplet
 	ai_res, err := http.DefaultClient.Do(ai_req)
 
 	if err != nil {
-		return ChatCompletionResponse{}, fmt.Errorf("request error: %w", err)
+		return ChatCompletionResponse{}, eris.Wrap(err, "request error: ")
 	}
 	defer ai_res.Body.Close()
 	var aiAnswer ChatCompletionResponse
 	err = json.NewDecoder(ai_res.Body).Decode(&aiAnswer)
 	if err != nil {
-		return ChatCompletionResponse{}, fmt.Errorf("decode request body err: %w", err)
+		return ChatCompletionResponse{}, eris.Wrap(err, "decode request body err: ")
 	}
 	return aiAnswer, nil
 }
@@ -218,7 +219,7 @@ func GetAiAnswerOpenApi(msgs []openai.ChatCompletionMessage) (ChatCompletionResp
 
 	ai_req, err := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", body)
 	if err != nil {
-		return ChatCompletionResponse{}, fmt.Errorf("request error: %w", err)
+		return ChatCompletionResponse{}, eris.Wrap(err, "request error: ")
 	}
 	ai_req.Header.Set("Content-Type", "application/json")
 	ai_req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", appConfig.OPENAI.API_KEY))
@@ -226,13 +227,13 @@ func GetAiAnswerOpenApi(msgs []openai.ChatCompletionMessage) (ChatCompletionResp
 	ai_res, err := http.DefaultClient.Do(ai_req)
 
 	if err != nil {
-		return ChatCompletionResponse{}, fmt.Errorf("request error: %w", err)
+		return ChatCompletionResponse{}, eris.Wrap(err, "request error: ")
 	}
 	defer ai_res.Body.Close()
 	var aiAnswer ChatCompletionResponse
 	err = json.NewDecoder(ai_res.Body).Decode(&aiAnswer)
 	if err != nil {
-		return ChatCompletionResponse{}, fmt.Errorf("decode request body err: %w", err)
+		return ChatCompletionResponse{}, eris.Wrap(err, "decode request body err: ")
 	}
 	return aiAnswer, nil
 }
@@ -251,7 +252,7 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	chat_prompts, err := s.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
 
 	if err != nil {
-		return nil, fmt.Errorf("fail to get prompt: %w", err)
+		return nil, eris.Wrap(err, "fail to get prompt: ")
 	}
 
 	var chat_massages []sqlc_queries.ChatMessage
@@ -269,7 +270,7 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("fail to get messages: %w", err)
+		return nil, eris.Wrap(err, "fail to get messages: ")
 	}
 	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) openai.ChatCompletionMessage {
 		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
@@ -311,7 +312,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	}
 	message, err := s.q.CreateChatMessage(ctx, chatMessage)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message %w", err)
+		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
 	}
 	return message, nil
 }

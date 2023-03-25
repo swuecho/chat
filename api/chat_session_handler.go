@@ -3,11 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
 
@@ -57,7 +57,7 @@ func (h *ChatSessionHandler) GetChatSessionByID(w http.ResponseWriter, r *http.R
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, fmt.Errorf("invalid chat session ID %w", err).Error(), http.StatusBadRequest)
+		http.Error(w, eris.Wrap(err, "invalid chat session ID ").Error(), http.StatusBadRequest)
 		return
 	}
 	session, err := h.service.GetChatSessionByID(r.Context(), int32(id))
@@ -182,7 +182,7 @@ func (h *ChatSessionHandler) CreateChatSessionByUUID(w http.ResponseWriter, r *h
 			ChatSessionUuid: session.Uuid,
 		})
 	if err != nil {
-		http.Error(w, fmt.Errorf("fail to update or create action user session record, %w", err).Error(), http.StatusInternalServerError)
+		http.Error(w, eris.Wrap(err, "fail to update or create action user session record, ").Error(), http.StatusInternalServerError)
 		return
 	}
 	if err != nil {

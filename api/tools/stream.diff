@@ -1,0 +1,52 @@
+commit 31c4f4b48ada4b3e8495abe7dcdc41ded550a598
+Author: Hao Wu <wuhaoecho@gmail.com>
+Date:   Wed Mar 22 00:11:08 2023 +0800
+
+    add stream (#20)
+
+diff --git a/api/chat_main_handler.go b/api/chat_main_handler.go
+index 9495d21..507fa65 100644
+--- a/api/chat_main_handler.go
++++ b/api/chat_main_handler.go
+@@ -378,7 +378,7 @@ func chat_stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chat
+                Messages:    chat_compeletion_messages,
+                MaxTokens:   int(chatSession.MaxTokens),
+                Temperature: float32(chatSession.Temperature),
+-               TopP:        float32(chatSession.TopP),
++               // TopP:        float32(chatSession.TopP),
+                Stream:      chatSession.Stream,
+                // PresencePenalty:  presencePenalty,
+                // FrequencyPenalty: frequencyPenalty,
+                // N:                n,
+diff --git a/api/chat_session_handler.go b/api/chat_session_handler.go
+index 2c7a332..5bd0440 100644
+--- a/api/chat_session_handler.go
++++ b/api/chat_session_handler.go
+@@ -225,6 +225,7 @@ type UpdateChatSessionRequest struct {
+        Topic       string  `json:"topic"`
+        MaxLength   int32   `json:"maxLength"`
+        Temperature float64 `json:"temperature"`
++       Stream      bool    `json:"stream"`
+        MaxTokens   int32   `json:"maxTokens"`
+ }
+ 
+@@ -254,6 +255,7 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
+        sessionParams.Uuid = sessionReq.Uuid
+        sessionParams.UserID = int32(userIDInt)
+        sessionParams.Temperature = sessionReq.Temperature
++       sessionParams.Stream = sessionReq.Stream
+        sessionParams.MaxTokens = sessionReq.MaxTokens
+        session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), sessionParams)
+        if err != nil {
+diff --git a/api/chat_session_service.go b/api/chat_session_service.go
+index a292ba3..0ab70fe 100644
+--- a/api/chat_session_service.go
++++ b/api/chat_session_service.go
+@@ -85,6 +85,7 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context,
+                        Title:       session.Topic,
+                        MaxLength:   int(session.MaxLength),
+                        Temperature: float64(session.Temperature),
++                       Stream:      session.Stream,
+                        MaxTokens:   session.MaxTokens,
+                }
+        })

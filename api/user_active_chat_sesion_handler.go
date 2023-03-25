@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rotisserie/eris"
 	sqlc "github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
 
@@ -72,7 +73,7 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 	sessionParams.UserID = int32(userIDInt)
 	session, err := h.service.CreateOrUpdateUserActiveChatSession(r.Context(), sessionParams)
 	if err != nil {
-		http.Error(w, fmt.Errorf("fail to update or create action user session record, %w", err).Error(), http.StatusInternalServerError)
+		http.Error(w, eris.Wrap(err, "fail to update or create action user session record, ").Error(), http.StatusInternalServerError)
 		return
 	}
 

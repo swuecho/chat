@@ -3,10 +3,10 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
 
@@ -25,7 +25,7 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				}
 				messageCount, err := q.GetChatMessagesCount(r.Context(), int32(userIDInt))
 				if err != nil {
-					http.Error(w, fmt.Errorf("error: Could not get message count. %w", err).Error(), http.StatusInternalServerError)
+					http.Error(w, eris.Wrap(err, "error: Could not get message count. ").Error(), http.StatusInternalServerError)
 					return
 				}
 				maxRate, err := q.GetRateLimit(r.Context(), int32(userIDInt))

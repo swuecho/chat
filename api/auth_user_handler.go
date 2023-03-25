@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chatgpt_backend/auth"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
@@ -114,7 +115,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.service.CreateAuthUser(r.Context(), userParams)
 	if err != nil {
-		http.Error(w, fmt.Errorf("failed to create user %w", err).Error(), http.StatusInternalServerError)
+		http.Error(w, eris.Wrap(err, "failed to create user ").Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -147,7 +148,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	logger.Warn(fmt.Sprintf("loginParams: %v", loginParams))
 	user, err := h.service.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
 	if err != nil {
-		http.Error(w, fmt.Errorf("invalid email or password: %w", err).Error(), http.StatusUnauthorized)
+		http.Error(w, eris.Wrap(err, "invalid email or password: ").Error(), http.StatusUnauthorized)
 		return
 	}
 	token, err := auth.GenerateToken(user.ID, user.Role(), appConfig.JWT.SECRET, appConfig.JWT.AUD)
@@ -216,7 +217,7 @@ func (h *AuthUserHandler) verify(w http.ResponseWriter, r *http.Request) {
 	// AuthSecretKey := os.Getenv("AUTH_SECRET_KEY")
 	_, err = auth.ValidateToken(token, appConfig.JWT.SECRET)
 	if err != nil {
-		http.Error(w, fmt.Errorf("密钥无效 | Secret key is invalid %w", err).Error(), http.StatusUnauthorized)
+		http.Error(w, eris.Wrap(err, "密钥无效 | Secret key is invalid ").Error(), http.StatusUnauthorized)
 		return
 	}
 
