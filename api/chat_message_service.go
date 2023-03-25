@@ -29,7 +29,6 @@ func (s *ChatMessageService) CreateChatMessage(ctx context.Context, message_para
 	return message, nil
 }
 
-
 // GetChatMessageByID returns a chat message by ID.
 func (s *ChatMessageService) GetChatMessageByID(ctx context.Context, id int32) (sqlc_queries.ChatMessage, error) {
 	message, err := s.q.GetChatMessageByID(ctx, id)
@@ -43,7 +42,7 @@ func (s *ChatMessageService) GetChatMessageByID(ctx context.Context, id int32) (
 func (s *ChatMessageService) UpdateChatMessage(ctx context.Context, message_params sqlc_queries.UpdateChatMessageParams) (sqlc_queries.ChatMessage, error) {
 	message_u, err := s.q.UpdateChatMessage(ctx, message_params)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, errors.New("failed to update message")
+		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to update message %w", err)
 	}
 	return message_u, nil
 }
@@ -52,7 +51,7 @@ func (s *ChatMessageService) UpdateChatMessage(ctx context.Context, message_para
 func (s *ChatMessageService) DeleteChatMessage(ctx context.Context, id int32) error {
 	err := s.q.DeleteChatMessage(ctx, id)
 	if err != nil {
-		return errors.New("failed to delete message")
+		return fmt.Errorf("failed to delete message %w", err)
 	}
 	return nil
 }
@@ -61,7 +60,7 @@ func (s *ChatMessageService) DeleteChatMessage(ctx context.Context, id int32) er
 func (s *ChatMessageService) DeleteChatMessageByUUID(ctx context.Context, uuid string) error {
 	err := s.q.DeleteChatMessageByUUID(ctx, uuid)
 	if err != nil {
-		return errors.New("failed to delete message")
+		return fmt.Errorf("failed to delete message %w", err)
 	}
 	return nil
 }
@@ -70,7 +69,7 @@ func (s *ChatMessageService) DeleteChatMessageByUUID(ctx context.Context, uuid s
 func (s *ChatMessageService) GetAllChatMessages(ctx context.Context) ([]sqlc_queries.ChatMessage, error) {
 	messages, err := s.q.GetAllChatMessages(ctx)
 	if err != nil {
-		return nil, errors.New("failed to retrieve messages")
+		return nil, fmt.Errorf("failed to retrieve messages %w", err)
 	}
 	return messages, nil
 }
@@ -120,7 +119,7 @@ func (s *ChatMessageService) GetChatMessageByUUID(ctx context.Context, uuid stri
 func (s *ChatMessageService) UpdateChatMessageByUUID(ctx context.Context, message_params sqlc_queries.UpdateChatMessageByUUIDParams) (sqlc_queries.ChatMessage, error) {
 	message_u, err := s.q.UpdateChatMessageByUUID(ctx, message_params)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, errors.New("failed to update message")
+		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to update message %w", err)
 	}
 	return message_u, nil
 }
@@ -134,7 +133,7 @@ func (s *ChatMessageService) GetChatMessagesBySessionUUID(ctx context.Context, u
 	}
 	message, err := s.q.GetChatMessagesBySessionUUID(ctx, param)
 	if err != nil {
-		return []sqlc_queries.ChatMessage{}, errors.New("failed to retrieve message")
+		return []sqlc_queries.ChatMessage{}, fmt.Errorf("failed to retrieve message %w", err)
 	}
 	return message, nil
 }
@@ -190,26 +189,10 @@ func (s *ChatMessageService) GetChatHistoryBySessionUUID(ctx context.Context, uu
 	return msgs, nil
 }
 
-// GetLastNChatMessagesByUUID returns last N chat message related by uuid.
-func (s *ChatMessageService) GetLastNChatMessages(ctx context.Context, uuid string, n int32) ([]sqlc_queries.ChatMessage, error) {
-	param := sqlc_queries.GetLastNChatMessagesParams{
-		Uuid:  uuid,
-		Limit: n,
-	}
-	message, err := s.q.GetLastNChatMessages(ctx, param)
-	if err != nil {
-		return []sqlc_queries.ChatMessage{}, errors.New("failed to retrieve message")
-	}
-	return message, nil
-}
-
 // DeleteChatMessagesBySesionUUID deletes chat messages by session uuid.
 func (s *ChatMessageService) DeleteChatMessagesBySesionUUID(ctx context.Context, uuid string) error {
 	err := s.q.DeleteChatMessagesBySesionUUID(ctx, uuid)
-	if err != nil {
-		return errors.New("failed to delete message")
-	}
-	return nil
+	return err
 }
 
 func (s *ChatMessageService) GetChatMessagesCount(ctx context.Context, userID int32) (int32, error) {

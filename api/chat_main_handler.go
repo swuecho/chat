@@ -147,7 +147,6 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 			return
 		}
 
-		// Set up SSE headers
 		if chat_session.Debug {
 			log.Printf("%+v\n", chatCompletionMessages)
 		}
@@ -210,7 +209,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 		http.Error(w, "No messages found", http.StatusNotFound)
 	}
 	if msgs[0].Content == "test_demo_bestqa" || msgs[len(msgs)-1].Content == "test_demo_bestqa" {
-		answerText, answerID, shouldReturn := test_replay(w)
+		answerText, answerID, shouldReturn := test_replay(w, chatSession, msgs)
 		if shouldReturn {
 			return
 		}
@@ -241,18 +240,8 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) (string, string, bool) {
 	client := openai.NewClient(appConfig.OPENAI.API_KEY)
 
-	openai_req := openai.ChatCompletionRequest{
-		Model:       openai.GPT3Dot5Turbo,
-		Messages:    chat_compeletion_messages,
-		MaxTokens:   int(chatSession.MaxTokens),
-		Temperature: float32(chatSession.Temperature),
-		TopP:        float32(chatSession.TopP),
-		// PresencePenalty:  presencePenalty,
-		// FrequencyPenalty: frequencyPenalty,
-		// N:                n,
-		Stream: true,
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	openai_req := newChatCompletionRequest(chatSession, chat_compeletion_messages)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 	if err != nil {
@@ -315,7 +304,7 @@ func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, ch
 	return answer, answer_id, false
 }
 
-func test_replay(w http.ResponseWriter) (string, string, bool) {
+func test_replay(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) (string, string, bool) {
 	//message := Message{Role: "assitant", Content:}
 	uuid, _ := uuid.NewV4()
 	setSSEHeader(w)
@@ -332,7 +321,34 @@ func test_replay(w http.ResponseWriter) (string, string, bool) {
 	data, _ := json.Marshal(resp)
 	fmt.Fprintf(w, "data: %v\n\n", string(data))
 	flusher.Flush()
+
+	if chatSession.Debug {
+		// PresencePenalty:  presencePenalty,
+		// FrequencyPenalty: frequencyPenalty,
+		// N:                n,
+		openai_req := newChatCompletionRequest(chatSession, chat_compeletion_messages )
+		req_j, _ := json.Marshal(openai_req)
+		log.Println(string(req_j))
+		answer = answer + "\n" + string(req_j)
+		req_as_resp := constructChatCompletionStreamReponse(answer_id, answer)
+		data, _ := json.Marshal(req_as_resp)
+		fmt.Fprintf(w, "data: %s\n\n", string(data))
+		flusher.Flush()
+	}
 	return answer, answer_id, false
+}
+
+func newChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) openai.ChatCompletionRequest {
+	openai_req := openai.ChatCompletionRequest{
+		Model:       openai.GPT3Dot5Turbo,
+		Messages:    chat_compeletion_messages,
+		MaxTokens:   int(chatSession.MaxTokens),
+		Temperature: float32(chatSession.Temperature),
+		TopP:        float32(chatSession.TopP),
+
+		Stream: true,
+	}
+	return openai_req
 }
 
 func constructChatCompletionStreamReponse(answer_id string, answer string) openai.ChatCompletionStreamResponse {

@@ -119,23 +119,28 @@ async function onConversationStream() {
           // Check if the chunk is not empty
           if (chunk) {
             // Parse the JSON data chunk
-            const data = JSON.parse(chunk)
-            const answer = data.choices[0].delta.content
-            const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
-            updateChat(
-              sessionUuid,
-              dataSources.value.length - 1,
-              {
-                uuid: answer_uuid,
-                dateTime: new Date().toLocaleString(),
-                text: answer,
-                inversion: false,
-                error: false,
-                loading: false,
-                conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
-                requestOptions: { prompt: message, options: { ...options } },
-              },
-            )
+            try {
+              const data = JSON.parse(chunk)
+              const answer = data.choices[0].delta.content
+              const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
+              updateChat(
+                sessionUuid,
+                dataSources.value.length - 1,
+                {
+                  uuid: answer_uuid,
+                  dateTime: new Date().toLocaleString(),
+                  text: answer,
+                  inversion: false,
+                  error: false,
+                  loading: false,
+                  conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
+                  requestOptions: { prompt: message, options: { ...options } },
+                },
+              )
+            }
+            catch (error) {
+              console.log(error)
+            }
           }
         },
       )
@@ -422,9 +427,7 @@ onUnmounted(() => {
     />
     <main class="flex-1 overflow-hidden">
       <NModal ref="sessionConfigModal" v-model:show="showModal">
-        <SessionConfig
-          ref="sessionConfig" :uuid="sessionUuid"
-        />
+        <SessionConfig ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div
