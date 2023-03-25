@@ -12,7 +12,7 @@ the bottle neck here is the changeset generated in step 2 is not strictly valid.
 
 === GPT polished version
 
-The need for a smart diff apply
+The need for a smart diff apply tool
 
 Have you ever had to make a change to a project that was very similar to a previous change? For example, adding another field to a table in a database or adding another parameter to a function? If so, you know that it can be time-consuming to make these changes, especially if you have to make them manually each time.
 
