@@ -189,19 +189,6 @@ func (s *ChatMessageService) GetChatHistoryBySessionUUID(ctx context.Context, uu
 	return msgs, nil
 }
 
-// GetLastNChatMessagesByUUID returns last N chat message related by uuid.
-func (s *ChatMessageService) GetLastNChatMessages(ctx context.Context, uuid string, n int32) ([]sqlc_queries.ChatMessage, error) {
-	param := sqlc_queries.GetLastNChatMessagesParams{
-		Uuid:  uuid,
-		Limit: n,
-	}
-	message, err := s.q.GetLastNChatMessages(ctx, param)
-	if err != nil {
-		return []sqlc_queries.ChatMessage{}, fmt.Errorf("failed to retrieve newest message %w", err)
-	}
-	return message, nil
-}
-
 // DeleteChatMessagesBySesionUUID deletes chat messages by session uuid.
 func (s *ChatMessageService) DeleteChatMessagesBySesionUUID(ctx context.Context, uuid string) error {
 	err := s.q.DeleteChatMessagesBySesionUUID(ctx, uuid)

@@ -360,8 +360,8 @@ FROM chat_message
 WHERE chat_message.id in (
     SELECT id 
     FROM chat_message cm
-    WHERE cm.chat_session_uuid = (SELECT chat_session_uuid FROM chat_message WHERE chat_message.uuid = $1)
-            AND cm.created_at < (SELECT created_at FROM chat_message WHERE chat_message.uuid = $1)
+    WHERE cm.chat_session_uuid = $3 
+            AND cm.id < (SELECT id FROM chat_message WHERE chat_message.uuid = $1)
     ORDER BY cm.created_at DESC
     LIMIT $2
 ) 
@@ -369,12 +369,13 @@ ORDER BY created_at
 `
 
 type GetLastNChatMessagesParams struct {
-	Uuid  string
-	Limit int32
+	Uuid            string
+	Limit           int32
+	ChatSessionUuid string
 }
 
 func (q *Queries) GetLastNChatMessages(ctx context.Context, arg GetLastNChatMessagesParams) ([]ChatMessage, error) {
-	rows, err := q.db.QueryContext(ctx, getLastNChatMessages, arg.Uuid, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, getLastNChatMessages, arg.Uuid, arg.Limit, arg.ChatSessionUuid)
 	if err != nil {
 		return nil, err
 	}

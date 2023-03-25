@@ -260,6 +260,7 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 			sqlc_queries.GetLastNChatMessagesParams{
 				Uuid:  chatUuid,
 				Limit: lastN,
+				ChatSessionUuid: chatSessionUuid,
 			})
 
 	} else {

@@ -92,8 +92,8 @@ FROM chat_message
 WHERE chat_message.id in (
     SELECT id 
     FROM chat_message cm
-    WHERE cm.chat_session_uuid = (SELECT chat_session_uuid FROM chat_message WHERE chat_message.uuid = $1)
-            AND cm.created_at < (SELECT created_at FROM chat_message WHERE chat_message.uuid = $1)
+    WHERE cm.chat_session_uuid = $3 
+            AND cm.id < (SELECT id FROM chat_message WHERE chat_message.uuid = $1)
     ORDER BY cm.created_at DESC
     LIMIT $2
 ) 
