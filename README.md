@@ -20,7 +20,7 @@
 - The first message is a system message (prompt)
 - by default, the latest 10 messages are context
 - First user is superuser.
-- 100 chatgpt api call / 10 mins
+- 100 chatgpt api call / 10 mins (OPENAI_RATELIMIT=100)
 
 ## How to Deploy
 
