@@ -36,6 +36,7 @@ watch([slider, temperature, maxTokens, topP, debug], ([newValueSlider, newValueT
 </script>
 
 <template>
+  <!-- https://platform.openai.com/playground?mode=chat -->
   <NCard style="width: 600px" title="会话设置" :bordered="false" size="huge" role="dialog" aria-modal="true">
     <div>{{ $t('chat.slider') }}: {{ slider }}</div>
     <NSlider v-model:value="slider" :min="1" :max="20" :tooltip="false" />
