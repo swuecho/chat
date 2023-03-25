@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chatgpt_backend/auth"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
@@ -100,7 +101,7 @@ func (s *AuthUserService) GetUserStat(ctx context.Context, p Pagination) ([]sqlc
 			Limit:  p.Size,
 		})
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to retrieve user stats %w", err)
+		return nil, 0, eris.Wrap(err, "failed to retrieve user stats ")
 	}
 	total, err := s.q.GetTotalActiveUserCount(ctx)
 	if err != nil {

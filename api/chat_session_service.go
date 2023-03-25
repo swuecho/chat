@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 
+	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	"github.com/swuecho/chatgpt_backend/sqlc_queries"
 )
@@ -32,7 +32,7 @@ func (s *ChatSessionService) CreateChatSession(ctx context.Context, session_para
 func (s *ChatSessionService) GetChatSessionByID(ctx context.Context, id int32) (sqlc_queries.ChatSession, error) {
 	session, err := s.q.GetChatSessionByID(ctx, id)
 	if err != nil {
-		return sqlc_queries.ChatSession{}, fmt.Errorf("failed to retrieve session: %w", err)
+		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to retrieve session: ")
 	}
 	return session, nil
 }
@@ -97,7 +97,7 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 func (s *ChatSessionService) GetChatSessionByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatSession, error) {
 	chatSession, err := s.q.GetChatSessionByUUID(ctx, uuid)
 	if err != nil {
-		return sqlc_queries.ChatSession{}, fmt.Errorf("failed to retrieve session by uuid, %w", err)
+		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to retrieve session by uuid, ")
 	}
 	return chatSession, nil
 }
@@ -106,7 +106,7 @@ func (s *ChatSessionService) GetChatSessionByUUID(ctx context.Context, uuid stri
 func (s *ChatSessionService) UpdateChatSessionByUUID(ctx context.Context, session_params sqlc_queries.UpdateChatSessionByUUIDParams) (sqlc_queries.ChatSession, error) {
 	session_u, err := s.q.UpdateChatSessionByUUID(ctx, session_params)
 	if err != nil {
-		return sqlc_queries.ChatSession{}, fmt.Errorf("failed to update session, %w", err)
+		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session, ")
 	}
 	return session_u, nil
 }
@@ -115,7 +115,7 @@ func (s *ChatSessionService) UpdateChatSessionByUUID(ctx context.Context, sessio
 func (s *ChatSessionService) UpdateChatSessionTopicByUUID(ctx context.Context, session_params sqlc_queries.UpdateChatSessionTopicByUUIDParams) (sqlc_queries.ChatSession, error) {
 	session_u, err := s.q.UpdateChatSessionTopicByUUID(ctx, session_params)
 	if err != nil {
-		return sqlc_queries.ChatSession{}, fmt.Errorf("failed to update session, %w", err)
+		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session, ")
 	}
 	return session_u, nil
 }
@@ -124,7 +124,7 @@ func (s *ChatSessionService) UpdateChatSessionTopicByUUID(ctx context.Context, s
 func (s *ChatSessionService) CreateOrUpdateChatSessionByUUID(ctx context.Context, session_params sqlc_queries.CreateOrUpdateChatSessionByUUIDParams) (sqlc_queries.ChatSession, error) {
 	session_u, err := s.q.CreateOrUpdateChatSessionByUUID(ctx, session_params)
 	if err != nil {
-		return sqlc_queries.ChatSession{}, fmt.Errorf("failed to update session, %w", err)
+		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session, ")
 	}
 	return session_u, nil
 }
@@ -133,7 +133,7 @@ func (s *ChatSessionService) CreateOrUpdateChatSessionByUUID(ctx context.Context
 func (s *ChatSessionService) DeleteChatSessionByUUID(ctx context.Context, uuid string) error {
 	err := s.q.DeleteChatSessionByUUID(ctx, uuid)
 	if err != nil {
-		return fmt.Errorf("failed to delete session by uuid, %w", err)
+		return eris.Wrap(err, "failed to delete session by uuid, ")
 
 	}
 	return nil
@@ -143,7 +143,7 @@ func (s *ChatSessionService) DeleteChatSessionByUUID(ctx context.Context, uuid s
 func (s *ChatSessionService) UpdateSessionMaxLength(ctx context.Context, session_params sqlc_queries.UpdateSessionMaxLengthParams) (sqlc_queries.ChatSession, error) {
 	session_u, err := s.q.UpdateSessionMaxLength(ctx, session_params)
 	if err != nil {
-		return sqlc_queries.ChatSession{}, fmt.Errorf("failed to update session, %w", err)
+		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session, ")
 	}
 	return session_u, nil
 }

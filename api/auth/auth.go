@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/rotisserie/eris"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -26,7 +27,7 @@ func generateSalt() ([]byte, error) {
 func GeneratePasswordHash(password string) (string, error) {
 	salt, err := generateSalt()
 	if err != nil {
-		return "", fmt.Errorf("error generating salt: %w", err)
+		return "", eris.Wrap(err, "error generating salt: ")
 	}
 
 	hash := pbkdf2.Key([]byte(password), salt, iterations, keySize, sha256.New)
