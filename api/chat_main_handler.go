@@ -326,7 +326,7 @@ func test_replay(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, ch
 		// PresencePenalty:  presencePenalty,
 		// FrequencyPenalty: frequencyPenalty,
 		// N:                n,
-		openai_req := newChatCompletionRequest(chatSession, chat_compeletion_messages )
+		openai_req := newChatCompletionRequest(chatSession, chat_compeletion_messages)
 		req_j, _ := json.Marshal(openai_req)
 		log.Println(string(req_j))
 		answer = answer + "\n" + string(req_j)

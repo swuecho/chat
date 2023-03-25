@@ -258,9 +258,9 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	if regenerate {
 		chat_massages, err = s.q.GetLastNChatMessages(ctx,
 			sqlc_queries.GetLastNChatMessagesParams{
-				Uuid:  chatUuid,
-				Limit: lastN,
 				ChatSessionUuid: chatSessionUuid,
+				Uuid:            chatUuid,
+				Limit:           lastN,
 			})
 
 	} else {
@@ -317,10 +317,10 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 }
 
 // UpdateChatMessageContent
-func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, content string) (error) {
+func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, content string) error {
 	err := s.q.UpdateChatMessageContent(ctx, sqlc_queries.UpdateChatMessageContentParams{
 		Uuid:    uuid,
 		Content: content,
 	})
-	return err 
+	return err
 }

@@ -22,7 +22,7 @@ var logger *log.Logger
 
 type AppConfig struct {
 	OPENAI struct {
-		API_KEY    string
+		API_KEY   string
 		RATELIMIT int
 	}
 	JWT struct {

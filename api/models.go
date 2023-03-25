@@ -71,11 +71,10 @@ type ChatSessionResponse struct {
 }
 
 type Pagination struct {
-	Page int32 `json:"page"`
-	Size int32 `json:"size"`
+	Page  int32         `json:"page"`
+	Size  int32         `json:"size"`
 	Data  []interface{} `json:"data"`
 	Total int64         `json:"total"`
-    
 }
 
 func (p *Pagination) Offset() int32 {

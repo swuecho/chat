@@ -227,7 +227,7 @@ type UpdateChatSessionRequest struct {
 	Temperature float64 `json:"temperature"`
 	TopP        float64 `json:"topP"`
 	MaxTokens   int32   `json:"maxTokens"`
-	Debug      bool    `json:"debug"`
+	Debug       bool    `json:"debug"`
 }
 
 // UpdateChatSessionByUUID updates a chat session by its UUID

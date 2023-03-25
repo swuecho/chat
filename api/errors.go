@@ -5,7 +5,6 @@ import "errors"
 // ErrUsageLimitExceeded is returned when the usage limit is exceeded.
 var ErrUsageLimitExceeded = errors.New("usage limit exceeded")
 
-
 // auth related
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
