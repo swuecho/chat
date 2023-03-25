@@ -147,7 +147,6 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 			return
 		}
 
-		// Set up SSE headers
 		if chat_session.Debug {
 			log.Printf("%+v\n", chatCompletionMessages)
 		}
@@ -242,7 +241,7 @@ func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, ch
 	client := openai.NewClient(appConfig.OPENAI.API_KEY)
 
 	openai_req := newChatCompletionRequest(chatSession, chat_compeletion_messages)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 	if err != nil {
