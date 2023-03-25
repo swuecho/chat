@@ -346,7 +346,6 @@ func newChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compele
 		MaxTokens:   int(chatSession.MaxTokens),
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
-
 		Stream: true,
 	}
 	return openai_req
