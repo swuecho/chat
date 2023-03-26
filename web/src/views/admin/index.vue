@@ -5,6 +5,8 @@ import { NIcon, NLayout, NLayoutSider, NMenu, NSpace } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
 import {
   BookOutline as BookIcon,
+  PulseOutline,
+  ShieldCheckmarkOutline
 } from '@vicons/ionicons5'
 import { RouterLink } from 'vue-router'
 import i18n from '@/locales'
@@ -26,7 +28,7 @@ const menuOptions: MenuOption[] = reactive([
           { default: () => i18n.global.t('admin.rateLimit') },
         ),
     key: 'hear-the-wind-sing',
-    icon: renderIcon(BookIcon),
+    icon: renderIcon(PulseOutline),
   },
   {
     label: () => h(
@@ -39,7 +41,7 @@ const menuOptions: MenuOption[] = reactive([
       { default: () => i18n.global.t('admin.permission') },
     ),
     key: 'a-wild-sheep-chase',
-    icon: renderIcon(BookIcon),
+    icon: renderIcon(ShieldCheckmarkOutline),
   },
 ])
 
