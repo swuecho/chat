@@ -3,11 +3,7 @@ import type { Component, Ref } from 'vue'
 import { h, reactive, ref } from 'vue'
 import { NIcon, NLayout, NLayoutSider, NMenu, NSpace } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
-import {
-  BookOutline as BookIcon,
-  PulseOutline,
-  ShieldCheckmarkOutline
-} from '@vicons/ionicons5'
+import { PulseOutline, ShieldCheckmarkOutline } from '@vicons/ionicons5'
 import { RouterLink } from 'vue-router'
 import i18n from '@/locales'
 function renderIcon(icon: Component) {
