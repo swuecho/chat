@@ -12,6 +12,7 @@ specifiers:
   '@types/markdown-it': ^12.2.3
   '@types/node': ^18.14.6
   '@types/uuid': ^9.0.1
+  '@vicons/ionicons5': ^0.12.0
   '@vitejs/plugin-vue': ^4.0.0
   '@vueuse/core': ^9.13.0
   autoprefixer: ^10.4.13
@@ -33,6 +34,7 @@ specifiers:
   pinia: ^2.0.32
   postcss: ^8.4.21
   rimraf: ^4.2.0
+  sass: ^1.60.0
   tailwindcss: ^3.2.7
   typescript: ~4.9.5
   uuid: ^9.0.0
@@ -45,6 +47,7 @@ specifiers:
 
 dependencies:
   '@traptitech/markdown-it-katex': 3.6.0
+  '@vicons/ionicons5': 0.12.0
   '@vueuse/core': 9.13.0_vue@3.2.47
   highlight.js: 11.7.0
   html2canvas: 1.4.1
@@ -82,9 +85,10 @@ devDependencies:
   npm-run-all: 4.1.5
   postcss: 8.4.21
   rimraf: 4.3.0
+  sass: 1.60.0
   tailwindcss: 3.2.7_postcss@8.4.21
   typescript: 4.9.5
-  vite: 4.1.4_4l5pdn5ozbjpiwj3fcgseihr44
+  vite: 4.1.4_qezjnsmlo5uzc6apufa4wmp55u
   vite-plugin-pwa: 0.14.4_vite@4.1.4
   vue-tsc: 1.2.0_typescript@4.9.5
 
@@ -2260,6 +2264,10 @@ packages:
       eslint-visitor-keys: 3.3.0
     dev: true
 
+  /@vicons/ionicons5/0.12.0:
+    resolution: {integrity: sha512-Iy1EUVRpX0WWxeu1VIReR1zsZLMc4fqpt223czR+Rpnrwu7pt46nbnC2ycO7ItI/uqDLJxnbcMC7FujKs9IfFA==}
+    dev: false
+
   /@vitejs/plugin-vue/4.0.0_vite@4.1.4+vue@3.2.47:
     resolution: {integrity: sha512-e0X4jErIxAB5oLtDqbHvHpJe/uWNkdpYV83AOG2xo2tEVSzCzewgJMtREZM30wXnM5ls90hxiOtAuVU6H5JgbA==}
     engines: {node: ^14.18.0 || >=16.0.0}
@@ -2267,7 +2275,7 @@ packages:
       vite: ^4.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 4.1.4_4l5pdn5ozbjpiwj3fcgseihr44
+      vite: 4.1.4_qezjnsmlo5uzc6apufa4wmp55u
       vue: 3.2.47
     dev: true
 
@@ -4233,6 +4241,10 @@ packages:
     dev: true
     optional: true
 
+  /immutable/4.3.0:
+    resolution: {integrity: sha512-0AOCmOip+xgJwEVTQj1EfiDDOkPmuyllDuTuEX+DDXUgapLAsBIfkg3sxCYyCEA8mQqZrrxPUGjcOQ2JS3WLkg==}
+    dev: true
+
   /import-fresh/3.3.0:
     resolution: {integrity: sha512-veYYhQa+D1QBKznvhUHxb8faxlrwUnxseDAbAp457E0wLNio2bOSKnjYDhMj+YiAq61xrMGhQk9iXVk5FzgQMw==}
     engines: {node: '>=6'}
@@ -5789,6 +5801,16 @@ packages:
     dev: true
     optional: true
 
+  /sass/1.60.0:
+    resolution: {integrity: sha512-updbwW6fNb5gGm8qMXzVO7V4sWf7LMXnMly/JEyfbfERbVH46Fn6q02BX7/eHTdKpE7d+oTkMMQpFWNUMfFbgQ==}
+    engines: {node: '>=12.0.0'}
+    hasBin: true
+    dependencies:
+      chokidar: 3.5.3
+      immutable: 4.3.0
+      source-map-js: 1.0.2
+    dev: true
+
   /sax/1.2.4:
     resolution: {integrity: sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==}
     dev: true
@@ -6428,7 +6450,7 @@ packages:
       fast-glob: 3.2.12
       pretty-bytes: 6.1.0
       rollup: 3.18.0
-      vite: 4.1.4_4l5pdn5ozbjpiwj3fcgseihr44
+      vite: 4.1.4_qezjnsmlo5uzc6apufa4wmp55u
       workbox-build: 6.5.4
       workbox-window: 6.5.4
     transitivePeerDependencies:
@@ -6436,7 +6458,7 @@ packages:
       - supports-color
     dev: true
 
-  /vite/4.1.4_4l5pdn5ozbjpiwj3fcgseihr44:
+  /vite/4.1.4_qezjnsmlo5uzc6apufa4wmp55u:
     resolution: {integrity: sha512-3knk/HsbSTKEin43zHu7jTwYWv81f8kgAL99G5NWBcA1LKvtvcVAC4JjBH1arBunO9kQka+1oGbrMKOjk4ZrBg==}
     engines: {node: ^14.18.0 || >=16.0.0}
     hasBin: true
@@ -6467,6 +6489,7 @@ packages:
       postcss: 8.4.21
       resolve: 1.22.1
       rollup: 3.18.0
+      sass: 1.60.0
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
