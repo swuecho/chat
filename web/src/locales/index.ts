@@ -1,8 +1,8 @@
 import type { App } from 'vue'
 import { createI18n } from 'vue-i18n'
-import enUS from './en-US'
-import zhCN from './zh-CN'
-import zhTW from './zh-TW'
+import enUS from './en-US.json'
+import zhCN from './zh-CN.json'
+import zhTW from './zh-TW.json'
 import { useAppStoreWithOut } from '@/store/modules/app'
 import type { Language } from '@/store/modules/app/helper'
 
