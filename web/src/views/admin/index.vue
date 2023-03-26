@@ -6,6 +6,7 @@ import type { MenuOption } from 'naive-ui'
 import { PulseOutline, ShieldCheckmarkOutline } from '@vicons/ionicons5'
 import { RouterLink } from 'vue-router'
 import i18n from '@/locales'
+
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) })
 }
@@ -49,10 +50,14 @@ const activeKey: Ref<string | null> = ref(null)
   <div>
     <NSpace vertical>
       <NLayout has-sider>
-        <NLayoutSider bordered collapse-mode="width" :collapsed-width="64" :width="240" :collapsed="collapsed"
-          show-trigger @collapse="collapsed = true" @expand="collapsed = false">
-          <NMenu v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"
-            :options="menuOptions" />
+        <NLayoutSider
+          bordered collapse-mode="width" :collapsed-width="64" :width="240" :collapsed="collapsed"
+          show-trigger @collapse="collapsed = true" @expand="collapsed = false"
+        >
+          <NMenu
+            v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"
+            :options="menuOptions"
+          />
         </NLayoutSider>
         <NLayout>
           <router-view />
