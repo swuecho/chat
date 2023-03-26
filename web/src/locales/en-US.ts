@@ -41,6 +41,15 @@ export default {
     deleteMessageConfirm: 'Do you want to delete this message?',
     deleteChatSessionsConfirm: 'Are you sure you want to delete this record?',
     clearHistoryConfirm: 'Are you sure you want to clear the chat history?',
+    contextLength: 'Context Length, default 10 (2 at the beginning of the conversation + 8 most recent)',
+    stopAnswer: 'Stop Answering',
+    slider: 'Context Length',
+    temperature: 'Temperature',
+    maxTokens: 'Max Total Tokens',
+    topP: 'Top P',
+    frequencyPenalty: 'Frequency Penalty',
+    presencePenalty: 'Presence Penalty',
+    debug: 'Debug Mode',
   },
   setting: {
     setting: 'Settings',
@@ -57,5 +66,7 @@ export default {
     reverseProxy: 'Reverse Proxy',
     timeout: 'Timeout',
     socks: 'Socks',
+    admin: 'Admin',
   },
+  admin: { title: 'Admin', permission: 'Permission', rateLimit: 'Rate Limit' },
 }
