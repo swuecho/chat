@@ -9,6 +9,18 @@ const routes: RouteRecordRaw[] = [
     path: '/admin',
     name: 'Admin',
     component: () => import('@/views/admin/index.vue'),
+    children: [
+      {
+        path: 'user',
+        name: 'AdminUser',
+        component: () => import('@/views/admin/user/index.vue'),
+      },
+      {
+        path: 'system',
+        name: 'AdminSystem',
+        component: () => import('@/views/admin/user/index.vue'),
+      },
+    ],
   },
   {
     path: '/',

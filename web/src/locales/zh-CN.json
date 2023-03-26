@@ -53,6 +53,9 @@
   },
   "admin": {
     "title": "管理",
+    "hideSubMenu": "隐藏子菜单",
+    "showSubMenu": "显示子菜单",
+    "userStat": "用户统计",
     "permission": "权限",
     "rateLimit": "限流"
   },

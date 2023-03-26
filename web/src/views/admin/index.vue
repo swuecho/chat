@@ -1,35 +1,68 @@
-<script setup lang='ts'>
-import { NTabPane, NTabs } from 'naive-ui'
-import UserStat from './UserStat.vue'
+<script setup lang="ts">
+import type { Component, Ref } from 'vue'
+import { h, reactive, ref } from 'vue'
+import { NIcon, NLayout, NLayoutSider, NMenu, NSpace } from 'naive-ui'
+import type { MenuOption } from 'naive-ui'
+import { PulseOutline, ShieldCheckmarkOutline } from '@vicons/ionicons5'
+import { RouterLink } from 'vue-router'
+import i18n from '@/locales'
+
+function renderIcon(icon: Component) {
+  return () => h(NIcon, null, { default: () => h(icon) })
+}
+
+const menuOptions: MenuOption[] = reactive([
+  {
+    label:
+      () =>
+        h(
+          RouterLink,
+          {
+            to: {
+              name: 'AdminUser',
+            },
+          },
+          { default: () => i18n.global.t('admin.rateLimit') },
+        ),
+    key: 'hear-the-wind-sing',
+    icon: renderIcon(PulseOutline),
+  },
+  {
+    label: () => h(
+      RouterLink,
+      {
+        to: {
+          name: 'AdminSystem',
+        },
+      },
+      { default: () => i18n.global.t('admin.permission') },
+    ),
+    key: 'a-wild-sheep-chase',
+    icon: renderIcon(ShieldCheckmarkOutline),
+  },
+])
+
+const collapsed: Ref<boolean> = ref(false)
+const activeKey: Ref<string | null> = ref(null)
 </script>
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold mt-8 mx-4 ">
-      {{ $t('admin.title') }}
-    </h1>
-    <NTabs
-      class="card-tabs" default-value="user_stat" size="large" animated style="margin: 0 -4px"
-      pane-style="padding-left: 4px; padding-right: 4px; box-sizing: border-box;"
-    >
-      <NTabPane :label="$t('admin.permission')" name="tab2">
-        Content of Tab Pane 2
-      </NTabPane>
-      <NTabPane :label="$t('admin.rateLimit')" name="user_stat">
-        <UserStat />
-      </NTabPane>
-    </NTabs>
+    <NSpace vertical>
+      <NLayout has-sider>
+        <NLayoutSider
+          bordered collapse-mode="width" :collapsed-width="64" :width="240" :collapsed="collapsed"
+          show-trigger @collapse="collapsed = true" @expand="collapsed = false"
+        >
+          <NMenu
+            v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"
+            :options="menuOptions"
+          />
+        </NLayoutSider>
+        <NLayout>
+          <router-view />
+        </NLayout>
+      </NLayout>
+    </NSpace>
   </div>
 </template>
-
-<style scoped>
-.card-tabs {
-  background-color: #fff;
-  border-radius: 4px;
-  padding: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-h1 {
-  color: #2c3e50;
-}
-</style>
