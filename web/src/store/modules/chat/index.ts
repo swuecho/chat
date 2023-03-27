@@ -251,7 +251,7 @@ export const useChatStore = defineStore('chat-store', {
         const chat = chatData[index]
         chatData.splice(index, 1)
         this.recordState()
-        if (chatData)
+        if (chat)
           await deleteChatData(chat)
       }
     },
