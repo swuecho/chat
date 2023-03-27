@@ -80,5 +80,6 @@
     "showSubMenu": "Show Submenu",
     "userStat": "User Statistics",
     "rateLimit10Min": "Message Limit (10 minutes)"
-  }
+  },
+  {"error": {"rateLimit": "The message sending limit has been reached, please contact the administrator."}}
 }

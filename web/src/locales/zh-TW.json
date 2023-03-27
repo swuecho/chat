@@ -22,7 +22,10 @@
     "password_placeholder": "請輸入密碼",
     "unauthorizedTips": "請註冊或登錄"
   },
+  "error": {"rateLimit": "發送消息數量已經達到上限，請聯繫管理員"
+  },
   "chat": {
+    "new": "新建聊天",
     "placeholder": "說些什麼...（Shift + Enter = 換行）",
     "placeholderMobile": "說些什麼...",
     "copy": "複製",
