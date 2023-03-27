@@ -142,6 +142,7 @@ async function onConversationStream() {
             // Check if the chunk is not empty
             if (chunk) {
             // Parse the JSON data chunk
+
               try {
                 const data = JSON.parse(chunk)
                 const answer = data.choices[0].delta.content
@@ -164,6 +165,7 @@ async function onConversationStream() {
               catch (error) {
                 console.log(error)
               }
+
             }
           }
         },
@@ -212,7 +214,7 @@ async function onRegenerate(index: number) {
       text: '',
       inversion: false,
       error: false,
-      loading: true,
+      loading: false,
       conversationOptions: null,
       requestOptions: { prompt: message, ...options },
     },
