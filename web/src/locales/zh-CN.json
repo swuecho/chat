@@ -20,7 +20,15 @@
     "signup": "注册",
     "email_placeholder": "请输入邮箱",
     "password_placeholder": "请输入密码",
-    "unauthorizedTips": "请注册或者登录"
+    "unauthorizedTips": "请注册或者登录",
+    "login_success": "登录成功",
+    "logout_success": "登出成功",
+    "signup_success": "注册成功",
+    "signup_failed": "注册失败",
+    "login_failed": "登录失败",
+    "logout_failed": "登出失败",
+    "please_register": "请先注册"
+
   },
   "chat": {
     "new": "新聊天",
@@ -84,6 +92,7 @@
   "error": {
     "rateLimit": "发送消息数量已经达到上限, 请联系管理员",
     "invalidEmail": "邮箱格式不正确",
-    "invalidPassword": "密码格式不正确, 长度至少为6位, 一个大写字母, 一个小写字母, 一个数字, 一个特殊字符"
+    "invalidPassword": "密码格式不正确, 长度至少为6位, 一个大写字母, 一个小写字母, 一个数字, 一个特殊字符",
+    "sync_chat_session": "同步失败, 请稍后再试"
   }
 }
