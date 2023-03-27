@@ -129,7 +129,7 @@ async function onConversationStream() {
               {
                 loading: false,
                 error: true,
-                text: responseText,
+                text: t(responseText),
               },
             )
           }
