@@ -20,7 +20,14 @@
     "signup": "Sign up",
     "email_placeholder": "Please enter your email",
     "password_placeholder": "Please enter your password",
-    "unauthorizedTips": "Please sign up or login"
+    "unauthorizedTips": "Please sign up or login",
+    "login_success": "Login Successful",
+    "logout_success": "Logout Successful",
+    "signup_success": "Registration Successful",
+    "signup_failed": "Registration Failed",
+    "login_failed": "Login Failed",
+    "logout_failed": "Logout Failed",
+    "please_register": "Please Register First"
   },
   "chat": {
     "new": "New Chat",
@@ -84,6 +91,7 @@
   "error": {
     "rateLimit": "The message sending limit has been reached, please contact the administrator.",
     "invalidEmail": "Invalid email address",
-    "invalidPassword": "'password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character'"
+    "sync_chat_session": "Sync Failed, Please Try Again Later",
+    "invalidPassword": "password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character"
   }
 }
