@@ -134,10 +134,9 @@ async function onConversationStream() {
             )
           }
           else {
-            const lastIndex = responseText.lastIndexOf('data: ')
+            const lastIndex = responseText.lastIndexOf('\n\ndata:')
             // Extract the JSON data chunk from the responseText
-            const chunk = responseText.slice(lastIndex + 6)
-
+            const chunk = responseText.slice(lastIndex + 8)
             // Check if the chunk is not empty
             if (chunk) {
               // Parse the JSON data chunk
