@@ -23,6 +23,7 @@
     "unauthorizedTips": "请注册或者登录"
   },
   "chat": {
+    "new": "新聊天",
     "placeholder": "来说点什么吧...（Shift + Enter = 换行）",
     "placeholderMobile": "来说点什么...",
     "copy": "复制",
@@ -79,5 +80,8 @@
     "reverseProxy": "反向代理",
     "timeout": "超时",
     "socks": "Socks"
+  },
+  "error": {
+    "rateLimit": "发送消息数量已经达到上限, 请联系管理员"
   }
 }

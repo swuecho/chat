@@ -23,6 +23,7 @@
     "unauthorizedTips": "Please sign up or login"
   },
   "chat": {
+    "new": "New Chat",
     "placeholder": "What would you like to say... (Shift + Enter = newline)",
     "placeholderMobile": "What would you like to say...",
     "copy": "Copy",
@@ -79,5 +80,8 @@
     "showSubMenu": "Show Submenu",
     "userStat": "User Statistics",
     "rateLimit10Min": "Message Limit (10 minutes)"
+  },
+  "error": {
+    "rateLimit": "The message sending limit has been reached, please contact the administrator."
   }
 }
