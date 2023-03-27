@@ -19,7 +19,27 @@ const collapsed = computed(() => appStore.siderCollapsed)
 
 function handleAdd() {
   const new_chat_text = t('chat.new')
-  chatStore.addChatSession({ title: new_chat_text, uuid: uuidv4(), isEdit: false })
+  //   //
+  //   // {
+  //   "uuid": "ff511942-43b4-4ebd-9fe8-f2ca405605ac",
+  //   "isEdit": false,
+  //   "title": "try improve code and",
+  //   "maxLength": 10,
+  //   "temperature": 1,
+  //   "topP": 1,
+  //   "maxTokens": 512,
+  //   "debug": false
+  // }//
+  chatStore.addChatSession({
+    title: new_chat_text,
+    uuid: uuidv4(),
+    isEdit: false,
+    maxLength: 10,
+    temperature: 1,
+    topP: 1,
+    maxTokens: 512,
+    debug: false,
+  })
 }
 
 function handleUpdateCollapsed() {
@@ -58,9 +78,11 @@ watch(
 </script>
 
 <template>
-  <NLayoutSider :collapsed="collapsed" :collapsed-width="0" :width="260" :show-trigger="isMobile ? false : 'arrow-circle'"
+  <NLayoutSider
+    :collapsed="collapsed" :collapsed-width="0" :width="260" :show-trigger="isMobile ? false : 'arrow-circle'"
     collapse-mode="transform" position="absolute" bordered :style="getMobileClass"
-    @update-collapsed="handleUpdateCollapsed">
+    @update-collapsed="handleUpdateCollapsed"
+  >
     <div class="flex flex-col h-full" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
         <div class="p-4">
