@@ -7,7 +7,7 @@
 import { h, onMounted, reactive, ref } from 'vue'
 import { NDataTable, NInput } from 'naive-ui'
 import { GetUserData, UpdateRateLimit } from '@/api'
-import {t } from '@/locales'
+import { t } from '@/locales'
 
 interface UserData {
   email: string
