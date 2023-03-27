@@ -8,6 +8,7 @@ import List from './List.vue'
 import Footer from './Footer.vue'
 import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
+import { t } from '@/locales'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
@@ -17,7 +18,8 @@ const { isMobile } = useBasicLayout()
 const collapsed = computed(() => appStore.siderCollapsed)
 
 function handleAdd() {
-  chatStore.addChatSession({ title: 'New Chat', uuid: uuidv4(), isEdit: false })
+  const new_chat_text = t('chat.new')
+  chatStore.addChatSession({ title: new_chat_text, uuid: uuidv4(), isEdit: false })
 }
 
 function handleUpdateCollapsed() {
