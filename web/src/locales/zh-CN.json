@@ -23,7 +23,7 @@
     "unauthorizedTips": "请注册或者登录"
   },
   "chat": {
-    "new": "新建聊天",
+    "new": "新聊天",
     "placeholder": "来说点什么吧...（Shift + Enter = 换行）",
     "placeholderMobile": "来说点什么...",
     "copy": "复制",
