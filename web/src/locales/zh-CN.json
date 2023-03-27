@@ -53,11 +53,15 @@
   },
   "admin": {
     "title": "管理",
+    "userEmail": "用户邮箱",
+    "totalChatMessages": "消息总数",
+    "totalChatMessages3Days": "消息总数(3天)",
     "hideSubMenu": "隐藏子菜单",
     "showSubMenu": "显示子菜单",
     "userStat": "用户统计",
     "permission": "权限",
-    "rateLimit": "限流"
+    "rateLimit": "限流",
+    "rateLimit10Min": "消息数量上限(10分钟)"
   },
   "setting": {
     "setting": "设置",

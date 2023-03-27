@@ -7,6 +7,7 @@
 import { h, onMounted, reactive, ref } from 'vue'
 import { NDataTable, NInput } from 'naive-ui'
 import { GetUserData, UpdateRateLimit } from '@/api'
+import i18n from '@/locales'
 
 interface UserData {
   email: string
@@ -18,23 +19,23 @@ const tableData = ref<UserData[]>([])
 
 const columns = [
   {
-    title: 'User Email',
+    title: i18n.global.t('admin.userEmail'),
     key: 'email',
     width: 400,
 
   },
   {
-    title: 'Total Messages',
+    title: i18n.global.t('admin.totalChatMessages'),
     key: 'totalChatMessages',
     width: 100,
   },
   {
-    title: 'Total Messages (3 days)',
+    title: i18n.global.t('admin.totalChatMessages3Days'),
     key: 'totalChatMessages3Days',
     width: 100,
   },
   {
-    title: 'Rate Limit',
+    title: i18n.global.t('admin.rateLimit10Min'),
     key: 'rateLimit',
     width: 100,
     render: (row: any, index: number) => {
