@@ -11,7 +11,7 @@ import { HoverButton, SvgIcon } from '@/components/common'
 
 const { isMobile } = useBasicLayout()
 
-const collapsed: Ref<boolean> = ref(false)
+const collapsed: Ref<boolean> = ref(true)
 const activeKey: Ref<string> = ref('rateLimit')
 
 const getMobileClass = computed<CSSProperties>(() => {
