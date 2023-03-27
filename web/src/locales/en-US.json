@@ -71,6 +71,13 @@
   "admin": {
     "title": "Admin",
     "permission": "Permission",
-    "rateLimit": "Rate Limit"
+    "rateLimit": "Rate Limit",
+    "userEmail": "User Email",
+    "totalChatMessages": "Total Chat Messages",
+    "totalChatMessages3Days": "Total Chat Messages (3 days)",
+    "hideSubMenu": "Hide Submenu",
+    "showSubMenu": "Show Submenu",
+    "userStat": "User Statistics",
+    "rateLimit10Min": "Message Limit (10 minutes)"
   }
 }
