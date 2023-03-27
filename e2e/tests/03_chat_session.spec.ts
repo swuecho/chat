@@ -24,7 +24,7 @@ test('test', async ({ page }) => {
   await page.getByRole('complementary').getByRole('button').nth(1).click();
   await page.getByPlaceholder('请输入').dblclick();
   await page.getByPlaceholder('请输入').fill('This is a test topic');
-  await page.getByRole('main').filter({ hasText: 'New chat' }).locator('a').getByRole('button').click();
+  await page.getByRole('main').filter({ hasText: '新聊天' }).locator('a').getByRole('button').click();
 
   // sleep 500ms
   await page.waitForTimeout(500);
