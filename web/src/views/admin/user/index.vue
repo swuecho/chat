@@ -20,19 +20,23 @@ const columns = [
   {
     title: 'User Email',
     key: 'email',
+    width: 400,
 
   },
   {
     title: 'Total Messages',
     key: 'totalChatMessages',
+    width: 100,
   },
   {
     title: 'Total Messages (3 days)',
     key: 'totalChatMessages3Days',
+    width: 100,
   },
   {
     title: 'Rate Limit',
     key: 'rateLimit',
+    width: 100,
     render: (row: any, index: number) => {
       return h(NInput, {
         value: row.rateLimit,

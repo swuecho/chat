@@ -69,7 +69,8 @@ function handleUpdateCollapsed() {
     <div class="h-full dark:bg-[#24272e] transition-all" :class="[isMobile ? 'p-0' : 'p-4']">
       <div class="h-full overflow-hidden" :class="getMobileClass">
         <header
-          class="sticky top-0 left-0 right-0 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur">
+          class="sticky top-0 left-0 right-0 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur"
+        >
           <div class="relative flex items-center justify-between min-w-0 overflow-hidden h-14">
             <div class="flex items-center">
               <button class="flex items-center justify-center w-11 h-11" @click="handleUpdateCollapsed">
@@ -95,11 +96,15 @@ function handleUpdateCollapsed() {
           </div>
         </header>
         <NLayout has-sider>
-          <NLayoutSider bordered :width="240" :collapsed-width="0" :collapsed="collapsed" @collapse="collapsed = true"
-            :show-trigger="isMobile ? false : 'arrow-circle'" @expand="collapsed = false" collapse-mode="transform"
-            position="absolute" :style="getMobileClass">
-            <NMenu v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"
-              :options="menuOptions" />
+          <NLayoutSider
+            bordered :width="240" :collapsed-width="0" :collapsed="collapsed" :show-trigger="isMobile ? false : 'arrow-circle'"
+            collapse-mode="transform" position="absolute" :style="getMobileClass"
+            @collapse="collapsed = true" @expand="collapsed = false"
+          >
+            <NMenu
+              v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"
+              :options="menuOptions"
+            />
           </NLayoutSider>
           <NLayout>
             <router-view />
