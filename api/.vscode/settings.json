@@ -1,0 +1,7 @@
+{
+    "editor.fontFamily": "Go Mono",
+    "go.useLanguageServer": true,
+    "files.watcherExclude": {
+        "**/target": true
+    }
+}
