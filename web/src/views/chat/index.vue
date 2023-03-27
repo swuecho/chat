@@ -109,37 +109,61 @@ async function onConversationStream() {
           const xhr = progress.event.target
           const {
             responseText,
+            status,
           } = xhr
+          if (status === 500) {
+            updateChatPartial(
+              sessionUuid,
+              dataSources.value.length - 1,
+              {
+                loading: false,
+                error: true,
+                text: responseText,
+              },
+            )
+          }
+          else if (status === 429) {
+            updateChatPartial(
+              sessionUuid,
+              dataSources.value.length - 1,
+              {
+                loading: false,
+                error: true,
+                text: responseText,
+              },
+            )
+          }
+          else {
+            const lastIndex = responseText.lastIndexOf('data: ')
 
-          const lastIndex = responseText.lastIndexOf('data: ')
+            // Extract the JSON data chunk from the responseText
+            const chunk = responseText.slice(lastIndex + 6)
 
-          // Extract the JSON data chunk from the responseText
-          const chunk = responseText.slice(lastIndex + 6)
-
-          // Check if the chunk is not empty
-          if (chunk) {
+            // Check if the chunk is not empty
+            if (chunk) {
             // Parse the JSON data chunk
-            try {
-              const data = JSON.parse(chunk)
-              const answer = data.choices[0].delta.content
-              const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
-              updateChat(
-                sessionUuid,
-                dataSources.value.length - 1,
-                {
-                  uuid: answer_uuid,
-                  dateTime: new Date().toLocaleString(),
-                  text: answer,
-                  inversion: false,
-                  error: false,
-                  loading: true,
-                  conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
-                  requestOptions: { prompt: message, options: { ...options } },
-                },
-              )
-            }
-            catch (error) {
-              console.log(error)
+              try {
+                const data = JSON.parse(chunk)
+                const answer = data.choices[0].delta.content
+                const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
+                updateChat(
+                  sessionUuid,
+                  dataSources.value.length - 1,
+                  {
+                    uuid: answer_uuid,
+                    dateTime: new Date().toLocaleString(),
+                    text: answer,
+                    inversion: false,
+                    error: false,
+                    loading: true,
+                    conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
+                    requestOptions: { prompt: message, options: { ...options } },
+                  },
+                )
+              }
+              catch (error) {
+                console.log(error)
+              }
             }
           }
         },
@@ -149,6 +173,8 @@ async function onConversationStream() {
     catch (error: any) {
       const response = error.response
       if (response.status === 500)
+        nui_msg.error(response.data.message)
+      else if (response.status === 429)
         nui_msg.error(response.data.message)
       throw error
     }
