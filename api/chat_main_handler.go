@@ -122,49 +122,34 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	chatSessionUuid := req.SessionUuid
 	chatUuid := req.ChatUuid
 	newQuestion := req.Prompt
+
+	log.Printf("chatSessionUuid: %s", chatSessionUuid)
+	log.Printf("chatUuid: %s", chatUuid)
+	log.Printf("newQuestion: %s", newQuestion)
+
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
+
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	log.Printf("chatSessionUuid: %s", chatSessionUuid)
-	log.Printf("chatUuid: %s", chatUuid)
-	log.Printf("newQuestion: %s", newQuestion)
 	if req.Regenerate {
 		// TODO: get context
 		// get the 10 chatMessage right before the current chatMessage, order by created_at
-		chat_session, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
-		if err != nil {
-			http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
-			return
-		}
-
 		// Send the response as JSON
-		chatCompletionMessages, err := h.chatService.getAskMessages(chat_session, chatUuid, true)
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Get chat message error", err)
-			return
-		}
-
-		if chat_session.Debug {
-			log.Printf("%+v\n", chatCompletionMessages)
-		}
-		answerText, _, shouldReturn := chat_stream(w, chat_session, chatCompletionMessages)
-		if shouldReturn {
-			return
-		}
 		// Update the chatMessage content with chatUuid with new answer
-		err = h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
-
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Update chat message error", err)
-			return
-		}
-		return
+		regenerateAnswer(h, w, chatSessionUuid, chatUuid)
+	} else {
+		// insert ChatMessage into database
+		genAnswer(h, w, chatSessionUuid, chatUuid, newQuestion, userID)
 	}
 
+}
+
+func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string, newQuestion string, userID int32) bool {
+	ctx := context.Background()
 	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 
 	if err != nil {
@@ -200,7 +185,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	msgs, err := h.chatService.getAskMessages(chatSession, chatUuid, false)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to collect messages: ").Error(), err)
-		return
+		return true
 	}
 
 	if existingPrompt {
@@ -209,33 +194,75 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	if len(msgs) == 0 {
 		http.Error(w, "No messages found", http.StatusNotFound)
 	}
-	if msgs[0].Content == "test_demo_bestqa" || msgs[len(msgs)-1].Content == "test_demo_bestqa" {
+	if isTest(msgs) {
 		answerText, answerID, shouldReturn := test_replay(w, chatSession, msgs)
 		if shouldReturn {
-			return
+			return true
 		}
-		m, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
+		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
 
-		log.Println(m)
 		if err != nil {
-			fmt.Println(err.Error())
 			http.Error(w, eris.Wrap(err, "fail to create message: ").Error(), http.StatusInternalServerError)
 		}
 	} else {
-
-		// Set up SSE headers
 		answerText, answerID, shouldReturn := chat_stream(w, chatSession, msgs)
 		if shouldReturn {
-			return
+			return true
 		}
-		// insert ChatMessage into database
+
 		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
 
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to create message: ").Error(), nil)
 		}
 	}
+	return false
+}
 
+func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) bool {
+	ctx := context.Background()
+	chat_session, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
+	if err != nil {
+		http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
+		return true
+	}
+
+	chatCompletionMessages, err := h.chatService.getAskMessages(chat_session, chatUuid, true)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Get chat message error", err)
+		return true
+	}
+
+	if isTest(chatCompletionMessages) {
+		answerText, _, shouldReturn := test_replay(w, chat_session, chatCompletionMessages)
+		if shouldReturn {
+			return true
+		}
+
+		err = h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
+
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "Update chat message error", err)
+		}
+	} else {
+		answerText, _, shouldReturn := chat_stream(w, chat_session, chatCompletionMessages)
+		if shouldReturn {
+			return true
+		}
+
+		err = h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
+
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "Update chat message error", err)
+		}
+	}
+	return false
+}
+
+func isTest(msgs []openai.ChatCompletionMessage) bool {
+	lastMsgs := msgs[len(msgs)-1]
+	promptMsg := msgs[0]
+	return promptMsg.Content == "test_demo_bestqa" || lastMsgs.Content == "test_demo_bestqa"
 }
 
 func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) (string, string, bool) {
@@ -346,7 +373,7 @@ func newChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compele
 		MaxTokens:   int(chatSession.MaxTokens),
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
-		Stream: true,
+		Stream:      true,
 	}
 	return openai_req
 }
