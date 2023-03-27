@@ -4,6 +4,7 @@ import { NButton, NInput, NModal, useMessage } from 'naive-ui'
 import { fetchLogin, fetchSignUp } from '@/api'
 import { useAuthStore } from '@/store'
 import Icon403 from '@/icons/403.vue'
+import { t } from '@/locales'
 
 interface Props {
   visible: boolean
@@ -30,12 +31,12 @@ async function handleLogin() {
 
   // check user_email_v  is valid email
   if (!user_email_v.match(/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/)) {
-    ms.error('email is not valid')
+    ms.error(t('error.invalid_email'))
     return
   }
   // check password is length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character
   if (!user_password_v.match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$/)) {
-    ms.error('password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character')
+    ms.error(t('error.invalid_password'))
     return
   }
 
@@ -118,16 +119,17 @@ async function handleSignup() {
           </p>
           <Icon403 class="w-[200px] m-auto" />
         </header>
-        <NInput v-model:value="user_email" data-testid="email" type="text" :minlength="6" :placeholder="$t('common.email_placeholder')" />
-        <NInput
-          v-model:value="user_password" data-testid="password" type="text" :minlength="6"
-          :placeholder="$t('common.password_placeholder')"
-        />
+        <NInput v-model:value="user_email" data-testid="email" type="text" :minlength="6"
+          :placeholder="$t('common.email_placeholder')" />
+        <NInput v-model:value="user_password" data-testid="password" type="text" :minlength="6"
+          :placeholder="$t('common.password_placeholder')" />
         <div class="flex justify-between">
-          <NButton type="primary" data-testid="signup" :disabled="user_pass_not_filled" :loading="loading" @click="handleSignup">
+          <NButton type="primary" data-testid="signup" :disabled="user_pass_not_filled" :loading="loading"
+            @click="handleSignup">
             {{ $t('common.signup') }}
           </NButton>
-          <NButton type="primary" data-testid="login" :disabled="user_pass_not_filled" :loading="loading" @click="handleLogin">
+          <NButton type="primary" data-testid="login" :disabled="user_pass_not_filled" :loading="loading"
+            @click="handleLogin">
             {{ $t('common.login') }}
           </NButton>
         </div>
