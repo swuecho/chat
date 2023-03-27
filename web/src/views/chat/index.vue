@@ -188,9 +188,11 @@ async function onRegenerate(index: number) {
 
   controller = new AbortController()
 
-  const { requestOptions } = dataSources.value[index]
+  const chat = dataSources.value[index]
 
+  const requestOptions = chat.requestOptions
   const message = requestOptions?.prompt ?? ''
+  const chatUuid = chat.uuid
 
   let options: Chat.ConversationRequest = {}
 
@@ -198,7 +200,6 @@ async function onRegenerate(index: number) {
     options = { ...requestOptions.options }
 
   loading.value = true
-  const chatUuid = dataSources.value[index].uuid
   updateChat(
     sessionUuid,
     index,
@@ -229,11 +230,8 @@ async function onRegenerate(index: number) {
             const {
               responseText,
             } = xhr
-
-            const lastIndex = responseText.lastIndexOf('data: ')
-
             // Extract the JSON data chunk from the responseText
-            const chunk = responseText.slice(lastIndex + 6)
+            const chunk = getDataFromResponseText(responseText)
 
             // Check if the chunk is not empty
             if (chunk) {

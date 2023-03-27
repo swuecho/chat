@@ -234,26 +234,31 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	}
 
 	if isTest(chatCompletionMessages) {
-		answerText, _, shouldReturn := test_replay(w, chat_session, chatCompletionMessages)
+		answerText, answerID, shouldReturn := test_replay(w, chat_session, chatCompletionMessages)
 		if shouldReturn {
 			return true
 		}
 
-		err = h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
+		// remove the previous message
+		h.chatService.q.DeleteChatMessageByUUID(ctx, chatUuid)
+		// re-insert new message
+		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, chat_session.UserID)
 
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Update chat message error", err)
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to create message: ").Error(), nil)
 		}
 	} else {
-		answerText, _, shouldReturn := chat_stream(w, chat_session, chatCompletionMessages)
+		answerText, answerID, shouldReturn := chat_stream(w, chat_session, chatCompletionMessages)
 		if shouldReturn {
 			return true
 		}
-
-		err = h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
+		// remove the previous message
+		h.chatService.q.DeleteChatMessageByUUID(ctx, chatUuid)
+		// re-insert new message
+		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, chat_session.UserID)
 
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Update chat message error", err)
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to create message: ").Error(), nil)
 		}
 	}
 	return false
@@ -335,6 +340,7 @@ func chat_stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, ch
 func test_replay(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) (string, string, bool) {
 	//message := Message{Role: "assitant", Content:}
 	uuid, _ := uuid.NewV4()
+	answer_id := uuid.String()
 	setSSEHeader(w)
 
 	flusher, ok := w.(http.Flusher)
@@ -344,7 +350,6 @@ func test_replay(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, ch
 		return "", "", true
 	}
 	answer := "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."
-	answer_id := uuid.String()
 	resp := constructChatCompletionStreamReponse(answer_id, answer)
 	data, _ := json.Marshal(resp)
 	fmt.Fprintf(w, "data: %v\n\n", string(data))

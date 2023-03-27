@@ -22,6 +22,7 @@ build: vet
  
 serve:
 	@echo "Starting server..."
+	echo 'sudo lsof -i -P -n | grep 8077'
 	echo $(OPENAI_API_KEY)
 	echo $(PG_HOST)
 	air
