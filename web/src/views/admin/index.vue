@@ -12,7 +12,7 @@ import { HoverButton, SvgIcon } from '@/components/common'
 const { isMobile } = useBasicLayout()
 
 const collapsed: Ref<boolean> = ref(false)
-const activeKey: Ref<string | null> = ref(null)
+const activeKey: Ref<string> = ref('rateLimit')
 
 const getMobileClass = computed<CSSProperties>(() => {
   if (isMobile.value) {
@@ -41,7 +41,7 @@ const menuOptions: MenuOption[] = reactive([
           },
           { default: () => t('admin.rateLimit') },
         ),
-    key: 'hear-the-wind-sing',
+    key: 'rateLimit',
     icon: renderIcon(PulseOutline),
   },
   {
@@ -54,7 +54,7 @@ const menuOptions: MenuOption[] = reactive([
       },
       { default: () => t('admin.permission') },
     ),
-    key: 'a-wild-sheep-chase',
+    key: 'permission',
     icon: renderIcon(ShieldCheckmarkOutline),
   },
 ])
@@ -95,7 +95,7 @@ function handleUpdateCollapsed() {
           </div>
         </header>
         <NLayout has-sider>
-          <NLayoutSider bordered :width="240" :collapsed-width="0" :collapsed="collapsed"
+          <NLayoutSider bordered :width="240" :collapsed-width="10" :collapsed="collapsed"
             :show-trigger="isMobile ? false : 'arrow-circle'" collapse-mode="transform" position="absolute"
             :style="getMobileClass" @collapse="collapsed = true" @expand="collapsed = false">
             <NMenu v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"

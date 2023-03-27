@@ -83,6 +83,7 @@
     "socks": "Socks"
   },
   "admin": {
+    "openPanel": "打開管理面板",
     "title": "管理",
     "permission": "權限",
     "rateLimit": "限流",

@@ -28,7 +28,6 @@
     "login_failed": "登录失败",
     "logout_failed": "登出失败",
     "please_register": "请先注册"
-
   },
   "chat": {
     "new": "新聊天",
@@ -61,6 +60,7 @@
     "debug": "调试模式"
   },
   "admin": {
+    "openPanel": "在新标签页中打开(仅限管理员)",
     "title": "管理",
     "userEmail": "用户邮箱",
     "totalChatMessages": "消息总数",
