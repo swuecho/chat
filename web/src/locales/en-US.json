@@ -84,6 +84,6 @@
   "error": {
     "rateLimit": "The message sending limit has been reached, please contact the administrator.",
     "invalidEmail": "Invalid email address",
-    "invalidPassword": "'password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character'",
+    "invalidPassword": "'password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character'"
   }
 }
