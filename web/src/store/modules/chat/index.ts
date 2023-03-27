@@ -16,6 +16,8 @@ import {
   renameChatSession,
 } from '@/api'
 
+import { t } from '@/locales'
+
 export const useChatStore = defineStore('chat-store', {
   state: (): Chat.ChatState => getLocalState(),
 
@@ -61,6 +63,7 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     async syncChatSessions() {
+      const new_chat_text = t('chat.new')
       const sessions = await getChatSessionsByUser()
       if (sessions.length <= 0)
         return
@@ -75,7 +78,7 @@ export const useChatStore = defineStore('chat-store', {
       })
       if (this.history.length === 0) {
         const uuid = uuidv4()
-        this.addChatSession({ title: 'New Chat', isEdit: false, uuid })
+        this.addChatSession({ title: new_chat_text, isEdit: false, uuid })
       }
 
       let active_session_uuid = this.history[0].uuid
@@ -158,6 +161,7 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     addChatByUuid(uuid: string, chat: Chat.Chat) {
+      const new_chat_text = t('chat.new')
       if (!uuid) {
         if (this.history.length === 0) {
           const uuid = uuidv4()
@@ -169,7 +173,7 @@ export const useChatStore = defineStore('chat-store', {
         }
         else {
           this.chat[0].data.push(chat)
-          if (this.history[0].title === 'New Chat') {
+          if (this.history[0].title === new_chat_text) {
             this.history[0].title = chat.text
             renameChatSession(this.history[0].uuid, chat.text.substring(0, 20))
           }
@@ -180,7 +184,7 @@ export const useChatStore = defineStore('chat-store', {
       const index = this.chat.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
         this.chat[index].data.push(chat)
-        if (this.history[0].title === 'New Chat') {
+        if (this.history[0].title === new_chat_text) {
           this.history[0].title = chat.text
           renameChatSession(this.history[0].uuid, chat.text.substring(0, 20))
         }

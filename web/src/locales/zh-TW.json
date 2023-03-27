@@ -20,9 +20,20 @@
     "signup": "註冊",
     "email_placeholder": "請輸入電子郵件",
     "password_placeholder": "請輸入密碼",
-    "unauthorizedTips": "請註冊或登錄"
+    "unauthorizedTips": "請註冊或登錄",
+    "login_success": "登入成功",
+    "logout_success": "登出成功",
+    "signup_success": "註冊成功",
+    "signup_failed": "註冊失敗",
+    "login_failed": "登入失敗",
+    "logout_failed": "登出失敗",
+    "please_register": "請先註冊"
   },
-  "error": {"rateLimit": "發送消息數量已經達到上限，請聯繫管理員"
+  "error": {
+    "rateLimit": "發送消息數量已經達到上限，請聯繫管理員",
+    "invalidEmail": "電子郵件格式不正確",
+    "invalidPassword": "密碼格式不正確，長度至少需為6位，應包含1個大寫字母、1個小寫字母、1個數字、1個特殊字符",
+    "sync_chat_session": "同步失敗，請稍後再試"
   },
   "chat": {
     "new": "新建聊天",
@@ -72,6 +83,7 @@
     "socks": "Socks"
   },
   "admin": {
+    "openPanel": "打開管理面板",
     "title": "管理",
     "permission": "權限",
     "rateLimit": "限流",

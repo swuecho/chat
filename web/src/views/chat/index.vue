@@ -134,9 +134,7 @@ async function onConversationStream() {
             )
           }
           else {
-            const lastIndex = responseText.lastIndexOf('\n\ndata:')
-            // Extract the JSON data chunk from the responseText
-            const chunk = responseText.slice(lastIndex + 8)
+            const chunk = getDataFromResponseText(responseText)
             // Check if the chunk is not empty
             if (chunk) {
               // Parse the JSON data chunk
@@ -169,12 +167,12 @@ async function onConversationStream() {
       return response
     }
     catch (error: any) {
+      console.log(error)
       const response = error.response
       if (response.status === 500)
         nui_msg.error(response.data.message)
       else if (response.status === 429)
         nui_msg.error(response.data.message)
-      throw error
     }
     finally {
       loading.value = false
@@ -441,6 +439,17 @@ onUnmounted(() => {
   if (loading.value)
     controller.abort()
 })
+
+function getDataFromResponseText(responseText: string): string {
+  // first data segment
+  if (responseText.lastIndexOf('data:') === 0)
+    return responseText.slice(5)
+  // Find the last occurrence of the data segment
+  const lastIndex = responseText.lastIndexOf('\n\ndata:')
+  // Extract the JSON data chunk from the responseText
+  const chunk = responseText.slice(lastIndex + 8)
+  return chunk
+}
 </script>
 
 <template>
