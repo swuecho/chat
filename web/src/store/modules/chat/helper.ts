@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
 import { ss } from '@/utils/storage'
-import { t } from '@/locales'
 
 import { createChatSession } from '@/api'
 
@@ -8,7 +7,7 @@ const LOCAL_NAME = 'chatStorage'
 
 export function defaultState(): Chat.ChatState {
   const uuid = uuidv4()
-  const new_chat_text = t('chat.new')
+  const new_chat_text = 'New Chat'
   createChatSession(uuid, new_chat_text)
   return { active: uuid, history: [{ uuid, title: new_chat_text, isEdit: false }], chat: [{ uuid, data: [] }] }
 }
