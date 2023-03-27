@@ -236,10 +236,11 @@ export const useChatStore = defineStore('chat-store', {
       if (!uuid) {
         if (this.chat.length) {
           const chatData = this.chat[0].data
-          if (chatData)
-            await deleteChatData(chatData[index])
+          const chat = chatData[index]
           chatData.splice(index, 1)
           this.recordState()
+          if (chat)
+            await deleteChatData(chat)
         }
         return
       }
@@ -247,10 +248,11 @@ export const useChatStore = defineStore('chat-store', {
       const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
       if (chatIndex !== -1) {
         const chatData = this.chat[chatIndex].data
-        if (chatData)
-          await deleteChatData(chatData[index])
+        const chat = chatData[index]
         chatData.splice(index, 1)
         this.recordState()
+        if (chatData)
+          await deleteChatData(chat)
       }
     },
 
