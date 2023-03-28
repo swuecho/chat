@@ -75,4 +75,15 @@ test('test', async ({ page }) => {
   // check the third_answer has the debug message
   expect(third_answer_regen).toContain('test_debug_2');
 
+  // regenerate the second answer
+  await page.locator('#image-wrapper .chat-message:nth-child(4) .chat-message-regenerate').click();
+  await page.waitForTimeout(1000);
+
+  // check the second answer has been regenerated
+  const sec_answer_regen_2 = await page.$eval('#image-wrapper .chat-message:nth-child(4) .message-text', el => el.innerText);
+  // check the sec_answer has the debug message
+  console.log(sec_answer_regen_2)
+  console.log(sec_answer_regen_2)
+  expect(sec_answer_regen_2).toContain('test_debug_1');
+
 });
