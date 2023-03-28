@@ -80,5 +80,6 @@ test('test', async ({ page }) => {
   const sec_answer_regen_2 = await page.$eval('#image-wrapper .chat-message:nth-child(4) .message-text',  (el: HTMLElement) => el.innerText);
   // check the sec_answer has the debug message
   expect(sec_answer_regen_2).toContain('test_debug_1');
+  expect(sec_answer_regen_2).not.toContain('test_debug_2')
 
 });
