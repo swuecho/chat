@@ -148,12 +148,17 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 
 }
 
+// regenerateAnswer is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
+// if there is no prompt yet, it will create a new prompt and use it as request
+// otherwise,
+//
+//	it will create a message, use prompt + get latest N message + newQuestion as request
 func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string, newQuestion string, userID int32) {
 	ctx := context.Background()
 	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
 		http.Error(w,
-			eris.Wrap(err, "fail to create or update session: ").Error(),
+			eris.Wrap(err, "fail to get session: ").Error(),
 			http.StatusInternalServerError,
 		)
 		return
@@ -198,14 +203,6 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 			eris.Wrap(err, "fail to collect messages: ").Error(),
 			err,
 		)
-		return
-	}
-
-	if existingPrompt {
-		msgs = append(msgs, NewUserMessage(newQuestion))
-	}
-	if len(msgs) == 0 {
-		RespondWithError(w, http.StatusBadRequest, "no messages found", nil)
 		return
 	}
 
