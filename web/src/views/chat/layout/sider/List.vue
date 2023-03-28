@@ -5,7 +5,7 @@ import { renameChatSession } from '@/api'
 import { SvgIcon } from '@/components/common'
 import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { t} from '@/locales'
+import { t } from '@/locales'
 
 const { isMobile } = useBasicLayout()
 const nui_msg = useMessage()
@@ -27,6 +27,7 @@ async function handleSyncChat() {
   catch (error: any) {
     if (error.response?.status === 500)
       nui_msg.error(t('error.sync_chat_session'))
+    // eslint-disable-next-line no-console
     console.log(error)
   }
 }
@@ -84,15 +85,19 @@ function isActive(uuid: string) {
       </template>
       <template v-else>
         <div v-for="(item, index) of dataSources" :key="index">
-          <a class="relative flex items-center gap-3 px-3 py-3 break-all border rounded-md cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
+          <a
+            class="relative flex items-center gap-3 px-3 py-3 break-all border rounded-md cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
             :class="isActive(item.uuid) && ['border-[#4b9e5f]', 'bg-neutral-100', 'text-[#4b9e5f]', 'dark:bg-[#24272e]', 'dark:border-[#4b9e5f]', 'pr-14']"
-            @click="handleSelect(item)">
+            @click="handleSelect(item)"
+          >
             <span>
               <SvgIcon icon="ri:message-3-line" />
             </span>
             <div class="relative flex-1 overflow-hidden break-all text-ellipsis whitespace-nowrap">
-              <NInput v-if="item.isEdit" v-model:value="item.title" data-testid="edit_session_topic_input" size="tiny"
-                @keypress="handleEnter(item, false, $event)" />
+              <NInput
+                v-if="item.isEdit" v-model:value="item.title" data-testid="edit_session_topic_input" size="tiny"
+                @keypress="handleEnter(item, false, $event)"
+              />
               <span v-else>{{ item.title }}</span>
             </div>
             <div v-if="isActive(item.uuid)" class="absolute z-10 flex visible right-1">
@@ -105,8 +110,10 @@ function isActive(uuid: string) {
                 <button class="p-1" data-testid="edit_session_topic">
                   <SvgIcon icon="ri:edit-line" @click="handleEdit(item, true, $event)" />
                 </button>
-                <NPopconfirm placement="bottom" data-testid="confirm_delete_session"
-                  @positive-click="handleDelete(index, $event)">
+                <NPopconfirm
+                  placement="bottom" data-testid="confirm_delete_session"
+                  @positive-click="handleDelete(index, $event)"
+                >
                   <template #trigger>
                     <button class="p-1">
                       <SvgIcon icon="ri:delete-bin-line" />

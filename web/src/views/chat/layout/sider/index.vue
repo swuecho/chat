@@ -9,6 +9,7 @@ import Footer from './Footer.vue'
 import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
+import { SvgIcon } from '@/components/common'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
@@ -87,7 +88,7 @@ watch(
       <main class="flex flex-col flex-1 min-h-0">
         <div class="p-4">
           <NButton dashed block @click="handleAdd">
-            {{ $t('chat.new') }}
+            <SvgIcon icon="material-symbols:add-circle-outline" /> {{ $t('chat.new') }}
           </NButton>
         </div>
         <div class="flex-1 min-h-0 pb-4 overflow-hidden">
