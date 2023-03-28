@@ -325,3 +325,19 @@ func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, conten
 	})
 	return err
 }
+
+func (s *ChatService) DeleteAndCreateChatMessage(chatSessionUUID string, chatUUID string, userID int32, answerID string, answerText string) error {
+	ctx := context.Background()
+	// Delete previous chat message
+	err := s.q.DeleteChatMessageByUUID(ctx, chatUUID)
+	if err != nil {
+		return eris.Wrap(err, fmt.Sprintf("Failed to delete chat message %s", chatSessionUUID))
+	}
+
+	// Create new chat message
+	_, err = s.CreateChatMessageSimple(ctx, chatSessionUUID, answerID, "assistant", answerText, userID)
+	if err != nil {
+		return eris.Wrap(err, fmt.Sprintf("Failed to delete chat message %s", answerID))
+	}
+	return nil
+}
