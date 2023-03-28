@@ -207,7 +207,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	if isTest(msgs) {
-		answerText, answerID, shouldReturn := chatStreamTest(w, chatSession, msgs)
+		answerText, answerID, shouldReturn := chatStreamTest(w, chatSession, msgs, chatUuid, false)
 		if shouldReturn {
 			return
 		}
@@ -219,7 +219,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 			)
 		}
 	} else {
-		answerText, answerID, shouldReturn := chatStream(w, chatSession, msgs)
+		answerText, answerID, shouldReturn := chatStream(w, chatSession, msgs, chatUuid, false)
 		if shouldReturn {
 			return
 		}
@@ -252,26 +252,25 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	isTestChat := isTest(chatCompletionMessages)
 
 	if isTestChat {
-		answerText, answerID, shouldReturn := chatStreamTest(w, chat_session, chatCompletionMessages)
+		answerText, _, shouldReturn := chatStreamTest(w, chat_session, chatCompletionMessages, chatUuid, true)
 		if shouldReturn {
 			return
 		}
 		// Delete previous message and create new one
-		err := h.chatService.DeleteAndCreateChatMessage(chatSessionUuid, chatUuid, chat_session.UserID, answerID, answerText)
+		err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to create message: ").Error(), nil)
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update chat message: ").Error(), nil)
 		}
 	} else {
-		answerText, answerID, shouldReturn := chatStream(w, chat_session, chatCompletionMessages)
+		answerText, _, shouldReturn := chatStream(w, chat_session, chatCompletionMessages, chatUuid, true)
 		if shouldReturn {
 			return
 		}
 
 		// Delete previous message and create new one
-		err := h.chatService.DeleteAndCreateChatMessage(chatSessionUuid, chatUuid, chat_session.UserID, answerID, answerText)
-
+		err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to create message: ").Error(), nil)
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
 		}
 	}
 }
@@ -282,7 +281,7 @@ func isTest(msgs []openai.ChatCompletionMessage) bool {
 	return promptMsg.Content == "test_demo_bestqa" || lastMsgs.Content == "test_demo_bestqa"
 }
 
-func chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) (string, string, bool) {
+func chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, chatUuid string, regenerate bool) (string, string, bool) {
 	client := openai.NewClient(appConfig.OPENAI.API_KEY)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
@@ -305,6 +304,11 @@ func chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, cha
 
 	var answer string
 	var answer_id string
+
+	if regenerate {
+		answer_id = chatUuid
+	}
+
 	for {
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -349,10 +353,13 @@ func chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, cha
 	return answer, answer_id, false
 }
 
-func chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) (string, string, bool) {
+func chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, chatUuid string, regenerate bool) (string, string, bool) {
 	//message := Message{Role: "assitant", Content:}
-	uuid, _ := uuid.NewV4()
-	answer_id := uuid.String()
+	answer_id := chatUuid
+	if !regenerate {
+		uuid, _ := uuid.NewV4()
+		answer_id = uuid.String()
+	}
 	setSSEHeader(w)
 
 	flusher, ok := w.(http.Flusher)

@@ -158,6 +158,7 @@ async function onConversationStream() {
                 )
               }
               catch (error) {
+                // eslint-disable-next-line no-console
                 console.log(error)
               }
             }
@@ -167,6 +168,7 @@ async function onConversationStream() {
       return response
     }
     catch (error: any) {
+      // eslint-disable-next-line no-console
       console.log(error)
       const response = error.response
       if (response.status === 500)
