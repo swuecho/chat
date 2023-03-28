@@ -156,6 +156,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 			eris.Wrap(err, "fail to create or update session: ").Error(),
 			http.StatusInternalServerError,
 		)
+		return
 	}
 
 	existingPrompt := true
