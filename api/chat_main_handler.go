@@ -178,17 +178,17 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 				http.StatusInternalServerError,
 			)
 		}
+	} else {
+		chatPrompt, err := h.chatService.CreateChatPromptSimple(chatSessionUuid, newQuestion, userID)
+		if err != nil {
+			http.Error(w,
+				eris.Wrap(err, "fail to create prompt: ").Error(),
+				http.StatusInternalServerError,
+			)
+			return
+		}
+		log.Printf("%+v\n", chatPrompt)
 	}
-
-	chatPrompt, err := h.chatService.CreateChatPromptSimple(chatSessionUuid, newQuestion, userID)
-	if err != nil {
-		http.Error(w,
-			eris.Wrap(err, "fail to create prompt: ").Error(),
-			http.StatusInternalServerError,
-		)
-		return
-	}
-	log.Printf("%+v\n", chatPrompt)
 
 	msgs, err := h.chatService.getAskMessages(chatSession, chatUuid, false)
 	if err != nil {
