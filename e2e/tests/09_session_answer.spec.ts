@@ -29,7 +29,6 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(1000);
 
   const first_answer = await page.$eval('#image-wrapper .chat-message:nth-child(2) .message-text', el => el.innerText);
-  console.log(first_answer)
   // check the answer return by the server
   expect(first_answer).toContain('test_demo_bestqa');
 
@@ -41,7 +40,6 @@ test('test', async ({ page }) => {
   await page.waitForSelector('#image-wrapper .chat-message:nth-child(4) .message-text');
   const sec_answer = await page.$eval('#image-wrapper .chat-message:nth-child(4) .message-text', el => el.innerText);
   // check the sec_answer has the debug message
-  console.log(sec_answer)
   expect(sec_answer).toContain('test_debug_1');
 
   // add new message "test_debug_2"

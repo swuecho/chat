@@ -82,8 +82,6 @@ test('test', async ({ page }) => {
   // check the second answer has been regenerated
   const sec_answer_regen_2 = await page.$eval('#image-wrapper .chat-message:nth-child(4) .message-text', el => el.innerText);
   // check the sec_answer has the debug message
-  console.log(sec_answer_regen_2)
-  console.log(sec_answer_regen_2)
   expect(sec_answer_regen_2).toContain('test_debug_1');
 
 });
