@@ -68,7 +68,7 @@ test('test', async ({ page }) => {
   await page.locator('#image-wrapper .chat-message:nth-child(6) .chat-message-regenerate').click();
   await page.waitForTimeout(1000);
 
-  const third_answer_regen = await page.$eval('#image-wrapper .chat-message:nth-child(6) .message-text',  (el: HTMLElement) => el.innerText);
+  const third_answer_regen = await page.$eval('#image-wrapper .chat-message:nth-child(6) .message-text', (el: HTMLElement) => el.innerText);
   // check the third_answer has the debug message
   expect(third_answer_regen).toContain('test_debug_2');
 
@@ -77,9 +77,14 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(1000);
 
   // check the second answer has been regenerated
-  const sec_answer_regen_2 = await page.$eval('#image-wrapper .chat-message:nth-child(4) .message-text',  (el: HTMLElement) => el.innerText);
+  const sec_answer_regen_2 = await page.$eval('#image-wrapper .chat-message:nth-child(4) .message-text', (el: HTMLElement) => el.innerText);
   // check the sec_answer has the debug message
   expect(sec_answer_regen_2).toContain('test_debug_1');
   expect(sec_answer_regen_2).not.toContain('test_debug_2')
 
+  // check the second answer has been regenerated
+  const sec_answer_regen_3 = await page.$eval('#image-wrapper .chat-message:nth-child(4) .message-text', (el: HTMLElement) => el.innerText);
+  // check the sec_answer has the debug message
+  expect(sec_answer_regen_3).toContain('test_debug_1');
+  expect(sec_answer_regen_2).not.toContain('test_debug_2')
 });
