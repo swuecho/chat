@@ -1,13 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { Pool } from 'pg';
 import { randomEmail } from '../lib/sample';
-import { db_config } from '../lib/db/config';
-import exp from 'constants';
 
 const test_email = randomEmail();
-
-const pool = new Pool(db_config);
-
 
 test('test', async ({ page }) => {
   await page.goto('/');
