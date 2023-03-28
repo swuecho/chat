@@ -50,6 +50,14 @@ test('test', async ({ page }) => {
   console.log(sec_answer)
   expect(sec_answer).toContain('test_debug_1');
 
+  await page.locator('#image-wrapper .chat-message:nth-child(4) .chat-message-regenerate').click();
+  await page.waitForTimeout(1000);
+
+  const sec_answer_regen = await page.$eval('#image-wrapper .chat-message:nth-child(4) .message-text', el => el.innerText);
+  // check the sec_answer has the debug message
+  console.log(sec_answer_regen)
+  expect(sec_answer_regen).toContain('test_debug_1');
+
   // add new message "test_debug_2"
   await input_area?.click();
   await input_area?.fill('test_debug_2');
@@ -60,5 +68,12 @@ test('test', async ({ page }) => {
   const third_answer = await page.$eval('#image-wrapper .chat-message:nth-child(6) .message-text', el => el.innerText);
   // check the third_answer has the debug message
   expect(third_answer).toContain('test_debug_2');
+
+  await page.locator('#image-wrapper .chat-message:nth-child(6) .chat-message-regenerate').click();
+  await page.waitForTimeout(1000);
+
+  const third_answer_regen = await page.$eval('#image-wrapper .chat-message:nth-child(6) .message-text', el => el.innerText);
+  // check the third_answer has the debug message
+  expect(third_answer_regen).toContain('test_debug_2');
 
 });
