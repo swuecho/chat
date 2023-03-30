@@ -1,3 +1,8 @@
+## Demo
+
+[video.webm](https://user-images.githubusercontent.com/666683/228706339-453e3a2d-5801-42f1-9906-86e2ac140aec.webm)
+
+
 ## 规则
 
 - 第一个消息是系统消息（prompt）
