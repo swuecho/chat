@@ -5,11 +5,11 @@ import zhCN from './zh-CN.json'
 import zhTW from './zh-TW.json'
 import type { Language } from '@/store/modules/app/helper'
 
-const defaultLocale = 'zh-CN'
+const defaultLocale = navigator.language.split('-')[0]
 
 const i18n = createI18n({
   locale: defaultLocale,
-  fallbackLocale: 'en-US',
+  fallbackLocale: 'en',
   allowComposition: true,
   messages: {
     'en-US': enUS,
