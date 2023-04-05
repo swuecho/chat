@@ -158,6 +158,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string, newQuestion string, userID int32) {
 	ctx := context.Background()
 	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
+	fmt.Printf("chatSession: %+v ", chatSession)
 	if err != nil {
 		http.Error(w,
 			eris.Wrap(err, "fail to get session: ").Error(),
@@ -222,8 +223,10 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		}
 	} else {
 		model := chatSession.Model
+		println(model)
 		if strings.HasPrefix(model, "claude") {
 
+			println("xxxx:" + model)
 			answerText, answerID, shouldReturn := chatStreamClaude(w, chatSession, msgs, chatUuid, false)
 			if shouldReturn {
 				return
@@ -238,6 +241,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 				return
 			}
 		} else {
+			println("yyyyyy:" + model)
 			answerText, answerID, shouldReturn := chatStream(w, chatSession, msgs, chatUuid, false)
 			if shouldReturn {
 				return
