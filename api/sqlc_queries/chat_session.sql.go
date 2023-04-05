@@ -93,8 +93,8 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 }
 
 const createOrUpdateChatSessionByUUID = `-- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, max_tokens, top_p, debug)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, debug)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 ON CONFLICT (uuid) 
 DO UPDATE SET
 max_length = EXCLUDED.max_length, 
@@ -102,6 +102,7 @@ debug = EXCLUDED.debug,
 max_tokens = EXCLUDED.max_tokens,
 temperature = EXCLUDED.temperature, 
 top_p = EXCLUDED.top_p,
+model = EXCLUDED.model,
 topic = CASE WHEN chat_session.topic IS NULL THEN EXCLUDED.topic ELSE chat_session.topic END,
 updated_at = now()
 returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug
@@ -113,6 +114,7 @@ type CreateOrUpdateChatSessionByUUIDParams struct {
 	Topic       string
 	MaxLength   int32
 	Temperature float64
+	Model       string
 	MaxTokens   int32
 	TopP        float64
 	Debug       bool
@@ -125,6 +127,7 @@ func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg Creat
 		arg.Topic,
 		arg.MaxLength,
 		arg.Temperature,
+		arg.Model,
 		arg.MaxTokens,
 		arg.TopP,
 		arg.Debug,

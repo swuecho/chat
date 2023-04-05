@@ -53,6 +53,7 @@
     "stopAnswer": "停止回答",
     "slider": "上下文数量",
     "temperature": "温度",
+    "model": "模型",
     "maxTokens": "最大问答总token数量",
     "topP": "Top P",
     "frequencyPenalty": "频率惩罚",
