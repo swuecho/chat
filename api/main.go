@@ -25,6 +25,9 @@ type AppConfig struct {
 		API_KEY   string
 		RATELIMIT int
 	}
+	CLAUDE struct {
+		API_KEY string
+	}
 	JWT struct {
 		SECRET string
 		AUD    string

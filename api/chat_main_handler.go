@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -219,18 +221,36 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 			)
 		}
 	} else {
-		answerText, answerID, shouldReturn := chatStream(w, chatSession, msgs, chatUuid, false)
-		if shouldReturn {
-			return
-		}
-		_, err = h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
-		if err != nil {
-			RespondWithError(w,
-				http.StatusInternalServerError,
-				eris.Wrap(err, "fail to create message: ").Error(),
-				nil,
-			)
-			return
+		model := chatSession.Model
+		if strings.HasPrefix(model, "claude") {
+
+			answerText, answerID, shouldReturn := chatStreamClaude(w, chatSession, msgs, chatUuid, false)
+			if shouldReturn {
+				return
+			}
+			_, err = h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
+			if err != nil {
+				RespondWithError(w,
+					http.StatusInternalServerError,
+					eris.Wrap(err, "fail to create message: ").Error(),
+					nil,
+				)
+				return
+			}
+		} else {
+			answerText, answerID, shouldReturn := chatStream(w, chatSession, msgs, chatUuid, false)
+			if shouldReturn {
+				return
+			}
+			_, err = h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
+			if err != nil {
+				RespondWithError(w,
+					http.StatusInternalServerError,
+					eris.Wrap(err, "fail to create message: ").Error(),
+					nil,
+				)
+				return
+			}
 		}
 	}
 }
@@ -262,15 +282,30 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update chat message: ").Error(), nil)
 		}
 	} else {
-		answerText, _, shouldReturn := chatStream(w, chat_session, chatCompletionMessages, chatUuid, true)
-		if shouldReturn {
-			return
-		}
+		model := chat_session.Model
+		if strings.HasPrefix(model, "claude") {
+			answerText, _, shouldReturn := chatStreamClaude(w, chat_session, chatCompletionMessages, chatUuid, true)
+			if shouldReturn {
+				return
+			}
 
-		// Delete previous message and create new one
-		err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
+			// Delete previous message and create new one
+			err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
+			if err != nil {
+				RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
+			}
+
+		} else {
+			answerText, _, shouldReturn := chatStream(w, chat_session, chatCompletionMessages, chatUuid, true)
+			if shouldReturn {
+				return
+			}
+
+			// Delete previous message and create new one
+			err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
+			if err != nil {
+				RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
+			}
 		}
 	}
 }
@@ -350,6 +385,114 @@ func chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, cha
 			flusher.Flush()
 		}
 	}
+	return answer, answer_id, false
+}
+
+type ClaudeResponse struct {
+	Completion string      `json:"completion"`
+	Stop       string      `json:"stop"`
+	StopReason string      `json:"stop_reason"`
+	Truncated  bool        `json:"truncated"`
+	LogID      string      `json:"log_id"`
+	Model      string      `json:"model"`
+	Exception  interface{} `json:"exception"`
+}
+
+func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, chatUuid string, regenerate bool) (string, string, bool) {
+	// set the api key
+	apiKey := appConfig.CLAUDE.API_KEY
+
+	// set the url
+	url := "https://api.anthropic.com/v1/complete"
+	msg := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
+	// create the json data
+	jsonData := map[string]interface{}{
+		"prompt":               "\n\nHuman: " + msg + "\n\nAssistant: ",
+		"model":                "claude-v1",
+		"max_tokens_to_sample": chatSession.MaxTokens,
+		"stop_sequences":       []string{"\n\nHuman:"},
+		"stream":               true,
+	}
+
+	// convert data to json format
+	jsonValue, _ := json.Marshal(jsonData)
+
+	// create the request
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
+	if err != nil {
+		fmt.Println("Error while creating request: ", err)
+	}
+
+	// add headers to the request
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", apiKey)
+
+	// set the streaming flag
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Connection", "keep-alive")
+
+	// create the http client and send the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error while sending request: ", err)
+	}
+
+	ioreader := bufio.NewReader(resp.Body)
+
+	// read the response body
+	defer resp.Body.Close()
+	// loop over the response body and print data
+
+	setSSEHeader(w)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		return "", "", true
+	}
+
+	var answer string
+	var answer_id string
+
+	if regenerate {
+		answer_id = chatUuid
+	}
+
+	var headerData = []byte("data: ")
+	for {
+		line, err := ioreader.ReadBytes('\n')
+		if err != nil {
+			return "", "", true
+		}
+		if !bytes.HasPrefix(line, headerData) {
+			continue
+		}
+		line = bytes.TrimPrefix(line, headerData)
+
+		if bytes.HasPrefix(line, []byte("[DONE]")) {
+			// stream.isFinished = true
+			fmt.Println("DONE break")
+			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
+			break
+		}
+		if answer_id == "" {
+			uuid, _ := uuid.NewV4()
+			answer_id = uuid.String()
+		}
+		var response ClaudeResponse
+		_ = json.Unmarshal(line, &response)
+		answer = response.Completion
+		if strings.HasSuffix(answer, "\n") || len(answer) < 200 {
+			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
+		}
+	}
+
 	return answer, answer_id, false
 }
 
