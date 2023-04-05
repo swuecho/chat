@@ -19,6 +19,7 @@ services:
     environment:
       - OPENAI_API_KEY=thisisakey
       - OPENAI_RATELIMIT=100 # open ai call in 10min
+      - CLAUDE_API_KEY=thisisclaudekey # do not change if you do not have claude api key
       - PG_HOST=db
       - PG_DB=postgres
       - PG_USER=postgres
