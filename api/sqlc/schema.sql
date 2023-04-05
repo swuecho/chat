@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS chat_session (
     created_at timestamp  DEFAULT now() NOT NULL,
     updated_at timestamp  DEFAULT now() NOT NULL,
     active boolean default true NOT NULL,
+    model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo',
     max_length integer DEFAULT 0 NOT NULL,
     temperature float DEFAULT 1.0 NOT NUll,
     top_p float DEFAULT 1.0 NOT NUll,
@@ -97,3 +98,4 @@ ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0 
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 512 NOT NULL; 
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NOT NULL; 
+ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS  model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';

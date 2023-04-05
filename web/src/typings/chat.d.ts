@@ -18,6 +18,7 @@ declare namespace Chat {
 		isEdit: boolean
 		maxLength?: number
 		temperature?: number
+		model?: string
 		topP?: number
 		maxTokens?: number
 		debug?: boolean
