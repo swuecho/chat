@@ -34,6 +34,7 @@ export default defineConfig({
   use: {
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 0,
+    // video: 'on', // Record videos of all tests to `test-results` folder (check `test-results/`).
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://localhost:3000',
     baseURL: process.env.CI ? "http://localhost:8080/#/chat" : "http://localhost:1002/#/chat",
