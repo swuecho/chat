@@ -222,39 +222,19 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 			)
 		}
 	} else {
-		model := chatSession.Model
-		println(model)
-		if strings.HasPrefix(model, "claude") {
+		streamFunc := chatStream
+		if strings.HasPrefix(chatSession.Model, "claude") {
+			streamFunc = chatStreamClaude
+		}
 
-			println("xxxx:" + model)
-			answerText, answerID, shouldReturn := chatStreamClaude(w, chatSession, msgs, chatUuid, false)
-			if shouldReturn {
-				return
-			}
-			_, err = h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
-			if err != nil {
-				RespondWithError(w,
-					http.StatusInternalServerError,
-					eris.Wrap(err, "fail to create message: ").Error(),
-					nil,
-				)
-				return
-			}
-		} else {
-			println("yyyyyy:" + model)
-			answerText, answerID, shouldReturn := chatStream(w, chatSession, msgs, chatUuid, false)
-			if shouldReturn {
-				return
-			}
-			_, err = h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
-			if err != nil {
-				RespondWithError(w,
-					http.StatusInternalServerError,
-					eris.Wrap(err, "fail to create message: ").Error(),
-					nil,
-				)
-				return
-			}
+		answerText, answerID, shouldReturn := streamFunc(w, chatSession, msgs, chatUuid, false)
+		if shouldReturn {
+			return
+		}
+
+		if _, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
+			return
 		}
 	}
 }
@@ -287,29 +267,21 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		}
 	} else {
 		model := chat_session.Model
-		if strings.HasPrefix(model, "claude") {
-			answerText, _, shouldReturn := chatStreamClaude(w, chat_session, chatCompletionMessages, chatUuid, true)
-			if shouldReturn {
-				return
-			}
+		isClaude := strings.HasPrefix(model, "claude")
 
-			// Delete previous message and create new one
-			err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
-			if err != nil {
-				RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
-			}
+		chatStreamFn := chatStream
+		if isClaude {
+			chatStreamFn = chatStreamClaude
+		}
 
-		} else {
-			answerText, _, shouldReturn := chatStream(w, chat_session, chatCompletionMessages, chatUuid, true)
-			if shouldReturn {
-				return
-			}
+		answerText, _, shouldReturn := chatStreamFn(w, chat_session, chatCompletionMessages, chatUuid, true)
+		if shouldReturn {
+			return
+		}
 
-			// Delete previous message and create new one
-			err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
-			if err != nil {
-				RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
-			}
+		// Delete previous message and create new one
+		if err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
 		}
 	}
 }
