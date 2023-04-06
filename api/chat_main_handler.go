@@ -437,7 +437,13 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 	}
 
 	var headerData = []byte("data: ")
+	count := 0
 	for {
+		count++
+		// prevent infinite loop
+		if count > 10000 {
+			break
+		}
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
 			return "", "", true
@@ -462,7 +468,7 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 		var response ClaudeResponse
 		_ = json.Unmarshal(line, &response)
 		answer = response.Completion
-		if strings.HasSuffix(answer, "\n") || len(answer) < 200 {
+		if len(answer) < 200 || len(answer)%2 == 0 {
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
