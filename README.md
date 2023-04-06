@@ -6,7 +6,7 @@
 ## 规则
 
 - 第一个消息是系统消息（prompt）
-- 上下文默认附带最新创建的10条消息
+- OPENAI 上下文默认附带最新创建的10条消息, (Claude 模型不带上下文)
 - 第一个注册的用户是管理员
 - 默认限流 100 chatGPT call /10分钟 (OPENAI_RATELIMIT=100)
 
@@ -23,7 +23,7 @@
 ## How to Use
 
 - The first message is a system message (prompt)
-- by default, the latest 10 messages are context
+- by default, the latest 10 messages are context for opeanai model. no context for claude v1.
 - First user is superuser.
 - 100 chatgpt api call / 10 mins (OPENAI_RATELIMIT=100)
 
