@@ -63,7 +63,8 @@
     "topP": "Top P",
     "frequencyPenalty": "頻率懲罰",
     "presencePenalty": "存在懲罰",
-    "debug": "調試模式"
+    "debug": "調試模式",
+    "model": "模型"
   },
   "setting": {
     "admin": "管理",

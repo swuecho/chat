@@ -57,7 +57,8 @@
     "topP": "Top P",
     "frequencyPenalty": "Frequency Penalty",
     "presencePenalty": "Presence Penalty",
-    "debug": "Debug Mode"
+    "debug": "Debug Mode",
+    "model": "Model"
   },
   "setting": {
     "setting": "Settings",
