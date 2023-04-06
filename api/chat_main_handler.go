@@ -397,6 +397,7 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 		"prompt":               sb.String(),
 		"model":                "claude-v1",
 		"max_tokens_to_sample": chatSession.MaxTokens,
+		"temperature":          chatSession.Temperature,
 		"stop_sequences":       []string{"\n\nHuman:"},
 		"stream":               true,
 	}
