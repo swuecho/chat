@@ -380,10 +380,21 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 
 	// set the url
 	url := "https://api.anthropic.com/v1/complete"
-	msg := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
+
+	var sb strings.Builder // create a new strings.Builder
+	// iterate through the messages and format them
+	for _, message := range chat_compeletion_messages {
+		// print the user's question
+		if message.Role != "assistant" {
+			sb.WriteString(fmt.Sprintf("\n\nHuman: %s\n\nAssistant: ", message.Content))
+		} else {
+			// convert assistant's response to json format
+			sb.WriteString(fmt.Sprintf("%s\n", message.Content))
+		}
+	}
 	// create the json data
 	jsonData := map[string]interface{}{
-		"prompt":               "\n\nHuman: " + msg + "\n\nAssistant: ",
+		"prompt":               sb.String(),
 		"model":                "claude-v1",
 		"max_tokens_to_sample": chatSession.MaxTokens,
 		"stop_sequences":       []string{"\n\nHuman:"},
@@ -392,7 +403,6 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 
 	// convert data to json format
 	jsonValue, _ := json.Marshal(jsonData)
-
 	// create the request
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
