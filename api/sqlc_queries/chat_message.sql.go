@@ -413,13 +413,13 @@ func (q *Queries) GetLastNChatMessages(ctx context.Context, arg GetLastNChatMess
 const getLatestMessagesBySessionUUID = `-- name: GetLatestMessagesBySessionUUID :many
 SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, raw
 FROM chat_message
-Where chat_session_uuid in 
+Where chat_message.id in 
 (
-    SELECT chat_session_uuid 
+    SELECT chat_message.id
     FROM chat_message
     WHERE chat_message.chat_session_uuid = $1
     ORDER BY created_at DESC
-    LIMIT $2 
+    LIMIT $2
 )
 ORDER BY created_at
 `
