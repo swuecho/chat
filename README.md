@@ -1,7 +1,6 @@
 ## Demo
 
-[video.webm](https://user-images.githubusercontent.com/666683/228706339-453e3a2d-5801-42f1-9906-86e2ac140aec.webm)
-
+[video.webm](https://user-images.githubusercontent.com/666683/230305516-60154c5b-7170-4d2b-9670-a5ff4c851d25.webm)
 
 ## 规则
 
