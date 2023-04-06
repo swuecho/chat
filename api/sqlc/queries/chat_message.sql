@@ -68,15 +68,15 @@ WHERE cm.id = $1 AND (cs.user_id = $2 OR au.is_superuser) and cs.active = true;
 -- name: GetLatestMessagesBySessionUUID :many
 SELECT *
 FROM chat_message
-Where chat_session_uuid in 
+Where chat_message.id in 
 (
-    SELECT chat_session_uuid 
+    SELECT chat_message.id
     FROM chat_message
     WHERE chat_message.chat_session_uuid = $1
     ORDER BY created_at DESC
-    LIMIT $2 
+    LIMIT $2
 )
-ORDER BY created_at ;
+ORDER BY created_at;
 
 
 -- name: GetFirstMessageBySessionUUID :one

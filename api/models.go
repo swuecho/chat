@@ -47,7 +47,7 @@ type SimpleChatSession struct {
 	TopP        float64 `json:"topP"`
 	MaxTokens   int32   `json:"maxTokens"`
 	Debug       bool    `json:"debug"`
-	Model      string  `json:"model"`
+	Model       string  `json:"model"`
 }
 
 type ChatMessageResponse struct {
