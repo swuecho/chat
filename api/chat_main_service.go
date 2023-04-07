@@ -289,6 +289,7 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 
 func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion string, userID int32) (sqlc_queries.ChatPrompt, error) {
 	uuidVar, _ := uuid.NewV4()
+	tokenCount, _ := getTokenCount(newQuestion)
 	chatPrompt, err := s.q.CreateChatPrompt(context.Background(),
 		sqlc_queries.CreateChatPromptParams{
 			Uuid:            uuidVar.String(),
@@ -298,6 +299,7 @@ func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion
 			UserID:          userID,
 			CreatedBy:       userID,
 			UpdatedBy:       userID,
+			TokenCount: int32(tokenCount),
 		})
 	return chatPrompt, err
 }
