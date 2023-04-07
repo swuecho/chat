@@ -18,6 +18,7 @@ import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
+import { getCurrentDate } from '@/utils/date'
 let controller = new AbortController()
 
 const route = useRoute()
