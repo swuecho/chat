@@ -8,8 +8,8 @@ SELECT * FROM chat_prompt
 WHERE is_deleted = false and  id = $1;
 
 -- name: CreateChatPrompt :one
-INSERT INTO chat_prompt (uuid, chat_session_uuid, role, content, user_id, created_by, updated_by)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO chat_prompt (uuid, chat_session_uuid, role, content, token_count, user_id, created_by, updated_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: UpdateChatPrompt :one
@@ -18,7 +18,7 @@ WHERE id = $1
 RETURNING *;
 
 -- name: UpdateChatPromptByUUID :one
-UPDATE chat_prompt SET content = $2, updated_at = now()
+UPDATE chat_prompt SET content = $2, token_count = $3, updated_at = now()
 WHERE uuid = $1 and is_deleted = false
 RETURNING *;
 

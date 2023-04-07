@@ -44,6 +44,7 @@ type ChatMessage struct {
 	CreatedBy       int32
 	UpdatedBy       int32
 	IsDeleted       bool
+	TokenCount      int32
 	Raw             json.RawMessage
 }
 
@@ -60,6 +61,7 @@ type ChatPrompt struct {
 	CreatedBy       int32
 	UpdatedBy       int32
 	IsDeleted       bool
+	TokenCount      int32
 }
 
 type ChatSession struct {

@@ -7,7 +7,20 @@ import (
 	"strconv"
 
 	"github.com/rotisserie/eris"
+	"github.com/pkoukk/tiktoken-go"
+
 )
+
+func getTokenCount(content string) (int, error) {
+	encoding := "cl100k_base"
+	tke, err := tiktoken.GetEncoding(encoding)
+	if err != nil {
+		return 0, err
+	}
+	token := tke.Encode(content, nil, nil)
+	num_tokens := len(token)
+	return num_tokens, nil
+}
 
 // allocation free version
 func firstN(s string, n int) string {
