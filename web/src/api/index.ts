@@ -361,7 +361,7 @@ export const fetchMarkdown = async (uuid: string) => {
     */
     const markdown = chatData.map((chat: Chat.Chat) => {
       if (chat.isPrompt)
-        return ` **system** (${chat.dateTime}):\n ${chat.text}`
+        return `**system** (${chat.dateTime}):\n ${chat.text}`
       else if (chat.inversion)
         return `**user** (${chat.dateTime}):\n ${chat.text}`
       else
