@@ -20,7 +20,7 @@ test('test', async ({ page }) => {
   await page.locator('a').filter({ hasText: '新对话' }).click();
 
   // set debug mode
-  await page.getByRole('contentinfo').getByRole('button').nth(2).click();
+  await page.getByRole('contentinfo').getByRole('button').nth(3).click();
   await page.getByText('关闭').nth(1).click();
 
   // click bottom of page to close the modal

@@ -40,6 +40,8 @@
     "clearChatConfirm": "是否清空会话?",
     "exportImage": "保存会话到图片",
     "exportImageConfirm": "是否将会话保存为图片?",
+    "exportMD": "保存会话到Markdown",
+    "exportMDConfirm": "是否将会话保存为Markdown?",
     "exportSuccess": "保存成功",
     "exportFailed": "保存失败",
     "usingContext": "上下文模式",

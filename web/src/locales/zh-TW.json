@@ -46,6 +46,8 @@
     "clearChatConfirm": "是否清空對話?",
     "exportImage": "導出對話到圖片",
     "exportImageConfirm": "是否將對話導出為圖片?",
+    "exportMD": "導出對話到Markdown",
+    "exportMDConfirm": "是否將對話導出為Markdown?",
     "exportSuccess": "導出成功",
     "exportFailed": "導出失敗",
     "usingContext": "上下文模式",

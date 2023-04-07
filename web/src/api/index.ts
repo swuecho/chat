@@ -344,3 +344,33 @@ export const UpdateRateLimit = async (email: string, rateLimit: number) => {
     throw error
   }
 }
+
+export const fetchMarkdown = async (uuid: string) => {
+  try {
+    const chatData = await getChatMessagesBySessionUUID(uuid)
+    /*
+    uuid: string,
+    dateTime: string
+    text: string
+    inversion?: boolean
+    error?: boolean
+    loading?: boolean
+    conversationOptions?: ConversationRequest | null
+    requestOptions: { prompt: string; options?: ConversationRequest | null }
+    isPrompt?: boolean
+    */
+    const markdown = chatData.map((chat: Chat.Chat) => {
+      if (chat.isPrompt)
+        return ` **system** (${chat.dateTime}):\n ${chat.text}`
+      else if (chat.inversion)
+        return `**user** (${chat.dateTime}):\n ${chat.text}`
+      else
+        return `**assistant** (${chat.dateTime}):\n ${chat.text}`
+    }).join('\n\n----\n\n')
+    return markdown
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}

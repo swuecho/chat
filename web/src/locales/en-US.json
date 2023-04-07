@@ -40,6 +40,8 @@
     "clearChatConfirm": "Do you want to clear the chat session?",
     "exportImage": "Export chat session to image",
     "exportImageConfirm": "Do you want to save the chat session as an image?",
+    "exportMD": "Export chat session to markdown file",
+    "exportMDConfirm": "Do you want to save the chat session as a markdown file?",
     "exportSuccess": "Saved successfully",
     "exportFailed": "Saving failed",
     "usingContext": "Context Mode",
