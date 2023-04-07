@@ -330,7 +330,6 @@ function handleExport() {
         // generate a file name, chat-shot-2021-08-01.png
         const ts = getCurrentDate()
         tempLink.setAttribute('download', `chat-shot-${ts}.png`)
-        tempLink.setAttribute('download', 'chat-shot.png')
         if (typeof tempLink.download === 'undefined')
           tempLink.setAttribute('target', '_blank')
 
