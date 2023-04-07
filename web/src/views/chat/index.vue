@@ -17,7 +17,7 @@ import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore } from '@/store'
 import { t } from '@/locales'
-import { getCurrentDate } from '@/utils/date'
+import { genTempDownloadLink } from '@/utils/download'
 let controller = new AbortController()
 
 const route = useRoute()
@@ -311,33 +311,25 @@ function handleExport() {
   if (loading.value)
     return
 
-  const d = dialog.warning({
+  const dialogBox = dialog.warning({
     title: t('chat.exportImage'),
     content: t('chat.exportImageConfirm'),
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: async () => {
       try {
-        d.loading = true
+        dialogBox.loading = true
         const ele = document.getElementById('image-wrapper')
         const canvas = await html2canvas(ele as HTMLDivElement, {
           useCORS: true,
         })
         const imgUrl = canvas.toDataURL('image/png')
-        const tempLink = document.createElement('a')
-        tempLink.style.display = 'none'
-        tempLink.href = imgUrl
-        // generate a file name, chat-shot-2021-08-01.png
-        const ts = getCurrentDate()
-        tempLink.setAttribute('download', `chat-shot-${ts}.png`)
-        if (typeof tempLink.download === 'undefined')
-          tempLink.setAttribute('target', '_blank')
-
+        const tempLink = genTempDownloadLink(imgUrl)
         document.body.appendChild(tempLink)
         tempLink.click()
         document.body.removeChild(tempLink)
         window.URL.revokeObjectURL(imgUrl)
-        d.loading = false
+        dialogBox.loading = false
         nui_msg.success(t('chat.exportSuccess'))
         Promise.resolve()
       }
@@ -345,7 +337,7 @@ function handleExport() {
         nui_msg.error(t('chat.exportFailed'))
       }
       finally {
-        d.loading = false
+        dialogBox.loading = false
       }
     },
   })
@@ -355,22 +347,20 @@ function handleMarkdown() {
   if (loading.value)
     return
 
-  const d = dialog.warning({
+  const dialogBox = dialog.warning({
     title: t('chat.exportMD'),
     content: t('chat.exportMDConfirm'),
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: async () => {
       try {
-        d.loading = true
-
+        dialogBox.loading = true
         const markdown = await fetchMarkdown(uuid)
-
         const ts = getCurrentDate()
         const filename = `chat-${ts}.md`
         const blob = new Blob([markdown], { type: 'text/plain;charset=utf-8' })
         saveAs(blob, filename)
-        d.loading = false
+        dialogBox.loading = false
         nui_msg.success(t('chat.exportSuccess'))
         Promise.resolve()
       }
@@ -378,7 +368,7 @@ function handleMarkdown() {
         nui_msg.error(t('chat.exportFailed'))
       }
       finally {
-        d.loading = false
+        dialogBox.loading = false
       }
     },
   })
