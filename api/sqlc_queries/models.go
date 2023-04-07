@@ -43,6 +43,7 @@ type ChatMessage struct {
 	UpdatedAt       time.Time
 	CreatedBy       int32
 	UpdatedBy       int32
+	IsDeleted       bool
 	Raw             json.RawMessage
 }
 
