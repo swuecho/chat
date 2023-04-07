@@ -99,9 +99,11 @@ func (s *ChatPromptService) DeleteChatPromptByUUID(ctx context.Context, uuid str
 
 // UpdateChatPromptByUUID
 func (s *ChatPromptService) UpdateChatPromptByUUID(ctx context.Context, uuid string, content string) (sqlc_queries.ChatPrompt, error) {
+	tokenCount, _ := getTokenCount(content)
 	params := sqlc_queries.UpdateChatPromptByUUIDParams{
 		Uuid:    uuid,
 		Content: content,
+		TokenCount: int32(tokenCount),
 	}
 	prompt, err := s.q.UpdateChatPromptByUUID(ctx, params)
 	return prompt, err

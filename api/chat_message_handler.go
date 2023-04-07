@@ -141,6 +141,8 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 	var messageParams sqlc_queries.UpdateChatMessageByUUIDParams
 	messageParams.Uuid = simple_msg.Uuid
 	messageParams.Content = simple_msg.Text
+	tokenCount, _ := getTokenCount(simple_msg.Text)
+	messageParams.TokenCount = int32(tokenCount)
 	log.Println(messageParams)
 	message, err := h.service.UpdateChatMessageByUUID(r.Context(), messageParams)
 	if err != nil {

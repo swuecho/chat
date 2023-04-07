@@ -69,7 +69,10 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 			return nil, eris.Wrap(err, "error when get prompt: ")
 		}
 	}
-
+	newQuestionTokenCount, err := getTokenCount(newQuestion)
+	if err != nil {
+		log.Println(eris.Wrap(err, "error when get token count: "))
+	}
 	if existingPrompt {
 		user := ai.User
 		_, err := s.q.CreateChatMessage(ctx,
@@ -82,6 +85,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 				UserID:          userID,
 				CreatedBy:       userID,
 				UpdatedBy:       userID,
+				TokenCount:     int32(newQuestionTokenCount),
 			})
 
 		if err != nil {
@@ -98,6 +102,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 				UserID:          userID,
 				CreatedBy:       userID,
 				UpdatedBy:       userID,
+				TokenCount:     int32(newQuestionTokenCount),
 			})
 		if err != nil {
 			return nil, eris.Wrap(err, "fail to create prompt: ")
@@ -284,6 +289,7 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 
 func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion string, userID int32) (sqlc_queries.ChatPrompt, error) {
 	uuidVar, _ := uuid.NewV4()
+	tokenCount, _ := getTokenCount(newQuestion)
 	chatPrompt, err := s.q.CreateChatPrompt(context.Background(),
 		sqlc_queries.CreateChatPromptParams{
 			Uuid:            uuidVar.String(),
@@ -293,12 +299,17 @@ func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion
 			UserID:          userID,
 			CreatedBy:       userID,
 			UpdatedBy:       userID,
+			TokenCount: int32(tokenCount),
 		})
 	return chatPrompt, err
 }
 
 // CreateChatMessage creates a new chat message.
 func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content string, userId int32) (sqlc_queries.ChatMessage, error) {
+	numTokens, err := getTokenCount(content)
+	if err != nil {
+		log.Println(eris.Wrap(err, "failed to get token count: "))
+	}
 
 	chatMessage := sqlc_queries.CreateChatMessageParams{
 		ChatSessionUuid: sessionUuid,
@@ -308,6 +319,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 		UserID:          userId,
 		CreatedBy:       userId,
 		UpdatedBy:       userId,
+		TokenCount:      int32(numTokens),
 		Raw:             json.RawMessage([]byte("{}")),
 	}
 	message, err := s.q.CreateChatMessage(ctx, chatMessage)
@@ -319,9 +331,17 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 
 // UpdateChatMessageContent
 func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, content string) error {
-	err := s.q.UpdateChatMessageContent(ctx, sqlc_queries.UpdateChatMessageContentParams{
-		Uuid:    uuid,
-		Content: content,
+	// encode
+	// num_tokens
+	num_tokens, err := getTokenCount(content)
+	if err != nil {
+		log.Println(eris.Wrap(err, "getTokenCount: "))
+	}
+
+	err = s.q.UpdateChatMessageContent(ctx, sqlc_queries.UpdateChatMessageContentParams{
+		Uuid:       uuid,
+		Content:    content,
+		TokenCount: int32(num_tokens),
 	})
 	return err
 }
