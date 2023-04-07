@@ -345,6 +345,10 @@ export const UpdateRateLimit = async (email: string, rateLimit: number) => {
   }
 }
 
+function format_chat_md(chat: Chat.Chat): string {
+  return `<sup><kbd><var>${chat.dateTime}</kbd></var></sup>:\n ${chat.text}`
+}
+
 export const fetchMarkdown = async (uuid: string) => {
   try {
     const chatData = await getChatMessagesBySessionUUID(uuid)
@@ -361,11 +365,11 @@ export const fetchMarkdown = async (uuid: string) => {
     */
     const markdown = chatData.map((chat: Chat.Chat) => {
       if (chat.isPrompt)
-        return `**system** (${chat.dateTime}):\n ${chat.text}`
+        return `**system** ${format_chat_md(chat)}}`
       else if (chat.inversion)
-        return `**user** (${chat.dateTime}):\n ${chat.text}`
+        return `**user** ${format_chat_md(chat)}`
       else
-        return `**assistant** (${chat.dateTime}):\n ${chat.text}`
+        return `**assistant** ${format_chat_md(chat)}`
     }).join('\n\n----\n\n')
     return markdown
   }
