@@ -184,15 +184,19 @@ const getUserStats = `-- name: GetUserStats :many
 SELECT 
     auth_user.email AS user_email,
     COALESCE(user_stats.total_messages, 0) AS total_chat_messages,
+    COALESCE(user_stats.total_token_count, 0) AS total_token_count,
     COALESCE(user_stats.total_messages_3_days, 0) AS total_chat_messages_3_days,
+    COALESCE(user_stats.total_token_count_3_days, 0) AS total_token_count_3_days,
     COALESCE(auth_user_management.rate_limit, 0) AS rate_limit
 FROM auth_user
 LEFT JOIN (
     SELECT chat_message_stats.user_id, 
            SUM(total_messages) AS total_messages, 
-           SUM(CASE WHEN created_at >= NOW() - INTERVAL '3 days' THEN total_messages ELSE 0 END) AS total_messages_3_days
+           SUM(total_token_count) AS total_token_count,
+           SUM(CASE WHEN created_at >= NOW() - INTERVAL '3 days' THEN total_messages ELSE 0 END) AS total_messages_3_days,
+           SUM(CASE WHEN created_at >= NOW() - INTERVAL '3 days' THEN total_token_count ELSE 0 END) AS total_token_count_3_days
     FROM (
-        SELECT user_id, COUNT(*) AS total_messages, MAX(created_at) AS created_at
+        SELECT user_id, COUNT(*) AS total_messages, SUM(token_count) as total_token_count, MAX(created_at) AS created_at
         FROM chat_message
         GROUP BY user_id, chat_session_uuid
     ) AS chat_message_stats
@@ -212,7 +216,9 @@ type GetUserStatsParams struct {
 type GetUserStatsRow struct {
 	UserEmail              string
 	TotalChatMessages      int64
+	TotalTokenCount        int64
 	TotalChatMessages3Days int64
+	TotalTokenCount3Days   int64
 	RateLimit              int32
 }
 
@@ -228,7 +234,9 @@ func (q *Queries) GetUserStats(ctx context.Context, arg GetUserStatsParams) ([]G
 		if err := rows.Scan(
 			&i.UserEmail,
 			&i.TotalChatMessages,
+			&i.TotalTokenCount,
 			&i.TotalChatMessages3Days,
+			&i.TotalTokenCount3Days,
 			&i.RateLimit,
 		); err != nil {
 			return nil, err

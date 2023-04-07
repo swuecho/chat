@@ -12,7 +12,10 @@ import { t } from '@/locales'
 interface UserData {
   email: string
   totalChatMessages: number
+  totalChatMessagesTokenCount: number
   totalChatMessages3Days: number
+  totalChatMessages3DaysTokenCount: number
+  totalChatMessages3DaysAvgTokenCount: number
   rateLimit: number
 }
 const tableData = ref<UserData[]>([])
@@ -30,8 +33,23 @@ const columns = [
     width: 100,
   },
   {
+    title: t('admin.totalChatMessagesTokenCount'),
+    key: 'totalChatMessagesTokenCount',
+    width: 100,
+  },
+  {
     title: t('admin.totalChatMessages3Days'),
     key: 'totalChatMessages3Days',
+    width: 100,
+  },
+  {
+    title: t('admin.totalChatMessages3DaysTokenCount'),
+    key: 'totalChatMessages3DaysTokenCount',
+    width: 100,
+  },
+  {
+    title: t('admin.totalChatMessages3DaysAvgTokenCount'),
+    key: 'avgChatMessages3DaysTokenCount',
     width: 100,
   },
   {

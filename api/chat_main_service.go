@@ -85,7 +85,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 				UserID:          userID,
 				CreatedBy:       userID,
 				UpdatedBy:       userID,
-				TokenCount:     int32(newQuestionTokenCount),
+				TokenCount:      int32(newQuestionTokenCount),
 			})
 
 		if err != nil {
@@ -102,7 +102,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 				UserID:          userID,
 				CreatedBy:       userID,
 				UpdatedBy:       userID,
-				TokenCount:     int32(newQuestionTokenCount),
+				TokenCount:      int32(newQuestionTokenCount),
 			})
 		if err != nil {
 			return nil, eris.Wrap(err, "fail to create prompt: ")
@@ -299,7 +299,7 @@ func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion
 			UserID:          userID,
 			CreatedBy:       userID,
 			UpdatedBy:       userID,
-			TokenCount: int32(tokenCount),
+			TokenCount:      int32(tokenCount),
 		})
 	return chatPrompt, err
 }
