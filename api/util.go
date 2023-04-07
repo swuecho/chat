@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/rotisserie/eris"
 	"github.com/pkoukk/tiktoken-go"
-
+	"github.com/rotisserie/eris"
 )
 
 func getTokenCount(content string) (int, error) {
