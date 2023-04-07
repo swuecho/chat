@@ -7,6 +7,7 @@ specifiers:
   '@iconify/vue': ^4.1.0
   '@traptitech/markdown-it-katex': ^3.6.0
   '@types/crypto-js': ^4.1.1
+  '@types/file-saver': ^2.0.5
   '@types/katex': ^0.16.0
   '@types/lodash-es': ^4.17.7
   '@types/markdown-it': ^12.2.3
@@ -70,6 +71,7 @@ devDependencies:
   '@commitlint/config-conventional': 17.4.4
   '@iconify/vue': 4.1.0_vue@3.2.47
   '@types/crypto-js': 4.1.1
+  '@types/file-saver': 2.0.5
   '@types/katex': 0.16.0
   '@types/lodash-es': 4.17.7
   '@types/markdown-it': 12.2.3
@@ -2051,6 +2053,10 @@ packages:
 
   /@types/estree/1.0.0:
     resolution: {integrity: sha512-WulqXMDUTYAXCjZnk6JtIHPigp55cVtDgDrO2gHRwhyJto21+1zbVCtOYB2L1F9w4qCQ0rOGWBnBe0FNTiEJIQ==}
+    dev: true
+
+  /@types/file-saver/2.0.5:
+    resolution: {integrity: sha512-zv9kNf3keYegP5oThGLaPk8E081DFDuwfqjtiTzm6PoxChdJ1raSuADf2YGCVIyrSynLrgc8JWv296s7Q7pQSQ==}
     dev: true
 
   /@types/json-schema/7.0.11:
