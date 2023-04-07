@@ -355,10 +355,13 @@ func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.R
 }
 
 type UserStat struct {
-	Email                  string `json:"email"`
-	TotalChatMessages      int64  `json:"totalChatMessages"`
-	TotalChatMessages3Days int64  `json:"totalChatMessages3Days"`
-	RateLimit              int32  `json:"rateLimit"`
+	Email                            string `json:"email"`
+	TotalChatMessages                int64  `json:"totalChatMessages"`
+	TotalChatMessagesTokenCount      int64  `json:"totalChatMessagesTokenCount"`
+	TotalChatMessages3Days           int64  `json:"totalChatMessages3Days"`
+	TotalChatMessages3DaysTokenCount int64  `json:"totalChatMessages3DaysTokenCount"`
+	AvgChatMessages3DaysTokenCount   int64  `json:"avgChatMessages3DaysTokenCount"`
+	RateLimit                        int32  `json:"rateLimit"`
 }
 
 func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
@@ -380,11 +383,21 @@ func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request
 
 	// Copy the contents of userStatsRows into data
 	for i, v := range userStatsRows {
+		divider := v.TotalChatMessages3Days
+		var avg int64
+		if divider > 0 {
+			avg = v.TotalTokenCount3Days / v.TotalChatMessages3Days
+		} else {
+			avg = 0
+		}
 		data[i] = UserStat{
-			Email:                  v.UserEmail,
-			TotalChatMessages:      v.TotalChatMessages,
-			TotalChatMessages3Days: v.TotalChatMessages3Days,
-			RateLimit:              v.RateLimit,
+			Email:                            v.UserEmail,
+			TotalChatMessages:                v.TotalChatMessages,
+			TotalChatMessages3Days:           v.TotalChatMessages3Days,
+			RateLimit:                        v.RateLimit,
+			TotalChatMessagesTokenCount:      v.TotalTokenCount,
+			TotalChatMessages3DaysTokenCount: v.TotalTokenCount3Days,
+			AvgChatMessages3DaysTokenCount:   avg,
 		}
 	}
 
