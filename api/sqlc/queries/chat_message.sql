@@ -1,11 +1,13 @@
 -- name: GetAllChatMessages :many
-SELECT * FROM chat_message ORDER BY id;
+SELECT * FROM chat_message 
+WHERE is_deleted = false
+ORDER BY id;
 
 -- name: GetChatMessagesBySessionUUID :many
 SELECT cm.*
 FROM chat_message cm
 INNER JOIN chat_session cs ON cm.chat_session_uuid = cs.uuid
-WHERE cs.active = true and cs.uuid = $1 
+WHERE cm.is_deleted = false and cs.active = true and cs.uuid = $1  
 ORDER BY cm.id 
 OFFSET $2
 LIMIT $3;
@@ -15,14 +17,15 @@ LIMIT $3;
 SELECT cm.*
 FROM chat_message cm
 INNER JOIN chat_session cs ON cm.chat_session_uuid = cs.uuid
-WHERE cs.active = true and cs.uuid = $1 
+WHERE cm.is_deleted = false and cs.active = true and cs.uuid = $1 
 ORDER BY cm.id 
 OFFSET $2
 LIMIT $1;
 
 
 -- name: GetChatMessageByID :one
-SELECT * FROM chat_message WHERE id = $1;
+SELECT * FROM chat_message 
+WHERE is_deleted = false and id = $1;
 
 
 -- name: CreateChatMessage :one
@@ -36,12 +39,15 @@ WHERE id = $1
 RETURNING *;
 
 -- name: DeleteChatMessage :exec
-DELETE FROM chat_message WHERE id = $1;
+UPDATE chat_message set is_deleted = true, updated_at = now()
+WHERE id = $1;
 
--- by uuid
+
+---- UUID ----
 
 -- name: GetChatMessageByUUID :one
-SELECT * FROM chat_message WHERE uuid = $1;
+SELECT * FROM chat_message 
+WHERE is_deleted = false and uuid = $1;
 
 -- name: CreateChatMessageByUUID :one
 INSERT INTO chat_message (uuid, chat_session_uuid, role, content, score, user_id, created_by, updated_by, raw)
@@ -54,7 +60,8 @@ WHERE uuid = $1
 RETURNING *;
 
 -- name: DeleteChatMessageByUUID :exec
-DELETE FROM chat_message WHERE uuid = $1;
+UPDATE chat_message SET is_deleted = true, updated_at = now()
+WHERE uuid = $1;
 
 
 -- name: HasChatMessagePermission :one
@@ -62,7 +69,7 @@ SELECT COUNT(*) > 0 as has_permission
 FROM chat_message cm
 INNER JOIN chat_session cs ON cm.chat_session_uuid = cs.uuid
 INNER JOIN auth_user au ON cs.user_id = au.id
-WHERE cm.id = $1 AND (cs.user_id = $2 OR au.is_superuser) and cs.active = true;
+WHERE cm.is_deleted = false and  cm.id = $1 AND (cs.user_id = $2 OR au.is_superuser) and cs.active = true;
 
 
 -- name: GetLatestMessagesBySessionUUID :many
@@ -72,7 +79,7 @@ Where chat_message.id in
 (
     SELECT chat_message.id
     FROM chat_message
-    WHERE chat_message.chat_session_uuid = $1
+    WHERE chat_message.chat_session_uuid = $1 and chat_message.is_deleted = false
     ORDER BY created_at DESC
     LIMIT $2
 )
@@ -82,7 +89,7 @@ ORDER BY created_at;
 -- name: GetFirstMessageBySessionUUID :one
 SELECT *
 FROM chat_message
-WHERE chat_session_uuid = $1
+WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY created_at 
 LIMIT 1;
 
@@ -94,6 +101,7 @@ WHERE chat_message.id in (
     FROM chat_message cm
     WHERE cm.chat_session_uuid = $3 
             AND cm.id < (SELECT id FROM chat_message WHERE chat_message.uuid = $1)
+            AND cm.is_deleted = false
     ORDER BY cm.created_at DESC
     LIMIT $2
 ) 
@@ -107,7 +115,8 @@ WHERE uuid = $1 ;
 
 
 -- name: DeleteChatMessagesBySesionUUID :exec
-DELETE FROM chat_message
+UPDATE chat_message 
+SET is_deleted = true, updated_at = now()
 WHERE chat_session_uuid = $1;
 
 

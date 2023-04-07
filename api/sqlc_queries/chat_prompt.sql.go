@@ -12,7 +12,7 @@ import (
 const createChatPrompt = `-- name: CreateChatPrompt :one
 INSERT INTO chat_prompt (uuid, chat_session_uuid, role, content, user_id, created_by, updated_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by
+RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted
 `
 
 type CreateChatPromptParams struct {
@@ -48,12 +48,15 @@ func (q *Queries) CreateChatPrompt(ctx context.Context, arg CreateChatPromptPara
 		&i.UpdatedAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
+		&i.IsDeleted,
 	)
 	return i, err
 }
 
 const deleteChatPrompt = `-- name: DeleteChatPrompt :exec
-DELETE FROM chat_prompt WHERE id = $1
+UPDATE chat_prompt 
+SET is_deleted = true, updated_at = now()
+WHERE id = $1
 `
 
 func (q *Queries) DeleteChatPrompt(ctx context.Context, id int32) error {
@@ -62,7 +65,9 @@ func (q *Queries) DeleteChatPrompt(ctx context.Context, id int32) error {
 }
 
 const deleteChatPromptByUUID = `-- name: DeleteChatPromptByUUID :exec
-DELETE FROM chat_prompt WHERE uuid = $1
+UPDATE chat_prompt
+SET is_deleted = true, updated_at = now()
+WHERE uuid = $1
 `
 
 func (q *Queries) DeleteChatPromptByUUID(ctx context.Context, uuid string) error {
@@ -71,7 +76,9 @@ func (q *Queries) DeleteChatPromptByUUID(ctx context.Context, uuid string) error
 }
 
 const getAllChatPrompts = `-- name: GetAllChatPrompts :many
-SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by FROM chat_prompt ORDER BY id
+SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted FROM chat_prompt 
+WHERE is_deleted = false
+ORDER BY id
 `
 
 func (q *Queries) GetAllChatPrompts(ctx context.Context) ([]ChatPrompt, error) {
@@ -95,6 +102,7 @@ func (q *Queries) GetAllChatPrompts(ctx context.Context) ([]ChatPrompt, error) {
 			&i.UpdatedAt,
 			&i.CreatedBy,
 			&i.UpdatedBy,
+			&i.IsDeleted,
 		); err != nil {
 			return nil, err
 		}
@@ -110,7 +118,8 @@ func (q *Queries) GetAllChatPrompts(ctx context.Context) ([]ChatPrompt, error) {
 }
 
 const getChatPromptByID = `-- name: GetChatPromptByID :one
-SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by FROM chat_prompt WHERE id = $1
+SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted FROM chat_prompt
+WHERE is_deleted = false and  id = $1
 `
 
 func (q *Queries) GetChatPromptByID(ctx context.Context, id int32) (ChatPrompt, error) {
@@ -128,14 +137,15 @@ func (q *Queries) GetChatPromptByID(ctx context.Context, id int32) (ChatPrompt, 
 		&i.UpdatedAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
+		&i.IsDeleted,
 	)
 	return i, err
 }
 
 const getChatPromptsBySessionUUID = `-- name: GetChatPromptsBySessionUUID :many
-SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by
+SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted
 FROM chat_prompt 
-WHERE chat_session_uuid = $1
+WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY id
 `
 
@@ -160,6 +170,7 @@ func (q *Queries) GetChatPromptsBySessionUUID(ctx context.Context, chatSessionUu
 			&i.UpdatedAt,
 			&i.CreatedBy,
 			&i.UpdatedBy,
+			&i.IsDeleted,
 		); err != nil {
 			return nil, err
 		}
@@ -175,9 +186,9 @@ func (q *Queries) GetChatPromptsBySessionUUID(ctx context.Context, chatSessionUu
 }
 
 const getChatPromptsByUserID = `-- name: GetChatPromptsByUserID :many
-SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by
+SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted
 FROM chat_prompt 
-WHERE user_id = $1
+WHERE user_id = $1 and is_deleted = false
 ORDER BY id
 `
 
@@ -202,6 +213,7 @@ func (q *Queries) GetChatPromptsByUserID(ctx context.Context, userID int32) ([]C
 			&i.UpdatedAt,
 			&i.CreatedBy,
 			&i.UpdatedBy,
+			&i.IsDeleted,
 		); err != nil {
 			return nil, err
 		}
@@ -217,9 +229,9 @@ func (q *Queries) GetChatPromptsByUserID(ctx context.Context, userID int32) ([]C
 }
 
 const getChatPromptsBysession_uuid = `-- name: GetChatPromptsBysession_uuid :many
-SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by
+SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted
 FROM chat_prompt 
-WHERE chat_session_uuid = $1
+WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY id
 `
 
@@ -244,6 +256,7 @@ func (q *Queries) GetChatPromptsBysession_uuid(ctx context.Context, chatSessionU
 			&i.UpdatedAt,
 			&i.CreatedBy,
 			&i.UpdatedBy,
+			&i.IsDeleted,
 		); err != nil {
 			return nil, err
 		}
@@ -259,9 +272,9 @@ func (q *Queries) GetChatPromptsBysession_uuid(ctx context.Context, chatSessionU
 }
 
 const getOneChatPromptBySessionUUID = `-- name: GetOneChatPromptBySessionUUID :one
-SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by
+SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted
 FROM chat_prompt 
-WHERE chat_session_uuid = $1
+WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY id
 LIMIT 1
 `
@@ -281,6 +294,7 @@ func (q *Queries) GetOneChatPromptBySessionUUID(ctx context.Context, chatSession
 		&i.UpdatedAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
+		&i.IsDeleted,
 	)
 	return i, err
 }
@@ -289,7 +303,7 @@ const hasChatPromptPermission = `-- name: HasChatPromptPermission :one
 SELECT COUNT(*) > 0 as has_permission
 FROM chat_prompt cp
 INNER JOIN auth_user au ON cp.user_id = au.id
-WHERE cp.id = $1 AND (cp.user_id = $2 OR au.is_superuser)
+WHERE cp.id = $1 AND (cp.user_id = $2 OR au.is_superuser) AND cp.is_deleted = false
 `
 
 type HasChatPromptPermissionParams struct {
@@ -307,7 +321,7 @@ func (q *Queries) HasChatPromptPermission(ctx context.Context, arg HasChatPrompt
 const updateChatPrompt = `-- name: UpdateChatPrompt :one
 UPDATE chat_prompt SET chat_session_uuid = $2, role = $3, content = $4, score = $5, user_id = $6, updated_at = now(), updated_by = $7
 WHERE id = $1
-RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by
+RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted
 `
 
 type UpdateChatPromptParams struct {
@@ -343,14 +357,15 @@ func (q *Queries) UpdateChatPrompt(ctx context.Context, arg UpdateChatPromptPara
 		&i.UpdatedAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
+		&i.IsDeleted,
 	)
 	return i, err
 }
 
 const updateChatPromptByUUID = `-- name: UpdateChatPromptByUUID :one
 UPDATE chat_prompt SET content = $2, updated_at = now()
-WHERE uuid = $1
-RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by
+WHERE uuid = $1 and is_deleted = false
+RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted
 `
 
 type UpdateChatPromptByUUIDParams struct {
@@ -373,6 +388,7 @@ func (q *Queries) UpdateChatPromptByUUID(ctx context.Context, arg UpdateChatProm
 		&i.UpdatedAt,
 		&i.CreatedBy,
 		&i.UpdatedBy,
+		&i.IsDeleted,
 	)
 	return i, err
 }

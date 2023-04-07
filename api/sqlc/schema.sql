@@ -51,8 +51,8 @@ CREATE TABLE IF NOT EXISTS chat_message (
     updated_at timestamp DEFAULT now() Not NULL,
     created_by integer NOT NULL,
     updated_by integer NOT NULL,
+    is_deleted BOOLEAN  NOT NULL DEFAULT false,
     raw jsonb default '{}' NOT NULL
-
 );
 
 -- alter table chat_message add column chat_session_uuid character varying(255) NOT NULL DEFAULT '';
@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS chat_prompt (
     created_at timestamp  DEFAULT now() NOT NULL ,
     updated_at timestamp  DEFAULT now() NOT NULL,
     created_by integer NOT NULL,
-    updated_by integer NOT NULL
+    updated_by integer NOT NULL,
+    is_deleted BOOLEAN  NOT NULL DEFAULT false
     -- raw jsonb default '{}' NOT NULL
 );
 
@@ -94,8 +95,16 @@ CREATE TABLE IF NOT EXISTS user_active_chat_session (
 
 -- ALTER TABLE chat_prompt RENAME COLUMN topic TO session_uuid;
 
+-- chat_session
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 512 NOT NULL; 
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NOT NULL; 
 ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS  model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';
+
+
+-- chat_messages
+ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
+
+-- chat prompt
+ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
