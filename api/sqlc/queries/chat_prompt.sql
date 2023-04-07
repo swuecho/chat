@@ -1,8 +1,11 @@
 -- name: GetAllChatPrompts :many
-SELECT * FROM chat_prompt ORDER BY id;
+SELECT * FROM chat_prompt 
+WHERE is_deleted = false
+ORDER BY id;
 
 -- name: GetChatPromptByID :one
-SELECT * FROM chat_prompt WHERE id = $1;
+SELECT * FROM chat_prompt
+WHERE is_deleted = false and  id = $1;
 
 -- name: CreateChatPrompt :one
 INSERT INTO chat_prompt (uuid, chat_session_uuid, role, content, user_id, created_by, updated_by)
@@ -16,35 +19,37 @@ RETURNING *;
 
 -- name: UpdateChatPromptByUUID :one
 UPDATE chat_prompt SET content = $2, updated_at = now()
-WHERE uuid = $1
+WHERE uuid = $1 and is_deleted = false
 RETURNING *;
 
 -- name: DeleteChatPrompt :exec
-DELETE FROM chat_prompt WHERE id = $1;
+UPDATE chat_prompt 
+SET is_deleted = true, updated_at = now()
+WHERE id = $1;
 
 -- name: GetChatPromptsByUserID :many
 SELECT *
 FROM chat_prompt 
-WHERE user_id = $1
+WHERE user_id = $1 and is_deleted = false
 ORDER BY id;
 
 -- name: GetChatPromptsBysession_uuid :many
 SELECT *
 FROM chat_prompt 
-WHERE chat_session_uuid = $1
+WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY id;
 
 
 -- name: GetChatPromptsBySessionUUID :many
 SELECT *
 FROM chat_prompt 
-WHERE chat_session_uuid = $1
+WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY id;
 
 -- name: GetOneChatPromptBySessionUUID :one
 SELECT *
 FROM chat_prompt 
-WHERE chat_session_uuid = $1
+WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY id
 LIMIT 1;
 
@@ -55,8 +60,10 @@ LIMIT 1;
 SELECT COUNT(*) > 0 as has_permission
 FROM chat_prompt cp
 INNER JOIN auth_user au ON cp.user_id = au.id
-WHERE cp.id = $1 AND (cp.user_id = $2 OR au.is_superuser);
+WHERE cp.id = $1 AND (cp.user_id = $2 OR au.is_superuser) AND cp.is_deleted = false;
 
 
 -- name: DeleteChatPromptByUUID :exec
-DELETE FROM chat_prompt WHERE uuid = $1;
+UPDATE chat_prompt
+SET is_deleted = true, updated_at = now()
+WHERE uuid = $1;

@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS chat_prompt (
     created_at timestamp  DEFAULT now() NOT NULL ,
     updated_at timestamp  DEFAULT now() NOT NULL,
     created_by integer NOT NULL,
-    updated_by integer NOT NULL
+    updated_by integer NOT NULL,
+    is_deleted BOOLEAN  NOT NULL DEFAULT false
     -- raw jsonb default '{}' NOT NULL
 );
 
@@ -104,3 +105,6 @@ ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS  model character varying(255) 
 
 -- chat_messages
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
+
+-- chat prompt
+ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;

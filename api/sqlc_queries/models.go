@@ -59,6 +59,7 @@ type ChatPrompt struct {
 	UpdatedAt       time.Time
 	CreatedBy       int32
 	UpdatedBy       int32
+	IsDeleted       bool
 }
 
 type ChatSession struct {
