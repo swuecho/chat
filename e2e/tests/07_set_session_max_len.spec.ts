@@ -17,7 +17,7 @@ test.skip('test', async ({ page }) => {
 
         await page.waitForTimeout(1000);
 
-        await page.getByRole('contentinfo').getByRole('button').nth(2).click();
+        await page.getByRole('contentinfo').getByRole('button').nth(3).click();
         // change the value of the slider
         // Find the slider element and adjust its value
         const sliderRailFill = await page.$('.n-slider-rail__fill')
