@@ -31,13 +31,13 @@ async function handleLogin() {
 
   // check user_email_v  is valid email
   if (!user_email_v.match(/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/)) {
-    ms.error(t('error.invalid_email'))
+    ms.error(t('error.invalidEmail'))
     return
   }
   // check password is length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character
   if (!user_password_v.match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$/)) {
-    // ms.error(t('error.invalid_password'))
-    ms.error(t('error.invalid_password'))
+    // ms.error(t('error.invalidPassword'))
+    ms.error(t('error.invalidPassword'))
     return
   }
 
@@ -74,12 +74,12 @@ async function handleSignup() {
 
   // check user_email_v  is valid email
   if (!user_email_v.match(/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/)) {
-    ms.error(t('error.invalid_email'))
+    ms.error(t('error.invalidEmail'))
     return
   }
   // check password is length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character
   if (!user_password_v.match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$/)) {
-    ms.error(t('error.invalid_password'))
+    ms.error(t('error.invalidPassword'))
     return
   }
   loading.value = true

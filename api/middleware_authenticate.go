@@ -109,7 +109,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 			}
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintf(w, "Not Authorized")
+			RespondWithError(w, http.StatusUnauthorized, "error.NotAuthorized", "Not Authorized")
 		}
 	})
 }
