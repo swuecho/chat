@@ -37,6 +37,8 @@ const { usingContext } = useUsingContext()
 const { uuid } = route.params as { uuid: string }
 const sessionUuid = uuid
 const dataSources = computed(() => chatStore.getChatSessionDataByUuid(sessionUuid))
+const chatSession = computed(() => chatStore.getChatSessionByUuid(uuid))
+
 const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !item.error)))
 
 const prompt = ref<string>('')
@@ -499,8 +501,9 @@ function getDataFromResponseText(responseText: string): string {
           <template v-else>
             <div>
               <Message v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
-                :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading" :index="index"
-                @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @after-edit="handleAfterEdit" />
+                :model="chatSession.model" :text="item.text" :inversion="item.inversion" :error="item.error"
+                :loading="item.loading" :index="index" @regenerate="onRegenerate(index)" @delete="handleDelete(index)"
+                @after-edit="handleAfterEdit" />
               <div class="sticky bottom-0 left-0 flex justify-center">
                 <NButton v-if="loading" type="warning" @click="handleStop">
                   <template #icon>
