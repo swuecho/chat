@@ -501,7 +501,7 @@ function getDataFromResponseText(responseText: string): string {
           <template v-else>
             <div>
               <Message v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
-                :model="chatSession.model" :text="item.text" :inversion="item.inversion" :error="item.error"
+                :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :loading="item.loading" :index="index" @regenerate="onRegenerate(index)" @delete="handleDelete(index)"
                 @after-edit="handleAfterEdit" />
               <div class="sticky bottom-0 left-0 flex justify-center">
