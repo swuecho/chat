@@ -37,6 +37,7 @@ specifiers:
   postcss: ^8.4.21
   rimraf: ^4.2.0
   sass: ^1.60.0
+  sortablejs: ^1.15.0
   tailwindcss: ^3.2.7
   typescript: ~4.9.5
   uuid: ^9.0.0
@@ -60,6 +61,7 @@ dependencies:
   moment: 2.29.4
   naive-ui: 2.34.3_vue@3.2.47
   pinia: 2.0.33_hmuptsblhheur2tugfgucj7gc4
+  sortablejs: 1.15.0
   uuid: 9.0.0
   vue: 3.2.47
   vue-i18n: 9.2.2_vue@3.2.47
@@ -5926,6 +5928,10 @@ packages:
       ansi-styles: 6.2.1
       is-fullwidth-code-point: 4.0.0
     dev: true
+
+  /sortablejs/1.15.0:
+    resolution: {integrity: sha512-bv9qgVMjUMf89wAvM6AxVvS/4MX3sPeN0+agqShejLU5z5GX4C75ow1O2e5k4L6XItUyAK3gH6AxSbXrOM5e8w==}
+    dev: false
 
   /source-map-js/1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}

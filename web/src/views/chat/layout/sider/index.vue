@@ -4,7 +4,7 @@ import { computed, watch } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 
 import { NButton, NLayoutSider } from 'naive-ui'
-import List from './List.vue'
+import List from './ChatList.vue'
 import Footer from './Footer.vue'
 import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
