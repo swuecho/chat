@@ -346,7 +346,7 @@ export const UpdateRateLimit = async (email: string, rateLimit: number) => {
 }
 
 function format_chat_md(chat: Chat.Chat): string {
-  return `<sup><kbd><var>${chat.dateTime}</kbd></var></sup>:\n ${chat.text}`
+  return `<sup><kbd><var>${chat.dateTime}</var></kbd></sup>:\n ${chat.text}`
 }
 
 export const fetchMarkdown = async (uuid: string) => {
