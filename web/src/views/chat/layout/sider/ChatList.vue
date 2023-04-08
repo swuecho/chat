@@ -32,15 +32,19 @@ onMounted(async () => {
 })
 
 // Define the handleDrop function
-function handleDrop(evt: { oldIndex: any; newIndex: any }): void {
+async function handleDrop(evt: { oldIndex: any; newIndex: any }): void {
   // Get the index of the item that was dragged
   const oldIndex = evt.oldIndex
 
   // Get the index of the item's new position
   const newIndex = evt.newIndex
   console.log(oldIndex, newIndex)
+  // should sync the order to chatStore and server
   // Use splice to move the item to its new position
-  dataSources.value.splice(newIndex, 0, dataSources.value.splice(oldIndex, 1)[0])
+  //const oldValue = chatStore.history.splice(oldIndex, 1)[0]
+  //chatStore.history.splice(newIndex, 0, oldValue)
+  // sync order to server
+  await chatStore.updateOrder(oldIndex, newIndex)
 }
 
 async function handleSyncChat() {
@@ -113,19 +117,15 @@ function isActive(uuid: string) {
       <template v-else>
         <div id="chat-menu" class="flex flex-col gap-2 text-sm">
           <div v-for="(item, index) of dataSources" :key="index">
-            <a
-              class="chat-menu-item relative flex items-center gap-3 px-3 py-3 break-all border rounded-md cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
+            <a class="chat-menu-item relative flex items-center gap-3 px-3 py-3 break-all border rounded-md cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
               :class="isActive(item.uuid) && ['border-[#4b9e5f]', 'bg-neutral-100', 'text-[#4b9e5f]', 'dark:bg-[#24272e]', 'dark:border-[#4b9e5f]', 'pr-14']"
-              @click="handleSelect(item)"
-            >
+              @click="handleSelect(item)">
               <span>
                 <SvgIcon icon="ri:message-3-line" />
               </span>
               <div class="relative flex-1 overflow-hidden break-all text-ellipsis whitespace-nowrap">
-                <NInput
-                  v-if="item.isEdit" v-model:value="item.title" data-testid="edit_session_topic_input" size="tiny"
-                  @keypress="handleEnter(item, false, $event)"
-                />
+                <NInput v-if="item.isEdit" v-model:value="item.title" data-testid="edit_session_topic_input" size="tiny"
+                  @keypress="handleEnter(item, false, $event)" />
                 <span v-else>{{ item.title }}</span>
               </div>
               <div v-if="isActive(item.uuid)" class="absolute z-10 flex visible right-1">
@@ -138,10 +138,8 @@ function isActive(uuid: string) {
                   <button class="p-1" data-testid="edit_session_topic">
                     <SvgIcon icon="ri:edit-line" @click="handleEdit(item, true, $event)" />
                   </button>
-                  <NPopconfirm
-                    placement="bottom" data-testid="confirm_delete_session"
-                    @positive-click="handleDelete(index, $event)"
-                  >
+                  <NPopconfirm placement="bottom" data-testid="confirm_delete_session"
+                    @positive-click="handleDelete(index, $event)">
                     <template #trigger>
                       <button class="p-1">
                         <SvgIcon icon="ri:delete-bin-line" />

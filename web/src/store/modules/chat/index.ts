@@ -61,7 +61,11 @@ export const useChatStore = defineStore('chat-store', {
     recordState() {
       setLocalState(this.$state)
     },
-
+    async updateOrder(oldIndex: number, newIndex: number) {
+      // const item = this.history.splice(oldIndex, 1)[0]
+      // this.history.splice(newIndex, 0, item)
+      // this.recordState()
+    },
     async syncChatSessions() {
       const new_chat_text = t('chat.new')
       const sessions = await getChatSessionsByUser()
