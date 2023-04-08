@@ -94,7 +94,7 @@ async function fetchData() {
     tableData.value = data
     pagination.itemCount = total
   }
-  catch (err) {
+  catch (err: any) {
     if (err.response.status === 401)
       ms_ui.error(t(err.response.data.message))
     else
