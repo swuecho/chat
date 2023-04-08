@@ -85,7 +85,7 @@ func (q *Queries) DeleteChatMessageByUUID(ctx context.Context, uuid string) erro
 const deleteChatMessagesBySesionUUID = `-- name: DeleteChatMessagesBySesionUUID :exec
 UPDATE chat_message 
 SET is_deleted = true, updated_at = now()
-WHERE chat_session_uuid = $1
+WHERE is_deleted = false and chat_session_uuid = $1
 `
 
 func (q *Queries) DeleteChatMessagesBySesionUUID(ctx context.Context, chatSessionUuid string) error {
