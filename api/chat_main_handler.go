@@ -117,7 +117,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Invalid request body: %v", err)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 

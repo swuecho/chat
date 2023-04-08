@@ -97,8 +97,10 @@
   },
   "error": {
     "rateLimit": "发送消息数量已经达到上限, 请联系管理员",
-    "invalid_email": "邮箱格式不正确",
-    "invalid_password": "密码格式不正确, 长度至少为6位, 一个大写字母, 一个小写字母, 一个数字, 一个特殊字符",
-    "sync_chat_session": "同步失败, 请稍后再试"
+    "invalidEmail": "邮箱格式不正确",
+    "invalidPassword": "密码格式不正确, 长度至少为6位, 一个大写字母, 一个小写字母, 一个数字, 一个特殊字符",
+    "syncChatSession": "同步失败, 请稍后再试",
+    "NotAuthorized": "请先登录",
+    "NotAdmin": "非管理员禁止访问"
   }
 }

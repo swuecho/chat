@@ -31,13 +31,13 @@ async function handleLogin() {
 
   // check user_email_v  is valid email
   if (!user_email_v.match(/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/)) {
-    ms.error(t('error.invalid_email'))
+    ms.error(t('error.invalidEmail'))
     return
   }
   // check password is length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character
   if (!user_password_v.match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$/)) {
-    // ms.error(t('error.invalid_password'))
-    ms.error(t('error.invalid_password'))
+    // ms.error(t('error.invalidPassword'))
+    ms.error(t('error.invalidPassword'))
     return
   }
 
@@ -74,12 +74,12 @@ async function handleSignup() {
 
   // check user_email_v  is valid email
   if (!user_email_v.match(/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/)) {
-    ms.error(t('error.invalid_email'))
+    ms.error(t('error.invalidEmail'))
     return
   }
   // check password is length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character
   if (!user_password_v.match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$/)) {
-    ms.error(t('error.invalid_password'))
+    ms.error(t('error.invalidPassword'))
     return
   }
   loading.value = true
@@ -120,17 +120,25 @@ async function handleSignup() {
           </p>
           <Icon403 class="w-[200px] m-auto" />
         </header>
-        <NInput v-model:value="user_email" data-testid="email" type="text" :minlength="6"
-          :placeholder="$t('common.email_placeholder')" />
-        <NInput v-model:value="user_password" data-testid="password" type="text" :minlength="6"
-          :placeholder="$t('common.password_placeholder')" />
+        <NInput
+          v-model:value="user_email" data-testid="email" type="text" :minlength="6"
+          :placeholder="$t('common.email_placeholder')"
+        />
+        <NInput
+          v-model:value="user_password" data-testid="password" type="text" :minlength="6"
+          :placeholder="$t('common.password_placeholder')"
+        />
         <div class="flex justify-between">
-          <NButton type="primary" data-testid="signup" :disabled="user_pass_not_filled" :loading="loading"
-            @click="handleSignup">
+          <NButton
+            type="primary" data-testid="signup" :disabled="user_pass_not_filled" :loading="loading"
+            @click="handleSignup"
+          >
             {{ $t('common.signup') }}
           </NButton>
-          <NButton type="primary" data-testid="login" :disabled="user_pass_not_filled" :loading="loading"
-            @click="handleLogin">
+          <NButton
+            type="primary" data-testid="login" :disabled="user_pass_not_filled" :loading="loading"
+            @click="handleLogin"
+          >
             {{ $t('common.login') }}
           </NButton>
         </div>

@@ -94,8 +94,8 @@
   },
   "error": {
     "rateLimit": "The message sending limit has been reached, please contact the administrator.",
-    "invalid_email": "Invalid email address",
-    "sync_chat_session": "Sync Failed, Please Try Again Later",
-    "invalid_password": "password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character"
+    "invalidEmail": "Invalid email address",
+    "syncChatSession": "Sync Failed, Please Try Again Later",
+    "invalidPassword": "password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character"
   }
 }

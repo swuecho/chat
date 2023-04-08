@@ -202,8 +202,7 @@ func (h *AuthUserHandler) verify(w http.ResponseWriter, r *http.Request) {
 	var req TokenRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Invalid request body: %v", err)
+		RespondWithError(w, http.StatusBadRequest, eris.Wrap(err, "invalid request").Error(), err)
 		return
 	}
 
@@ -211,13 +210,13 @@ func (h *AuthUserHandler) verify(w http.ResponseWriter, r *http.Request) {
 	token := req.Token
 
 	if token == "" {
-		http.Error(w, "Secret key is empty", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Secret key is empty", nil)
 		return
 	}
 	// AuthSecretKey := os.Getenv("AUTH_SECRET_KEY")
 	_, err = auth.ValidateToken(token, appConfig.JWT.SECRET)
 	if err != nil {
-		http.Error(w, eris.Wrap(err, "密钥无效 | Secret key is invalid ").Error(), http.StatusUnauthorized)
+		RespondWithError(w, http.StatusUnauthorized, "密钥无效 | Secret key is invalid ", err)
 		return
 	}
 

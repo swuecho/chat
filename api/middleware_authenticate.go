@@ -94,7 +94,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 				// superuser
 				if strings.HasPrefix(r.URL.Path, "/admin") && role != "admin" {
 					w.WriteHeader(http.StatusForbidden)
-					fmt.Fprintf(w, "Not Admin")
+					RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
 					return
 				}
 
@@ -109,7 +109,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 			}
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintf(w, "Not Authorized")
+			RespondWithError(w, http.StatusUnauthorized, "error.NotAuthorized", "Not Authorized")
 		}
 	})
 }
