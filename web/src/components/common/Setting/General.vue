@@ -17,8 +17,6 @@ const theme = computed(() => appStore.theme)
 
 const userInfo = computed(() => userStore.userInfo)
 
-const avatar = ref(userInfo.value.avatar ?? '')
-
 const name = ref(userInfo.value.name ?? '')
 
 const description = ref(userInfo.value.description ?? '')
@@ -121,15 +119,6 @@ function handleImportButtonClick(): void {
   <div class="p-4 space-y-5 min-h-[200px]">
     <div class="space-y-6">
       <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[100px]">{{ $t('setting.avatarLink') }}</span>
-        <div class="flex-1">
-          <NInput v-model:value="avatar" placeholder="" />
-        </div>
-        <NButton size="tiny" text type="primary" @click="updateUserInfo({ avatar })">
-          {{ $t('common.save') }}
-        </NButton>
-      </div>
-      <div class="flex items-center space-x-4">
         <span class="flex-shrink-0 w-[100px]">{{ $t('setting.name') }}</span>
         <div class="w-[200px]">
           <NInput v-model:value="name" placeholder="" />
@@ -196,10 +185,8 @@ function handleImportButtonClick(): void {
         <span class="flex-shrink-0 w-[100px]">{{ $t('setting.language') }}</span>
         <div class="flex flex-wrap items-center gap-4">
           <template v-for="item of languageOptions" :key="item.key">
-            <NButton
-              size="small" :type="item.key === language ? 'primary' : undefined"
-              @click="appStore.setLanguage(item.key)"
-            >
+            <NButton size="small" :type="item.key === language ? 'primary' : undefined"
+              @click="appStore.setLanguage(item.key)">
               {{ item.label }}
             </NButton>
           </template>

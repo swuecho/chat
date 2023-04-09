@@ -74,6 +74,7 @@
     "chatHistory": "Chat History",
     "theme": "Theme",
     "language": "Language",
+    "switchLanguage": "English | 切换语言 | 切換語言",
     "api": "API",
     "reverseProxy": "Reverse Proxy",
     "timeout": "Timeout",
@@ -91,12 +92,17 @@
     "hideSubMenu": "Hide Submenu",
     "showSubMenu": "Show Submenu",
     "userStat": "User Statistics",
-    "rateLimit10Min": "Message Limit (10 minutes)"
+    "rateLimit10Min": "Message Limit (10 minutes)",
+    "totalChatMessagesTokenCount": "Total token count",
+    "totalChatMessages3DaysTokenCount": "Total token count (3 days)",
+    "totalChatMessages3DaysAvgTokenCount": "Average token count (3 days)"
   },
   "error": {
     "rateLimit": "The message sending limit has been reached, please contact the administrator.",
     "invalidEmail": "Invalid email address",
     "syncChatSession": "Sync Failed, Please Try Again Later",
-    "invalidPassword": "password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character"
+    "invalidPassword": "password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character",
+    "NotAuthorized": "Please log in first",
+    "NotAdmin": "Non-administrators are prohibited from accessing"
   }
 }

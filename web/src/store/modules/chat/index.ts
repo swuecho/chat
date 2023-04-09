@@ -273,5 +273,11 @@ export const useChatStore = defineStore('chat-store', {
         this.recordState()
       }
     },
+    clearState() {
+      this.history = []
+      this.chat = []
+      this.active = null
+      this.recordState()
+    },
   },
 })

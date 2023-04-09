@@ -91,6 +91,7 @@
     "chatHistory": "聊天记录",
     "theme": "主题",
     "language": "语言",
+    "switchLanguage": "English | 切换语言 | 切換語言",
     "api": "API",
     "reverseProxy": "反向代理",
     "timeout": "超时",

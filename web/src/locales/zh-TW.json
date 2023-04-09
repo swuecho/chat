@@ -33,7 +33,9 @@
     "rateLimit": "發送消息數量已經達到上限，請聯繫管理員",
     "invalidEmail": "電子郵件格式不正確",
     "invalidPassword": "密碼格式不正確，長度至少需為6位，應包含1個大寫字母、1個小寫字母、1個數字、1個特殊字符",
-    "syncChatSession": "同步失敗，請稍後再試"
+    "syncChatSession": "同步失敗，請稍後再試",
+    "NotAuthorized": "請先登入",
+    "NotAdmin": "非管理員禁止訪問"
   },
   "chat": {
     "new": "新建聊天",
@@ -81,6 +83,7 @@
     "chatHistory": "聊天記錄",
     "theme": "主題",
     "language": "語言",
+    "switchLanguage": "English | 切换语言 | 切換語言",
     "api": "API",
     "reverseProxy": "反向代理",
     "timeout": "超時",
@@ -97,6 +100,9 @@
     "hideSubMenu": "隱藏子選單",
     "showSubMenu": "顯示子選單",
     "userStat": "用戶統計",
-    "rateLimit10Min": "訊息數量上限(10分鐘)"
+    "rateLimit10Min": "訊息數量上限(10分鐘)",
+    "totalChatMessagesTokenCount": "總token數量",
+    "totalChatMessages3DaysTokenCount": "總token數量(3天)",
+    "totalChatMessages3DaysAvgTokenCount": "平均token數量(3天)"
   }
 }
