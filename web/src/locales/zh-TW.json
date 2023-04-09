@@ -83,7 +83,7 @@
     "chatHistory": "聊天記錄",
     "theme": "主題",
     "language": "語言",
-    "switchLanguage": "English | 切换语言 | 切換語言",
+    "switchLanguage": "English(切换语言)",
     "api": "API",
     "reverseProxy": "反向代理",
     "timeout": "超時",
