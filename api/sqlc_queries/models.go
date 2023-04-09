@@ -80,6 +80,13 @@ type ChatSession struct {
 	Debug       bool
 }
 
+type JwtSecret struct {
+	ID       int32
+	Name     string
+	Secret   string
+	Audience string
+}
+
 type UserActiveChatSession struct {
 	ID              int32
 	UserID          int32

@@ -1,4 +1,11 @@
 
+CREATE TABLE IF NOT EXISTS jwt_secrets (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    secret TEXT NOT NULL,
+    audience TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS auth_user (
   id SERIAL PRIMARY KEY,
   password VARCHAR(128) NOT NULL,
