@@ -48,7 +48,7 @@ const (
 )
 
 func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
-	jwtSigningKey := []byte(appConfig.JWT.SECRET)
+	jwtSigningKey := []byte(jwtSecretAndAud.Secret)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/verify" || r.URL.Path == "/login" || r.URL.Path == "/signup" || strings.HasPrefix(r.URL.Path, "/static") {
 			handler.ServeHTTP(w, r)

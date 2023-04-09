@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
@@ -28,10 +29,6 @@ type AppConfig struct {
 	CLAUDE struct {
 		API_KEY string
 	}
-	JWT struct {
-		SECRET string
-		AUD    string
-	}
 	PG struct {
 		HOST string
 		PORT int
@@ -42,6 +39,7 @@ type AppConfig struct {
 }
 
 var appConfig AppConfig
+var jwtSecretAndAud sqlc_queries.JwtSecret
 
 func getFlattenKeys(prefix string, v reflect.Value) (keys []string) {
 	switch v.Kind() {
@@ -135,6 +133,11 @@ func main() {
 	// Create a new router
 	router := mux.NewRouter()
 	sqlc_q := sqlc_queries.New(pgdb)
+	secretService := NewJWTSecretService(sqlc_q)
+	jwtSecretAndAud, err = secretService.GetOrCreateJwtSecret(context.Background(), "chat")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// create a new AuthUserService instance
 	userService := NewAuthUserService(sqlc_q)

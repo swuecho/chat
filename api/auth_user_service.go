@@ -79,7 +79,7 @@ func (s *AuthUserService) Authenticate(ctx context.Context, email, password stri
 }
 
 func (s *AuthUserService) Logout(tokenString string) (*http.Cookie, error) {
-	userID, err := auth.ValidateToken(tokenString, appConfig.JWT.SECRET)
+	userID, err := auth.ValidateToken(tokenString, jwtSecretAndAud.Secret)
 	if err != nil {
 		return nil, err
 	}

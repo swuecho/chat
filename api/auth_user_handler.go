@@ -119,7 +119,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := auth.GenerateToken(user.ID, user.Role(), appConfig.JWT.SECRET, appConfig.JWT.AUD)
+	tokenString, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience)
 	if err != nil {
 		http.Error(w, "failed to generate token", http.StatusInternalServerError)
 		return
@@ -151,7 +151,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, eris.Wrap(err, "invalid email or password: ").Error(), http.StatusUnauthorized)
 		return
 	}
-	token, err := auth.GenerateToken(user.ID, user.Role(), appConfig.JWT.SECRET, appConfig.JWT.AUD)
+	token, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience)
 
 	if err != nil {
 		http.Error(w, "failed to generate token", http.StatusInternalServerError)
@@ -214,7 +214,7 @@ func (h *AuthUserHandler) verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// AuthSecretKey := os.Getenv("AUTH_SECRET_KEY")
-	_, err = auth.ValidateToken(token, appConfig.JWT.SECRET)
+	_, err = auth.ValidateToken(token, jwtSecretAndAud.Secret)
 	if err != nil {
 		RespondWithError(w, http.StatusUnauthorized, "密钥无效 | Secret key is invalid ", err)
 		return

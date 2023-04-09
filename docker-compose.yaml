@@ -27,11 +27,6 @@ services:
       - PG_USER=postgres
       - PG_PASS=thisisapassword
       - PG_PORT=5432
-      # JWT_SECRET is the key used to encrypt/decrypt the JWT token
-      # !!! change this, with output of: openssl rand -base64 32
-      - JWT_SECRET='RqJrJBINOsL6PVSocqVfVk8a8H9u4juq55YN6PvnlPE='
-      # JWT_AUD represents the audience of the JWT token, i.e., the recipient or target
-      - JWT_AUD=bc442bb2b1d848fba5be2aa24123e711
     depends_on:
       db:
         condition: service_healthy

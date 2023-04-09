@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,6 +15,24 @@ import (
 )
 
 var ErrInvalidToken = errors.New("invalid token")
+
+func GenJwtSecretAndAudience() (string, string) {
+	// Generate a random byte string to use as the secret
+	secretBytes := make([]byte, 32)
+	rand.Read(secretBytes)
+
+	// Convert the byte string to a base64 encoded string
+	secret := base64.StdEncoding.EncodeToString(secretBytes)
+
+	// Generate a random string to use as the audience
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	audienceBytes := make([]byte, 32)
+	for i := range audienceBytes {
+		audienceBytes[i] = letters[rand.Intn(len(letters))]
+	}
+	audience := string(audienceBytes)
+	return secret, audience
+}
 
 func GenerateToken(userID int32, role string, secret, jwt_audience string) (string, error) {
 	expires := time.Now().Add(time.Hour * 8).Unix()
