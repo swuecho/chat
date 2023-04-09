@@ -1,7 +1,7 @@
 <script setup lang='ts'>
 import { defineAsyncComponent, ref } from 'vue'
 import { HoverButton, SvgIcon, UserAvatar } from '@/components/common'
-import { useAppStore, useAuthStore, useChatStore, useUserStore } from '@/store/modules';
+import { useAppStore, useAuthStore, useChatStore, useUserStore } from '@/store/modules'
 
 const Setting = defineAsyncComponent(() => import('@/components/common/Setting/index.vue'))
 
@@ -44,7 +44,6 @@ function handleChangelang() {
         <SvgIcon icon="ri:settings-4-line" />
       </span>
     </HoverButton>
-
     <Setting v-if="show" v-model:visible="show" />
   </footer>
 </template>

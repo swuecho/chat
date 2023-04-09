@@ -8,7 +8,7 @@ export function fetchChatConfig<T>() {
   })
 }
 
-export async function fetchChatAPI<T>(
+export async function fetchChatAPI(
   sessionUuid: string,
   chatUuid: string,
   regenerate: boolean,
@@ -29,7 +29,7 @@ export async function fetchChatAPI<T>(
   }
 }
 
-export async function fetchChatStream<T>(
+export async function fetchChatStream(
   sessionUuid: string,
   chatUuid: string,
   regenerate: boolean,
