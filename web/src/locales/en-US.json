@@ -60,7 +60,8 @@
     "frequencyPenalty": "Frequency Penalty",
     "presencePenalty": "Presence Penalty",
     "debug": "Debug Mode",
-    "model": "Model"
+    "model": "Model",
+    "sessionConfig": "Conversation Settings:"
   },
   "setting": {
     "setting": "Settings",

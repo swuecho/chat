@@ -44,7 +44,7 @@ watch([slider, temperature, maxTokens, topP, debug, gpt_model], ([newValueSlider
 
 <template>
   <!-- https://platform.openai.com/playground?mode=chat -->
-  <NCard style="width: 600px" title="会话设置" :bordered="false" size="huge" role="dialog" aria-modal="true">
+  <NCard style="width: 600px" :title="$t('chat.sessionConfig')" :bordered="false" size="huge" role="dialog" aria-modal="true">
     <div> {{ $t('chat.model') }}</div>
     <!--
     <NSelect v-model:value="gpt_model" :options="model_options" clearable />
