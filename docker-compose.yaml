@@ -17,11 +17,13 @@ services:
     ports:
       - 8077:8077
     environment:
-      - OPENAI_API_KEY=thisisakey
+      # at least one key is required.
+      - OPENAI_API_KEY=thisisopenaikey # do not change if you do not have openai api key
+      - CLAUDE_API_KEY=thisisclaudekey # do not change if you do not have claude api key
       # api call in 10min
       # set this to zero if your server is in public network. only increase ratelimit in admin panel for trusted users.
       - OPENAI_RATELIMIT=100
-      - CLAUDE_API_KEY=thisisclaudekey # do not change if you do not have claude api key
+      # DB config, set based on your db config. 
       - PG_HOST=db
       - PG_DB=postgres
       - PG_USER=postgres
