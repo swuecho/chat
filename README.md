@@ -2,6 +2,9 @@
 
 [video.webm](https://user-images.githubusercontent.com/666683/230305516-60154c5b-7170-4d2b-9670-a5ff4c851d25.webm)
 
+
+<img width="875" alt="Screenshot 2023-04-09 at 11 43 50" src="https://user-images.githubusercontent.com/666683/230753095-018bac4d-d7c9-4a0c-b44d-bcee7c0ad3eb.png">
+
 ## 规则
 
 - 第一个消息是系统消息（prompt）
