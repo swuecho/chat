@@ -60,7 +60,8 @@
     "topP": "Top P",
     "frequencyPenalty": "频率惩罚",
     "presencePenalty": "存在惩罚",
-    "debug": "调试模式"
+    "debug": "调试模式",
+    "sessionConfig": "会话设置"
   },
   "admin": {
     "openPanel": "在新标签页中打开(仅限管理员)",
