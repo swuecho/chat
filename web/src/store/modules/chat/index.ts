@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 
-import { getLocalState, setLocalState } from './helper'
+import { getLocalState, setLocalState, clearLocalState } from './helper'
 import { router } from '@/router'
 import {
   clearSessionChatMessages,
@@ -272,6 +272,12 @@ export const useChatStore = defineStore('chat-store', {
         clearSessionChatMessages(uuid)
         this.recordState()
       }
+    },
+    clearState() {
+      this.history = []
+      this.chat = []
+      this.active = null
+      this.recordState()
     },
   },
 })

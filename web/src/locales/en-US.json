@@ -74,6 +74,7 @@
     "chatHistory": "Chat History",
     "theme": "Theme",
     "language": "Language",
+    "switchLanguage": "English | 切换语言 | 切換語言",
     "api": "API",
     "reverseProxy": "Reverse Proxy",
     "timeout": "Timeout",
