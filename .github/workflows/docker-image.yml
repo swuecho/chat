@@ -59,7 +59,7 @@ jobs:
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: check locale
-        run: python locale_missing_key.py web/src/locales --base zh-CN
+        run: python scripts/locale_missing_key.py web/src/locales --base zh-CN
 
       - name: docker-compose
         run: docker-compose up -d
