@@ -14,8 +14,8 @@ export interface UserState {
 export function defaultSetting(): UserState {
   return {
     userInfo: {
-      name: 'ChenZhaoYu',
-      description: 'Star on <a href="https://github.com/Chanzhaoyu/chatgpt-bot" class="text-blue-500" target="_blank" >Github</a>',
+      name: 'Your Name',
+      description: 'Desc',
     },
   }
 }
