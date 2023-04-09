@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
-import { NButton, NInput, NPopconfirm, useMessage } from 'naive-ui'
+import { NButton, NInput, useMessage } from 'naive-ui'
 import type { Language, Theme } from '@/store/modules/app/helper'
 import { SvgIcon } from '@/components/common'
 import { useAppStore, useUserStore } from '@/store'
@@ -21,15 +21,6 @@ const name = ref(userInfo.value.name ?? '')
 
 const description = ref(userInfo.value.description ?? '')
 
-const language = computed({
-  get() {
-    return appStore.language
-  },
-  set(value: Language) {
-    appStore.setLanguage(value)
-  },
-})
-
 const themeOptions: { label: string; key: Theme; icon: string }[] = [
   {
     label: 'Auto',
@@ -46,12 +37,6 @@ const themeOptions: { label: string; key: Theme; icon: string }[] = [
     key: 'dark',
     icon: 'ri:moon-foggy-line',
   },
-]
-
-const languageOptions: { label: string; key: Language; value: Language }[] = [
-  { label: '简体中文', key: 'zh-CN', value: 'zh-CN' },
-  { label: '繁體中文', key: 'zh-TW', value: 'zh-TW' },
-  { label: 'English', key: 'en-US', value: 'en-US' },
 ]
 
 function updateUserInfo(options: Partial<UserInfo>) {
@@ -77,41 +62,6 @@ function exportData(): void {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
-}
-
-function importData(event: Event): void {
-  const target = event.target as HTMLInputElement
-  if (!target || !target.files)
-    return
-
-  const file: File = target.files[0]
-  if (!file)
-    return
-
-  const reader: FileReader = new FileReader()
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result as string)
-      localStorage.setItem('chatStorage', JSON.stringify(data))
-      ms.success(t('common.success'))
-      location.reload()
-    }
-    catch (error) {
-      ms.error(t('common.invalidFileFormat'))
-    }
-  }
-  reader.readAsText(file)
-}
-
-function clearData(): void {
-  localStorage.removeItem('chatStorage')
-  location.reload()
-}
-
-function handleImportButtonClick(): void {
-  const fileInput = document.getElementById('fileInput') as HTMLElement
-  if (fileInput)
-    fileInput.click()
 }
 </script>
 

@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
 import { NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
-import { saveAs } from 'file-saver'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
@@ -362,7 +361,13 @@ function handleMarkdown() {
         const ts = getCurrentDate()
         const filename = `chat-${ts}.md`
         const blob = new Blob([markdown], { type: 'text/plain;charset=utf-8' })
-        saveAs(blob, filename)
+        const url: string = URL.createObjectURL(blob)
+        const link: HTMLAnchorElement = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
         dialogBox.loading = false
         nui_msg.success(t('chat.exportSuccess'))
         Promise.resolve()
