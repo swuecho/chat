@@ -23,7 +23,7 @@ services:
       # api call in 10min
       # set this to zero if your server is in public network. only increase ratelimit in admin panel for trusted users.
       - OPENAI_RATELIMIT=100
-      # DB config, set based on your db config. 
+      # DB config, set based on your db config if you don't use the db in docker-compose
       - PG_HOST=db
       - PG_DB=postgres
       - PG_USER=postgres
