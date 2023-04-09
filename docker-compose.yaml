@@ -11,14 +11,14 @@ services:
       - db
   api:
     container_name: api
-    image: ghcr.io/swuecho/chat_backend:latest  # or use tag for better stability, e.g.v0.0.3
+    image: ghcr.io/swuecho/chat_backend:latest # or use tag for better stability, e.g.v0.0.3
     expose:
       - 8077
     ports:
       - 8077:8077
     environment:
       - OPENAI_API_KEY=thisisakey
-      # open ai call in 10min, 
+      # api call in 10min
       # set this to zero if your server is in public network. only increase ratelimit in admin panel for trusted users.
       - OPENAI_RATELIMIT=100
       - CLAUDE_API_KEY=thisisclaudekey # do not change if you do not have claude api key
