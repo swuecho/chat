@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 import { NCard, NModal, NTabPane, NTabs } from 'naive-ui'
 import General from './General.vue'
-import About from './About.vue'
 import Admin from './Admin.vue'
 import { SvgIcon } from '@/components/common'
 
@@ -42,13 +41,6 @@ const show = computed({
           <div class="min-h-[100px]">
             <General />
           </div>
-        </NTabPane>
-        <NTabPane name="Config" tab="Config">
-          <template #tab>
-            <SvgIcon class="text-lg" icon="ri:list-settings-line" />
-            <span class="ml-2">{{ $t('setting.config') }}</span>
-          </template>
-          <About />
         </NTabPane>
         <NTabPane name="Admin" tab="Admin">
           <template #tab>

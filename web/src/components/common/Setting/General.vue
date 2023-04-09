@@ -136,39 +136,6 @@ function handleImportButtonClick(): void {
           {{ $t('common.save') }}
         </NButton>
       </div>
-
-      <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[100px]">{{ $t('setting.chatHistory') }}</span>
-
-        <div class="flex flex-wrap items-center gap-4">
-          <NButton size="small" @click="exportData">
-            <template #icon>
-              <SvgIcon icon="ri:download-2-fill" />
-            </template>
-            {{ $t('common.export') }}
-          </NButton>
-
-          <input id="fileInput" type="file" style="display:none" @change="importData">
-          <NButton size="small" @click="handleImportButtonClick">
-            <template #icon>
-              <SvgIcon icon="ri:upload-2-fill" />
-            </template>
-            {{ $t('common.import') }}
-          </NButton>
-
-          <NPopconfirm placement="bottom" @positive-click="clearData">
-            <template #trigger>
-              <NButton size="small">
-                <template #icon>
-                  <SvgIcon icon="ri:close-circle-line" />
-                </template>
-                {{ $t('common.clear') }}
-              </NButton>
-            </template>
-            {{ $t('chat.clearHistoryConfirm') }}
-          </NPopconfirm>
-        </div>
-      </div>
       <div class="flex items-center space-x-4">
         <span class="flex-shrink-0 w-[100px]">{{ $t('setting.theme') }}</span>
         <div class="flex flex-wrap items-center gap-4">
@@ -177,17 +144,6 @@ function handleImportButtonClick(): void {
               <template #icon>
                 <SvgIcon :icon="item.icon" />
               </template>
-            </NButton>
-          </template>
-        </div>
-      </div>
-      <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[100px]">{{ $t('setting.language') }}</span>
-        <div class="flex flex-wrap items-center gap-4">
-          <template v-for="item of languageOptions" :key="item.key">
-            <NButton size="small" :type="item.key === language ? 'primary' : undefined"
-              @click="appStore.setLanguage(item.key)">
-              {{ item.label }}
             </NButton>
           </template>
         </div>
