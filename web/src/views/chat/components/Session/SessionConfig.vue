@@ -75,7 +75,7 @@ const chatModelOptions = [
   <!-- https://platform.openai.com/playground?mode=chat -->
   <NCard id="session-config" :title="$t('chat.sessionConfig')" :bordered="false" size="medium">
     <div>
-      <NForm ref="formRef" :model="modelRef" size="small" label-placement="left" :label-width="120">
+      <NForm ref="formRef" :model="modelRef" size="small" label-placement="top" :label-width="20">
         <NFormItem :label="$t('chat.model')" path="chatModel">
           <NRadioGroup v-model:value="modelRef.chatModel">
             <NSpace>
@@ -85,16 +85,16 @@ const chatModelOptions = [
             </NSpace>
           </NRadioGroup>
         </NFormItem>
-        <NFormItem :label="$t('chat.contextCount')" path="contextCount">
+        <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
           <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />
         </NFormItem>
-        <NFormItem :label="$t('chat.temperature')" path="temperature">
+        <NFormItem :label="$t('chat.temperature', { temperature: modelRef.temperature })" path="temperature">
           <NSlider v-model:value="modelRef.temperature" :min="0.1" :max="1" :step="0.01" :tooltip="false" />
         </NFormItem>
-        <NFormItem :label="$t('chat.topP')" path="topP">
+        <NFormItem :label="$t('chat.topP', { topP: modelRef.topP })" path="topP">
           <NSlider v-model:value="modelRef.topP" :min="0" :max="1" :step="0.01" :tooltip="false" />
         </NFormItem>
-        <NFormItem :label="$t('chat.maxTokens')" path="maxTokens">
+        <NFormItem :label="$t('chat.maxTokens', { maxTokens: modelRef.maxTokens })" path="maxTokens">
           <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="2048" :step="16" :tooltip="false" />
         </NFormItem>
         <NFormItem :label="$t('chat.debug')" path="debug">
@@ -109,10 +109,10 @@ const chatModelOptions = [
         </NFormItem>
       </NForm>
       <!--
-            <div class="center">
-              <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
-            </div>
-            -->
+                <div class="center">
+                  <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
+                </div>
+                -->
     </div>
   </NCard>
 </template>
