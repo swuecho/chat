@@ -56,16 +56,16 @@ const chatModelOptions = [
     value: 'gpt-3.5-turbo',
   },
   {
+    label: 'claude-v1 (claude)',
+    value: 'claude-v1',
+  },
+  {
     label: 'gpt-4(chatgpt)',
     value: 'gpt-4',
   },
   {
     label: 'gpt-4-32k(chatgpt)',
     value: 'gpt-4-32k',
-  },
-  {
-    label: 'claude-v1 (claude)',
-    value: 'claude-v1',
   },
 ]
 // 1. how to fix the NSelect error?
@@ -109,10 +109,10 @@ const chatModelOptions = [
         </NFormItem>
       </NForm>
       <!--
-          <div class="center">
-            <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
-          </div>
-          -->
+            <div class="center">
+              <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
+            </div>
+            -->
     </div>
   </NCard>
 </template>
