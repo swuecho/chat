@@ -46,6 +46,8 @@
     "copyCode": "複製代碼",
     "clearChat": "清空對話",
     "clearChatConfirm": "是否清空對話?",
+    "enable_debug": "開啟",
+    "disable_debug": "關閉",
     "exportImage": "導出對話到圖片",
     "exportImageConfirm": "是否將對話導出為圖片?",
     "exportMD": "導出對話到Markdown",

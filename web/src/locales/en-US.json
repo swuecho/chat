@@ -38,6 +38,8 @@
     "copyCode": "Copy code",
     "clearChat": "Clear chat session",
     "clearChatConfirm": "Do you want to clear the chat session?",
+    "enable_debug": "Enable",
+    "disable_debug": "Disable",
     "exportImage": "Export chat session to image",
     "exportImageConfirm": "Do you want to save the chat session as an image?",
     "exportMD": "Export chat session to markdown file",
