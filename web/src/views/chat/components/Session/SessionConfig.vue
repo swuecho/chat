@@ -50,7 +50,7 @@ watch(modelRef, async (modelValue: ModelType) => {
   debouneUpdate(modelValue)
 }, { deep: true })
 
-const modelOptions = [
+const chatModelOptions = [
   {
     label: 'gpt-3.5-turbo(chatgpt)',
     value: 'gpt-3.5-turbo',
@@ -73,7 +73,7 @@ const modelOptions = [
     <div>
       <NForm ref="formRef" :model="modelRef" size="small" label-placement="left" :label-width="120">
         <NFormItem :label="$t('chat.model')" path="gptModel">
-          <NSelect v-model:value="modelRef.gptModel" :options="modelOptions" />
+          <NSelect v-model:value="modelRef.gptModel" :options="chatModelOptions" />
         </NFormItem>
         <NFormItem :label="$t('chat.contextCount')" path="contextCount">
           <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />
