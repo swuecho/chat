@@ -47,7 +47,7 @@ SELECT
     COALESCE(user_stats.total_token_count, 0) AS total_token_count,
     COALESCE(user_stats.total_messages_3_days, 0) AS total_chat_messages_3_days,
     COALESCE(user_stats.total_token_count_3_days, 0) AS total_token_count_3_days,
-    COALESCE(auth_user_management.rate_limit, 0) AS rate_limit
+    COALESCE(auth_user_management.rate_limit, @default_rate_limit::INTEGER) AS rate_limit
 FROM auth_user
 LEFT JOIN (
     SELECT chat_message_stats.user_id, 

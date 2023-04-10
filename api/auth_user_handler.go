@@ -371,7 +371,7 @@ func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userStatsRows, total, err := h.service.GetUserStat(r.Context(), pagination)
+	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
