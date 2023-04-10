@@ -94,11 +94,12 @@ func (s *AuthUserService) Logout(tokenString string) (*http.Cookie, error) {
 // GetTotalUserCount
 
 // GetUserStat(page, page_size) ->[{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}]
-func (s *AuthUserService) GetUserStat(ctx context.Context, p Pagination) ([]sqlc_queries.GetUserStatsRow, int64, error) {
+func (s *AuthUserService) GetUserStats(ctx context.Context, p Pagination, defaultRateLimit int32) ([]sqlc_queries.GetUserStatsRow, int64, error) {
 	auth_users_stat, err := s.q.GetUserStats(ctx,
 		sqlc_queries.GetUserStatsParams{
-			Offset: p.Offset(),
-			Limit:  p.Size,
+			Offset:           p.Offset(),
+			Limit:            p.Size,
+			DefaultRateLimit: defaultRateLimit,
 		})
 	if err != nil {
 		return nil, 0, eris.Wrap(err, "failed to retrieve user stats ")
