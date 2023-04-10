@@ -2,7 +2,7 @@
 import type { Ref } from 'vue'
 import { computed, defineProps, ref, watch } from 'vue'
 import type { FormInst } from 'naive-ui'
-import { NCard, NForm, NFormItem, NSelect, NSlider, NSwitch } from 'naive-ui'
+import { NCard, NForm, NFormItem, NRadio, NRadioGroup, NSlider, NSwitch } from 'naive-ui'
 import { debounce } from 'lodash-es'
 import { useChatStore } from '@/store'
 
@@ -15,7 +15,7 @@ const chatStore = useChatStore()
 const session = computed(() => chatStore.getChatSessionByUuid(props.uuid))
 
 interface ModelType {
-  gptModel: string
+  chatModel: string
   contextCount: number
   temperature: number
   maxTokens: number
@@ -24,7 +24,7 @@ interface ModelType {
 }
 
 const modelRef: Ref<ModelType> = ref({
-  gptModel: session.value?.model ?? 'gpt-3.5-turbo',
+  chatModel: session.value?.model ?? 'gpt-3.5-turbo',
   contextCount: session.value?.maxLength ?? 10,
   temperature: session.value?.temperature ?? 1.0,
   maxTokens: session.value?.maxTokens ?? 512,
@@ -41,7 +41,7 @@ const debouneUpdate = debounce(async (model: ModelType) => {
     maxTokens: model.maxTokens,
     topP: model.topP,
     debug: model.debug,
-    model: model.gptModel,
+    model: model.chatModel,
   })
 }, 200)
 
@@ -57,6 +57,10 @@ const chatModelOptions = [
   },
   {
     label: 'gpt-4(chatgpt)',
+    value: 'gpt-4',
+  },
+  {
+    label: 'gpt-4-32k(chatgpt)',
     value: 'gpt-4-32k',
   },
   {
@@ -72,8 +76,14 @@ const chatModelOptions = [
   <NCard id="session-config" :title="$t('chat.sessionConfig')" :bordered="false" size="medium">
     <div>
       <NForm ref="formRef" :model="modelRef" size="small" label-placement="left" :label-width="120">
-        <NFormItem :label="$t('chat.model')" path="gptModel">
-          <NSelect v-model:value="modelRef.gptModel" :options="chatModelOptions" />
+        <NFormItem :label="$t('chat.model')" path="chatModel">
+          <NRadioGroup v-model:value="modelRef.chatModel">
+            <NSpace>
+              <NRadio v-for="song in chatModelOptions" :key="song.value" :value="song.value">
+                {{ song.label }}
+              </NRadio>
+            </NSpace>
+          </NRadioGroup>
         </NFormItem>
         <NFormItem :label="$t('chat.contextCount')" path="contextCount">
           <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />
@@ -98,9 +108,11 @@ const chatModelOptions = [
           </NSwitch>
         </NFormItem>
       </NForm>
-      <div class="center">
-        <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
-      </div>
+      <!--
+          <div class="center">
+            <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
+          </div>
+          -->
     </div>
   </NCard>
 </template>

@@ -525,7 +525,7 @@ func chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession,
 
 func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) openai.ChatCompletionRequest {
 	openai_req := openai.ChatCompletionRequest{
-		Model:       openai.GPT3Dot5Turbo,
+		Model:       chatSession.Model,
 		Messages:    chat_compeletion_messages,
 		MaxTokens:   int(chatSession.MaxTokens),
 		Temperature: float32(chatSession.Temperature),
