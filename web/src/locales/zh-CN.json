@@ -53,7 +53,7 @@
     "clearHistoryConfirm": "确定清空聊天记录?",
     "contextLength": "上下文数量, 默认10 (会话开始的2条 + 最近的8条)",
     "stopAnswer": "停止回答",
-    "slider": "上下文数量",
+    "contextCount": "上下文数量",
     "temperature": "温度",
     "model": "模型",
     "maxTokens": "最大问答总token数量",
@@ -61,7 +61,9 @@
     "frequencyPenalty": "频率惩罚",
     "presencePenalty": "存在惩罚",
     "debug": "调试模式",
-    "sessionConfig": "会话设置"
+    "sessionConfig": "会话设置",
+    "enable_debug": "启用",
+    "disable_debug": "关闭"
   },
   "admin": {
     "openPanel": "在新标签页中打开(仅限管理员)",
