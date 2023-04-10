@@ -16,7 +16,7 @@ const session = computed(() => chatStore.getChatSessionByUuid(props.uuid))
 
 interface ModelType {
   gptModel: string
-  contextLength: number
+  contextCount: number
   temperature: number
   maxTokens: number
   topP: number
@@ -25,7 +25,7 @@ interface ModelType {
 
 const modelRef: Ref<ModelType> = ref({
   gptModel: session.value?.model ?? 'gpt-3.5-turbo',
-  contextLength: session.value?.maxLength ?? 10,
+  contextCount: session.value?.maxLength ?? 10,
   temperature: session.value?.temperature ?? 1.0,
   maxTokens: session.value?.maxTokens ?? 512,
   topP: session.value?.topP ?? 1.0,
@@ -34,22 +34,21 @@ const modelRef: Ref<ModelType> = ref({
 
 const formRef = ref<FormInst | null>(null)
 
-const debouneUpdate = debounce(async (modelValue: Ref<ModelType>) => {
+const debouneUpdate = debounce(async (model: ModelType) => {
   chatStore.updateChatSession(props.uuid, {
-    maxLength: modelValue.value.contextLength,
-    temperature: modelValue.value.temperature,
-    maxTokens: modelValue.value.maxTokens,
-    topP: modelValue.value.topP,
-    debug: modelValue.value.debug,
-    model: modelValue.value.gptModel,
+    maxLength: model.contextCount,
+    temperature: model.temperature,
+    maxTokens: model.maxTokens,
+    topP: model.topP,
+    debug: model.debug,
+    model: model.gptModel,
   })
 }, 200)
 
-watch(modelRef, async (modelValue: Ref<ModelType>, oldValue: Ref<ModelType>) => {
-  console.log('watch')
-  console.log('modelValue', modelValue.value)
+// why watch not work?, missed the deep = true option
+watch(modelRef, async (modelValue: ModelType) => {
   debouneUpdate(modelValue)
-})
+}, { deep: true })
 
 const modelOptions = [
   {
@@ -61,7 +60,7 @@ const modelOptions = [
     value: 'claude-v1',
   },
 ]
-
+// 1. how to fix the NSelect error?
 </script>
 
 <template>
@@ -72,8 +71,8 @@ const modelOptions = [
         <NFormItem :label="$t('chat.model')" path="gptModel">
           <NSelect v-model:value="modelRef.gptModel" :options="modelOptions" />
         </NFormItem>
-        <NFormItem :label="$t('chat.contextCount')" path="contextLength">
-          <NSlider v-model:value="modelRef.contextLength" :min="1" :max="20" :tooltip="false" show-tooltip />
+        <NFormItem :label="$t('chat.contextCount')" path="contextCount">
+          <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />
         </NFormItem>
         <NFormItem :label="$t('chat.temperature')" path="temperature">
           <NSlider v-model:value="modelRef.temperature" :min="0.1" :max="1" :step="0.01" :tooltip="false" />
@@ -95,7 +94,9 @@ const modelOptions = [
           </NSwitch>
         </NFormItem>
       </NForm>
-      <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
+      <div class="center">
+        <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
+      </div>
     </div>
   </NCard>
 </template>
