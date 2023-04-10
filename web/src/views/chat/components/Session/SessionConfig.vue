@@ -56,6 +56,10 @@ const modelOptions = [
     value: 'gpt-3.5-turbo',
   },
   {
+    label: 'gpt-4(chatgpt)',
+    value: 'gpt-4-32k',
+  },
+  {
     label: 'claude-v1 (claude)',
     value: 'claude-v1',
   },
