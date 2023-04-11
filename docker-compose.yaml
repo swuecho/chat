@@ -18,6 +18,7 @@ services:
       - 8077:8077
     environment:
       # at least one key is required.
+      # !!! no quote aroud key !!!
       - OPENAI_API_KEY=thisisopenaikey # do not change if you do not have openai api key
       - CLAUDE_API_KEY=thisisclaudekey # do not change if you do not have claude api key
       # api call in 10min
