@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/swuecho/chatgpt_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 func TestChatMessageService(t *testing.T) {

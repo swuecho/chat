@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
-	"github.com/swuecho/chatgpt_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 func TestChatSessionService(t *testing.T) {

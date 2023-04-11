@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/rotisserie/eris"
-	"github.com/swuecho/chatgpt_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // This function returns a middleware that limits requests from each user by their ID.

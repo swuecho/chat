@@ -16,8 +16,8 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	"github.com/sashabaranov/go-openai"
-	"github.com/swuecho/chatgpt_backend/ai"
-	"github.com/swuecho/chatgpt_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/ai"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type ChatService struct {

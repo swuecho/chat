@@ -1,4 +1,4 @@
-module github.com/swuecho/chatgpt_backend
+module github.com/swuecho/chat_backend
 
 go 1.19
 

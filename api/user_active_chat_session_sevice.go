@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/rotisserie/eris"
-	sqlc "github.com/swuecho/chatgpt_backend/sqlc_queries"
+	sqlc "github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type UserActiveChatSessionService struct {
