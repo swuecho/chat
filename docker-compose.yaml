@@ -36,6 +36,7 @@ services:
   db:
     image: postgres:14
     restart: always
+    user: postgres
     environment:
       TZ: "Asia/Shanghai"
       PGTZ: "Asia/Shanghai"
