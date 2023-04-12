@@ -11,6 +11,7 @@
 - 上下文默认附带最新创建的10条消息
 - 第一个注册的用户是管理员
 - 默认限流 100 chatGPT call /10分钟 (OPENAI_RATELIMIT=100)
+- 支持OPEN AI, Claude 模型 [免费申请链接](https://www.anthropic.com/earlyaccess)
 
 ## 如何部署
 
@@ -29,6 +30,7 @@
 - by default, the latest 10 messages are context
 - First user is superuser.
 - 100 chatgpt api call / 10 mins (OPENAI_RATELIMIT=100)
+-  Support OPEN AI, Claude model [free application link](https://www.anthropic.com/earlyaccess)
 
 ## How to Deploy
 
