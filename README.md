@@ -3,9 +3,8 @@
 [video.webm](https://user-images.githubusercontent.com/666683/230305516-60154c5b-7170-4d2b-9670-a5ff4c851d25.webm)
 
 
-<img width="875" alt="Screenshot 2023-04-09 at 11 43 50" src="https://user-images.githubusercontent.com/666683/230753095-018bac4d-d7c9-4a0c-b44d-bcee7c0ad3eb.png">
+<img width="850" alt="Screenshot 2023-04-12 at 12 43 31" src="https://user-images.githubusercontent.com/666683/231352196-5a6101db-9f5b-4eae-9198-59afed5822a6.png">
 
-<img width="977" alt="image" src="https://user-images.githubusercontent.com/666683/231351915-1c7a9e48-5b16-44a5-9b94-9287470054f2.png">
 
 ## 规则
 
