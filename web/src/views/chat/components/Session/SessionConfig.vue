@@ -2,7 +2,7 @@
 import type { Ref } from 'vue'
 import { computed, defineProps, ref, watch } from 'vue'
 import type { FormInst } from 'naive-ui'
-import { NCard, NForm, NFormItem, NRadio, NRadioGroup, NSlider, NSwitch } from 'naive-ui'
+import { NCard, NForm, NFormItem, NRadio, NRadioGroup, NSlider, NSpace, NSwitch } from 'naive-ui'
 import { debounce } from 'lodash-es'
 import { useChatStore } from '@/store'
 
