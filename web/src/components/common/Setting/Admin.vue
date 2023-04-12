@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { NSpin } from 'naive-ui';
+</script>
+
 <template>
   <NSpin>
     <div class="p-4 space-y-4">
