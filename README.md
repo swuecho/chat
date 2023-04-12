@@ -5,6 +5,8 @@
 
 <img width="875" alt="Screenshot 2023-04-09 at 11 43 50" src="https://user-images.githubusercontent.com/666683/230753095-018bac4d-d7c9-4a0c-b44d-bcee7c0ad3eb.png">
 
+<img width="977" alt="image" src="https://user-images.githubusercontent.com/666683/231351915-1c7a9e48-5b16-44a5-9b94-9287470054f2.png">
+
 ## 规则
 
 - 第一个消息是系统消息（prompt）
