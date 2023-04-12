@@ -395,7 +395,7 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 	// create the json data
 	jsonData := map[string]interface{}{
 		"prompt":               sb.String(),
-		"model":                "claude-v1",
+		"model":                chatSession.Model,
 		"max_tokens_to_sample": chatSession.MaxTokens,
 		"temperature":          chatSession.Temperature,
 		"stop_sequences":       []string{"\n\nHuman:"},

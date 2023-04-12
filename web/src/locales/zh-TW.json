@@ -70,7 +70,7 @@
     "frequencyPenalty": "頻率懲罰",
     "presencePenalty": "存在懲罰",
     "debug": "調試模式",
-    "model": "模型",
+    "model": "模型(OPENAI GPT4 需要個別申請,CLAUDE的免費密鑰可以使用所有CLAUDE模型)",
     "sessionConfig": "會話配置"
   },
   "setting": {
