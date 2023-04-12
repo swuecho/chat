@@ -62,7 +62,7 @@
     "frequencyPenalty": "Frequency Penalty",
     "presencePenalty": "Presence Penalty",
     "debug": "Debug Mode",
-    "model": "Model",
+    "model": "Model (OpenAI GPT4 needs separate application, Claude's free key can use all Claude models)",
     "sessionConfig": "Conversation Settings:"
   },
   "setting": {

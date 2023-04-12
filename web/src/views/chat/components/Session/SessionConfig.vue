@@ -60,6 +60,18 @@ const chatModelOptions = [
     value: 'claude-v1',
   },
   {
+    label: 'claude-instant(small,fast)',
+    value: 'claude-instant-v1',
+  },
+  {
+    label: 'claude-v1.2 (slightly better than v1)',
+    value: 'claude-v1.2',
+  },
+  {
+    label: 'claude-v1.3 (better than v1, code, non-english)',
+    value: 'claude-v1.3',
+  },
+  {
     label: 'gpt-4(chatgpt)',
     value: 'gpt-4',
   },
@@ -109,10 +121,10 @@ const chatModelOptions = [
         </NFormItem>
       </NForm>
       <!--
-                <div class="center">
-                  <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
-                </div>
-                -->
+                    <div class="center">
+                      <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
+                    </div>
+                    -->
     </div>
   </NCard>
 </template>
