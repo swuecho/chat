@@ -62,7 +62,7 @@ jobs:
         run: python scripts/locale_missing_key.py web/src/locales --base zh-CN
 
       - name: change docker image tag
-        run: python scripts/replace_tag_to_test.py --tag ${GITHUB_SHA}
+        run: python scripts/replace_tag_to_test.py ${GITHUB_SHA}
 
       - name: docker-compose
         run: docker-compose up -d
