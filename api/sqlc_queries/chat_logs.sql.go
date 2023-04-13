@@ -11,7 +11,7 @@ import (
 )
 
 const chatLogByID = `-- name: ChatLogByID :one
-SELECT id, session, question, answer FROM chat_logs WHERE id = $1
+SELECT id, session, question, answer, created_at FROM chat_logs WHERE id = $1
 `
 
 func (q *Queries) ChatLogByID(ctx context.Context, id int32) (ChatLog, error) {
@@ -22,6 +22,7 @@ func (q *Queries) ChatLogByID(ctx context.Context, id int32) (ChatLog, error) {
 		&i.Session,
 		&i.Question,
 		&i.Answer,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -29,7 +30,7 @@ func (q *Queries) ChatLogByID(ctx context.Context, id int32) (ChatLog, error) {
 const createChatLog = `-- name: CreateChatLog :one
 INSERT INTO chat_logs (session, question, answer)
 VALUES ($1, $2, $3)
-RETURNING id, session, question, answer
+RETURNING id, session, question, answer, created_at
 `
 
 type CreateChatLogParams struct {
@@ -46,6 +47,7 @@ func (q *Queries) CreateChatLog(ctx context.Context, arg CreateChatLogParams) (C
 		&i.Session,
 		&i.Question,
 		&i.Answer,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -60,7 +62,7 @@ func (q *Queries) DeleteChatLog(ctx context.Context, id int32) error {
 }
 
 const listChatLogs = `-- name: ListChatLogs :many
-SELECT id, session, question, answer FROM chat_logs ORDER BY id
+SELECT id, session, question, answer, created_at FROM chat_logs ORDER BY id
 `
 
 func (q *Queries) ListChatLogs(ctx context.Context) ([]ChatLog, error) {
@@ -77,6 +79,7 @@ func (q *Queries) ListChatLogs(ctx context.Context) ([]ChatLog, error) {
 			&i.Session,
 			&i.Question,
 			&i.Answer,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -94,7 +97,7 @@ func (q *Queries) ListChatLogs(ctx context.Context) ([]ChatLog, error) {
 const updateChatLog = `-- name: UpdateChatLog :one
 UPDATE chat_logs SET session = $2, question = $3, answer = $4
 WHERE id = $1
-RETURNING id, session, question, answer
+RETURNING id, session, question, answer, created_at
 `
 
 type UpdateChatLogParams struct {
@@ -117,6 +120,7 @@ func (q *Queries) UpdateChatLog(ctx context.Context, arg UpdateChatLogParams) (C
 		&i.Session,
 		&i.Question,
 		&i.Answer,
+		&i.CreatedAt,
 	)
 	return i, err
 }

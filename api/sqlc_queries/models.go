@@ -32,10 +32,11 @@ type AuthUserManagement struct {
 }
 
 type ChatLog struct {
-	ID       int32
-	Session  json.RawMessage
-	Question json.RawMessage
-	Answer   json.RawMessage
+	ID        int32
+	Session   json.RawMessage
+	Question  json.RawMessage
+	Answer    json.RawMessage
+	CreatedAt time.Time
 }
 
 type ChatMessage struct {

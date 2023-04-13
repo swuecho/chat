@@ -87,7 +87,9 @@ CREATE TABLE IF NOT EXISTS chat_logs (
 	id SERIAL PRIMARY KEY,  -- Auto-incrementing ID as primary key
 	session JSONB default '{}' NOT NULL,         -- JSONB column to store chat session info
 	question JSONB default '{}' NOT NULL,        -- JSONB column to store the question
-	answer JSONB default '{}' NOT NULL          -- JSONB column to store the answer 
+	answer JSONB default '{}' NOT NULL,          -- JSONB column to store the answer 
+    created_at timestamp  DEFAULT now() NOT NULL 
+
 );
 
 
