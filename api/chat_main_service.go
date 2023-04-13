@@ -370,6 +370,12 @@ func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []opena
 			Content: m.Content,
 		}
 	})
+
+	sessionRaw := chatSession.ToRawMessage()
+	if sessionRaw == nil {
+		log.Println("failed to marshal chat session")
+		return
+	}
 	question, err := json.Marshal(msgs_clean)
 	if err != nil {
 		log.Println(eris.Wrap(err, "failed to marshal chat messages"))
@@ -380,7 +386,7 @@ func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []opena
 	}
 
 	s.q.CreateChatLog(context.Background(), sqlc_queries.CreateChatLogParams{
-		Session:  *chatSession.ToRawMessage(),
+		Session:  *sessionRaw,
 		Question: question,
 		Answer:   answerRaw,
 	})

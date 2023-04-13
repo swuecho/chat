@@ -39,7 +39,7 @@ func (cs *ChatSession) ToRawMessage() *json.RawMessage {
 	// Marshal ChatSession struct to json.RawMessage
 	chatSessionJSON, err := json.Marshal(cs)
 	if err != nil {
-		return nil
+		return nil 
 	}
 	var rawMessage json.RawMessage = chatSessionJSON
 	return &rawMessage
