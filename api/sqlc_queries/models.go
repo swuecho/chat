@@ -31,6 +31,13 @@ type AuthUserManagement struct {
 	UpdatedAt time.Time
 }
 
+type ChatLog struct {
+	ID       int32
+	Session  json.RawMessage
+	Question json.RawMessage
+	Answer   json.RawMessage
+}
+
 type ChatMessage struct {
 	ID              int32
 	Uuid            string

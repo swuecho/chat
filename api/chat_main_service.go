@@ -361,3 +361,27 @@ func (s *ChatService) DeleteAndCreateChatMessage(chatSessionUUID string, chatUUI
 	}
 	return nil
 }
+
+func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []openai.ChatCompletionMessage, answerText string) {
+	// log chat
+	msgs_clean := lo.Map(msgs, func(m openai.ChatCompletionMessage, _ int) Message {
+		return Message{
+			Role:    m.Role,
+			Content: m.Content,
+		}
+	})
+	question, err := json.Marshal(msgs_clean)
+	if err != nil {
+		log.Println(eris.Wrap(err, "failed to marshal chat messages"))
+	}
+	answerRaw, err := json.Marshal(answerText)
+	if err != nil {
+		log.Println(eris.Wrap(err, "failed to marshal answer"))
+	}
+
+	s.q.CreateChatLog(context.Background(), sqlc_queries.CreateChatLogParams{
+		Session:  *chatSession.ToRawMessage(),
+		Question: question,
+		Answer:   answerRaw,
+	})
+}
