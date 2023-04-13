@@ -228,6 +228,8 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		}
 
 		answerText, answerID, shouldReturn := streamFunc(w, chatSession, msgs, chatUuid, false)
+		// record chat
+		h.chatService.logChat(chatSession, msgs, answerText)
 		if shouldReturn {
 			return
 		}
@@ -238,6 +240,8 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		}
 	}
 }
+
+
 
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) {
 	ctx := context.Background()
@@ -275,6 +279,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		}
 
 		answerText, _, shouldReturn := chatStreamFn(w, chat_session, chatCompletionMessages, chatUuid, true)
+		h.chatService.logChat(chat_session, chatCompletionMessages, answerText)
 		if shouldReturn {
 			return
 		}
