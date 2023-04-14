@@ -11,7 +11,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -92,14 +91,12 @@ func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 	ctx := r.Context()
-	userIDStr, ok := ctx.Value(userContextKey).(string)
-	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+	userIDInt32, err := getUserID(ctx)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-
-	userIDInt, _ := strconv.Atoi(userIDStr)
-	answerMsg, err := h.chatService.Chat(req.SessionUuid, req.ChatUuid, req.Prompt, int32(userIDInt))
+	answerMsg, err := h.chatService.Chat(req.SessionUuid, req.ChatUuid, req.Prompt, userIDInt32)
 
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
@@ -240,8 +237,6 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		}
 	}
 }
-
-
 
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) {
 	ctx := context.Background()
