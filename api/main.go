@@ -195,7 +195,7 @@ func main() {
 		}
 		fs.ServeHTTP(w, r)
 	})
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", cacheHandler))
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
 
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
