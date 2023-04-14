@@ -431,7 +431,25 @@ func (h *AuthUserHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request
 		return
 	}
 	json.NewEncoder(w).Encode(
-		map[string]interface{}{
+		map[string]int32{
 			"rate": rate,
 		})
+}
+func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+
+	rate, err := h.service.q.GetRateLimit(ctx, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]int32{
+		"rate": rate,
+	})
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/rotisserie/eris"
@@ -30,10 +29,9 @@ func (h *UserActiveChatSessionHandler) Register(router *mux.Router) {
 // CreateUserActiveChatSessionHandler handles POST requests to create a new session.
 func (h *UserActiveChatSessionHandler) CreateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
@@ -42,7 +40,7 @@ func (h *UserActiveChatSessionHandler) CreateUserActiveChatSessionHandler(w http
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-	sessionParams.UserID = int32(userIDInt)
+	sessionParams.UserID = userID
 
 	session, err := h.service.CreateUserActiveChatSession(r.Context(), sessionParams)
 	if err != nil {
@@ -57,10 +55,9 @@ func (h *UserActiveChatSessionHandler) CreateUserActiveChatSessionHandler(w http
 // CreateOrUpdateUserActiveChatSessionHandler handles POST requests to create a new session.
 func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
@@ -70,7 +67,7 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 		return
 	}
 	// use the user_id from token
-	sessionParams.UserID = int32(userIDInt)
+	sessionParams.UserID = userID
 	session, err := h.service.CreateOrUpdateUserActiveChatSession(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, eris.Wrap(err, "fail to update or create action user session record, ").Error(), http.StatusInternalServerError)
@@ -84,14 +81,13 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 // GetUserActiveChatSessionHandler handles GET requests to get a session by user_id.
 func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	session, err := h.service.GetUserActiveChatSession(r.Context(), int32(userIDInt))
+	session, err := h.service.GetUserActiveChatSession(r.Context(), userID)
 	if err != nil {
 		http.Error(w, fmt.Errorf("error: %v", err).Error(), http.StatusNotFound)
 		return
@@ -105,17 +101,16 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 func (h *UserActiveChatSessionHandler) UpdateUserActiveSessionHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the path variables using gorilla/mux
 	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
+	userIDInt, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 	// Get the query parameters using r.URL.Query() method
 	queryParams := r.URL.Query()
 	chatSessionUUID := queryParams.Get("chatSessionUuid")
 
-	session, err := h.service.UpdateUserActiveChatSession(r.Context(), int32(userIDInt), chatSessionUUID)
+	session, err := h.service.UpdateUserActiveChatSession(r.Context(), userIDInt, chatSessionUUID)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return

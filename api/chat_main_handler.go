@@ -11,7 +11,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -92,14 +91,12 @@ func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 	ctx := r.Context()
-	userIDStr, ok := ctx.Value(userContextKey).(string)
-	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+	userIDInt32, err := getUserID(ctx)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-
-	userIDInt, _ := strconv.Atoi(userIDStr)
-	answerMsg, err := h.chatService.Chat(req.SessionUuid, req.ChatUuid, req.Prompt, int32(userIDInt))
+	answerMsg, err := h.chatService.Chat(req.SessionUuid, req.ChatUuid, req.Prompt, userIDInt32)
 
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
@@ -111,7 +108,6 @@ func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // OpenAIChatCompletionAPIWithStreamHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
-
 func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -130,21 +126,16 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	log.Printf("newQuestion: %s", newQuestion)
 
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
 
+	userID, err := getUserID(ctx)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
 	if req.Regenerate {
-		// TODO: get context
-		// get the 10 chatMessage right before the current chatMessage, order by created_at
-		// Send the response as JSON
-		// Update the chatMessage content with chatUuid with new answer
 		regenerateAnswer(h, w, chatSessionUuid, chatUuid)
 	} else {
-		// insert ChatMessage into database
 		genAnswer(h, w, chatSessionUuid, chatUuid, newQuestion, userID)
 	}
 
@@ -209,39 +200,23 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 
-	if isTest(msgs) {
-		answerText, answerID, shouldReturn := chatStreamTest(w, chatSession, msgs, chatUuid, false)
-		if shouldReturn {
-			return
-		}
-		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
-		if err != nil {
-			http.Error(w,
-				eris.Wrap(err, "fail to create message: ").Error(),
-				http.StatusInternalServerError,
-			)
-		}
-	} else {
-		streamFunc := chatStream
-		if strings.HasPrefix(chatSession.Model, "claude") {
-			streamFunc = chatStreamClaude
-		}
+	chatStreamFn := chooseChatStreamFn(chatSession, msgs)
 
-		answerText, answerID, shouldReturn := streamFunc(w, chatSession, msgs, chatUuid, false)
-		// record chat
+	answerText, answerID, shouldReturn := chatStreamFn(w, chatSession, msgs, chatUuid, false)
+
+	if shouldReturn {
+		return
+	}
+	// record chat
+	if !isTest(msgs) {
 		h.chatService.logChat(chatSession, msgs, answerText)
-		if shouldReturn {
-			return
-		}
+	}
 
-		if _, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
-			return
-		}
+	if _, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
+		return
 	}
 }
-
-
 
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) {
 	ctx := context.Background()
@@ -251,44 +226,39 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		return
 	}
 
-	chatCompletionMessages, err := h.chatService.getAskMessages(chat_session, chatUuid, true)
+	msgs, err := h.chatService.getAskMessages(chat_session, chatUuid, true)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Get chat message error", err)
 		return
 	}
 	// Determine whether the chat is a test or not
-	isTestChat := isTest(chatCompletionMessages)
+	chatStreamFn := chooseChatStreamFn(chat_session, msgs)
 
-	if isTestChat {
-		answerText, _, shouldReturn := chatStreamTest(w, chat_session, chatCompletionMessages, chatUuid, true)
-		if shouldReturn {
-			return
-		}
-		// Delete previous message and create new one
-		err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update chat message: ").Error(), nil)
-		}
-	} else {
-		model := chat_session.Model
-		isClaude := strings.HasPrefix(model, "claude")
-
-		chatStreamFn := chatStream
-		if isClaude {
-			chatStreamFn = chatStreamClaude
-		}
-
-		answerText, _, shouldReturn := chatStreamFn(w, chat_session, chatCompletionMessages, chatUuid, true)
-		h.chatService.logChat(chat_session, chatCompletionMessages, answerText)
-		if shouldReturn {
-			return
-		}
-
-		// Delete previous message and create new one
-		if err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
-		}
+	answerText, _, shouldReturn := chatStreamFn(w, chat_session, msgs, chatUuid, true)
+	if shouldReturn {
+		return
 	}
+
+	h.chatService.logChat(chat_session, msgs, answerText)
+
+	// Delete previous message and create new one
+	if err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
+	}
+}
+
+func chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []openai.ChatCompletionMessage) func(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, chatUuid string, regenerate bool) (string, string, bool) {
+	model := chat_session.Model
+	isTestChat := isTest(msgs)
+	isClaude := strings.HasPrefix(model, "claude")
+
+	chatStreamFn := chatStream
+	if isClaude {
+		chatStreamFn = chatStreamClaude
+	} else if isTestChat {
+		chatStreamFn = chatStreamTest
+	}
+	return chatStreamFn
 }
 
 func isTest(msgs []openai.ChatCompletionMessage) bool {
@@ -386,20 +356,14 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 	// set the url
 	url := "https://api.anthropic.com/v1/complete"
 
-	var sb strings.Builder // create a new strings.Builder
+	// create a new strings.Builder
 	// iterate through the messages and format them
-	for _, message := range chat_compeletion_messages {
-		// print the user's question
-		if message.Role != "assistant" {
-			sb.WriteString(fmt.Sprintf("\n\nHuman: %s\n\nAssistant: ", message.Content))
-		} else {
-			// convert assistant's response to json format
-			sb.WriteString(fmt.Sprintf("%s\n", message.Content))
-		}
-	}
+	// print the user's question
+	// convert assistant's response to json format
+	prompt := formatClaudePrompt(chat_compeletion_messages)
 	// create the json data
 	jsonData := map[string]interface{}{
-		"prompt":               sb.String(),
+		"prompt":               prompt,
 		"model":                chatSession.Model,
 		"max_tokens_to_sample": chatSession.MaxTokens,
 		"temperature":          chatSession.Temperature,
@@ -413,6 +377,7 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		fmt.Println("Error while creating request: ", err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
 	}
 
 	// add headers to the request

@@ -161,13 +161,13 @@ func (h *ChatSessionHandler) CreateChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
+	userIDInt, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	sessionParams.UserID = int32(userIDInt)
+
+	sessionParams.UserID = userIDInt
 	sessionParams.MaxLength = 10
 	session, err := h.service.CreateChatSession(r.Context(), sessionParams)
 	if err != nil {
@@ -204,14 +204,13 @@ func (h *ChatSessionHandler) UpdateChatSessionByUUID(w http.ResponseWriter, r *h
 	sessionParams.Uuid = uuid
 
 	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	sessionParams.UserID = int32(userIDInt)
+	sessionParams.UserID = userID
 	session, err := h.service.UpdateChatSessionByUUID(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -244,10 +243,9 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 	}
 
 	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 	var sessionParams sqlc_queries.CreateOrUpdateChatSessionByUUIDParams
@@ -255,7 +253,7 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.MaxLength = sessionReq.MaxLength
 	sessionParams.Topic = sessionReq.Topic
 	sessionParams.Uuid = sessionReq.Uuid
-	sessionParams.UserID = int32(userIDInt)
+	sessionParams.UserID = userID
 	sessionParams.Temperature = sessionReq.Temperature
 	sessionParams.Model = sessionReq.Model
 	sessionParams.TopP = sessionReq.TopP
@@ -310,14 +308,13 @@ func (h *ChatSessionHandler) UpdateChatSessionTopicByUUID(w http.ResponseWriter,
 	sessionParams.Uuid = uuid
 
 	ctx := r.Context()
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.Atoi(userIDStr)
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
-	sessionParams.UserID = int32(userIDInt)
+	sessionParams.UserID = userID
 
 	session, err := h.service.UpdateChatSessionTopicByUUID(r.Context(), sessionParams)
 	if err != nil {

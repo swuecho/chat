@@ -122,3 +122,14 @@ func (s *AuthUserService) UpdateRateLimit(ctx context.Context, user_email string
 	}
 	return rate, nil
 }
+
+// get ratelimit for user_id
+func (s *AuthUserService) GetRateLimit(ctx context.Context, user_id int32) (int32, error) {
+	rate, err := s.q.GetRateLimit(ctx, user_id)
+	if err != nil {
+		return -1, errors.New("failed to get rate limit")
+
+	}
+	return rate, nil
+}
+

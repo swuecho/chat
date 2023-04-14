@@ -6,6 +6,11 @@ CREATE TABLE IF NOT EXISTS jwt_secrets (
     audience TEXT NOT NULL
 );
 
+-- create index on name
+CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
+
+
+
 CREATE TABLE IF NOT EXISTS auth_user (
   id SERIAL PRIMARY KEY,
   password VARCHAR(128) NOT NULL,
@@ -22,6 +27,7 @@ CREATE TABLE IF NOT EXISTS auth_user (
 
 -- add index on email
 CREATE INDEX IF NOT EXISTS auth_user_email_idx ON auth_user (email);
+
 
 
 CREATE TABLE IF NOT EXISTS auth_user_management (
