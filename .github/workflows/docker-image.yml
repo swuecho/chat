@@ -93,5 +93,5 @@ jobs:
         run: npx playwright install --with-deps
         working-directory: e2e
 
-      - run: npx playwright test
+      - run: DEBUG=pw:api npx playwright test
         working-directory: e2e
