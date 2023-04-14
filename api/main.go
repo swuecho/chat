@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"fmt"
 	"io"
 	"net/http"
@@ -199,7 +200,10 @@ func main() {
 		fmt.Println(tpl, err1, met, err2)
 		return nil
 	})
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	// go:embed static
+	var StaticFiles embed.FS
+
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(StaticFiles))))
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)
