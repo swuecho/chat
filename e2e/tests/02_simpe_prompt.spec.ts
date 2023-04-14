@@ -14,7 +14,7 @@ const test_email = randomEmail();
 const pool = new Pool(db_config);
 
 test('test', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/static/');
 
 
   await page.getByTestId('email').click();
