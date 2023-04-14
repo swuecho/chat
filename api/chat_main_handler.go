@@ -127,21 +127,16 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 	log.Printf("newQuestion: %s", newQuestion)
 
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
 
+	userID, err := getUserID(ctx)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
 	if req.Regenerate {
-		// TODO: get context
-		// get the 10 chatMessage right before the current chatMessage, order by created_at
-		// Send the response as JSON
-		// Update the chatMessage content with chatUuid with new answer
 		regenerateAnswer(h, w, chatSessionUuid, chatUuid)
 	} else {
-		// insert ChatMessage into database
 		genAnswer(h, w, chatSessionUuid, chatUuid, newQuestion, userID)
 	}
 
