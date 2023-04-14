@@ -376,20 +376,14 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 	// set the url
 	url := "https://api.anthropic.com/v1/complete"
 
-	var sb strings.Builder // create a new strings.Builder
+	// create a new strings.Builder
 	// iterate through the messages and format them
-	for _, message := range chat_compeletion_messages {
-		// print the user's question
-		if message.Role != "assistant" {
-			sb.WriteString(fmt.Sprintf("\n\nHuman: %s\n\nAssistant: ", message.Content))
-		} else {
-			// convert assistant's response to json format
-			sb.WriteString(fmt.Sprintf("%s\n", message.Content))
-		}
-	}
+	// print the user's question
+	// convert assistant's response to json format
+	prompt := formatClaudePrompt(chat_compeletion_messages)
 	// create the json data
 	jsonData := map[string]interface{}{
-		"prompt":               sb.String(),
+		"prompt":               prompt,
 		"model":                chatSession.Model,
 		"max_tokens_to_sample": chatSession.MaxTokens,
 		"temperature":          chatSession.Temperature,
@@ -403,6 +397,7 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		fmt.Println("Error while creating request: ", err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
 	}
 
 	// add headers to the request
