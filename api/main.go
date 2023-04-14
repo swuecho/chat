@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"embed"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/static"
 )
 
 var logger *log.Logger
@@ -66,8 +66,7 @@ func bindEnvironmentVariables() {
 	}
 }
 
-//go:embed static/*
-var StaticFiles embed.FS
+
 
 //go:embed sqlc/schema.sql
 var schemaBytes []byte
@@ -189,7 +188,7 @@ func main() {
 		return nil
 	})
 	
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(StaticFiles))))
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(static.StaticFiles))))
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)
