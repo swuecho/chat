@@ -4,6 +4,6 @@ test('has title', async ({ page }) => {
   await page.goto('/static/')
 
   // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/ChatGPT/)
+  await expect(page).toHaveTitle(/Chat/)
 })
 
