@@ -200,32 +200,21 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 
-	if isTest(msgs) {
-		answerText, answerID, shouldReturn := chatStreamTest(w, chatSession, msgs, chatUuid, false)
-		if shouldReturn {
-			return
-		}
-		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
-		}
-	} else {
-		streamFunc := chatStream
-		if strings.HasPrefix(chatSession.Model, "claude") {
-			streamFunc = chatStreamClaude
-		}
+	chatStreamFn := chooseChatStreamFn(chatSession, msgs)
 
-		answerText, answerID, shouldReturn := streamFunc(w, chatSession, msgs, chatUuid, false)
-		// record chat
+	answerText, answerID, shouldReturn := chatStreamFn(w, chatSession, msgs, chatUuid, false)
+
+	if shouldReturn {
+		return
+	}
+	// record chat
+	if !isTest(msgs) {
 		h.chatService.logChat(chatSession, msgs, answerText)
-		if shouldReturn {
-			return
-		}
+	}
 
-		if _, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
-			return
-		}
+	if _, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
+		return
 	}
 }
 
@@ -237,44 +226,39 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		return
 	}
 
-	chatCompletionMessages, err := h.chatService.getAskMessages(chat_session, chatUuid, true)
+	msgs, err := h.chatService.getAskMessages(chat_session, chatUuid, true)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Get chat message error", err)
 		return
 	}
 	// Determine whether the chat is a test or not
-	isTestChat := isTest(chatCompletionMessages)
+	chatStreamFn := chooseChatStreamFn(chat_session, msgs)
 
-	if isTestChat {
-		answerText, _, shouldReturn := chatStreamTest(w, chat_session, chatCompletionMessages, chatUuid, true)
-		if shouldReturn {
-			return
-		}
-		// Delete previous message and create new one
-		err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText)
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update chat message: ").Error(), nil)
-		}
-	} else {
-		model := chat_session.Model
-		isClaude := strings.HasPrefix(model, "claude")
-
-		chatStreamFn := chatStream
-		if isClaude {
-			chatStreamFn = chatStreamClaude
-		}
-
-		answerText, _, shouldReturn := chatStreamFn(w, chat_session, chatCompletionMessages, chatUuid, true)
-		h.chatService.logChat(chat_session, chatCompletionMessages, answerText)
-		if shouldReturn {
-			return
-		}
-
-		// Delete previous message and create new one
-		if err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
-		}
+	answerText, _, shouldReturn := chatStreamFn(w, chat_session, msgs, chatUuid, true)
+	if shouldReturn {
+		return
 	}
+
+	h.chatService.logChat(chat_session, msgs, answerText)
+
+	// Delete previous message and create new one
+	if err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
+	}
+}
+
+func chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []openai.ChatCompletionMessage) func(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, chatUuid string, regenerate bool) (string, string, bool) {
+	model := chat_session.Model
+	isTestChat := isTest(msgs)
+	isClaude := strings.HasPrefix(model, "claude")
+
+	chatStreamFn := chatStream
+	if isClaude {
+		chatStreamFn = chatStreamClaude
+	} else if isTestChat {
+		chatStreamFn = chatStreamTest
+	}
+	return chatStreamFn
 }
 
 func isTest(msgs []openai.ChatCompletionMessage) bool {
