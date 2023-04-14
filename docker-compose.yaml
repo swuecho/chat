@@ -26,7 +26,6 @@ services:
       db:
         condition: service_healthy
   db:
-    container_name: db 
     image: postgres:14
     restart: always
     user: postgres
