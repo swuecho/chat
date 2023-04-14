@@ -59,6 +59,7 @@ test('test', async ({ page }) => {
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
+  await page.waitForTimeout(500);
 
   const sessions_1 = await selectChatSessionsByUserId(pool, user.id);
   const session_1 = sessions_1[0];
