@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/static"
 )
 
 var logger *log.Logger
@@ -66,6 +67,9 @@ func bindEnvironmentVariables() {
 	}
 }
 
+//go:embed sqlc/schema.sql
+var schemaBytes []byte
+
 func main() {
 	// Configure viper to read environment variables
 	bindEnvironmentVariables()
@@ -101,33 +105,14 @@ func main() {
 	// Print project directory
 	fmt.Println(projectDir)
 
-	// Read SQL file
-	schemaPath := filepath.Join(projectDir, "schema.sql")
-	// check if file exists
-	// Check if file exists
-	if _, err := os.Stat(schemaPath); os.IsNotExist(err) {
-		fmt.Println("File does not exist")
-	} else {
-		sqlFile, err := os.Open(schemaPath)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer sqlFile.Close()
+	sqlStatements := string(schemaBytes)
 
-		// Get SQL statements
-		sqlBytes, err := io.ReadAll(sqlFile)
-		if err != nil {
-			panic(err.Error())
-		}
-		sqlStatements := string(sqlBytes)
-
-		// Execute SQL statements
-		_, err = pgdb.Exec(sqlStatements)
-		if err != nil {
-			panic(err.Error())
-		}
-		fmt.Println("SQL statements executed successfully")
+	// Execute SQL statements
+	_, err = pgdb.Exec(sqlStatements)
+	if err != nil {
+		panic(err.Error())
 	}
+	fmt.Println("SQL statements executed successfully")
 
 	// create a new Gorilla Mux router instance
 	// Create a new router
@@ -199,7 +184,18 @@ func main() {
 		fmt.Println(tpl, err1, met, err2)
 		return nil
 	})
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	// Embed static/* directory
+	fs := http.FileServer(http.FS(static.StaticFiles))
+
+	// Set cache headers for static/assets files
+	cacheHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "assets/") {
+			w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
+		}
+		fs.ServeHTTP(w, r)
+	})
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
 
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
@@ -208,7 +204,7 @@ func main() {
 	// 10 min < 100 requests
 	// loggedMux := loggingMiddleware(router, logger)
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
-	err = http.ListenAndServe(":8077", loggedRouter)
+	err = http.ListenAndServe(":8080", loggedRouter)
 	if err != nil {
 		log.Fatal(err)
 	}

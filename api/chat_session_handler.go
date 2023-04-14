@@ -284,7 +284,6 @@ func (h *ChatSessionHandler) DeleteChatSessionByUUID(w http.ResponseWriter, r *h
 func (h *ChatSessionHandler) GetSimpleChatSessionsByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	idStr := ctx.Value(userContextKey).(string)
-	print("xx", idStr)
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "invalid user ID", http.StatusBadRequest)

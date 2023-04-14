@@ -71,7 +71,6 @@ func (s *AuthUserService) Authenticate(ctx context.Context, email, password stri
 	if err != nil {
 		return sqlc_queries.AuthUser{}, err
 	}
-	println("x|" + user.Password + "|xxx")
 	if !auth.ValidatePassword(password, user.Password) {
 		return sqlc_queries.AuthUser{}, ErrInvalidCredentials
 	}

@@ -17,8 +17,8 @@ export default defineConfig((env) => {
       VitePWA({
         injectRegister: 'auto',
         manifest: {
-          name: 'chatGPT',
-          short_name: 'chatGPT',
+          name: 'Chat',
+          short_name: 'Chat',
           icons: [
             { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
             { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
@@ -31,13 +31,13 @@ export default defineConfig((env) => {
       port: 1002,
       open: false,
       proxy: {
-        '/api': {
+        '/': {
           target: viteEnv.VITE_APP_API_BASE_URL,
           changeOrigin: true, // 允许跨域
-          rewrite: path => path.replace('/api/', '/'),
         },
       },
     },
+    base: '/static/',
     build: {
       reportCompressedSize: false,
       sourcemap: false,

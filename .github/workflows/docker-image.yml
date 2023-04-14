@@ -12,10 +12,22 @@ env:
   PG_PASS: thisisapassword
 
 jobs:
-  build_api:
+  build_chat:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16.x"
+      - name: build web
+        run: |
+          npm install
+          npm run build
+        working-directory: web
+      - name: copy to api/static
+        run: |
+          cp -R web/dist/* api/static/
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
@@ -28,30 +40,16 @@ jobs:
         working-directory: api
       - name: Build API image
         run: |
-          docker build . --file Dockerfile -t ghcr.io/swuecho/chat_backend:${GITHUB_SHA}
+          docker build . --file Dockerfile -t ghcr.io/swuecho/chat:${GITHUB_SHA}
         working-directory: api
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Push API image to GitHub Container Registry
-        run: docker push ghcr.io/swuecho/chat_backend:${GITHUB_SHA}
+        run: docker push ghcr.io/swuecho/chat:${GITHUB_SHA}
         working-directory: api
-  build_ui:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build UI image
-        run: |
-          docker build . --file Dockerfile -t ghcr.io/swuecho/chat_frontend:${GITHUB_SHA}
-        working-directory: web
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Push UI image to GitHub Container Registry
-        run: docker push ghcr.io/swuecho/chat_frontend:${GITHUB_SHA}
-        working-directory: web
-
   e2e:
     runs-on: ubuntu-latest
-    needs: [build_api, build_ui]
+    needs: [build_chat]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -95,5 +93,5 @@ jobs:
         run: npx playwright install --with-deps
         working-directory: e2e
 
-      - run: npx playwright test
+      - run: DEBUG=pw:api npx playwright test
         working-directory: e2e

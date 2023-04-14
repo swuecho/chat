@@ -12,7 +12,7 @@ const pool = new Pool(db_config);
 const test_email = randomEmail();
 
 test('after clear conversation, only system message remains', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/static/');
   await page.getByTestId('email').click();
   await page.getByTestId('email').locator('input').fill(test_email);
   await page.getByTestId('password').locator('input').click();

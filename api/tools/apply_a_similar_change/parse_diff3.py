@@ -7,4 +7,3 @@ patch = PatchSet(data)
 print(len(patch))
 for i in patch:
     print(i)
-    print("xx")

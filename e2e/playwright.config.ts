@@ -35,9 +35,9 @@ export default defineConfig({
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 0,
     // video: 'on', // Record videos of all tests to `test-results` folder (check `test-results/`).
-    /* Base URL to use in actions like `await page.goto('/')`. */
+    /* Base URL to use in actions like `await page.goto('/static/')`. */
     // baseURL: 'http://localhost:3000',
-    baseURL: process.env.CI ? "http://localhost:8080/#/chat" : "http://localhost:1002/#/chat",
+    baseURL: process.env.CI ? "http://localhost:8080/static/#/chat" : "http://localhost:1002/static/#/chat",
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },

@@ -14,11 +14,10 @@ FROM alpine:3.16
 WORKDIR /app
 
 COPY --from=builder /app/app /app
-COPY --from=builder /app/sqlc/schema.sql /app
 # for go timezone work
 COPY --from=builder /usr/local/go/lib/time/zoneinfo.zip /app/zoneinfo.zip
 ENV ZONEINFO=/app/zoneinfo.zip 
 
-EXPOSE 8077
+EXPOSE 8080
 
 ENTRYPOINT ["/app/app"]
