@@ -21,7 +21,7 @@
     "email_placeholder": "请输入邮箱",
     "password_placeholder": "请输入密码",
     "unauthorizedTips": "请注册或者登录",
-    "login_success": "登录成功",
+    "loginSuccess": "登录成功",
     "logout_success": "登出成功",
     "signup_success": "注册成功",
     "signup_failed": "注册失败",

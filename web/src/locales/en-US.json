@@ -21,7 +21,7 @@
     "email_placeholder": "Please enter your email",
     "password_placeholder": "Please enter your password",
     "unauthorizedTips": "Please sign up or login",
-    "login_success": "Login Successful",
+    "loginSuccess": "Login Successful",
     "logout_success": "Logout Successful",
     "signup_success": "Registration Successful",
     "signup_failed": "Registration Failed",
