@@ -31,9 +31,10 @@ export default defineConfig((env) => {
       port: 1002,
       open: false,
       proxy: {
-        '/': {
-          target: viteEnv.VITE_APP_API_BASE_URL,
+        '/api': {
+          target: 'http://localhost:8080/',
           changeOrigin: true, // 允许跨域
+          rewrite: path => path.replace('/api/', '/'),
         },
       },
     },

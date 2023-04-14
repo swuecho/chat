@@ -8,6 +8,7 @@ const service = axios.create({
 service.interceptors.request.use(
   (config) => {
     const token = useAuthStore().getToken()
+    console.log(config.baseURL)
 
     // clear token if expired
     const expiresIn = useAuthStore().getExpiresIn()
