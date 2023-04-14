@@ -1,21 +1,13 @@
 version: '3'
 
 services:
-  web:
-    container_name: web
-    image: ghcr.io/swuecho/chat_frontend:latest # or use tag for better stability, e.g. v0.0.3
-    ports:
-      - 8080:80
-    depends_on:
-      - api
-      - db
-  api:
-    container_name: api
+  chat :
+    container_name: chat
     image: ghcr.io/swuecho/chat_backend:latest # or use tag for better stability, e.g.v0.0.3
     expose:
       - 8077
     ports:
-      - 8077:8077
+      - 8080:8077
     environment:
       # at least one key is required.
       # !!! no quote aroud key !!!
