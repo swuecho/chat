@@ -108,7 +108,6 @@ func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // OpenAIChatCompletionAPIWithStreamHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
-
 func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -208,10 +207,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		}
 		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID)
 		if err != nil {
-			http.Error(w,
-				eris.Wrap(err, "fail to create message: ").Error(),
-				http.StatusInternalServerError,
-			)
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		}
 	} else {
 		streamFunc := chatStream
