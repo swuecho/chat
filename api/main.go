@@ -66,7 +66,7 @@ func bindEnvironmentVariables() {
 	}
 }
 
-//go:embed static
+//go:embed static/*
 var StaticFiles embed.FS
 
 //go:embed sqlc/schema.sql
