@@ -431,7 +431,27 @@ func (h *AuthUserHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request
 		return
 	}
 	json.NewEncoder(w).Encode(
-		map[string]interface{}{
+		map[string]int32{
+			"rate": rate,
+		})
+}
+
+func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userIDStr := ctx.Value(userContextKey).(string)
+	userIDInt, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Error: '"+userIDStr+"' is not a valid user ID. Please enter a valid user ID.", http.StatusBadRequest)
+		return
+	}
+	userID := int32(userIDInt)
+	rate, err := h.service.q.GetRateLimit(ctx, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(
+		map[string]int32{
 			"rate": rate,
 		})
 }
