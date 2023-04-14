@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -67,6 +66,12 @@ func bindEnvironmentVariables() {
 	}
 }
 
+//go:embed static
+var StaticFiles embed.FS
+
+//go:embed sqlc/schema.sql
+var schemaBytes []byte
+
 func main() {
 	// Configure viper to read environment variables
 	bindEnvironmentVariables()
@@ -102,33 +107,16 @@ func main() {
 	// Print project directory
 	fmt.Println(projectDir)
 
-	// Read SQL file
-	schemaPath := filepath.Join(projectDir, "schema.sql")
-	// check if file exists
-	// Check if file exists
-	if _, err := os.Stat(schemaPath); os.IsNotExist(err) {
-		fmt.Println("File does not exist")
-	} else {
-		sqlFile, err := os.Open(schemaPath)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer sqlFile.Close()
+	
 
-		// Get SQL statements
-		sqlBytes, err := io.ReadAll(sqlFile)
-		if err != nil {
-			panic(err.Error())
-		}
-		sqlStatements := string(sqlBytes)
+	sqlStatements := string(schemaBytes)
 
-		// Execute SQL statements
-		_, err = pgdb.Exec(sqlStatements)
-		if err != nil {
-			panic(err.Error())
-		}
-		fmt.Println("SQL statements executed successfully")
+	// Execute SQL statements
+	_, err = pgdb.Exec(sqlStatements)
+	if err != nil {
+		panic(err.Error())
 	}
+	fmt.Println("SQL statements executed successfully")
 
 	// create a new Gorilla Mux router instance
 	// Create a new router
@@ -200,9 +188,7 @@ func main() {
 		fmt.Println(tpl, err1, met, err2)
 		return nil
 	})
-	// go:embed static
-	var StaticFiles embed.FS
-
+	
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(StaticFiles))))
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
