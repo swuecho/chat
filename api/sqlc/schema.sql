@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS auth_user (
   date_joined TIMESTAMP default now() NOT NULL
 );
 
+-- add index on email
+CREATE INDEX IF NOT EXISTS auth_user_email_idx ON auth_user (email);
+
+
 CREATE TABLE IF NOT EXISTS auth_user_management (
     id SERIAL PRIMARY KEY,
     user_id INTEGER UNIQUE NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
@@ -28,6 +32,8 @@ CREATE TABLE IF NOT EXISTS auth_user_management (
     updated_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
 
+-- add index on user_id
+CREATE INDEX IF NOT EXISTS auth_user_management_user_id_idx ON auth_user_management (user_id);
 
 CREATE TABLE IF NOT EXISTS chat_session (
     id SERIAL PRIMARY KEY,
@@ -44,6 +50,12 @@ CREATE TABLE IF NOT EXISTS chat_session (
     top_p float DEFAULT 1.0 NOT NUll,
     max_tokens int DEFAULT 512 NOT NULL
 );
+
+-- add hash index on uuid
+CREATE INDEX IF NOT EXISTS chat_session_uuid_idx ON chat_session using hash (uuid) ;
+
+-- add index on user_id
+CREATE INDEX IF NOT EXISTS chat_session_user_id_idx ON chat_session (user_id);
 
 CREATE TABLE IF NOT EXISTS chat_message (
     id SERIAL PRIMARY KEY,
@@ -62,6 +74,18 @@ CREATE TABLE IF NOT EXISTS chat_message (
     token_count INTEGER DEFAULT 0 NOT NULL,
     raw jsonb default '{}' NOT NULL
 );
+
+-- add hash index on uuid
+CREATE INDEX IF NOT EXISTS chat_message_uuid_idx ON chat_message using hash (uuid) ;
+
+-- add index on chat_session_uuid
+CREATE INDEX IF NOT EXISTS chat_message_chat_session_uuid_idx ON chat_message (chat_session_uuid);
+
+-- add index on user_id
+CREATE INDEX IF NOT EXISTS chat_message_user_id_idx ON chat_message (user_id);
+
+-- add brin index on created_at
+CREATE INDEX IF NOT EXISTS chat_message_created_at_idx ON chat_message using brin (created_at) ;
 
 -- alter table chat_message add column chat_session_uuid character varying(255) NOT NULL DEFAULT '';
 
@@ -82,6 +106,14 @@ CREATE TABLE IF NOT EXISTS chat_prompt (
     -- raw jsonb default '{}' NOT NULL
 );
 
+-- add hash index on uuid
+CREATE INDEX IF NOT EXISTS chat_prompt_uuid_idx ON chat_prompt using hash (uuid) ;
+
+-- add index on chat_session_uuid
+CREATE INDEX IF NOT EXISTS chat_prompt_chat_session_uuid_idx ON chat_prompt (chat_session_uuid);
+
+-- add index on user_id
+CREATE INDEX IF NOT EXISTS chat_prompt_user_id_idx ON chat_prompt (user_id);
 
 CREATE TABLE IF NOT EXISTS chat_logs (
 	id SERIAL PRIMARY KEY,  -- Auto-incrementing ID as primary key
@@ -89,9 +121,10 @@ CREATE TABLE IF NOT EXISTS chat_logs (
 	question JSONB default '{}' NOT NULL,        -- JSONB column to store the question
 	answer JSONB default '{}' NOT NULL,          -- JSONB column to store the answer 
     created_at timestamp  DEFAULT now() NOT NULL 
-
 );
 
+-- add brin index on created_at
+CREATE INDEX IF NOT EXISTS chat_logs_created_at_idx ON chat_logs using brin (created_at) ;
 
 
 -- user_id is the user who created the session
@@ -103,6 +136,9 @@ CREATE TABLE IF NOT EXISTS user_active_chat_session (
     created_at timestamp  DEFAULT now() NOT NULL,
     updated_at timestamp  DEFAULT now() NOT NULL
 );
+
+-- add index on user_id
+CREATE INDEX IF NOT EXISTS user_active_chat_session_user_id_idx ON user_active_chat_session using hash (user_id) ;
 
 
 -- ALTER TABLE user_active_chat_session
