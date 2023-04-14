@@ -12,10 +12,18 @@ env:
   PG_PASS: thisisapassword
 
 jobs:
-  build_api:
+  build_ui:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: build frontend
+        run: |
+          npm install
+          npm build
+        working-directory: web
+      - name: copy dist from web/dist/* to api/static/*
+        run: |
+          cp -R web/dist/* api/static/
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
@@ -35,19 +43,6 @@ jobs:
       - name: Push API image to GitHub Container Registry
         run: docker push ghcr.io/swuecho/chat_backend:${GITHUB_SHA}
         working-directory: api
-  build_ui:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build UI image
-        run: |
-          docker build . --file Dockerfile -t ghcr.io/swuecho/chat_frontend:${GITHUB_SHA}
-        working-directory: web
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Push UI image to GitHub Container Registry
-        run: docker push ghcr.io/swuecho/chat_frontend:${GITHUB_SHA}
-        working-directory: web
 
   e2e:
     runs-on: ubuntu-latest

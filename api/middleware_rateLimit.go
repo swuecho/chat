@@ -15,7 +15,7 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Get the user ID from the request, e.g. from a JWT token.
-			if r.URL.Path == "/chat" || r.URL.Path == "/chat_stream" {
+			if r.URL.Path == "/api/chat" || r.URL.Path == "/api/chat_stream" {
 				ctx := r.Context()
 				userIDStr := ctx.Value(userContextKey).(string)
 				userIDInt, err := strconv.Atoi(userIDStr)

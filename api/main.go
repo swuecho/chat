@@ -17,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/static"
 )
 
 var logger *log.Logger
@@ -132,6 +133,8 @@ func main() {
 	// create a new Gorilla Mux router instance
 	// Create a new router
 	router := mux.NewRouter()
+	api_router := router.PathPrefix("/api").Subrouter()
+
 	sqlc_q := sqlc_queries.New(pgdb)
 	secretService := NewJWTSecretService(sqlc_q)
 	jwtSecretAndAud, err = secretService.GetOrCreateJwtSecret(context.Background(), "chat")
@@ -146,7 +149,7 @@ func main() {
 	userHandler := NewAuthUserHandler(userService)
 
 	// register the AuthUserHandler with the router
-	userHandler.Register(router)
+	userHandler.Register(api_router)
 
 	// create a new ChatPromptService instance
 	promptService := NewChatPromptService(sqlc_q)
@@ -155,7 +158,7 @@ func main() {
 	promptHandler := NewChatPromptHandler(promptService)
 
 	// register the ChatPromptHandler with the router
-	promptHandler.Register(router)
+	promptHandler.Register(api_router)
 
 	// create a new ChatSessionService instance
 	chatSessionService := NewChatSessionService(sqlc_q)
@@ -164,7 +167,7 @@ func main() {
 	chatSessionHandler := NewChatSessionHandler(chatSessionService)
 
 	// register the ChatSessionHandler with the router
-	chatSessionHandler.Register(router)
+	chatSessionHandler.Register(api_router)
 
 	// create a new ChatMessageService instance
 	chatMessageService := NewChatMessageService(sqlc_q)
@@ -173,7 +176,7 @@ func main() {
 	chatMessageHandler := NewChatMessageHandler(chatMessageService)
 
 	// register the ChatMessageHandler with the router
-	chatMessageHandler.Register(router)
+	chatMessageHandler.Register(api_router)
 
 	// create a new UserActiveChatSessionService instance
 	activeSessionService := NewUserActiveChatSessionService(sqlc_q)
@@ -182,7 +185,7 @@ func main() {
 	activeSessionHandler := NewUserActiveChatSessionHandler(activeSessionService)
 
 	// register the UserActiveChatSessionHandler with the router
-	activeSessionHandler.Register(router)
+	activeSessionHandler.Register(api_router)
 
 	// create a new ChatService instance
 	chatService := NewChatService(sqlc_q)
@@ -191,23 +194,24 @@ func main() {
 	chatHandler := NewChatHandler(chatService)
 
 	// regiser the ChatHandler with the router
-	chatHandler.Register(router)
+	chatHandler.Register(api_router)
 
+	api_router.Use(IsAuthorizedMiddleware)
+	limitedRouter := RateLimitByUserID(sqlc_q)
+	api_router.Use(limitedRouter)
+	// Wrap the router with the logging middleware
+	// 10 min < 100 requests
+	// loggedMux := loggingMiddleware(router, logger)
+	loggedRouter := handlers.LoggingHandler(logger.Out, api_router)
+
+	// frontend
+	router.PathPrefix("/").Handler(http.FileServer(http.FS(static.Static)))
 	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		tpl, err1 := route.GetPathTemplate()
 		met, err2 := route.GetMethods()
 		fmt.Println(tpl, err1, met, err2)
 		return nil
 	})
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-
-	router.Use(IsAuthorizedMiddleware)
-	limitedRouter := RateLimitByUserID(sqlc_q)
-	router.Use(limitedRouter)
-	// Wrap the router with the logging middleware
-	// 10 min < 100 requests
-	// loggedMux := loggingMiddleware(router, logger)
-	loggedRouter := handlers.LoggingHandler(logger.Out, router)
 	err = http.ListenAndServe(":8077", loggedRouter)
 	if err != nil {
 		log.Fatal(err)
