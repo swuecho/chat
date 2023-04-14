@@ -74,7 +74,7 @@
 	<script>
 		async function sendRequest() {
 			// Get the input values
-			const url = document.getElementById('urlInput').value || "http://localhost:8077/events";
+			const url = document.getElementById('urlInput').value || "http://localhost:8080/events";
 			const message = document.getElementById('messageInput').value || "hello";
 			// Check if the inputs are not empty
 			if (!url || !message) {
@@ -118,9 +118,11 @@
 
 							// Add UI using HTML
 							const listItem = document.createElement('li');
-						listItem.innerHTML = data.choices[0].delta.content;
-							document.getElementById('dataList').appendChild(
-								listItem);
+							listItem.innerHTML = data.choices[0].delta
+								.content;
+							document.getElementById('dataList')
+								.appendChild(
+									listItem);
 						}
 					}
 				});

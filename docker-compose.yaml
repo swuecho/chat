@@ -5,9 +5,9 @@ services:
     container_name: chat
     image: ghcr.io/swuecho/chat:latest # or use tag for better stability, e.g.v0.0.3
     expose:
-      - 8077
+      - 8080
     ports:
-      - 8080:8077
+      - 8080:8080
     environment:
       # at least one key is required.
       # !!! no quote aroud key !!!

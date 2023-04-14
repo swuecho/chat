@@ -193,7 +193,7 @@ func main() {
 	// 10 min < 100 requests
 	// loggedMux := loggingMiddleware(router, logger)
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
-	err = http.ListenAndServe(":8077", loggedRouter)
+	err = http.ListenAndServe(":8080", loggedRouter)
 	if err != nil {
 		log.Fatal(err)
 	}
