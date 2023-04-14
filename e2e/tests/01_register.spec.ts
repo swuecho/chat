@@ -8,7 +8,7 @@ function randomEmail() {
 const test_email = randomEmail();
 
 test('test', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/static/');
   await page.getByTestId('email').click();
   await page.getByTestId('email').locator('input').fill(test_email);
   await page.getByTestId('password').locator('input').click();
