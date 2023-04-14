@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  chat :
+  chat:
     container_name: chat
     image: ghcr.io/swuecho/chat:latest # or use tag for better stability, e.g.v0.0.3
     expose:
@@ -26,6 +26,7 @@ services:
       db:
         condition: service_healthy
   db:
+    container_name: db 
     image: postgres:14
     restart: always
     user: postgres
