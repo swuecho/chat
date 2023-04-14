@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"net/http"
 	"os"
@@ -66,8 +67,6 @@ func bindEnvironmentVariables() {
 	}
 }
 
-
-
 //go:embed sqlc/schema.sql
 var schemaBytes []byte
 
@@ -105,8 +104,6 @@ func main() {
 
 	// Print project directory
 	fmt.Println(projectDir)
-
-	
 
 	sqlStatements := string(schemaBytes)
 
@@ -187,7 +184,7 @@ func main() {
 		fmt.Println(tpl, err1, met, err2)
 		return nil
 	})
-	
+
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(static.StaticFiles))))
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
