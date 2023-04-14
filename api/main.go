@@ -185,7 +185,18 @@ func main() {
 		return nil
 	})
 
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(static.StaticFiles))))
+	// Embed static/* directory
+	fs := http.FileServer(http.FS(static.StaticFiles))
+
+	// Set cache headers for static/assets files
+	cacheHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/static/assets/" {
+			w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
+		}
+		fs.ServeHTTP(w, r)
+	})
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", cacheHandler))
+
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)
