@@ -22,8 +22,8 @@ jobs:
           node-version: "16.x"
       - name: build web
         run: |
-          npm install
-          npm build
+          npm run install
+          npm run build
         working-directory: web
       - name: copy to api/static
         run: |
