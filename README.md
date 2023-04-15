@@ -18,6 +18,20 @@
 
 参考 `docker-compose.yaml`
 
+
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/tk7jWU?referralCode=5DMfQv)
+
+然后配置环境变量就可以了.
+
+```
+PORT=8080
+RATELIMITE=0
+```
+别的两个 api key 有就填.
+
+<img width="1155" alt="image" src="https://user-images.githubusercontent.com/666683/232234418-941c9336-783c-4430-857c-9e7b703bb1c1.png">
+
 ## 致谢
 
 - web: [ChatGPT-Web](https://github.com/Chanzhaoyu/chatgpt-web) 复制过来的 。
@@ -36,6 +50,20 @@
 ## How to Deploy
 
 Refer to `docker-compose.yaml`
+
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/tk7jWU?referralCode=5DMfQv)
+
+Then configure the environment variables. 
+
+```
+PORT=8080
+RATELIMITE=0
+```
+
+Fill in the other two keys if you have them.
+
+<img width="1155" alt="image" src="https://user-images.githubusercontent.com/666683/232234418-941c9336-783c-4430-857c-9e7b703bb1c1.png">
 
 ## Acknowledgments
 
