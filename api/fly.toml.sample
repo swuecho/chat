@@ -1,0 +1,11 @@
+# add env to the fly.toml
+
+[env]
+  OPENAI_API_KEY = "yourkey"
+  CLAUDE_API_KEY = "yourkey"
+  OPANAI_RATELIMIT=1
+  PG_HOST="flydbhost"
+  PG_DB="flydb"
+  PG_USER="flydbuser"
+  PG_PASS="flydb"
+  PG_PORT=5432

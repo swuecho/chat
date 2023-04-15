@@ -11,3 +11,4 @@ static/pwa-512x512.png
 static/registerSW.js
 static/sw.js
 static/workbox-e0782b83.js
+fly.toml

@@ -1,4 +1,14 @@
 
+-- store api key url etc
+CREATE TABLE chat_api (
+  id SERIAL PRIMARY KEY,  
+  name TEXT NOT NULL DEFAULT '',     
+  url TEXT NOT NULL DEFAULT '',  
+  auth_header TEXT DEFAULT '',   
+  auth_key TEXT DEFAULT '' 
+);
+
+
 CREATE TABLE IF NOT EXISTS jwt_secrets (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,

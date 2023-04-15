@@ -5,6 +5,7 @@
 package sqlc_queries
 
 import (
+	"database/sql"
 	"encoding/json"
 	"time"
 )
@@ -29,6 +30,14 @@ type AuthUserManagement struct {
 	RateLimit int32
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type ChatApi struct {
+	ID         int32
+	Name       string
+	Url        string
+	AuthHeader sql.NullString
+	AuthKey    sql.NullString
 }
 
 type ChatLog struct {
