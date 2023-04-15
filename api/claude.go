@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"strings"
-
-	openai "github.com/sashabaranov/go-openai"
 )
 
-func formatClaudePrompt(chat_compeletion_messages []openai.ChatCompletionMessage) string {
+func formatClaudePrompt(chat_compeletion_messages []Message) string {
 	var sb strings.Builder
 
 	for _, message := range chat_compeletion_messages {

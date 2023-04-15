@@ -243,7 +243,7 @@ func GetAiAnswerOpenApi(msgs []openai.ChatCompletionMessage) (ChatCompletionResp
 	return aiAnswer, nil
 }
 
-func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]openai.ChatCompletionMessage, error) {
+func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]Message, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -277,11 +277,11 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	if err != nil {
 		return nil, eris.Wrap(err, "fail to get messages: ")
 	}
-	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) openai.ChatCompletionMessage {
-		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
+	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) Message {
+		return Message{Role: m.Role, Content: m.Content}
 	})
-	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) openai.ChatCompletionMessage {
-		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
+	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) Message {
+		return Message{Role: m.Role, Content: m.Content}
 	})
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 	return msgs, nil
@@ -362,21 +362,14 @@ func (s *ChatService) DeleteAndCreateChatMessage(chatSessionUUID string, chatUUI
 	return nil
 }
 
-func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []openai.ChatCompletionMessage, answerText string) {
+func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []Message, answerText string) {
 	// log chat
-	msgs_clean := lo.Map(msgs, func(m openai.ChatCompletionMessage, _ int) Message {
-		return Message{
-			Role:    m.Role,
-			Content: m.Content,
-		}
-	})
-
 	sessionRaw := chatSession.ToRawMessage()
 	if sessionRaw == nil {
 		log.Println("failed to marshal chat session")
 		return
 	}
-	question, err := json.Marshal(msgs_clean)
+	question, err := json.Marshal(msgs)
 	if err != nil {
 		log.Println(eris.Wrap(err, "failed to marshal chat messages"))
 	}
