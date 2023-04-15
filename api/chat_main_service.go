@@ -122,12 +122,8 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 	if err != nil {
 		return nil, eris.Wrap(err, "fail to get latest message: ")
 	}
-	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) openai.ChatCompletionMessage {
-		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
-	})
-	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) openai.ChatCompletionMessage {
-		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
-	})
+	chat_prompt_msgs := sqlc_queries.SqlChatsToOpenAIMessagesGenerics(chat_prompts)
+	chat_message_msgs :=  sqlc_queries.SqlChatsToOpenAIMessagesGenerics(chat_massages)
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 
 	if existingPrompt {
