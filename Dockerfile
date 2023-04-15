@@ -13,7 +13,7 @@ RUN npm install
 COPY web/ .
 
 # Build the application
-RUN npm build
+RUN npm run build
 
 FROM golang:1.19-alpine3.16 AS builder
 
