@@ -11,6 +11,7 @@ RUN npm install
 
 # Copy the remaining application files to the container
 COPY web/ .
+RUN rm .gitignore
 
 # Build the application
 RUN npm run build
