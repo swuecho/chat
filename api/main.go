@@ -195,6 +195,12 @@ func main() {
 		}
 		fs.ServeHTTP(w, r)
 	})
+	
+	// Redirect "/" to "/static/"
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
+	})
+
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
 
 	router.Use(IsAuthorizedMiddleware)
