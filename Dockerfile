@@ -22,9 +22,9 @@ WORKDIR /app
 COPY api/go.mod api/go.sum ./
 RUN go mod download
 
-COPY api .
+COPY api/ .
 # web/dist/* api/static/
-COPY --from=frontend_builder /app/web/dist/*   api/static/
+COPY --from=frontend_builder /app/web/dist/ api/static/
 
 RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -a -installsuffix cgo -o /app/app
 
