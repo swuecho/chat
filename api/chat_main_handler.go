@@ -247,7 +247,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	}
 }
 
-func chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []openai.ChatCompletionMessage) func(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, chatUuid string, regenerate bool) (string, string, bool) {
+func chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []Message) func(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	model := chat_session.Model
 	isTestChat := isTest(msgs)
 	isClaude := strings.HasPrefix(model, "claude")
@@ -261,13 +261,13 @@ func chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []openai.Cha
 	return chatStreamFn
 }
 
-func isTest(msgs []openai.ChatCompletionMessage) bool {
+func isTest(msgs []Message) bool {
 	lastMsgs := msgs[len(msgs)-1]
 	promptMsg := msgs[0]
 	return promptMsg.Content == "test_demo_bestqa" || lastMsgs.Content == "test_demo_bestqa"
 }
 
-func chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, chatUuid string, regenerate bool) (string, string, bool) {
+func chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	client := openai.NewClient(appConfig.OPENAI.API_KEY)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
@@ -349,7 +349,7 @@ type ClaudeResponse struct {
 	Exception  interface{} `json:"exception"`
 }
 
-func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, chatUuid string, regenerate bool) (string, string, bool) {
+func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// set the api key
 	apiKey := appConfig.CLAUDE.API_KEY
 
@@ -459,7 +459,7 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 	return answer, answer_id, false
 }
 
-func chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage, chatUuid string, regenerate bool) (string, string, bool) {
+func chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	//message := Message{Role: "assitant", Content:}
 	answer_id := chatUuid
 	if !regenerate {
@@ -493,10 +493,11 @@ func chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession,
 	return answer, answer_id, false
 }
 
-func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []openai.ChatCompletionMessage) openai.ChatCompletionRequest {
+func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message) openai.ChatCompletionRequest {
+	openai_message := messagesToOpenAIMesages(chat_compeletion_messages)
 	openai_req := openai.ChatCompletionRequest{
 		Model:       chatSession.Model,
-		Messages:    chat_compeletion_messages,
+		Messages:    openai_message,
 		MaxTokens:   int(chatSession.MaxTokens),
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
