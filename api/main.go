@@ -84,9 +84,15 @@ func main() {
 	logger.Formatter = &log.JSONFormatter{}
 
 	// Establish a database connection
-	pg := appConfig.PG
-	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+	dbURL := os.Getenv("DATABASE_URL")
+	var connStr string
+	if dbURL == "" {
+		pg := appConfig.PG
+		connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
+	} else {
+		connStr = dbURL
+	}
 	pgdb, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
