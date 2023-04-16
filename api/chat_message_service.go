@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
@@ -149,7 +150,7 @@ func (s *ChatMessageService) GetChatHistoryBySessionUUID(ctx context.Context, uu
 	simple_prompts := lo.Map(chat_prompts, func(prompt sqlc_queries.ChatPrompt, idx int) SimpleChatMessage {
 		return SimpleChatMessage{
 			Uuid:      prompt.Uuid,
-			DateTime:  prompt.UpdatedAt.Format("2006-01-02 15:04:05PM"),
+			DateTime:  prompt.UpdatedAt.Format(time.RFC3339),
 			Text:      prompt.Content,
 			Inversion: idx%2 == 0,
 			Error:     false,
@@ -174,7 +175,7 @@ func (s *ChatMessageService) GetChatHistoryBySessionUUID(ctx context.Context, uu
 	simple_msgs := lo.Map(messages, func(message sqlc_queries.ChatMessage, _ int) SimpleChatMessage {
 		return SimpleChatMessage{
 			Uuid:      message.Uuid,
-			DateTime:  message.UpdatedAt.Format("2006-01-02 15:04:05PM"),
+			DateTime:  message.UpdatedAt.Format(time.RFC3339),
 			Text:      message.Content,
 			Inversion: message.Role == "user",
 			Error:     false,

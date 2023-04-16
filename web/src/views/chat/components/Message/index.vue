@@ -7,10 +7,11 @@ import { SvgIcon } from '@/components/common'
 import { copyText } from '@/utils/format'
 import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
+import { displayLocaleDate } from '@/utils/date'
 
 interface Props {
   index: number
-  dateTime?: string
+  dateTime: string
   text?: string
   inversion?: boolean
   error?: boolean
@@ -88,7 +89,7 @@ function handleRegenerate() {
     </div>
     <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
       <p class="text-xs text-[#b4bbc4]" :class="[inversion ? 'text-right' : 'text-left']">
-        {{ dateTime }}
+        {{ displayLocaleDate(dateTime) }}
       </p>
       <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
         <TextComponent
