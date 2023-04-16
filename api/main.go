@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -69,6 +70,9 @@ func bindEnvironmentVariables() {
 
 //go:embed sqlc/schema.sql
 var schemaBytes []byte
+
+// lastRequest tracks the last time a request was received
+var lastRequest time.Time
 
 func main() {
 	// Configure viper to read environment variables
@@ -214,6 +218,10 @@ func main() {
 
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
 
+	// fly.io 
+	if os.Getenv("FLY_APP_NAME") != "" {
+		router.Use(UpdateLastRequestTime)
+	}
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)
@@ -221,6 +229,23 @@ func main() {
 	// 10 min < 100 requests
 	// loggedMux := loggingMiddleware(router, logger)
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
+
+	// fly.io
+	if os.Getenv("FLY_APP_NAME") != "" {
+		// Use a goroutine to check for inactivity and exit
+		go func() {
+			for {
+				time.Sleep(1 * time.Minute) // Check every minute
+				if time.Since(lastRequest) > 30*time.Minute {
+					fmt.Println("No activity for 30 minutes. Exiting.")
+					os.Exit(0)
+					return
+				}
+			}
+		}()
+
+	}
+
 	err = http.ListenAndServe(":8080", loggedRouter)
 	if err != nil {
 		log.Fatal(err)

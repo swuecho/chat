@@ -3,7 +3,7 @@ name: Publish
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build_api:
@@ -26,21 +26,20 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.19
-      - name: Build API
+      - name: Build Chat Binary
         run: go build -v ./...
         working-directory: api
-      - name: Test API
+      - name: Test Chat
         run: go test -v ./...
         working-directory: api
-      - name: Build API image
+      # use root folder docker
+      - name: Build Chat image
         run: |
           docker build . --file Dockerfile -t ghcr.io/swuecho/chat:${GITHUB_REF#refs/tags/}
-        working-directory: api
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Push API image to GitHub Container Registry
         run: |
-         docker push ghcr.io/swuecho/chat:${GITHUB_REF#refs/tags/}
-         docker tag ghcr.io/swuecho/chat:${GITHUB_REF#refs/tags/} ghcr.io/swuecho/chat:latest
-         docker push  ghcr.io/swuecho/chat:latest 
-        working-directory: api
+          docker push ghcr.io/swuecho/chat:${GITHUB_REF#refs/tags/}
+          docker tag ghcr.io/swuecho/chat:${GITHUB_REF#refs/tags/} ghcr.io/swuecho/chat:latest
+          docker push  ghcr.io/swuecho/chat:latest

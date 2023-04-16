@@ -197,32 +197,6 @@ type TokenRequest struct {
 	Token string `json:"token"`
 }
 
-func (h *AuthUserHandler) verify(w http.ResponseWriter, r *http.Request) {
-	var req TokenRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, eris.Wrap(err, "invalid request").Error(), err)
-		return
-	}
-
-	fmt.Printf("Received token: %s\n", req.Token)
-	token := req.Token
-
-	if token == "" {
-		RespondWithError(w, http.StatusBadRequest, "Secret key is empty", nil)
-		return
-	}
-	// AuthSecretKey := os.Getenv("AUTH_SECRET_KEY")
-	_, err = auth.ValidateToken(token, jwtSecretAndAud.Secret)
-	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "密钥无效 | Secret key is invalid ", err)
-		return
-	}
-
-	// Send a JSON response with status 'Success', message 'Verify successfully', and null data payload
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"data": %v}`, token)
-}
 
 type ModelConfig struct {
 	ApiModel     string `json:"apiModel"`

@@ -38,15 +38,13 @@ jobs:
       - name: Test API
         run: go test -v ./...
         working-directory: api
-      - name: Build API image
+      - name: Build Chat image
         run: |
           docker build . --file Dockerfile -t ghcr.io/swuecho/chat:${GITHUB_SHA}
-        working-directory: api
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Push API image to GitHub Container Registry
+      - name: Push Chat image to GitHub Container Registry
         run: docker push ghcr.io/swuecho/chat:${GITHUB_SHA}
-        working-directory: api
   e2e:
     runs-on: ubuntu-latest
     needs: [build_chat]

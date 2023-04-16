@@ -1,0 +1,40 @@
+# fly.toml file generated for swuecho-chat on 2023-04-15T12:26:26+08:00
+
+app = "swuecho-chat" # change this to your app name
+kill_signal = "SIGINT"
+kill_timeout = 5
+primary_region = "dfw" # change this to your region
+processes = []
+
+# flyctl secrets set OPENAI_RATELIMIT=1
+# flyctl secrets set OPENAI_API_KEY=sk-xxxx
+# flyctl secrets set CLAUDE_API_KEY=sk-xxxx
+
+[experimental]
+  auto_rollback = true
+
+[[services]]
+  http_checks = []
+  internal_port = 8080
+  processes = ["app"]
+  protocol = "tcp"
+  script_checks = []
+  [services.concurrency]
+    hard_limit = 100 
+    soft_limit = 80
+    type = "connections"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.tcp_checks]]
+    grace_period = "1s"
+    interval = "15s"
+    restart_limit = 0
+    timeout = "2s"
