@@ -213,7 +213,7 @@ func main() {
 
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
 
-	router.Use(UpdateLastRequest)
+	router.Use(UpdateLastRequestTime)
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)

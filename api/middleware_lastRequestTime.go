@@ -6,7 +6,7 @@ import (
 )
 
 // Middleware to update lastRequest time
-func UpdateLastRequest(next http.Handler) http.Handler {
+func UpdateLastRequestTime(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Update lastRequest time
 		lastRequest = time.Now()
