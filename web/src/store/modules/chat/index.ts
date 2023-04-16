@@ -53,21 +53,17 @@ export const useChatStore = defineStore('chat-store', {
   },
 
   actions: {
+    recordState() {
+      setLocalState(this.$state)
+    },
+
     async reloadRoute(uuid?: string) {
       this.recordState()
       await router.push({ name: 'Chat', params: { uuid } })
     },
 
-    recordState() {
-      setLocalState(this.$state)
-    },
-
     async syncChatSessions() {
-      const new_chat_text = t('chat.new')
       const sessions = await getChatSessionsByUser()
-      if (sessions.length <= 0)
-        return
-
       this.history = []
       this.chat = []
       await sessions.forEach(async (r: Chat.History) => {
@@ -78,7 +74,18 @@ export const useChatStore = defineStore('chat-store', {
       })
       if (this.history.length === 0) {
         const uuid = uuidv4()
-        this.addChatSession({ title: new_chat_text, isEdit: false, uuid })
+        const new_chat_text = t('chat.new')
+        this.addChatSession({
+          title: new_chat_text,
+          isEdit: false,
+          uuid,
+          maxLength: 10,
+          temperature: 1,
+          model: 'gpt-3.5-turbo',
+          topP: 1,
+          maxTokens: 512,
+          debug: false,
+        })
       }
 
       let active_session_uuid = this.history[0].uuid

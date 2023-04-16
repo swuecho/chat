@@ -9,7 +9,7 @@ const pool = new Pool(db_config);
 
 
 test('test', async ({ page }) => {
-  await page.goto('/static/');
+  await page.goto('/');
   await page.getByTestId('email').click();
   await page.getByTestId('email').locator('input').fill(test_email);
   await page.getByTestId('password').locator('input').click();

@@ -126,4 +126,3 @@ const chatModelOptions = [
                       -->
   </div>
 </template>
-
