@@ -43,4 +43,3 @@ jobs:
           docker push ghcr.io/swuecho/chat:${GITHUB_REF#refs/tags/}
           docker tag ghcr.io/swuecho/chat:${GITHUB_REF#refs/tags/} ghcr.io/swuecho/chat:latest
           docker push  ghcr.io/swuecho/chat:latest
-        working-directory: api
