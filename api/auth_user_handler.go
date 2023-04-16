@@ -30,7 +30,6 @@ func (h *AuthUserHandler) Register(router *mux.Router) {
 	router.HandleFunc("/users/{id}", h.UpdateUser).Methods(http.MethodPut)
 	router.HandleFunc("/signup", h.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
-	router.HandleFunc("/verify", h.verify).Methods(http.MethodPost)
 	router.HandleFunc("/config", h.configHandler).Methods(http.MethodPost)
 	// rate limit handler
 	router.HandleFunc("/admin/rate_limit", h.UpdateRateLimit).Methods(http.MethodPost)
