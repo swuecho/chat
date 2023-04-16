@@ -5,6 +5,7 @@ import { renameChatSession } from '@/api'
 import { SvgIcon } from '@/components/common'
 import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
+import ModelAvatar from '@/views/chat/components/Avatar/ModelAvatar.vue'
 import { t } from '@/locales'
 
 const { isMobile } = useBasicLayout()
@@ -91,7 +92,7 @@ function isActive(uuid: string) {
             @click="handleSelect(item)"
           >
             <span>
-              <SvgIcon icon="ri:message-3-line" />
+              <ModelAvatar :model="item.model" />
             </span>
             <div class="relative flex-1 overflow-hidden break-all text-ellipsis whitespace-nowrap">
               <NInput
