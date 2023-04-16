@@ -36,5 +36,5 @@ processes = []
   [[services.tcp_checks]]
     grace_period = "1s"
     interval = "15s"
-    restart_limit = 3
+    restart_limit = 0
     timeout = "2s"
