@@ -119,6 +119,3 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
-func contains(noAuthPaths []string, s string) {
-	panic("unimplemented")
-}
