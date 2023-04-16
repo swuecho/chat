@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -70,6 +71,9 @@ func bindEnvironmentVariables() {
 //go:embed sqlc/schema.sql
 var schemaBytes []byte
 
+// lastRequest tracks the last time a request was received
+var lastRequest time.Time
+
 func main() {
 	// Configure viper to read environment variables
 	bindEnvironmentVariables()
@@ -89,7 +93,7 @@ func main() {
 	if dbURL == "" {
 		pg := appConfig.PG
 		connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
+			pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
 	} else {
 		connStr = dbURL
 	}
@@ -201,7 +205,7 @@ func main() {
 		}
 		fs.ServeHTTP(w, r)
 	})
-	
+
 	// Redirect "/" to "/static/"
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
@@ -209,6 +213,7 @@ func main() {
 
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
 
+	router.Use(UpdateLastRequest)
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)
@@ -216,6 +221,22 @@ func main() {
 	// 10 min < 100 requests
 	// loggedMux := loggingMiddleware(router, logger)
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
+
+	if os.Getenv("FLY_APP_NAME") != "" {
+		// Use a goroutine to check for inactivity and exit
+		go func() {
+			for {
+				time.Sleep(1 * time.Minute) // Check every minute
+				if time.Since(lastRequest) > 30*time.Minute {
+					fmt.Println("No activity for 30 minutes. Exiting.")
+					os.Exit(0)
+					return
+				}
+			}
+		}()
+
+	}
+
 	err = http.ListenAndServe(":8080", loggedRouter)
 	if err != nil {
 		log.Fatal(err)
