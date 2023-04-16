@@ -11,29 +11,10 @@ defineProps({
 <template>
   <div>
     <template v-if="model === 'claude-v1'">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true" width="1em" height="1em">
-        <path
-          d="M32.73 0h-6.945L38.45 32h6.945L32.73 0ZM12.665 0 0 32h7.082l2.59-6.72h13.25l2.59 6.72h7.082L19.929 0h-7.264Zm-.702 19.337 4.334-11.246 4.334 11.246h-8.668Z"
-          fill="brown" />
-      </svg>
+      <SvgIcon icon="eos-icons:ai" color="brown" />
     </template>
-
     <template v-if="model === 'claude-instant-v1'">
       <SvgIcon icon="simple-icons:fastapi" />
-    </template>
-
-    <template v-if="model === 'claude-v1.2'">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true" width="1em" height="1em">
-        <path d="M6 17v-3H3v-2h3V9h2v3h3v2H8v3H6Zm9.75 2V8.05l-2.3 1.65l-1.15-1.75L16.4 5H18v14h-2.25Z"
-          fill="currentColor" />
-      </svg>
-    </template>
-    <template v-if="model === 'claude-v1.3'">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true" width="1em" height="1em">
-        <path
-          d="M32.73 0h-6.945L38.45 32h6.945L32.73 0ZM12.665 0 0 32h7.082l2.59-6.72h13.25l2.59 6.72h7.082L19.929 0h-7.264Zm-.702 19.337 4.334-11.246 4.334 11.246h-8.668Z"
-          fill="brown" />
-      </svg>
     </template>
     <template v-if="model?.startsWith('gpt')">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true" width="1em" height="1em">
