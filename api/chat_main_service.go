@@ -123,7 +123,7 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 		return nil, eris.Wrap(err, "fail to get latest message: ")
 	}
 	chat_prompt_msgs := sqlc_queries.SqlChatsToOpenAIMessagesGenerics(chat_prompts)
-	chat_message_msgs :=  sqlc_queries.SqlChatsToOpenAIMessagesGenerics(chat_massages)
+	chat_message_msgs := sqlc_queries.SqlChatsToOpenAIMessagesGenerics(chat_massages)
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 
 	if existingPrompt {
