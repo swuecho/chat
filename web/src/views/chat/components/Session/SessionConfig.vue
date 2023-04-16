@@ -85,45 +85,45 @@ const chatModelOptions = [
 
 <template>
   <!-- https://platform.openai.com/playground?mode=chat -->
-    <div>
-      <NForm ref="formRef" :model="modelRef" size="small" label-placement="top" :label-width="20">
-        <NFormItem :label="$t('chat.model')" path="chatModel">
-          <NRadioGroup v-model:value="modelRef.chatModel">
-            <NSpace>
-              <NRadio v-for="song in chatModelOptions" :key="song.value" :value="song.value">
-                {{ song.label }}
-              </NRadio>
-            </NSpace>
-          </NRadioGroup>
-        </NFormItem>
-        <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
-          <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />
-        </NFormItem>
-        <NFormItem :label="$t('chat.temperature', { temperature: modelRef.temperature })" path="temperature">
-          <NSlider v-model:value="modelRef.temperature" :min="0.1" :max="1" :step="0.01" :tooltip="false" />
-        </NFormItem>
-        <NFormItem :label="$t('chat.topP', { topP: modelRef.topP })" path="topP">
-          <NSlider v-model:value="modelRef.topP" :min="0" :max="1" :step="0.01" :tooltip="false" />
-        </NFormItem>
-        <NFormItem :label="$t('chat.maxTokens', { maxTokens: modelRef.maxTokens })" path="maxTokens">
-          <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="2048" :step="16" :tooltip="false" />
-        </NFormItem>
-        <NFormItem :label="$t('chat.debug')" path="debug">
-          <NSwitch v-model:value="modelRef.debug">
-            <template #checked>
-              {{ $t('chat.enable_debug') }}
-            </template>
-            <template #unchecked>
-              {{ $t('chat.disable_debug') }}
-            </template>
-          </NSwitch>
-        </NFormItem>
-      </NForm>
-      <!--
-                    <div class="center">
-                      <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
-                    </div>
-                    -->
-    </div>
+  <div>
+    <NForm ref="formRef" :model="modelRef" size="small" label-placement="top" :label-width="20">
+      <NFormItem :label="$t('chat.model')" path="chatModel">
+        <NRadioGroup v-model:value="modelRef.chatModel">
+          <NSpace>
+            <NRadio v-for="song in chatModelOptions" :key="song.value" :value="song.value">
+              {{ song.label }}
+            </NRadio>
+          </NSpace>
+        </NRadioGroup>
+      </NFormItem>
+      <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
+        <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />
+      </NFormItem>
+      <NFormItem :label="$t('chat.temperature', { temperature: modelRef.temperature })" path="temperature">
+        <NSlider v-model:value="modelRef.temperature" :min="0.1" :max="1" :step="0.01" :tooltip="false" />
+      </NFormItem>
+      <NFormItem :label="$t('chat.topP', { topP: modelRef.topP })" path="topP">
+        <NSlider v-model:value="modelRef.topP" :min="0" :max="1" :step="0.01" :tooltip="false" />
+      </NFormItem>
+      <NFormItem :label="$t('chat.maxTokens', { maxTokens: modelRef.maxTokens })" path="maxTokens">
+        <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="2048" :step="16" :tooltip="false" />
+      </NFormItem>
+      <NFormItem :label="$t('chat.debug')" path="debug">
+        <NSwitch v-model:value="modelRef.debug">
+          <template #checked>
+            {{ $t('chat.enable_debug') }}
+          </template>
+          <template #unchecked>
+            {{ $t('chat.disable_debug') }}
+          </template>
+        </NSwitch>
+      </NFormItem>
+    </NForm>
+    <!--
+                      <div class="center">
+                        <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
+                      </div>
+                      -->
+  </div>
 </template>
 
