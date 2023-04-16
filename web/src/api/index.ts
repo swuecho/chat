@@ -77,17 +77,6 @@ export function fetchChatAPIProcess<T>(
   })
 }
 
-export async function fetchVerify(token: string) {
-  try {
-    const response = await request.post('/verify', { token })
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
-
 export async function fetchLogin(email: string, password: string) {
   try {
     const response = await request.post('/login', { email, password })
