@@ -132,4 +132,3 @@ func (s *AuthUserService) GetRateLimit(ctx context.Context, user_id int32) (int3
 	}
 	return rate, nil
 }
-

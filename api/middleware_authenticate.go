@@ -118,4 +118,3 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 		}
 	})
 }
-

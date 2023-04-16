@@ -11,4 +11,3 @@ func messagesToOpenAIMesages(messages []Message) []openai.ChatCompletionMessage 
 	})
 	return open_ai_msgs
 }
-

@@ -89,7 +89,7 @@ func main() {
 	if dbURL == "" {
 		pg := appConfig.PG
 		connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
+			pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
 	} else {
 		connStr = dbURL
 	}
@@ -198,10 +198,15 @@ func main() {
 	cacheHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "assets/") {
 			w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
+		} else if r.URL.Path == "/index.html" {
+			// Set no cache headers for index.html
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
 		}
 		fs.ServeHTTP(w, r)
 	})
-	
+
 	// Redirect "/" to "/static/"
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
