@@ -85,7 +85,6 @@ const chatModelOptions = [
 
 <template>
   <!-- https://platform.openai.com/playground?mode=chat -->
-  <NCard id="session-config" :title="$t('chat.sessionConfig')" :bordered="false" size="medium">
     <div>
       <NForm ref="formRef" :model="modelRef" size="small" label-placement="top" :label-width="20">
         <NFormItem :label="$t('chat.model')" path="chatModel">
@@ -126,11 +125,5 @@ const chatModelOptions = [
                     </div>
                     -->
     </div>
-  </NCard>
 </template>
 
-<style>
-#session-config {
-  width: 600px
-}
-</style>

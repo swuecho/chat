@@ -493,8 +493,8 @@ function getDataFromResponseText(responseText: string): string {
       @toggle-using-context="showModal = true"
     />
     <main class="flex-1 overflow-hidden">
-      <NModal ref="sessionConfigModal" v-model:show="showModal">
-        <SessionConfig ref="sessionConfig" :uuid="sessionUuid" />
+      <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
+        <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div
