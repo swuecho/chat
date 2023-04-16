@@ -1,7 +1,7 @@
 <script setup lang='ts'>
 import { ref } from 'vue'
 import { NDropdown } from 'naive-ui'
-import AvatarComponent from './Avatar.vue'
+import AvatarComponent from '../Avatar/MessageAvatar.vue'
 import TextComponent from './Text.vue'
 import { SvgIcon } from '@/components/common'
 import { copyText } from '@/utils/format'
