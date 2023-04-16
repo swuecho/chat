@@ -68,6 +68,7 @@
   "admin": {
     "openPanel": "在新标签页中打开(仅限管理员)",
     "title": "管理",
+    "refresh": "刷新",
     "userEmail": "用户邮箱",
     "totalChatMessages": "消息总数",
     "totalChatMessages3Days": "消息总数(3天)",

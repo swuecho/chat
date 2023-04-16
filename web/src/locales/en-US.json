@@ -86,6 +86,7 @@
   "admin": {
     "openPanel": "Open Admin Panel",
     "title": "Admin",
+    "refresh": "Refresh",
     "permission": "Permission",
     "rateLimit": "Rate Limit",
     "userEmail": "User Email",
