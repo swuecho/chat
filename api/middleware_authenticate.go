@@ -48,9 +48,14 @@ const (
 )
 
 func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
+	noAuthPaths := map[string]bool{
+		"/":       true,
+		"/login":  true,
+		"/signup": true,
+	}
 	jwtSigningKey := []byte(jwtSecretAndAud.Secret)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" || r.URL.Path == "/verify" || r.URL.Path == "/login" || r.URL.Path == "/signup" || strings.HasPrefix(r.URL.Path, "/static") {
+		if _, ok := noAuthPaths[r.URL.Path]; ok || strings.HasPrefix(r.URL.Path, "/static") {
 			handler.ServeHTTP(w, r)
 			return
 		}
@@ -113,3 +118,4 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 		}
 	})
 }
+
