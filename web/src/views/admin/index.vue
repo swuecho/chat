@@ -8,7 +8,7 @@ import { RouterLink } from 'vue-router'
 import Permission from '@/views/components/Permission.vue'
 import { t } from '@/locales'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { HoverButton, SvgIcon } from '@/components/common'
+import { SvgIcon } from '@/components/common'
 import { useAuthStore } from '@/store'
 
 const { isMobile } = useBasicLayout()
@@ -88,7 +88,7 @@ function handleUpdateCollapsed() {
             <h1 class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
               管理后台
             </h1>
-            <div class="flex items-center space-x-2">
+            <!-- <div class="flex items-center space-x-2">
               <HoverButton>
                 <span class="text-xl">
                   <SvgIcon icon="ri:chat-history-line" />
@@ -99,7 +99,7 @@ function handleUpdateCollapsed() {
                   <SvgIcon icon="ri:download-2-line" />
                 </span>
               </HoverButton>
-            </div>
+            </div> -->
           </div>
         </header>
         <NLayout has-sider>
