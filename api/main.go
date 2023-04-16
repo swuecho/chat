@@ -213,7 +213,10 @@ func main() {
 
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
 
-	router.Use(UpdateLastRequestTime)
+	// fly.io 
+	if os.Getenv("FLY_APP_NAME") != "" {
+		router.Use(UpdateLastRequestTime)
+	}
 	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)
@@ -222,6 +225,7 @@ func main() {
 	// loggedMux := loggingMiddleware(router, logger)
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
 
+	// fly.io
 	if os.Getenv("FLY_APP_NAME") != "" {
 		// Use a goroutine to check for inactivity and exit
 		go func() {
