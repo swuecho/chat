@@ -6,8 +6,8 @@ kill_timeout = 5
 primary_region = "dfw" # change this to your region
 processes = []
 
-# flyctl secrets set OPANAI_RATELIMIT=1
-# flyctl secrets set OPANAI_API_KEY=sk-xxxx
+# flyctl secrets set OPENAI_RATELIMIT=1
+# flyctl secrets set OPENAI_API_KEY=sk-xxxx
 # flyctl secrets set CLAUDE_API_KEY=sk-xxxx
 
 [experimental]
