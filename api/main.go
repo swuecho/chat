@@ -75,6 +75,7 @@ var schemaBytes []byte
 var lastRequest time.Time
 
 func main() {
+	lastRequest = time.Now()
 	// Configure viper to read environment variables
 	bindEnvironmentVariables()
 	viper.AutomaticEnv()
