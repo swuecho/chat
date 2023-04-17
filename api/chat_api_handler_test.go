@@ -81,7 +81,7 @@ func TestListChatAPIs(t *testing.T) {
 
 	// router = mux.NewRouter()
 	// h.Register(router)
-	// rr = httptest.NewRecorder()
+	rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 	// ensure that we get an array of one chat API in the response body
 	body_bytes = rr.Body.Bytes()
