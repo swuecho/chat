@@ -19,6 +19,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/static"
+	"golang.org/x/time/rate"
 )
 
 var logger *log.Logger
@@ -73,8 +74,12 @@ var schemaBytes []byte
 
 // lastRequest tracks the last time a request was received
 var lastRequest time.Time
+var openAIRateLimiter *rate.Limiter
 
 func main() {
+	// Allow only 3000 requests per minute, with burst 500
+	openAIRateLimiter = rate.NewLimiter(rate.Every(time.Minute/3000), 500)
+
 	lastRequest = time.Now()
 	// Configure viper to read environment variables
 	bindEnvironmentVariables()

@@ -268,6 +268,7 @@ func isTest(msgs []Message) bool {
 }
 
 func chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+	openAIRateLimiter.Wait(context.Background())
 	client := openai.NewClient(appConfig.OPENAI.API_KEY)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
