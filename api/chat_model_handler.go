@@ -146,6 +146,40 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(ChatModel)
 }
 
+func (h *ChatModelHandler) UpdateChatModelKey(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Invalid chat API ID"))
+		return
+	}
+	var input struct {
+		APIAuthKey string
+	}
+	err = json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Failed to parse request body"))
+		return
+	}
+
+	ChatModel, err := h.db.UpdateChatModelKey(r.Context(), sqlc_queries.UpdateChatModelKeyParams{
+		ID:         int32(id),
+		ApiAuthKey: input.APIAuthKey,
+	})
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("Error updating chat API key: %s", err.Error())))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(ChatModel)
+}
+
+
 func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
