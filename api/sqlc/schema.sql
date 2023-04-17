@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS chat_model (
   is_default BOOLEAN DEFAULT false NOT NULL,
   url TEXT  DEFAULT '' NOT NULL,  
   api_auth_header TEXT DEFAULT '' NOT NULL,   
+  -- env var that contains the api key
+  -- for example: OPENAI_API_KEY, which means the api key is stored in an env var called OPENAI_API_KEY
   api_auth_key TEXT DEFAULT '' NOT NULL 
 );
 
