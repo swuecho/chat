@@ -60,7 +60,7 @@ func TestListresults(t *testing.T) {
 		}
 	}
 
-	req, err := http.NewRequest("GET", "/chat_apis", nil)
+	req, err := http.NewRequest("GET", "/chat_model", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestListresults(t *testing.T) {
 	}
 
 	// Create an HTTP request so we can simulate a PUT with the payload
-	updateReq, err := http.NewRequest("PUT", fmt.Sprintf("/chat_apis/%d", results[0].ID), bytes.NewBuffer(updateBytes))
+	updateReq, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestListresults(t *testing.T) {
 	assert.Equal(t, expectedResults[0].Name, updatedResult.Name)
 	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
 	// And now call the DELETE endpoint to remove all the created ChatModels
-	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_apis/%d", results[0].ID), nil)
+	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestListresults(t *testing.T) {
 	}
 
 	// only one left
-	req, err = http.NewRequest("GET", "/chat_apis", nil)
+	req, err = http.NewRequest("GET", "/chat_model", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +169,7 @@ func TestListresults(t *testing.T) {
 	// first results's name is  "Test API 2"
 	assert.Equal(t, results[0].Name, "Test API 2")
 	// delete all results
-	deleteReq2, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_apis/%d", results[0].ID), nil)
+	deleteReq2, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestListresults(t *testing.T) {
 	}
 
 	// there should be no results
-	req, err = http.NewRequest("GET", "/chat_apis", nil)
+	req, err = http.NewRequest("GET", "/chat_model", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
