@@ -20,6 +20,11 @@ func TestListresults(t *testing.T) {
 	h := NewChatAPIHandler(q) // create a new ChatAPIHandler instance for testing
 	router := mux.NewRouter()
 	h.Register(router)
+	defaultApis, _ := q.ListChatAPIs(context.Background())
+	// delete all existing chat APIs
+	for _, api := range defaultApis {
+		q.DeleteChatAPI(context.Background(), api.ID)
+	}
 
 	// Now let's create our expected results. Create two results and insert them into the database using the queries.
 	expectedResults := []sqlc_queries.ChatApi{
