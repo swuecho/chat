@@ -56,12 +56,12 @@ const menuOptions: MenuOption[] = reactive([
       RouterLink,
       {
         to: {
-          name: 'AdminSystem',
+          name: 'AdminModel',
         },
       },
-      { default: () => t('admin.permission') },
+      { default: () => t('admin.model') },
     ),
-    key: 'permission',
+    key: 'model',
     icon: renderIcon(ShieldCheckmarkOutline),
   },
 ])

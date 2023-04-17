@@ -43,7 +43,6 @@ func (h *ChatModelHandler) ListChatModels(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(ChatModels)
 }
@@ -112,14 +111,13 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		w.Write([]byte("Invalid chat API ID"))
 		return
 	}
-
 	var input struct {
-		Name          string `json:"name"`
-		Label         string `json:"label"`
-		IsDefault     bool   `json:"is_default"`
-		URL           string `json:"url"`
-		APIAuthHeader string `json:"api_auth_header"`
-		APIAuthKey    string `json:"api_auth_key"`
+		Name          string
+		Label         string
+		IsDefault     bool
+		URL           string
+		APIAuthHeader string
+		APIAuthKey    string
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
@@ -138,7 +136,6 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		ApiAuthKey:    input.APIAuthKey,
 	})
 
-
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error updating chat API: %s", err.Error())))
@@ -148,7 +145,6 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(ChatModel)
 }
-
 
 func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
