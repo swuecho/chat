@@ -197,7 +197,6 @@ type TokenRequest struct {
 	Token string `json:"token"`
 }
 
-
 type ModelConfig struct {
 	ApiModel     string `json:"apiModel"`
 	ReverseProxy string `json:"reverseProxy"`
