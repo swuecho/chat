@@ -26,11 +26,18 @@
 
 ```
 PORT=8080
-RATELIMITE=0
+OPENAI_RATELIMITE=0
 ```
 别的两个 api key 有就填.
 
-<img width="1155" alt="image" src="https://user-images.githubusercontent.com/666683/232234418-941c9336-783c-4430-857c-9e7b703bb1c1.png">
+<img width="750" alt="image" src="https://user-images.githubusercontent.com/666683/232234418-941c9336-783c-4430-857c-9e7b703bb1c1.png">
+
+
+部署之后,  注册用户, 第一个用户是管理员, 然后到  https://$hostname/static/#/admin/user,
+设置 ratelimit, 公网部署, 只对信任的email 增加 ratelimit, 这样即使有人注册, 也是不能用的. 
+
+<img width="750" alt="image" src="https://user-images.githubusercontent.com/666683/232227529-284289a8-1336-49dd-b5c6-8e8226b9e862.png">
+
 
 ## 致谢
 
@@ -58,12 +65,20 @@ Then configure the environment variables.
 
 ```
 PORT=8080
-RATELIMITE=0
+OPENAI_RATELIMITE=0
 ```
 
 Fill in the other two keys if you have them.
 
-<img width="1155" alt="image" src="https://user-images.githubusercontent.com/666683/232234418-941c9336-783c-4430-857c-9e7b703bb1c1.png">
+<img width="750" alt="image" src="https://user-images.githubusercontent.com/666683/232234418-941c9336-783c-4430-857c-9e7b703bb1c1.png">
+
+After deployment, registering users, the first user is an administrator, then go to
+https://$hostname/static/#/admin/user to set rate limiting. Public deployment,
+only adds rate limiting to trusted emails, so even if someone registers, it will not be available.
+
+<img width="750" alt="image" src="https://user-images.githubusercontent.com/666683/232227529-284289a8-1336-49dd-b5c6-8e8226b9e862.png">
+
+This helps ensure only authorized users can access the deployed system by limiting registration to trusted emails and enabling rate limiting controls.
 
 ## Acknowledgments
 
