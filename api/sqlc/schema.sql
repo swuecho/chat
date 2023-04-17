@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS jwt_secrets (
 CREATE TABLE chat_api (
   id SERIAL PRIMARY KEY,  
   -- model name 'claude-v1', 'gpt-3.5-turbo'
-  name TEXT  DEFAULT '' NOT NULL,   
+  name TEXT UNIQUE  DEFAULT '' NOT NULL,   
   -- model label 'Claude', 'GPT-3.5 Turbo'
   label TEXT  DEFAULT '' NOT NULL,   
   is_default BOOLEAN DEFAULT false NOT NULL,
@@ -187,3 +187,12 @@ ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 
 -- chat prompt
 ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
 ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 NOT NULL;
+
+
+INSERT INTO chat_api(name, label, is_default, url, api_auth_header, api_auth_key)
+VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', ''),
+        ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', ''),
+        ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', ''),
+        ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', ''),
+        ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', '')
+ON CONFLICT(name) DO NOTHING;
