@@ -6,6 +6,20 @@ CREATE TABLE IF NOT EXISTS jwt_secrets (
     audience TEXT NOT NULL
 );
 
+
+CREATE TABLE chat_api (
+  id SERIAL PRIMARY KEY,  
+  -- model name 'claude-v1', 'gpt-3.5-turbo'
+  name TEXT  DEFAULT '' NOT NULL,   
+  -- model label 'Claude', 'GPT-3.5 Turbo'
+  label TEXT  DEFAULT '' NOT NULL,   
+  is_default BOOLEAN DEFAULT false NOT NULL,
+  url TEXT  DEFAULT '' NOT NULL,  
+  api_auth_header TEXT DEFAULT '' NOT NULL,   
+  api_auth_key TEXT DEFAULT '' NOT NULL 
+);
+
+
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
 

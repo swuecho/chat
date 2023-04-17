@@ -31,6 +31,16 @@ type AuthUserManagement struct {
 	UpdatedAt time.Time
 }
 
+type ChatApi struct {
+	ID            int32
+	Name          string
+	Label         string
+	IsDefault     bool
+	Url           string
+	ApiAuthHeader string
+	ApiAuthKey    string
+}
+
 type ChatLog struct {
 	ID        int32
 	Session   json.RawMessage
