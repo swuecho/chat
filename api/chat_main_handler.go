@@ -350,6 +350,8 @@ type ClaudeResponse struct {
 }
 
 func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
+	claudeRateLimiteToken <- struct{}{}
 	// set the api key
 	apiKey := appConfig.CLAUDE.API_KEY
 
@@ -455,6 +457,9 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 			flusher.Flush()
 		}
 	}
+
+	// Release the API token
+	<-claudeRateLimiteToken
 
 	return answer, answer_id, false
 }
