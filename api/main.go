@@ -76,9 +76,18 @@ var schemaBytes []byte
 var lastRequest time.Time
 var openAIRateLimiter *rate.Limiter
 
+var claudeRateLimiteToken chan struct{}
+
 func main() {
+
 	// Allow only 3000 requests per minute, with burst 500
 	openAIRateLimiter = rate.NewLimiter(rate.Every(time.Minute/3000), 500)
+
+
+	// A buffered channel with capacity 1
+	// This ensures only one API call can proceed at a time
+	claudeRateLimiteToken = make(chan struct{}, 1)
+
 
 	lastRequest = time.Now()
 	// Configure viper to read environment variables
