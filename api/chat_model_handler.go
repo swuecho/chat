@@ -10,44 +10,45 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-type ChatAPIHandler struct {
+type ChatModelHandler struct {
 	db *sqlc_queries.Queries
 }
 
-func NewChatAPIHandler(db *sqlc_queries.Queries) *ChatAPIHandler {
-	return &ChatAPIHandler{
+func NewChatModelHandler(db *sqlc_queries.Queries) *ChatModelHandler {
+	return &ChatModelHandler{
 		db: db,
 	}
 }
 
-func (h *ChatAPIHandler) Register(r *mux.Router) {
+func (h *ChatModelHandler) Register(r *mux.Router) {
 
 	// Assuming db is an instance of the SQLC generated DB struct
-	//handler := NewChatAPIHandler(db)
+	//handler := NewChatModelHandler(db)
 	// r := mux.NewRouter()
 
-	r.HandleFunc("/chat_apis", h.ListChatAPIs).Methods("GET")
-	r.HandleFunc("/chat_apis/{id}", h.ChatAPIByID).Methods("GET")
-	r.HandleFunc("/chat_apis", h.CreateChatAPI).Methods("POST")
-	r.HandleFunc("/chat_apis/{id}", h.UpdateChatAPI).Methods("PUT")
-	r.HandleFunc("/chat_apis/{id}", h.DeleteChatAPI).Methods("DELETE")
-	r.HandleFunc("/chat_apis/default", h.GetDefaultChatAPI).Methods("GET")
+	r.HandleFunc("/chat_model", h.ListChatModels).Methods("GET")
+	r.HandleFunc("/chat_model/default", h.GetDefaultChatModel).Methods("GET")
+	r.HandleFunc("/chat_model/{id}", h.ChatModelByID).Methods("GET")
+	r.HandleFunc("/chat_model", h.CreateChatModel).Methods("POST")
+	r.HandleFunc("/chat_model/{id}", h.UpdateChatModel).Methods("PUT")
+	r.HandleFunc("/chat_model/{id}", h.DeleteChatModel).Methods("DELETE")
 }
 
-func (h *ChatAPIHandler) ListChatAPIs(w http.ResponseWriter, r *http.Request) {
+func (h *ChatModelHandler) ListChatModels(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	chatAPIs, err := h.db.ListChatAPIs(ctx)
+	ChatModels, err := h.db.ListChatModels(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error listing chat APIs: %s", err.Error())))
 		return
 	}
 
+
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatAPIs)
+	json.NewEncoder(w).Encode(ChatModels)
 }
 
-func (h *ChatAPIHandler) ChatAPIByID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatModelHandler) ChatModelByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ctx := r.Context()
 	id, err := strconv.Atoi(vars["id"])
@@ -57,7 +58,7 @@ func (h *ChatAPIHandler) ChatAPIByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatAPI, err := h.db.ChatAPIByID(ctx, int32(id))
+	ChatModel, err := h.db.ChatModelByID(ctx, int32(id))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error retrieving chat API: %s", err.Error())))
@@ -65,10 +66,10 @@ func (h *ChatAPIHandler) ChatAPIByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatAPI)
+	json.NewEncoder(w).Encode(ChatModel)
 }
 
-func (h *ChatAPIHandler) CreateChatAPI(w http.ResponseWriter, r *http.Request) {
+func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Name          string `json:"name"`
 		Label         string `json:"label"`
@@ -84,7 +85,7 @@ func (h *ChatAPIHandler) CreateChatAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatAPI, err := h.db.CreateChatAPI(r.Context(), sqlc_queries.CreateChatAPIParams{
+	ChatModel, err := h.db.CreateChatModel(r.Context(), sqlc_queries.CreateChatModelParams{
 		Name:          input.Name,
 		Label:         input.Label,
 		IsDefault:     input.IsDefault,
@@ -100,10 +101,10 @@ func (h *ChatAPIHandler) CreateChatAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(chatAPI)
+	json.NewEncoder(w).Encode(ChatModel)
 }
 
-func (h *ChatAPIHandler) UpdateChatAPI(w http.ResponseWriter, r *http.Request) {
+func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -127,7 +128,7 @@ func (h *ChatAPIHandler) UpdateChatAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatAPI, err := h.db.UpdateChatAPI(r.Context(), sqlc_queries.UpdateChatAPIParams{
+	ChatModel, err := h.db.UpdateChatModel(r.Context(), sqlc_queries.UpdateChatModelParams{
 		ID:            int32(id),
 		Name:          input.Name,
 		Label:         input.Label,
@@ -137,6 +138,7 @@ func (h *ChatAPIHandler) UpdateChatAPI(w http.ResponseWriter, r *http.Request) {
 		ApiAuthKey:    input.APIAuthKey,
 	})
 
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error updating chat API: %s", err.Error())))
@@ -144,10 +146,11 @@ func (h *ChatAPIHandler) UpdateChatAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatAPI)
+	json.NewEncoder(w).Encode(ChatModel)
 }
 
-func (h *ChatAPIHandler) DeleteChatAPI(w http.ResponseWriter, r *http.Request) {
+
+func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -156,7 +159,7 @@ func (h *ChatAPIHandler) DeleteChatAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.db.DeleteChatAPI(r.Context(), int32(id))
+	err = h.db.DeleteChatModel(r.Context(), int32(id))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error deleting chat API: %s", err.Error())))
@@ -166,14 +169,13 @@ func (h *ChatAPIHandler) DeleteChatAPI(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *ChatAPIHandler) GetDefaultChatAPI(w http.ResponseWriter, r *http.Request) {
-	chatAPI, err := h.db.GetDefaultChatAPI(r.Context())
+func (h *ChatModelHandler) GetDefaultChatModel(w http.ResponseWriter, r *http.Request) {
+	ChatModel, err := h.db.GetDefaultChatModel(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error retrieving default chat API: %s", err.Error())))
 		return
 	}
-
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatAPI)
+	json.NewEncoder(w).Encode(ChatModel)
 }

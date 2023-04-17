@@ -31,16 +31,6 @@ type AuthUserManagement struct {
 	UpdatedAt time.Time
 }
 
-type ChatApi struct {
-	ID            int32
-	Name          string
-	Label         string
-	IsDefault     bool
-	Url           string
-	ApiAuthHeader string
-	ApiAuthKey    string
-}
-
 type ChatLog struct {
 	ID        int32
 	Session   json.RawMessage
@@ -64,6 +54,16 @@ type ChatMessage struct {
 	IsDeleted       bool
 	TokenCount      int32
 	Raw             json.RawMessage
+}
+
+type ChatModel struct {
+	ID            int32
+	Name          string
+	Label         string
+	IsDefault     bool
+	Url           string
+	ApiAuthHeader string
+	ApiAuthKey    string
 }
 
 type ChatPrompt struct {

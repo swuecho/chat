@@ -10,6 +10,7 @@ import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { SvgIcon } from '@/components/common'
+import { fetchDefaultChatModel } from '@/api'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
@@ -18,7 +19,7 @@ const { isMobile } = useBasicLayout()
 
 const collapsed = computed(() => appStore.siderCollapsed)
 
-function handleAdd() {
+async function handleAdd() {
   const new_chat_text = t('chat.new')
   //   //
   //   // {
@@ -31,13 +32,14 @@ function handleAdd() {
   //   "maxTokens": 512,
   //   "debug": false
   // }//
+  const default_model = await fetchDefaultChatModel()
   chatStore.addChatSession({
     title: new_chat_text,
     uuid: uuidv4(),
     isEdit: false,
     maxLength: 10,
     temperature: 1,
-    model: 'gpt-3.5-turbo',
+    model: default_model.Name,
     topP: 1,
     maxTokens: 512,
     debug: false,
@@ -80,11 +82,9 @@ watch(
 </script>
 
 <template>
-  <NLayoutSider
-    :collapsed="collapsed" :collapsed-width="0" :width="260" :show-trigger="isMobile ? false : 'arrow-circle'"
+  <NLayoutSider :collapsed="collapsed" :collapsed-width="0" :width="260" :show-trigger="isMobile ? false : 'arrow-circle'"
     collapse-mode="transform" position="absolute" bordered :style="getMobileClass"
-    @update-collapsed="handleUpdateCollapsed"
-  >
+    @update-collapsed="handleUpdateCollapsed">
     <div class="flex flex-col h-full" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
         <div class="p-4">

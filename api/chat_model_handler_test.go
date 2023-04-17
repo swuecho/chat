@@ -17,17 +17,17 @@ import (
 // the code below do db update directly in instead of using handler, please change to use handler
 func TestListresults(t *testing.T) {
 	q := sqlc_queries.New(db)
-	h := NewChatAPIHandler(q) // create a new ChatAPIHandler instance for testing
+	h := NewChatModelHandler(q) // create a new ChatModelHandler instance for testing
 	router := mux.NewRouter()
 	h.Register(router)
-	defaultApis, _ := q.ListChatAPIs(context.Background())
+	defaultApis, _ := q.ListChatModels(context.Background())
 	// delete all existing chat APIs
 	for _, api := range defaultApis {
-		q.DeleteChatAPI(context.Background(), api.ID)
+		q.DeleteChatModel(context.Background(), api.ID)
 	}
 
 	// Now let's create our expected results. Create two results and insert them into the database using the queries.
-	expectedResults := []sqlc_queries.ChatApi{
+	expectedResults := []sqlc_queries.ChatModel{
 		{
 			Name:          "Test API 1",
 			Label:         "Test Label 1",
@@ -47,7 +47,7 @@ func TestListresults(t *testing.T) {
 	}
 
 	for _, api := range expectedResults {
-		_, err := q.CreateChatAPI(context.Background(), sqlc_queries.CreateChatAPIParams{
+		_, err := q.CreateChatModel(context.Background(), sqlc_queries.CreateChatModelParams{
 			Name:          api.Name,
 			Label:         api.Label,
 			IsDefault:     api.IsDefault,
@@ -75,7 +75,7 @@ func TestListresults(t *testing.T) {
 	}
 
 	// ensure that we get an array of two chat APIs in the response body
-	var results []sqlc_queries.ChatApi
+	var results []sqlc_queries.ChatModel
 	body_bytes := rr.Body.Bytes()
 	println(body_bytes)
 	err = json.Unmarshal(body_bytes, &results)
@@ -123,7 +123,7 @@ func TestListresults(t *testing.T) {
 	}
 
 	// ensure the new values are returned and were also updated in the database
-	var updatedResult sqlc_queries.ChatApi
+	var updatedResult sqlc_queries.ChatModel
 	err = json.Unmarshal(updateRR.Body.Bytes(), &updatedResult)
 	if err != nil {
 		t.Errorf("Error parsing response body: %s", err.Error())
@@ -131,7 +131,7 @@ func TestListresults(t *testing.T) {
 
 	assert.Equal(t, expectedResults[0].Name, updatedResult.Name)
 	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
-	// And now call the DELETE endpoint to remove all the created ChatAPIs
+	// And now call the DELETE endpoint to remove all the created ChatModels
 	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_apis/%d", results[0].ID), nil)
 	if err != nil {
 		t.Fatal(err)

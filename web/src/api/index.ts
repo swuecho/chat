@@ -99,6 +99,30 @@ export async function fetchSignUp(email: string, password: string) {
   }
 }
 
+export const fetchChatModel = async () => {
+  try {
+    const response = await request.get('/chat_model')
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+export const fetchDefaultChatModel = async () => {
+  try {
+    const response = await request.get('/chat_model/default')
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+
+
 export const getChatSessionsByUser = async () => {
   try {
     const response = await request.get('/chat_sessions/users')
