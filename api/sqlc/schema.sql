@@ -6,6 +6,22 @@ CREATE TABLE IF NOT EXISTS jwt_secrets (
     audience TEXT NOT NULL
 );
 
+
+CREATE TABLE IF NOT EXISTS chat_model (
+  id SERIAL PRIMARY KEY,  
+  -- model name 'claude-v1', 'gpt-3.5-turbo'
+  name TEXT UNIQUE  DEFAULT '' NOT NULL,   
+  -- model label 'Claude', 'GPT-3.5 Turbo'
+  label TEXT  DEFAULT '' NOT NULL,   
+  is_default BOOLEAN DEFAULT false NOT NULL,
+  url TEXT  DEFAULT '' NOT NULL,  
+  api_auth_header TEXT DEFAULT '' NOT NULL,   
+  -- env var that contains the api key
+  -- for example: OPENAI_API_KEY, which means the api key is stored in an env var called OPENAI_API_KEY
+  api_auth_key TEXT DEFAULT '' NOT NULL 
+);
+
+
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
 
@@ -173,3 +189,12 @@ ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 
 -- chat prompt
 ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
 ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 NOT NULL;
+
+
+INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key)
+VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
+        ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
+        ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
+        ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
+        ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY')
+ON CONFLICT(name) DO NOTHING;

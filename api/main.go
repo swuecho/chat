@@ -135,6 +135,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	ChatModelHandler := NewChatModelHandler(sqlc_q)
+	ChatModelHandler.Register(router)
+
 	// create a new AuthUserService instance
 	userService := NewAuthUserService(sqlc_q)
 

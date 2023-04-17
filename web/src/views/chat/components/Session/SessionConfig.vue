@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import type { Ref } from 'vue'
-import { computed, defineProps, ref, watch } from 'vue'
+import { computed, defineProps, onMounted, reactive, ref, watch } from 'vue'
 import type { FormInst } from 'naive-ui'
 import { NForm, NFormItem, NRadio, NRadioGroup, NSlider, NSpace, NSwitch } from 'naive-ui'
 import { debounce } from 'lodash-es'
 import { useChatStore } from '@/store'
+import { fetchChatModel } from '@/api'
 
 const props = defineProps<{
   uuid: string
@@ -50,28 +51,17 @@ watch(modelRef, async (modelValue: ModelType) => {
   debouneUpdate(modelValue)
 }, { deep: true })
 
-const chatModelOptions = [
-  {
-    label: 'gpt-3.5-turbo(chatgpt)',
-    value: 'gpt-3.5-turbo',
-  },
-  {
-    label: 'claude-v1 (claude)',
-    value: 'claude-v1',
-  },
-  {
-    label: 'claude-instant(small,fast)',
-    value: 'claude-instant-v1',
-  },
-  {
-    label: 'gpt-4(chatgpt)',
-    value: 'gpt-4',
-  },
-  {
-    label: 'gpt-4-32k(chatgpt)',
-    value: 'gpt-4-32k',
-  },
-]
+const chatModelOptions: any[] = reactive([])
+
+onMounted(async () => {
+  const models = await fetchChatModel()
+  chatModelOptions.push(...models.map((model: any) => {
+    return {
+      label: model.Label,
+      value: model.Name,
+    }
+  }))
+})
 // 1. how to fix the NSelect error?
 </script>
 
@@ -82,8 +72,8 @@ const chatModelOptions = [
       <NFormItem :label="$t('chat.model')" path="chatModel">
         <NRadioGroup v-model:value="modelRef.chatModel">
           <NSpace>
-            <NRadio v-for="song in chatModelOptions" :key="song.value" :value="song.value">
-              {{ song.label }}
+            <NRadio v-for="model in chatModelOptions" :key="model.value" :value="model.value">
+              {{ model.label }}
             </NRadio>
           </NSpace>
         </NRadioGroup>
@@ -112,9 +102,9 @@ const chatModelOptions = [
       </NFormItem>
     </NForm>
     <!--
-                        <div class="center">
-                          <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
-                        </div>
-                        -->
+                            <div class="center">
+                              <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
+                            </div>
+                            -->
   </div>
 </template>

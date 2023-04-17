@@ -56,6 +56,16 @@ type ChatMessage struct {
 	Raw             json.RawMessage
 }
 
+type ChatModel struct {
+	ID            int32
+	Name          string
+	Label         string
+	IsDefault     bool
+	Url           string
+	ApiAuthHeader string
+	ApiAuthKey    string
+}
+
 type ChatPrompt struct {
 	ID              int32
 	Uuid            string

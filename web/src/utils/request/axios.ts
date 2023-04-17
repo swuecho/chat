@@ -8,7 +8,6 @@ const service = axios.create({
 service.interceptors.request.use(
   (config) => {
     const token = useAuthStore().getToken()
-    console.log(config.baseURL)
 
     // clear token if expired
     const expiresIn = useAuthStore().getExpiresIn()
@@ -26,7 +25,7 @@ service.interceptors.request.use(
 
 service.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => {
-    if (response.status === 200)
+    if (response.status === 200 || response.status === 201 || response.status === 204)
       return response
 
     throw new Error(response.status.toString())
