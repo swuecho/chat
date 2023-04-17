@@ -219,7 +219,7 @@ func main() {
 
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
 
-	// fly.io 
+	// fly.io
 	if os.Getenv("FLY_APP_NAME") != "" {
 		router.Use(UpdateLastRequestTime)
 	}
@@ -232,12 +232,25 @@ func main() {
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
 
 	// fly.io
+
 	if os.Getenv("FLY_APP_NAME") != "" {
+		// read env var FLY_RESTART_INTERVAL_IF_IDLE if not set, set to 30 minutes
+		restartInterval := os.Getenv("FLY_RESTART_INTERVAL_IF_IDLE")
+
+		// If not set, default to 30 minutes
+		if restartInterval == "" {
+			restartInterval = "30m"
+		}
+
+		duration, err := time.ParseDuration(restartInterval)
+		if err != nil {
+			log.Println("Invalid FLY_RESTART_INTERVAL_IF_IDLE value. Exiting.")
+		}
 		// Use a goroutine to check for inactivity and exit
 		go func() {
 			for {
 				time.Sleep(1 * time.Minute) // Check every minute
-				if time.Since(lastRequest) > 30*time.Minute {
+				if time.Since(lastRequest) > duration {
 					fmt.Println("No activity for 30 minutes. Exiting.")
 					os.Exit(0)
 					return
