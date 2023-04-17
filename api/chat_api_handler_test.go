@@ -46,10 +46,8 @@ func TestListChatAPIs(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-
 	router := mux.NewRouter()
 	h.Register(router)
-
 	router.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
@@ -81,12 +79,9 @@ func TestListChatAPIs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rr = httptest.NewRecorder()
-
-	router = mux.NewRouter()
-
-	h.Register(router)
-
+	// router = mux.NewRouter()
+	// h.Register(router)
+	// rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 	// ensure that we get an array of one chat API in the response body
 	body_bytes = rr.Body.Bytes()
