@@ -200,8 +200,6 @@ VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.co
 ON CONFLICT(name) DO NOTHING;
 
 
-
-
 CREATE TABLE IF NOT EXISTS message_comment (
     id SERIAL PRIMARY KEY,
     uuid VARCHAR(255) NOT NULL default '',
@@ -209,9 +207,7 @@ CREATE TABLE IF NOT EXISTS message_comment (
     message_uuid VARCHAR(255) NOT NULL default '',
     user_id INTEGER NOT NULL default 0,
     content TEXT DEFAULT '' NOT NULL default '',
-    created_by INTEGER NOT NULL default 0,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP DEFAULT now() NOT NULL
+    created_at TIMESTAMP DEFAULT now() NOT NULL
 );
 
 -- for share chat feature
@@ -223,6 +219,5 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
     summary TEXT NOT NULL default '',
     tags JSONB DEFAULT '{}' NOT NULL,
     conversation JSONB NOT NULL default '{}',
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP DEFAULT now() NOT NULL
+    created_at TIMESTAMP DEFAULT now() NOT NULL
 );
