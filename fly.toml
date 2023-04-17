@@ -1,6 +1,7 @@
-# fly.toml file generated for swuecho-chat on 2023-04-15T12:26:26+08:00
+# create machines type app, so scale to zero worker
+# fly apps create --machines --name swuecho-chat-m
 
-app = "swuecho-chat" # change this to your app name
+app = "swuecho-chat-m" # change this to your app name
 kill_signal = "SIGINT"
 kill_timeout = 5
 primary_region = "dfw" # change this to your region

@@ -251,7 +251,7 @@ func main() {
 			for {
 				time.Sleep(1 * time.Minute) // Check every minute
 				if time.Since(lastRequest) > duration {
-					fmt.Println("No activity for 30 minutes. Exiting.")
+					fmt.Printf("No activity for %s. Exiting.", restartInterval)
 					os.Exit(0)
 					return
 				}
