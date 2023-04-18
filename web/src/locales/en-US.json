@@ -89,7 +89,6 @@
   "admin": {
     "openPanel": "Open Admin Panel",
     "title": "Admin",
-    "refresh": "Refresh",
     "permission": "Permission",
     "rateLimit": "Rate Limit",
     "userEmail": "User Email",
@@ -101,7 +100,19 @@
     "rateLimit10Min": "Message Limit (10 minutes)",
     "totalChatMessagesTokenCount": "Total token count",
     "totalChatMessages3DaysTokenCount": "Total token count (3 days)",
-    "totalChatMessages3DaysAvgTokenCount": "Average token count (3 days)"
+    "totalChatMessages3DaysAvgTokenCount": "Average token count (3 days)",
+    "refresh": "Refresh",
+    "model": "Model",
+    "model_one_default_only": "There can only be one default model, please set other models as non-default first.",
+    "chat_model": {
+      "name": "ID",
+      "label": "Model name",
+      "isDefault": "Default?",
+      "apiAuthHeader": "Auth Header key",
+      "apiAuthKey": "API KEY corresponding to the environment variable",
+      "actions": "Actions",
+      "url": "Request full URL"
+    }
   },
   "error": {
     "rateLimit": "The message sending limit has been reached, please contact the administrator.",
