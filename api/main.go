@@ -188,6 +188,9 @@ func main() {
 	// register the ChatMessageHandler with the router
 	chatMessageHandler.Register(router)
 
+	chatSnapshotHandler := NewChatSnapshotHandler(chatMessageService)
+	chatSnapshotHandler.Register(router)
+
 	// create a new UserActiveChatSessionService instance
 	activeSessionService := NewUserActiveChatSessionService(sqlc_q)
 
