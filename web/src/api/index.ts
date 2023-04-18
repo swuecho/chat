@@ -421,3 +421,25 @@ export const fetchMarkdown = async (uuid: string) => {
     throw error
   }
 }
+
+export const fetchConversationSnapshot = async (uuid: string): Promise<Chat.Chat[]> => {
+  try {
+    const chatData = await getChatMessagesBySessionUUID(uuid)
+    /*
+    uuid: string,
+    dateTime: string
+    text: string
+    inversion?: boolean
+    error?: boolean
+    loading?: boolean
+    conversationOptions?: ConversationRequest | null
+    requestOptions: { prompt: string; options?: ConversationRequest | null }
+    isPrompt?: boolean
+    */
+    return chatData
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}

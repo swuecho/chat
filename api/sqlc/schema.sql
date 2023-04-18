@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS message_comment (
     -- chat_uuid is the chat message or prompt to comment on
     message_uuid VARCHAR(255) NOT NULL default '',
     user_id INTEGER NOT NULL default 0,
-    content TEXT DEFAULT '' NOT NULL default '',
+    content TEXT DEFAULT '' NOT NULL ,
     created_at TIMESTAMP DEFAULT now() NOT NULL
 );
 
