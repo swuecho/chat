@@ -230,6 +230,11 @@ func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWrite
 
 func (h *ChatMessageHandler) CreateChatMessagesSnapshot(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
+	user_id, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
 	// TODO: fix hardcode
 	simple_msgs, err := h.service.GetChatHistoryBySessionUUID(r.Context(), uuidStr, 1, 10000)
 	// save all simple_msgs to a jsonb field in chat_snapshot
@@ -243,23 +248,19 @@ func (h *ChatMessageHandler) CreateChatMessagesSnapshot(w http.ResponseWriter, r
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
-
-	user_id, err := getUserID(r.Context())
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
-		return
-	}
 	snapshot_uuid := uuid.New().String()
+
 	one, err := h.service.q.CreateChatSnapshot(r.Context(), sqlc_queries.CreateChatSnapshotParams{
 		Uuid:         snapshot_uuid,
 		UserID:       user_id,
-		Conversation: simple_msgs_raw, //json.RawMessage(simple_msgs_raw),
+		Tags:       	json.RawMessage([]byte("{}")),
+		Conversation: simple_msgs_raw,
 	})
 	if err != nil {
+		log.Println(err)
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
-	log.Println(one)
 	json.NewEncoder(w).Encode(
 		map[string]interface{}{
 			"uuid": one.Uuid,

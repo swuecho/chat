@@ -443,3 +443,25 @@ export const fetchConversationSnapshot = async (uuid: string): Promise<Chat.Chat
     throw error
   }
 }
+
+export const createChatSnapshot = async (uuid: string): Promise<any> => {
+  try {
+    const response = await request.post(`/uuid/chat_messages_snapshot/${uuid}`)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+export const fetchChatSnapshot = async (uuid: string): Promise<any> => {
+  try {
+    const response = await request.get(`/uuid/chat_messages_snapshot/${uuid}`)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}

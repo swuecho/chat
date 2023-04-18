@@ -218,6 +218,6 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
     title VARCHAR(255) NOT NULL default '',
     summary TEXT NOT NULL default '',
     tags JSONB DEFAULT '{}' NOT NULL,
-    conversation JSONB NOT NULL default '{}',
+    conversation JSONB DEFAULT '{}' NOT NULL,
     created_at TIMESTAMP DEFAULT now() NOT NULL
 );

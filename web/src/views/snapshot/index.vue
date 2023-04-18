@@ -5,7 +5,7 @@ import { useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from './hooks/useCopyCode'
-import { fetchConversationSnapshot, fetchMarkdown } from '@/api'
+import { fetchChatSnapshot, fetchMarkdown } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
@@ -25,7 +25,9 @@ const { uuid } = route.params as { uuid: string }
 const dataSources = ref<Chat.Chat[]>([])
 
 onMounted(async () => {
-  dataSources.value = await fetchConversationSnapshot(uuid)
+  const snapshot = await fetchChatSnapshot(uuid)
+  console.log(snapshot)
+  dataSources.value.push(...snapshot.Conversation)
 })
 
 const loading = ref<boolean>(false)
@@ -65,6 +67,41 @@ function handleExport() {
     },
   })
 }
+function format_chat_md(chat: Chat.Chat): string {
+  return `<sup><kbd><var>${chat.dateTime}</var></kbd></sup>:\n ${chat.text}`
+}
+
+
+const chatToMarkdown = () => {
+  try {
+    /*
+    uuid: string,
+    dateTime: string
+    text: string
+    inversion?: boolean
+    error?: boolean
+    loading?: boolean
+    conversationOptions?: ConversationRequest | null
+    requestOptions: { prompt: string; options?: ConversationRequest | null }
+    isPrompt?: boolean
+    */
+    const chatData = dataSources.value
+    const markdown = chatData.map((chat: Chat.Chat) => {
+      if (chat.isPrompt)
+        return `**system** ${format_chat_md(chat)}}`
+      else if (chat.inversion)
+        return `**user** ${format_chat_md(chat)}`
+      else
+        return `**assistant** ${format_chat_md(chat)}`
+    }).join('\n\n----\n\n')
+    return markdown
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
 
 function handleMarkdown() {
   if (loading.value)
@@ -78,7 +115,7 @@ function handleMarkdown() {
     onPositiveClick: async () => {
       try {
         dialogBox.loading = true
-        const markdown = await fetchMarkdown(uuid)
+        const markdown = chatToMarkdown()
         const ts = getCurrentDate()
         const filename = `chat-${ts}.md`
         const blob = new Blob([markdown], { type: 'text/plain;charset=utf-8' })
@@ -114,11 +151,13 @@ const footerClass = computed(() => {
 <template>
   <div class="flex flex-col w-full h-full">
     <main class="flex-1 overflow-hidden">
-      <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]" :class="[isMobile ? 'p-2' : 'p-4']">
-        <Message
-          v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
-          :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading" :index="index"
-        />
+      <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
+
+        <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
+          :class="[isMobile ? 'p-2' : 'p-4']">
+          <Message v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
+            :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading" :index="index" />
+        </div>
       </div>
     </main>
     <footer :class="footerClass">
