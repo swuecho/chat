@@ -27,7 +27,7 @@
 
 ```
 PORT=8080
-OPANAI_RATELIMITE=0
+OPENAI_RATELIMIT=0
 ```
 别的两个 api key 有就填.
 
@@ -60,7 +60,7 @@ Then configure the environment variables.
 
 ```
 PORT=8080
-OPENAI_RATELIMITE=0
+OPENAI_RATELIMIT=0
 ```
 
 Fill in the other two keys if you have them.
