@@ -18,15 +18,7 @@ interface Props {
   loading?: boolean
 }
 
-interface Emit {
-  (ev: 'regenerate'): void
-  (ev: 'delete'): void
-  (ev: 'afterEdit', index: number, text: string): void
-}
-
 const props = defineProps<Props>()
-
-const emit = defineEmits<Emit>()
 
 const { iconRender } = useIconRender()
 
