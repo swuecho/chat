@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"log"
-	"net/http"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"log"
+	"net/http"
 )
 
 type ChatSnapshotHandler struct {
@@ -26,7 +26,6 @@ func (h *ChatSnapshotHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_messages_snapshot/{uuid}", h.UpdateChatMessageMetaByUUID).Methods(http.MethodPut)
 
 }
-
 
 // save all chat messages to database
 
@@ -99,8 +98,8 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 func (h *ChatSnapshotHandler) UpdateChatMessageMetaByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
 	var input struct {
-		Title   string          `json:"title"`
-		Summary string          `json:"summary"`
+		Title   string `json:"title"`
+		Summary string `json:"summary"`
 	}
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {

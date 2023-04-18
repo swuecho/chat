@@ -47,6 +47,18 @@ const (
 	guidContextKey contextKey = "guid"
 )
 
+func IsChatSnapshotUUID(r *http.Request) bool {
+	// Check http method is GET
+	if r.Method != http.MethodGet {
+		return false
+	}
+	// Check if request url path has the required prefix and does not have "/all" suffix
+	if strings.HasPrefix(r.URL.Path, "/uuid/chat_messages_snapshot/") && !strings.HasSuffix(r.URL.Path, "/all") {
+		return true
+	}
+	return false
+}
+
 func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 	noAuthPaths := map[string]bool{
 		"/":       true,
@@ -55,7 +67,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 	}
 	jwtSigningKey := []byte(jwtSecretAndAud.Secret)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := noAuthPaths[r.URL.Path]; ok || strings.HasPrefix(r.URL.Path, "/static") {
+		if _, ok := noAuthPaths[r.URL.Path]; ok || strings.HasPrefix(r.URL.Path, "/static") || IsChatSnapshotUUID(r) {
 			handler.ServeHTTP(w, r)
 			return
 		}
