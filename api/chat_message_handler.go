@@ -35,6 +35,7 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_messages/{uuid}", h.DeleteChatMessageByUUID).Methods(http.MethodDelete)
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.GetChatHistoryBySessionUUID).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.DeleteChatMessagesBySesionUUID).Methods(http.MethodDelete)
+	router.HandleFunc("/uuid/chat_messages_snapshot/all", h.ChatSnapshotMetaByUserID).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_messages_snapshot/{uuid}", h.GetChatMessagesSnapshot).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_messages_snapshot/{uuid}", h.CreateChatMessagesSnapshot).Methods(http.MethodPost)
 
@@ -278,4 +279,19 @@ func (h *ChatMessageHandler) GetChatMessagesSnapshot(w http.ResponseWriter, r *h
 	}
 	json.NewEncoder(w).Encode(snapshot)
 
+}
+
+func (h *ChatMessageHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+	}
+	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), userID)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(chatSnapshots)
 }

@@ -465,3 +465,14 @@ export const fetchChatSnapshot = async (uuid: string): Promise<any> => {
     throw error
   }
 }
+
+export const fetchSnapshotAll = async (): Promise<any> => {
+  try {
+    const response = await request.get('/uuid/chat_messages_snapshot/all')
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}

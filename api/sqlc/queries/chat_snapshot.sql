@@ -20,3 +20,9 @@ DELETE FROM chat_snapshot WHERE id = $1;
 
 -- name: ChatSnapshotByUUID :one
 SELECT * FROM chat_snapshot WHERE uuid = $1;
+
+
+-- name: ChatSnapshotMetaByUserID :many
+SELECT uuid, title, summary, tags, created_at
+FROM chat_snapshot WHERE user_id = $1
+order by id desc;

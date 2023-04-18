@@ -51,6 +51,49 @@ func (q *Queries) ChatSnapshotByUUID(ctx context.Context, uuid string) (ChatSnap
 	return i, err
 }
 
+const chatSnapshotMetaByUserID = `-- name: ChatSnapshotMetaByUserID :many
+SELECT uuid, title, summary, tags, created_at
+FROM chat_snapshot WHERE user_id = $1
+order by id desc
+`
+
+type ChatSnapshotMetaByUserIDRow struct {
+	Uuid      string
+	Title     string
+	Summary   string
+	Tags      json.RawMessage
+	CreatedAt time.Time
+}
+
+func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, userID int32) ([]ChatSnapshotMetaByUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, chatSnapshotMetaByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChatSnapshotMetaByUserIDRow
+	for rows.Next() {
+		var i ChatSnapshotMetaByUserIDRow
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.Title,
+			&i.Summary,
+			&i.Tags,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createChatSnapshot = `-- name: CreateChatSnapshot :one
 INSERT INTO chat_snapshot (uuid, user_id, title, summary, tags, conversation )
 VALUES ($1, $2, $3, $4, $5, $6)
