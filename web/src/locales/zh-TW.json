@@ -118,5 +118,6 @@
       "actions": "操作",
       "url": "完整的URL請求"
     }
-  }
+  },
+  "chat_snapshot": {"title": "對話集"}
 }
