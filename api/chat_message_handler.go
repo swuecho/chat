@@ -252,7 +252,7 @@ func (h *ChatMessageHandler) CreateChatMessagesSnapshot(w http.ResponseWriter, r
 
 	one, err := h.service.q.CreateChatSnapshot(r.Context(), sqlc_queries.CreateChatSnapshotParams{
 		Uuid:         snapshot_uuid,
-		Title:        "",
+		Title:        simple_msgs[0].Text,
 		UserID:       user_id,
 		Tags:         json.RawMessage([]byte("{}")),
 		Conversation: simple_msgs_raw,
