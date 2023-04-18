@@ -8,6 +8,7 @@ interface Props {
 }
 
 interface Emit {
+  (ev: 'snapshort'): void
   (ev: 'export'): void
   (ev: 'toggleUsingContext'): void
 }
@@ -38,6 +39,10 @@ function handleExport() {
 
 function toggleUsingContext() {
   emit('toggleUsingContext')
+}
+
+function handleSnapshot() {
+  emit('snapshot')
 }
 </script>
 
@@ -70,6 +75,11 @@ function toggleUsingContext() {
         <HoverButton @click="handleExport">
           <span class="text-xl text-[#4f555e] dark:text-white">
             <SvgIcon icon="ri:download-2-line" />
+          </span>
+        </HoverButton>
+        <HoverButton @click="handleSnapshot">
+          <span class="text-xl text-[#4f555e] dark:text-white">
+            <SvgIcon icon="ic:twotone-ios-share" />
           </span>
         </HoverButton>
       </div>

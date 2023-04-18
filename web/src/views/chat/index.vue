@@ -505,6 +505,7 @@ function getDataFromResponseText(responseText: string): string {
   <div class="flex flex-col w-full h-full">
     <HeaderComponent
       v-if="isMobile" :using-context="usingContext" @export="handleExport"
+      @snapshort="handleSnapshot"
       @toggle-using-context="showModal = true"
     />
     <main class="flex-1 overflow-hidden">
