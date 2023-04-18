@@ -16,66 +16,28 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
-  model?: string
-}
-
-interface Emit {
-  (ev: 'regenerate'): void
-  (ev: 'delete'): void
-  (ev: 'afterEdit', index: number, text: string): void
 }
 
 const props = defineProps<Props>()
-
-const emit = defineEmits<Emit>()
 
 const { iconRender } = useIconRender()
 
 const textRef = ref<HTMLElement>()
 
-const editable = ref(false)
-
 const options = [
-  {
-    label: t('common.edit'),
-    key: 'editText',
-    icon: iconRender({ icon: 'ri:edit-line' }),
-  },
   {
     label: t('chat.copy'),
     key: 'copyText',
     icon: iconRender({ icon: 'ri:file-copy-2-line' }),
   },
-  {
-    label: t('common.delete'),
-    key: 'delete',
-    icon: iconRender({ icon: 'ri:delete-bin-line' }),
-  },
 
 ]
 
-function onContentChange(event: FocusEvent, index: number) {
-  editable.value = false
-  const text = (event.target as HTMLElement).innerText
-  emit('afterEdit', index, text)
-}
-
-function handleSelect(key: 'copyText' | 'delete' | 'editText') {
+function handleSelect(key: 'copyText') {
   switch (key) {
     case 'copyText':
       copyText({ text: props.text ?? '' })
-      return
-    case 'delete':
-      emit('delete')
-      return
-    case 'editText':
-      // make the text editable
-      editable.value = true
   }
-}
-
-function handleRegenerate() {
-  emit('regenerate')
 }
 </script>
 
@@ -85,7 +47,12 @@ function handleRegenerate() {
       class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
       :class="[inversion ? 'ml-2' : 'mr-2']"
     >
-      <AvatarComponent :inversion="inversion" :model="model" />
+      <div
+        class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
+        :class="[inversion ? 'ml-2' : 'mr-2']"
+      >
+        <AvatarComponent :inversion="inversion" model="gpt-3.5" />
+      </div>
     </div>
     <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
       <p class="text-xs text-[#b4bbc4]" :class="[inversion ? 'text-right' : 'text-left']">
@@ -94,15 +61,17 @@ function handleRegenerate() {
       <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
         <TextComponent
           ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
-          :loading="loading" :contenteditable="editable" :idex="index" @blur="event => onContentChange(event, index)"
+          :loading="loading" :idex="index"
         />
         <div class="flex flex-col">
           <button
             v-if="!inversion"
             class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
-            @click="handleRegenerate"
           >
-            <SvgIcon icon="ri:restart-line" />
+            <SvgIcon icon="mingcute:voice-fill" />
+          </button>
+          <button class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300">
+            <SvgIcon icon="mdi:comment-outline" />
           </button>
           <NDropdown :placement="!inversion ? 'right' : 'left'" :options="options" @select="handleSelect">
             <button class="transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-200">

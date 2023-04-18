@@ -421,3 +421,69 @@ export const fetchMarkdown = async (uuid: string) => {
     throw error
   }
 }
+
+export const fetchConversationSnapshot = async (uuid: string): Promise<Chat.Chat[]> => {
+  try {
+    const chatData = await getChatMessagesBySessionUUID(uuid)
+    /*
+    uuid: string,
+    dateTime: string
+    text: string
+    inversion?: boolean
+    error?: boolean
+    loading?: boolean
+    conversationOptions?: ConversationRequest | null
+    requestOptions: { prompt: string; options?: ConversationRequest | null }
+    isPrompt?: boolean
+    */
+    return chatData
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+export const createChatSnapshot = async (uuid: string): Promise<any> => {
+  try {
+    const response = await request.post(`/uuid/chat_messages_snapshot/${uuid}`)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+export const fetchChatSnapshot = async (uuid: string): Promise<any> => {
+  try {
+    const response = await request.get(`/uuid/chat_messages_snapshot/${uuid}`)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+export const fetchSnapshotAll = async (): Promise<any> => {
+  try {
+    const response = await request.get('/uuid/chat_messages_snapshot/all')
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+export const updateChatSnapshot = async (uuid: string, data: any): Promise<any> => {
+  try {
+    const response = await request.put(`/uuid/chat_messages_snapshot/${uuid}`, data)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}

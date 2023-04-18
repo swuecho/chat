@@ -98,11 +98,31 @@ type ChatSession struct {
 	Debug       bool
 }
 
+type ChatSnapshot struct {
+	ID           int32
+	Uuid         string
+	UserID       int32
+	Title        string
+	Summary      string
+	Tags         json.RawMessage
+	Conversation json.RawMessage
+	CreatedAt    time.Time
+}
+
 type JwtSecret struct {
 	ID       int32
 	Name     string
 	Secret   string
 	Audience string
+}
+
+type MessageComment struct {
+	ID          int32
+	Uuid        string
+	MessageUuid string
+	UserID      int32
+	Content     string
+	CreatedAt   time.Time
 }
 
 type UserActiveChatSession struct {

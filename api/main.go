@@ -83,11 +83,9 @@ func main() {
 	// Allow only 3000 requests per minute, with burst 500
 	openAIRateLimiter = rate.NewLimiter(rate.Every(time.Minute/3000), 500)
 
-
 	// A buffered channel with capacity 1
 	// This ensures only one API call can proceed at a time
 	claudeRateLimiteToken = make(chan struct{}, 1)
-
 
 	lastRequest = time.Now()
 	// Configure viper to read environment variables
@@ -187,6 +185,9 @@ func main() {
 
 	// register the ChatMessageHandler with the router
 	chatMessageHandler.Register(router)
+
+	chatSnapshotHandler := NewChatSnapshotHandler(chatMessageService)
+	chatSnapshotHandler.Register(router)
 
 	// create a new UserActiveChatSessionService instance
 	activeSessionService := NewUserActiveChatSessionService(sqlc_q)

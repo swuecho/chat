@@ -6,6 +6,23 @@ import { ChatLayout } from '@/views/chat/layout'
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/snapshot',
+    name: 'Snapshot',
+    component: () => import('@/views/snapshot/index.vue'),
+    children: [
+      {
+        path: ':uuid?',
+        name: 'Snapshot',
+        component: () => import('@/views/snapshot/index.vue'),
+      },
+    ],
+  },
+  {
+    path: '/snapshot_all',
+    name: 'SnapshotAll',
+    component: () => import('@/views/snapshot/all.vue'),
+  },
+  {
     path: '/admin',
     name: 'Admin',
     component: () => import('@/views/admin/index.vue'),

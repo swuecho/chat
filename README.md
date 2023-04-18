@@ -12,6 +12,7 @@
 - 上下文默认附带最新创建的10条消息
 - 第一个注册的用户是管理员
 - 默认限流 100 chatGPT call /10分钟 (OPENAI_RATELIMIT=100)
+- 根据对话生成可以分享的静态页面(like ShareGPT)
 - 支持OPEN AI, Claude 模型 [免费申请链接](https://www.anthropic.com/earlyaccess)
 
 ## 如何部署
@@ -26,7 +27,7 @@
 
 ```
 PORT=8080
-OPENAI_RATELIMITE=0
+OPENAI_RATELIMIT=0
 ```
 别的两个 api key 有就填.
 
@@ -52,7 +53,8 @@ OPENAI_RATELIMITE=0
 - by default, the latest 10 messages are context
 - First user is superuser.
 - 100 chatgpt api call / 10 mins (OPENAI_RATELIMIT=100)
--  Support OPEN AI, Claude model [free application link](https://www.anthropic.com/earlyaccess)
+- Snapshot conversation and Share (like ShareGPT)
+- Support OPEN AI, Claude model [free application link](https://www.anthropic.com/earlyaccess)
 
 ## How to Deploy
 
@@ -65,7 +67,7 @@ Then configure the environment variables.
 
 ```
 PORT=8080
-OPENAI_RATELIMITE=0
+OPENAI_RATELIMIT=0
 ```
 
 Fill in the other two keys if you have them.

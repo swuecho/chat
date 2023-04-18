@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/iris-contrib/go.uuid v2.0.0+incompatible
 	github.com/lib/pq v1.10.7
@@ -23,7 +24,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
