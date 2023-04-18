@@ -11,13 +11,12 @@ import { useCopyCode } from './hooks/useCopyCode'
 import { useUsingContext } from './hooks/useUsingContext'
 import HeaderComponent from './components/Header/index.vue'
 import SessionConfig from './components/Session/SessionConfig.vue'
-import { createChatSnapshot, fetchChatStream, fetchMarkdown } from '@/api'
+import { createChatSnapshot, fetchChatStream } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
-import { getCurrentDate } from '@/utils/date'
 let controller = new AbortController()
 
 const route = useRoute()
@@ -345,43 +344,6 @@ function handleExport() {
   })
 }
 
-function handleMarkdown() {
-  if (loading.value)
-    return
-
-  const dialogBox = dialog.warning({
-    title: t('chat.exportMD'),
-    content: t('chat.exportMDConfirm'),
-    positiveText: t('common.yes'),
-    negativeText: t('common.no'),
-    onPositiveClick: async () => {
-      try {
-        dialogBox.loading = true
-        const markdown = await fetchMarkdown(uuid)
-        const ts = getCurrentDate()
-        const filename = `chat-${ts}.md`
-        const blob = new Blob([markdown], { type: 'text/plain;charset=utf-8' })
-        const url: string = URL.createObjectURL(blob)
-        const link: HTMLAnchorElement = document.createElement('a')
-        link.href = url
-        link.download = filename
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        dialogBox.loading = false
-        nui_msg.success(t('chat.exportSuccess'))
-        Promise.resolve()
-      }
-      catch (error: any) {
-        nui_msg.error(t('chat.exportFailed'))
-      }
-      finally {
-        dialogBox.loading = false
-      }
-    },
-  })
-}
-
 async function handleSnapshot() {
   // Get title input from user
   // Call API to create chat snapshot and get UUID
@@ -555,11 +517,6 @@ function getDataFromResponseText(responseText: string): string {
           <HoverButton v-if="!isMobile" @click="handleExport">
             <span class="text-xl text-[#4f555e] dark:text-white">
               <SvgIcon icon="ri:download-2-line" />
-            </span>
-          </HoverButton>
-          <HoverButton v-if="!isMobile" @click="handleMarkdown">
-            <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="mdi:language-markdown" />
             </span>
           </HoverButton>
 
