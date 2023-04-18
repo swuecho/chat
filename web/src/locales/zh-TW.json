@@ -105,6 +105,19 @@
     "rateLimit10Min": "訊息數量上限(10分鐘)",
     "totalChatMessagesTokenCount": "總token數量",
     "totalChatMessages3DaysTokenCount": "總token數量(3天)",
-    "totalChatMessages3DaysAvgTokenCount": "平均token數量(3天)"
-  }
+    "totalChatMessages3DaysAvgTokenCount": "平均token數量(3天)",
+    "refresh": "重新整理",
+    "model": "模型",
+    "model_one_default_only": "只能有一個默認模型,請先將其他模型設置為非默認",
+    "chat_model": {
+      "name": "身分識別號",
+      "label": "模型名稱",
+      "isDefault": "默認?",
+      "apiAuthHeader": "Auth Header 鍵",
+      "apiAuthKey": "API KEY對應的環境變量",
+      "actions": "操作",
+      "url": "完整的URL請求"
+    }
+  },
+  "chat_snapshot": {"title": "對話集"}
 }
