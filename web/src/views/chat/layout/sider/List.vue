@@ -5,7 +5,7 @@ import { renameChatSession } from '@/api'
 import { SvgIcon } from '@/components/common'
 import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import ModelAvatar from '@/views/chat/components/Avatar/ModelAvatar.vue'
+import ModelAvatar from '@/views/components/Avatar/ModelAvatar.vue'
 import { t } from '@/locales'
 
 const { isMobile } = useBasicLayout()
