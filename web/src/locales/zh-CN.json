@@ -65,6 +65,9 @@
     "enable_debug": "启用",
     "disable_debug": "关闭"
   },
+  "chat_snapshot": {
+    "title": "对话集"
+  },
   "admin": {
     "openPanel": "在新标签页中打开(仅限管理员)",
     "title": "管理",

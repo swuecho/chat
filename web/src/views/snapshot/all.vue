@@ -12,7 +12,7 @@ interface PostLink {
 const posts = ref<PostLink[]>()
 
 onMounted(async () => {
-  posts.value = (await fetchSnapshotAll()).map((post:any) => {
+  posts.value = (await fetchSnapshotAll()).map((post: any) => {
     return {
       uuid: post.Uuid,
       date: displayLocaleDate(post.CreatedAt),
@@ -40,7 +40,7 @@ function post_url(uuid: string): string {
           />
         </svg>
         <h1 class="text-2xl font-semibold text-gray-900">
-          Chat Snapshot
+          {{ $t('chat_snapshot.title') }}
         </h1>
       </div>
     </header>

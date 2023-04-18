@@ -65,6 +65,9 @@
     "model": "Model (OpenAI GPT4 needs separate application, Claude's free key can use all Claude models)",
     "sessionConfig": "Conversation Settings:"
   },
+  "chat_snapshot": {
+    "title": "Chat Records"
+  },
   "setting": {
     "setting": "Settings",
     "general": "Overview",
