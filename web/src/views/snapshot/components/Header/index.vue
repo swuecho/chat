@@ -25,13 +25,12 @@ async function handleEdit(e: Event) {
 
 <template>
   <header
-    class="sticky top-0 left-0 right-0 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur"
-  >
+    class="sticky top-0 left-0 right-0 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur">
     <div class="relative flex items-center justify-between min-w-0 overflow-hidden h-14">
-      <h1 class="flex-1 px-4 pr-6 overflow-hidden  text-ellipsis whitespace-nowrap" contenteditable @blur="handleEdit">
+      <h1 class="flex-1 ml-5 px-4 pr-6 overflow-hidden  text-ellipsis whitespace-nowrap" contenteditable @blur="handleEdit">
         {{ title ?? '' }}
       </h1>
-      <div class="flex items-center space-x-2">
+      <div class="flex mr-5 items-center space-x-2">
         <HoverButton @click="handleHome">
           <span class="text-xl text-[#4f555e] dark:text-white">
             <SvgIcon icon="ic:baseline-home" />
@@ -41,3 +40,15 @@ async function handleEdit(e: Event) {
     </div>
   </header>
 </template>
+
+<style>
+h1[contenteditable] {
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.15rem;
+}
+
+h1[contenteditable]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #01bc77;
+}
+</style>
