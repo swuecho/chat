@@ -476,3 +476,14 @@ export const fetchSnapshotAll = async (): Promise<any> => {
     throw error
   }
 }
+
+export const updateChatSnapshot = async (uuid: string, data: any): Promise<any> => {
+  try {
+    const response = await request.put(`/uuid/chat_messages_snapshot/${uuid}`, data)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}

@@ -35,9 +35,11 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_messages/{uuid}", h.DeleteChatMessageByUUID).Methods(http.MethodDelete)
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.GetChatHistoryBySessionUUID).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.DeleteChatMessagesBySesionUUID).Methods(http.MethodDelete)
+	//
 	router.HandleFunc("/uuid/chat_messages_snapshot/all", h.ChatSnapshotMetaByUserID).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_messages_snapshot/{uuid}", h.GetChatMessagesSnapshot).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_messages_snapshot/{uuid}", h.CreateChatMessagesSnapshot).Methods(http.MethodPost)
+	router.HandleFunc("/uuid/chat_messages_snapshot/{uuid}", h.UpdateChatMessageMetaByUUID).Methods(http.MethodPut)
 
 }
 
@@ -253,7 +255,7 @@ func (h *ChatMessageHandler) CreateChatMessagesSnapshot(w http.ResponseWriter, r
 
 	one, err := h.service.q.CreateChatSnapshot(r.Context(), sqlc_queries.CreateChatSnapshotParams{
 		Uuid:         snapshot_uuid,
-		Title:        simple_msgs[0].Text,
+		Title:        firstN(simple_msgs[0].Text, 100),
 		UserID:       user_id,
 		Tags:         json.RawMessage([]byte("{}")),
 		Conversation: simple_msgs_raw,
@@ -294,4 +296,29 @@ func (h *ChatMessageHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r *
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(chatSnapshots)
+}
+func (h *ChatMessageHandler) UpdateChatMessageMetaByUUID(w http.ResponseWriter, r *http.Request) {
+	uuid := mux.Vars(r)["uuid"]
+	var input struct {
+		Title   string          `json:"title"`
+		Summary string          `json:"summary"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Failed to parse request body"))
+		return
+	}
+	log.Println(input)
+
+	err = h.service.q.UpdateChatSnapshotMetaByUUID(r.Context(), sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{
+		Uuid:    uuid,
+		Title:   input.Title,
+		Summary: input.Summary,
+	})
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+
 }

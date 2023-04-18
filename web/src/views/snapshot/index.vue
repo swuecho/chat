@@ -1,10 +1,11 @@
 <script lang='ts' setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from './hooks/useCopyCode'
+import Header from './components/Header/index.vue'
 import { fetchChatSnapshot } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
@@ -23,10 +24,12 @@ const { isMobile } = useBasicLayout()
 const { uuid } = route.params as { uuid: string }
 
 const dataSources = ref<Chat.Chat[]>([])
+const title = ref<string>('')
 
 onMounted(async () => {
   const snapshot = await fetchChatSnapshot(uuid)
   dataSources.value.push(...snapshot.Conversation)
+  title.value = snapshot.Title
 })
 
 const loading = ref<boolean>(false)
@@ -143,10 +146,17 @@ const footerClass = computed(() => {
     classes = ['sticky', 'left-0', 'bottom-0', 'right-0', 'p-2', 'pr-3', 'overflow-hidden']
   return classes
 })
+
+function onScrollToTop() {
+  const scrollRef = document.querySelector('#scrollRef')
+  if (scrollRef)
+    nextTick(() => scrollRef.scrollTop = 0)
+}
 </script>
 
 <template>
   <div class="flex flex-col w-full h-full">
+    <Header :title="title" />
     <main class="flex-1 overflow-hidden">
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div
@@ -173,6 +183,11 @@ const footerClass = computed(() => {
               <SvgIcon icon="mdi:language-markdown" />
             </span>
           </HoverButton>
+          <HoverButton @click="onScrollToTop">
+          <span class="text-xl text-[#4f555e] dark:text-white">
+            <SvgIcon icon="material-symbols:vertical-align-top" />
+          </span>
+        </HoverButton>
         </div>
       </div>
     </footer>

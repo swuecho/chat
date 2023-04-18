@@ -26,3 +26,8 @@ SELECT * FROM chat_snapshot WHERE uuid = $1;
 SELECT uuid, title, summary, tags, created_at
 FROM chat_snapshot WHERE user_id = $1
 order by id desc;
+
+-- name: UpdateChatSnapshotMetaByUUID :exec
+UPDATE chat_snapshot
+SET title = $2, summary = $3
+WHERE uuid = $1;

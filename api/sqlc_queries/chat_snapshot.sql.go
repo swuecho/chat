@@ -219,3 +219,20 @@ func (q *Queries) UpdateChatSnapshot(ctx context.Context, arg UpdateChatSnapshot
 	)
 	return i, err
 }
+
+const updateChatSnapshotMetaByUUID = `-- name: UpdateChatSnapshotMetaByUUID :exec
+UPDATE chat_snapshot
+SET title = $2, summary = $3
+WHERE uuid = $1
+`
+
+type UpdateChatSnapshotMetaByUUIDParams struct {
+	Uuid    string
+	Title   string
+	Summary string
+}
+
+func (q *Queries) UpdateChatSnapshotMetaByUUID(ctx context.Context, arg UpdateChatSnapshotMetaByUUIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateChatSnapshotMetaByUUID, arg.Uuid, arg.Title, arg.Summary)
+	return err
+}
