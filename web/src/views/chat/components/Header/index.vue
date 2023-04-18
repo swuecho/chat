@@ -8,7 +8,7 @@ interface Props {
 }
 
 interface Emit {
-  (ev: 'snapshort'): void
+  (ev: 'snapshot'): void
   (ev: 'export'): void
   (ev: 'toggleUsingContext'): void
 }
