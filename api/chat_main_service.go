@@ -274,10 +274,10 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 		return nil, eris.Wrap(err, "fail to get messages: ")
 	}
 	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) Message {
-		return Message{Role: m.Role, Content: m.Content}
+		return Message{Role: m.Role, Content: m.Content, tokenCount: m.TokenCount}
 	})
 	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) Message {
-		return Message{Role: m.Role, Content: m.Content}
+		return Message{Role: m.Role, Content: m.Content, tokenCount: m.TokenCount}
 	})
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 	return msgs, nil
