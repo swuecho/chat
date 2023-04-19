@@ -4,13 +4,9 @@ import { NCard, NModal, NTabPane, NTabs } from 'naive-ui'
 import General from './General.vue'
 import Admin from './Admin.vue'
 import { SvgIcon } from '@/components/common'
-import { useAuthStore } from '@/store'
-import { isAdmin } from '@/utils/jwt'
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emit>()
-
-const authStore = useAuthStore()
 
 interface Props {
   visible: boolean
@@ -31,7 +27,8 @@ const show = computed({
   },
 })
 
-const isAdminUser = computed(() => isAdmin(authStore.getToken() ?? ''))
+// hidden
+const isAdminUser = ref<boolean>(false)
 </script>
 
 <template>
