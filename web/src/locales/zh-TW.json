@@ -35,7 +35,8 @@
     "invalidPassword": "密碼格式不正確，長度至少需為6位，應包含1個大寫字母、1個小寫字母、1個數字、1個特殊字符",
     "syncChatSession": "同步失敗，請稍後再試",
     "NotAuthorized": "請先登入",
-    "NotAdmin": "非管理員禁止訪問"
+    "NotAdmin": "非管理員禁止訪問",
+    "token_length_exceed_limit": "總消息長度數量超過上限，請減少上下文數量、減少消息長度或者開啟新的會話"
   },
   "chat": {
     "new": "新建聊天",
@@ -46,6 +47,9 @@
     "copyCode": "複製代碼",
     "clearChat": "清空對話",
     "clearChatConfirm": "是否清空對話?",
+    "chatSnapshot": "會話快照到網頁",
+    "snapshotSuccess": "快照成功，請在新標籤頁中查看",
+    "adjustParameters": "調整參數",
     "enable_debug": "開啟",
     "disable_debug": "關閉",
     "exportImage": "導出對話到圖片",
@@ -119,5 +123,7 @@
       "url": "完整的URL請求"
     }
   },
-  "chat_snapshot": {"title": "對話集"}
+  "chat_snapshot": {
+    "title": "對話集"
+  }
 }

@@ -61,17 +61,17 @@ function handleSnapshot() {
         {{ currentChatSession?.title ?? '' }}
       </h1>
       <div class="flex items-center space-x-2">
-        <HoverButton @click="toggle">
+        <HoverButton :tooltip="$t('chat.adjustParameters')" @click="toggle">
           <span class="text-xl text-[#4b9e5f]">
             <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
           </span>
         </HoverButton>
-        <HoverButton @click="handleExport">
+        <HoverButton :tooltip="$t('chat.exportImage')" @click="handleExport">
           <span class="text-xl text-[#4b9e5f] dark:text-white">
             <SvgIcon icon="ri:download-2-line" />
           </span>
         </HoverButton>
-        <HoverButton @click="handleSnapshot">
+        <HoverButton :tooltip="$t('chat.chatSnapshot')" @click="handleSnapshot">
           <span class="text-xl text-[#4b9e5f] dark:text-white">
             <SvgIcon icon="ic:twotone-ios-share" />
           </span>
