@@ -2,11 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"log"
+	"net/http"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
-	"log"
-	"net/http"
 )
 
 type ChatSnapshotHandler struct {
@@ -37,6 +38,10 @@ func (h *ChatSnapshotHandler) CreateChatMessagesSnapshot(w http.ResponseWriter, 
 		return
 	}
 	chatSession, err := h.service.q.GetChatSessionByUUID(r.Context(), chatSessionUuid)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
 	// TODO: fix hardcode
 	simple_msgs, err := h.service.GetChatHistoryBySessionUUID(r.Context(), chatSessionUuid, 1, 10000)
 	// save all simple_msgs to a jsonb field in chat_snapshot
