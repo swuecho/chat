@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { HoverButton, SvgIcon, UserAvatar } from '@/components/common'
 import { useAppStore, useAuthStore, useChatStore, useUserStore } from '@/store/modules'
-import { isAdmin } from '@/utils/jwt';
+import { isAdmin } from '@/utils/jwt'
 
 const Setting = defineAsyncComponent(() => import('@/components/common/Setting/index.vue'))
 

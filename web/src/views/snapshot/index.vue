@@ -182,10 +182,10 @@ function onScrollToTop() {
             </span>
           </HoverButton>
           <HoverButton @click="onScrollToTop">
-          <span class="text-xl text-[#4f555e] dark:text-white">
-            <SvgIcon icon="material-symbols:vertical-align-top" />
-          </span>
-        </HoverButton>
+            <span class="text-xl text-[#4f555e] dark:text-white">
+              <SvgIcon icon="material-symbols:vertical-align-top" />
+            </span>
+          </HoverButton>
         </div>
       </div>
     </footer>
