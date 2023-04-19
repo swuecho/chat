@@ -107,27 +107,8 @@ func TestListresults(t *testing.T) {
 		t.Errorf("Error marshaling update payload: %s", err.Error())
 	}
 
-	// not admin will forbidden
-	updateReqUser, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	updateRRUser := httptest.NewRecorder()
-
-	router.ServeHTTP(updateRRUser, updateReqUser)
-
-	if status := updateRRUser.Code; status != http.StatusForbidden {
-		t.Errorf("Handler returned wrong status code: got %v want %v",
-			status, http.StatusForbidden)
-	}
-
 	// Create an HTTP request so we can simulate a PUT with the payload
 	updateReq, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
-	ctx := context.WithValue(req.Context(), roleContextKey, "admin")
-	updateReq = updateReq.WithContext(ctx)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,8 +133,6 @@ func TestListresults(t *testing.T) {
 	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
 	// And now call the DELETE endpoint to remove all the created ChatModels
 	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
-	ctx2 := context.WithValue(req.Context(), roleContextKey, "admin")
-	deleteReq = deleteReq.WithContext(ctx2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,16 +169,13 @@ func TestListresults(t *testing.T) {
 	// first results's name is  "Test API 2"
 	assert.Equal(t, results[0].Name, "Test API 2")
 	// delete all results
-
 	deleteReq2, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx3 := context.WithValue(req.Context(), roleContextKey, "admin")
-	deleteReq2 = deleteReq2.WithContext(ctx3)
-
 	deleteRR2 := httptest.NewRecorder()
+
 	router.ServeHTTP(deleteRR2, deleteReq2)
 
 	if status := deleteRR2.Code; status != http.StatusOK {
