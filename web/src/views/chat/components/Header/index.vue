@@ -3,17 +3,11 @@ import { computed, nextTick } from 'vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useAppStore, useChatStore } from '@/store'
 
-interface Props {
-  usingContext: boolean
-}
-
 interface Emit {
   (ev: 'snapshot'): void
   (ev: 'export'): void
-  (ev: 'toggleUsingContext'): void
+  (ev: 'toggle'): void
 }
-
-defineProps<Props>()
 
 const emit = defineEmits<Emit>()
 
@@ -37,8 +31,8 @@ function handleExport() {
   emit('export')
 }
 
-function toggleUsingContext() {
-  emit('toggleUsingContext')
+function toggle() {
+  emit('toggle')
 }
 
 function handleSnapshot() {
@@ -67,18 +61,18 @@ function handleSnapshot() {
         {{ currentChatSession?.title ?? '' }}
       </h1>
       <div class="flex items-center space-x-2">
-        <HoverButton @click="toggleUsingContext">
-          <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">
-            <SvgIcon icon="ri:chat-history-line" />
+        <HoverButton @click="toggle">
+          <span class="text-xl text-[#4b9e5f]">
+            <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
           </span>
         </HoverButton>
         <HoverButton @click="handleExport">
-          <span class="text-xl text-[#4f555e] dark:text-white">
+          <span class="text-xl text-[#4b9e5f] dark:text-white">
             <SvgIcon icon="ri:download-2-line" />
           </span>
         </HoverButton>
         <HoverButton @click="handleSnapshot">
-          <span class="text-xl text-[#4f555e] dark:text-white">
+          <span class="text-xl text-[#4b9e5f] dark:text-white">
             <SvgIcon icon="ic:twotone-ios-share" />
           </span>
         </HoverButton>
