@@ -40,6 +40,9 @@
     "clearChatConfirm": "Do you want to clear the chat session?",
     "enable_debug": "Enable",
     "disable_debug": "Disable",
+    "chatSnapshot": "Chat snapshot to webpage",
+    "snapshotSuccess": "Snapshot successful, please view in a new tab",
+    "adjustParameters": "Adjust parameters",
     "exportImage": "Export chat session to image",
     "exportImageConfirm": "Do you want to save the chat session as an image?",
     "exportMD": "Export chat session to markdown file",
@@ -62,7 +65,7 @@
     "frequencyPenalty": "Frequency Penalty",
     "presencePenalty": "Presence Penalty",
     "debug": "Debug Mode",
-    "model": "Model (OpenAI GPT4 needs separate application, Claude's free key can use all Claude models)",
+    "model": "Model (OpenAI GPT4 needs separate application, Claude key can use all Claude models)",
     "sessionConfig": "Conversation Settings:"
   },
   "chat_snapshot": {
@@ -116,6 +119,7 @@
   },
   "error": {
     "rateLimit": "The message sending limit has been reached, please contact the administrator.",
+    "token_length_exceed_limit": "Total message length exceeds limit, please reduce context quantity, message length or start a new conversation.",
     "invalidEmail": "Invalid email address",
     "syncChatSession": "Sync Failed, Please Try Again Later",
     "invalidPassword": "password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character",
