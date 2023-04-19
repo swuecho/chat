@@ -8,7 +8,6 @@ import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
 import { useCopyCode } from './hooks/useCopyCode'
-import { useUsingContext } from './hooks/useUsingContext'
 import HeaderComponent from './components/Header/index.vue'
 import SessionConfig from './components/Session/SessionConfig.vue'
 import { createChatSnapshot, fetchChatStream } from '@/api'
@@ -30,7 +29,6 @@ useCopyCode()
 const { isMobile } = useBasicLayout()
 const { addChat, updateChat, updateChatPartial, updateChatText } = useChat()
 const { scrollRef, scrollToBottom } = useScroll()
-const { usingContext } = useUsingContext()
 // session uuid
 const { uuid } = route.params as { uuid: string }
 const sessionUuid = uuid
@@ -424,15 +422,19 @@ function getDataFromResponseText(responseText: string): string {
 
 <template>
   <div class="flex flex-col w-full h-full">
-    <HeaderComponent v-if="isMobile" :using-context="usingContext" @export="handleExport" @snapshort="handleSnapshot"
-      @toggle-using-context="showModal = true" />
+    <HeaderComponent
+      v-if="isMobile" @export="handleExport" @snapshort="handleSnapshot"
+      @toggle="showModal = true"
+    />
     <main class="flex-1 overflow-hidden">
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-        <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
-          :class="[isMobile ? 'p-2' : 'p-4']">
+        <div
+          id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
+          :class="[isMobile ? 'p-2' : 'p-4']"
+        >
           <template v-if="!dataSources.length">
             <div class="flex items-center justify-center mt-4 text-center text-neutral-300">
               <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
@@ -441,10 +443,12 @@ function getDataFromResponseText(responseText: string): string {
           </template>
           <template v-else>
             <div>
-              <Message v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
+              <Message
+                v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
                 :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :loading="item.loading" :index="index" @regenerate="onRegenerate(index)" @delete="handleDelete(index)"
-                @after-edit="handleAfterEdit" />
+                @after-edit="handleAfterEdit"
+              />
               <div class="sticky bottom-0 left-0 flex justify-center">
                 <NButton v-if="loading" type="warning" @click="handleStop">
                   <template #icon>
@@ -462,31 +466,35 @@ function getDataFromResponseText(responseText: string): string {
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
           <HoverButton @click="handleClear">
-            <span class="text-xl text-[#4f555e] dark:text-white">
+            <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="icon-park-outline:clear" />
             </span>
           </HoverButton>
           <HoverButton v-if="!isMobile" @click="handleExport">
-            <span class="text-xl text-[#4f555e] dark:text-white">
+            <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="ri:download-2-line" />
             </span>
           </HoverButton>
 
           <HoverButton v-if="!isMobile" @click="handleSnapshot">
-            <span class="text-xl text-[#4f555e] dark:text-white">
+            <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="ic:twotone-ios-share" />
             </span>
           </HoverButton>
 
           <HoverButton v-if="!isMobile" @click="showModal = true">
-            <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">
-              <SvgIcon icon="ri:chat-history-line" />
+            <span class="text-xl text-[#4b9e5f]">
+              <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
           </HoverButton>
-          <NInput id="message_textarea" v-model:value="prompt" data-testid="message_textarea" type="textarea"
-            :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" :placeholder="placeholder" @keypress="handleEnter" />
-          <NButton id="send_message_button" data-testid="send_message_button" type="primary" :disabled="buttonDisabled"
-            @click="handleSubmit">
+          <NInput
+            id="message_textarea" v-model:value="prompt" data-testid="message_textarea" type="textarea"
+            :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" :placeholder="placeholder" @keypress="handleEnter"
+          />
+          <NButton
+            id="send_message_button" data-testid="send_message_button" type="primary" :disabled="buttonDisabled"
+            @click="handleSubmit"
+          >
             <template #icon>
               <span class="dark:text-black">
                 <SvgIcon icon="ri:send-plane-fill" />
