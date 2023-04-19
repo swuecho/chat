@@ -73,6 +73,6 @@ h1[contenteditable] {
 
 h1[contenteditable]:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #0be293;
+  box-shadow: 0 0 0 1px #18a058;
 }
 </style>

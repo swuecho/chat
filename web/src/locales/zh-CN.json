@@ -69,7 +69,7 @@
     "title": "对话集"
   },
   "admin": {
-    "openPanel": "在新标签页中打开(仅限管理员)",
+    "openPanel": "在新标签页中打开",
     "title": "管理",
     "refresh": "刷新",
     "userEmail": "用户邮箱",
