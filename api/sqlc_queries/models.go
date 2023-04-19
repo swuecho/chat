@@ -104,6 +104,7 @@ type ChatSnapshot struct {
 	UserID       int32
 	Title        string
 	Summary      string
+	Model        string
 	Tags         json.RawMessage
 	Conversation json.RawMessage
 	CreatedAt    time.Time

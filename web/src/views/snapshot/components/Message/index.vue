@@ -12,7 +12,8 @@ import { displayLocaleDate } from '@/utils/date'
 interface Props {
   index: number
   dateTime: string
-  text?: string
+  model: string
+  text: string
   inversion?: boolean
   error?: boolean
   loading?: boolean
@@ -51,7 +52,7 @@ function handleSelect(key: 'copyText') {
         class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
         :class="[inversion ? 'ml-2' : 'mr-2']"
       >
-        <AvatarComponent :inversion="inversion" model="gpt-3.5" />
+        <AvatarComponent :inversion="inversion" :model="model" />
       </div>
     </div>
     <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
@@ -70,7 +71,9 @@ function handleSelect(key: 'copyText') {
           >
             <SvgIcon icon="mingcute:voice-fill" />
           </button>
-          <button class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300">
+          <button
+            class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
+          >
             <SvgIcon icon="mdi:comment-outline" />
           </button>
           <NDropdown :placement="!inversion ? 'right' : 'left'" :options="options" @select="handleSelect">

@@ -5,8 +5,8 @@ SELECT * FROM chat_snapshot ORDER BY id;
 SELECT * FROM chat_snapshot WHERE id = $1;
 
 -- name: CreateChatSnapshot :one
-INSERT INTO chat_snapshot (uuid, user_id, title, summary, tags, conversation )
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO chat_snapshot (uuid, user_id, title, model, summary, tags, conversation )
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: UpdateChatSnapshot :one
