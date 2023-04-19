@@ -1,7 +1,8 @@
 <script setup lang='ts'>
-import { defineAsyncComponent, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { HoverButton, SvgIcon, UserAvatar } from '@/components/common'
 import { useAppStore, useAuthStore, useChatStore, useUserStore } from '@/store/modules'
+import { isAdmin } from '@/utils/jwt';
 
 const Setting = defineAsyncComponent(() => import('@/components/common/Setting/index.vue'))
 
@@ -12,6 +13,8 @@ const appStore = useAppStore()
 
 const show = ref(false)
 
+const isAdminUser = computed(() => isAdmin(authStore.getToken() ?? ''))
+
 function handleLogout() {
   // clear all stores
   authStore.removeToken()
@@ -21,6 +24,10 @@ function handleLogout() {
 
 function handleChangelang() {
   appStore.setNextLanguage()
+}
+
+function openAdminPanel() {
+  window.open('/#/admin/user', '_blank')
 }
 </script>
 
@@ -42,6 +49,11 @@ function handleChangelang() {
     <HoverButton :tooltip="$t('setting.setting')" @click="show = true">
       <span class="text-xl text-[#4f555e] dark:text-white">
         <SvgIcon icon="ri:settings-4-line" />
+      </span>
+    </HoverButton>
+    <HoverButton v-if="isAdminUser" :tooltip="$t('setting.admin')" @click="openAdminPanel">
+      <span class="text-xl text-[#4f555e] dark:text-white">
+        <SvgIcon icon="eos-icons:admin-outlined" />
       </span>
     </HoverButton>
     <Setting v-if="show" v-model:visible="show" />
