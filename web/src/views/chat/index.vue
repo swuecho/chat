@@ -481,7 +481,7 @@ function getDataFromResponseText(responseText: string): string {
         <div class="flex items-center justify-between space-x-2">
           <HoverButton @click="handleClear">
             <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="ri:delete-bin-line" />
+              <SvgIcon icon="icon-park-outline:clear" />
             </span>
           </HoverButton>
           <HoverButton v-if="!isMobile" @click="handleExport">
