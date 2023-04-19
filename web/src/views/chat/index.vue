@@ -480,7 +480,7 @@ function getDataFromResponseText(responseText: string): string {
             </span>
           </HoverButton>
 
-          <HoverButton v-if="!isMobile" :tooltip="$t('chat.adjustParameters')" @click="showModal = true">
+          <HoverButton v-if="!isMobile" @click="showModal = true">
             <span class="text-xl text-[#4b9e5f]">
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
