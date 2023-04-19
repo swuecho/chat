@@ -37,8 +37,6 @@ const sessionUuid = uuid
 const dataSources = computed(() => chatStore.getChatSessionDataByUuid(sessionUuid))
 const chatSession = computed(() => chatStore.getChatSessionByUuid(uuid))
 
-const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !item.error)))
-
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 
