@@ -4,10 +4,13 @@ import { NCard, NModal, NTabPane, NTabs } from 'naive-ui'
 import General from './General.vue'
 import Admin from './Admin.vue'
 import { SvgIcon } from '@/components/common'
+import { useAuthStore } from '@/store'
+import { isAdmin } from '@/utils/jwt'
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<Emit>()
+
+const authStore = useAuthStore()
 
 interface Props {
   visible: boolean
@@ -27,6 +30,8 @@ const show = computed({
     emit('update:visible', visible)
   },
 })
+
+const isAdminUser = computed(() => isAdmin(authStore.getToken() ?? ''))
 </script>
 
 <template>
@@ -42,7 +47,7 @@ const show = computed({
             <General />
           </div>
         </NTabPane>
-        <NTabPane name="Admin" tab="Admin">
+        <NTabPane v-if="isAdminUser" name="Admin" tab="Admin">
           <template #tab>
             <SvgIcon class="text-lg" icon="ri:list-settings-line" />
             <span class="ml-2">{{ $t('setting.admin') }}</span>

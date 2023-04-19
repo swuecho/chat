@@ -14,8 +14,8 @@ export interface UserState {
 export function defaultSetting(): UserState {
   return {
     userInfo: {
-      name: 'Your Name',
-      description: 'Desc',
+      name: '',
+      description: '',
     },
   }
 }
