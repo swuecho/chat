@@ -231,6 +231,8 @@ func main() {
 		fs.ServeHTTP(w, r)
 	})
 
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", cacheHandler))
+
 	// Redirect "/" to "/static/"
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
