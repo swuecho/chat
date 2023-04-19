@@ -14,7 +14,7 @@ interface Props {
   dateTime: string
   model: string
   text: string
-  inversion: boolean
+  inversion?: boolean
   error?: boolean
   loading?: boolean
 }
