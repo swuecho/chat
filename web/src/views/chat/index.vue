@@ -422,10 +422,7 @@ function getDataFromResponseText(responseText: string): string {
 
 <template>
   <div class="flex flex-col w-full h-full">
-    <HeaderComponent
-      v-if="isMobile" @export="handleExport" @snapshort="handleSnapshot"
-      @toggle="showModal = true"
-    />
+    <HeaderComponent v-if="isMobile" @export="handleExport" @snapshot="handleSnapshot" @toggle="showModal = true" />
     <main class="flex-1 overflow-hidden">
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
@@ -465,24 +462,24 @@ function getDataFromResponseText(responseText: string): string {
     <footer :class="footerClass">
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
-          <HoverButton @click="handleClear">
+          <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
             <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="icon-park-outline:clear" />
             </span>
           </HoverButton>
-          <HoverButton v-if="!isMobile" @click="handleExport">
+          <HoverButton v-if="!isMobile" :tooltip="$t('chat.exportImage')" @click="handleExport">
             <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="ri:download-2-line" />
             </span>
           </HoverButton>
 
-          <HoverButton v-if="!isMobile" @click="handleSnapshot">
+          <HoverButton v-if="!isMobile" :tooltip="$t('chat.chatSnapshot')" @click="handleSnapshot">
             <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="ic:twotone-ios-share" />
             </span>
           </HoverButton>
 
-          <HoverButton v-if="!isMobile" @click="showModal = true">
+          <HoverButton v-if="!isMobile" :tooltip="$t('chat.adjustParameters')" @click="showModal = true">
             <span class="text-xl text-[#4b9e5f]">
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
