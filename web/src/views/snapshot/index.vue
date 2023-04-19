@@ -82,8 +82,6 @@ const chatToMarkdown = () => {
     inversion?: boolean
     error?: boolean
     loading?: boolean
-    conversationOptions?: ConversationRequest | null
-    requestOptions: { prompt: string; options?: ConversationRequest | null }
     isPrompt?: boolean
     */
     const chatData = dataSources.value

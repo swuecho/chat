@@ -196,7 +196,9 @@ VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.co
         ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
         ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
         ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
-        ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY')
+        ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
+        ('echo','echo',false,'https://bestqa_workerd.bestqa.workers.dev/echo','Authorization','ECHO_API_KEY'),
+        ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY')
 ON CONFLICT(name) DO NOTHING;
 
 

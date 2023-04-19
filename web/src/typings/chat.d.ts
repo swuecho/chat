@@ -7,8 +7,6 @@ declare namespace Chat {
 		inversion?: boolean
 		error?: boolean
 		loading?: boolean
-		conversationOptions?: ConversationRequest | null
-		requestOptions: { prompt: string; options?: ConversationRequest | null }
 		isPrompt?: boolean
 	}
 

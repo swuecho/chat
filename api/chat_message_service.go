@@ -156,9 +156,6 @@ func (s *ChatMessageService) GetChatHistoryBySessionUUID(ctx context.Context, uu
 			Error:     false,
 			Loading:   false,
 			IsPrompt:  true,
-			RequestOptions: RequestOption{
-				Prompt: prompt.Content,
-			},
 		}
 	})
 
@@ -180,9 +177,6 @@ func (s *ChatMessageService) GetChatHistoryBySessionUUID(ctx context.Context, uu
 			Inversion: message.Role == "user",
 			Error:     false,
 			Loading:   false,
-			RequestOptions: RequestOption{
-				Prompt: message.Content,
-			},
 		}
 	})
 

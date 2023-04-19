@@ -33,8 +33,6 @@ type SimpleChatMessage struct {
 	Inversion           bool                `json:"inversion"`
 	Error               bool                `json:"error"`
 	Loading             bool                `json:"loading"`
-	ConversationOptions ConversationRequest `json:"conversationOptions,omitempty"`
-	RequestOptions      RequestOption       `json:"requestOptions,omitempty"`
 	IsPrompt            bool                `json:"isPrompt"`
 }
 

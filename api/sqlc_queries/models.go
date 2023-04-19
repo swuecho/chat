@@ -116,15 +116,6 @@ type JwtSecret struct {
 	Audience string
 }
 
-type MessageComment struct {
-	ID          int32
-	Uuid        string
-	MessageUuid string
-	UserID      int32
-	Content     string
-	CreatedAt   time.Time
-}
-
 type UserActiveChatSession struct {
 	ID              int32
 	UserID          int32

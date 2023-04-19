@@ -37,8 +37,6 @@ const sessionUuid = uuid
 const dataSources = computed(() => chatStore.getChatSessionDataByUuid(sessionUuid))
 const chatSession = computed(() => chatStore.getChatSessionByUuid(uuid))
 
-const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !item.error)))
-
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 
@@ -67,21 +65,12 @@ async function onConversationStream() {
       text: message,
       inversion: true,
       error: false,
-      conversationOptions: null,
-      requestOptions: { prompt: message, options: null },
     },
   )
   scrollToBottom()
 
   loading.value = true
   prompt.value = ''
-
-  let options: Chat.ConversationRequest = {}
-  const lastContext = conversationList.value[conversationList.value.length - 1]?.conversationOptions
-
-  if (lastContext && usingContext.value)
-    options = { ...lastContext }
-  options.uuid = sessionUuid.toString()
 
   // add a blank response
   addChat(
@@ -93,8 +82,6 @@ async function onConversationStream() {
       loading: true,
       inversion: false,
       error: false,
-      conversationOptions: null,
-      requestOptions: { prompt: message, options: { ...options } },
     },
   )
   scrollToBottom()
@@ -106,7 +93,6 @@ async function onConversationStream() {
         chatUuid,
         false,
         message,
-        options,
         (progress: any) => {
           const xhr = progress.event.target
           const {
@@ -154,8 +140,6 @@ async function onConversationStream() {
                     inversion: false,
                     error: false,
                     loading: false,
-                    conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
-                    requestOptions: { prompt: message, options: { ...options } },
                   },
                 )
               }
@@ -194,14 +178,8 @@ async function onRegenerate(index: number) {
 
   const chat = dataSources.value[index]
 
-  const requestOptions = chat.requestOptions
-  const message = requestOptions?.prompt ?? ''
   const chatUuid = chat.uuid
-
-  let options: Chat.ConversationRequest = {}
-
-  if (requestOptions.options)
-    options = { ...requestOptions.options }
+  const message = chat.text
 
   loading.value = true
   updateChat(
@@ -214,8 +192,6 @@ async function onRegenerate(index: number) {
       inversion: false,
       error: false,
       loading: false,
-      conversationOptions: null,
-      requestOptions: { prompt: message, ...options },
     },
   )
 
@@ -228,7 +204,6 @@ async function onRegenerate(index: number) {
           chatUuid,
           true,
           message,
-          options,
           (progress: any) => {
             const xhr = progress.event.target
             const {
@@ -253,8 +228,6 @@ async function onRegenerate(index: number) {
                   inversion: false,
                   error: false,
                   loading: false,
-                  conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
-                  requestOptions: { prompt: message, options: { ...options } },
                 },
               )
             }
@@ -298,8 +271,6 @@ async function onRegenerate(index: number) {
         inversion: false,
         error: true,
         loading: false,
-        conversationOptions: null,
-        requestOptions: { prompt: message, ...options },
       },
     )
   }
@@ -466,8 +437,7 @@ function getDataFromResponseText(responseText: string): string {
 <template>
   <div class="flex flex-col w-full h-full">
     <HeaderComponent
-      v-if="isMobile" :using-context="usingContext" @export="handleExport"
-      @snapshort="handleSnapshot"
+      v-if="isMobile" :using-context="usingContext" @export="handleExport" @snapshort="handleSnapshot"
       @toggle-using-context="showModal = true"
     />
     <main class="flex-1 overflow-hidden">
