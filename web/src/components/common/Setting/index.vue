@@ -31,7 +31,8 @@ const show = computed({
   },
 })
 
-const isAdminUser = computed(() => isAdmin(authStore.getToken() ?? ''))
+// hidden
+const isAdminUser = ref<boolean>(false)
 </script>
 
 <template>
