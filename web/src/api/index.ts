@@ -34,13 +34,12 @@ export async function fetchChatStream(
   chatUuid: string,
   regenerate: boolean,
   prompt: string,
-  options?: { conversationId?: string; parentMessageId?: string },
   onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void,
 ) {
   try {
     const response = await request.post(
       '/chat_stream',
-      { regenerate, prompt, options, sessionUuid, chatUuid },
+      { regenerate, prompt, sessionUuid, chatUuid },
       { onDownloadProgress },
     )
 
@@ -402,8 +401,6 @@ export const fetchMarkdown = async (uuid: string) => {
     inversion?: boolean
     error?: boolean
     loading?: boolean
-    conversationOptions?: ConversationRequest | null
-    requestOptions: { prompt: string; options?: ConversationRequest | null }
     isPrompt?: boolean
     */
     const markdown = chatData.map((chat: Chat.Chat) => {
@@ -432,8 +429,6 @@ export const fetchConversationSnapshot = async (uuid: string): Promise<Chat.Chat
     inversion?: boolean
     error?: boolean
     loading?: boolean
-    conversationOptions?: ConversationRequest | null
-    requestOptions: { prompt: string; options?: ConversationRequest | null }
     isPrompt?: boolean
     */
     return chatData
