@@ -17,6 +17,7 @@ import (
 
 	uuid "github.com/iris-contrib/go.uuid"
 	"github.com/rotisserie/eris"
+	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 
@@ -69,8 +70,21 @@ type Choice struct {
 }
 
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string `json:"role"`
+	Content    string `json:"content"`
+	tokenCount int32
+}
+
+func (m Message) TokenCount() int32 {
+	if m.tokenCount != 0 {
+		return m.tokenCount
+	} else {
+		tokenCount, err := getTokenCount(m.Content)
+		if err != nil {
+			log.Println(err)
+		}
+		return int32(tokenCount) + 1
+	}
 }
 
 type OpenaiChatRequest struct {
@@ -201,6 +215,21 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 
+	// calc total tokens
+	totalTokens := lo.SumBy(msgs, func(msg Message) int32 {
+		return msg.TokenCount()
+	})
+
+	// check if total tokens exceed limit
+	if totalTokens > chatSession.MaxTokens*2/3 {
+		RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
+			map[string]interface{}{
+				"max_tokens":   chatSession.MaxTokens,
+				"total_tokens": totalTokens,
+			})
+		return
+	}
+
 	chatStreamFn := h.chooseChatStreamFn(chatSession, msgs)
 
 	answerText, answerID, shouldReturn := chatStreamFn(w, chatSession, msgs, chatUuid, false)
@@ -221,26 +250,41 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) {
 	ctx := context.Background()
-	chat_session, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
+	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
 		http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
 		return
 	}
 
-	msgs, err := h.chatService.getAskMessages(chat_session, chatUuid, true)
+	msgs, err := h.chatService.getAskMessages(chatSession, chatUuid, true)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Get chat message error", err)
 		return
 	}
-	// Determine whether the chat is a test or not
-	chatStreamFn := h.chooseChatStreamFn(chat_session, msgs)
 
-	answerText, _, shouldReturn := chatStreamFn(w, chat_session, msgs, chatUuid, true)
+	// calc total tokens
+	totalTokens := lo.SumBy(msgs, func(msg Message) int32 {
+		return msg.TokenCount()
+	})
+
+	if totalTokens > chatSession.MaxTokens*2/3 {
+		RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
+			map[string]interface{}{
+				"max_tokens":   chatSession.MaxTokens,
+				"total_tokens": totalTokens,
+			})
+		return
+	}
+
+	// Determine whether the chat is a test or not
+	chatStreamFn := h.chooseChatStreamFn(chatSession, msgs)
+
+	answerText, _, shouldReturn := chatStreamFn(w, chatSession, msgs, chatUuid, true)
 	if shouldReturn {
 		return
 	}
 
-	h.chatService.logChat(chat_session, msgs, answerText)
+	h.chatService.logChat(chatSession, msgs, answerText)
 
 	// Delete previous message and create new one
 	if err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText); err != nil {

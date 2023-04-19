@@ -33,7 +33,10 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				}
 
 				if messageCount >= int64(maxRate) {
-					http.Error(w, "error.rateLimit", http.StatusTooManyRequests)
+					RespondWithError(w, http.StatusTooManyRequests, "error.rateLimit", map[string]interface{}{
+						"messageCount": messageCount,
+						"maxRate":      maxRate,
+					})
 					return
 				}
 			}
