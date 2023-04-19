@@ -209,7 +209,10 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
     user_id INTEGER NOT NULL default 0,
     title VARCHAR(255) NOT NULL default '',
     summary TEXT NOT NULL default '',
+    model VARCHAR(255) NOT NULL default '',
     tags JSONB DEFAULT '{}' NOT NULL,
     conversation JSONB DEFAULT '{}' NOT NULL,
     created_at TIMESTAMP DEFAULT now() NOT NULL
 );
+
+ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;

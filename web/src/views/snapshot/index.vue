@@ -25,11 +25,13 @@ const { uuid } = route.params as { uuid: string }
 
 const dataSources = ref<Chat.Chat[]>([])
 const title = ref<string>('')
+const model = ref<string>('')
 
 onMounted(async () => {
   const snapshot = await fetchChatSnapshot(uuid)
   dataSources.value.push(...snapshot.Conversation)
   title.value = snapshot.Title
+  model.value = snapshot.Model
 })
 
 const loading = ref<boolean>(false)
@@ -163,6 +165,7 @@ function onScrollToTop() {
         >
           <Message
             v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
+            :model="model"
             :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading" :index="index"
           />
         </div>

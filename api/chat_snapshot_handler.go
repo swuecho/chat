@@ -30,14 +30,15 @@ func (h *ChatSnapshotHandler) Register(router *mux.Router) {
 // save all chat messages to database
 
 func (h *ChatSnapshotHandler) CreateChatMessagesSnapshot(w http.ResponseWriter, r *http.Request) {
-	uuidStr := mux.Vars(r)["uuid"]
+	chatSessionUuid := mux.Vars(r)["uuid"]
 	user_id, err := getUserID(r.Context())
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
+	chatSession, err := h.service.q.GetChatSessionByUUID(r.Context(), chatSessionUuid)
 	// TODO: fix hardcode
-	simple_msgs, err := h.service.GetChatHistoryBySessionUUID(r.Context(), uuidStr, 1, 10000)
+	simple_msgs, err := h.service.GetChatHistoryBySessionUUID(r.Context(), chatSessionUuid, 1, 10000)
 	// save all simple_msgs to a jsonb field in chat_snapshot
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -53,7 +54,8 @@ func (h *ChatSnapshotHandler) CreateChatMessagesSnapshot(w http.ResponseWriter, 
 
 	one, err := h.service.q.CreateChatSnapshot(r.Context(), sqlc_queries.CreateChatSnapshotParams{
 		Uuid:         snapshot_uuid,
-		Title:        firstN(simple_msgs[0].Text, 100),
+		Model:        chatSession.Model,
+		Title:        firstN(chatSession.Topic, 100),
 		UserID:       user_id,
 		Tags:         json.RawMessage([]byte("{}")),
 		Conversation: simple_msgs_raw,
