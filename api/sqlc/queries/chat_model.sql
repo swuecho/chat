@@ -4,6 +4,9 @@ SELECT * FROM chat_model ORDER BY id;
 -- name: ChatModelByID :one
 SELECT * FROM chat_model WHERE id = $1;
 
+-- name: ChatModelByName :one
+SELECT * FROM chat_model WHERE name = $1;
+
 -- name: CreateChatModel :one
 INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key)
 VALUES ($1, $2, $3, $4, $5, $6)

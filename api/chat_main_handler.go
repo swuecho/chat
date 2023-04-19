@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -200,7 +201,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 
-	chatStreamFn := chooseChatStreamFn(chatSession, msgs)
+	chatStreamFn := h.chooseChatStreamFn(chatSession, msgs)
 
 	answerText, answerID, shouldReturn := chatStreamFn(w, chatSession, msgs, chatUuid, false)
 
@@ -232,7 +233,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		return
 	}
 	// Determine whether the chat is a test or not
-	chatStreamFn := chooseChatStreamFn(chat_session, msgs)
+	chatStreamFn := h.chooseChatStreamFn(chat_session, msgs)
 
 	answerText, _, shouldReturn := chatStreamFn(w, chat_session, msgs, chatUuid, true)
 	if shouldReturn {
@@ -247,16 +248,19 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	}
 }
 
-func chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []Message) func(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []Message) func(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	model := chat_session.Model
 	isTestChat := isTest(msgs)
 	isClaude := strings.HasPrefix(model, "claude")
+	isChatGPT := strings.HasPrefix(model, "gpt")
 
-	chatStreamFn := chatStream
+	chatStreamFn := h.customChatStream
 	if isClaude {
-		chatStreamFn = chatStreamClaude
+		chatStreamFn = h.chatStreamClaude
 	} else if isTestChat {
-		chatStreamFn = chatStreamTest
+		chatStreamFn = h.chatStreamTest
+	} else if isChatGPT {
+		chatStreamFn = h.chatStream
 	}
 	return chatStreamFn
 }
@@ -267,7 +271,7 @@ func isTest(msgs []Message) bool {
 	return promptMsg.Content == "test_demo_bestqa" || lastMsgs.Content == "test_demo_bestqa"
 }
 
-func chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	openAIRateLimiter.Wait(context.Background())
 	client := openai.NewClient(appConfig.OPENAI.API_KEY)
 
@@ -350,7 +354,7 @@ type ClaudeResponse struct {
 	Exception  interface{} `json:"exception"`
 }
 
-func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
 	claudeRateLimiteToken <- struct{}{}
 	// Release the API token
@@ -464,7 +468,140 @@ func chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSessio
 	return answer, answer_id, false
 }
 
-func chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+type CustomModelResponse struct {
+	Completion string      `json:"completion"`
+	Stop       string      `json:"stop"`
+	StopReason string      `json:"stop_reason"`
+	Truncated  bool        `json:"truncated"`
+	LogID      string      `json:"log_id"`
+	Model      string      `json:"model"`
+	Exception  interface{} `json:"exception"`
+}
+
+func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
+	// set the api key
+	log.Printf("%+v", chat_compeletion_messages)
+	model := chatSession.Model
+	chat_model, err := h.chatService.q.ChatModelByName(context.Background(), model)
+	if err != nil {
+		log.Println(err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		return "", "", true
+	}
+	apiKey := os.Getenv(chat_model.ApiAuthKey)
+	// set the url
+	url := chat_model.Url
+
+	// create a new strings.Builder
+	// iterate through the messages and format them
+	// print the user's question
+	// convert assistant's response to json format
+	prompt := formatClaudePrompt(chat_compeletion_messages)
+	log.Println(prompt)
+	// create the json data
+	jsonData := map[string]interface{}{
+		"prompt":               prompt,
+		"model":                chatSession.Model,
+		"max_tokens_to_sample": chatSession.MaxTokens,
+		"temperature":          chatSession.Temperature,
+		"stop_sequences":       []string{"\n\nHuman:"},
+		"stream":               true,
+	}
+
+	// convert data to json format
+	jsonValue, _ := json.Marshal(jsonData)
+	// create the request
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
+	if err != nil {
+		fmt.Println("Error while creating request: ", err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
+	}
+
+	// add headers to the request
+	req.Header.Set("Content-Type", "application/json")
+	authHeaderName := os.Getenv(chat_model.ApiAuthHeader)
+	if authHeaderName != "" {
+		req.Header.Set(authHeaderName, apiKey)
+	}
+
+	// set the streaming flag
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Connection", "keep-alive")
+
+	// create the http client and send the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error while sending request: ", err)
+	}
+
+	ioreader := bufio.NewReader(resp.Body)
+
+	// read the response body
+	defer resp.Body.Close()
+	// loop over the response body and print data
+
+	setSSEHeader(w)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		return "", "", true
+	}
+
+	var answer string
+	var answer_id string
+
+	if regenerate {
+		answer_id = chatUuid
+	}
+
+	var headerData = []byte("data: ")
+	count := 0
+	for {
+		count++
+		// prevent infinite loop
+		if count > 10000 {
+			break
+		}
+		line, err := ioreader.ReadBytes('\n')
+		if err != nil {
+			return "", "", true
+		}
+		log.Println(string(line))
+		if !bytes.HasPrefix(line, headerData) {
+			continue
+		}
+		line = bytes.TrimPrefix(line, headerData)
+
+		if bytes.HasPrefix(line, []byte("[DONE]")) {
+			// stream.isFinished = true
+			fmt.Println("DONE break")
+			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
+			break
+		}
+		if answer_id == "" {
+			uuid, _ := uuid.NewV4()
+			answer_id = uuid.String()
+		}
+		var response CustomModelResponse
+		_ = json.Unmarshal(line, &response)
+		answer = response.Completion
+		if len(answer) < 200 || len(answer)%2 == 0 {
+			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
+		}
+	}
+
+	return answer, answer_id, false
+}
+
+func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	//message := Message{Role: "assitant", Content:}
 	answer_id := chatUuid
 	if !regenerate {

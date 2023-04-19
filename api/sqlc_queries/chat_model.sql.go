@@ -28,6 +28,25 @@ func (q *Queries) ChatModelByID(ctx context.Context, id int32) (ChatModel, error
 	return i, err
 }
 
+const chatModelByName = `-- name: ChatModelByName :one
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key FROM chat_model WHERE name = $1
+`
+
+func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, error) {
+	row := q.db.QueryRowContext(ctx, chatModelByName, name)
+	var i ChatModel
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Label,
+		&i.IsDefault,
+		&i.Url,
+		&i.ApiAuthHeader,
+		&i.ApiAuthKey,
+	)
+	return i, err
+}
+
 const createChatModel = `-- name: CreateChatModel :one
 INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key)
 VALUES ($1, $2, $3, $4, $5, $6)
