@@ -308,6 +308,7 @@ async function handleSnapshot() {
   const snapshot_uuid = snapshot.uuid
   // Open new tab with snapshot UUID
   window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
+  nui_msg.success(t('chat.snapshotSuccess'))
   // ask user to input the a title for the chat
 
   // then call createChatSnapshot
