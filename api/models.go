@@ -27,13 +27,13 @@ type RequestOption struct {
 }
 
 type SimpleChatMessage struct {
-	Uuid                string              `json:"uuid"`
-	DateTime            string              `json:"dateTime"`
-	Text                string              `json:"text"`
-	Inversion           bool                `json:"inversion"`
-	Error               bool                `json:"error"`
-	Loading             bool                `json:"loading"`
-	IsPrompt            bool                `json:"isPrompt"`
+	Uuid      string `json:"uuid"`
+	DateTime  string `json:"dateTime"`
+	Text      string `json:"text"`
+	Inversion bool   `json:"inversion"`
+	Error     bool   `json:"error"`
+	Loading   bool   `json:"loading"`
+	IsPrompt  bool   `json:"isPrompt"`
 }
 
 type SimpleChatSession struct {

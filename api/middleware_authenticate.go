@@ -59,6 +59,38 @@ func IsChatSnapshotUUID(r *http.Request) bool {
 	return false
 }
 
+func AdminOnly(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		userRole, ok := ctx.Value(roleContextKey).(string)
+		if !ok {
+			RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			return
+		}
+		if userRole != "admin" {
+			RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		userRole, ok := ctx.Value(roleContextKey).(string)
+		if !ok {
+			RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			return
+		}
+		if userRole != "admin" {
+			RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			return
+		}
+		handlerFunc(w, r)
+	}
+}
+
 func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 	noAuthPaths := map[string]bool{
 		"/":       true,
@@ -110,7 +142,6 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 				ctx = context.WithValue(ctx, roleContextKey, role)
 				// superuser
 				if strings.HasPrefix(r.URL.Path, "/admin") && role != "admin" {
-					w.WriteHeader(http.StatusForbidden)
 					RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
 					return
 				}

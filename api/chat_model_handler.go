@@ -26,12 +26,14 @@ func (h *ChatModelHandler) Register(r *mux.Router) {
 	//handler := NewChatModelHandler(db)
 	// r := mux.NewRouter()
 
+	// user can read
 	r.HandleFunc("/chat_model", h.ListChatModels).Methods("GET")
 	r.HandleFunc("/chat_model/default", h.GetDefaultChatModel).Methods("GET")
 	r.HandleFunc("/chat_model/{id}", h.ChatModelByID).Methods("GET")
-	r.HandleFunc("/chat_model", h.CreateChatModel).Methods("POST")
-	r.HandleFunc("/chat_model/{id}", h.UpdateChatModel).Methods("PUT")
-	r.HandleFunc("/chat_model/{id}", h.DeleteChatModel).Methods("DELETE")
+	// only admin can CUD
+	r.HandleFunc("/chat_model", AdminOnlyHandlerFunc(h.CreateChatModel)).Methods("POST")
+	r.HandleFunc("/chat_model/{id}", AdminOnlyHandlerFunc(h.UpdateChatModel)).Methods("PUT")
+	r.HandleFunc("/chat_model/{id}", AdminOnlyHandlerFunc(h.DeleteChatModel)).Methods("DELETE")
 }
 
 func (h *ChatModelHandler) ListChatModels(w http.ResponseWriter, r *http.Request) {
