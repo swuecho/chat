@@ -21,7 +21,7 @@ test('test', async ({ page }) => {
 
   // set debug mode
   await page.getByRole('contentinfo').getByRole('button').nth(3).click();
-  await page.getByText('关闭').nth(1).click();
+  await page.getByTestId('debug_mode').click();
 
   // click bottom of page to close the modal
 
