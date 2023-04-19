@@ -20,6 +20,7 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/static"
 	"golang.org/x/time/rate"
+	"github.com/NYTimes/gziphandler"
 )
 
 var logger *log.Logger
@@ -235,7 +236,6 @@ func main() {
 		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
 	})
 
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
 
 	// fly.io
 	if os.Getenv("FLY_APP_NAME") != "" {
@@ -248,6 +248,8 @@ func main() {
 	// 10 min < 100 requests
 	// loggedMux := loggingMiddleware(router, logger)
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
+	gzipedRouter := gziphandler.GzipHandler(loggedRouter)
+
 
 	// fly.io
 
@@ -278,7 +280,7 @@ func main() {
 
 	}
 
-	err = http.ListenAndServe(":8080", loggedRouter)
+	err = http.ListenAndServe(":8080", gzipedRouter)
 	if err != nil {
 		log.Fatal(err)
 	}

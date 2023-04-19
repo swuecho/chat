@@ -3,6 +3,7 @@ module github.com/swuecho/chat_backend
 go 1.19
 
 require (
+	github.com/NYTimes/gziphandler v1.1.1
 	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
