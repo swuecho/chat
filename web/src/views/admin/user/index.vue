@@ -19,7 +19,7 @@ interface UserData {
   totalChatMessages3Days: number
   totalChatMessages3DaysTokenCount: number
   totalChatMessages3DaysAvgTokenCount: number
-  rateLimit: number
+  rateLimit: string
 }
 const tableData = ref<UserData[]>([])
 
@@ -63,9 +63,16 @@ const columns = [
       return h(NInput, {
         value: row.rateLimit,
         width: 50,
-        async onUpdateValue(v) {
-          tableData.value[index].rateLimit = parseInt(v)
-          await UpdateRateLimit(row.email, parseInt(v))
+        async onUpdateValue(v: string) {
+          try {
+            tableData.value[index].rateLimit = v
+            const new_limit = parseInt(v) ?? 0
+            await UpdateRateLimit(row.email, new_limit)
+          }
+          catch (error: any) {
+            console.log(error)
+            ms_ui.error(error)
+          }
         },
       })
     },
@@ -117,7 +124,10 @@ async function handleRefresh() {
     <div class="flex justify-end">
       <HoverButton :tooltip="$t('admin.refresh')" @click="handleRefresh">
         <span class="text-xl text-[#4f555e] dark:text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path fill="currentColor"
+              d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+          </svg>
         </span>
       </HoverButton>
     </div>
