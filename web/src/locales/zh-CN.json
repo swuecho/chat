@@ -69,7 +69,11 @@
     "disable_debug": "关闭"
   },
   "chat_snapshot": {
-    "title": "对话集"
+    "title": "对话集",
+    "deletePost": "您确定要删除此会话记录吗？",
+    "deletePostConfirm": "删除会话记录",
+    "deleteSuccess": "会话记录删除成功",
+    "deleteFailed": "无法删除会话记录"
   },
   "admin": {
     "openPanel": "在新标签页中打开",

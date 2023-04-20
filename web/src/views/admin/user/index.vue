@@ -70,7 +70,6 @@ const columns = [
             await UpdateRateLimit(row.email, new_limit)
           }
           catch (error: any) {
-            console.log(error)
             ms_ui.error(error)
           }
         },
