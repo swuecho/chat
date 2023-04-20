@@ -32,7 +32,7 @@ function formatYearMonth(date: Date): string {
 }
 
 const postsByYearMonth = computed(() => {
-  const posts_by_year_month: Record<string, PostLink[]> = {}
+  const init: Record<string, PostLink[]> = {}
   return posts.value.reduce((acc, post) => {
     const yearMonth = formatYearMonth(new Date(post.date))
     if (!acc[yearMonth])
@@ -40,7 +40,7 @@ const postsByYearMonth = computed(() => {
 
     acc[yearMonth].push(post)
     return acc
-  }, posts_by_year_month)
+  }, init)
 })
 </script>
 
@@ -65,14 +65,14 @@ const postsByYearMonth = computed(() => {
     <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
       <div class="max-w-screen-xl px-4 py-8 mx-auto">
         <div
-          v-for="[yearMonth, posts_of_year_month] in Object.entries(postsByYearMonth)" :key="yearMonth"
+          v-for="[yearMonth, postsOfYearMonth] in Object.entries(postsByYearMonth)" :key="yearMonth"
           class="flex mb-8"
         >
           <h2 class="flex-none w-28 text-lg font-medium">
             {{ yearMonth }}
           </h2>
           <ul>
-            <li v-for="post in posts_of_year_month" :key="post.uuid" class="flex justify-between">
+            <li v-for="post in postsOfYearMonth" :key="post.uuid" class="flex justify-between">
               <div>
                 <time :datetime="post.date" class="block mb-2 text-sm font-medium text-gray-600">{{
                   post.date
