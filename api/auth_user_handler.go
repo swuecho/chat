@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -26,11 +25,13 @@ func NewAuthUserHandler(service *AuthUserService) *AuthUserHandler {
 
 func (h *AuthUserHandler) Register(router *mux.Router) {
 	router.HandleFunc("/users", h.CreateUser).Methods(http.MethodPost)
-	router.HandleFunc("/users/{id}", h.GetUserByID).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}", h.UpdateUser).Methods(http.MethodPut)
+	router.HandleFunc("/users", h.GetUserByID).Methods(http.MethodGet)
+	router.HandleFunc("/users/{id}", h.UpdateSelf).Methods(http.MethodPut)
 	router.HandleFunc("/signup", h.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
 	router.HandleFunc("/config", h.configHandler).Methods(http.MethodPost)
+	// change user first name, last name
+	router.HandleFunc("/admin/users", h.UpdateUser).Methods(http.MethodPut)
 	// rate limit handler
 	router.HandleFunc("/admin/rate_limit", h.UpdateRateLimit).Methods(http.MethodPost)
 	// user stats handler
@@ -54,13 +55,12 @@ func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
+	userID, err := getUserID(r.Context())
 	if err != nil {
-		http.Error(w, "invalid user ID", http.StatusBadRequest)
+		RespondWithError(w, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
-	user, err := h.service.GetAuthUserByID(r.Context(), int32(id))
+	user, err := h.service.GetAuthUserByID(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -68,21 +68,38 @@ func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
+func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r.Context())
 	if err != nil {
-		http.Error(w, "invalid user ID", http.StatusBadRequest)
+		RespondWithError(w, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
+
 	var userParams sqlc_queries.UpdateAuthUserParams
 	err = json.NewDecoder(r.Body).Decode(&userParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	userParams.ID = int32(id)
-	user, err := h.service.UpdateAuthUser(r.Context(), userParams)
+	userParams.ID = userID
+	user, err := h.service.q.UpdateAuthUser(r.Context(), userParams)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(user)
+}
+
+func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	// get user id from var
+	// to int32
+	var userParams sqlc_queries.UpdateAuthUserByEmailParams
+	err := json.NewDecoder(r.Body).Decode(&userParams)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	user, err := h.service.q.UpdateAuthUserByEmail(r.Context(), userParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -327,6 +344,8 @@ func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.R
 
 type UserStat struct {
 	Email                            string `json:"email"`
+	FirstName                        string `json:"firstName"`
+	LastName                         string `json:"lastName"`
 	TotalChatMessages                int64  `json:"totalChatMessages"`
 	TotalChatMessagesTokenCount      int64  `json:"totalChatMessagesTokenCount"`
 	TotalChatMessages3Days           int64  `json:"totalChatMessages3Days"`
@@ -363,6 +382,8 @@ func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request
 		}
 		data[i] = UserStat{
 			Email:                            v.UserEmail,
+			FirstName:                        v.FirstName,
+			LastName:                         v.LastName,
 			TotalChatMessages:                v.TotalChatMessages,
 			TotalChatMessages3Days:           v.TotalChatMessages3Days,
 			RateLimit:                        v.RateLimit,

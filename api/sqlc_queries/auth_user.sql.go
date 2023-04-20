@@ -182,6 +182,8 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AuthUser, e
 
 const getUserStats = `-- name: GetUserStats :many
 SELECT 
+    auth_user.first_name,
+    auth_user.last_name,
     auth_user.email AS user_email,
     COALESCE(user_stats.total_messages, 0) AS total_chat_messages,
     COALESCE(user_stats.total_token_count, 0) AS total_token_count,
@@ -215,6 +217,8 @@ type GetUserStatsParams struct {
 }
 
 type GetUserStatsRow struct {
+	FirstName              string
+	LastName               string
 	UserEmail              string
 	TotalChatMessages      int64
 	TotalTokenCount        int64
@@ -233,6 +237,8 @@ func (q *Queries) GetUserStats(ctx context.Context, arg GetUserStatsParams) ([]G
 	for rows.Next() {
 		var i GetUserStatsRow
 		if err := rows.Scan(
+			&i.FirstName,
+			&i.LastName,
 			&i.UserEmail,
 			&i.TotalChatMessages,
 			&i.TotalTokenCount,
@@ -298,45 +304,52 @@ func (q *Queries) ListAuthUsers(ctx context.Context, arg ListAuthUsersParams) ([
 }
 
 const updateAuthUser = `-- name: UpdateAuthUser :one
-UPDATE auth_user SET "password" = $2, is_superuser = $3, username = $4, first_name = $5, last_name = $6, email = $7, last_login = now() 
+UPDATE auth_user SET first_name = $2, last_name= $3, last_login = now() 
 WHERE id = $1
-RETURNING id, password, last_login, is_superuser, username, first_name, last_name, email, is_staff, is_active, date_joined
+RETURNING first_name, last_name, email
 `
 
 type UpdateAuthUserParams struct {
-	ID          int32
-	Password    string
-	IsSuperuser bool
-	Username    string
-	FirstName   string
-	LastName    string
-	Email       string
+	ID        int32
+	FirstName string
+	LastName  string
 }
 
-func (q *Queries) UpdateAuthUser(ctx context.Context, arg UpdateAuthUserParams) (AuthUser, error) {
-	row := q.db.QueryRowContext(ctx, updateAuthUser,
-		arg.ID,
-		arg.Password,
-		arg.IsSuperuser,
-		arg.Username,
-		arg.FirstName,
-		arg.LastName,
-		arg.Email,
-	)
-	var i AuthUser
-	err := row.Scan(
-		&i.ID,
-		&i.Password,
-		&i.LastLogin,
-		&i.IsSuperuser,
-		&i.Username,
-		&i.FirstName,
-		&i.LastName,
-		&i.Email,
-		&i.IsStaff,
-		&i.IsActive,
-		&i.DateJoined,
-	)
+type UpdateAuthUserRow struct {
+	FirstName string
+	LastName  string
+	Email     string
+}
+
+func (q *Queries) UpdateAuthUser(ctx context.Context, arg UpdateAuthUserParams) (UpdateAuthUserRow, error) {
+	row := q.db.QueryRowContext(ctx, updateAuthUser, arg.ID, arg.FirstName, arg.LastName)
+	var i UpdateAuthUserRow
+	err := row.Scan(&i.FirstName, &i.LastName, &i.Email)
+	return i, err
+}
+
+const updateAuthUserByEmail = `-- name: UpdateAuthUserByEmail :one
+UPDATE auth_user SET first_name = $2, last_name= $3, last_login = now() 
+WHERE email = $1
+RETURNING first_name, last_name, email
+`
+
+type UpdateAuthUserByEmailParams struct {
+	Email     string
+	FirstName string
+	LastName  string
+}
+
+type UpdateAuthUserByEmailRow struct {
+	FirstName string
+	LastName  string
+	Email     string
+}
+
+func (q *Queries) UpdateAuthUserByEmail(ctx context.Context, arg UpdateAuthUserByEmailParams) (UpdateAuthUserByEmailRow, error) {
+	row := q.db.QueryRowContext(ctx, updateAuthUserByEmail, arg.Email, arg.FirstName, arg.LastName)
+	var i UpdateAuthUserByEmailRow
+	err := row.Scan(&i.FirstName, &i.LastName, &i.Email)
 	return i, err
 }
 

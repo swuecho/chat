@@ -17,9 +17,14 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: UpdateAuthUser :one
-UPDATE auth_user SET "password" = $2, is_superuser = $3, username = $4, first_name = $5, last_name = $6, email = $7, last_login = now() 
+UPDATE auth_user SET first_name = $2, last_name= $3, last_login = now() 
 WHERE id = $1
-RETURNING *;
+RETURNING first_name, last_name, email;
+
+-- name: UpdateAuthUserByEmail :one
+UPDATE auth_user SET first_name = $2, last_name= $3, last_login = now() 
+WHERE email = $1
+RETURNING first_name, last_name, email;
 
 -- name: DeleteAuthUser :exec
 DELETE FROM auth_user WHERE email = $1;
@@ -42,6 +47,8 @@ RETURNING rate_limit;
 
 -- name: GetUserStats :many
 SELECT 
+    auth_user.first_name,
+    auth_user.last_name,
     auth_user.email AS user_email,
     COALESCE(user_stats.total_messages, 0) AS total_chat_messages,
     COALESCE(user_stats.total_token_count, 0) AS total_token_count,
