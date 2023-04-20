@@ -77,6 +77,12 @@ function updateUserInfo(options: Partial<UserInfo>) {
           </template>
         </div>
       </div>
+      <div class="flex items-center space-x-4">
+        <span class="flex-shrink-0 w-[100px]">{{ $t('setting.snapshotLink') }}</span>
+        <div class="w-[200px]">
+          <a href="/#/snapshot_all" target="_blank" class="text-blue-500"> 点击打开 </a>
+        </div>
+      </div>
     </div>
   </div>
 </template>
