@@ -94,7 +94,7 @@
       "apiAuthHeader": "Auth Header key",
       "apiAuthKey": "API KEY对应的环境变量",
       "actions": "操作",
-      "url": "request full URL"
+      "url": "访问接口(with full url path)"
     },
     "model_one_default_only": "只能有一个默认模型, 请先设置其他模型为非默认",
     "rateLimit10Min": "消息数量上限(10分钟)"
