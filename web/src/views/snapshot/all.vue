@@ -49,7 +49,7 @@ onMounted(async () => {
 function handleDelete(post: PostLink) {
   const dialogBox = dialog.warning({
     title: t('chat_snapshot.deletePost'),
-    content: t('chat_snaport.deletePostConfirm'),
+    content: t('chat_snapshot.deletePostConfirm'),
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: async () => {
