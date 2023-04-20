@@ -56,7 +56,7 @@ func (q *Queries) ChatSnapshotByUUID(ctx context.Context, uuid string) (ChatSnap
 const chatSnapshotMetaByUserID = `-- name: ChatSnapshotMetaByUserID :many
 SELECT uuid, title, summary, tags, created_at
 FROM chat_snapshot WHERE user_id = $1
-order by id desc
+order by created_at desc
 `
 
 type ChatSnapshotMetaByUserIDRow struct {
