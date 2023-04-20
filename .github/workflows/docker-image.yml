@@ -42,7 +42,7 @@ jobs:
         run: |
           docker build . --file Dockerfile -t ghcr.io/swuecho/chat:${GITHUB_SHA}
       - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u swuecho --password-stdin
       - name: Push Chat image to GitHub Container Registry
         run: docker push ghcr.io/swuecho/chat:${GITHUB_SHA}
   e2e:
@@ -52,7 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u swuecho --password-stdin
 
       - name: check locale
         run: python scripts/locale_missing_key.py web/src/locales --base zh-CN
