@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { fetchSnapshotAll } from '@/api'
 import { displayLocaleDate } from '@/utils/date'
 
@@ -9,7 +9,7 @@ interface PostLink {
   title: string
 }
 
-const posts = ref<PostLink[]>()
+const posts = ref<PostLink[]>([])
 
 onMounted(async () => {
   posts.value = (await fetchSnapshotAll()).map((post: any) => {
@@ -24,6 +24,24 @@ onMounted(async () => {
 function post_url(uuid: string): string {
   return `#/snapshot/${uuid}`
 }
+
+function formatYearMonth(date: Date): string {
+  const year = date.getFullYear().toString()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  return `${year}-${month}`
+}
+
+const postsByYearMonth = computed(() => {
+  const init: Record<string, PostLink[]> = {}
+  return posts.value.reduce((acc, post) => {
+    const yearMonth = formatYearMonth(new Date(post.date))
+    if (!acc[yearMonth])
+      acc[yearMonth] = []
+
+    acc[yearMonth].push(post)
+    return acc
+  }, init)
+})
 </script>
 
 <template>
@@ -44,25 +62,30 @@ function post_url(uuid: string): string {
         </h1>
       </div>
     </header>
-    <main class="flex-1 overflow-hidden">
+    <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
       <div class="max-w-screen-xl px-4 py-8 mx-auto">
-        <ul class="space-y-4">
-          <li v-for="post in posts" :key="post.uuid" class="flex justify-between">
-            <div>
-              <time
-                :datetime="post.date"
-                class="block mb-2 text-sm font-medium text-gray-600"
-              >{{
-                post.date }}</time>
-              <a
-                :href="post_url(post.uuid)" :title="post.title"
-                class="block text-xl font-semibold text-gray-900 hover:text-blue-600"
-              >{{
-                post.title }}</a>
-            </div>
-          </li>
-        </ul>
+        <div
+          v-for="[yearMonth, postsOfYearMonth] in Object.entries(postsByYearMonth)" :key="yearMonth"
+          class="flex mb-8"
+        >
+          <h2 class="flex-none w-28 text-lg font-medium">
+            {{ yearMonth }}
+          </h2>
+          <ul>
+            <li v-for="post in postsOfYearMonth" :key="post.uuid" class="flex justify-between">
+              <div>
+                <time :datetime="post.date" class="block mb-2 text-sm font-medium text-gray-600">{{
+                  post.date
+                }}</time>
+                <a
+                  :href="post_url(post.uuid)" :title="post.title"
+                  class="block text-xl font-semibold text-gray-900 hover:text-blue-600"
+                >{{ post.title }}</a>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
-    </main>
+    </div>
   </div>
 </template>
