@@ -24,12 +24,13 @@ func NewAuthUserHandler(service *AuthUserService) *AuthUserHandler {
 }
 
 func (h *AuthUserHandler) Register(router *mux.Router) {
-	router.HandleFunc("/users", h.CreateUser).Methods(http.MethodPost)
 	router.HandleFunc("/users", h.GetUserByID).Methods(http.MethodGet)
 	router.HandleFunc("/users/{id}", h.UpdateSelf).Methods(http.MethodPut)
 	router.HandleFunc("/signup", h.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
 	router.HandleFunc("/config", h.configHandler).Methods(http.MethodPost)
+	// admin
+	router.HandleFunc("/admin/users", h.CreateUser).Methods(http.MethodPost)
 	// change user first name, last name
 	router.HandleFunc("/admin/users", h.UpdateUser).Methods(http.MethodPut)
 	// rate limit handler
