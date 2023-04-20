@@ -106,6 +106,7 @@
     "config": "配置",
     "avatarLink": "头像链接",
     "name": "名称",
+    "snapshotLink": "对话集",
     "description": "描述",
     "resetUserInfo": "重置用户信息",
     "chatHistory": "聊天记录",

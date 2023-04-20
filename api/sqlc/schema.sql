@@ -216,3 +216,4 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
 );
 
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;
+-- UPDATE chat_snapshot SET model = 'gpt-3.5-turbo' WHERE model = '';
