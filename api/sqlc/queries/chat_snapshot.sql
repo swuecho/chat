@@ -15,8 +15,11 @@ SET uuid = $2, user_id = $3, title = $4, summary = $5, tags = $6, conversation =
 WHERE id = $1
 RETURNING *;
 
--- name: DeleteChatSnapshot :exec
-DELETE FROM chat_snapshot WHERE id = $1;
+
+-- name: DeleteChatSnapshot :one
+DELETE FROM chat_snapshot WHERE uuid = $1
+and user_id = $2
+RETURNING *;
 
 -- name: ChatSnapshotByUUID :one
 SELECT * FROM chat_snapshot WHERE uuid = $1;

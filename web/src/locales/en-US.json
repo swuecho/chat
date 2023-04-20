@@ -69,7 +69,11 @@
     "sessionConfig": "Conversation Settings:"
   },
   "chat_snapshot": {
-    "title": "Chat Records"
+    "title": "Chat Records",
+    "deletePost": "Are you sure you want to delete this conversation record?",
+    "deletePostConfirm": "Delete conversation record",
+    "deleteSuccess": "Conversation record deleted successfully",
+    "deleteFailed": "Unable to delete conversation record"
   },
   "setting": {
     "setting": "Settings",
@@ -87,7 +91,8 @@
     "reverseProxy": "Reverse Proxy",
     "timeout": "Timeout",
     "socks": "Socks",
-    "admin": "Admin"
+    "admin": "Admin",
+    "snapshotLink": "Conversation history"
   },
   "admin": {
     "openPanel": "Open Admin Panel",

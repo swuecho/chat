@@ -137,13 +137,32 @@ func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshot
 	return i, err
 }
 
-const deleteChatSnapshot = `-- name: DeleteChatSnapshot :exec
-DELETE FROM chat_snapshot WHERE id = $1
+const deleteChatSnapshot = `-- name: DeleteChatSnapshot :one
+DELETE FROM chat_snapshot WHERE uuid = $1
+and user_id = $2
+RETURNING id, uuid, user_id, title, summary, model, tags, conversation, created_at
 `
 
-func (q *Queries) DeleteChatSnapshot(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteChatSnapshot, id)
-	return err
+type DeleteChatSnapshotParams struct {
+	Uuid   string
+	UserID int32
+}
+
+func (q *Queries) DeleteChatSnapshot(ctx context.Context, arg DeleteChatSnapshotParams) (ChatSnapshot, error) {
+	row := q.db.QueryRowContext(ctx, deleteChatSnapshot, arg.Uuid, arg.UserID)
+	var i ChatSnapshot
+	err := row.Scan(
+		&i.ID,
+		&i.Uuid,
+		&i.UserID,
+		&i.Title,
+		&i.Summary,
+		&i.Model,
+		&i.Tags,
+		&i.Conversation,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const listChatSnapshots = `-- name: ListChatSnapshots :many

@@ -93,7 +93,8 @@
     "api": "API",
     "reverseProxy": "反向代理",
     "timeout": "超時",
-    "socks": "Socks"
+    "socks": "Socks",
+    "snapshotLink": "对话集"
   },
   "admin": {
     "openPanel": "打開管理面板",
@@ -124,6 +125,10 @@
     }
   },
   "chat_snapshot": {
-    "title": "對話集"
+    "title": "對話集",
+    "deletePost": "您确定要删除此会话记录吗？",
+    "deletePostConfirm": "删除会话记录",
+    "deleteSuccess": "会话记录删除成功",
+    "deleteFailed": "无法删除会话记录"
   }
 }
