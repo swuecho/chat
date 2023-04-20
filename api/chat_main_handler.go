@@ -322,7 +322,15 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
 	} else {
-		config.BaseURL = chat_model.Url
+		index := strings.Index(chat_model.Url, "/chat/")
+		if index != -1 {
+			// is full url https://api.openai.com/v1/chat/completions
+			baseUrl := chat_model.Url[:index]
+			config.BaseURL = baseUrl
+		} else {
+			config.BaseURL = chat_model.Url
+		}
+
 	}
 	client := openai.NewClientWithConfig(config)
 
