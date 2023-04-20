@@ -317,7 +317,14 @@ func isTest(msgs []Message) bool {
 
 func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	openAIRateLimiter.Wait(context.Background())
-	client := openai.NewClient(appConfig.OPENAI.API_KEY)
+	config := openai.DefaultConfig(appConfig.OPENAI.API_KEY)
+	if chat_model, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		return "", "", true
+	} else {
+		config.BaseURL = chat_model.Url
+	}
+	client := openai.NewClientWithConfig(config)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
