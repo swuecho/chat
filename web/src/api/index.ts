@@ -493,3 +493,14 @@ export const fetchSnapshotDelete = async (uuid: string): Promise<any> => {
     throw error
   }
 }
+
+export const updateUserFullName = async (data: any): Promise<any> => {
+  try {
+    const response = await request.put('/admin/users', data)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}

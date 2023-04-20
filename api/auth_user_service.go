@@ -47,14 +47,6 @@ func (s *AuthUserService) GetAuthUserByID(ctx context.Context, id int32) (sqlc_q
 	return auth_user, nil
 }
 
-// UpdateAuthUser updates an existing authentication user record.
-func (s *AuthUserService) UpdateAuthUser(ctx context.Context, auth_user_params sqlc_queries.UpdateAuthUserParams) (sqlc_queries.AuthUser, error) {
-	auth_user_u, err := s.q.UpdateAuthUser(ctx, auth_user_params)
-	if err != nil {
-		return sqlc_queries.AuthUser{}, errors.New("failed to update authentication user")
-	}
-	return auth_user_u, nil
-}
 
 // GetAllAuthUsers returns all authentication user records.
 func (s *AuthUserService) GetAllAuthUsers(ctx context.Context) ([]sqlc_queries.AuthUser, error) {

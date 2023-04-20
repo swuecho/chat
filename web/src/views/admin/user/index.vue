@@ -6,7 +6,7 @@
 // vue3 code should be in <script lang="ts" setup> style.
 import { h, onMounted, reactive, ref } from 'vue'
 import { NDataTable, NInput, useMessage } from 'naive-ui'
-import { GetUserData, UpdateRateLimit } from '@/api'
+import { GetUserData, UpdateRateLimit, updateUserFullName } from '@/api'
 import { t } from '@/locales'
 import HoverButton from '@/components/common/HoverButton/index.vue'
 
@@ -14,6 +14,8 @@ const ms_ui = useMessage()
 
 interface UserData {
   email: string
+  firstName: string
+  lastName: string
   totalChatMessages: number
   totalChatMessagesTokenCount: number
   totalChatMessages3Days: number
@@ -30,6 +32,41 @@ const columns = [
     width: 400,
 
   },
+  {
+    title: t('admin.lastName'),
+    key: 'lastName',
+    width: 100,
+    render: (row: any, index: number) => {
+      return h(NInput, {
+        value: row.lastName,
+        width: 50,
+        async onUpdateValue(v: string) {
+          tableData.value[index].lastName = v
+          // todo: update username
+          await updateUserFullName({ firstName: row.firstName, lastName: row.lastName, email: row.email })
+          console.log(v)
+        },
+      })
+    },
+  },
+  {
+    title: t('admin.firstName'),
+    key: 'firstName',
+    width: 100,
+    render: (row: any, index: number) => {
+      return h(NInput, {
+        value: row.firstName,
+        width: 50,
+        async onUpdateValue(v: string) {
+          tableData.value[index].firstName = v
+          // todo: update username
+          console.log(v)
+          await updateUserFullName({ firstName: row.firstName, lastName: row.lastName, email: row.email })
+        },
+      })
+    },
+  },
+
   {
     title: t('admin.totalChatMessages'),
     key: 'totalChatMessages',
@@ -124,10 +161,8 @@ async function handleRefresh() {
       <HoverButton :tooltip="$t('admin.refresh')" @click="handleRefresh">
         <span class="text-xl text-[#4f555e] dark:text-white">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
-            />
+            <path fill="currentColor"
+              d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
           </svg>
         </span>
       </HoverButton>
