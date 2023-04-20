@@ -33,4 +33,4 @@ order by created_at desc;
 -- name: UpdateChatSnapshotMetaByUUID :exec
 UPDATE chat_snapshot
 SET title = $2, summary = $3
-WHERE uuid = $1;
+WHERE uuid = $1 and user_id = $4;

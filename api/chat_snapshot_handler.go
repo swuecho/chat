@@ -117,10 +117,17 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 	}
 	log.Println(input)
 
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+
 	err = h.service.q.UpdateChatSnapshotMetaByUUID(r.Context(), sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{
 		Uuid:    uuid,
 		Title:   input.Title,
 		Summary: input.Summary,
+		UserID:  userID,
 	})
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
