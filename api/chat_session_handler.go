@@ -220,15 +220,15 @@ func (h *ChatSessionHandler) UpdateChatSessionByUUID(w http.ResponseWriter, r *h
 }
 
 type UpdateChatSessionRequest struct {
-	Uuid        string  `json:"uuid"`
-	Topic       string  `json:"topic"`
-	KeepLength  int32   `json:"keepLength"`
-	MaxLength   int32   `json:"maxLength"`
-	Temperature float64 `json:"temperature"`
-	Model       string  `json:"model"`
-	TopP        float64 `json:"topP"`
-	MaxTokens   int32   `json:"maxTokens"`
-	Debug       bool    `json:"debug"`
+	Uuid         string  `json:"uuid"`
+	Topic        string  `json:"topic"`
+	PromptLength int32   `json:"promptLength"`
+	MaxLength    int32   `json:"maxLength"`
+	Temperature  float64 `json:"temperature"`
+	Model        string  `json:"model"`
+	TopP         float64 `json:"topP"`
+	MaxTokens    int32   `json:"maxTokens"`
+	Debug        bool    `json:"debug"`
 }
 
 // UpdateChatSessionByUUID updates a chat session by its UUID
@@ -251,7 +251,7 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 	}
 	var sessionParams sqlc_queries.CreateOrUpdateChatSessionByUUIDParams
 
-	sessionParams.KeepLength = sessionReq.KeepLength
+	sessionParams.PromptLength = sessionReq.PromptLength
 	sessionParams.MaxLength = sessionReq.MaxLength
 	sessionParams.Topic = sessionReq.Topic
 	sessionParams.Uuid = sessionReq.Uuid

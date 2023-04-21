@@ -47,7 +47,6 @@ func (s *AuthUserService) GetAuthUserByID(ctx context.Context, id int32) (sqlc_q
 	return auth_user, nil
 }
 
-
 // GetAllAuthUsers returns all authentication user records.
 func (s *AuthUserService) GetAllAuthUsers(ctx context.Context) ([]sqlc_queries.AuthUser, error) {
 	auth_users, err := s.q.GetAllAuthUsers(ctx)

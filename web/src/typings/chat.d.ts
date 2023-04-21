@@ -14,7 +14,7 @@ declare namespace Chat {
 		uuid: string
 		title: string
 		isEdit: boolean
-		keepLength?: number;
+		promptLength?: number;
 		maxLength?: number
 		temperature?: number
 		model?: string
