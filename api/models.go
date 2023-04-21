@@ -37,16 +37,16 @@ type SimpleChatMessage struct {
 }
 
 type SimpleChatSession struct {
-	Uuid        string  `json:"uuid"`
-	IsEdit      bool    `json:"isEdit"`
-	Title       string  `json:"title"`
-	KeepLength  int     `json:"keepLength"`
-	MaxLength   int     `json:"maxLength"`
-	Temperature float64 `json:"temperature"`
-	TopP        float64 `json:"topP"`
-	MaxTokens   int32   `json:"maxTokens"`
-	Debug       bool    `json:"debug"`
-	Model       string  `json:"model"`
+	Uuid         string  `json:"uuid"`
+	IsEdit       bool    `json:"isEdit"`
+	Title        string  `json:"title"`
+	PromptLength int     `json:"promptLength"`
+	MaxLength    int     `json:"maxLength"`
+	Temperature  float64 `json:"temperature"`
+	TopP         float64 `json:"topP"`
+	MaxTokens    int32   `json:"maxTokens"`
+	Debug        bool    `json:"debug"`
+	Model        string  `json:"model"`
 }
 
 type ChatMessageResponse struct {

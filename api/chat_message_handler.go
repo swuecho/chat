@@ -222,7 +222,7 @@ func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWrite
 		return
 	}
 
-	err = h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr, session.KeepLength)
+	err = h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr, session.PromptLength)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

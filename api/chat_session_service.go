@@ -80,16 +80,16 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 
 	simple_sessions := lo.Map(sessions, func(session sqlc_queries.ChatSession, _idx int) SimpleChatSession {
 		return SimpleChatSession{
-			Uuid:        session.Uuid,
-			IsEdit:      false,
-			Title:       session.Topic,
-			KeepLength:  int(session.KeepLength),
-			MaxLength:   int(session.MaxLength),
-			Temperature: float64(session.Temperature),
-			TopP:        float64(session.TopP),
-			MaxTokens:   session.MaxTokens,
-			Debug:       session.Debug,
-			Model:       session.Model,
+			Uuid:         session.Uuid,
+			IsEdit:       false,
+			Title:        session.Topic,
+			PromptLength: int(session.PromptLength),
+			MaxLength:    int(session.MaxLength),
+			Temperature:  float64(session.Temperature),
+			TopP:         float64(session.TopP),
+			MaxTokens:    session.MaxTokens,
+			Debug:        session.Debug,
+			Model:        session.Model,
 		}
 	})
 	return simple_sessions, nil
