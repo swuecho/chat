@@ -39,6 +39,7 @@ func TestListresults(t *testing.T) {
 			Url:           "http://test.url.com",
 			ApiAuthHeader: "Authorization",
 			ApiAuthKey:    "TestKey1",
+			UserID:       1,
 		},
 		{
 			Name:          "Test API 2",
@@ -47,6 +48,7 @@ func TestListresults(t *testing.T) {
 			Url:           "http://test.url2.com",
 			ApiAuthHeader: "Authorization",
 			ApiAuthKey:    "TestKey2",
+			UserID:      1,
 		},
 	}
 
@@ -58,6 +60,7 @@ func TestListresults(t *testing.T) {
 			Url:           api.Url,
 			ApiAuthHeader: api.ApiAuthHeader,
 			ApiAuthKey:    api.ApiAuthKey,
+			UserID:      api.UserID,
 		})
 		if err != nil {
 			t.Errorf("Error creating test data: %s", err.Error())
