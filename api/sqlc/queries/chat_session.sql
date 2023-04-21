@@ -36,11 +36,11 @@ WHERE uuid = $1
 RETURNING *;
 
 -- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic, keep_length, max_length, temperature, model, max_tokens, top_p, debug)
+INSERT INTO chat_session(uuid, user_id, topic, prompt_length, max_length, temperature, model, max_tokens, top_p, debug)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 ON CONFLICT (uuid) 
 DO UPDATE SET
-keep_length = EXCLUDED.keep_length,
+prompt_length = EXCLUDED.prompt_length,
 max_length = EXCLUDED.max_length,
 debug = EXCLUDED.debug,
 max_tokens = EXCLUDED.max_tokens,
