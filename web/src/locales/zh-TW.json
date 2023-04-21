@@ -99,6 +99,8 @@
   "admin": {
     "openPanel": "打開管理面板",
     "title": "管理",
+    "firstName": "名字",
+    "lastName": "姓氏",
     "permission": "權限",
     "rateLimit": "限流",
     "userEmail": "用戶電子郵件",
