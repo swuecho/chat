@@ -85,11 +85,16 @@ func (q *Queries) DeleteChatMessageByUUID(ctx context.Context, uuid string) erro
 const deleteChatMessagesBySesionUUID = `-- name: DeleteChatMessagesBySesionUUID :exec
 UPDATE chat_message 
 SET is_deleted = true, updated_at = now()
-WHERE is_deleted = false and chat_session_uuid = $1
+WHERE id in (SELECT id from chat_message WHERE is_deleted = false and chat_message.chat_session_uuid = $1 ORDER BY id OFFSET $2)
 `
 
-func (q *Queries) DeleteChatMessagesBySesionUUID(ctx context.Context, chatSessionUuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteChatMessagesBySesionUUID, chatSessionUuid)
+type DeleteChatMessagesBySesionUUIDParams struct {
+	ChatSessionUuid string
+	Offset          int32
+}
+
+func (q *Queries) DeleteChatMessagesBySesionUUID(ctx context.Context, arg DeleteChatMessagesBySesionUUIDParams) error {
+	_, err := q.db.ExecContext(ctx, deleteChatMessagesBySesionUUID, arg.ChatSessionUuid, arg.Offset)
 	return err
 }
 

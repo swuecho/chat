@@ -37,6 +37,7 @@ async function handleAdd() {
     title: new_chat_text,
     uuid: uuidv4(),
     isEdit: false,
+    keepLength: 1,
     maxLength: 10,
     temperature: 1,
     model: default_model.Name,

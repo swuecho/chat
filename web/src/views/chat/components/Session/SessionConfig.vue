@@ -17,6 +17,7 @@ const session = computed(() => chatStore.getChatSessionByUuid(props.uuid))
 
 interface ModelType {
   chatModel: string
+  keepLength: number
   contextCount: number
   temperature: number
   maxTokens: number
@@ -26,6 +27,7 @@ interface ModelType {
 
 const modelRef: Ref<ModelType> = ref({
   chatModel: session.value?.model ?? 'gpt-3.5-turbo',
+  keepLength: session.value?.keepLength ?? 1,
   contextCount: session.value?.maxLength ?? 10,
   temperature: session.value?.temperature ?? 1.0,
   maxTokens: session.value?.maxTokens ?? 512,
@@ -37,6 +39,7 @@ const formRef = ref<FormInst | null>(null)
 
 const debouneUpdate = debounce(async (model: ModelType) => {
   chatStore.updateChatSession(props.uuid, {
+    keepLength: model.keepLength,
     maxLength: model.contextCount,
     temperature: model.temperature,
     maxTokens: model.maxTokens,
@@ -77,6 +80,9 @@ onMounted(async () => {
             </NRadio>
           </NSpace>
         </NRadioGroup>
+      </NFormItem>
+      <NFormItem :label="$t('chat.keepLength', { keepLength: modelRef.keepLength })" path="keepLength">
+        <NSlider v-model:value="modelRef.keepLength" :min="1" :max="20" :tooltip="false" show-tooltip />
       </NFormItem>
       <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
         <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />

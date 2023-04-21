@@ -58,6 +58,7 @@
     "clearHistoryConfirm": "Are you sure you want to clear the chat history?",
     "contextLength": "Context Length, default 10 (2 at the beginning of the conversation + 8 most recent)",
     "stopAnswer": "Stop Answering",
+    "keepLength": "Keep Message Length: {keepLength}",
     "contextCount": "Context Length: {contextCount}",
     "temperature": "Temperature : {temperature}",
     "maxTokens": "Max Total Tokens : {maxTokens}",

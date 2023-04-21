@@ -113,7 +113,7 @@ WHERE uuid = $1 ;
 -- name: DeleteChatMessagesBySesionUUID :exec
 UPDATE chat_message 
 SET is_deleted = true, updated_at = now()
-WHERE is_deleted = false and chat_session_uuid = $1;
+WHERE id in (SELECT id from chat_message WHERE is_deleted = false and chat_message.chat_session_uuid = $1 ORDER BY id OFFSET $2);
 
 
 -- name: GetChatMessagesCount :one

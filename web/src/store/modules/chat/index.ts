@@ -79,6 +79,7 @@ export const useChatStore = defineStore('chat-store', {
           title: new_chat_text,
           isEdit: false,
           uuid,
+          keepLength: 1,
           maxLength: 10,
           temperature: 1,
           model: 'gpt-3.5-turbo',
@@ -275,7 +276,9 @@ export const useChatStore = defineStore('chat-store', {
 
       const index = this.chat.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
-        this.chat[index].data = this.chat[index].data.slice(0, 1)
+        const session = this.chat[index];
+        const config = this.history.find(item => item.uuid === session.uuid)
+        session.data = session.data.slice(0, config?.keepLength ?? 1)
         clearSessionChatMessages(uuid)
         this.recordState()
       }
