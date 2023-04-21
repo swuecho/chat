@@ -159,6 +159,44 @@ func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
 	return items, nil
 }
 
+const listSystemChatModels = `-- name: ListSystemChatModels :many
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id FROM chat_model
+where user_id in (select id from auth_user where is_superuser = true)
+ORDER BY id
+`
+
+func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error) {
+	rows, err := q.db.QueryContext(ctx, listSystemChatModels)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChatModel
+	for rows.Next() {
+		var i ChatModel
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Label,
+			&i.IsDefault,
+			&i.Url,
+			&i.ApiAuthHeader,
+			&i.ApiAuthKey,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateChatModel = `-- name: UpdateChatModel :one
 UPDATE chat_model SET name = $2, label = $3, is_default = $4, url = $5, api_auth_header = $6, api_auth_key = $7
 WHERE id = $1 and user_id = $8
