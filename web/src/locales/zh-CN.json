@@ -85,6 +85,8 @@
     "totalChatMessagesTokenCount": "总token数量",
     "totalChatMessages3DaysTokenCount": "总token数量(3天)",
     "totalChatMessages3DaysAvgTokenCount": "平均token数量(3天)",
+    "firstName": "名字",
+    "lastName": "姓氏",
     "hideSubMenu": "隐藏子菜单",
     "showSubMenu": "显示子菜单",
     "userStat": "用户统计",
