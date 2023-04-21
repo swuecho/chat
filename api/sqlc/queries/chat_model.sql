@@ -31,4 +31,6 @@ RETURNING *;
 DELETE FROM chat_model WHERE id = $1 and user_id = $2;
 
 -- name: GetDefaultChatModel :one
-SELECT * FROM chat_model WHERE is_default = true;
+SELECT * FROM chat_model WHERE is_default = true
+and user_id in (select id from auth_user where is_superuser = true)
+;
