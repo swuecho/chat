@@ -40,7 +40,7 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
-		&i.KeepLength,
+		&i.PromptLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -84,7 +84,7 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
-		&i.KeepLength,
+		&i.PromptLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -112,16 +112,16 @@ returning id, user_id, uuid, topic, created_at, updated_at, active, model, promp
 `
 
 type CreateOrUpdateChatSessionByUUIDParams struct {
-	Uuid        string
-	UserID      int32
-	Topic       string
-	KeepLength  int32
-	MaxLength   int32
-	Temperature float64
-	Model       string
-	MaxTokens   int32
-	TopP        float64
-	Debug       bool
+	Uuid         string
+	UserID       int32
+	Topic        string
+	PromptLength int32
+	MaxLength    int32
+	Temperature  float64
+	Model        string
+	MaxTokens    int32
+	TopP         float64
+	Debug        bool
 }
 
 func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg CreateOrUpdateChatSessionByUUIDParams) (ChatSession, error) {
@@ -129,7 +129,7 @@ func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg Creat
 		arg.Uuid,
 		arg.UserID,
 		arg.Topic,
-		arg.KeepLength,
+		arg.PromptLength,
 		arg.MaxLength,
 		arg.Temperature,
 		arg.Model,
@@ -147,7 +147,7 @@ func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg Creat
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
-		&i.KeepLength,
+		&i.PromptLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -202,7 +202,7 @@ func (q *Queries) GetAllChatSessions(ctx context.Context) ([]ChatSession, error)
 			&i.UpdatedAt,
 			&i.Active,
 			&i.Model,
-			&i.KeepLength,
+			&i.PromptLength,
 			&i.MaxLength,
 			&i.Temperature,
 			&i.TopP,
@@ -238,7 +238,7 @@ func (q *Queries) GetChatSessionByID(ctx context.Context, id int32) (ChatSession
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
-		&i.KeepLength,
+		&i.PromptLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -266,7 +266,7 @@ func (q *Queries) GetChatSessionByUUID(ctx context.Context, uuid string) (ChatSe
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
-		&i.KeepLength,
+		&i.PromptLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -301,7 +301,7 @@ func (q *Queries) GetChatSessionsByUserID(ctx context.Context, userID int32) ([]
 			&i.UpdatedAt,
 			&i.Active,
 			&i.Model,
-			&i.KeepLength,
+			&i.PromptLength,
 			&i.MaxLength,
 			&i.Temperature,
 			&i.TopP,
@@ -370,7 +370,7 @@ func (q *Queries) UpdateChatSession(ctx context.Context, arg UpdateChatSessionPa
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
-		&i.KeepLength,
+		&i.PromptLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -404,7 +404,7 @@ func (q *Queries) UpdateChatSessionByUUID(ctx context.Context, arg UpdateChatSes
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
-		&i.KeepLength,
+		&i.PromptLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -442,7 +442,7 @@ func (q *Queries) UpdateChatSessionTopicByUUID(ctx context.Context, arg UpdateCh
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
-		&i.KeepLength,
+		&i.PromptLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -477,7 +477,7 @@ func (q *Queries) UpdateSessionMaxLength(ctx context.Context, arg UpdateSessionM
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
-		&i.KeepLength,
+		&i.PromptLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
