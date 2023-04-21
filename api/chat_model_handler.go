@@ -26,7 +26,7 @@ func (h *ChatModelHandler) Register(r *mux.Router) {
 	//handler := NewChatModelHandler(db)
 	// r := mux.NewRouter()
 
-	// user can read
+	// TODO: user can read, remove user_id field from the response
 	r.HandleFunc("/chat_model", h.ListSystemChatModels).Methods("GET")
 	r.HandleFunc("/chat_model/default", h.GetDefaultChatModel).Methods("GET")
 	r.HandleFunc("/chat_model/{id}", h.ChatModelByID).Methods("GET")
