@@ -13,12 +13,14 @@ import (
 )
 
 type ChatMessageHandler struct {
-	service *ChatMessageService
+	service        *ChatMessageService
+	sessionService *ChatSessionService
 }
 
-func NewChatMessageHandler(service *ChatMessageService) *ChatMessageHandler {
+func NewChatMessageHandler(service *ChatMessageService, sessionService *ChatSessionService) *ChatMessageHandler {
 	return &ChatMessageHandler{
-		service: service,
+		service:        service,
+		sessionService: sessionService,
 	}
 }
 
@@ -214,7 +216,13 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 // DeleteChatMessagesBySesionUUID delete chat messages by session uuid
 func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr)
+	session, err := h.sessionService.GetChatSessionByUUID(r.Context(), uuidStr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr, session.KeepLength)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -13,7 +13,7 @@ import (
 const createChatSession = `-- name: CreateChatSession :one
 INSERT INTO chat_session (user_id, topic, max_length, uuid)
 VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug
 `
 
 type CreateChatSessionParams struct {
@@ -40,6 +40,7 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
+		&i.KeepLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -52,7 +53,7 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 const createChatSessionByUUID = `-- name: CreateChatSessionByUUID :one
 INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug
 `
 
 type CreateChatSessionByUUIDParams struct {
@@ -83,6 +84,7 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
+		&i.KeepLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -93,11 +95,12 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 }
 
 const createOrUpdateChatSessionByUUID = `-- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, debug)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO chat_session(uuid, user_id, topic, keep_length, max_length, temperature, model, max_tokens, top_p, debug)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 ON CONFLICT (uuid) 
 DO UPDATE SET
-max_length = EXCLUDED.max_length, 
+keep_length = EXCLUDED.keep_length,
+max_length = EXCLUDED.max_length,
 debug = EXCLUDED.debug,
 max_tokens = EXCLUDED.max_tokens,
 temperature = EXCLUDED.temperature, 
@@ -105,13 +108,14 @@ top_p = EXCLUDED.top_p,
 model = EXCLUDED.model,
 topic = CASE WHEN chat_session.topic IS NULL THEN EXCLUDED.topic ELSE chat_session.topic END,
 updated_at = now()
-returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug
+returning id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug
 `
 
 type CreateOrUpdateChatSessionByUUIDParams struct {
 	Uuid        string
 	UserID      int32
 	Topic       string
+	KeepLength  int32
 	MaxLength   int32
 	Temperature float64
 	Model       string
@@ -125,6 +129,7 @@ func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg Creat
 		arg.Uuid,
 		arg.UserID,
 		arg.Topic,
+		arg.KeepLength,
 		arg.MaxLength,
 		arg.Temperature,
 		arg.Model,
@@ -142,6 +147,7 @@ func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg Creat
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
+		&i.KeepLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -164,7 +170,7 @@ func (q *Queries) DeleteChatSession(ctx context.Context, id int32) error {
 const deleteChatSessionByUUID = `-- name: DeleteChatSessionByUUID :exec
 update chat_session set active = false
 WHERE uuid = $1
-returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug
+returning id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug
 `
 
 func (q *Queries) DeleteChatSessionByUUID(ctx context.Context, uuid string) error {
@@ -173,7 +179,7 @@ func (q *Queries) DeleteChatSessionByUUID(ctx context.Context, uuid string) erro
 }
 
 const getAllChatSessions = `-- name: GetAllChatSessions :many
-SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug FROM chat_session 
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug FROM chat_session 
 where active = true
 ORDER BY id
 `
@@ -196,6 +202,7 @@ func (q *Queries) GetAllChatSessions(ctx context.Context) ([]ChatSession, error)
 			&i.UpdatedAt,
 			&i.Active,
 			&i.Model,
+			&i.KeepLength,
 			&i.MaxLength,
 			&i.Temperature,
 			&i.TopP,
@@ -216,7 +223,7 @@ func (q *Queries) GetAllChatSessions(ctx context.Context) ([]ChatSession, error)
 }
 
 const getChatSessionByID = `-- name: GetChatSessionByID :one
-SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug FROM chat_session WHERE id = $1
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug FROM chat_session WHERE id = $1
 `
 
 func (q *Queries) GetChatSessionByID(ctx context.Context, id int32) (ChatSession, error) {
@@ -231,6 +238,7 @@ func (q *Queries) GetChatSessionByID(ctx context.Context, id int32) (ChatSession
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
+		&i.KeepLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -241,7 +249,7 @@ func (q *Queries) GetChatSessionByID(ctx context.Context, id int32) (ChatSession
 }
 
 const getChatSessionByUUID = `-- name: GetChatSessionByUUID :one
-SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug FROM chat_session 
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug FROM chat_session 
 WHERE active = true and uuid = $1
 order by updated_at
 `
@@ -258,6 +266,7 @@ func (q *Queries) GetChatSessionByUUID(ctx context.Context, uuid string) (ChatSe
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
+		&i.KeepLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -268,7 +277,7 @@ func (q *Queries) GetChatSessionByUUID(ctx context.Context, uuid string) (ChatSe
 }
 
 const getChatSessionsByUserID = `-- name: GetChatSessionsByUserID :many
-SELECT cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.debug
+SELECT cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.keep_length, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.debug
 FROM chat_session cs
 WHERE cs.user_id = $1 and cs.active = true
 ORDER BY cs.id
@@ -292,6 +301,7 @@ func (q *Queries) GetChatSessionsByUserID(ctx context.Context, userID int32) ([]
 			&i.UpdatedAt,
 			&i.Active,
 			&i.Model,
+			&i.KeepLength,
 			&i.MaxLength,
 			&i.Temperature,
 			&i.TopP,
@@ -333,7 +343,7 @@ func (q *Queries) HasChatSessionPermission(ctx context.Context, arg HasChatSessi
 const updateChatSession = `-- name: UpdateChatSession :one
 UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now(), active = $4
 WHERE id = $1
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug
 `
 
 type UpdateChatSessionParams struct {
@@ -360,6 +370,7 @@ func (q *Queries) UpdateChatSession(ctx context.Context, arg UpdateChatSessionPa
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
+		&i.KeepLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -372,7 +383,7 @@ func (q *Queries) UpdateChatSession(ctx context.Context, arg UpdateChatSessionPa
 const updateChatSessionByUUID = `-- name: UpdateChatSessionByUUID :one
 UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now()
 WHERE uuid = $1
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug
 `
 
 type UpdateChatSessionByUUIDParams struct {
@@ -393,6 +404,7 @@ func (q *Queries) UpdateChatSessionByUUID(ctx context.Context, arg UpdateChatSes
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
+		&i.KeepLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -409,7 +421,7 @@ ON CONFLICT (uuid)
 DO UPDATE SET
 topic = EXCLUDED.topic, 
 updated_at = now()
-returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug
+returning id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug
 `
 
 type UpdateChatSessionTopicByUUIDParams struct {
@@ -430,6 +442,7 @@ func (q *Queries) UpdateChatSessionTopicByUUID(ctx context.Context, arg UpdateCh
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
+		&i.KeepLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,
@@ -444,7 +457,7 @@ UPDATE chat_session
 SET max_length = $2,
     updated_at = now()
 WHERE uuid = $1
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, keep_length, max_length, temperature, top_p, max_tokens, debug
 `
 
 type UpdateSessionMaxLengthParams struct {
@@ -464,6 +477,7 @@ func (q *Queries) UpdateSessionMaxLength(ctx context.Context, arg UpdateSessionM
 		&i.UpdatedAt,
 		&i.Active,
 		&i.Model,
+		&i.KeepLength,
 		&i.MaxLength,
 		&i.Temperature,
 		&i.TopP,

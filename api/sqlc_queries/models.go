@@ -91,6 +91,7 @@ type ChatSession struct {
 	UpdatedAt   time.Time
 	Active      bool
 	Model       string
+	KeepLength  int32
 	MaxLength   int32
 	Temperature float64
 	TopP        float64

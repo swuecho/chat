@@ -56,6 +56,7 @@
     "clearHistoryConfirm": "确定清空聊天记录?",
     "contextLength": "上下文数量, 默认10 (会话开始的2条 + 最近的8条)",
     "stopAnswer": "停止回答",
+    "keepLength": "保留消息数量: {keepLength}",
     "contextCount": "上下文数量: {contextCount}",
     "temperature": "温度: {temperature}, 越高回答越发散, 越低回答越精确",
     "model": "模型(openai gpt4 需要单独申请, claude的免费key可以使用所有claude 模型)",
