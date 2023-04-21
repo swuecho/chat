@@ -255,10 +255,21 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	if err != nil {
 		return nil, eris.Wrap(err, "fail to get prompt: ")
 	}
+	// get top N messages, N = promptLength -  1
+	topN := chatSession.PromptLength - 1
 
-	var chat_massages []sqlc_queries.ChatMessage
+	topN_chat_messages, err := s.q.GetTopNChatMessages(ctx,
+		sqlc_queries.GetTopNChatMessagesParams{
+			ChatSessionUuid: chatSessionUuid,
+			Limit:           topN,
+		})
+	if err != nil {
+		return nil, eris.Wrap(err, "fail to get top messages: ")
+	}
+
+	var lastN_chat_messages []sqlc_queries.ChatMessage
 	if regenerate {
-		chat_massages, err = s.q.GetLastNChatMessages(ctx,
+		lastN_chat_messages, err = s.q.GetLastNChatMessages(ctx,
 			sqlc_queries.GetLastNChatMessagesParams{
 				ChatSessionUuid: chatSessionUuid,
 				Uuid:            chatUuid,
@@ -266,17 +277,25 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 			})
 
 	} else {
-		chat_massages, err = s.q.GetLatestMessagesBySessionUUID(ctx,
+		lastN_chat_messages, err = s.q.GetLatestMessagesBySessionUUID(ctx,
 			sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: chatSession.Uuid, Limit: lastN})
 	}
 
 	if err != nil {
 		return nil, eris.Wrap(err, "fail to get messages: ")
 	}
+	// topN + lāstN, get unique messages
+	chat_messages := append(topN_chat_messages, lastN_chat_messages...)
+
+	chat_messages = lo.UniqBy(chat_messages, func(m sqlc_queries.ChatMessage) int32 {
+		return m.ID
+	})
+
 	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) Message {
 		return Message{Role: m.Role, Content: m.Content, tokenCount: m.TokenCount}
 	})
-	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) Message {
+
+	chat_message_msgs := lo.Map(chat_messages, func(m sqlc_queries.ChatMessage, _ int) Message {
 		return Message{Role: m.Role, Content: m.Content, tokenCount: m.TokenCount}
 	})
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)

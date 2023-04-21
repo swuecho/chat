@@ -89,6 +89,19 @@ WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY created_at 
 LIMIT 1;
 
+-- name: GetTopNChatMessages :many
+SELECT *
+FROM chat_message
+WHERE chat_message.id in (
+    SELECT id 
+    FROM chat_message cm
+    WHERE cm.chat_session_uuid = $2
+            AND cm.is_deleted = false
+    ORDER BY cm.created_at ASC
+    LIMIT $1
+) 
+ORDER BY created_at;
+
 -- name: GetLastNChatMessages :many
 SELECT *
 FROM chat_message

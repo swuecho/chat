@@ -221,8 +221,10 @@ func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWrite
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	err = h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr, session.PromptLength)
+	// (the default) prompt length is 1, 1 prompt in chat_prompt table,  keep 0 messages in chat_message table
+	// prompt length is 5, 1 prompt in chat_prompt table,  keep 4 messages in chat_message table
+	messageKeepLength := session.PromptLength - 1
+	err = h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr, messageKeepLength)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

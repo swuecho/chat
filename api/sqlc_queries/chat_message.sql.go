@@ -450,6 +450,63 @@ func (q *Queries) GetLatestMessagesBySessionUUID(ctx context.Context, arg GetLat
 	return items, nil
 }
 
+const getTopNChatMessages = `-- name: GetTopNChatMessages :many
+SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, token_count, raw
+FROM chat_message
+WHERE chat_message.id in (
+    SELECT id 
+    FROM chat_message cm
+    WHERE cm.chat_session_uuid = $2
+            AND cm.is_deleted = false
+    ORDER BY cm.created_at ASC
+    LIMIT $1
+) 
+ORDER BY created_at
+`
+
+type GetTopNChatMessagesParams struct {
+	Limit           int32
+	ChatSessionUuid string
+}
+
+func (q *Queries) GetTopNChatMessages(ctx context.Context, arg GetTopNChatMessagesParams) ([]ChatMessage, error) {
+	rows, err := q.db.QueryContext(ctx, getTopNChatMessages, arg.Limit, arg.ChatSessionUuid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChatMessage
+	for rows.Next() {
+		var i ChatMessage
+		if err := rows.Scan(
+			&i.ID,
+			&i.Uuid,
+			&i.ChatSessionUuid,
+			&i.Role,
+			&i.Content,
+			&i.Score,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatedBy,
+			&i.UpdatedBy,
+			&i.IsDeleted,
+			&i.TokenCount,
+			&i.Raw,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const hasChatMessagePermission = `-- name: HasChatMessagePermission :one
 SELECT COUNT(*) > 0 as has_permission
 FROM chat_message cm
