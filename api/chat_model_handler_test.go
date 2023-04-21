@@ -23,7 +23,11 @@ func TestListresults(t *testing.T) {
 	defaultApis, _ := q.ListChatModels(context.Background())
 	// delete all existing chat APIs
 	for _, api := range defaultApis {
-		q.DeleteChatModel(context.Background(), api.ID)
+		q.DeleteChatModel(context.Background(), 
+			sqlc_queries.DeleteChatModelParams{
+				ID: api.ID,
+				UserID: api.UserID,
+			})
 	}
 
 	// Now let's create our expected results. Create two results and insert them into the database using the queries.
