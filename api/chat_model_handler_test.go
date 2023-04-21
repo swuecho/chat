@@ -113,6 +113,7 @@ func TestChatModel(t *testing.T) {
 		assert.Equal(t, api.Url, results[i].Url)
 		assert.Equal(t, api.ApiAuthHeader, results[i].ApiAuthHeader)
 		assert.Equal(t, api.ApiAuthKey, results[i].ApiAuthKey)
+		assert.Equal(t, api.UserID, results[i].UserID)
 	}
 
 	// Now lets update the the first element of our expected results array and call PUT on the endpoint
@@ -127,7 +128,7 @@ func TestChatModel(t *testing.T) {
 
 	// Create an HTTP request so we can simulate a PUT with the payload
 	updateReq, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
-	ctx := context.WithValue(req.Context(), userContextKey, string(admin.ID))
+	ctx := context.WithValue(updateReq.Context(), userContextKey, string(admin.ID))
 	updateReq = updateReq.WithContext(ctx)
 
 	if err != nil {
@@ -154,7 +155,7 @@ func TestChatModel(t *testing.T) {
 	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
 	// And now call the DELETE endpoint to remove all the created ChatModels
 	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
-	ctx2 := context.WithValue(req.Context(), userContextKey, string(admin.ID))
+	ctx2 := context.WithValue(deleteReq.Context(), userContextKey, string(admin.ID))
 	deleteReq = deleteReq.WithContext(ctx2)
 	if err != nil {
 		t.Fatal(err)
@@ -198,7 +199,7 @@ func TestChatModel(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx3 := context.WithValue(req.Context(), userContextKey, string(admin.ID))
+	ctx3 := context.WithValue(deleteReq2.Context(), userContextKey, string(admin.ID))
 	deleteReq2 = deleteReq2.WithContext(ctx3)
 
 	deleteRR2 := httptest.NewRecorder()
