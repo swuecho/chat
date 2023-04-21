@@ -97,6 +97,8 @@
   "admin": {
     "openPanel": "Open Admin Panel",
     "title": "Admin",
+    "firstName": "First Name",
+    "lastName": "Last Name",
     "permission": "Permission",
     "rateLimit": "Rate Limit",
     "userEmail": "User Email",
