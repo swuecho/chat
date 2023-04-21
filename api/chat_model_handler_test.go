@@ -31,9 +31,9 @@ func TestChatModel(t *testing.T) {
 	}
 	// add a system user
 	admin, err := q.CreateAuthUser(context.Background(), sqlc_queries.CreateAuthUserParams{
-		Email: "admin@a.com",
-		Username: "test",
-		Password: "test",
+		Email:       "admin@a.com",
+		Username:    "test",
+		Password:    "test",
 		IsSuperuser: true,
 	})
 
@@ -125,10 +125,9 @@ func TestChatModel(t *testing.T) {
 		t.Errorf("Error marshaling update payload: %s", err.Error())
 	}
 
-	
 	// Create an HTTP request so we can simulate a PUT with the payload
 	updateReq, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
-	ctx := context.WithValue(req.Context(), roleContextKey, "admin")
+	ctx := context.WithValue(req.Context(), userContextKey, string(admin.ID))
 	updateReq = updateReq.WithContext(ctx)
 
 	if err != nil {
@@ -155,7 +154,7 @@ func TestChatModel(t *testing.T) {
 	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
 	// And now call the DELETE endpoint to remove all the created ChatModels
 	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
-	ctx2 := context.WithValue(req.Context(), roleContextKey, "admin")
+	ctx2 := context.WithValue(req.Context(), userContextKey, string(admin.ID))
 	deleteReq = deleteReq.WithContext(ctx2)
 	if err != nil {
 		t.Fatal(err)
@@ -199,7 +198,7 @@ func TestChatModel(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx3 := context.WithValue(req.Context(), roleContextKey, "admin")
+	ctx3 := context.WithValue(req.Context(), userContextKey, string(admin.ID))
 	deleteReq2 = deleteReq2.WithContext(ctx3)
 
 	deleteRR2 := httptest.NewRecorder()
