@@ -185,8 +185,11 @@ func (s *ChatMessageService) GetChatHistoryBySessionUUID(ctx context.Context, uu
 }
 
 // DeleteChatMessagesBySesionUUID deletes chat messages by session uuid.
-func (s *ChatMessageService) DeleteChatMessagesBySesionUUID(ctx context.Context, uuid string) error {
-	err := s.q.DeleteChatMessagesBySesionUUID(ctx, uuid)
+func (s *ChatMessageService) DeleteChatMessagesBySesionUUID(ctx context.Context, uuid string, offset int32) error {
+	err := s.q.DeleteChatMessagesBySesionUUID(ctx, sqlc_queries.DeleteChatMessagesBySesionUUIDParams{
+		ChatSessionUuid: uuid,
+		Offset:          offset,
+	})
 	return err
 }
 

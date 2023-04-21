@@ -181,7 +181,7 @@ func main() {
 	chatMessageService := NewChatMessageService(sqlc_q)
 
 	// create a new ChatMessageHandler instance
-	chatMessageHandler := NewChatMessageHandler(chatMessageService)
+	chatMessageHandler := NewChatMessageHandler(chatMessageService, chatSessionService)
 
 	// register the ChatMessageHandler with the router
 	chatMessageHandler.Register(router)
