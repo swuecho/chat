@@ -25,7 +25,7 @@ export function useChat() {
     if (!chat)
       return
     chat.text = text
-    // updat time stamp
+    // update time stamp
     chat.dateTime = new Date().toLocaleString()
     chatStore.updateChatByUuid(uuid, index, chat)
     // sync text to server

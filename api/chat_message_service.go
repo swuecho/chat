@@ -177,6 +177,7 @@ func (s *ChatMessageService) GetChatHistoryBySessionUUID(ctx context.Context, uu
 			Inversion: message.Role == "user",
 			Error:     false,
 			Loading:   false,
+			IsPin:     message.IsPin,
 		}
 	})
 

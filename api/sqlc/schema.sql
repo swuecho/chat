@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS chat_message (
     created_by integer NOT NULL,
     updated_by integer NOT NULL,
     is_deleted BOOLEAN  NOT NULL DEFAULT false,
+    is_pin BOOLEAN  NOT NULL DEFAULT false,
     token_count INTEGER DEFAULT 0 NOT NULL,
     raw jsonb default '{}' NOT NULL
 );
@@ -184,6 +185,7 @@ ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS  model character varying(255) 
 -- chat_messages
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 NOT NULL;
+ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_pin BOOLEAN  NOT NULL DEFAULT false;
 
 
 -- chat prompt

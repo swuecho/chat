@@ -8,6 +8,7 @@ declare namespace Chat {
 		error?: boolean
 		loading?: boolean
 		isPrompt?: boolean
+		isPin?: boolean
 	}
 
 	interface History {

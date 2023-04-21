@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -136,13 +135,12 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	log.Println(simple_msg)
 	var messageParams sqlc_queries.UpdateChatMessageByUUIDParams
 	messageParams.Uuid = simple_msg.Uuid
 	messageParams.Content = simple_msg.Text
 	tokenCount, _ := getTokenCount(simple_msg.Text)
 	messageParams.TokenCount = int32(tokenCount)
-	log.Println(messageParams)
+	messageParams.IsPin = simple_msg.IsPin
 	message, err := h.service.UpdateChatMessageByUUID(r.Context(), messageParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

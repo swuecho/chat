@@ -275,7 +275,12 @@ export const useChatStore = defineStore('chat-store', {
 
       const index = this.chat.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
-        this.chat[index].data = this.chat[index].data.slice(0, 1)
+        const data: Chat.Chat[] = []
+        for (const chat of this.chat[index].data) {
+          if (chat.isPin || chat.isPrompt)
+            data.push(chat)
+        }
+        this.chat[index].data = data
         clearSessionChatMessages(uuid)
         this.recordState()
       }

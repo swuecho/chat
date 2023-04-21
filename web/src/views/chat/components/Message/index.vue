@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { NDropdown } from 'naive-ui'
 import TextComponent from './Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
@@ -17,11 +17,14 @@ interface Props {
   error?: boolean
   loading?: boolean
   model?: string
+  isPrompt?: boolean
+  isPin?: boolean
 }
 
 interface Emit {
   (ev: 'regenerate'): void
   (ev: 'delete'): void
+  (ev: 'togglePin'): void
   (ev: 'afterEdit', index: number, text: string): void
 }
 
@@ -35,24 +38,39 @@ const textRef = ref<HTMLElement>()
 
 const editable = ref(false)
 
-const options = [
-  {
-    label: t('common.edit'),
-    key: 'editText',
-    icon: iconRender({ icon: 'ri:edit-line' }),
-  },
-  {
-    label: t('chat.copy'),
-    key: 'copyText',
-    icon: iconRender({ icon: 'ri:file-copy-2-line' }),
-  },
-  {
-    label: t('common.delete'),
-    key: 'delete',
-    icon: iconRender({ icon: 'ri:delete-bin-line' }),
-  },
-
-]
+const options = computed(() => {
+  const options = [
+    {
+      label: t('common.edit'),
+      key: 'editText',
+      icon: iconRender({ icon: 'ri:edit-line' }),
+    },
+    {
+      label: t('chat.copy'),
+      key: 'copyText',
+      icon: iconRender({ icon: 'ri:file-copy-2-line' }),
+    },
+    {
+      label: t('common.delete'),
+      key: 'delete',
+      icon: iconRender({ icon: 'ri:delete-bin-line' }),
+    },
+  ]
+  if (!props.isPrompt) {
+    options.push(props.isPin
+      ? {
+          label: t('common.unpin'),
+          key: 'togglePin',
+          icon: iconRender({ icon: 'ri:unpin-line' }),
+        }
+      : {
+          label: t('common.pin'),
+          key: 'togglePin',
+          icon: iconRender({ icon: 'ri:pushpin-line' }),
+        })
+  }
+  return options
+})
 
 function onContentChange(event: FocusEvent, index: number) {
   editable.value = false
@@ -60,13 +78,16 @@ function onContentChange(event: FocusEvent, index: number) {
   emit('afterEdit', index, text)
 }
 
-function handleSelect(key: 'copyText' | 'delete' | 'editText') {
+function handleSelect(key: 'copyText' | 'delete' | 'editText' | 'togglePin') {
   switch (key) {
     case 'copyText':
       copyText({ text: props.text ?? '' })
       return
     case 'delete':
       emit('delete')
+      return
+    case 'togglePin':
+      emit('togglePin')
       return
     case 'editText':
       // make the text editable
