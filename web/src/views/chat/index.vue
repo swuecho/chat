@@ -10,7 +10,7 @@ import { useChat } from './hooks/useChat'
 import { useCopyCode } from './hooks/useCopyCode'
 import HeaderComponent from './components/Header/index.vue'
 import SessionConfig from './components/Session/SessionConfig.vue'
-import { createChatSnapshot, fetchChatStream } from '@/api'
+import { createChatSnapshot, fetchChatStream, updateChatData } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore } from '@/store'
@@ -335,6 +335,29 @@ function handleDelete(index: number) {
   })
 }
 
+async function handleTogglePin(index: number) {
+  if (loading.value)
+    return
+
+  const chat = chatStore.getChatByUuidAndIndex(uuid, index)
+  if (chat == null)
+    return
+
+  chat.isPin = !chat.isPin
+  try {
+    loading.value = true
+    await updateChatData(chat)
+    updateChat(
+      sessionUuid,
+      index,
+      chat,
+    )
+  }
+  finally {
+    loading.value = false
+  }
+}
+
 function handleAfterEdit(index: number, text: string) {
   if (loading.value)
     return
@@ -443,8 +466,9 @@ function getDataFromResponseText(responseText: string): string {
             <div>
               <Message
                 v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
-                :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
+                :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error" :is-prompt="item.isPrompt" :is-pin="item.isPin"
                 :loading="item.loading" :index="index" @regenerate="onRegenerate(index)" @delete="handleDelete(index)"
+                @toggle-pin="handleTogglePin(index)"
                 @after-edit="handleAfterEdit"
               />
               <div class="sticky bottom-0 left-0 flex justify-center">

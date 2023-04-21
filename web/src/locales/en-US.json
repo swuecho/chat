@@ -2,6 +2,8 @@
   "common": {
     "help": "The first one is the theme(prompt), and the context includes 10 messages.",
     "edit": "Edit",
+    "pin": "Pin",
+    "unpin": "Unpin",
     "delete": "Delete",
     "save": "Save",
     "reset": "Reset",

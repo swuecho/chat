@@ -52,6 +52,7 @@ type ChatMessage struct {
 	CreatedBy       int32
 	UpdatedBy       int32
 	IsDeleted       bool
+	IsPin           bool
 	TokenCount      int32
 	Raw             json.RawMessage
 }

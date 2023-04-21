@@ -51,7 +51,7 @@ WHERE is_deleted = false and uuid = $1;
 
 
 -- name: UpdateChatMessageByUUID :one
-UPDATE chat_message SET content = $2, token_count = $3,  updated_at = now() 
+UPDATE chat_message SET content = $2, is_pin = $3, token_count = $4,  updated_at = now() 
 WHERE uuid = $1
 RETURNING *;
 
@@ -113,7 +113,7 @@ WHERE uuid = $1 ;
 -- name: DeleteChatMessagesBySesionUUID :exec
 UPDATE chat_message 
 SET is_deleted = true, updated_at = now()
-WHERE is_deleted = false and chat_session_uuid = $1;
+WHERE is_deleted = false and is_pin = false and chat_session_uuid = $1;
 
 
 -- name: GetChatMessagesCount :one
