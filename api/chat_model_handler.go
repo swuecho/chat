@@ -27,18 +27,18 @@ func (h *ChatModelHandler) Register(r *mux.Router) {
 	// r := mux.NewRouter()
 
 	// user can read
-	r.HandleFunc("/chat_model", h.ListChatModels).Methods("GET")
+	r.HandleFunc("/chat_model", h.ListSystemChatModels).Methods("GET")
 	r.HandleFunc("/chat_model/default", h.GetDefaultChatModel).Methods("GET")
 	r.HandleFunc("/chat_model/{id}", h.ChatModelByID).Methods("GET")
-	// only admin can CUD
-	r.HandleFunc("/chat_model", AdminOnlyHandlerFunc(h.CreateChatModel)).Methods("POST")
-	r.HandleFunc("/chat_model/{id}", AdminOnlyHandlerFunc(h.UpdateChatModel)).Methods("PUT")
-	r.HandleFunc("/chat_model/{id}", AdminOnlyHandlerFunc(h.DeleteChatModel)).Methods("DELETE")
+	// create delete update self's chat model
+	r.HandleFunc("/chat_model", h.CreateChatModel).Methods("POST")
+	r.HandleFunc("/chat_model/{id}", h.UpdateChatModel).Methods("PUT")
+	r.HandleFunc("/chat_model/{id}", h.DeleteChatModel).Methods("DELETE")
 }
 
-func (h *ChatModelHandler) ListChatModels(w http.ResponseWriter, r *http.Request) {
+func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ChatModels, err := h.db.ListChatModels(ctx)
+	ChatModels, err := h.db.ListSystemChatModels(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error listing chat APIs: %s", err.Error())))
@@ -71,6 +71,11 @@ func (h *ChatModelHandler) ChatModelByID(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+	}
+
 	var input struct {
 		Name          string `json:"name"`
 		Label         string `json:"label"`
@@ -79,7 +84,8 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		APIAuthHeader string `json:"api_auth_header"`
 		APIAuthKey    string `json:"api_auth_key"`
 	}
-	err := json.NewDecoder(r.Body).Decode(&input)
+
+	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Failed to parse request body"))
@@ -93,6 +99,7 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		Url:           input.URL,
 		ApiAuthHeader: input.APIAuthHeader,
 		ApiAuthKey:    input.APIAuthKey,
+		UserID:        userID,
 	})
 
 	if err != nil {
@@ -113,6 +120,12 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		w.Write([]byte("Invalid chat API ID"))
 		return
 	}
+
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+	}
+
 	var input struct {
 		Name          string
 		Label         string
@@ -136,6 +149,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		Url:           input.URL,
 		ApiAuthHeader: input.APIAuthHeader,
 		ApiAuthKey:    input.APIAuthKey,
+		UserID:        userID,
 	})
 
 	if err != nil {
@@ -157,7 +171,16 @@ func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = h.db.DeleteChatModel(r.Context(), int32(id))
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+	}
+
+	err = h.db.DeleteChatModel(r.Context(),
+		sqlc_queries.DeleteChatModelParams{
+			ID:     int32(id),
+			UserID: userID,
+		})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error deleting chat API: %s", err.Error())))
