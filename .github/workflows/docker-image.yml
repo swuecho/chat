@@ -16,10 +16,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: check locale
+        run: python scripts/locale_missing_key.py web/src/locales --base zh-CN
+
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "16.x"
+
       - name: build web
         run: |
           npm install
@@ -41,21 +46,6 @@ jobs:
       - name: Build Chat image
         run: |
           docker build . --file Dockerfile -t ghcr.io/swuecho/chat:${GITHUB_SHA}
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u swuecho --password-stdin
-      - name: Push Chat image to GitHub Container Registry
-        run: docker push ghcr.io/swuecho/chat:${GITHUB_SHA}
-  e2e:
-    runs-on: ubuntu-latest
-    needs: [build_chat]
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v3
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u swuecho --password-stdin
-
-      - name: check locale
-        run: python scripts/locale_missing_key.py web/src/locales --base zh-CN
 
       - name: change docker image tag
         run: python scripts/replace_tag_to_test.py ${GITHUB_SHA}
@@ -68,11 +58,6 @@ jobs:
 
       - name: show docker logs
         run: docker-compose logs
-
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "16.x"
 
       # Setup cache for node_modules
       - name: Cache node modules
