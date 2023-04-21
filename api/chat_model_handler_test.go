@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -128,7 +129,7 @@ func TestChatModel(t *testing.T) {
 
 	// Create an HTTP request so we can simulate a PUT with the payload
 	updateReq, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
-	ctx := context.WithValue(updateReq.Context(), userContextKey, string(admin.ID))
+	ctx := context.WithValue(updateReq.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
 	updateReq = updateReq.WithContext(ctx)
 
 	if err != nil {
@@ -155,7 +156,7 @@ func TestChatModel(t *testing.T) {
 	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
 	// And now call the DELETE endpoint to remove all the created ChatModels
 	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
-	ctx2 := context.WithValue(deleteReq.Context(), userContextKey, string(admin.ID))
+	ctx2 := context.WithValue(deleteReq.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
 	deleteReq = deleteReq.WithContext(ctx2)
 	if err != nil {
 		t.Fatal(err)
@@ -199,7 +200,7 @@ func TestChatModel(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx3 := context.WithValue(deleteReq2.Context(), userContextKey, string(admin.ID))
+	ctx3 := context.WithValue(deleteReq2.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
 	deleteReq2 = deleteReq2.WithContext(ctx3)
 
 	deleteRR2 := httptest.NewRecorder()
