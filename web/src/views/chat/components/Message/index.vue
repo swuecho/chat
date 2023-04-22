@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { NDropdown } from 'naive-ui'
 import TextComponent from './Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
@@ -19,6 +19,7 @@ interface Props {
   model?: string
   isPrompt?: boolean
   isPin?: boolean
+  pining?: boolean
 }
 
 interface Emit {
@@ -38,39 +39,23 @@ const textRef = ref<HTMLElement>()
 
 const editable = ref(false)
 
-const options = computed(() => {
-  const options = [
-    {
-      label: t('common.edit'),
-      key: 'editText',
-      icon: iconRender({ icon: 'ri:edit-line' }),
-    },
-    {
-      label: t('chat.copy'),
-      key: 'copyText',
-      icon: iconRender({ icon: 'ri:file-copy-2-line' }),
-    },
-    {
-      label: t('common.delete'),
-      key: 'delete',
-      icon: iconRender({ icon: 'ri:delete-bin-line' }),
-    },
-  ]
-  if (!props.isPrompt) {
-    options.push(props.isPin
-      ? {
-          label: t('common.unpin'),
-          key: 'togglePin',
-          icon: iconRender({ icon: 'ri:unpin-line' }),
-        }
-      : {
-          label: t('common.pin'),
-          key: 'togglePin',
-          icon: iconRender({ icon: 'ri:pushpin-line' }),
-        })
-  }
-  return options
-})
+const options = [
+  {
+    label: t('common.edit'),
+    key: 'editText',
+    icon: iconRender({ icon: 'ri:edit-line' }),
+  },
+  {
+    label: t('chat.copy'),
+    key: 'copyText',
+    icon: iconRender({ icon: 'ri:file-copy-2-line' }),
+  },
+  {
+    label: t('common.delete'),
+    key: 'delete',
+    icon: iconRender({ icon: 'ri:delete-bin-line' }),
+  },
+]
 
 function onContentChange(event: FocusEvent, index: number) {
   editable.value = false
@@ -78,16 +63,13 @@ function onContentChange(event: FocusEvent, index: number) {
   emit('afterEdit', index, text)
 }
 
-function handleSelect(key: 'copyText' | 'delete' | 'editText' | 'togglePin') {
+function handleSelect(key: 'copyText' | 'delete' | 'editText') {
   switch (key) {
     case 'copyText':
       copyText({ text: props.text ?? '' })
       return
     case 'delete':
       emit('delete')
-      return
-    case 'togglePin':
-      emit('togglePin')
       return
     case 'editText':
       // make the text editable
@@ -118,12 +100,21 @@ function handleRegenerate() {
           :loading="loading" :contenteditable="editable" :idex="index" @blur="event => onContentChange(event, index)"
         />
         <div class="flex flex-col">
+          <!-- testid="chat-message-regenerate" not ok, someting like testclass -->
           <button
             v-if="!inversion"
             class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
             @click="handleRegenerate"
           >
             <SvgIcon icon="ri:restart-line" />
+          </button>
+          <button
+            v-if="!isPrompt && inversion"
+            class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
+            :disabled="pining"
+            @click="emit('togglePin')"
+          >
+            <SvgIcon :icon="isPin ? 'ri:unpin-line' : 'ri:pushpin-line'" />
           </button>
           <NDropdown :placement="!inversion ? 'right' : 'left'" :options="options" @select="handleSelect">
             <button class="transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-200">

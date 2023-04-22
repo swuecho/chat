@@ -76,5 +76,5 @@ jobs:
         run: npx playwright install --with-deps
         working-directory: e2e
 
-      - run: DEBUG=pw:api npx playwright test
+      - run: npx playwright test
         working-directory: e2e

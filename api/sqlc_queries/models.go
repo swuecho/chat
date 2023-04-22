@@ -65,6 +65,7 @@ type ChatModel struct {
 	Url           string
 	ApiAuthHeader string
 	ApiAuthKey    string
+	UserID        int32
 }
 
 type ChatPrompt struct {

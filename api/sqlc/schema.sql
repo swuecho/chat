@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS chat_model (
   api_auth_header TEXT DEFAULT '' NOT NULL,   
   -- env var that contains the api key
   -- for example: OPENAI_API_KEY, which means the api key is stored in an env var called OPENAI_API_KEY
-  api_auth_key TEXT DEFAULT '' NOT NULL 
+  api_auth_key TEXT DEFAULT '' NOT NULL,
+  user_id INTEGER NOT NULL default 1
 );
 
 
@@ -202,10 +203,12 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
 );
 
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;
--- UPDATE chat_snapshot SET model = 'gpt-3.5-turbo' WHERE model = '';
+
 
 -- add index on user id
 CREATE INDEX IF NOT EXISTS chat_snapshot_user_id_idx ON chat_snapshot (user_id);
 
 -- add index on created_at(brin)
 CREATE INDEX IF NOT EXISTS chat_snapshot_created_at_idx ON chat_snapshot using brin (created_at) ;
+
+UPDATE chat_snapshot SET model = 'gpt-3.5-turbo' WHERE model = '';

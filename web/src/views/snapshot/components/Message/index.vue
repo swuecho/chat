@@ -67,12 +67,12 @@ function handleSelect(key: 'copyText') {
         <div class="flex flex-col">
           <button
             v-if="!inversion"
-            class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
+            class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
           >
             <SvgIcon icon="mingcute:voice-fill" />
           </button>
           <button
-            class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
+            class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
           >
             <SvgIcon icon="mdi:comment-outline" />
           </button>
