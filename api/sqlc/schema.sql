@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS chat_model (
   user_id INTEGER NOT NULL default 1
 );
 
+ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS user_id INTEGER NOT NULL default 1;
 
 INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key)
 VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
