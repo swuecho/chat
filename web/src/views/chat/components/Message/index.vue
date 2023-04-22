@@ -100,9 +100,10 @@ function handleRegenerate() {
           :loading="loading" :contenteditable="editable" :idex="index" @blur="event => onContentChange(event, index)"
         />
         <div class="flex flex-col">
+          <!-- testid="chat-message-regenerate" not ok, someting like testclass -->
           <button
             v-if="!inversion"
-            class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
+            class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
             @click="handleRegenerate"
           >
             <SvgIcon icon="ri:restart-line" />
