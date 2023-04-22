@@ -7,8 +7,7 @@ package sqlc_queries
 
 import (
 	"context"
-
-	"github.com/tabbed/pqtype"
+	"encoding/json"
 )
 
 const createEvent = `-- name: CreateEvent :one
@@ -20,7 +19,7 @@ RETURNING event_id, user_id, event_type, created_at, metadata
 type CreateEventParams struct {
 	UserID    int32
 	EventType string
-	Metadata  pqtype.NullRawMessage
+	Metadata  json.RawMessage
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error) {
@@ -138,7 +137,7 @@ type UpdateEventParams struct {
 	EventID   int32
 	UserID    int32
 	EventType string
-	Metadata  pqtype.NullRawMessage
+	Metadata  json.RawMessage
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error) {

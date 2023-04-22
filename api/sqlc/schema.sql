@@ -70,7 +70,7 @@ CREATE TABLE event (
     user_id INTEGER NOT NULL,
     event_type VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
-    metadata JSONB
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 
 -- add index on user_id
