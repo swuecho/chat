@@ -22,9 +22,18 @@ CREATE TABLE IF NOT EXISTS chat_model (
 );
 
 
+INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key)
+VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
+        ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
+        ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
+        ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
+        ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
+        ('echo','echo',false,'https://bestqa_workerd.bestqa.workers.dev/echo','Authorization','ECHO_API_KEY'),
+        ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY')
+ON CONFLICT(name) DO NOTHING;
+
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
-
 
 
 CREATE TABLE IF NOT EXISTS auth_user (
@@ -73,6 +82,13 @@ CREATE TABLE IF NOT EXISTS chat_session (
     max_tokens int DEFAULT 512 NOT NULL
 );
 
+-- chat_session
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0 NOT NULL;
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0 NOT NULL;
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 512 NOT NULL; 
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NOT NULL; 
+ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS  model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';
+
 -- add hash index on uuid
 CREATE INDEX IF NOT EXISTS chat_session_uuid_idx ON chat_session using hash (uuid) ;
 
@@ -97,6 +113,11 @@ CREATE TABLE IF NOT EXISTS chat_message (
     token_count INTEGER DEFAULT 0 NOT NULL,
     raw jsonb default '{}' NOT NULL
 );
+
+-- chat_messages
+ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
+ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 NOT NULL;
+ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_pin BOOLEAN  NOT NULL DEFAULT false;
 
 -- add hash index on uuid
 CREATE INDEX IF NOT EXISTS chat_message_uuid_idx ON chat_message using hash (uuid) ;
@@ -128,6 +149,9 @@ CREATE TABLE IF NOT EXISTS chat_prompt (
     token_count INTEGER DEFAULT 0 NOT NULL
     -- raw jsonb default '{}' NOT NULL
 );
+
+ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
+ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 NOT NULL;
 
 -- add hash index on uuid
 CREATE INDEX IF NOT EXISTS chat_prompt_uuid_idx ON chat_prompt using hash (uuid) ;
@@ -164,46 +188,6 @@ CREATE TABLE IF NOT EXISTS user_active_chat_session (
 CREATE INDEX IF NOT EXISTS user_active_chat_session_user_id_idx ON user_active_chat_session using hash (user_id) ;
 
 
--- ALTER TABLE user_active_chat_session
--- ADD CONSTRAINT unique_user_id
--- UNIQUE (user_id);
-
--- ALTER TABLE chat_session
--- ADD CONSTRAINT unique_uuid
--- UNIQUE (uuid);
-
--- ALTER TABLE chat_prompt RENAME COLUMN topic TO session_uuid;
-
--- chat_session
-ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0 NOT NULL;
-ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0 NOT NULL;
-ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 512 NOT NULL; 
-ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NOT NULL; 
-ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS  model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';
-
-
--- chat_messages
-ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
-ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 NOT NULL;
-ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_pin BOOLEAN  NOT NULL DEFAULT false;
-
-
--- chat prompt
-ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
-ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 NOT NULL;
-
-
-INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key)
-VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
-        ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
-        ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
-        ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
-        ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
-        ('echo','echo',false,'https://bestqa_workerd.bestqa.workers.dev/echo','Authorization','ECHO_API_KEY'),
-        ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY')
-ON CONFLICT(name) DO NOTHING;
-
-
 -- for share chat feature
 CREATE TABLE IF NOT EXISTS chat_snapshot (
     id SERIAL PRIMARY KEY,
@@ -219,3 +203,9 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
 
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;
 -- UPDATE chat_snapshot SET model = 'gpt-3.5-turbo' WHERE model = '';
+
+-- add index on user id
+CREATE INDEX IF NOT EXISTS chat_snapshot_user_id_idx ON chat_snapshot (user_id);
+
+-- add index on created_at(brin)
+CREATE INDEX IF NOT EXISTS chat_snapshot_created_at_idx ON chat_snapshot using brin (created_at) ;
