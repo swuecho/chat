@@ -335,8 +335,9 @@ function handleDelete(index: number) {
   })
 }
 
+const pining = ref<boolean>(false)
 async function handleTogglePin(index: number) {
-  if (loading.value)
+  if (pining.value)
     return
 
   const chat = chatStore.getChatByUuidAndIndex(uuid, index)
@@ -345,7 +346,7 @@ async function handleTogglePin(index: number) {
 
   chat.isPin = !chat.isPin
   try {
-    loading.value = true
+    pining.value = true
     await updateChatData(chat)
     updateChat(
       sessionUuid,
@@ -354,7 +355,7 @@ async function handleTogglePin(index: number) {
     )
   }
   finally {
-    loading.value = false
+    pining.value = false
   }
 }
 
@@ -467,7 +468,7 @@ function getDataFromResponseText(responseText: string): string {
               <Message
                 v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
                 :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error" :is-prompt="item.isPrompt" :is-pin="item.isPin"
-                :loading="item.loading" :index="index" @regenerate="onRegenerate(index)" @delete="handleDelete(index)"
+                :loading="item.loading" :pining="pining" :index="index" @regenerate="onRegenerate(index)" @delete="handleDelete(index)"
                 @toggle-pin="handleTogglePin(index)"
                 @after-edit="handleAfterEdit"
               />
