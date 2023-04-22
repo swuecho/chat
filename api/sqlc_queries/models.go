@@ -112,6 +112,14 @@ type ChatSnapshot struct {
 	CreatedAt    time.Time
 }
 
+type Event struct {
+	EventID   int32
+	UserID    int32
+	EventType string
+	CreatedAt time.Time
+	Metadata  json.RawMessage
+}
+
 type JwtSecret struct {
 	ID       int32
 	Name     string
