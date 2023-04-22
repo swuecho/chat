@@ -174,7 +174,8 @@ export const useChatStore = defineStore('chat-store', {
           const uuid = uuidv4()
           createChatSession(uuid, chat.text)
           this.history.push({ uuid, title: chat.text, isEdit: false })
-          this.chat.push({ uuid, data: [chat] })
+          // first chat message is prompt
+          this.chat.push({ uuid, data: [{ ...chat, isPrompt: true, isPin: false }] })
           this.active = uuid
           this.recordState()
         }
@@ -190,7 +191,11 @@ export const useChatStore = defineStore('chat-store', {
 
       const index = this.chat.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
-        this.chat[index].data.push(chat)
+        if (this.chat[index].data.length === 0)
+          this.chat[index].data.push({ ...chat, isPrompt: true, isPin: false })
+        else
+          this.chat[index].data.push(chat)
+
         if (this.history[0].title === new_chat_text) {
           this.history[0].title = chat.text
           renameChatSession(this.history[0].uuid, chat.text.substring(0, 20))
