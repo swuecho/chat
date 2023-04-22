@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS chat_model (
   api_auth_header TEXT DEFAULT '' NOT NULL,   
   -- env var that contains the api key
   -- for example: OPENAI_API_KEY, which means the api key is stored in an env var called OPENAI_API_KEY
-  api_auth_key TEXT DEFAULT '' NOT NULL 
+  api_auth_key TEXT DEFAULT '' NOT NULL,
+  user_id INTEGER NOT NULL default 1
 );
 
 
@@ -192,16 +193,19 @@ ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_pin BOOLEAN  NOT NULL DEFAU
 ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
 ALTER TABLE chat_prompt ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 NOT NULL;
 
+ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS user_id INTEGER DEFAULT 1 NOT NULL;
 
-INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key)
-VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
-        ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
-        ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
-        ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
-        ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
-        ('echo','echo',false,'https://bestqa_workerd.bestqa.workers.dev/echo','Authorization','ECHO_API_KEY'),
-        ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY')
+
+INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key, user_id)
+VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 1),
+        ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 1),
+        ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 1),
+        ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 1),
+        ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 1   ),
+        ('echo','echo',false,'https://bestqa_workerd.bestqa.workers.dev/echo','Authorization','ECHO_API_KEY', 1),
+        ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY', 1)
 ON CONFLICT(name) DO NOTHING;
+
 
 
 -- for share chat feature
@@ -218,4 +222,4 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
 );
 
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;
--- UPDATE chat_snapshot SET model = 'gpt-3.5-turbo' WHERE model = '';
+UPDATE chat_snapshot SET model = 'gpt-3.5-turbo' WHERE model = '';

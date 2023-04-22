@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -15,7 +16,7 @@ import (
 )
 
 // the code below do db update directly in instead of using handler, please change to use handler
-func TestListresults(t *testing.T) {
+func TestChatModel(t *testing.T) {
 	q := sqlc_queries.New(db)
 	h := NewChatModelHandler(q) // create a new ChatModelHandler instance for testing
 	router := mux.NewRouter()
@@ -23,7 +24,22 @@ func TestListresults(t *testing.T) {
 	defaultApis, _ := q.ListChatModels(context.Background())
 	// delete all existing chat APIs
 	for _, api := range defaultApis {
-		q.DeleteChatModel(context.Background(), api.ID)
+		q.DeleteChatModel(context.Background(),
+			sqlc_queries.DeleteChatModelParams{
+				ID:     api.ID,
+				UserID: api.UserID,
+			})
+	}
+	// add a system user
+	admin, err := q.CreateAuthUser(context.Background(), sqlc_queries.CreateAuthUserParams{
+		Email:       "admin@a.com",
+		Username:    "test",
+		Password:    "test",
+		IsSuperuser: true,
+	})
+
+	if err != nil {
+		t.Errorf("Error creating test data: %s", err.Error())
 	}
 
 	// Now let's create our expected results. Create two results and insert them into the database using the queries.
@@ -35,6 +51,7 @@ func TestListresults(t *testing.T) {
 			Url:           "http://test.url.com",
 			ApiAuthHeader: "Authorization",
 			ApiAuthKey:    "TestKey1",
+			UserID:        admin.ID,
 		},
 		{
 			Name:          "Test API 2",
@@ -43,6 +60,7 @@ func TestListresults(t *testing.T) {
 			Url:           "http://test.url2.com",
 			ApiAuthHeader: "Authorization",
 			ApiAuthKey:    "TestKey2",
+			UserID:        admin.ID,
 		},
 	}
 
@@ -54,6 +72,7 @@ func TestListresults(t *testing.T) {
 			Url:           api.Url,
 			ApiAuthHeader: api.ApiAuthHeader,
 			ApiAuthKey:    api.ApiAuthKey,
+			UserID:        api.UserID,
 		})
 		if err != nil {
 			t.Errorf("Error creating test data: %s", err.Error())
@@ -95,6 +114,7 @@ func TestListresults(t *testing.T) {
 		assert.Equal(t, api.Url, results[i].Url)
 		assert.Equal(t, api.ApiAuthHeader, results[i].ApiAuthHeader)
 		assert.Equal(t, api.ApiAuthKey, results[i].ApiAuthKey)
+		assert.Equal(t, api.UserID, results[i].UserID)
 	}
 
 	// Now lets update the the first element of our expected results array and call PUT on the endpoint
@@ -107,25 +127,9 @@ func TestListresults(t *testing.T) {
 		t.Errorf("Error marshaling update payload: %s", err.Error())
 	}
 
-	// not admin will forbidden
-	updateReqUser, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	updateRRUser := httptest.NewRecorder()
-
-	router.ServeHTTP(updateRRUser, updateReqUser)
-
-	if status := updateRRUser.Code; status != http.StatusForbidden {
-		t.Errorf("Handler returned wrong status code: got %v want %v",
-			status, http.StatusForbidden)
-	}
-
 	// Create an HTTP request so we can simulate a PUT with the payload
 	updateReq, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
-	ctx := context.WithValue(req.Context(), roleContextKey, "admin")
+	ctx := context.WithValue(updateReq.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
 	updateReq = updateReq.WithContext(ctx)
 
 	if err != nil {
@@ -152,7 +156,7 @@ func TestListresults(t *testing.T) {
 	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
 	// And now call the DELETE endpoint to remove all the created ChatModels
 	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
-	ctx2 := context.WithValue(req.Context(), roleContextKey, "admin")
+	ctx2 := context.WithValue(deleteReq.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
 	deleteReq = deleteReq.WithContext(ctx2)
 	if err != nil {
 		t.Fatal(err)
@@ -196,7 +200,7 @@ func TestListresults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx3 := context.WithValue(req.Context(), roleContextKey, "admin")
+	ctx3 := context.WithValue(deleteReq2.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
 	deleteReq2 = deleteReq2.WithContext(ctx3)
 
 	deleteRR2 := httptest.NewRecorder()
