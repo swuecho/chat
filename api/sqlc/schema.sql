@@ -65,13 +65,11 @@ CREATE TABLE IF NOT EXISTS auth_user_management (
 );
 
 
-CREATE TABLE event_log (
+CREATE TABLE event (
     event_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     event_type VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
-    ip_address VARCHAR(45),
-    user_agent TEXT,
     metadata JSONB
 );
 

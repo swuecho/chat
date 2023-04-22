@@ -7,6 +7,8 @@ package sqlc_queries
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/tabbed/pqtype"
 )
 
 type AuthUser struct {
@@ -110,6 +112,14 @@ type ChatSnapshot struct {
 	Tags         json.RawMessage
 	Conversation json.RawMessage
 	CreatedAt    time.Time
+}
+
+type Event struct {
+	EventID   int32
+	UserID    int32
+	EventType string
+	CreatedAt time.Time
+	Metadata  pqtype.NullRawMessage
 }
 
 type JwtSecret struct {
