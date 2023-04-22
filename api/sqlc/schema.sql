@@ -64,6 +64,17 @@ CREATE TABLE IF NOT EXISTS auth_user_management (
     updated_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
 
+
+CREATE TABLE event_log (
+    event_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    event_type VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    metadata JSONB
+);
+
 -- add index on user_id
 CREATE INDEX IF NOT EXISTS auth_user_management_user_id_idx ON auth_user_management (user_id);
 
