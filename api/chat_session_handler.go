@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -366,8 +365,7 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 
 	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), snapshot_uuid)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error retrieving chat snapshot: %s", err.Error())))
+		RespondWithError(w, http.StatusUnauthorized, "Error retrieving chat snapshot", err)
 		return
 	}
 
@@ -376,12 +374,11 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 	var conversionsSimpleMessages []SimpleChatMessage
 	json.Unmarshal(conversions, &conversionsSimpleMessages)
 	promptMsg := conversionsSimpleMessages[0]
-	log.Printf("%+v", promptMsg)
 	chatPrompt, err := h.service.q.GetChatPromptByUUID(r.Context(), promptMsg.Uuid)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get prompt").Error(), err)
+		return
 	}
-	log.Printf("%+v", chatPrompt)
 	originSession, err := h.service.q.GetChatSessionByUUIDWithInActive(r.Context(), chatPrompt.ChatSessionUuid)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get origin session").Error(), err)
