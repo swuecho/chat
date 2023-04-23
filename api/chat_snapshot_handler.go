@@ -66,7 +66,7 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 		Model:        chatSession.Model,
 		Title:        firstN(chatSession.Topic, 100),
 		UserID:       user_id,
-		session:      chatSessionMessage,
+		Session:      chatSessionMessage,
 		Tags:         json.RawMessage([]byte("{}")),
 		Conversation: simple_msgs_raw,
 	})
