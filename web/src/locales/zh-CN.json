@@ -73,7 +73,11 @@
     "deletePost": "您确定要删除此会话记录吗？",
     "deletePostConfirm": "删除会话记录",
     "deleteSuccess": "会话记录删除成功",
-    "deleteFailed": "无法删除会话记录"
+    "deleteFailed": "无法删除会话记录",
+    "exportImage": "保存会话到图片",
+    "exportMarkdown": "导出到markdown文件",
+    "continueChat": "继续对话",
+    "scrollTop": "回到顶部"
   },
   "admin": {
     "openPanel": "在新标签页中打开",

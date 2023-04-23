@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -363,7 +364,7 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 		return
 	}
 
-	snapshot, err := h.service.q.GetChatSnapshotByUUID(r.Context(), snapshot_uuid)
+	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), snapshot_uuid)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error retrieving chat snapshot: %s", err.Error())))
@@ -375,14 +376,15 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 	var conversionsSimpleMessages []SimpleChatMessage
 	json.Unmarshal(conversions, &conversionsSimpleMessages)
 	promptMsg := conversionsSimpleMessages[0]
-	originSession, err := h.service.GetChatSessionByUUID(r.Context(), promptMsg.Uuid)
+	log.Printf("%+v", promptMsg)
+	chatPrompt, err := h.service.q.GetChatPromptByUUID(r.Context(), promptMsg.Uuid)
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get prompt").Error(), err)
+	}
+	log.Printf("%+v", chatPrompt)
+	originSession, err := h.service.q.GetChatSessionByUUIDWithInActive(r.Context(), chatPrompt.ChatSessionUuid)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get origin session").Error(), err)
-	}
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error generating UUID for new chat session: %s", err.Error())))
 		return
 	}
 
@@ -439,6 +441,16 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 			return
 		}
 
+	}
+
+	// set active session
+	sessionParams := sqlc_queries.UpdateUserActiveChatSessionParams{
+		UserID:          userID,
+		ChatSessionUuid: session.Uuid,
+	}
+	_, err = h.service.q.UpdateUserActiveChatSession(r.Context(), sessionParams)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to update active session").Error(), err)
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"SessionUuid": session.Uuid})

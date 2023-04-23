@@ -147,6 +147,32 @@ func (q *Queries) GetChatPromptByID(ctx context.Context, id int32) (ChatPrompt, 
 	return i, err
 }
 
+const getChatPromptByUUID = `-- name: GetChatPromptByUUID :one
+SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, token_count FROM chat_prompt
+WHERE uuid = $1
+`
+
+func (q *Queries) GetChatPromptByUUID(ctx context.Context, uuid string) (ChatPrompt, error) {
+	row := q.db.QueryRowContext(ctx, getChatPromptByUUID, uuid)
+	var i ChatPrompt
+	err := row.Scan(
+		&i.ID,
+		&i.Uuid,
+		&i.ChatSessionUuid,
+		&i.Role,
+		&i.Content,
+		&i.Score,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.IsDeleted,
+		&i.TokenCount,
+	)
+	return i, err
+}
+
 const getChatPromptsBySessionUUID = `-- name: GetChatPromptsBySessionUUID :many
 SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, token_count
 FROM chat_prompt 

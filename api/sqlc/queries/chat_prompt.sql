@@ -67,3 +67,8 @@ WHERE cp.id = $1 AND (cp.user_id = $2 OR au.is_superuser) AND cp.is_deleted = fa
 UPDATE chat_prompt
 SET is_deleted = true, updated_at = now()
 WHERE uuid = $1;
+
+
+-- name: GetChatPromptByUUID :one
+SELECT * FROM chat_prompt
+WHERE uuid = $1;
