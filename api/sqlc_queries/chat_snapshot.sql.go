@@ -165,6 +165,27 @@ func (q *Queries) DeleteChatSnapshot(ctx context.Context, arg DeleteChatSnapshot
 	return i, err
 }
 
+const getChatSnapshotByUUID = `-- name: GetChatSnapshotByUUID :one
+SELECT id, uuid, user_id, title, summary, model, tags, conversation, created_at FROM chat_snapshot WHERE uuid = $1
+`
+
+func (q *Queries) GetChatSnapshotByUUID(ctx context.Context, uuid string) (ChatSnapshot, error) {
+	row := q.db.QueryRowContext(ctx, getChatSnapshotByUUID, uuid)
+	var i ChatSnapshot
+	err := row.Scan(
+		&i.ID,
+		&i.Uuid,
+		&i.UserID,
+		&i.Title,
+		&i.Summary,
+		&i.Model,
+		&i.Tags,
+		&i.Conversation,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listChatSnapshots = `-- name: ListChatSnapshots :many
 SELECT id, uuid, user_id, title, summary, model, tags, conversation, created_at FROM chat_snapshot ORDER BY id
 `
