@@ -72,14 +72,15 @@ CREATE TABLE IF NOT EXISTS auth_user_management (
 CREATE TABLE IF NOT EXISTS user_chat_model_privilege(
     id SERIAL PRIMARY KEY,
     user_id INTEGER UNIQUE NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
-    chat_model_id INT NOT NULL DEFAULT 0,
+    chat_model_id INT NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
     rate_limit INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
-    created_by INTEGER NOT NULL default 0,
-    updated_by INTEGER NOT NULL default 0, 
-    CONSTRAINT chat_usage_user_model_unique UNIQUE (user_id, chat_model_id),
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    created_by INTEGER NOT NULL DEFAULT 0,
+    updated_by INTEGER NOT NULL DEFAULT 0, 
+    CONSTRAINT chat_usage_user_model_unique UNIQUE (user_id, chat_model_id)
 );
+
 
 
 -- add index on user_id
