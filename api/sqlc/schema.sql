@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS auth_user (
 CREATE INDEX IF NOT EXISTS auth_user_email_idx ON auth_user (email);
 
 
-
+-- control total ratelimit
 CREATE TABLE IF NOT EXISTS auth_user_management (
     id SERIAL PRIMARY KEY,
     user_id INTEGER UNIQUE NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
@@ -64,6 +64,21 @@ CREATE TABLE IF NOT EXISTS auth_user_management (
     created_at TIMESTAMP DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
+
+-- control specific model ratelimit, like gpt4
+-- if not find gpt4 on privilege than forbiden
+-- if found, then check the acess count (session messages).
+--
+CREATE TABLE IF NOT EXISTS user_chat_model_privilege(
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    chat_model_id INT NOT NULL DEFAULT 0,
+    rate_limit INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    CONSTRAINT chat_usage_user_model_unique UNIQUE (user_id, chat_model_id),
+);
+
 
 -- add index on user_id
 CREATE INDEX IF NOT EXISTS auth_user_management_user_id_idx ON auth_user_management (user_id);
