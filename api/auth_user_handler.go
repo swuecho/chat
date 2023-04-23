@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -162,7 +161,6 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
-	logger.Warn(fmt.Sprintf("loginParams: %v", loginParams))
 	user, err := h.service.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
 	if err != nil {
 		http.Error(w, eris.Wrap(err, "invalid email or password: ").Error(), http.StatusUnauthorized)
