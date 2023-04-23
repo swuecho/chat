@@ -435,7 +435,7 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 		}
 		_, err = h.service.q.CreateChatMessage(r.Context(), messageParam)
 		if err != nil {
-			RespondWithError(w, eris.Wrap(err, "Error creating messages for chat session from snapshot").Error(), err)
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error creating messages for chat session from snapshot").Error(), err)
 			return
 		}
 
