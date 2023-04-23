@@ -6,7 +6,7 @@ import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from './hooks/useCopyCode'
 import Header from './components/Header/index.vue'
-import { fetchChatSnapshot } from '@/api'
+import { CreateSessionFromSnapshot, fetchChatSnapshot } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
@@ -140,6 +140,12 @@ function handleMarkdown() {
   })
 }
 
+async function handleChat() {
+  const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
+  // open link at static/#/chat/{SessionUuid}
+  window.open(`static/#/chat/${SessionUuid}`, '_blank')
+}
+
 const footerClass = computed(() => {
   let classes = ['p-4']
   if (isMobile.value)
@@ -165,26 +171,40 @@ function onScrollToTop() {
         >
           <Message
             v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
-            :model="model"
-            :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading" :index="index"
+            :model="model" :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading"
+            :index="index"
           />
+        </div>
+        <div class="flex justify-center items-center">
+          <HoverButton :tooltip="$t('chat_snapshot.continueChat')" @click="handleChat">
+            <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
+              <SvgIcon icon="mdi:chat-plus" width="40" height="40" />
+            </span>
+          </HoverButton>
         </div>
       </div>
     </main>
+    <div class="floating-button">
+    <HoverButton :tooltip="$t('chat_snapshot.continueChat')" @click="handleChat">
+            <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
+              <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
+            </span>
+          </HoverButton>
+</div>
     <footer :class="footerClass">
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
-          <HoverButton v-if="!isMobile" @click="handleExport">
+          <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportImage')" @click="handleExport">
             <span class="text-xl text-[#4f555e] dark:text-white">
               <SvgIcon icon="ri:download-2-line" />
             </span>
           </HoverButton>
-          <HoverButton v-if="!isMobile" @click="handleMarkdown">
+          <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportMarkdown')" @click="handleMarkdown">
             <span class="text-xl text-[#4f555e] dark:text-white">
               <SvgIcon icon="mdi:language-markdown" />
             </span>
           </HoverButton>
-          <HoverButton @click="onScrollToTop">
+          <HoverButton :tooltip="$t('chat_snapshot.scrollTop')" @click="onScrollToTop">
             <span class="text-xl text-[#4f555e] dark:text-white">
               <SvgIcon icon="material-symbols:vertical-align-top" />
             </span>
@@ -194,3 +214,18 @@ function onScrollToTop() {
     </footer>
   </div>
 </template>
+
+<style>
+/* CSS for the button */
+.floating-button {
+  position: fixed;
+  bottom: 10vh;
+  right: 10vmin;
+  z-index: 99;
+  padding: 0.5em;
+  border-radius: 50%;
+  cursor: pointer;
+  background-color: #4ff09a;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+</style>

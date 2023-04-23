@@ -504,3 +504,15 @@ export const updateUserFullName = async (data: any): Promise<any> => {
     throw error
   }
 }
+
+// CreateSessionFromSnapshot
+export const CreateSessionFromSnapshot = async (snapshot_uuid: string) => {
+  try {
+    const response = await request.post(`/uuid/chat_session_from_snapshot/${snapshot_uuid}`)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}

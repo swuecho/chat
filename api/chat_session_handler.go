@@ -3,8 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/google/uuid"
 
 	"github.com/gorilla/mux"
 	"github.com/rotisserie/eris"
@@ -36,6 +39,7 @@ func (h *ChatSessionHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.CreateOrUpdateChatSessionByUUID).Methods("PUT")
 	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.DeleteChatSessionByUUID).Methods("DELETE")
 	router.HandleFunc("/uuid/chat_sessions", h.CreateChatSessionByUUID).Methods("POST")
+	router.HandleFunc("/uuid/chat_session_from_snapshot/{uuid}", h.CreateChatSessionFromSnapshot).Methods(http.MethodPost)
 }
 
 func (h *ChatSessionHandler) CreateChatSession(w http.ResponseWriter, r *http.Request) {
@@ -341,4 +345,110 @@ func (h *ChatSessionHandler) UpdateSessionMaxLength(w http.ResponseWriter, r *ht
 		return
 	}
 	json.NewEncoder(w).Encode(session)
+}
+
+// CreateChatSessionFromSnapshot ($uuid)
+// create a new session with title of snapshot,
+// create a prompt with the first message of snapshot
+// create messages based on the rest of messages.
+// return the new session uuid
+
+func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	snapshot_uuid := vars["uuid"]
+
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, "unauthorized", err)
+		return
+	}
+
+	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), snapshot_uuid)
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, "Error retrieving chat snapshot", err)
+		return
+	}
+
+	sessionTitle := snapshot.Title
+	conversions := snapshot.Conversation
+	var conversionsSimpleMessages []SimpleChatMessage
+	json.Unmarshal(conversions, &conversionsSimpleMessages)
+	promptMsg := conversionsSimpleMessages[0]
+	chatPrompt, err := h.service.q.GetChatPromptByUUID(r.Context(), promptMsg.Uuid)
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get prompt").Error(), err)
+		return
+	}
+	originSession, err := h.service.q.GetChatSessionByUUIDWithInActive(r.Context(), chatPrompt.ChatSessionUuid)
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get origin session").Error(), err)
+		return
+	}
+
+	sessionUUID := uuid.New().String()
+
+	session, err := h.service.q.CreateOrUpdateChatSessionByUUID(r.Context(), sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
+		Uuid:        sessionUUID,
+		UserID:      userID,
+		Topic:       sessionTitle,
+		MaxLength:   originSession.MaxLength,
+		Temperature: originSession.Temperature,
+		Model:       originSession.Model,
+		MaxTokens:   originSession.MaxTokens,
+		TopP:        originSession.TopP,
+		Debug:       originSession.Debug,
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("Error creating chat session from snapshot: %s", err.Error())))
+		return
+	}
+
+	_, err = h.service.q.CreateChatPrompt(r.Context(), sqlc_queries.CreateChatPromptParams{
+		Uuid:            uuid.NewString(),
+		ChatSessionUuid: sessionUUID,
+		Role:            "system",
+		Content:         promptMsg.Text,
+		UserID:          userID,
+		CreatedBy:       userID,
+		UpdatedBy:       userID,
+	})
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("Error creating prompt for chat session from snapshot: %s", err.Error())))
+		return
+	}
+
+	for _, message := range conversionsSimpleMessages[1:] {
+		// if inversion is true, the role is user, otherwise assistant
+		// Determine the role based on the inversion flag
+
+		messageParam := sqlc_queries.CreateChatMessageParams{
+			ChatSessionUuid: sessionUUID,
+			Uuid:            uuid.NewString(),
+			Role:            message.GetRole(),
+			Content:         message.Text,
+			UserID:          userID,
+			Raw:             json.RawMessage([]byte("{}")),
+		}
+		_, err = h.service.q.CreateChatMessage(r.Context(), messageParam)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error creating messages for chat session from snapshot").Error(), err)
+			return
+		}
+
+	}
+
+	// set active session
+	sessionParams := sqlc_queries.UpdateUserActiveChatSessionParams{
+		UserID:          userID,
+		ChatSessionUuid: session.Uuid,
+	}
+	_, err = h.service.q.UpdateUserActiveChatSession(r.Context(), sessionParams)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to update active session").Error(), err)
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"SessionUuid": session.Uuid})
 }

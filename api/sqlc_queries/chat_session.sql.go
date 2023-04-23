@@ -267,6 +267,33 @@ func (q *Queries) GetChatSessionByUUID(ctx context.Context, uuid string) (ChatSe
 	return i, err
 }
 
+const getChatSessionByUUIDWithInActive = `-- name: GetChatSessionByUUIDWithInActive :one
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, debug FROM chat_session 
+WHERE uuid = $1
+order by updated_at
+`
+
+func (q *Queries) GetChatSessionByUUIDWithInActive(ctx context.Context, uuid string) (ChatSession, error) {
+	row := q.db.QueryRowContext(ctx, getChatSessionByUUIDWithInActive, uuid)
+	var i ChatSession
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Uuid,
+		&i.Topic,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Active,
+		&i.Model,
+		&i.MaxLength,
+		&i.Temperature,
+		&i.TopP,
+		&i.MaxTokens,
+		&i.Debug,
+	)
+	return i, err
+}
+
 const getChatSessionsByUserID = `-- name: GetChatSessionsByUserID :many
 SELECT cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.debug
 FROM chat_session cs

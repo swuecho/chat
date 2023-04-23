@@ -37,6 +37,17 @@ type SimpleChatMessage struct {
 	IsPrompt  bool   `json:"isPrompt"`
 }
 
+func (msg SimpleChatMessage) GetRole() string {
+	var role string
+	if msg.Inversion {
+		role = "user"
+	} else {
+		role = "assistant"
+	}
+	return role
+
+}
+
 type SimpleChatSession struct {
 	Uuid        string  `json:"uuid"`
 	IsEdit      bool    `json:"isEdit"`

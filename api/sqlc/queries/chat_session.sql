@@ -25,6 +25,11 @@ SELECT * FROM chat_session
 WHERE active = true and uuid = $1
 order by updated_at;
 
+-- name: GetChatSessionByUUIDWithInActive :one
+SELECT * FROM chat_session 
+WHERE uuid = $1
+order by updated_at;
+
 -- name: CreateChatSessionByUUID :one
 INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length)
 VALUES ($1, $2, $3, $4, $5, $6)
