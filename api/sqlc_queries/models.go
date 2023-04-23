@@ -108,6 +108,7 @@ type ChatSnapshot struct {
 	Summary      string
 	Model        string
 	Tags         json.RawMessage
+	Session      json.RawMessage
 	Conversation json.RawMessage
 	CreatedAt    time.Time
 }

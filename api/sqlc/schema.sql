@@ -199,11 +199,13 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
     summary TEXT NOT NULL default '',
     model VARCHAR(255) NOT NULL default '',
     tags JSONB DEFAULT '{}' NOT NULL,
+    session JSONB DEFAULT '{}' NOT NULL,
     conversation JSONB DEFAULT '{}' NOT NULL,
     created_at TIMESTAMP DEFAULT now() NOT NULL
 );
 
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;
+ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS session JSONB DEFAULT '{}' NOT NULL;
 
 
 -- add index on user id
