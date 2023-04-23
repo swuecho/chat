@@ -53,7 +53,7 @@ func IsChatSnapshotUUID(r *http.Request) bool {
 		return false
 	}
 	// Check if request url path has the required prefix and does not have "/all" suffix
-	if strings.HasPrefix(r.URL.Path, "/uuid/chat_messages_snapshot/") && !strings.HasSuffix(r.URL.Path, "/all") {
+	if strings.HasPrefix(r.URL.Path, "/uuid/chat_snapshot/") && !strings.HasSuffix(r.URL.Path, "/all") {
 		return true
 	}
 	return false
