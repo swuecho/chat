@@ -131,6 +131,10 @@
     "deletePost": "您确定要删除此会话记录吗？",
     "deletePostConfirm": "删除会话记录",
     "deleteSuccess": "会话记录删除成功",
-    "deleteFailed": "无法删除会话记录"
+    "deleteFailed": "无法删除会话记录",
+    "exportImage": "保存對話到圖片",
+    "exportMarkdown": "匯出到Markdown檔",
+    "continueChat": "繼續對話",
+    "scrollTop": "回到頂部"
   }
 }
