@@ -73,7 +73,11 @@
     "deletePost": "Are you sure you want to delete this conversation record?",
     "deletePostConfirm": "Delete conversation record",
     "deleteSuccess": "Conversation record deleted successfully",
-    "deleteFailed": "Unable to delete conversation record"
+    "deleteFailed": "Unable to delete conversation record",
+    "exportImage": "Save conversation as image",
+    "exportMarkdown": "Export to markdown file",
+    "continueChat": "Continue chat",
+    "scrollTop": "Scroll to top"
   },
   "setting": {
     "setting": "Settings",
