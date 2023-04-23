@@ -57,12 +57,16 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 		return
 	}
 	snapshot_uuid := uuid.New().String()
-
+	chatSessionMessage, err := json.Marshal(chatSession)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+	}
 	one, err := h.service.q.CreateChatSnapshot(r.Context(), sqlc_queries.CreateChatSnapshotParams{
 		Uuid:         snapshot_uuid,
 		Model:        chatSession.Model,
 		Title:        firstN(chatSession.Topic, 100),
 		UserID:       user_id,
+		Session:      chatSessionMessage,
 		Tags:         json.RawMessage([]byte("{}")),
 		Conversation: simple_msgs_raw,
 	})

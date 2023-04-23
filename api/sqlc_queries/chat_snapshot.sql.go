@@ -12,7 +12,7 @@ import (
 )
 
 const chatSnapshotByID = `-- name: ChatSnapshotByID :one
-SELECT id, uuid, user_id, title, summary, model, tags, conversation, created_at FROM chat_snapshot WHERE id = $1
+SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, created_at FROM chat_snapshot WHERE id = $1
 `
 
 func (q *Queries) ChatSnapshotByID(ctx context.Context, id int32) (ChatSnapshot, error) {
@@ -26,6 +26,7 @@ func (q *Queries) ChatSnapshotByID(ctx context.Context, id int32) (ChatSnapshot,
 		&i.Summary,
 		&i.Model,
 		&i.Tags,
+		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
 	)
@@ -33,7 +34,7 @@ func (q *Queries) ChatSnapshotByID(ctx context.Context, id int32) (ChatSnapshot,
 }
 
 const chatSnapshotByUUID = `-- name: ChatSnapshotByUUID :one
-SELECT id, uuid, user_id, title, summary, model, tags, conversation, created_at FROM chat_snapshot WHERE uuid = $1
+SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, created_at FROM chat_snapshot WHERE uuid = $1
 `
 
 func (q *Queries) ChatSnapshotByUUID(ctx context.Context, uuid string) (ChatSnapshot, error) {
@@ -47,6 +48,7 @@ func (q *Queries) ChatSnapshotByUUID(ctx context.Context, uuid string) (ChatSnap
 		&i.Summary,
 		&i.Model,
 		&i.Tags,
+		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
 	)
@@ -97,9 +99,9 @@ func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, userID int32) ([
 }
 
 const createChatSnapshot = `-- name: CreateChatSnapshot :one
-INSERT INTO chat_snapshot (uuid, user_id, title, model, summary, tags, conversation )
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, uuid, user_id, title, summary, model, tags, conversation, created_at
+INSERT INTO chat_snapshot (uuid, user_id, title, model, summary, tags, conversation ,session )
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation, created_at
 `
 
 type CreateChatSnapshotParams struct {
@@ -110,6 +112,7 @@ type CreateChatSnapshotParams struct {
 	Summary      string
 	Tags         json.RawMessage
 	Conversation json.RawMessage
+	Session      json.RawMessage
 }
 
 func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshotParams) (ChatSnapshot, error) {
@@ -121,6 +124,7 @@ func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshot
 		arg.Summary,
 		arg.Tags,
 		arg.Conversation,
+		arg.Session,
 	)
 	var i ChatSnapshot
 	err := row.Scan(
@@ -131,6 +135,7 @@ func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshot
 		&i.Summary,
 		&i.Model,
 		&i.Tags,
+		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
 	)
@@ -140,7 +145,7 @@ func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshot
 const deleteChatSnapshot = `-- name: DeleteChatSnapshot :one
 DELETE FROM chat_snapshot WHERE uuid = $1
 and user_id = $2
-RETURNING id, uuid, user_id, title, summary, model, tags, conversation, created_at
+RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation, created_at
 `
 
 type DeleteChatSnapshotParams struct {
@@ -159,6 +164,7 @@ func (q *Queries) DeleteChatSnapshot(ctx context.Context, arg DeleteChatSnapshot
 		&i.Summary,
 		&i.Model,
 		&i.Tags,
+		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
 	)
@@ -166,7 +172,7 @@ func (q *Queries) DeleteChatSnapshot(ctx context.Context, arg DeleteChatSnapshot
 }
 
 const listChatSnapshots = `-- name: ListChatSnapshots :many
-SELECT id, uuid, user_id, title, summary, model, tags, conversation, created_at FROM chat_snapshot ORDER BY id
+SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, created_at FROM chat_snapshot ORDER BY id
 `
 
 func (q *Queries) ListChatSnapshots(ctx context.Context) ([]ChatSnapshot, error) {
@@ -186,6 +192,7 @@ func (q *Queries) ListChatSnapshots(ctx context.Context) ([]ChatSnapshot, error)
 			&i.Summary,
 			&i.Model,
 			&i.Tags,
+			&i.Session,
 			&i.Conversation,
 			&i.CreatedAt,
 		); err != nil {
@@ -206,7 +213,7 @@ const updateChatSnapshot = `-- name: UpdateChatSnapshot :one
 UPDATE chat_snapshot
 SET uuid = $2, user_id = $3, title = $4, summary = $5, tags = $6, conversation = $7, created_at = $8
 WHERE id = $1
-RETURNING id, uuid, user_id, title, summary, model, tags, conversation, created_at
+RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation, created_at
 `
 
 type UpdateChatSnapshotParams struct {
@@ -240,6 +247,7 @@ func (q *Queries) UpdateChatSnapshot(ctx context.Context, arg UpdateChatSnapshot
 		&i.Summary,
 		&i.Model,
 		&i.Tags,
+		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
 	)
