@@ -59,7 +59,6 @@ func (s *AuthUserService) GetAllAuthUsers(ctx context.Context) ([]sqlc_queries.A
 
 func (s *AuthUserService) Authenticate(ctx context.Context, email, password string) (sqlc_queries.AuthUser, error) {
 	user, err := s.q.GetUserByEmail(ctx, email)
-	println(email, password)
 	if err != nil {
 		return sqlc_queries.AuthUser{}, err
 	}
