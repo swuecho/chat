@@ -278,8 +278,26 @@ func main() {
 
 	}
 
-	err = http.ListenAndServe(":8080", loggedRouter)
-	if err != nil {
-		log.Fatal(err)
+	if strings.ToLower(os.Getenv("https")) == "true" {
+
+		// server https at 443
+		// Set the server parameters
+		addr := ":443"
+		certFile := "/app/ssl/" + os.Getenv("CERT_FILE")
+		keyFile := "/app/ssl/" + os.Getenv("CERT_KEY")
+
+		// Create a new HTTPS server with the given parameters
+		server := &http.Server{
+			Addr:    addr,
+			Handler: loggedRouter,
+		}
+		log.Fatal(server.ListenAndServeTLS(certFile, keyFile))
+
+	} else {
+		// Start the server
+		err = http.ListenAndServe(":8080", loggedRouter)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }

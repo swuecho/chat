@@ -9,6 +9,8 @@ services:
     ports:
       # vist at http://your_host:8080 or http://your_host:8080/static/
       - 8080:8080
+      # If you serve https:
+      - 443:443
     environment:
       # at least one key is required.
       # !!! no quote aroud key !!!
@@ -23,6 +25,13 @@ services:
       - PG_USER=postgres
       - PG_PASS=thisisapassword
       - PG_PORT=5432
+      ## IF YOU Server HTTPS, START ###
+      - HTTPS=true
+      - CERT_FILE=name_of_cert_file
+      - KEY_FILE=name_of_key_file
+      ## IF YOU Server HTTPS, END ###
+    volumes:
+      - ./ssl:/app/ssl
     depends_on:
       db:
         condition: service_healthy
