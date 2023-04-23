@@ -76,6 +76,8 @@ CREATE TABLE IF NOT EXISTS user_chat_model_privilege(
     rate_limit INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    created_by INTEGER NOT NULL default 0,
+    updated_by INTEGER NOT NULL default 0, 
     CONSTRAINT chat_usage_user_model_unique UNIQUE (user_id, chat_model_id),
 );
 
