@@ -4,6 +4,11 @@
 
 <img width="850" alt="Screenshot 2023-04-12 at 12 43 31" src="https://user-images.githubusercontent.com/666683/231352196-5a6101db-9f5b-4eae-9198-59afed5822a6.png">
 
+<img width="1117" alt="image" src="https://user-images.githubusercontent.com/666683/233824879-5dc6b85a-9cc6-496d-be68-4b19b9f6dfa0.png">
+
+<img width="850" alt="image" src="https://user-images.githubusercontent.com/666683/233824829-f6069e25-05b3-48ef-a165-bb854a009edd.png">
+
+
 ## 规则
 
 - 第一个消息是系统消息（prompt）
