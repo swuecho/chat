@@ -284,7 +284,7 @@ func main() {
 		// Set the server parameters
 		addr := ":443"
 		certFile := "/app/ssl/" + os.Getenv("CERT_FILE")
-		keyFile := "/app/ssl/" + os.Getenv("CERT_KEY")
+		keyFile := "/app/ssl/" + os.Getenv("KEY_KEY")
 
 		// Create a new HTTPS server with the given parameters
 		server := &http.Server{
