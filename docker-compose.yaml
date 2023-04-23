@@ -25,12 +25,13 @@ services:
       - PG_USER=postgres
       - PG_PASS=thisisapassword
       - PG_PORT=5432
-      ## IF YOU Server HTTPS, START ###
+      ## IF HTTPS, START ###
       - HTTPS=true
       - CERT_FILE=name_of_cert_file
       - KEY_FILE=name_of_key_file
-      ## IF YOU Server HTTPS, END ###
+      ## IF HTTPS, END ###
     volumes:
+      # if HTTPS: create a folder ssl, and put your key and cert file in it, then map to /app/ssl
       - ./ssl:/app/ssl
     depends_on:
       db:
