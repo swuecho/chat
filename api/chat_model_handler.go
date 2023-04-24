@@ -128,12 +128,13 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 
 	var input struct {
-		Name          string
-		Label         string
-		IsDefault     bool
-		URL           string
-		APIAuthHeader string
-		APIAuthKey    string
+		Name                   string
+		Label                  string
+		IsDefault              bool
+		URL                    string
+		APIAuthHeader          string
+		APIAuthKey             string
+		EnablePerModeRatelimit bool
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
@@ -142,14 +143,15 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 
 	ChatModel, err := h.db.UpdateChatModel(r.Context(), sqlc_queries.UpdateChatModelParams{
-		ID:            int32(id),
-		Name:          input.Name,
-		Label:         input.Label,
-		IsDefault:     input.IsDefault,
-		Url:           input.URL,
-		ApiAuthHeader: input.APIAuthHeader,
-		ApiAuthKey:    input.APIAuthKey,
-		UserID:        userID,
+		ID:                     int32(id),
+		Name:                   input.Name,
+		Label:                  input.Label,
+		IsDefault:              input.IsDefault,
+		Url:                    input.URL,
+		ApiAuthHeader:          input.APIAuthHeader,
+		ApiAuthKey:             input.APIAuthKey,
+		UserID:                 userID,
+		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
 	})
 
 	if err != nil {

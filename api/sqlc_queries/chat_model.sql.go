@@ -205,20 +205,21 @@ func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error)
 }
 
 const updateChatModel = `-- name: UpdateChatModel :one
-UPDATE chat_model SET name = $2, label = $3, is_default = $4, url = $5, api_auth_header = $6, api_auth_key = $7
+UPDATE chat_model SET name = $2, label = $3, is_default = $4, url = $5, api_auth_header = $6, api_auth_key = $7, enable_per_mode_ratelimit = $9
 WHERE id = $1 and user_id = $8
 RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit
 `
 
 type UpdateChatModelParams struct {
-	ID            int32
-	Name          string
-	Label         string
-	IsDefault     bool
-	Url           string
-	ApiAuthHeader string
-	ApiAuthKey    string
-	UserID        int32
+	ID                     int32
+	Name                   string
+	Label                  string
+	IsDefault              bool
+	Url                    string
+	ApiAuthHeader          string
+	ApiAuthKey             string
+	UserID                 int32
+	EnablePerModeRatelimit bool
 }
 
 func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams) (ChatModel, error) {
@@ -231,6 +232,7 @@ func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams
 		arg.ApiAuthHeader,
 		arg.ApiAuthKey,
 		arg.UserID,
+		arg.EnablePerModeRatelimit,
 	)
 	var i ChatModel
 	err := row.Scan(
