@@ -315,12 +315,21 @@ func isTest(msgs []Message) bool {
 	return promptMsg.Content == "test_demo_bestqa" || lastMsgs.Content == "test_demo_bestqa"
 }
 
-func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, userID int32) bool {
+func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string userID int32) bool {
 	// userID, err := getUserID(r.Context())
 	// if err != nil {
 	// 	RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
 	// 	return true
 	// }
+	// get chatModel, check the per model rate limit is Enabled
+	chatModel, err := h.chatService.q.ChatModelByName(r.Context(), input.ChatModelName)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get model by name").Error(), err)
+		return true
+	}
+	if !chatModel.EnablePerModeRatelimit {
+		return false
+	}
 	ctx := context.Background()
 	rate, err := h.chatService.q.RateLimiteByUserAndSessionUUID(ctx,
 		sqlc_queries.RateLimiteByUserAndSessionUUIDParams{
@@ -352,7 +361,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 
 	openAIRateLimiter.Wait(context.Background())
 
-	exceedPerModeRateLimitOrError := h.CheckModelAccess(w, chatSession.Uuid, chatSession.UserID)
+	exceedPerModeRateLimitOrError := h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
 	if exceedPerModeRateLimitOrError {
 		return "", "", true
 	}
