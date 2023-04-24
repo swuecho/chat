@@ -308,7 +308,7 @@ func (q *Queries) GetChatMessagesCount(ctx context.Context, userID int32) (int64
 const getChatMessagesCountByUserAndModel = `-- name: GetChatMessagesCountByUserAndModel :one
 SELECT COUNT(*)
 FROM chat_message cm
-JOIN chat_session cs ON (cm.chat_session_uuid = cs.uuid AND cs.user_id == cm.user_id)
+JOIN chat_session cs ON (cm.chat_session_uuid = cs.uuid AND cs.user_id = cm.user_id)
 WHERE cm.user_id = $1
 AND cs.model = $2 
 AND cm.created_at >= NOW() - INTERVAL '10 minutes'

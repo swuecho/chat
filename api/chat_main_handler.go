@@ -323,6 +323,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	// }
 	// get chatModel, check the per model rate limit is Enabled
 	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), model)
+	log.Printf("%+v", chatModel)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get model by name").Error(), err)
 		return true
@@ -336,7 +337,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 			Uuid:   chatSessionUuid,
 			UserID: userID,
 		})
-
+	log.Printf("%+v", rate)
 	if err != nil {
 		RespondWithError(w, http.StatusUnauthorized, "fail to get rate limite of model", err)
 		return true
@@ -349,8 +350,10 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 			Model:  rate.ChatModelName,
 		})
 
+	log.Printf("%+v", usage10Min)
+
 	if int32(usage10Min) > rate.RateLimit {
-		RespondWithError(w, http.StatusTooManyRequests, eris.Wrap(err, fmt.Sprintf("error.%s_over_limit", rate.ChatModelName)).Error(), err)
+		RespondWithError(w, http.StatusTooManyRequests, fmt.Sprintf("error.%s_over_limit", rate.ChatModelName), err)
 		return true
 	}
 	return false

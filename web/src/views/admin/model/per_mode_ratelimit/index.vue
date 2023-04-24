@@ -50,6 +50,8 @@ async function refreshData() {
 }
 
 function UpdateRow(row: RowData) {
+  // @ts-expect-error rateLimit is a number in golang
+  row.RateLimit = parseInt(row.RateLimit)
   UpdateUserChatModelPrivilege(row.ID, row)
 }
 
@@ -151,10 +153,8 @@ async function deleteRow(row: any) {
           <NInput v-model:value="form.UserEmail" :placeholder="$t('common.email_placeholder')" />
         </NFormItem>
         <NFormItem prop="ChatModelName" :label="$t('admin.chat_model_name')">
-          <NSelect
-            v-model:value="form.ChatModelName" :options="limitEnabledModels" :default-value="defaultModel"
-            placeholder="Please model name"
-          />
+          <NSelect v-model:value="form.ChatModelName" :options="limitEnabledModels" :default-value="defaultModel"
+            placeholder="Please model name" />
         </NFormItem>
         <NFormItem prop="RateLimit" :label="$t('admin.rate_limit')">
           <NInput v-model:value="form.RateLimit" />
