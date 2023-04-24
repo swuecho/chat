@@ -144,6 +144,7 @@
   },
   "error": {
     "rateLimit": "发送消息数量已经达到上限, 请联系管理员",
+    "fail_to_get_rate_limit": "无法查询到模型对应的配额, 请联系管理员开通",
     "gpt-4_over_limit": "gpt4 发送消息达到上限, 请联系管理员开通,或增加额度",
     "token_length_exceed_limit": "总消息长度数量超过上限, 请减少上下文数量、减少消息长度或者开启新的会话",
     "invalidEmail": "邮箱格式不正确",
