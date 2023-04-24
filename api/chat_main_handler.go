@@ -339,7 +339,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		})
 	log.Printf("%+v", rate)
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "fail to get rate limite of model", err)
+		RespondWithError(w, http.StatusUnauthorized, "error.fail_to_get_rate_limit", err)
 		return true
 	}
 
