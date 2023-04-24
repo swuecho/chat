@@ -315,14 +315,14 @@ func isTest(msgs []Message) bool {
 	return promptMsg.Content == "test_demo_bestqa" || lastMsgs.Content == "test_demo_bestqa"
 }
 
-func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string userID int32) bool {
+func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {
 	// userID, err := getUserID(r.Context())
 	// if err != nil {
 	// 	RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
 	// 	return true
 	// }
 	// get chatModel, check the per model rate limit is Enabled
-	chatModel, err := h.chatService.q.ChatModelByName(r.Context(), input.ChatModelName)
+	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), model)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get model by name").Error(), err)
 		return true
