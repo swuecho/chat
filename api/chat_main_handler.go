@@ -317,21 +317,24 @@ func isTest(msgs []Message) bool {
 
 func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	openAIRateLimiter.Wait(context.Background())
-	config := openai.DefaultConfig(appConfig.OPENAI.API_KEY)
-	if chat_model, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model); err != nil {
+
+	chat_model, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
-	} else {
-		index := strings.Index(chat_model.Url, "/chat/")
-		if index != -1 {
-			// is full url https://api.openai.com/v1/chat/completions
-			baseUrl := chat_model.Url[:index]
-			config.BaseURL = baseUrl
-		} else {
-			config.BaseURL = chat_model.Url
-		}
-
 	}
+
+	var baseUrl string
+	if chat_index := strings.Index(chat_model.Url, "/chat/"); chat_index != -1 {
+		// is full url https://api.openai.com/v1/chat/completions
+		baseUrl = chat_model.Url[:chat_index]
+	} else {
+		baseUrl = chat_model.Url
+	}
+	// OPENAI_API_KEY
+	token := os.Getenv(chat_model.ApiAuthKey)
+	config := openai.DefaultConfig(token)
+	config.BaseURL = baseUrl
 	client := openai.NewClientWithConfig(config)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
