@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from 'vue'
-import { DataTableColumns, NText } from 'naive-ui'
+import { computed, h, onMounted, ref } from 'vue'
+import type { DataTableColumns } from 'naive-ui'
 import { NButton, NDataTable, NForm, NFormItem, NInput, NModal, NSelect } from 'naive-ui'
 import { CreateUserChatModelPrivilege, DeleteUserChatModelPrivilege, ListUserChatModelPrivilege, UpdateUserChatModelPrivilege, fetchChatModel } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
-import { computed } from 'vue'
 
 interface RowData {
   ID: string
@@ -44,7 +43,7 @@ onMounted(async () => {
 })
 
 const defaultModel = computed(
-  () => limitEnabledModels.value[0].value
+  () => limitEnabledModels.value[0].value,
 )
 
 async function refreshData() {
@@ -153,8 +152,10 @@ async function deleteRow(row: any) {
           <NInput v-model:value="form.UserEmail" :placeholder="$t('common.email_placeholder')" />
         </NFormItem>
         <NFormItem prop="ChatModelName" :label="$t('admin.chat_model_name')">
-          <NSelect v-model:value="form.ChatModelName" :options="limitEnabledModels" :default-value="defaultModel"
-            placeholder="Please model name" />
+          <NSelect
+            v-model:value="form.ChatModelName" :options="limitEnabledModels" :default-value="defaultModel"
+            placeholder="Please model name"
+          />
         </NFormItem>
         <NFormItem prop="RateLimit" :label="$t('admin.rate_limit')">
           <NInput v-model:value="form.RateLimit" placeholder="Please input rate" />
