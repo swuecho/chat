@@ -20,6 +20,11 @@ interface FormData {
 
 }
 
+interface Option {
+  label: string
+  value: string
+}
+
 const dialogVisible = ref(false)
 
 const form = ref<FormData>({
@@ -29,7 +34,7 @@ const form = ref<FormData>({
 })
 
 const data = ref<RowData[]>([])
-const limitEnabledModels = ref([])
+const limitEnabledModels = ref<Option[]>([])
 
 onMounted(async () => {
   refreshData()
@@ -158,7 +163,7 @@ async function deleteRow(row: any) {
           />
         </NFormItem>
         <NFormItem prop="RateLimit" :label="$t('admin.rate_limit')">
-          <NInput v-model:value="form.RateLimit" placeholder="Please input rate" />
+          <NInput v-model:value="form.RateLimit" />
         </NFormItem>
       </NForm>
       <NButton type="primary" block secondary strong @click="addRow(form)">
