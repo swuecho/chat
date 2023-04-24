@@ -350,7 +350,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		})
 
 	if int32(usage10Min) > rate.RateLimit {
-		RespondWithError(w, http.StatusTooManyRequests, eris.Wrap(err, fmt.Sprintf("%s_over_limit", rate.ChatModelName)).Error(), err)
+		RespondWithError(w, http.StatusTooManyRequests, eris.Wrap(err, fmt.Sprintf("error.%s_over_limit", rate.ChatModelName)).Error(), err)
 		return true
 	}
 	return false
