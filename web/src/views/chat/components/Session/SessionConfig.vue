@@ -66,7 +66,7 @@ onMounted(async () => {
 const tokenUpperLimit = computed(() => {
   const discount_ratio = 0.8
   if (modelRef.value.chatModel === 'gpt-4')
-    return Math.floor(1024 * 8* discount_ratio)
+    return Math.floor(1024 * 8 * discount_ratio)
   else if (modelRef.value.chatModel === 'gpt-4-32k')
     return Math.floor(32 * 1024 * discount_ratio)
   else
