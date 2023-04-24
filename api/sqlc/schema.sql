@@ -37,8 +37,8 @@ VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.co
         ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY')
 ON CONFLICT(name) DO NOTHING;
 
-UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE model = 'gpt-4';
-UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE model = 'gpt-4-32k';
+UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4';
+UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4-32k';
 
 
 -- create index on name

@@ -17,6 +17,7 @@ interface RowData {
   Label: string
   Name: string
   Url: string
+  EnablePerModeRatelimit: boolean
 }
 
 const data = ref<RowData[]>([])
@@ -132,6 +133,20 @@ function createColumns(): DataTableColumns<RowData> {
       })
     },
   }
+  const perModelLimit = {
+    title: t('admin.chat_model.EnablePerModeRatelimit'),
+    key: 'EnablePerModeRatelimit',
+    render(row: RowData, index: number) {
+      return h(NSwitch, {
+        value: row.EnablePerModeRatelimit,
+        onUpdateValue(v: boolean) {
+          // Assuming `data` is an array of FormData objects
+          data.value[index].EnablePerModeRatelimit = v
+          UpdateRow(data.value[index])
+        },
+      })
+    },
+  }
 
   const actionField = {
     title: t('admin.chat_model.actions'),
@@ -162,6 +177,7 @@ function createColumns(): DataTableColumns<RowData> {
     apiAuthKeyField,
     apiAuthHeaderField,
     isDefaultField,
+    perModelLimit,
     actionField,
   ])
 }
@@ -178,6 +194,7 @@ async function addRow() {
     Label: '',
     Name: randModelName,
     Url: '',
+    EnablePerModeRatelimit: false,
   })
   // add it to the data array
   data.value.push(chatModel)
