@@ -122,3 +122,13 @@ SELECT COUNT(*)
 FROM chat_message
 WHERE user_id = $1
 AND created_at >= NOW() - INTERVAL '10 minutes';
+
+
+-- name: GetChatMessagesCountByUserAndModel :one
+-- Get total chat message count for user of model in last 10 minutes
+SELECT COUNT(*)
+FROM chat_message cm
+JOIN chat_session cs ON (cm.chat_session_uuid = cs.uuid AND cs.user_id == cm.user_id)
+WHERE cm.user_id = $1
+AND cs.model = $2 
+AND cm.created_at >= NOW() - INTERVAL '10 minutes';

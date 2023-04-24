@@ -305,6 +305,28 @@ func (q *Queries) GetChatMessagesCount(ctx context.Context, userID int32) (int64
 	return count, err
 }
 
+const getChatMessagesCountByUserAndModel = `-- name: GetChatMessagesCountByUserAndModel :one
+SELECT COUNT(*)
+FROM chat_message cm
+JOIN chat_session cs ON (cm.chat_session_uuid = cs.uuid AND cs.user_id == cm.user_id)
+WHERE cm.user_id = $1
+AND cs.model = $2 
+AND cm.created_at >= NOW() - INTERVAL '10 minutes'
+`
+
+type GetChatMessagesCountByUserAndModelParams struct {
+	UserID int32
+	Model  string
+}
+
+// Get total chat message count for user of model in last 10 minutes
+func (q *Queries) GetChatMessagesCountByUserAndModel(ctx context.Context, arg GetChatMessagesCountByUserAndModelParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getChatMessagesCountByUserAndModel, arg.UserID, arg.Model)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getFirstMessageBySessionUUID = `-- name: GetFirstMessageBySessionUUID :one
 SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
 FROM chat_message
