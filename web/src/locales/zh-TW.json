@@ -125,6 +125,7 @@
     },
     "error": {
         "NotAdmin": "非管理員禁止訪問",
+        "fail_to_get_rate_limit":  "無法查詢模型對應的配額，請聯繫管理員開通",
         "NotAuthorized": "請先登入",
         "gpt-4_over_limit": "gpt4 發送消息達到上限，請聯繫管理員開通，或增加額度",
         "invalidEmail": "電子郵件格式不正確",

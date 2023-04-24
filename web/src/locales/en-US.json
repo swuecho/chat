@@ -126,6 +126,7 @@
     "error": {
         "NotAdmin": "Non-administrators are prohibited from accessing",
         "NotAuthorized": "Please log in first",
+        "fail_to_get_rate_limit": "Failed to retrieve the quota corresponding to the model, please contact the administrator to enable it",
         "gpt-4_over_limit": "GPT4 message sending limit exceeded, please contact the administrator to enable or increase quota.",
         "invalidEmail": "Invalid email address",
         "invalidPassword": "password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character",
