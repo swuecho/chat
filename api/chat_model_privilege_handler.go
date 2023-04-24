@@ -39,8 +39,8 @@ func (h *UserChatModelPrivilegeHandler) Register(r *mux.Router) {
 	//
 	r.HandleFunc("/admin/user_chat_model_privilege", h.ListUserChatModelPrivileges).Methods(http.MethodGet)
 	r.HandleFunc("/admin/user_chat_model_privilege", h.CreateUserChatModelPrivilege).Methods(http.MethodPost)
-	r.HandleFunc("/admin/user_chat_model_privilege", h.DeleteUserChatModelPrivilege).Methods(http.MethodDelete)
-	r.HandleFunc("/admin/user_chat_model_privilege", h.UpdateUserChatModelPrivilege).Methods(http.MethodPut)
+	r.HandleFunc("/admin/user_chat_model_privilege/{id}", h.DeleteUserChatModelPrivilege).Methods(http.MethodDelete)
+	r.HandleFunc("/admin/user_chat_model_privilege/{id}", h.UpdateUserChatModelPrivilege).Methods(http.MethodPut)
 
 }
 
