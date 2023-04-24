@@ -62,6 +62,16 @@ onMounted(async () => {
     }
   }))
 })
+
+const tokenUpperLimit = computed(() => {
+  const discount_ratio = 0.8
+  if (modelRef.value.chatModel === 'gpt-4')
+    return Math.floor(1024 * 8* discount_ratio)
+  else if (modelRef.value.chatModel === 'gpt-4-32k')
+    return Math.floor(32 * 1024 * discount_ratio)
+  else
+    return Math.floor(1024 * 2 * discount_ratio)
+})
 // 1. how to fix the NSelect error?
 </script>
 
@@ -88,7 +98,7 @@ onMounted(async () => {
         <NSlider v-model:value="modelRef.topP" :min="0" :max="1" :step="0.01" :tooltip="false" />
       </NFormItem>
       <NFormItem :label="$t('chat.maxTokens', { maxTokens: modelRef.maxTokens })" path="maxTokens">
-        <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="2048" :step="16" :tooltip="false" />
+        <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="tokenUpperLimit" :step="16" :tooltip="false" />
       </NFormItem>
       <NFormItem :label="$t('chat.debug')" path="debug">
         <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode">
