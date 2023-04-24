@@ -19,10 +19,13 @@ CREATE TABLE IF NOT EXISTS chat_model (
   -- env var that contains the api key
   -- for example: OPENAI_API_KEY, which means the api key is stored in an env var called OPENAI_API_KEY
   api_auth_key TEXT DEFAULT '' NOT NULL,
-  user_id INTEGER NOT NULL default 1
+  user_id INTEGER NOT NULL default 1,
+  enable_per_mode_ratelimit BOOLEAN DEFAULT false NOT NULL
 );
 
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS user_id INTEGER NOT NULL default 1;
+ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS enable_per_mode_ratelimit BOOLEAN DEFAULT false NOT NULL ;
+
 
 INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key)
 VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
@@ -33,6 +36,10 @@ VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.co
         ('echo','echo',false,'https://bestqa_workerd.bestqa.workers.dev/echo','Authorization','ECHO_API_KEY'),
         ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY')
 ON CONFLICT(name) DO NOTHING;
+
+UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4';
+UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4-32k';
+
 
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
@@ -67,6 +74,23 @@ CREATE TABLE IF NOT EXISTS auth_user_management (
 
 -- add index on user_id
 CREATE INDEX IF NOT EXISTS auth_user_management_user_id_idx ON auth_user_management (user_id);
+
+
+-- control specific model ratelimit, like gpt4
+-- if not find gpt4 on privilege than forbiden
+-- if found, then check the acess count (session messages).
+-- get rate_limit by user_id, chat_session_uuid
+CREATE TABLE IF NOT EXISTS user_chat_model_privilege(
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    chat_model_id INT NOT NULL REFERENCES chat_model(id) ON DELETE CASCADE,
+    rate_limit INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    created_by INTEGER NOT NULL DEFAULT 0,
+    updated_by INTEGER NOT NULL DEFAULT 0, 
+    CONSTRAINT chat_usage_user_model_unique UNIQUE (user_id, chat_model_id)
+);
 
 CREATE TABLE IF NOT EXISTS chat_session (
     id SERIAL PRIMARY KEY,

@@ -58,14 +58,15 @@ type ChatMessage struct {
 }
 
 type ChatModel struct {
-	ID            int32
-	Name          string
-	Label         string
-	IsDefault     bool
-	Url           string
-	ApiAuthHeader string
-	ApiAuthKey    string
-	UserID        int32
+	ID                     int32
+	Name                   string
+	Label                  string
+	IsDefault              bool
+	Url                    string
+	ApiAuthHeader          string
+	ApiAuthKey             string
+	UserID                 int32
+	EnablePerModeRatelimit bool
 }
 
 type ChatPrompt struct {
@@ -126,4 +127,15 @@ type UserActiveChatSession struct {
 	ChatSessionUuid string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+}
+
+type UserChatModelPrivilege struct {
+	ID          int32
+	UserID      int32
+	ChatModelID int32
+	RateLimit   int32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	CreatedBy   int32
+	UpdatedBy   int32
 }

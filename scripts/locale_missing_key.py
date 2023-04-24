@@ -24,6 +24,8 @@ def check_locales(dir_name: str, base_locale: str = 'zh-CN'):
 
     # Look for other JSON files in the current directory
     for file in Path(dir_name).glob('*.json'):
+        if 'more' in file.stem:
+            continue
         cur_locale = file.stem
         if cur_locale != base_locale:
             with file.open('r') as f:

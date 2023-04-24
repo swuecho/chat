@@ -10,7 +10,7 @@ import (
 )
 
 const chatModelByID = `-- name: ChatModelByID :one
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id FROM chat_model WHERE id = $1
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit FROM chat_model WHERE id = $1
 `
 
 func (q *Queries) ChatModelByID(ctx context.Context, id int32) (ChatModel, error) {
@@ -25,12 +25,13 @@ func (q *Queries) ChatModelByID(ctx context.Context, id int32) (ChatModel, error
 		&i.ApiAuthHeader,
 		&i.ApiAuthKey,
 		&i.UserID,
+		&i.EnablePerModeRatelimit,
 	)
 	return i, err
 }
 
 const chatModelByName = `-- name: ChatModelByName :one
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id FROM chat_model WHERE name = $1
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit FROM chat_model WHERE name = $1
 `
 
 func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, error) {
@@ -45,6 +46,7 @@ func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, 
 		&i.ApiAuthHeader,
 		&i.ApiAuthKey,
 		&i.UserID,
+		&i.EnablePerModeRatelimit,
 	)
 	return i, err
 }
@@ -52,7 +54,7 @@ func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, 
 const createChatModel = `-- name: CreateChatModel :one
 INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key, user_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id
+RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit
 `
 
 type CreateChatModelParams struct {
@@ -85,6 +87,7 @@ func (q *Queries) CreateChatModel(ctx context.Context, arg CreateChatModelParams
 		&i.ApiAuthHeader,
 		&i.ApiAuthKey,
 		&i.UserID,
+		&i.EnablePerModeRatelimit,
 	)
 	return i, err
 }
@@ -104,7 +107,7 @@ func (q *Queries) DeleteChatModel(ctx context.Context, arg DeleteChatModelParams
 }
 
 const getDefaultChatModel = `-- name: GetDefaultChatModel :one
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id FROM chat_model WHERE is_default = true
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit FROM chat_model WHERE is_default = true
 and user_id in (select id from auth_user where is_superuser = true)
 `
 
@@ -120,12 +123,13 @@ func (q *Queries) GetDefaultChatModel(ctx context.Context) (ChatModel, error) {
 		&i.ApiAuthHeader,
 		&i.ApiAuthKey,
 		&i.UserID,
+		&i.EnablePerModeRatelimit,
 	)
 	return i, err
 }
 
 const listChatModels = `-- name: ListChatModels :many
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id FROM chat_model ORDER BY id
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit FROM chat_model ORDER BY id
 `
 
 func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
@@ -146,6 +150,7 @@ func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
 			&i.ApiAuthHeader,
 			&i.ApiAuthKey,
 			&i.UserID,
+			&i.EnablePerModeRatelimit,
 		); err != nil {
 			return nil, err
 		}
@@ -161,7 +166,7 @@ func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
 }
 
 const listSystemChatModels = `-- name: ListSystemChatModels :many
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id FROM chat_model
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit FROM chat_model
 where user_id in (select id from auth_user where is_superuser = true)
 ORDER BY id
 `
@@ -184,6 +189,7 @@ func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error)
 			&i.ApiAuthHeader,
 			&i.ApiAuthKey,
 			&i.UserID,
+			&i.EnablePerModeRatelimit,
 		); err != nil {
 			return nil, err
 		}
@@ -199,20 +205,21 @@ func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error)
 }
 
 const updateChatModel = `-- name: UpdateChatModel :one
-UPDATE chat_model SET name = $2, label = $3, is_default = $4, url = $5, api_auth_header = $6, api_auth_key = $7
+UPDATE chat_model SET name = $2, label = $3, is_default = $4, url = $5, api_auth_header = $6, api_auth_key = $7, enable_per_mode_ratelimit = $9
 WHERE id = $1 and user_id = $8
-RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id
+RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit
 `
 
 type UpdateChatModelParams struct {
-	ID            int32
-	Name          string
-	Label         string
-	IsDefault     bool
-	Url           string
-	ApiAuthHeader string
-	ApiAuthKey    string
-	UserID        int32
+	ID                     int32
+	Name                   string
+	Label                  string
+	IsDefault              bool
+	Url                    string
+	ApiAuthHeader          string
+	ApiAuthKey             string
+	UserID                 int32
+	EnablePerModeRatelimit bool
 }
 
 func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams) (ChatModel, error) {
@@ -225,6 +232,7 @@ func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams
 		arg.ApiAuthHeader,
 		arg.ApiAuthKey,
 		arg.UserID,
+		arg.EnablePerModeRatelimit,
 	)
 	var i ChatModel
 	err := row.Scan(
@@ -236,6 +244,7 @@ func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams
 		&i.ApiAuthHeader,
 		&i.ApiAuthKey,
 		&i.UserID,
+		&i.EnablePerModeRatelimit,
 	)
 	return i, err
 }
@@ -243,7 +252,7 @@ func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams
 const updateChatModelKey = `-- name: UpdateChatModelKey :one
 UPDATE chat_model SET api_auth_key = $2
 WHERE id = $1
-RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id
+RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit
 `
 
 type UpdateChatModelKeyParams struct {
@@ -263,6 +272,7 @@ func (q *Queries) UpdateChatModelKey(ctx context.Context, arg UpdateChatModelKey
 		&i.ApiAuthHeader,
 		&i.ApiAuthKey,
 		&i.UserID,
+		&i.EnablePerModeRatelimit,
 	)
 	return i, err
 }

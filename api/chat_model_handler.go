@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -127,34 +128,34 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 
 	var input struct {
-		Name          string
-		Label         string
-		IsDefault     bool
-		URL           string
-		APIAuthHeader string
-		APIAuthKey    string
+		Name                   string
+		Label                  string
+		IsDefault              bool
+		URL                    string
+		APIAuthHeader          string
+		APIAuthKey             string
+		EnablePerModeRatelimit bool
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Failed to parse request body"))
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
 		return
 	}
 
 	ChatModel, err := h.db.UpdateChatModel(r.Context(), sqlc_queries.UpdateChatModelParams{
-		ID:            int32(id),
-		Name:          input.Name,
-		Label:         input.Label,
-		IsDefault:     input.IsDefault,
-		Url:           input.URL,
-		ApiAuthHeader: input.APIAuthHeader,
-		ApiAuthKey:    input.APIAuthKey,
-		UserID:        userID,
+		ID:                     int32(id),
+		Name:                   input.Name,
+		Label:                  input.Label,
+		IsDefault:              input.IsDefault,
+		Url:                    input.URL,
+		ApiAuthHeader:          input.APIAuthHeader,
+		ApiAuthKey:             input.APIAuthKey,
+		UserID:                 userID,
+		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
 	})
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error updating chat API: %s", err.Error())))
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error updating chat API").Error(), err)
 		return
 	}
 

@@ -18,6 +18,8 @@
     "login": "登录",
     "logout": "登出",
     "signup": "注册",
+    "email": "邮箱",
+    "confirm": "确认",
     "email_placeholder": "请输入邮箱",
     "password_placeholder": "请输入密码",
     "unauthorizedTips": "请注册或者登录",
@@ -97,6 +99,11 @@
     "permission": "权限",
     "rateLimit": "限流",
     "model": "模型",
+    "system_model_tab_title": "模型配置",
+    "per_model_rate_limit_title": "模型流控",
+    "add_user_model_rate_limit": "添加用户会话数量",
+    "rate_limit": "会话数量(10min)",
+    "chat_model_name": "模型ID",
     "chat_model": {
       "name": "ID",
       "label": "模型名称",
@@ -104,7 +111,14 @@
       "apiAuthHeader": "Auth Header key",
       "apiAuthKey": "API KEY对应的环境变量",
       "actions": "操作",
-      "url": "访问接口(with full url path)"
+      "url": "访问接口(with full url path)",
+      "EnablePerModeRatelimit": "是否单独流控"
+    },
+    "per_model_rate_limit": {
+      "UserEmail": "用户邮箱",
+      "ChatModelName": "模型名称",
+      "RateLimit": "10分钟访问次数",
+      "actions": "操作"
     },
     "model_one_default_only": "只能有一个默认模型, 请先设置其他模型为非默认",
     "rateLimit10Min": "消息数量上限(10分钟)"
@@ -130,6 +144,8 @@
   },
   "error": {
     "rateLimit": "发送消息数量已经达到上限, 请联系管理员",
+    "fail_to_get_rate_limit": "无法查询到模型对应的配额, 请联系管理员开通",
+    "gpt-4_over_limit": "gpt4 发送消息达到上限, 请联系管理员开通,或增加额度",
     "token_length_exceed_limit": "总消息长度数量超过上限, 请减少上下文数量、减少消息长度或者开启新的会话",
     "invalidEmail": "邮箱格式不正确",
     "invalidPassword": "密码格式不正确, 长度至少为6位, 一个大写字母, 一个小写字母, 一个数字, 一个特殊字符",
