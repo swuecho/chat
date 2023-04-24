@@ -17,12 +17,6 @@ interface FormData {
   ChatModelName: string
   UserEmail: string
   RateLimit: string
-
-}
-
-interface Option {
-  label: string
-  value: string
 }
 
 const dialogVisible = ref(false)
@@ -34,7 +28,7 @@ const form = ref<FormData>({
 })
 
 const data = ref<RowData[]>([])
-const limitEnabledModels = ref<Option[]>([])
+const limitEnabledModels = ref<SelectOption[]>([])
 
 onMounted(async () => {
   refreshData()
