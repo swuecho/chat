@@ -91,11 +91,14 @@ func (q *Queries) ListUserChatModelPrivileges(ctx context.Context) ([]UserChatMo
 }
 
 const listUserChatModelPrivilegesByUserID = `-- name: ListUserChatModelPrivilegesByUserID :many
+
 SELECT id, user_id, chat_model_id, rate_limit, created_at, updated_at, created_by, updated_by FROM user_chat_model_privilege 
 WHERE user_id = $1
 ORDER BY id
 `
 
+// TODO add ratelimit
+// LIMIT 1000
 func (q *Queries) ListUserChatModelPrivilegesByUserID(ctx context.Context, userID int32) ([]UserChatModelPrivilege, error) {
 	rows, err := q.db.QueryContext(ctx, listUserChatModelPrivilegesByUserID, userID)
 	if err != nil {
@@ -114,6 +117,49 @@ func (q *Queries) ListUserChatModelPrivilegesByUserID(ctx context.Context, userI
 			&i.UpdatedAt,
 			&i.CreatedBy,
 			&i.UpdatedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserChatModelPrivilegesRateLimit = `-- name: ListUserChatModelPrivilegesRateLimit :many
+SELECT ucmp.id, au.email as user_email,  cm.name chat_model_name, ucmp.rate_limit  
+FROM user_chat_model_privilege ucmp 
+INNER JOIN chat_model cm ON cm.id = ucmp.chat_model_id
+INNER JOIN auth_user au ON au.id = ucmp.user_id
+ORDER by au.last_login DESC
+`
+
+type ListUserChatModelPrivilegesRateLimitRow struct {
+	ID            int32
+	UserEmail     string
+	ChatModelName string
+	RateLimit     int32
+}
+
+func (q *Queries) ListUserChatModelPrivilegesRateLimit(ctx context.Context) ([]ListUserChatModelPrivilegesRateLimitRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserChatModelPrivilegesRateLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserChatModelPrivilegesRateLimitRow
+	for rows.Next() {
+		var i ListUserChatModelPrivilegesRateLimitRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserEmail,
+			&i.ChatModelName,
+			&i.RateLimit,
 		); err != nil {
 			return nil, err
 		}

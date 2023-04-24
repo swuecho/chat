@@ -1,18 +1,32 @@
 <script setup lang="ts">
 import { h, onMounted, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
-import { NDataTable, NInput, NSwitch, useMessage } from 'naive-ui'
-import { createChatModel, deleteChatModel, fetchChatModel, updateChatModel } from '@/api'
-import { generateRandomString } from '@/utils/rand'
+import { NButton, NDataTable, NForm, NFormItem, NInput, NModal } from 'naive-ui'
+import { CreateUserChatModelPrivilege, DeleteUserChatModelPrivilege, ListUserChatModelPrivilege, UpdateUserChatModelPrivilege } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 
-
 interface RowData {
-  Model: string
+  ID: string
+  ChatModelName: string
   UserEmail: string
-  Ratelimit: string
+  RateLimit: string
 }
+
+interface FormData {
+  ChatModelName: string
+  UserEmail: string
+  RateLimit: string
+
+}
+
+const dialogVisible = ref(false)
+
+const form = ref<FormData>({
+  ChatModelName: '',
+  UserEmail: '',
+  RateLimit: '',
+})
 
 const data = ref<RowData[]>([])
 
@@ -21,16 +35,16 @@ onMounted(async () => {
 })
 
 async function refreshData() {
-  data.value = await fetchPerModelRateLimit()
+  data.value = await ListUserChatModelPrivilege()
 }
 
 function UpdateRow(row: RowData) {
-  updatePerModelRatelimit(row.UserEmail, row)
+  UpdateUserChatModelPrivilege(row.ID, row)
 }
 
 function createColumns(): DataTableColumns<RowData> {
   const userEmailField = {
-    title: t('admin.per_model_ratelimit.UserEmail'),
+    title: t('admin.per_model_rate_limit.UserEmail'),
     key: 'UserEmail',
     width: 200,
     render(row: RowData, index: number) {
@@ -46,15 +60,15 @@ function createColumns(): DataTableColumns<RowData> {
   }
 
   const modelField = {
-    title: t('admin.per_model_ratelimit.Model'),
-    key: 'Model',
+    title: t('admin.per_model_rate_limit.ChatModelName'),
+    key: 'ChatModelName',
     width: 250,
     render(row: RowData, index: number) {
       return h(NInput, {
-        value: row.Model,
+        value: row.ChatModelName,
         onUpdateValue(v: string) {
           // assuming that `data` is an array of FormData objects
-          data.value[index].Model = v
+          data.value[index].ChatModelName = v
           UpdateRow(data.value[index])
         },
       })
@@ -62,15 +76,15 @@ function createColumns(): DataTableColumns<RowData> {
   }
 
   const ratelimitField = {
-    title: t('admin.per_model_ratelimit.Ratelimit'),
-    key: 'Ratelimit',
+    title: t('admin.per_model_rate_limit.RateLimit'),
+    key: 'RateLimit',
     width: 250,
     render(row: RowData, index: number) {
       return h(NInput, {
-        value: row.Ratelimit,
+        value: row.RateLimit,
         onUpdateValue(v: string) {
           // assuming that `data` is an array of FormData objects
-          data.value[index].Ratelimit = v
+          data.value[index].RateLimit = v
           UpdateRow(data.value[index])
         },
       })
@@ -78,7 +92,7 @@ function createColumns(): DataTableColumns<RowData> {
   }
 
   const actionField = {
-    title: t('admin.per_model_ratelimit.actions'),
+    title: t('admin.per_model_rate_limit.actions'),
     key: 'actions',
     render(row: any) {
       return h(
@@ -109,28 +123,45 @@ function createColumns(): DataTableColumns<RowData> {
 
 const columns = createColumns()
 
-async function addRow() {
+async function addRow(form: FormData) {
+  console.log(form)
   // create a new chat model, the name is randon string
-  const randModelName = generateRandomString(10)
-  const chatModel = await createPerModelRatelimit({
-    UserName: randModelName,
-    Model: '',
-    Ratelimit: 0
+  const chatModel = await CreateUserChatModelPrivilege({
+    ID: 0,
+    UserEmail: form.UserEmail,
+    ChatModelName: form.ChatModelName,
+    RateLimit: parseInt(form.RateLimit, 10),
   })
   // add it to the data array
   data.value.push(chatModel)
 }
 
 async function deleteRow(row: any) {
-  await deletePerModelRatelimit(row.ID)
+  await DeleteUserChatModelPrivilege(row.ID)
   await refreshData()
 }
 </script>
 
 <template>
-  <div class="ml-5">
+  <div class="mx-5">
+    <NModal v-model:show="dialogVisible" title="Submit Email" preset="dialog">
+      <NForm :model="form">
+        <NFormItem prop="UserEmail" label="Email">
+          <NInput v-model:value="form.UserEmail" placeholder="Please email" />
+        </NFormItem>
+        <NFormItem prop="ChatModelName" label="ChatModelName">
+          <NInput v-model:value="form.ChatModelName" placeholder="Please model name" />
+        </NFormItem>
+        <NFormItem prop="RateLimit" label="Ratelimit">
+          <NInput v-model:value="form.RateLimit" placeholder="Please input rate" />
+        </NFormItem>
+      </NForm>
+      <NButton type="primary" block secondary strong @click="addRow(form)">
+        确认
+      </NButton>
+    </NModal>
     <div class="flex justify-end">
-      <HoverButton @click="addRow">
+      <HoverButton @click="dialogVisible = true">
         <span class="text-xl">
           <SvgIcon icon="material-symbols:library-add-rounded" />
         </span>

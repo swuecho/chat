@@ -83,7 +83,7 @@ CREATE INDEX IF NOT EXISTS auth_user_management_user_id_idx ON auth_user_managem
 CREATE TABLE IF NOT EXISTS user_chat_model_privilege(
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
-    chat_model_id INT NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    chat_model_id INT NOT NULL REFERENCES chat_model(id) ON DELETE CASCADE,
     rate_limit INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP DEFAULT NOW() NOT NULL,

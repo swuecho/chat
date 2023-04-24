@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/rotisserie/eris"
+	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -35,24 +37,38 @@ func (h *UserChatModelPrivilegeHandler) Register(r *mux.Router) {
 	// 	r.HandleFunc("/chat_model/{id}", h.UpdateChatModel).Methods("PUT")
 	// 	r.HandleFunc("/chat_model/{id}", h.DeleteChatModel).Methods("DELETE")
 	//
+	r.HandleFunc("/admin/user_chat_model_privilege", h.ListUserChatModelPrivileges).Methods(http.MethodGet)
+	r.HandleFunc("/admin/user_chat_model_privilege", h.CreateUserChatModelPrivilege).Methods(http.MethodPost)
+	r.HandleFunc("/admin/user_chat_model_privilege", h.DeleteUserChatModelPrivilege).Methods(http.MethodDelete)
+	r.HandleFunc("/admin/user_chat_model_privilege", h.UpdateUserChatModelPrivilege).Methods(http.MethodPut)
 
 }
 
+type ChatModelPrivilege struct {
+	ID            int32
+	UserEmail     string
+	ChatModelName string
+	RateLimit     int32
+}
+
 func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivileges(w http.ResponseWriter, r *http.Request) {
-	_, err := getUserID(r.Context())
-	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
-		return
-	}
 	// TODO: check user is super_user
-	userChatModelPrivileges, err := h.db.ListUserChatModelPrivileges(r.Context())
+	userChatModelRows, err := h.db.ListUserChatModelPrivilegesRateLimit(r.Context())
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error listing user chat model privileges").Error(), err)
 		return
 	}
+	output := lo.Map(userChatModelRows, func(r sqlc_queries.ListUserChatModelPrivilegesRateLimitRow, idx int) ChatModelPrivilege {
+		return ChatModelPrivilege{
+			ID:            r.ID,
+			UserEmail:     r.UserEmail,
+			ChatModelName: r.ChatModelName,
+			RateLimit:     r.RateLimit,
+		}
+	})
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(userChatModelPrivileges)
+	json.NewEncoder(w).Encode(output)
 }
 
 func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByID(w http.ResponseWriter, r *http.Request) {
@@ -74,29 +90,30 @@ func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByID(w http.Respon
 }
 
 func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
-	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
-		return
-	}
-
-	var input struct {
-		UserID      int32
-		ChatModelID int32
-		RateLimit   int32
-	}
-	err = json.NewDecoder(r.Body).Decode(&input)
+	var input ChatModelPrivilege
+	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
 		return
 	}
 
+	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
+
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get user by email").Error(), err)
+	}
+	chatModel, err := h.db.ChatModelByName(r.Context(), input.ChatModelName)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get model by name").Error(), err)
+	}
+	log.Printf("%+v\n", chatModel)
+
 	userChatModelPrivilege, err := h.db.CreateUserChatModelPrivilege(r.Context(), sqlc_queries.CreateUserChatModelPrivilegeParams{
-		UserID:      input.UserID,
-		ChatModelID: input.ChatModelID,
+		UserID:      user.ID,
+		ChatModelID: chatModel.ID,
 		RateLimit:   input.RateLimit,
-		CreatedBy:   userID,
-		UpdatedBy:   userID,
+		CreatedBy:   user.ID,
+		UpdatedBy:   user.ID,
 	})
 
 	if err != nil {
@@ -104,8 +121,14 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 		return
 	}
 
+	output := ChatModelPrivilege{
+		ID:            userChatModelPrivilege.ID,
+		UserEmail:     user.Email,
+		ChatModelName: chatModel.Name,
+		RateLimit:     userChatModelPrivilege.RateLimit,
+	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(userChatModelPrivilege)
+	json.NewEncoder(w).Encode(output)
 }
 
 func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.ResponseWriter, r *http.Request) {
@@ -122,9 +145,7 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
 	}
 
-	var input struct {
-		RateLimit int32
-	}
+	var input ChatModelPrivilege
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
@@ -141,9 +162,14 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error updating user chat model privilege").Error(), err)
 		return
 	}
-
+	output := ChatModelPrivilege{
+		ID:            userChatModelPrivilege.ID,
+		UserEmail:     input.UserEmail,
+		ChatModelName: input.ChatModelName,
+		RateLimit:     userChatModelPrivilege.RateLimit,
+	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(userChatModelPrivilege)
+	json.NewEncoder(w).Encode(output)
 }
 
 func (h *UserChatModelPrivilegeHandler) DeleteUserChatModelPrivilege(w http.ResponseWriter, r *http.Request) {
