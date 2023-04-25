@@ -12,6 +12,9 @@ import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
+import { useAuthStore } from '@/store'
+
+const authStore = useAuthStore()
 
 const route = useRoute()
 const dialog = useDialog()
@@ -141,6 +144,9 @@ function handleMarkdown() {
 }
 
 async function handleChat() {
+  if (!authStore.getToken())
+    nui_msg.error(t('common.ask_user_register'))
+
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
   // open link at static/#/chat/{SessionUuid}
   window.open(`static/#/chat/${SessionUuid}`, '_blank')
@@ -185,12 +191,12 @@ function onScrollToTop() {
       </div>
     </main>
     <div class="floating-button">
-    <HoverButton :tooltip="$t('chat_snapshot.continueChat')" @click="handleChat">
-            <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
-              <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
-            </span>
-          </HoverButton>
-</div>
+      <HoverButton :tooltip="$t('chat_snapshot.continueChat')" @click="handleChat">
+        <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
+          <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
+        </span>
+      </HoverButton>
+    </div>
     <footer :class="footerClass">
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
