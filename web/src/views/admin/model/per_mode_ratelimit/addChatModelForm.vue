@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { NButton, NForm, NInput, NSelect } from 'naive-ui'
-import { computed, onMounted, ref } from 'vue'
+import { NButton, NForm, NFormItem, NInput, NSelect } from 'naive-ui'
+import { onMounted, ref } from 'vue'
 import { CreateUserChatModelPrivilege, fetchChatModel } from '@/api'
 
 interface ChatModelFormData {
@@ -21,8 +21,8 @@ interface Emit {
   (e: 'newRowAdded'): void
 }
 
-function submitForm() {
-  addRow(form.value)
+async function submitForm() {
+  await addRow(form.value)
   emit('newRowAdded')
 }
 
@@ -49,24 +49,25 @@ onMounted(async () => {
         label: x.Label,
       }
     })
-  defaultModel.value = limitEnabledModels.value[0].value
+  defaultModel.value = limitEnabledModels.value[0]?.value
 })
 </script>
 
 <template>
-  <NForm :model="form">
-    <NFormItem prop="UserEmail" :label="$t('common.email')">
-      <NInput v-model:value="form.UserEmail" :placeholder="$t('common.email_placeholder')" />
-    </NFormItem>
-    <NFormItem prop="ChatModelName" :label="$t('admin.chat_model_name')">
-      <NSelect v-model:value="form.ChatModelName" :options="limitEnabledModels" :default-value="defaultModel"
-        placeholder="Please model name" />
-    </NFormItem>
-    <NFormItem prop="RateLimit" :label="$t('admin.rate_limit')">
-      <NInput v-model:value="form.RateLimit" />
-    </NFormItem>
+  <div>
+    <NForm :model="form">
+      <NFormItem path="UserEmail" :label="$t('common.email')">
+        <NInput v-model:value="form.UserEmail" :placeholder="$t('common.email_placeholder')" />
+      </NFormItem>
+      <NFormItem path="ChatModelName" :label="$t('admin.chat_model_name')">
+        <NSelect v-model:value="form.ChatModelName" :options="limitEnabledModels" placeholder="fdsfsd" :default-value="defaultModel" />
+      </NFormItem>
+      <NFormItem path="RateLimit" :label="$t('admin.rate_limit')">
+        <NInput v-model:value="form.RateLimit" />
+      </NFormItem>
+    </NForm>
     <NButton type="primary" block secondary strong @click="submitForm">
       {{ $t('common.confirm') }}
     </NButton>
-  </NForm>
+  </div>
 </template>
