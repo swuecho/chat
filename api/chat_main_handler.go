@@ -367,7 +367,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	defer cancel()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request_openai", err)
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return "", "", true
 	}
 	defer stream.Close()
