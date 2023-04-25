@@ -1,49 +1,27 @@
 <script setup lang="ts">
-import { computed, h, onMounted, ref } from 'vue'
+import { h, onMounted, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
-import { NButton, NDataTable, NForm, NFormItem, NInput, NModal, NSelect } from 'naive-ui'
-import { CreateUserChatModelPrivilege, DeleteUserChatModelPrivilege, ListUserChatModelPrivilege, UpdateUserChatModelPrivilege, fetchChatModel } from '@/api'
+import { NDataTable, NInput, NModal } from 'naive-ui'
+import AddChatModelForm from './addChatModelForm.vue'
+import { DeleteUserChatModelPrivilege, ListUserChatModelPrivilege, UpdateUserChatModelPrivilege } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 
 interface RowData {
   ID: string
   ChatModelName: string
-  UserEmail: string
-  RateLimit: string
-}
-
-interface FormData {
-  ChatModelName: string
+  FullName: string
   UserEmail: string
   RateLimit: string
 }
 
 const dialogVisible = ref(false)
 
-const form = ref<FormData>({
-  ChatModelName: '',
-  UserEmail: '',
-  RateLimit: '',
-})
-
 const data = ref<RowData[]>([])
-const limitEnabledModels = ref<SelectOption[]>([])
 
 onMounted(async () => {
   refreshData()
-  limitEnabledModels.value = (await fetchChatModel()).filter((x: any) => x.EnablePerModeRatelimit)
-    .map((x: any) => {
-      return {
-        value: x.Name,
-        label: x.Label,
-      }
-    })
 })
-
-const defaultModel = computed(
-  () => limitEnabledModels.value[0].value,
-)
 
 async function refreshData() {
   data.value = await ListUserChatModelPrivilege()
@@ -62,21 +40,16 @@ function createColumns(): DataTableColumns<RowData> {
     width: 200,
   }
 
+  const userFullNameField = {
+    title: t('admin.per_model_rate_limit.FullName'),
+    key: 'FullName',
+    width: 200,
+  }
+
   const modelField = {
     title: t('admin.per_model_rate_limit.ChatModelName'),
     key: 'ChatModelName',
     width: 250,
-    // render(row: RowData, index: number) {
-    //   return h(NSelect, {
-    //     options: limitEnabledModels.value,
-    //     value: row.ChatModelName,
-    //     onUpdateValue(v: string) {
-    //       // assuming that `data` is an array of FormData objects
-    //       data.value[index].ChatModelName = v
-    //       UpdateRow(data.value[index])
-    //     },
-    //   })
-    // },
   }
 
   const ratelimitField = {
@@ -118,6 +91,7 @@ function createColumns(): DataTableColumns<RowData> {
   }
 
   return ([
+    userFullNameField,
     userEmailField,
     modelField,
     ratelimitField,
@@ -127,20 +101,12 @@ function createColumns(): DataTableColumns<RowData> {
 
 const columns = createColumns()
 
-async function addRow(form: FormData) {
-  // create a new chat model, the name is randon string
-  const chatModel = await CreateUserChatModelPrivilege({
-    ID: 0,
-    UserEmail: form.UserEmail,
-    ChatModelName: form.ChatModelName,
-    RateLimit: parseInt(form.RateLimit, 10),
-  })
-  // add it to the data array
-  data.value.push(chatModel)
-}
-
 async function deleteRow(row: any) {
   await DeleteUserChatModelPrivilege(row.ID)
+  await refreshData()
+}
+
+async function newRowAdded() {
   await refreshData()
 }
 </script>
@@ -148,21 +114,7 @@ async function deleteRow(row: any) {
 <template>
   <div class="mx-5">
     <NModal v-model:show="dialogVisible" :title="$t('admin.add_user_model_rate_limit')" preset="dialog">
-      <NForm :model="form">
-        <NFormItem prop="UserEmail" :label="$t('common.email')">
-          <NInput v-model:value="form.UserEmail" :placeholder="$t('common.email_placeholder')" />
-        </NFormItem>
-        <NFormItem prop="ChatModelName" :label="$t('admin.chat_model_name')">
-          <NSelect v-model:value="form.ChatModelName" :options="limitEnabledModels" :default-value="defaultModel"
-            placeholder="Please model name" />
-        </NFormItem>
-        <NFormItem prop="RateLimit" :label="$t('admin.rate_limit')">
-          <NInput v-model:value="form.RateLimit" />
-        </NFormItem>
-      </NForm>
-      <NButton type="primary" block secondary strong @click="addRow(form)">
-        {{ $t('common.confirm') }}
-      </NButton>
+      <AddChatModelForm @new-row-added="newRowAdded" />
     </NModal>
     <div class="flex justify-end">
       <HoverButton @click="dialogVisible = true">

@@ -46,6 +46,7 @@ func (h *UserChatModelPrivilegeHandler) Register(r *mux.Router) {
 
 type ChatModelPrivilege struct {
 	ID            int32
+	FullName      string
 	UserEmail     string
 	ChatModelName string
 	RateLimit     int32
@@ -61,6 +62,7 @@ func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivileges(w http.Respo
 	output := lo.Map(userChatModelRows, func(r sqlc_queries.ListUserChatModelPrivilegesRateLimitRow, idx int) ChatModelPrivilege {
 		return ChatModelPrivilege{
 			ID:            r.ID,
+			FullName:      r.FullName,
 			UserEmail:     r.UserEmail,
 			ChatModelName: r.ChatModelName,
 			RateLimit:     r.RateLimit,
