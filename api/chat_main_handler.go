@@ -484,7 +484,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 
 	// add headers to the request
 	apiKey := os.Getenv(chatModel.ApiAuthKey)
-	authHeaderName := os.Getenv(chatModel.ApiAuthHeader)
+	authHeaderName := chatModel.ApiAuthHeader
 	if authHeaderName != "" {
 		req.Header.Set(authHeaderName, apiKey)
 	}
@@ -614,7 +614,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
 	}
 
-	authHeaderName := os.Getenv(chat_model.ApiAuthHeader)
+	authHeaderName := chat_model.ApiAuthHeader
 	if authHeaderName != "" {
 		req.Header.Set(authHeaderName, apiKey)
 	}
