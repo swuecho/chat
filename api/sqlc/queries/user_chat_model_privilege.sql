@@ -2,7 +2,7 @@
 SELECT * FROM user_chat_model_privilege ORDER BY id;
 
 -- name: ListUserChatModelPrivilegesRateLimit :many
-SELECT ucmp.id, au.email as user_email,  cm.name chat_model_name, ucmp.rate_limit  
+SELECT ucmp.id, au.email as user_email, CONCAT_WS('',au.last_name, au.first_name) as full_name, cm.name chat_model_name, ucmp.rate_limit  
 FROM user_chat_model_privilege ucmp 
 INNER JOIN chat_model cm ON cm.id = ucmp.chat_model_id
 INNER JOIN auth_user au ON au.id = ucmp.user_id
