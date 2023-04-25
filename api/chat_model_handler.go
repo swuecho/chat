@@ -78,12 +78,13 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 
 	var input struct {
-		Name          string `json:"name"`
-		Label         string `json:"label"`
-		IsDefault     bool   `json:"is_default"`
-		URL           string `json:"url"`
-		APIAuthHeader string `json:"api_auth_header"`
-		APIAuthKey    string `json:"api_auth_key"`
+		Name          string
+		Label         string
+		IsDefault     bool
+		URL           string
+		ApiAuthHeader string
+		ApiAuthKey    string
+		EnablePerModeRatelimit bool
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&input)
@@ -98,9 +99,10 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		Label:         input.Label,
 		IsDefault:     input.IsDefault,
 		Url:           input.URL,
-		ApiAuthHeader: input.APIAuthHeader,
-		ApiAuthKey:    input.APIAuthKey,
+		ApiAuthHeader: input.ApiAuthHeader,
+		ApiAuthKey:    input.ApiAuthKey,
 		UserID:        userID,
+		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
 	})
 
 	if err != nil {
@@ -132,8 +134,8 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		Label                  string
 		IsDefault              bool
 		URL                    string
-		APIAuthHeader          string
-		APIAuthKey             string
+		ApiAuthHeader          string
+		ApiAuthKey             string
 		EnablePerModeRatelimit bool
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
@@ -148,8 +150,8 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		Label:                  input.Label,
 		IsDefault:              input.IsDefault,
 		Url:                    input.URL,
-		ApiAuthHeader:          input.APIAuthHeader,
-		ApiAuthKey:             input.APIAuthKey,
+		ApiAuthHeader:          input.ApiAuthHeader,
+		ApiAuthKey:             input.ApiAuthKey,
 		UserID:                 userID,
 		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
 	})

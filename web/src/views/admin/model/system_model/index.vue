@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { h, onMounted, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
-import { NDataTable, NInput, NSwitch, useMessage } from 'naive-ui'
-import { createChatModel, deleteChatModel, fetchChatModel, updateChatModel } from '@/api'
-import { generateRandomString } from '@/utils/rand'
+import { NDataTable, NInput, NModal, NSwitch, useMessage } from 'naive-ui'
+import AddModelForm from './AddModelForm.vue'
+import { deleteChatModel, fetchChatModel, updateChatModel } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 
@@ -21,6 +21,7 @@ interface RowData {
 }
 
 const data = ref<RowData[]>([])
+const dialogVisible = ref(false)
 
 onMounted(async () => {
   refreshData()
@@ -185,19 +186,7 @@ function createColumns(): DataTableColumns<RowData> {
 const columns = createColumns()
 
 async function addRow() {
-  // create a new chat model, the name is randon string
-  const randModelName = generateRandomString(10)
-  const chatModel = await createChatModel({
-    ApiAuthHeader: '',
-    ApiAuthKey: '',
-    IsDefault: false,
-    Label: '',
-    Name: randModelName,
-    Url: '',
-    EnablePerModeRatelimit: false,
-  })
-  // add it to the data array
-  data.value.push(chatModel)
+  await refreshData()
 }
 
 async function deleteRow(row: any) {
@@ -220,8 +209,11 @@ function checkNoRowIsDefaultTrue(v: boolean) {
 
 <template>
   <div class="mx-5">
+    <NModal v-model:show="dialogVisible" :title="$t('admin.add_user_model_rate_limit')" preset="dialog">
+      <AddModelForm @new-row-added="addRow" />
+    </NModal>
     <div class="flex justify-end">
-      <HoverButton @click="addRow">
+      <HoverButton @click="dialogVisible = true">
         <span class="text-xl">
           <SvgIcon icon="material-symbols:library-add-rounded" />
         </span>

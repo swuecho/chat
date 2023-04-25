@@ -107,11 +107,15 @@
     "chat_model": {
       "name": "ID",
       "label": "模型名称",
+      "is_default": "默认?",
       "isDefault": "默认?",
+      "api_auth_header": "Auth Header key",
       "apiAuthHeader": "Auth Header key",
+      "api_auth_key": "API KEY对应的环境变量",
       "apiAuthKey": "API KEY对应的环境变量",
       "actions": "操作",
       "url": "访问接口(with full url path)",
+      "enable_per_model_rate_limit": "是否单独流控",
       "EnablePerModeRatelimit": "是否单独流控"
     },
     "per_model_rate_limit": {
