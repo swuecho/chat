@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	uuid "github.com/iris-contrib/go.uuid"
+	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
@@ -67,24 +67,6 @@ type Choice struct {
 	Message      openai.ChatCompletionMessage `json:"message"`
 	FinishReason interface{}                  `json:"finish_reason"`
 	Index        int                          `json:"index"`
-}
-
-type Message struct {
-	Role       string `json:"role"`
-	Content    string `json:"content"`
-	tokenCount int32
-}
-
-func (m Message) TokenCount() int32 {
-	if m.tokenCount != 0 {
-		return m.tokenCount
-	} else {
-		tokenCount, err := getTokenCount(m.Content)
-		if err != nil {
-			log.Println(err)
-		}
-		return int32(tokenCount) + 1
-	}
 }
 
 type OpenaiChatRequest struct {
@@ -237,7 +219,6 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	if shouldReturn {
 		return
 	}
-	// record chat
 	if !isTest(msgs) {
 		h.chatService.logChat(chatSession, msgs, answerText)
 	}
@@ -252,7 +233,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	ctx := context.Background()
 	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
-		http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat session").Error(), err)
 		return
 	}
 
@@ -369,31 +350,24 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		return "", "", true
 	}
 
-	chat_model, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
 	}
 
-	var baseUrl string
-	if chat_index := strings.Index(chat_model.Url, "/chat/"); chat_index != -1 {
-		// is full url https://api.openai.com/v1/chat/completions
-		baseUrl = chat_model.Url[:chat_index]
-	} else {
-		baseUrl = chat_model.Url
-	}
-	// OPENAI_API_KEY
-	token := os.Getenv(chat_model.ApiAuthKey)
+	baseUrl := getModelBaseUrl(chatModel.Url)
+	token := os.Getenv(chatModel.ApiAuthKey)
 	config := openai.DefaultConfig(token)
 	config.BaseURL = baseUrl
 	client := openai.NewClientWithConfig(config)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("CompletionStream error: %v", err), nil)
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return "", "", true
 	}
 	defer stream.Close()
@@ -457,6 +431,8 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	return answer, answer_id, false
 }
 
+
+
 type ClaudeResponse struct {
 	Completion string      `json:"completion"`
 	Stop       string      `json:"stop"`
@@ -473,10 +449,13 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// Release the API token
 	defer func() { <-claudeRateLimiteToken }()
 	// set the api key
-	apiKey := appConfig.CLAUDE.API_KEY
+	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		return "", "", true
+	}
 
-	// set the url
-	url := "https://api.anthropic.com/v1/complete"
+	// OPENAI_API_KEY
 
 	// create a new strings.Builder
 	// iterate through the messages and format them
@@ -496,15 +475,21 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// convert data to json format
 	jsonValue, _ := json.Marshal(jsonData)
 	// create the request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
+
 	if err != nil {
-		fmt.Println("Error while creating request: ", err)
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
+		return "", "", true
 	}
 
 	// add headers to the request
+	apiKey := os.Getenv(chatModel.ApiAuthKey)
+	authHeaderName := chatModel.ApiAuthHeader
+	if authHeaderName != "" {
+		req.Header.Set(authHeaderName, apiKey)
+	}
+
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", apiKey)
 
 	// set the streaming flag
 	req.Header.Set("Accept", "text/event-stream")
@@ -512,10 +497,13 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	req.Header.Set("Connection", "keep-alive")
 
 	// create the http client and send the request
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 2 * time.Minute,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error while sending request: ", err)
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		return "", "", true
 	}
 
 	ioreader := bufio.NewReader(resp.Body)
@@ -565,8 +553,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if answer_id == "" {
-			uuid, _ := uuid.NewV4()
-			answer_id = uuid.String()
+			answer_id = uuid.NewString()
 		}
 		var response ClaudeResponse
 		_ = json.Unmarshal(line, &response)
@@ -594,11 +581,8 @@ type CustomModelResponse struct {
 func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
 	// set the api key
-	log.Printf("%+v", chat_compeletion_messages)
-	model := chatSession.Model
-	chat_model, err := h.chatService.q.ChatModelByName(context.Background(), model)
+	chat_model, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		log.Println(err)
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
 	}
@@ -611,7 +595,6 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	// print the user's question
 	// convert assistant's response to json format
 	prompt := formatClaudePrompt(chat_compeletion_messages)
-	log.Println(prompt)
 	// create the json data
 	jsonData := map[string]interface{}{
 		"prompt":               prompt,
@@ -631,13 +614,12 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
 	}
 
-	// add headers to the request
-	req.Header.Set("Content-Type", "application/json")
-	authHeaderName := os.Getenv(chat_model.ApiAuthHeader)
+	authHeaderName := chat_model.ApiAuthHeader
 	if authHeaderName != "" {
 		req.Header.Set(authHeaderName, apiKey)
 	}
 
+	req.Header.Set("Content-Type", "application/json")
 	// set the streaming flag
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Cache-Control", "no-cache")
@@ -698,8 +680,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if answer_id == "" {
-			uuid, _ := uuid.NewV4()
-			answer_id = uuid.String()
+			answer_id = uuid.NewString()
 		}
 		var response CustomModelResponse
 		_ = json.Unmarshal(line, &response)
@@ -718,8 +699,7 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	//message := Message{Role: "assitant", Content:}
 	answer_id := chatUuid
 	if !regenerate {
-		uuid, _ := uuid.NewV4()
-		answer_id = uuid.String()
+		answer_id = uuid.NewString()
 	}
 	setSSEHeader(w)
 

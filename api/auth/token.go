@@ -11,7 +11,7 @@ import (
 
 	jwt "github.com/golang-jwt/jwt/v5"
 
-	uuid "github.com/iris-contrib/go.uuid"
+	"github.com/google/uuid"
 )
 
 var ErrInvalidToken = errors.New("invalid token")
@@ -43,7 +43,7 @@ func GenerateToken(userID int32, role string, secret, jwt_audience string) (stri
 		"user_id": strconv.FormatInt(int64(userID), 10),
 		"exp":     expires,
 		"role":    role,
-		"jti":     uuid.Must(uuid.NewV4()).String(),
+		"jti":     uuid.NewString(),
 		"iss":     issuer,
 		"nbf":     notBefore,
 		"aud":     jwt_audience,
