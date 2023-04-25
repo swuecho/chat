@@ -356,14 +356,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		return "", "", true
 	}
 
-	var baseUrl string
-	if chat_index := strings.Index(chat_model.Url, "/chat/"); chat_index != -1 {
-		// is full url https://api.openai.com/v1/chat/completions
-		baseUrl = chat_model.Url[:chat_index]
-	} else {
-		baseUrl = chat_model.Url
-	}
-	// OPENAI_API_KEY
+	baseUrl := getModelBaseUrl(chat_model.Url)
 	token := os.Getenv(chat_model.ApiAuthKey)
 	config := openai.DefaultConfig(token)
 	config.BaseURL = baseUrl
@@ -436,6 +429,17 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		}
 	}
 	return answer, answer_id, false
+}
+
+// in adminn panel the config is full url https://api.openai.com/v1/chat/completions
+func getModelBaseUrl(model_url string) string {
+	var baseUrl string
+	if chat_index := strings.Index(model_url, "/chat/"); chat_index != -1 {
+		baseUrl = model_url[:chat_index]
+	} else {
+		baseUrl = model_url
+	}
+	return baseUrl
 }
 
 type ClaudeResponse struct {
