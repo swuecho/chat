@@ -350,14 +350,14 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		return "", "", true
 	}
 
-	chat_model, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
 	}
 
-	baseUrl := getModelBaseUrl(chat_model.Url)
-	token := os.Getenv(chat_model.ApiAuthKey)
+	baseUrl := getModelBaseUrl(chatModel.Url)
+	token := os.Getenv(chatModel.ApiAuthKey)
 	config := openai.DefaultConfig(token)
 	config.BaseURL = baseUrl
 	client := openai.NewClientWithConfig(config)
