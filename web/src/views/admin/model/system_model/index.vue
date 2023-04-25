@@ -17,7 +17,7 @@ interface RowData {
   Label: string
   Name: string
   Url: string
-  EnablePerModelRatelimit: boolean
+  EnablePerModeRatelimit: boolean
 }
 
 const data = ref<RowData[]>([])
@@ -135,14 +135,14 @@ function createColumns(): DataTableColumns<RowData> {
     },
   }
   const perModelLimit = {
-    title: t('admin.chat_model.EnablePerModelRatelimit'),
-    key: 'EnablePerModelRatelimit',
+    title: t('admin.chat_model.EnablePerModeRatelimit'),
+    key: 'EnablePerModeRatelimit',
     render(row: RowData, index: number) {
       return h(NSwitch, {
-        value: row.EnablePerModelRatelimit,
+        value: row.EnablePerModeRatelimit,
         onUpdateValue(v: boolean) {
           // Assuming `data` is an array of FormData objects
-          data.value[index].EnablePerModelRatelimit = v
+          data.value[index].EnablePerModeRatelimit = v
           UpdateRow(data.value[index])
         },
       })

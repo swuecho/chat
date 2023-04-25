@@ -84,7 +84,7 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		URL           string
 		ApiAuthHeader string
 		ApiAuthKey    string
-		EnablePerModelRatelimit bool
+		EnablePerModeRatelimit bool
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&input)
@@ -102,6 +102,7 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		ApiAuthHeader: input.ApiAuthHeader,
 		ApiAuthKey:    input.ApiAuthKey,
 		UserID:        userID,
+		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
 	})
 
 	if err != nil {
