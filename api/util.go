@@ -50,6 +50,7 @@ func setSSEHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 }
 
+// message string | Error() type
 func RespondWithError(w http.ResponseWriter, code int, message string, details interface{}) {
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(ErrorResponse{Code: code, Message: message, Details: details})

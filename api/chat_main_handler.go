@@ -69,8 +69,6 @@ type Choice struct {
 	Index        int                          `json:"index"`
 }
 
-
-
 type OpenaiChatRequest struct {
 	Model    string                         `json:"model"`
 	Messages []openai.ChatCompletionMessage `json:"messages"`
@@ -221,7 +219,6 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	if shouldReturn {
 		return
 	}
-	// record chat
 	if !isTest(msgs) {
 		h.chatService.logChat(chatSession, msgs, answerText)
 	}
@@ -236,7 +233,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	ctx := context.Background()
 	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
-		http.Error(w, "Error: '"+err.Error()+"'", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat session").Error(), err)
 		return
 	}
 
@@ -373,11 +370,11 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	client := openai.NewClientWithConfig(config)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("CompletionStream error: %v", err), nil)
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request_openai", err)
 		return "", "", true
 	}
 	defer stream.Close()
@@ -457,10 +454,13 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// Release the API token
 	defer func() { <-claudeRateLimiteToken }()
 	// set the api key
-	apiKey := appConfig.CLAUDE.API_KEY
+	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		return "", "", true
+	}
 
-	// set the url
-	url := "https://api.anthropic.com/v1/complete"
+	// OPENAI_API_KEY
 
 	// create a new strings.Builder
 	// iterate through the messages and format them
@@ -480,15 +480,20 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// convert data to json format
 	jsonValue, _ := json.Marshal(jsonData)
 	// create the request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
+
 	if err != nil {
-		fmt.Println("Error while creating request: ", err)
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
+		return "", "", true
 	}
 
 	// add headers to the request
+	token := os.Getenv(chatModel.ApiAuthKey)
+	apiAuthHeader := os.Getenv(chatModel.ApiAuthHeader)
+
+	req.Header.Set(apiAuthHeader, token)
+
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", apiKey)
 
 	// set the streaming flag
 	req.Header.Set("Accept", "text/event-stream")
@@ -496,10 +501,13 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	req.Header.Set("Connection", "keep-alive")
 
 	// create the http client and send the request
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 2 * time.Minute,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error while sending request: ", err)
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		return "", "", true
 	}
 
 	ioreader := bufio.NewReader(resp.Body)
