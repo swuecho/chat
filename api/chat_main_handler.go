@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	uuid "github.com/iris-contrib/go.uuid"
+	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
@@ -557,8 +557,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if answer_id == "" {
-			uuid, _ := uuid.NewV4()
-			answer_id = uuid.String()
+			answer_id = uuid.NewString()
 		}
 		var response ClaudeResponse
 		_ = json.Unmarshal(line, &response)
@@ -690,8 +689,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if answer_id == "" {
-			uuid, _ := uuid.NewV4()
-			answer_id = uuid.String()
+			answer_id = uuid.NewString()
 		}
 		var response CustomModelResponse
 		_ = json.Unmarshal(line, &response)
@@ -710,8 +708,7 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	//message := Message{Role: "assitant", Content:}
 	answer_id := chatUuid
 	if !regenerate {
-		uuid, _ := uuid.NewV4()
-		answer_id = uuid.String()
+		answer_id = uuid.NewString()
 	}
 	setSSEHeader(w)
 
