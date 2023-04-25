@@ -488,10 +488,11 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	}
 
 	// add headers to the request
-	token := os.Getenv(chatModel.ApiAuthKey)
-	apiAuthHeader := os.Getenv(chatModel.ApiAuthHeader)
-
-	req.Header.Set(apiAuthHeader, token)
+	apiKey := os.Getenv(chatModel.ApiAuthKey)
+	authHeaderName := os.Getenv(chatModel.ApiAuthHeader)
+	if authHeaderName != "" {
+		req.Header.Set(authHeaderName, apiKey)
+	}
 
 	req.Header.Set("Content-Type", "application/json")
 
@@ -585,11 +586,8 @@ type CustomModelResponse struct {
 func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
 	// set the api key
-	log.Printf("%+v", chat_compeletion_messages)
-	model := chatSession.Model
-	chat_model, err := h.chatService.q.ChatModelByName(context.Background(), model)
+	chat_model, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		log.Println(err)
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
 	}
@@ -602,7 +600,6 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	// print the user's question
 	// convert assistant's response to json format
 	prompt := formatClaudePrompt(chat_compeletion_messages)
-	log.Println(prompt)
 	// create the json data
 	jsonData := map[string]interface{}{
 		"prompt":               prompt,
@@ -622,13 +619,12 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
 	}
 
-	// add headers to the request
-	req.Header.Set("Content-Type", "application/json")
 	authHeaderName := os.Getenv(chat_model.ApiAuthHeader)
 	if authHeaderName != "" {
 		req.Header.Set(authHeaderName, apiKey)
 	}
 
+	req.Header.Set("Content-Type", "application/json")
 	// set the streaming flag
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Cache-Control", "no-cache")
