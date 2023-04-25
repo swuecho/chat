@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	uuid "github.com/iris-contrib/go.uuid"
+	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	"github.com/sashabaranov/go-openai"
@@ -92,10 +92,9 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 			return nil, eris.Wrap(err, "add user message when not new session: ")
 		}
 	} else {
-		uuidVar, _ := uuid.NewV4()
 		chatPrompt, err := s.q.CreateChatPrompt(ctx,
 			sqlc_queries.CreateChatPromptParams{
-				Uuid:            uuidVar.String(),
+				Uuid:            uuid.NewString(),
 				ChatSessionUuid: chatSessionUuid,
 				Role:            "system",
 				Content:         newQuestion,
@@ -152,11 +151,11 @@ func (s *ChatService) Chat(chatSessionUuid string, chatUuid, newQuestion string,
 		return nil, eris.Wrap(err, "error when try to serialize answer ")
 	}
 
-	answerUuid, _ := uuid.NewV4()
+	answerUuid := uuid.NewString()
 	answer_msg, err := s.q.CreateChatMessage(ctx,
 		sqlc_queries.CreateChatMessageParams{
 			ChatSessionUuid: chatSession.Uuid,
-			Uuid:            answerUuid.String(),
+			Uuid:            answerUuid,
 			Role:            answer.Role,
 			Content:         answer.Content,
 			Raw:             json.RawMessage(jsonMsg),
@@ -284,11 +283,10 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 }
 
 func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion string, userID int32) (sqlc_queries.ChatPrompt, error) {
-	uuidVar, _ := uuid.NewV4()
 	tokenCount, _ := getTokenCount(newQuestion)
 	chatPrompt, err := s.q.CreateChatPrompt(context.Background(),
 		sqlc_queries.CreateChatPromptParams{
-			Uuid:            uuidVar.String(),
+			Uuid:            uuid.NewString(),
 			ChatSessionUuid: chatSessionUuid,
 			Role:            "system",
 			Content:         newQuestion,

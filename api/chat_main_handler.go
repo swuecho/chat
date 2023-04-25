@@ -69,23 +69,7 @@ type Choice struct {
 	Index        int                          `json:"index"`
 }
 
-type Message struct {
-	Role       string `json:"role"`
-	Content    string `json:"content"`
-	tokenCount int32
-}
 
-func (m Message) TokenCount() int32 {
-	if m.tokenCount != 0 {
-		return m.tokenCount
-	} else {
-		tokenCount, err := getTokenCount(m.Content)
-		if err != nil {
-			log.Println(err)
-		}
-		return int32(tokenCount) + 1
-	}
-}
 
 type OpenaiChatRequest struct {
 	Model    string                         `json:"model"`
