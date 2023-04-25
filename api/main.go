@@ -28,6 +28,7 @@ type AppConfig struct {
 	OPENAI struct {
 		API_KEY   string
 		RATELIMIT int
+		PROXY_URL string
 	}
 	CLAUDE struct {
 		API_KEY string

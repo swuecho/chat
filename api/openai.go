@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/samber/lo"
@@ -24,4 +27,21 @@ func getModelBaseUrl(model_url string) string {
 		baseUrl = model_url
 	}
 	return baseUrl
+}
+
+
+func configOpenAIProxy(config openai.ClientConfig) {
+	proxyUrlStr := appConfig.OPENAI.PROXY_URL
+	if proxyUrlStr != "" {
+		proxyUrl, err := url.Parse(proxyUrlStr)
+		if err != nil {
+			log.Printf("Error parsing proxy URL: %v", err)
+		}
+		transport := &http.Transport{
+			Proxy: http.ProxyURL(proxyUrl),
+		}
+		config.HTTPClient = &http.Client{
+			Transport: transport,
+		}
+	}
 }

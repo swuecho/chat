@@ -361,6 +361,8 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	config := openai.DefaultConfig(token)
 	config.BaseURL = baseUrl
 	client := openai.NewClientWithConfig(config)
+	// handler proxy
+	configOpenAIProxy(config)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -430,7 +432,6 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 	return answer, answer_id, false
 }
-
 
 
 type ClaudeResponse struct {
