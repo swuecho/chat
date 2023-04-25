@@ -25,7 +25,7 @@ services:
       - PG_PORT=5432
       # or DATABASE_URL, with the 5 var above
       # you might need set proxy
-      - OPENAI_PROXY_URL=hopethepeopleworkongreatfirewilldiesoon
+      - OPENAI_PROXY_URL=hopethepeoplemakegreatfirewilldiesoon
     depends_on:
       db:
         condition: service_healthy
