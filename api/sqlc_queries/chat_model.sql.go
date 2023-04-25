@@ -52,19 +52,20 @@ func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, 
 }
 
 const createChatModel = `-- name: CreateChatModel :one
-INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key, user_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit
 `
 
 type CreateChatModelParams struct {
-	Name          string
-	Label         string
-	IsDefault     bool
-	Url           string
-	ApiAuthHeader string
-	ApiAuthKey    string
-	UserID        int32
+	Name                   string
+	Label                  string
+	IsDefault              bool
+	Url                    string
+	ApiAuthHeader          string
+	ApiAuthKey             string
+	UserID                 int32
+	EnablePerModeRatelimit bool
 }
 
 func (q *Queries) CreateChatModel(ctx context.Context, arg CreateChatModelParams) (ChatModel, error) {
@@ -76,6 +77,7 @@ func (q *Queries) CreateChatModel(ctx context.Context, arg CreateChatModelParams
 		arg.ApiAuthHeader,
 		arg.ApiAuthKey,
 		arg.UserID,
+		arg.EnablePerModeRatelimit,
 	)
 	var i ChatModel
 	err := row.Scan(

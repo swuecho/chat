@@ -13,8 +13,8 @@ SELECT * FROM chat_model WHERE id = $1;
 SELECT * FROM chat_model WHERE name = $1;
 
 -- name: CreateChatModel :one
-INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key, user_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: UpdateChatModel :one

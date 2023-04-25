@@ -29,7 +29,6 @@ async function submitForm() {
 async function addRow(form: ChatModelFormData) {
   // create a new chat model, the name is randon string
   const chatModel = await CreateUserChatModelPrivilege({
-    ID: 0,
     UserEmail: form.UserEmail,
     ChatModelName: form.ChatModelName,
     RateLimit: parseInt(form.RateLimit, 10),
@@ -39,8 +38,6 @@ async function addRow(form: ChatModelFormData) {
 }
 
 const limitEnabledModels = ref<SelectOption[]>([])
-const defaultModel = ref<string>('gpt-4')
-
 onMounted(async () => {
   limitEnabledModels.value = (await fetchChatModel()).filter((x: any) => x.EnablePerModeRatelimit)
     .map((x: any) => {
@@ -49,7 +46,6 @@ onMounted(async () => {
         label: x.Label,
       }
     })
-  defaultModel.value = limitEnabledModels.value[0]?.value
 })
 </script>
 
@@ -60,7 +56,7 @@ onMounted(async () => {
         <NInput v-model:value="form.UserEmail" :placeholder="$t('common.email_placeholder')" />
       </NFormItem>
       <NFormItem path="ChatModelName" :label="$t('admin.chat_model_name')">
-        <NSelect v-model:value="form.ChatModelName" :options="limitEnabledModels" placeholder="fdsfsd" :default-value="defaultModel" />
+        <NSelect v-model:value="form.ChatModelName" :options="limitEnabledModels" />
       </NFormItem>
       <NFormItem path="RateLimit" :label="$t('admin.rate_limit')">
         <NInput v-model:value="form.RateLimit" />
