@@ -115,6 +115,7 @@
       "EnablePerModeRatelimit": "是否单独流控"
     },
     "per_model_rate_limit": {
+      "FullName": "姓名",
       "UserEmail": "用户邮箱",
       "ChatModelName": "模型名称",
       "RateLimit": "10分钟访问次数",

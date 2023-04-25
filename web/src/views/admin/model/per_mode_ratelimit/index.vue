@@ -10,6 +10,7 @@ import { t } from '@/locales'
 interface RowData {
   ID: string
   ChatModelName: string
+  FullName: string
   UserEmail: string
   RateLimit: string
 }
@@ -36,6 +37,12 @@ function createColumns(): DataTableColumns<RowData> {
   const userEmailField = {
     title: t('admin.per_model_rate_limit.UserEmail'),
     key: 'UserEmail',
+    width: 200,
+  }
+
+  const userFullNameField = {
+    title: t('admin.per_model_rate_limit.FullName'),
+    key: 'FullName',
     width: 200,
   }
 
@@ -84,6 +91,7 @@ function createColumns(): DataTableColumns<RowData> {
   }
 
   return ([
+    userFullNameField,
     userEmailField,
     modelField,
     ratelimitField,
