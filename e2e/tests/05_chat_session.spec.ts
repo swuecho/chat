@@ -2,8 +2,6 @@ import { test, expect } from '@playwright/test';
 import { Pool } from 'pg';
 import { selectUserByEmail } from '../lib/db/user';
 import { selectChatSessionByUserId as selectChatSessionsByUserId } from '../lib/db/chat_session';
-import { selectChatPromptsBySessionUUID } from '../lib/db/chat_prompt';
-import { selectChatMessagesBySessionUUID } from '../lib/db/chat_message';
 import { randomEmail } from '../lib/sample';
 import { db_config } from '../lib/db/config';
 
