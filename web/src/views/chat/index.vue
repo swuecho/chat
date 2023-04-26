@@ -499,7 +499,7 @@ function getDataFromResponseText(responseText: string): string {
             </span>
           </HoverButton>
 
-          <HoverButton v-if="!isMobile" :tooltip="$t('chat.chatSnapshot')" @click="handleSnapshot">
+          <HoverButton data-testid="snpashot-button" v-if="!isMobile" :tooltip="$t('chat.chatSnapshot')" @click="handleSnapshot">
             <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="ic:twotone-ios-share" />
             </span>
