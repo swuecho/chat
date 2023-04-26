@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
@@ -278,6 +279,10 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 	isTestChat := isTest(msgs)
 	isClaude := strings.HasPrefix(model, "claude")
 	isChatGPT := strings.HasPrefix(model, "gpt")
+	completionModel := mapset.NewSet[string]()
+	completionModel.Add(openai.GPT3TextDavinci003)
+	completionModel.Add(openai.GPT3TextDavinci002)
+	isCompletion := completionModel.Contains(model)
 
 	chatStreamFn := h.customChatStream
 	if isClaude {
@@ -286,6 +291,8 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 		chatStreamFn = h.chatStreamTest
 	} else if isChatGPT {
 		chatStreamFn = h.chatStream
+	} else if isCompletion {
+		chatStreamFn = h.CompletionStream
 	}
 	return chatStreamFn
 }
@@ -356,7 +363,13 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		return "", "", true
 	}
 
-	baseUrl := getModelBaseUrl(chatModel.Url)
+	baseUrl, err := getModelBaseUrl(chatModel.Url)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
+		return "", "", true
+	}
+	log.Println(baseUrl)
+
 	token := os.Getenv(chatModel.ApiAuthKey)
 	config := openai.DefaultConfig(token)
 	config.BaseURL = baseUrl
@@ -368,6 +381,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return "", "", true
@@ -433,6 +447,114 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	return answer, answer_id, false
 }
 
+func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+	// check per chat_model limit
+
+	openAIRateLimiter.Wait(context.Background())
+
+	exceedPerModeRateLimitOrError := h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
+	if exceedPerModeRateLimitOrError {
+		return "", "", true
+	}
+
+	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		return "", "", true
+	}
+
+	baseUrl, err := getModelBaseUrl(chatModel.Url)
+	log.Println(baseUrl)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
+		return "", "", true
+	}
+
+	token := os.Getenv(chatModel.ApiAuthKey)
+	config := openai.DefaultConfig(token)
+	config.BaseURL = baseUrl
+	client := openai.NewClientWithConfig(config)
+	// handler proxy
+	configOpenAIProxy(config)
+
+	req := openai.CompletionRequest{
+		Model:       chatSession.Model,
+		MaxTokens:   int(chatSession.MaxTokens),
+		Temperature: float32(chatSession.Temperature),
+		TopP:        float32(chatSession.TopP),
+		// last message contents
+		Prompt: chat_compeletion_messages[len(chat_compeletion_messages)-1].Content,
+		Stream: true,
+	}
+	log.Printf("\n\n\n%+v", req)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	stream, err := client.CreateCompletionStream(ctx, req)
+	if err != nil {
+		log.Println(err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		return "", "", true
+	}
+	defer stream.Close()
+
+	setSSEHeader(w)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		return "", "", true
+	}
+
+	var answer string
+	var answer_id string
+
+	if regenerate {
+		answer_id = chatUuid
+	}
+
+	for {
+		response, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			// send the last message
+			if len(answer) > 0 {
+				final_resp := constructChatCompletionStreamReponse(answer_id, answer)
+				data, _ := json.Marshal(final_resp)
+				fmt.Fprintf(w, "data: %v\n\n", string(data))
+				flusher.Flush()
+			}
+			if chatSession.Debug {
+				req_j, _ := json.Marshal(req)
+				log.Println(string(req_j))
+				answer = answer + "\n" + string(req_j)
+				req_as_resp := constructChatCompletionStreamReponse(answer_id, answer)
+				data, _ := json.Marshal(req_as_resp)
+				fmt.Fprintf(w, "data: %v\n\n", string(data))
+				flusher.Flush()
+			}
+			break
+		}
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
+			return "", "", true
+		}
+		delta := response.Choices[0].Text
+		// log.Println(delta)
+		if chatSession.Debug {
+			log.Printf("%s", delta)
+		}
+		answer += delta
+		if answer_id == "" {
+			answer_id = response.ID
+		}
+		if strings.HasSuffix(delta, "\n") || len(answer) < 200 {
+			response := constructChatCompletionStreamReponse(answer_id, answer)
+			data, _ := json.Marshal(response)
+			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
+		}
+	}
+	return answer, answer_id, false
+}
 
 type ClaudeResponse struct {
 	Completion string      `json:"completion"`
