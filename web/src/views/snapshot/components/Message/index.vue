@@ -1,7 +1,7 @@
 <script setup lang='ts'>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { NDropdown } from 'naive-ui'
-import TextComponent from './Text.vue'
+import TextComponent from '@/views//components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
 import { SvgIcon } from '@/components/common'
 import { copyText } from '@/utils/format'
@@ -40,6 +40,10 @@ function handleSelect(key: 'copyText') {
       copyText({ text: props.text ?? '' })
   }
 }
+
+const code = computed(() => {
+  return props?.model?.includes('davinci') ?? false
+})
 </script>
 
 <template>
@@ -61,7 +65,7 @@ function handleSelect(key: 'copyText') {
       </p>
       <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
         <TextComponent
-          ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
+          ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text" :code="code"
           :loading="loading" :idex="index"
         />
         <div class="flex flex-col">
