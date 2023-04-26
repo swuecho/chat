@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { NDropdown } from 'naive-ui'
 import TextComponent from './Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
@@ -77,6 +77,10 @@ function handleSelect(key: 'copyText' | 'delete' | 'editText') {
   }
 }
 
+const code = computed(() => {
+  return props?.model?.includes('davinci') ?? false
+})
+
 function handleRegenerate() {
   emit('regenerate')
 }
@@ -84,10 +88,8 @@ function handleRegenerate() {
 
 <template>
   <div class="flex w-full mb-6 overflow-hidden" :class="[{ 'flex-row-reverse': inversion }]">
-    <div
-      class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
-      :class="[inversion ? 'ml-2' : 'mr-2']"
-    >
+    <div class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
+      :class="[inversion ? 'ml-2' : 'mr-2']">
       <AvatarComponent :inversion="inversion" :model="model" />
     </div>
     <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
@@ -95,25 +97,19 @@ function handleRegenerate() {
         {{ displayLocaleDate(dateTime) }}
       </p>
       <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
-        <TextComponent
-          ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
-          :loading="loading" :contenteditable="editable" :idex="index" @blur="event => onContentChange(event, index)"
-        />
+        <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
+          :code="code" :loading="loading" :contenteditable="editable" :idex="index"
+          @blur="event => onContentChange(event, index)" />
         <div class="flex flex-col">
           <!-- testid="chat-message-regenerate" not ok, someting like testclass -->
-          <button
-            v-if="!inversion"
+          <button v-if="!inversion"
             class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
-            @click="handleRegenerate"
-          >
+            @click="handleRegenerate">
             <SvgIcon icon="ri:restart-line" />
           </button>
-          <button
-            v-if="!isPrompt && inversion"
-            class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
-            :disabled="pining"
-            @click="emit('togglePin')"
-          >
+          <button v-if="!isPrompt && inversion"
+            class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300" :disabled="pining"
+            @click="emit('togglePin')">
             <SvgIcon :icon="isPin ? 'ri:unpin-line' : 'ri:pushpin-line'" />
           </button>
           <NDropdown :placement="!inversion ? 'right' : 'left'" :options="options" @select="handleSelect">

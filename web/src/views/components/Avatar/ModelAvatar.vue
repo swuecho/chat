@@ -19,6 +19,9 @@ defineProps({
     <template v-else-if="model?.startsWith('gpt-4')">
       <SvgIcon icon="material-symbols:filter-4-rounded" color="green" />
     </template>
+    <template v-else-if="model?.includes('davinci')">
+      <SvgIcon icon="ph:file-code-bold" color="green" />
+    </template>
     <template v-else-if="model?.startsWith('gpt')">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true" width="0.8em" height="0.8em">
         <path
