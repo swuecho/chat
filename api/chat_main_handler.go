@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
@@ -278,7 +279,10 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 	isTestChat := isTest(msgs)
 	isClaude := strings.HasPrefix(model, "claude")
 	isChatGPT := strings.HasPrefix(model, "gpt")
-	isCompletion := model == "text-davinci-003"
+	completionModel := mapset.NewSet[string]()
+	completionModel.Add(openai.GPT3TextDavinci003)
+	completionModel.Add(openai.GPT3TextDavinci002)
+	isCompletion := completionModel.Contains(model)
 
 	chatStreamFn := h.customChatStream
 	if isClaude {
@@ -364,6 +368,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
 		return "", "", true
 	}
+	log.Println(baseUrl)
 
 	token := os.Getenv(chatModel.ApiAuthKey)
 	config := openai.DefaultConfig(token)
@@ -459,6 +464,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	}
 
 	baseUrl, err := getModelBaseUrl(chatModel.Url)
+	log.Println(baseUrl)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
 		return "", "", true
@@ -472,10 +478,12 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	configOpenAIProxy(config)
 
 	req := openai.CompletionRequest{
-		Model:     openai.GPT3TextDavinci003,
-		MaxTokens: int(chatSession.MaxTokens),
+		Model:       chatSession.Model,
+		MaxTokens:   int(chatSession.MaxTokens),
+		Temperature: float32(chatSession.Temperature),
+		TopP:        float32(chatSession.TopP),
 		// last message contents
-		Prompt: chat_compeletion_messages[len(chat_compeletion_messages)-1],
+		Prompt: chat_compeletion_messages[len(chat_compeletion_messages)-1].Content,
 		Stream: true,
 	}
 	log.Printf("\n\n\n%+v", req)
@@ -483,6 +491,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	defer cancel()
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
+		log.Println(err.Error())
 		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return "", "", true
 	}

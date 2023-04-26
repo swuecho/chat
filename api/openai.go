@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
@@ -18,28 +17,15 @@ func messagesToOpenAIMesages(messages []Message) []openai.ChatCompletionMessage 
 	return open_ai_msgs
 }
 
-
-
-
-func extractVersion(parsedURL *url.URL) (string, error) {
-	pathSegments := strings.Split(parsedURL.Path, "/")
-	if len(pathSegments) > 0 {
-		return pathSegments[0], nil
-	}
-
-	return "", fmt.Errorf("version not found")
-}
-
 func getModelBaseUrl(rawURL string) (string, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return "", err
 	}
-	version, err := extractVersion(parsedURL)
 	if err != nil {
 		return "", err
 	}
-	baseURL := fmt.Sprintf("%s://%s/%s", parsedURL.Scheme, parsedURL.Hostname(), version)
+	baseURL := fmt.Sprintf("%s://%s/%s", parsedURL.Scheme, parsedURL.Hostname(), "v1")
 	return baseURL, nil
 }
 
