@@ -103,7 +103,7 @@ watch(appStore, () => {
         <UserAvatar />
       </NDropdown>
     </div>
-    <HoverButton :tooltip="$t('setting.switchLanguage')" @click="openSnapshotAll">
+    <HoverButton :tooltip="$t('setting.snapshotLink')" @click="openSnapshotAll">
       <span class="text-xl text-[#4f555e] dark:text-white">
         <SvgIcon icon="carbon:table-of-contents" />
       </span>
