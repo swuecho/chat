@@ -477,16 +477,17 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	// handler proxy
 	configOpenAIProxy(config)
 
+	// latest message contents
 	prompt := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
+	N := int(chatSession.MaxLength)
 	req := openai.CompletionRequest{
 		Model:       chatSession.Model,
 		MaxTokens:   int(chatSession.MaxTokens),
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
-		N:           int(chatSession.MaxLength),
-		// last message contents
-		Prompt: prompt,
-		Stream: true,
+		N:           N,
+		Prompt:      prompt,
+		Stream:      true,
 	}
 	log.Printf("\n\n\n%+v", req)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -509,7 +510,6 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	var answer string
 	var answer_id string
-	N := int(chatSession.MaxLength)
 	textBuffer := newTextBuffer(N, "```\n"+prompt, "\n```\n") // create slice of string builders
 	if regenerate {
 		answer_id = chatUuid
