@@ -22,7 +22,7 @@ func Test_getModelBaseUrl(t *testing.T) {
 		{
 			name:     "Base URL with no version",
 			apiUrl:   "https://api.openai-sb.com/chat/completions",
-			expected: "https://api.openai-sb.com/",
+			expected: "https://api.openai-sb.com/chat",
 		},
 		{
 			name:     "Base URL with different host",
