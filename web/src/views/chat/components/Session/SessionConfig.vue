@@ -88,7 +88,7 @@ const tokenUpperLimit = computed(() => {
           </NSpace>
         </NRadioGroup>
       </NFormItem>
-      <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
+      <NFormItem :label=" $t(modelRef.chatModel === 'text-davici-003' ? 'chat.contextCount' : 'chat.completionsCount', { contextCount: modelRef.contextCount })" path="contextCount">
         <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />
       </NFormItem>
       <NFormItem :label="$t('chat.temperature', { temperature: modelRef.temperature })" path="temperature">
