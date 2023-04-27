@@ -23,7 +23,7 @@ func getModelBaseUrl(apiUrl string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	version := parsedUrl.Path[1 : strings.Index(parsedUrl.Path[1:], "/")]
+	version := parsedUrl.Path[1 : strings.Index(parsedUrl.Path[1:], "/")+1]
 	return fmt.Sprintf("%s://%s/%s", parsedUrl.Scheme, parsedUrl.Host, version), nil
 }
 
