@@ -158,18 +158,18 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginParams LoginParams
 	err := json.NewDecoder(r.Body).Decode(&loginParams)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "error.invalid_request", nil)
 		return
 	}
 	user, err := h.service.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
 	if err != nil {
-		http.Error(w, eris.Wrap(err, "invalid email or password: ").Error(), http.StatusUnauthorized)
+		RespondWithError(w, http.StatusUnauthorized, "error.invalid_email_or_password", err)
 		return
 	}
 	token, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience)
 
 	if err != nil {
-		http.Error(w, "failed to generate token", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_generate_token", err)
 		return
 	}
 
