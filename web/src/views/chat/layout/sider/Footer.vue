@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { computed, defineAsyncComponent, h, ref } from 'vue'
+import { computed, defineAsyncComponent, h, ref, watch } from 'vue'
 import { NDropdown } from 'naive-ui'
 import { HoverButton, SvgIcon, UserAvatar } from '@/components/common'
 import { useAppStore, useAuthStore, useChatStore, useUserStore } from '@/store/modules'
@@ -55,7 +55,7 @@ function handleSelect(key: string) {
     handleLogout()
 }
 
-const options = [
+const options = ref<any>([
   {
     label: t('setting.setting'),
     key: 'profile',
@@ -71,14 +71,35 @@ const options = [
     key: 'logout',
     icon: renderIcon('ri:logout-circle-r-line'),
   },
-]
+])
+
+// refresh after lang change
+watch(appStore, () => {
+  options.value = [
+    {
+      label: t('setting.setting'),
+      key: 'profile',
+      icon: renderIcon('ph:user-circle-light'),
+    },
+    {
+      label: t('setting.language'),
+      key: 'language',
+      icon: renderIcon('carbon:ibm-watson-language-translator'),
+    },
+    {
+      label: t('common.logout'),
+      key: 'logout',
+      icon: renderIcon('ri:logout-circle-r-line'),
+    },
+  ]
+})
 </script>
 
 <template>
   <footer class="flex items-center justify-between min-w-0 p-4 overflow-hidden border-t dark:border-neutral-800">
     <Setting v-if="show" v-model:visible="show" />
     <div class="flex-1 flex-shrink-0 overflow-hidden">
-      <NDropdown trigger="click" :options="options" @select="handleSelect">
+      <NDropdown :options="options" @select="handleSelect">
         <UserAvatar />
       </NDropdown>
     </div>
