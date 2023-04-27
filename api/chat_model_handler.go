@@ -78,12 +78,12 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 
 	var input struct {
-		Name          string
-		Label         string
-		IsDefault     bool
-		URL           string
-		ApiAuthHeader string
-		ApiAuthKey    string
+		Name                   string
+		Label                  string
+		IsDefault              bool
+		URL                    string
+		ApiAuthHeader          string
+		ApiAuthKey             string
 		EnablePerModeRatelimit bool
 	}
 
@@ -95,13 +95,13 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 
 	ChatModel, err := h.db.CreateChatModel(r.Context(), sqlc_queries.CreateChatModelParams{
-		Name:          input.Name,
-		Label:         input.Label,
-		IsDefault:     input.IsDefault,
-		Url:           input.URL,
-		ApiAuthHeader: input.ApiAuthHeader,
-		ApiAuthKey:    input.ApiAuthKey,
-		UserID:        userID,
+		Name:                   input.Name,
+		Label:                  input.Label,
+		IsDefault:              input.IsDefault,
+		Url:                    input.URL,
+		ApiAuthHeader:          input.ApiAuthHeader,
+		ApiAuthKey:             input.ApiAuthKey,
+		UserID:                 userID,
 		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
 	})
 
