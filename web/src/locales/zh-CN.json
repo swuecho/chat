@@ -69,7 +69,8 @@
     "debug": "调试模式",
     "sessionConfig": "会话设置",
     "enable_debug": "启用",
-    "disable_debug": "关闭"
+    "disable_debug": "关闭",
+    "completionsCount": "结果数量:  {contextCount}"
   },
   "chat_snapshot": {
     "title": "对话集",

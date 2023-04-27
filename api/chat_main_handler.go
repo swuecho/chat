@@ -477,13 +477,15 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	// handler proxy
 	configOpenAIProxy(config)
 
+	prompt := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
 	req := openai.CompletionRequest{
 		Model:       chatSession.Model,
 		MaxTokens:   int(chatSession.MaxTokens),
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
+		N:           int(chatSession.MaxLength),
 		// last message contents
-		Prompt: chat_compeletion_messages[len(chat_compeletion_messages)-1].Content,
+		Prompt: prompt,
 		Stream: true,
 	}
 	log.Printf("\n\n\n%+v", req)
@@ -507,7 +509,8 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	var answer string
 	var answer_id string
-
+	N := int(chatSession.MaxLength)
+	textBuffer := newTextBuffer(N, "```\n"+prompt, "\n```\n") // create slice of string builders
 	if regenerate {
 		answer_id = chatUuid
 	}
@@ -537,15 +540,21 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
 			return "", "", true
 		}
+		log.Printf("%+v", response.Choices)
+
+		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Text
+		textBuffer.appendByIndex(textIdx, delta)
 		// log.Println(delta)
 		if chatSession.Debug {
-			log.Printf("%s", delta)
+			log.Printf("%d: %s", textIdx, delta)
 		}
-		answer += delta
 		if answer_id == "" {
 			answer_id = response.ID
 		}
+		// concatenate all string builders into a single string
+		answer = textBuffer.String("\n\n")
+
 		if strings.HasSuffix(delta, "\n") || len(answer) < 200 {
 			response := constructChatCompletionStreamReponse(answer_id, answer)
 			data, _ := json.Marshal(response)
