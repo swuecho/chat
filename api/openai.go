@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
@@ -17,16 +18,13 @@ func messagesToOpenAIMesages(messages []Message) []openai.ChatCompletionMessage 
 	return open_ai_msgs
 }
 
-func getModelBaseUrl(rawURL string) (string, error) {
-	parsedURL, err := url.Parse(rawURL)
+func getModelBaseUrl(apiUrl string) (string, error) {
+	parsedUrl, err := url.Parse(apiUrl)
 	if err != nil {
 		return "", err
 	}
-	if err != nil {
-		return "", err
-	}
-	baseURL := fmt.Sprintf("%s://%s/%s", parsedURL.Scheme, parsedURL.Hostname(), "v1")
-	return baseURL, nil
+	version := parsedUrl.Path[1 : strings.Index(parsedUrl.Path[1:], "/")]
+	return fmt.Sprintf("%s://%s/%s", parsedUrl.Scheme, parsedUrl.Host, version), nil
 }
 
 func configOpenAIProxy(config openai.ClientConfig) {
