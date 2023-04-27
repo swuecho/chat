@@ -50,10 +50,10 @@ async function handleLogin() {
     window.location.reload()
   }
   catch (error: any) {
-    if (error.response?.status === 401 && error.response?.data === 'invalid email or password: sql: no rows in result set\n')
-      ms.error(t('common.please_register'))
-    else
-      ms.error(error.message ?? 'error')
+    console.log(error)
+    const response = error.response
+    if (response.status >= 400)
+      ms.error(t(response.data.message))
     authStore.removeToken()
     authStore.removeExpiresIn()
   }
