@@ -1,9 +1,10 @@
 <script setup lang='ts'>
-import { computed, defineAsyncComponent, ref } from 'vue'
+import { computed, defineAsyncComponent, h, ref } from 'vue'
+import { NDropdown } from 'naive-ui'
 import { HoverButton, SvgIcon, UserAvatar } from '@/components/common'
 import { useAppStore, useAuthStore, useChatStore, useUserStore } from '@/store/modules'
 import { isAdmin } from '@/utils/jwt'
-
+import { t } from '@/locales'
 const Setting = defineAsyncComponent(() => import('@/components/common/Setting/index.vue'))
 
 const authStore = useAuthStore()
@@ -29,26 +30,61 @@ function handleChangelang() {
 function openAdminPanel() {
   window.open('/#/admin/user', '_blank')
 }
+
+function openSnapshotAll() {
+  window.open('/#/snapshot_all', '_blank')
+}
+
+function handleSetting() {
+  show.value = true
+}
+
+const renderIcon = (icon: string) => {
+  return () => h(SvgIcon, {
+    class: 'text-xl',
+    icon,
+  })
+}
+
+function handleSelect(key: string) {
+  if (key === 'profile')
+    handleSetting()
+  else if (key === 'language')
+    handleChangelang()
+  else if (key === 'logout')
+    handleLogout()
+}
+
+const options = [
+  {
+    label: t('setting.setting'),
+    key: 'profile',
+    icon: renderIcon('ph:user-circle-light'),
+  },
+  {
+    label: t('setting.language'),
+    key: 'language',
+    icon: renderIcon('carbon:ibm-watson-language-translator'),
+  },
+  {
+    label: t('common.logout'),
+    key: 'logout',
+    icon: renderIcon('ri:logout-circle-r-line'),
+  },
+]
 </script>
 
 <template>
   <footer class="flex items-center justify-between min-w-0 p-4 overflow-hidden border-t dark:border-neutral-800">
+    <Setting v-if="show" v-model:visible="show" />
     <div class="flex-1 flex-shrink-0 overflow-hidden">
-      <UserAvatar />
+      <NDropdown trigger="click" :options="options" @select="handleSelect">
+        <UserAvatar />
+      </NDropdown>
     </div>
-    <HoverButton :tooltip="$t('common.logout')" @click="handleLogout">
+    <HoverButton :tooltip="$t('setting.switchLanguage')" @click="openSnapshotAll">
       <span class="text-xl text-[#4f555e] dark:text-white">
-        <SvgIcon icon="ri:logout-circle-r-line" />
-      </span>
-    </HoverButton>
-    <HoverButton :tooltip="$t('setting.switchLanguage')" @click="handleChangelang">
-      <span class="text-xl text-[#4f555e] dark:text-white">
-        <SvgIcon icon="carbon:ibm-watson-language-translator" />
-      </span>
-    </HoverButton>
-    <HoverButton :tooltip="$t('setting.setting')" @click="show = true">
-      <span class="text-xl text-[#4f555e] dark:text-white">
-        <SvgIcon icon="ri:settings-4-line" />
+        <SvgIcon icon="carbon:table-of-contents" />
       </span>
     </HoverButton>
     <HoverButton v-if="isAdminUser" :tooltip="$t('setting.admin')" @click="openAdminPanel">
@@ -56,6 +92,5 @@ function openAdminPanel() {
         <SvgIcon icon="eos-icons:admin-outlined" />
       </span>
     </HoverButton>
-    <Setting v-if="show" v-model:visible="show" />
   </footer>
 </template>
