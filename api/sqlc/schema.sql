@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS chat_model (
   -- model label 'Claude', 'GPT-3.5 Turbo'
   label TEXT  DEFAULT '' NOT NULL,   
   is_default BOOLEAN DEFAULT false NOT NULL,
+  base_url TEXT DEFAULT '' NOT NULL,
   url TEXT  DEFAULT '' NOT NULL,  
   api_auth_header TEXT DEFAULT '' NOT NULL,   
   -- env var that contains the api key
@@ -25,9 +26,10 @@ CREATE TABLE IF NOT EXISTS chat_model (
 
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS user_id INTEGER NOT NULL default 1;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS enable_per_mode_ratelimit BOOLEAN DEFAULT false NOT NULL ;
+ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS base_url TEXT DEFAULT '' NOT NULL;
 
 
-INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key)
+INSERT INTO chat_model(name, label, is_default, url, path, api_auth_header, api_auth_key)
 VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY'),
         ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
         ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY'),
