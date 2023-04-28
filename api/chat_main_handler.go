@@ -398,7 +398,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 
 	var answer string
 	var answer_id string
-
+	textBuffer := newTextBuffer(int(chatSession.N), "", "")
 	if regenerate {
 		answer_id = chatUuid
 	}
@@ -428,12 +428,14 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
 			return "", "", true
 		}
+		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Delta.Content
+		textBuffer.appendByIndex(textIdx, delta)
 		// log.Println(delta)
 		if chatSession.Debug {
 			log.Printf("%s", delta)
 		}
-		answer += delta
+		answer = textBuffer.String("\n")
 		if answer_id == "" {
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
@@ -464,7 +466,6 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	}
 
 	baseUrl, err := getModelBaseUrl(chatModel.Url)
-	log.Println(baseUrl)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
 		return "", "", true
@@ -479,7 +480,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	// latest message contents
 	prompt := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
-	N := int(chatSession.MaxLength)
+	N := int(chatSession.N)
 	req := openai.CompletionRequest{
 		Model:       chatSession.Model,
 		MaxTokens:   int(chatSession.MaxTokens),
@@ -489,12 +490,10 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 		Prompt:      prompt,
 		Stream:      true,
 	}
-	log.Printf("\n\n\n%+v", req)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
-		log.Println(err.Error())
 		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return "", "", true
 	}
@@ -540,8 +539,6 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
 			return "", "", true
 		}
-		log.Printf("%+v", response.Choices)
-
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Text
 		textBuffer.appendByIndex(textIdx, delta)
@@ -797,7 +794,6 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 		if err != nil {
 			return "", "", true
 		}
-		log.Println(string(line))
 		if !bytes.HasPrefix(line, headerData) {
 			continue
 		}
@@ -868,6 +864,7 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compele
 		MaxTokens:   int(chatSession.MaxTokens),
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
+		N:           int(chatSession.N),
 		Stream:      true,
 	}
 	return openai_req

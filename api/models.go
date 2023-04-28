@@ -74,6 +74,7 @@ type SimpleChatSession struct {
 	MaxLength   int     `json:"maxLength"`
 	Temperature float64 `json:"temperature"`
 	TopP        float64 `json:"topP"`
+	N           int32   `json:"n"`
 	MaxTokens   int32   `json:"maxTokens"`
 	Debug       bool    `json:"debug"`
 	Model       string  `json:"model"`

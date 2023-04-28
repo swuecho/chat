@@ -21,6 +21,7 @@ interface ModelType {
   temperature: number
   maxTokens: number
   topP: number
+  n: number
   debug: boolean
 }
 
@@ -30,6 +31,7 @@ const modelRef: Ref<ModelType> = ref({
   temperature: session.value?.temperature ?? 1.0,
   maxTokens: session.value?.maxTokens ?? 512,
   topP: session.value?.topP ?? 1.0,
+  n: session.value?.n ?? 1,
   debug: session.value?.debug ?? false,
 })
 
@@ -41,6 +43,7 @@ const debouneUpdate = debounce(async (model: ModelType) => {
     temperature: model.temperature,
     maxTokens: model.maxTokens,
     topP: model.topP,
+    n: model.n,
     debug: model.debug,
     model: model.chatModel,
   })
@@ -88,7 +91,7 @@ const tokenUpperLimit = computed(() => {
           </NSpace>
         </NRadioGroup>
       </NFormItem>
-      <NFormItem :label=" $t(modelRef.chatModel === 'text-davici-003' ? 'chat.contextCount' : 'chat.completionsCount', { contextCount: modelRef.contextCount })" path="contextCount">
+      <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
         <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />
       </NFormItem>
       <NFormItem :label="$t('chat.temperature', { temperature: modelRef.temperature })" path="temperature">
@@ -99,6 +102,9 @@ const tokenUpperLimit = computed(() => {
       </NFormItem>
       <NFormItem :label="$t('chat.maxTokens', { maxTokens: modelRef.maxTokens })" path="maxTokens">
         <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="tokenUpperLimit" :step="16" :tooltip="false" />
+      </NFormItem>
+      <NFormItem :label="$t('chat.N', { n: modelRef.n })" path="n">
+        <NSlider v-model:value="modelRef.n" :min="1" :max="10" :step="1" :tooltip="false" />
       </NFormItem>
       <NFormItem :label="$t('chat.debug')" path="debug">
         <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode">

@@ -19,6 +19,7 @@ declare namespace Chat {
 		temperature?: number
 		model?: string
 		topP?: number
+		n?: number
 		maxTokens?: number
 		debug?: boolean
 	}
