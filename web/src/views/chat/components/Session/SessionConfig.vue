@@ -103,7 +103,7 @@ const tokenUpperLimit = computed(() => {
       <NFormItem :label="$t('chat.maxTokens', { maxTokens: modelRef.maxTokens })" path="maxTokens">
         <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="tokenUpperLimit" :step="16" :tooltip="false" />
       </NFormItem>
-      <NFormItem :label="$t('chat.N', { n: modelRef.n })" path="n">
+      <NFormItem v-if="modelRef.chatModel.startsWith('gpt') || modelRef.chatModel.includes('davinci')" :label="$t('chat.N', { n: modelRef.n })" path="n">
         <NSlider v-model:value="modelRef.n" :min="1" :max="10" :step="1" :tooltip="false" />
       </NFormItem>
       <NFormItem :label="$t('chat.debug')" path="debug">
