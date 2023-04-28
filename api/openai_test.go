@@ -29,6 +29,11 @@ func Test_getModelBaseUrl(t *testing.T) {
 			apiUrl:   "https://example.com/v1/chat/completions",
 			expected: "https://example.com/v1",
 		},
+		{
+			name:     "Base URL with different host",
+			apiUrl:   "https://docs-test-001.openai.azure.com/",
+			expected: "https://docs-test-001.openai.azure.com/",
+		},
 	}
 
 	for _, tc := range testCases {
