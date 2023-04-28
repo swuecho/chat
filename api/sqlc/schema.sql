@@ -106,15 +106,19 @@ CREATE TABLE IF NOT EXISTS chat_session (
     max_length integer DEFAULT 0 NOT NULL,
     temperature float DEFAULT 1.0 NOT NUll,
     top_p float DEFAULT 1.0 NOT NUll,
-    max_tokens int DEFAULT 512 NOT NULL
+    max_tokens int DEFAULT 512 NOT NULL,
+    n  integer DEFAULT 1 NOT NULL
 );
+
 
 -- chat_session
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 512 NOT NULL; 
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NOT NULL; 
-ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS  model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';
+ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS n INTEGER DEFAULT 1 NOT NULL;
+
 
 -- add hash index on uuid
 CREATE INDEX IF NOT EXISTS chat_session_uuid_idx ON chat_session using hash (uuid) ;

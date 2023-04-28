@@ -230,6 +230,7 @@ type UpdateChatSessionRequest struct {
 	Temperature float64 `json:"temperature"`
 	Model       string  `json:"model"`
 	TopP        float64 `json:"topP"`
+	N           int32   `json:"n"`
 	MaxTokens   int32   `json:"maxTokens"`
 	Debug       bool    `json:"debug"`
 }
@@ -261,6 +262,7 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.Temperature = sessionReq.Temperature
 	sessionParams.Model = sessionReq.Model
 	sessionParams.TopP = sessionReq.TopP
+	sessionParams.N= sessionReq.N
 	sessionParams.MaxTokens = sessionReq.MaxTokens
 	sessionParams.Debug = sessionReq.Debug
 	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), sessionParams)

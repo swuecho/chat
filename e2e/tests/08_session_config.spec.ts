@@ -42,6 +42,7 @@ test('test', async ({ page }) => {
   const sessions_2 = await selectChatSessionsByUserId(pool, user.id);
   const new_sesion_2 = sessions_2[0]
   expect(new_sesion_2.temperature).toBe(1);
+  expect(new_sesion_2.n).toBe(1);
   expect(new_sesion_2.debug).toBe(true);
 });
 

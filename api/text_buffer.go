@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type textBuffer struct {
 	builders []strings.Builder
@@ -25,8 +28,11 @@ func (tb *textBuffer) appendByIndex(index int, text string) {
 
 func (tb *textBuffer) String(separator string) string {
 	var result strings.Builder
-
+	n := len(tb.builders)
 	for i, builder := range tb.builders {
+		if n > 1 {
+			result.WriteString(fmt.Sprintf("\n%d\n---\n", i+1))
+		}
 		result.WriteString(tb.prefix)
 		result.WriteString(builder.String())
 		result.WriteString(tb.suffix)

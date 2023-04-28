@@ -98,6 +98,7 @@ type ChatSession struct {
 	Temperature float64
 	TopP        float64
 	MaxTokens   int32
+	N           int32
 	Debug       bool
 }
 

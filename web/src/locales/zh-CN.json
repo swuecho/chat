@@ -64,6 +64,7 @@
     "model": "模型(openai gpt4 需要单独申请, claude的免费key可以使用所有claude 模型)",
     "maxTokens": "最大问答总token数量: {maxTokens}",
     "topP": "Top P: {topP}, 常用词占比, 一般与温度参数只调节一个即可",
+    "N": "结果数量: {n}",
     "frequencyPenalty": "频率惩罚",
     "presencePenalty": "存在惩罚",
     "debug": "调试模式",
