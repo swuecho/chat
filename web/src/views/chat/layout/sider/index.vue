@@ -41,6 +41,7 @@ async function handleAdd() {
     temperature: 1,
     model: default_model.Name,
     topP: 1,
+    n: 1,
     maxTokens: 512,
     debug: false,
   })
