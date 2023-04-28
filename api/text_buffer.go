@@ -28,9 +28,11 @@ func (tb *textBuffer) appendByIndex(index int, text string) {
 
 func (tb *textBuffer) String(separator string) string {
 	var result strings.Builder
-
+	n := len(tb.builders)
 	for i, builder := range tb.builders {
-		result.WriteString(fmt.Sprintf("\n%d\n---\n", i+1))
+		if n > 1 {
+			result.WriteString(fmt.Sprintf("\n%d\n---\n", i+1))
+		}
 		result.WriteString(tb.prefix)
 		result.WriteString(builder.String())
 		result.WriteString(tb.suffix)
