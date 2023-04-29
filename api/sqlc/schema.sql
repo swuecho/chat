@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS jwt_secrets (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -62,8 +61,6 @@ CREATE TABLE IF NOT EXISTS auth_user (
 
 -- add index on email
 CREATE INDEX IF NOT EXISTS auth_user_email_idx ON auth_user (email);
-
-
 
 CREATE TABLE IF NOT EXISTS auth_user_management (
     id SERIAL PRIMARY KEY,
@@ -230,11 +227,16 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
     tags JSONB DEFAULT '{}' NOT NULL,
     session JSONB DEFAULT '{}' NOT NULL,
     conversation JSONB DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    text text DEFAULT '' NOT NULL
 );
 
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS session JSONB DEFAULT '{}' NOT NULL;
+ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS text text DEFAULT '' NOT NULL;
+
+
+
 
 
 -- add index on user id
@@ -244,3 +246,6 @@ CREATE INDEX IF NOT EXISTS chat_snapshot_user_id_idx ON chat_snapshot (user_id);
 CREATE INDEX IF NOT EXISTS chat_snapshot_created_at_idx ON chat_snapshot using brin (created_at) ;
 
 UPDATE chat_snapshot SET model = 'gpt-3.5-turbo' WHERE model = '';
+
+
+

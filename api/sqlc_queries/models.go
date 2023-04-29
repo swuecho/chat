@@ -113,6 +113,7 @@ type ChatSnapshot struct {
 	Session      json.RawMessage
 	Conversation json.RawMessage
 	CreatedAt    time.Time
+	Text         string
 }
 
 type JwtSecret struct {

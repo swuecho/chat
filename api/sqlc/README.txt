@@ -126,3 +126,18 @@ Note that when generating password hashes using Django or any other library, it 
 
 
 
+DROP FUNCTION IF EXISTS tsvector_immutable(text);
+-- why this is necessary?
+CREATE FUNCTION tsvector_immutable(text) RETURNS tsvector AS $$
+    SELECT to_tsvector($1)
+$$ LANGUAGE sql IMMUTABLE;
+
+
+UPDATE chat_snapshot
+SET text = array_to_string(ARRAY(SELECT jsonb_array_elements(conversation)->>'text'), ' ')::text
+WHERE text = ''
+
+ALTER TABLE chat_snapshot
+ADD COLUMN IF NOT EXISTS text_vector tsvector generated always as	(
+    to_tsvector(text)
+) stored; 

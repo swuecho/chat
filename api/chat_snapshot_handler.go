@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -45,6 +46,10 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 	}
 	// TODO: fix hardcode
 	simple_msgs, err := h.service.GetChatHistoryBySessionUUID(r.Context(), chatSessionUuid, 1, 10000)
+	text := lo.Reduce(simple_msgs, func(acc string, curr SimpleChatMessage, _ int) string {
+		return acc + curr.Text
+	},
+		"")
 	// save all simple_msgs to a jsonb field in chat_snapshot
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -68,6 +73,7 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 		UserID:       user_id,
 		Session:      chatSessionMessage,
 		Tags:         json.RawMessage([]byte("{}")),
+		Text:         text,
 		Conversation: simple_msgs_raw,
 	})
 	if err != nil {
