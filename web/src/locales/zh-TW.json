@@ -6,7 +6,11 @@
             "actions": "操作",
             "apiAuthHeader": "Auth Header 鍵",
             "apiAuthKey": "API KEY對應的環境變量",
+            "api_auth_header": "Auth Header 鍵",
+            "api_auth_key": "API KEY對應的環境變數",
+            "enable_per_model_rate_limit": "是否單獨流控",
             "isDefault": "默認?",
+            "is_default": "默認?",
             "label": "模型名稱",
             "name": "身分識別號",
             "url": "完整的URL請求"
@@ -20,6 +24,7 @@
         "openPanel": "打開管理面板",
         "per_model_rate_limit": {
             "ChatModelName": "模型名稱",
+            "FullName": "姓名",
             "RateLimit": "10分鐘訪問次數",
             "UserEmail": "用戶郵箱",
             "actions": "操作"
@@ -42,11 +47,13 @@
         "userStat": "用戶統計"
     },
     "chat": {
+        "N": "結果數量: {n}",
         "adjustParameters": "調整參數",
         "chatSnapshot": "會話快照到網頁",
         "clearChat": "清空對話",
         "clearChatConfirm": "是否清空對話?",
         "clearHistoryConfirm": "確定清空聊天記錄?",
+        "completionsCount": "結果數量: {contextCount}",
         "contextCount": "上下文數量: {contextCount}",
         "contextLength": "上下文數量，預設10（會話開始的2條 + 最近的8條）",
         "copied": "複製成功",
@@ -92,6 +99,7 @@
         "title": "對話集"
     },
     "common": {
+        "ask_user_register": "請註冊, 只有註冊帳號才能繼續對話",
         "clear": "清空",
         "confirm": "確認",
         "delete": "刪除",
@@ -124,15 +132,17 @@
         "yes": "是"
     },
     "error": {
-        "invalid_request": "無效請求",
-        "invalid_email_or_password": "無效的電子郵件或密碼",
-        "fail_to_generate_token": "生成令牌失敗",
         "NotAdmin": "非管理員禁止訪問",
-        "fail_to_get_rate_limit": "無法查詢模型對應的配額，請聯繫管理員開通",
         "NotAuthorized": "請先登入",
+        "fail_to_do_request": "請求模型失敗, 請稍後再試, 或聯繫管理員",
+        "fail_to_generate_token": "生成令牌失敗",
+        "fail_to_get_rate_limit": "無法查詢模型對應的配額，請聯繫管理員開通",
+        "fail_to_make_request": "請求模型失敗, 請稍後再試, 或聯繫管理員",
         "gpt-4_over_limit": "gpt4 發送消息達到上限，請聯繫管理員開通，或增加額度",
         "invalidEmail": "電子郵件格式不正確",
         "invalidPassword": "密碼格式不正確，長度至少需為6位，應包含1個大寫字母、1個小寫字母、1個數字、1個特殊字符",
+        "invalid_email_or_password": "無效的電子郵件或密碼",
+        "invalid_request": "無效請求",
         "rateLimit": "發送消息數量已經達到上限，請聯繫管理員",
         "syncChatSession": "同步失敗，請稍後再試",
         "token_length_exceed_limit": "總消息長度數量超過上限，請減少上下文數量、減少消息長度或者開啟新的會話"
