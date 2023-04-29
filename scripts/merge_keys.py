@@ -1,5 +1,5 @@
-import argparse
 import json
+from pathlib import Path
 
     # Function to recursively merge two dictionaries
 def merge_dicts(d1, d2):
@@ -32,13 +32,13 @@ def merge_json_files(file1, file2):
     with open(file1, 'w') as fp1:
         json.dump(data1, fp1, indent=4,ensure_ascii=False, sort_keys=True)
 
-# Define a command line parser and arguments
-parser = argparse.ArgumentParser(description='Merge two JSON files recursively by key.')
-parser.add_argument('file1', type=str, help='The filename of the first JSON file to merge.')
-parser.add_argument('file2', type=str, help='The filename of the second JSON file to merge.')
-args = parser.parse_args()
 
-# Merge the JSON data from the files
-merged_data = merge_json_files(args.file1, args.file2)
-
-# python json_merge.py A.json A-more.json
+# main
+locale_dir = Path(__file__).parent.parent / "web/src/locales"
+extra_jsons = locale_dir.glob("*-more.json")
+# web/src/locales/en-US.json web/src/locales/en-US-more.json 
+for extra in extra_jsons:
+    print(extra)
+    origin = extra.parent / extra.name.replace('-more', '')
+    print(origin, extra)
+    merge_json_files(origin, extra)
