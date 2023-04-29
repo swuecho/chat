@@ -373,7 +373,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	// check if azure
 	var config openai.ClientConfig
 	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
-		config = openai.DefaultAzureConfig(token, baseUrl, os.Getenv("AZURE_RESOURCE_NAME"))
+		config = openai.DefaultAzureConfig(token, chatModel.Url, os.Getenv("AZURE_RESOURCE_NAME"))
 	} else {
 		config = openai.DefaultConfig(token)
 		config.BaseURL = baseUrl
@@ -481,7 +481,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	var config openai.ClientConfig
 
 	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
-		config = openai.DefaultAzureConfig(token, baseUrl, os.Getenv("AZURE_RESOURCE_NAME"))
+		config = openai.DefaultAzureConfig(token, chatModel.Url, os.Getenv("AZURE_RESOURCE_NAME"))
 	} else {
 		config = openai.DefaultConfig(token)
 		config.BaseURL = baseUrl
