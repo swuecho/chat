@@ -62,7 +62,7 @@ npm install
 npx playwright test # --ui 
 ```
 
-The instruction might not be accuare, ask in issue or disscussion if unclear.
+The instruction might not be accurate, ask in issue or discussion if unclear.
 
 ## 如何部署
 
