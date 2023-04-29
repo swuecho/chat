@@ -6,7 +6,11 @@
             "actions": "Actions",
             "apiAuthHeader": "Auth Header key",
             "apiAuthKey": "API KEY corresponding to the environment variable",
+            "api_auth_header": "Auth Header key",
+            "api_auth_key": "Environment variable corresponding to API KEY",
+            "enable_per_model_rate_limit": "Enable per-model rate limit",
             "isDefault": "Default?",
+            "is_default": "Default?",
             "label": "Model name",
             "name": "ID",
             "url": "Request full URL"
@@ -20,6 +24,7 @@
         "openPanel": "Open Admin Panel",
         "per_model_rate_limit": {
             "ChatModelName": "Model Name",
+            "FullName": "Full Name",
             "RateLimit": "10min Access Count",
             "UserEmail": "User Email",
             "actions": "Actions"
@@ -42,11 +47,13 @@
         "userStat": "User Statistics"
     },
     "chat": {
+        "N": "Number of results: {n}",
         "adjustParameters": "Adjust parameters",
         "chatSnapshot": "Chat snapshot to webpage",
         "clearChat": "Clear chat session",
         "clearChatConfirm": "Do you want to clear the chat session?",
         "clearHistoryConfirm": "Are you sure you want to clear the chat history?",
+        "completionsCount": "Number of results: {contextCount}",
         "contextCount": "Context Length: {contextCount}",
         "contextLength": "Context Length, default 10 (2 at the beginning of the conversation + 8 most recent)",
         "copied": "Copied",
@@ -92,6 +99,7 @@
         "title": "Chat Records"
     },
     "common": {
+        "ask_user_register": "Please register, only registered accounts can continue the conversation",
         "clear": "Clear",
         "confirm": "Confirm",
         "delete": "Delete",
@@ -126,13 +134,15 @@
     "error": {
         "NotAdmin": "Non-administrators are prohibited from accessing",
         "NotAuthorized": "Please log in first",
-        "invalid_request": "Invalid Request",
-        "invalid_email_or_password": "Invalid email or password",
+        "fail_to_do_request": "Failed to request the model, please try again later or contact the administrator",
         "fail_to_generate_token": "Failed to generate token",
         "fail_to_get_rate_limit": "Failed to retrieve the quota corresponding to the model, please contact the administrator to enable it",
+        "fail_to_make_request": "Failed to request the model, please try again later or contact the administrator",
         "gpt-4_over_limit": "GPT4 message sending limit exceeded, please contact the administrator to enable or increase quota.",
         "invalidEmail": "Invalid email address",
         "invalidPassword": "password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character",
+        "invalid_email_or_password": "Invalid email or password",
+        "invalid_request": "Invalid Request",
         "rateLimit": "The message sending limit has been reached, please contact the administrator.",
         "syncChatSession": "Sync Failed, Please Try Again Later",
         "token_length_exceed_limit": "Total message length exceeds limit, please reduce context quantity, message length or start a new conversation."

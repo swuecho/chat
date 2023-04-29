@@ -1,0 +1,24 @@
+{
+        "common": {
+                "ask_user_register": "Please register, only registered accounts can continue the conversation"
+        },
+        "chat": {
+                "N": "Number of results: {n}",
+                "completionsCount": "Number of results: {contextCount}"
+        },
+        "admin": {
+                "chat_model": {
+                        "is_default": "Default?",
+                        "api_auth_header": "Auth Header key",
+                        "api_auth_key": "Environment variable corresponding to API KEY",
+                        "enable_per_model_rate_limit": "Enable per-model rate limit"
+                },
+                "per_model_rate_limit": {
+                        "FullName": "Full Name"
+                }
+        },
+        "error": {
+                "fail_to_do_request": "Failed to request the model, please try again later or contact the administrator",
+                "fail_to_make_request": "Failed to request the model, please try again later or contact the administrator"
+        }
+}
