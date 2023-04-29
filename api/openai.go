@@ -5,10 +5,12 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 func messagesToOpenAIMesages(messages []Message) []openai.ChatCompletionMessage {
@@ -45,4 +47,19 @@ func configOpenAIProxy(config openai.ClientConfig) {
 			Transport: transport,
 		}
 	}
+}
+
+func genOpenAIConfig(chatModel sqlc_queries.ChatModel, baseUrl string) openai.ClientConfig {
+	token := os.Getenv(chatModel.ApiAuthKey)
+
+	var config openai.ClientConfig
+	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
+		config = openai.DefaultAzureConfig(token, chatModel.Url, os.Getenv("AZURE_RESOURCE_NAME"))
+	} else {
+		config = openai.DefaultConfig(token)
+		config.BaseURL = baseUrl
+
+		configOpenAIProxy(config)
+	}
+	return config
 }
