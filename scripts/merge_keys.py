@@ -1,17 +1,8 @@
-import argparse
 import json
-
-def merge_json_files(file1, file2):
-    """Merges the contents of two JSON files recursively by key."""
-    
-    # Read in the JSON data from the files
-    with open(file1, 'r') as f1:
-        data1 = json.load(f1)
-    with open(file2, 'r') as f2:
-        data2 = json.load(f2)
+from pathlib import Path
 
     # Function to recursively merge two dictionaries
-    def merge_dicts(d1, d2):
+def merge_dicts(d1, d2):
         for key, val2 in d2.items():
             if key in d1:
                 # If both values are dictionaries, merge them recursively
@@ -27,21 +18,27 @@ def merge_json_files(file1, file2):
                 # If the key doesn't exist in the first dict, add it and its value
                 d1[key] = val2
 
-    # Merge the second data into the first data
+def merge_json_files(file1, file2):
+    """Merges the contents of two JSON files recursively by key."""
+    
+    # Read in the JSON data from the files
+    with open(file1, 'r') as f1:
+        data1 = json.load(f1)
+    with open(file2, 'r') as f2:
+        data2 = json.load(f2)
+
     merge_dicts(data1, data2)
+     # write the merged content back to file2
+    with open(file1, 'w') as fp1:
+        json.dump(data1, fp1, indent=4,ensure_ascii=False, sort_keys=True)
 
-    return data1
 
-# Define a command line parser and arguments
-parser = argparse.ArgumentParser(description='Merge two JSON files recursively by key.')
-parser.add_argument('file1', type=str, help='The filename of the first JSON file to merge.')
-parser.add_argument('file2', type=str, help='The filename of the second JSON file to merge.')
-args = parser.parse_args()
-
-# Merge the JSON data from the files
-merged_data = merge_json_files(args.file1, args.file2)
-
-# Print the merged JSON data, formatted for readability
-print(json.dumps(merged_data, indent=4, ensure_ascii=False, sort_keys=True))
-
-# python json_merge.py A.json A-more.json
+# main
+locale_dir = Path(__file__).parent.parent / "web/src/locales"
+extra_jsons = locale_dir.glob("*-more.json")
+# web/src/locales/en-US.json web/src/locales/en-US-more.json 
+for extra in extra_jsons:
+    print(extra)
+    origin = extra.parent / extra.name.replace('-more', '')
+    print(origin, extra)
+    merge_json_files(origin, extra)
