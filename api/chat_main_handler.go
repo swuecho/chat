@@ -364,18 +364,23 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 
 	baseUrl, err := getModelBaseUrl(chatModel.Url)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
 		return "", "", true
 	}
-	log.Println(baseUrl)
-
 	token := os.Getenv(chatModel.ApiAuthKey)
-	config := openai.DefaultConfig(token)
-	config.BaseURL = baseUrl
+	// check if azure
+	var config openai.ClientConfig
+	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
+		config = openai.DefaultAzureConfig(token, chatModel.Url, os.Getenv("AZURE_RESOURCE_NAME"))
+	} else {
+		config = openai.DefaultConfig(token)
+		config.BaseURL = baseUrl
+		// handler proxy
+		configOpenAIProxy(config)
+	}
 	client := openai.NewClientWithConfig(config)
-	// handler proxy
-	configOpenAIProxy(config)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -472,12 +477,18 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	}
 
 	token := os.Getenv(chatModel.ApiAuthKey)
-	config := openai.DefaultConfig(token)
-	config.BaseURL = baseUrl
-	client := openai.NewClientWithConfig(config)
-	// handler proxy
-	configOpenAIProxy(config)
 
+	var config openai.ClientConfig
+
+	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
+		config = openai.DefaultAzureConfig(token, chatModel.Url, os.Getenv("AZURE_RESOURCE_NAME"))
+	} else {
+		config = openai.DefaultConfig(token)
+		config.BaseURL = baseUrl
+		// handler proxy
+		configOpenAIProxy(config)
+	}
+	client := openai.NewClientWithConfig(config)
 	// latest message contents
 	prompt := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
 	N := int(chatSession.N)
