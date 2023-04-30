@@ -173,8 +173,16 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 		RespondWithError(w, http.StatusBadRequest, "search parameter is required", nil)
 		return
 	}
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		return
+	}
 
-	chatSnapshots, err := h.service.q.ChatSnapshotSearch(r.Context(), search)
+	chatSnapshots, err := h.service.q.ChatSnapshotSearch(r.Context(), sqlc_queries.ChatSnapshotSearchParams{
+		UserID: userID,
+		Search: search,
+	})
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to retrieve chat snapshots").Error(), err)
 		return
