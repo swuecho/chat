@@ -34,3 +34,10 @@ order by created_at desc;
 UPDATE chat_snapshot
 SET title = $2, summary = $3
 WHERE uuid = $1 and user_id = $4;
+
+-- name: ChatSnapshotSearch :many
+SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery(@search), 1) as rank
+FROM chat_snapshot
+WHERE search_vector @@ websearch_to_tsquery(@search)
+ORDER BY rank DESC
+LIMIT 20;
