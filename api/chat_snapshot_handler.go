@@ -170,7 +170,9 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("search")
 	if search == "" {
-		RespondWithError(w, http.StatusBadRequest, "search parameter is required", nil)
+		w.WriteHeader(http.StatusOK)
+		var emptySlice []any // create an empty slice of integers
+		json.NewEncoder(w).Encode(emptySlice)
 		return
 	}
 	userID, err := getUserID(r.Context())
