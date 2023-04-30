@@ -13,13 +13,12 @@ const searchText = ref('')
 const results = ref<SearchRecord[]>([])
 
 const search = async () => {
-  console.log(searchText.value)
   results.value = await chatSnapshotSearch(searchText.value)
 }
 </script>
 
 <template>
-  <NInput v-model:value="searchText" placeholder="Search ..." @keyup="search" />
+  <NInput v-model:value="searchText" placeholder="Search ...(support english only)" @keyup="search" />
   <NList>
     <NListItem v-for="result in results" :key="result.Uuid">
       <a :href="`/static/#/snapshot/${result.Uuid}`" target="_blank">{{ result.Title }}</a>
