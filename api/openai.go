@@ -52,7 +52,9 @@ func configOpenAIProxy(config openai.ClientConfig) {
 func genOpenAIConfig(chatModel sqlc_queries.ChatModel) (openai.ClientConfig, error) {
 	token := os.Getenv(chatModel.ApiAuthKey)
 	baseUrl, err := getModelBaseUrl(chatModel.Url)
-	return openai.ClientConfig{}, err
+	if err != nil {
+		return openai.ClientConfig{}, err
+	}
 
 	var config openai.ClientConfig
 	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
