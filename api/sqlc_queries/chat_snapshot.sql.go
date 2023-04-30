@@ -103,12 +103,17 @@ func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, userID int32) ([
 }
 
 const chatSnapshotSearch = `-- name: ChatSnapshotSearch :many
-SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery($1), 1) as rank
+SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery($2), 1) as rank
 FROM chat_snapshot
-WHERE search_vector @@ websearch_to_tsquery($1)
+WHERE search_vector @@ websearch_to_tsquery($2) AND user_id = $1
 ORDER BY rank DESC
 LIMIT 20
 `
+
+type ChatSnapshotSearchParams struct {
+	UserID int32
+	Search string
+}
 
 type ChatSnapshotSearchRow struct {
 	Uuid  string
@@ -116,8 +121,8 @@ type ChatSnapshotSearchRow struct {
 	Rank  float32
 }
 
-func (q *Queries) ChatSnapshotSearch(ctx context.Context, search string) ([]ChatSnapshotSearchRow, error) {
-	rows, err := q.db.QueryContext(ctx, chatSnapshotSearch, search)
+func (q *Queries) ChatSnapshotSearch(ctx context.Context, arg ChatSnapshotSearchParams) ([]ChatSnapshotSearchRow, error) {
+	rows, err := q.db.QueryContext(ctx, chatSnapshotSearch, arg.UserID, arg.Search)
 	if err != nil {
 		return nil, err
 	}
