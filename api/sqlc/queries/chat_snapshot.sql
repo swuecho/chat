@@ -5,8 +5,8 @@ SELECT * FROM chat_snapshot ORDER BY id;
 SELECT * FROM chat_snapshot WHERE id = $1;
 
 -- name: CreateChatSnapshot :one
-INSERT INTO chat_snapshot (uuid, user_id, title, model, summary, tags, conversation ,session )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO chat_snapshot (uuid, user_id, title, model, summary, tags, conversation ,session, text )
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: UpdateChatSnapshot :one
@@ -34,3 +34,10 @@ order by created_at desc;
 UPDATE chat_snapshot
 SET title = $2, summary = $3
 WHERE uuid = $1 and user_id = $4;
+
+-- name: ChatSnapshotSearch :many
+SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery(@search), 1) as rank
+FROM chat_snapshot
+WHERE search_vector @@ websearch_to_tsquery(@search)
+ORDER BY rank DESC
+LIMIT 20;

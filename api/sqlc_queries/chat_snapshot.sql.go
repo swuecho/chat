@@ -12,7 +12,7 @@ import (
 )
 
 const chatSnapshotByID = `-- name: ChatSnapshotByID :one
-SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, created_at FROM chat_snapshot WHERE id = $1
+SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector FROM chat_snapshot WHERE id = $1
 `
 
 func (q *Queries) ChatSnapshotByID(ctx context.Context, id int32) (ChatSnapshot, error) {
@@ -29,12 +29,14 @@ func (q *Queries) ChatSnapshotByID(ctx context.Context, id int32) (ChatSnapshot,
 		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
+		&i.Text,
+		&i.SearchVector,
 	)
 	return i, err
 }
 
 const chatSnapshotByUUID = `-- name: ChatSnapshotByUUID :one
-SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, created_at FROM chat_snapshot WHERE uuid = $1
+SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector FROM chat_snapshot WHERE uuid = $1
 `
 
 func (q *Queries) ChatSnapshotByUUID(ctx context.Context, uuid string) (ChatSnapshot, error) {
@@ -51,6 +53,8 @@ func (q *Queries) ChatSnapshotByUUID(ctx context.Context, uuid string) (ChatSnap
 		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
+		&i.Text,
+		&i.SearchVector,
 	)
 	return i, err
 }
@@ -98,10 +102,47 @@ func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, userID int32) ([
 	return items, nil
 }
 
+const chatSnapshotSearch = `-- name: ChatSnapshotSearch :many
+SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery($1), 1) as rank
+FROM chat_snapshot
+WHERE search_vector @@ websearch_to_tsquery($1)
+ORDER BY rank DESC
+LIMIT 20
+`
+
+type ChatSnapshotSearchRow struct {
+	Uuid  string
+	Title string
+	Rank  float32
+}
+
+func (q *Queries) ChatSnapshotSearch(ctx context.Context, search string) ([]ChatSnapshotSearchRow, error) {
+	rows, err := q.db.QueryContext(ctx, chatSnapshotSearch, search)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChatSnapshotSearchRow
+	for rows.Next() {
+		var i ChatSnapshotSearchRow
+		if err := rows.Scan(&i.Uuid, &i.Title, &i.Rank); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createChatSnapshot = `-- name: CreateChatSnapshot :one
-INSERT INTO chat_snapshot (uuid, user_id, title, model, summary, tags, conversation ,session )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation, created_at
+INSERT INTO chat_snapshot (uuid, user_id, title, model, summary, tags, conversation ,session, text )
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector
 `
 
 type CreateChatSnapshotParams struct {
@@ -113,6 +154,7 @@ type CreateChatSnapshotParams struct {
 	Tags         json.RawMessage
 	Conversation json.RawMessage
 	Session      json.RawMessage
+	Text         string
 }
 
 func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshotParams) (ChatSnapshot, error) {
@@ -125,6 +167,7 @@ func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshot
 		arg.Tags,
 		arg.Conversation,
 		arg.Session,
+		arg.Text,
 	)
 	var i ChatSnapshot
 	err := row.Scan(
@@ -138,6 +181,8 @@ func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshot
 		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
+		&i.Text,
+		&i.SearchVector,
 	)
 	return i, err
 }
@@ -145,7 +190,7 @@ func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshot
 const deleteChatSnapshot = `-- name: DeleteChatSnapshot :one
 DELETE FROM chat_snapshot WHERE uuid = $1
 and user_id = $2
-RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation, created_at
+RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector
 `
 
 type DeleteChatSnapshotParams struct {
@@ -167,12 +212,14 @@ func (q *Queries) DeleteChatSnapshot(ctx context.Context, arg DeleteChatSnapshot
 		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
+		&i.Text,
+		&i.SearchVector,
 	)
 	return i, err
 }
 
 const listChatSnapshots = `-- name: ListChatSnapshots :many
-SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, created_at FROM chat_snapshot ORDER BY id
+SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector FROM chat_snapshot ORDER BY id
 `
 
 func (q *Queries) ListChatSnapshots(ctx context.Context) ([]ChatSnapshot, error) {
@@ -195,6 +242,8 @@ func (q *Queries) ListChatSnapshots(ctx context.Context) ([]ChatSnapshot, error)
 			&i.Session,
 			&i.Conversation,
 			&i.CreatedAt,
+			&i.Text,
+			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -213,7 +262,7 @@ const updateChatSnapshot = `-- name: UpdateChatSnapshot :one
 UPDATE chat_snapshot
 SET uuid = $2, user_id = $3, title = $4, summary = $5, tags = $6, conversation = $7, created_at = $8
 WHERE id = $1
-RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation, created_at
+RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector
 `
 
 type UpdateChatSnapshotParams struct {
@@ -250,6 +299,8 @@ func (q *Queries) UpdateChatSnapshot(ctx context.Context, arg UpdateChatSnapshot
 		&i.Session,
 		&i.Conversation,
 		&i.CreatedAt,
+		&i.Text,
+		&i.SearchVector,
 	)
 	return i, err
 }

@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useDialog, useMessage } from 'naive-ui'
+import { NModal, useDialog, useMessage } from 'naive-ui'
+import Search from './components/Search.vue'
 import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
 import { displayLocaleDate, formatYearMonth } from '@/utils/date'
-import { SvgIcon } from '@/components/common'
+import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 import { post_url } from '@/utils/url'
 
 const dialog = useDialog()
 const nui_msg = useMessage()
+const search_visible = ref(false)
 
 interface PostLink {
   uuid: string
@@ -75,7 +77,7 @@ function handleDelete(post: PostLink) {
 <template>
   <div class="flex flex-col w-full h-full">
     <header class="flex items-center justify-between p-4">
-      <div class="flex items-center">
+      <div class="flex justify-end">
         <svg
           class="w-8 h-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
           stroke="currentColor"
@@ -88,6 +90,14 @@ function handleDelete(post: PostLink) {
         <h1 class="text-2xl font-semibold text-gray-900">
           {{ $t('chat_snapshot.title') }}
         </h1>
+      </div>
+      <div class="mr-4">
+        <HoverButton @click="search_visible = true">
+          <SvgIcon icon="ic:round-search" class="text-2xl" />
+        </HoverButton>
+        <NModal v-model:show="search_visible" preset="dialog">
+          <Search />
+        </NModal>
       </div>
     </header>
     <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">

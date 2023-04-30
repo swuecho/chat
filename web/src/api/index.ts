@@ -472,6 +472,18 @@ export const fetchSnapshotAll = async (): Promise<any> => {
   }
 }
 
+export const chatSnapshotSearch = async (search: string): Promise<any> => {
+  try {
+    const response = await request.get(`/uuid/chat_snapshot_search?search=${search}`)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+
 export const updateChatSnapshot = async (uuid: string, data: any): Promise<any> => {
   try {
     const response = await request.put(`/uuid/chat_snapshot/${uuid}`, data)
