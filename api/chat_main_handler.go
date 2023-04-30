@@ -363,23 +363,12 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		return "", "", true
 	}
 
-	baseUrl, err := getModelBaseUrl(chatModel.Url)
-
+	config, err := genOpenAIConfig(chatModel)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
 		return "", "", true
 	}
-	token := os.Getenv(chatModel.ApiAuthKey)
-	// check if azure
-	var config openai.ClientConfig
-	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
-		config = openai.DefaultAzureConfig(token, chatModel.Url, os.Getenv("AZURE_RESOURCE_NAME"))
-	} else {
-		config = openai.DefaultConfig(token)
-		config.BaseURL = baseUrl
-		// handler proxy
-		configOpenAIProxy(config)
-	}
+
 	client := openai.NewClientWithConfig(config)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
@@ -470,24 +459,12 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 		return "", "", true
 	}
 
-	baseUrl, err := getModelBaseUrl(chatModel.Url)
+	config, err := genOpenAIConfig(chatModel)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
 		return "", "", true
 	}
 
-	token := os.Getenv(chatModel.ApiAuthKey)
-
-	var config openai.ClientConfig
-
-	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
-		config = openai.DefaultAzureConfig(token, chatModel.Url, os.Getenv("AZURE_RESOURCE_NAME"))
-	} else {
-		config = openai.DefaultConfig(token)
-		config.BaseURL = baseUrl
-		// handler proxy
-		configOpenAIProxy(config)
-	}
 	client := openai.NewClientWithConfig(config)
 	// latest message contents
 	prompt := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
