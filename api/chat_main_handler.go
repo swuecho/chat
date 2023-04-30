@@ -363,15 +363,12 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		return "", "", true
 	}
 
-	baseUrl, err := getModelBaseUrl(chatModel.Url)
-
+	config, err := genOpenAIConfig(chatModel)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
 		return "", "", true
 	}
-	// check if azure
-	// handler proxy
-	config := genOpenAIConfig(chatModel, baseUrl)
+
 	client := openai.NewClientWithConfig(config)
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
@@ -462,13 +459,12 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 		return "", "", true
 	}
 
-	baseUrl, err := getModelBaseUrl(chatModel.Url)
+	config, err := genOpenAIConfig(chatModel)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get base url").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
 		return "", "", true
 	}
 
-	config := genOpenAIConfig(chatModel, baseUrl)
 	client := openai.NewClientWithConfig(config)
 	// latest message contents
 	prompt := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
