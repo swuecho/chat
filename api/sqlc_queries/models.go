@@ -114,6 +114,7 @@ type ChatSnapshot struct {
 	Conversation json.RawMessage
 	CreatedAt    time.Time
 	Text         string
+	SearchVector interface{}
 }
 
 type JwtSecret struct {

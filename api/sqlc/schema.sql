@@ -228,14 +228,16 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
     session JSONB DEFAULT '{}' NOT NULL,
     conversation JSONB DEFAULT '{}' NOT NULL,
     created_at TIMESTAMP DEFAULT now() NOT NULL,
-    text text DEFAULT '' NOT NULL
+    text text DEFAULT '' NOT NULL,
+    search_vector tsvector generated always as (setweight(to_tsvector('simple', coalesce(title, '')), 'A') || ' ' || setweight(to_tsvector('simple', coalesce(text, '')), 'B') :: tsvector) stored
 );
 
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS session JSONB DEFAULT '{}' NOT NULL;
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS text text DEFAULT '' NOT NULL;
-
-
+ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS search_vector tsvector generated always as	(
+	setweight(to_tsvector('simple', coalesce(title, '')), 'A') || ' ' || setweight(to_tsvector('simple', coalesce(text, '')), 'B') :: tsvector
+) stored; 
 
 
 
