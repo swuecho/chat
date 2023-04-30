@@ -237,7 +237,7 @@ ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS search_vector tsvector genera
 	setweight(to_tsvector('simple', coalesce(title, '')), 'A') || ' ' || setweight(to_tsvector('simple', coalesce(text, '')), 'B') :: tsvector
 ) stored; 
 
-
+create index IF NOT EXISTS search_vector_gin_idx on chat_snapshot using GIN(search_vector)
 
 -- add index on user id
 CREATE INDEX IF NOT EXISTS chat_snapshot_user_id_idx ON chat_snapshot (user_id);
