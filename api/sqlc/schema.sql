@@ -159,8 +159,6 @@ CREATE INDEX IF NOT EXISTS chat_message_user_id_idx ON chat_message (user_id);
 -- add brin index on created_at
 CREATE INDEX IF NOT EXISTS chat_message_created_at_idx ON chat_message using brin (created_at) ;
 
--- alter table chat_message add column chat_session_uuid character varying(255) NOT NULL DEFAULT '';
-
 CREATE TABLE IF NOT EXISTS chat_prompt (
     id SERIAL PRIMARY KEY,
     uuid character varying(255) NOT NULL,
@@ -235,7 +233,7 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS session JSONB DEFAULT '{}' NOT NULL;
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS text text DEFAULT '' NOT NULL;
-ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS search_vector tsvector generated always as	(
+ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS search_vector tsvector generated always as (
 	setweight(to_tsvector('simple', coalesce(title, '')), 'A') || ' ' || setweight(to_tsvector('simple', coalesce(text, '')), 'B') :: tsvector
 ) stored; 
 
