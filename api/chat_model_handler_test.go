@@ -24,7 +24,7 @@ func createTwoChatModel(q *sqlc_queries.Queries) (sqlc_queries.AuthUser, []sqlc_
 	})
 
 	if err != nil {
-		fmt.Errorf("Error creating test data: %s", err.Error())
+		fmt.Printf("Error creating test data: %s", err.Error())
 	}
 	expectedResults := []sqlc_queries.ChatModel{
 		{
@@ -58,7 +58,7 @@ func createTwoChatModel(q *sqlc_queries.Queries) (sqlc_queries.AuthUser, []sqlc_
 			UserID:        api.UserID,
 		})
 		if err != nil {
-			fmt.Errorf("Error creating test data: %s", err.Error())
+			fmt.Printf("Error creating test data: %s", err.Error())
 		}
 	}
 	return admin, expectedResults
