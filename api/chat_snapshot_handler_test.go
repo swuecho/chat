@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/google/uuid"
@@ -55,6 +56,33 @@ func TestChatSnapshot(t *testing.T) {
 	println(body_bytes)
 	// test delete snapshot should fail without context,
 	// test delete ok with context
-	// ctx3 := context.WithValue(deleteReq2.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
+	reqDelete, err := http.NewRequest("DELETE", fmt.Sprintf("/uuid/chat_snapshot/%s", one.Uuid), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rDelete := httptest.NewRecorder()
+
+	router.ServeHTTP(rDelete, reqDelete)
+
+	if status := rDelete.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	reqDeleteWitUserContext, err := http.NewRequest("DELETE", fmt.Sprintf("/uuid/chat_snapshot/%s", one.Uuid), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rDelete3 := httptest.NewRecorder()
+
+	ctx := context.WithValue(reqDeleteWitUserContext.Context(), userContextKey, strconv.Itoa(userID))
+	router.ServeHTTP(rDelete3, reqDeleteWitUserContext.WithContext(ctx))
+
+	if status := rDelete3.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
 
 }
