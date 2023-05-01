@@ -10,12 +10,12 @@ import (
 )
 
 type ChatPromptHandler struct {
-	service *ChatPromptService
+	chatPromptService *ChatPromptService
 }
 
 func NewChatPromptHandler(service *ChatPromptService) *ChatPromptHandler {
 	return &ChatPromptHandler{
-		service: service,
+		chatPromptService: service,
 	}
 }
 
@@ -37,7 +37,7 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	prompt, err := h.service.CreateChatPrompt(r.Context(), promptParams)
+	prompt, err := h.chatPromptService.CreateChatPrompt(r.Context(), promptParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -52,7 +52,7 @@ func (h *ChatPromptHandler) GetChatPromptByID(w http.ResponseWriter, r *http.Req
 		http.Error(w, "invalid chat prompt ID", http.StatusBadRequest)
 		return
 	}
-	prompt, err := h.service.GetChatPromptByID(r.Context(), int32(id))
+	prompt, err := h.chatPromptService.GetChatPromptByID(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -74,7 +74,7 @@ func (h *ChatPromptHandler) UpdateChatPrompt(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	promptParams.ID = int32(id)
-	prompt, err := h.service.UpdateChatPrompt(r.Context(), promptParams)
+	prompt, err := h.chatPromptService.UpdateChatPrompt(r.Context(), promptParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -89,7 +89,7 @@ func (h *ChatPromptHandler) DeleteChatPrompt(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "invalid chat prompt ID", http.StatusBadRequest)
 		return
 	}
-	err = h.service.DeleteChatPrompt(r.Context(), int32(id))
+	err = h.chatPromptService.DeleteChatPrompt(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -98,7 +98,7 @@ func (h *ChatPromptHandler) DeleteChatPrompt(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *ChatPromptHandler) GetAllChatPrompts(w http.ResponseWriter, r *http.Request) {
-	prompts, err := h.service.GetAllChatPrompts(r.Context())
+	prompts, err := h.chatPromptService.GetAllChatPrompts(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -113,7 +113,7 @@ func (h *ChatPromptHandler) GetChatPromptsByUserID(w http.ResponseWriter, r *htt
 		http.Error(w, "invalid user ID", http.StatusBadRequest)
 		return
 	}
-	prompts, err := h.service.GetChatPromptsByUserID(r.Context(), int32(id))
+	prompts, err := h.chatPromptService.GetChatPromptsByUserID(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -123,7 +123,7 @@ func (h *ChatPromptHandler) GetChatPromptsByUserID(w http.ResponseWriter, r *htt
 
 func (h *ChatPromptHandler) DeleteChatPromptByUUID(w http.ResponseWriter, r *http.Request) {
 	idStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatPromptByUUID(r.Context(), idStr)
+	err := h.chatPromptService.DeleteChatPromptByUUID(r.Context(), idStr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -138,7 +138,7 @@ func (h *ChatPromptHandler) UpdateChatPromptByUUID(w http.ResponseWriter, r *htt
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	prompt, err := h.service.UpdateChatPromptByUUID(r.Context(), simple_msg.Uuid, simple_msg.Text)
+	prompt, err := h.chatPromptService.UpdateChatPromptByUUID(r.Context(), simple_msg.Uuid, simple_msg.Text)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
