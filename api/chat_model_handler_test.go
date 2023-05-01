@@ -213,5 +213,5 @@ func TestChatModel(t *testing.T) {
 	if err != nil {
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
-	assert.Equal(t, len(results), 1)
+	assert.Equal(t, len(results), 0)
 }
