@@ -5,20 +5,18 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rotisserie/eris"
-	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type ChatSnapshotHandler struct {
-	chatMessageService *ChatMessageService
+	service *ChatSnapshotService
 }
 
-func NewChatSnapshotHandler(service *ChatMessageService) *ChatSnapshotHandler {
+func NewChatSnapshotHandler(service *ChatSnapshotService) *ChatSnapshotHandler {
 	return &ChatSnapshotHandler{
-		chatMessageService: service,
+		service: service,
 	}
 }
 
@@ -40,58 +38,20 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
-	chatSession, err := h.chatMessageService.q.GetChatSessionByUUID(r.Context(), chatSessionUuid)
+	uuid, err := h.service.CreateChatSnapshot(r.Context(), chatSessionUuid, user_id)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
-		return
-	}
-	// TODO: fix hardcode
-	simple_msgs, err := h.chatMessageService.GetChatHistoryBySessionUUID(r.Context(), chatSessionUuid, 1, 10000)
-	text := lo.Reduce(simple_msgs, func(acc string, curr SimpleChatMessage, _ int) string {
-		return acc + curr.Text
-	},
-		"")
-	// save all simple_msgs to a jsonb field in chat_snapshot
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	// simple_msgs to RawMessage
-	simple_msgs_raw, err := json.Marshal(simple_msgs)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
-		return
-	}
-	snapshot_uuid := uuid.New().String()
-	chatSessionMessage, err := json.Marshal(chatSession)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
-	}
-	one, err := h.chatMessageService.q.CreateChatSnapshot(r.Context(), sqlc_queries.CreateChatSnapshotParams{
-		Uuid:         snapshot_uuid,
-		Model:        chatSession.Model,
-		Title:        firstN(chatSession.Topic, 100),
-		UserID:       user_id,
-		Session:      chatSessionMessage,
-		Tags:         json.RawMessage([]byte("{}")),
-		Text:         text,
-		Conversation: simple_msgs_raw,
-	})
-	if err != nil {
-		log.Println(err)
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
-		return
 	}
 	json.NewEncoder(w).Encode(
 		map[string]interface{}{
-			"uuid": one.Uuid,
+			"uuid": uuid,
 		})
 
 }
 
 func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	snapshot, err := h.chatMessageService.q.ChatSnapshotByUUID(r.Context(), uuidStr)
+	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuidStr)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
@@ -105,7 +65,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 	}
-	chatSnapshots, err := h.chatMessageService.q.ChatSnapshotMetaByUserID(r.Context(), userID)
+	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), userID)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
@@ -134,7 +94,7 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		return
 	}
 
-	err = h.chatMessageService.q.UpdateChatSnapshotMetaByUUID(r.Context(), sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{
+	err = h.service.q.UpdateChatSnapshotMetaByUUID(r.Context(), sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{
 		Uuid:    uuid,
 		Title:   input.Title,
 		Summary: input.Summary,
@@ -156,7 +116,7 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 		return
 	}
 
-	_, err = h.chatMessageService.q.DeleteChatSnapshot(r.Context(), sqlc_queries.DeleteChatSnapshotParams{
+	_, err = h.service.q.DeleteChatSnapshot(r.Context(), sqlc_queries.DeleteChatSnapshotParams{
 		Uuid:   uuid,
 		UserID: userID,
 	})
@@ -181,7 +141,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 		return
 	}
 
-	chatSnapshots, err := h.chatMessageService.q.ChatSnapshotSearch(r.Context(), sqlc_queries.ChatSnapshotSearchParams{
+	chatSnapshots, err := h.service.q.ChatSnapshotSearch(r.Context(), sqlc_queries.ChatSnapshotSearchParams{
 		UserID: userID,
 		Search: search,
 	})

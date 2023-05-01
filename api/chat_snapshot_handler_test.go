@@ -22,7 +22,7 @@ func TestChatSnapshot(t *testing.T) {
 
 	// Create a chat service for testing
 	q := sqlc_queries.New(db)
-	service := NewChatMessageService(q)
+	service := NewChatSnapshotService(q)
 	h := NewChatSnapshotHandler(service) // Create a ChatSnapshotHandler
 
 	// Register snapshot API routes
@@ -36,7 +36,7 @@ func TestChatSnapshot(t *testing.T) {
 	snapshotUUID := uuid.NewString()
 
 	// Create a test snapshot
-	snapshot, err := h.chatMessageService.q.CreateChatSnapshot(context.Background(), sqlc_queries.CreateChatSnapshotParams{
+	snapshot, err := h.service.q.CreateChatSnapshot(context.Background(), sqlc_queries.CreateChatSnapshotParams{
 		Uuid:         snapshotUUID, // Use the generated UUID
 		Model:        "gpt3",
 		Title:        "test chat snapshot",
