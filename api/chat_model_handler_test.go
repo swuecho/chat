@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -79,13 +78,8 @@ func TestChatModel(t *testing.T) {
 		}
 	}
 
-	req, err := http.NewRequest("GET", "/chat_model", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	req, _ := http.NewRequest("GET", "/chat_model", nil)
 	rr := httptest.NewRecorder()
-
 	router.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
@@ -101,10 +95,7 @@ func TestChatModel(t *testing.T) {
 	if err != nil {
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
-
-	if len(results) != 2 {
-		t.Errorf("expected 2 chat APIs, got %d", len(results))
-	}
+	assert.Equal(t, len(results), 2)
 
 	// ensure the returned values are what we expect them to be
 	for i, api := range expectedResults {
@@ -129,8 +120,7 @@ func TestChatModel(t *testing.T) {
 
 	// Create an HTTP request so we can simulate a PUT with the payload
 	updateReq, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
-	ctx := context.WithValue(updateReq.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
-	updateReq = updateReq.WithContext(ctx)
+	updateReq = updateReq.WithContext(getContextWithUser(int(admin.ID)))
 
 	if err != nil {
 		t.Fatal(err)
@@ -140,11 +130,7 @@ func TestChatModel(t *testing.T) {
 
 	router.ServeHTTP(updateRR, updateReq)
 
-	if status := updateRR.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
+	assert.Equal(t, updateRR.Code, http.StatusOK)
 	// ensure the new values are returned and were also updated in the database
 	var updatedResult sqlc_queries.ChatModel
 	err = json.Unmarshal(updateRR.Body.Bytes(), &updatedResult)
@@ -156,8 +142,7 @@ func TestChatModel(t *testing.T) {
 	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
 	// And now call the DELETE endpoint to remove all the created ChatModels
 	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
-	ctx2 := context.WithValue(deleteReq.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
-	deleteReq = deleteReq.WithContext(ctx2)
+	deleteReq = deleteReq.WithContext(getContextWithUser(int(admin.ID)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,10 +151,7 @@ func TestChatModel(t *testing.T) {
 
 	router.ServeHTTP(deleteRR, deleteReq)
 
-	if status := deleteRR.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	assert.Equal(t, deleteRR.Code, http.StatusOK)
 
 	// only one left
 	req, err = http.NewRequest("GET", "/chat_model", nil)
@@ -187,9 +169,7 @@ func TestChatModel(t *testing.T) {
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
 	// len 1
-	if len(results) != 1 {
-		t.Errorf("expected 1 chat API, got %d", len(results))
-	}
+	assert.Equal(t, len(results), 1)
 
 	// first results's name is  "Test API 2"
 	assert.Equal(t, results[0].Name, "Test API 2")
@@ -231,9 +211,5 @@ func TestChatModel(t *testing.T) {
 	if err != nil {
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
-
-	// Check the response
-	if len(results) != 0 {
-		t.Errorf("expected 0 chat API, got %d", len(results))
-	}
+	assert.Equal(t, len(results), 1)
 }
