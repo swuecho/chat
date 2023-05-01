@@ -14,21 +14,7 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-// the code below do db update directly in instead of using handler, please change to use handler
-func TestChatModel(t *testing.T) {
-	q := sqlc_queries.New(db)
-	h := NewChatModelHandler(q) // create a new ChatModelHandler instance for testing
-	router := mux.NewRouter()
-	h.Register(router)
-	defaultApis, _ := q.ListChatModels(context.Background())
-	// delete all existing chat APIs
-	for _, api := range defaultApis {
-		q.DeleteChatModel(context.Background(),
-			sqlc_queries.DeleteChatModelParams{
-				ID:     api.ID,
-				UserID: api.UserID,
-			})
-	}
+func createTwoChatModel(q *sqlc_queries.Queries) (sqlc_queries.AuthUser, []sqlc_queries.ChatModel) {
 	// add a system user
 	admin, err := q.CreateAuthUser(context.Background(), sqlc_queries.CreateAuthUserParams{
 		Email:       "admin@a.com",
@@ -38,10 +24,8 @@ func TestChatModel(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Errorf("Error creating test data: %s", err.Error())
+		fmt.Errorf("Error creating test data: %s", err.Error())
 	}
-
-	// Now let's create our expected results. Create two results and insert them into the database using the queries.
 	expectedResults := []sqlc_queries.ChatModel{
 		{
 			Name:          "Test API 1",
@@ -74,24 +58,42 @@ func TestChatModel(t *testing.T) {
 			UserID:        api.UserID,
 		})
 		if err != nil {
-			t.Errorf("Error creating test data: %s", err.Error())
+			fmt.Errorf("Error creating test data: %s", err.Error())
 		}
 	}
+	return admin, expectedResults
+}
+
+// the code below do db update directly in instead of using handler, please change to use handler
+func TestChatModel(t *testing.T) {
+	q := sqlc_queries.New(db)
+	h := NewChatModelHandler(q) // create a new ChatModelHandler instance for testing
+	router := mux.NewRouter()
+	h.Register(router)
+	defaultApis, _ := q.ListChatModels(context.Background())
+	// delete all existing chat APIs
+	for _, api := range defaultApis {
+		q.DeleteChatModel(context.Background(),
+			sqlc_queries.DeleteChatModelParams{
+				ID:     api.ID,
+				UserID: api.UserID,
+			})
+	}
+
+	// Now let's create our expected results. Create two results and insert them into the database using the queries.
+	admin, expectedResults := createTwoChatModel(q)
 
 	req, _ := http.NewRequest("GET", "/chat_model", nil)
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	assert.Equal(t, rr.Code, http.StatusOK)
 
 	// ensure that we get an array of two chat APIs in the response body
 	var results []sqlc_queries.ChatModel
 	body_bytes := rr.Body.Bytes()
 	println(body_bytes)
-	err = json.Unmarshal(body_bytes, &results)
+	err := json.Unmarshal(body_bytes, &results)
 	if err != nil {
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
