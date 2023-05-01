@@ -15,7 +15,8 @@
 - 上下文默认附带最新创建的10条消息
 - 第一个注册的用户是管理员
 - 默认限流 100 chatGPT call /10分钟 (OPENAI_RATELIMIT=100)
-- 根据对话生成可以分享的静态页面(like ShareGPT), 也可以继续会话.
+- 根据对话生成可以分享的静态页面(like ShareGPT), 也可以继续会话. 
+- 对话快照目录(对话集), 支持全文查找(Enlgish), 方便整理, 搜索会话记录.
 - 支持OPEN AI, Claude 模型 [免费申请链接](https://www.anthropic.com/earlyaccess)
 
 ## 参与开发
