@@ -17,7 +17,8 @@ import (
 // the code below do db update directly in instead of using handler, please change to use handler
 func TestChatSnapshot(t *testing.T) {
 	q := sqlc_queries.New(db)
-	h := NewChatSnapshotHandler(q) // create a new ChatSnapshotHandler instance for testing
+	service := NewChatMessageService(q)
+	h := NewChatSnapshotHandler(service) // create a new ChatSnapshotHandler instance for testing
 	router := mux.NewRouter()
 	h.Register(router)
 	// add a system user
