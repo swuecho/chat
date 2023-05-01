@@ -75,7 +75,6 @@ func clearChatModelsIfExists(q *sqlc_queries.Queries) {
 	}
 }
 
-
 // the code below do db update directly in instead of using handler, please change to use handler
 func TestChatModel(t *testing.T) {
 	q := sqlc_queries.New(db)
@@ -117,32 +116,9 @@ func TestChatModel(t *testing.T) {
 
 	// Now lets update the the first element of our expected results array and call PUT on the endpoint
 
-	expectedResults[0].Name = "Test API 1 Updated"
-	expectedResults[0].Label = "Test Label 1 Updated"
-
-	updateBytes, err := json.Marshal(expectedResults[0])
-	if err != nil {
-		t.Errorf("Error marshaling update payload: %s", err.Error())
-	}
-
 	// Create an HTTP request so we can simulate a PUT with the payload
-	updateReq, _ := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
-	updateReq = updateReq.WithContext(getContextWithUser(int(admin.ID)))
-
-	updateRR := httptest.NewRecorder()
-
-	router.ServeHTTP(updateRR, updateReq)
-
-	assert.Equal(t, updateRR.Code, http.StatusOK)
 	// ensure the new values are returned and were also updated in the database
-	var updatedResult sqlc_queries.ChatModel
-	err = json.Unmarshal(updateRR.Body.Bytes(), &updatedResult)
-	if err != nil {
-		t.Errorf("Error parsing response body: %s", err.Error())
-	}
-
-	assert.Equal(t, expectedResults[0].Name, updatedResult.Name)
-	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
+	updateFirstRecord(t, router, results[0].ID, admin, expectedResults[0])
 
 	// And now call the DELETE endpoint to remove all the created ChatModels
 	deleteReq, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
@@ -198,3 +174,30 @@ func TestChatModel(t *testing.T) {
 	assert.Equal(t, len(results), 0)
 }
 
+func updateFirstRecord(t *testing.T, router *mux.Router, chatModelID int32, admin sqlc_queries.AuthUser, rec sqlc_queries.ChatModel) {
+	rec.Name = "Test API 1 Updated"
+	rec.Label = "Test Label 1 Updated"
+
+	updateBytes, err := json.Marshal(rec)
+	if err != nil {
+		t.Errorf("Error marshaling update payload: %s", err.Error())
+	}
+
+	updateReq, _ := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", chatModelID), bytes.NewBuffer(updateBytes))
+	updateReq = updateReq.WithContext(getContextWithUser(int(admin.ID)))
+
+	updateRR := httptest.NewRecorder()
+
+	router.ServeHTTP(updateRR, updateReq)
+
+	assert.Equal(t, updateRR.Code, http.StatusOK)
+
+	var updatedResult sqlc_queries.ChatModel
+	err = json.Unmarshal(updateRR.Body.Bytes(), &updatedResult)
+	if err != nil {
+		t.Errorf("Error parsing response body: %s", err.Error())
+	}
+
+	assert.Equal(t, rec.Name, updatedResult.Name)
+	assert.Equal(t, rec.Label, updatedResult.Label)
+}
