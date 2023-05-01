@@ -26,8 +26,8 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 		return "", err
 	}
 	// TODO: fix hardcode
-	simple_msgs, err := GetChatHistoryBySessionUUID(s.q, ctx, chatSessionUuid, 1, 10000)
-	text := lo.Reduce(simple_msgs, func(acc string, curr SimpleChatMessage, _ int) string {
+	simple_msgs, err := s.q.GetChatHistoryBySessionUUID(ctx, chatSessionUuid, int32(1), int32(10000))
+	text := lo.Reduce(simple_msgs, func(acc string, curr sqlc_queries.SimpleChatMessage, _ int) string {
 		return acc + curr.Text
 	}, "")
 	// save all simple_msgs to a jsonb field in chat_snapshot

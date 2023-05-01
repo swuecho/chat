@@ -201,7 +201,7 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 	if err != nil {
 		pageSize = 200
 	}
-	simple_msgs, err := h.service.GetChatHistoryBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
+	simple_msgs, err := h.service.q.GetChatHistoryBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

@@ -137,11 +137,6 @@ func (s *ChatMessageService) GetChatMessagesBySessionUUID(ctx context.Context, u
 	return message, nil
 }
 
-// GetChatHistoryBySessionUUID returns chat message related by session uuid.
-func (s *ChatMessageService) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, pageNum, pageSize int32) ([]SimpleChatMessage, error) {
-	return GetChatHistoryBySessionUUID(s.q, ctx, uuid, pageNum, pageSize)
-}
-
 // DeleteChatMessagesBySesionUUID deletes chat messages by session uuid.
 func (s *ChatMessageService) DeleteChatMessagesBySesionUUID(ctx context.Context, uuid string) error {
 	err := s.q.DeleteChatMessagesBySesionUUID(ctx, uuid)

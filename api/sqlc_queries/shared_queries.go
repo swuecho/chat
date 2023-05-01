@@ -1,4 +1,4 @@
-package main
+package sqlc_queries
 
 import (
 	"context"
@@ -6,17 +6,27 @@ import (
 
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-func GetChatHistoryBySessionUUID(q *sqlc_queries.Queries, ctx context.Context, uuid string, pageNum, pageSize int32) ([]SimpleChatMessage, error) {
+type SimpleChatMessage struct {
+	Uuid      string `json:"uuid"`
+	DateTime  string `json:"dateTime"`
+	Text      string `json:"text"`
+	Inversion bool   `json:"inversion"`
+	Error     bool   `json:"error"`
+	Loading   bool   `json:"loading"`
+	IsPin     bool   `json:"isPin"`
+	IsPrompt  bool   `json:"isPrompt"`
+}
+
+func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, pageNum, pageSize int32) ([]SimpleChatMessage, error) {
 
 	chat_prompts, err := q.GetChatPromptsBySessionUUID(ctx, uuid)
 	if err != nil {
 		return nil, eris.Wrap(err, "fail to get prompt: ")
 	}
 
-	simple_prompts := lo.Map(chat_prompts, func(prompt sqlc_queries.ChatPrompt, idx int) SimpleChatMessage {
+	simple_prompts := lo.Map(chat_prompts, func(prompt ChatPrompt, idx int) SimpleChatMessage {
 		return SimpleChatMessage{
 			Uuid:      prompt.Uuid,
 			DateTime:  prompt.UpdatedAt.Format(time.RFC3339),
@@ -30,7 +40,7 @@ func GetChatHistoryBySessionUUID(q *sqlc_queries.Queries, ctx context.Context, u
 	})
 
 	messages, err := q.GetChatMessagesBySessionUUID(ctx,
-		sqlc_queries.GetChatMessagesBySessionUUIDParams{
+		GetChatMessagesBySessionUUIDParams{
 			Uuid:   uuid,
 			Offset: pageNum - 1,
 			Limit:  pageSize,
@@ -39,7 +49,7 @@ func GetChatHistoryBySessionUUID(q *sqlc_queries.Queries, ctx context.Context, u
 		return nil, eris.Wrap(err, "fail to get message: ")
 	}
 
-	simple_msgs := lo.Map(messages, func(message sqlc_queries.ChatMessage, _ int) SimpleChatMessage {
+	simple_msgs := lo.Map(messages, func(message ChatMessage, _ int) SimpleChatMessage {
 		return SimpleChatMessage{
 			Uuid:      message.Uuid,
 			DateTime:  message.UpdatedAt.Format(time.RFC3339),
