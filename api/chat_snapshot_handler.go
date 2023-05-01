@@ -152,7 +152,7 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 	uuid := vars["uuid"]
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithError(w, http.StatusForbidden, err.Error(), err)
 		return
 	}
 
