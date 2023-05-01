@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"google.golang.org/grpc/status"
 	"gotest.tools/v3/assert"
 )
 
@@ -75,6 +77,19 @@ func clearChatModelsIfExists(q *sqlc_queries.Queries) {
 	}
 }
 
+func unmarshalResponseToChatModel(t *testing.T, rr *httptest.ResponseRecorder) []sqlc_queries.ChatModel {
+	// read the response body
+	bodyBytes, err := ioutil.ReadAll(rr.Body)
+	assert.NilError(t, err)
+
+	// unmarshal the response body into a list of ChatModel
+	var results []sqlc_queries.ChatModel
+	err = json.Unmarshal(bodyBytes, &results)
+	assert.NilError(t, err)
+
+	return results
+}
+
 // the code below do db update directly in instead of using handler, please change to use handler
 func TestChatModel(t *testing.T) {
 	q := sqlc_queries.New(db)
@@ -87,13 +102,57 @@ func TestChatModel(t *testing.T) {
 	// Now let's create our expected results. Create two results and insert them into the database using the queries.
 	admin, expectedResults := createTwoChatModel(q)
 
+	// ensure that we get an array of two chat APIs in the response body
+	// ensure the returned values are what we expect them to be
+	results := checkGetModels(t, router, expectedResults)
+
+	// Now lets update the the first element of our expected results array and call PUT on the endpoint
+
+	// Create an HTTP request so we can simulate a PUT with the payload
+	// ensure the new values are returned and were also updated in the database
+	firstRecordID := results[0].ID
+	updateFirstRecord(t, router, firstRecordID, admin, expectedResults[0])
+
+	// delete first model
+	deleteReq, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", firstRecordID), nil)
+	deleteReq = deleteReq.WithContext(getContextWithUser(int(admin.ID)))
+	deleteRR := httptest.NewRecorder()
+	router.ServeHTTP(deleteRR, deleteReq)
+	assert.Equal(t, deleteRR.Code, http.StatusOK)
+
+	// check only one model left
+	req, _ := http.NewRequest("GET", "/chat_model", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	// ensure that we get an array of one chat API in the response body
+	results = unmarshalResponseToChatModel(t, rr)
+	assert.Equal(t, len(results), 1)
+	assert.Equal(t, results[0].Name, "Test API 2")
+
+	// delete the last model
+	deleteRequest, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
+	contextWithUser := getContextWithUser(int(admin.ID))
+	deleteRequest = deleteRequest.WithContext(contextWithUser)
+	deleteResponseRecorder := httptest.NewRecorder()
+	router.ServeHTTP(deleteResponseRecorder, deleteRequest)
+	assert.Equal(t, status.Code, http.StatusOK)
+
+	// check no models left
+	getRequest, _ := http.NewRequest("GET", "/chat_model", nil)
+	// Create a ResponseRecorder to record the response
+	getResponseRecorder := httptest.NewRecorder()
+	router.ServeHTTP(getResponseRecorder, getRequest)
+	results = unmarshalResponseToChatModel(t, rr)
+	assert.Equal(t, len(results), 0)
+}
+
+func checkGetModels(t *testing.T, router *mux.Router, expectedResults []sqlc_queries.ChatModel) []sqlc_queries.ChatModel {
 	req, _ := http.NewRequest("GET", "/chat_model", nil)
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
 	assert.Equal(t, rr.Code, http.StatusOK)
 
-	// ensure that we get an array of two chat APIs in the response body
 	var results []sqlc_queries.ChatModel
 	body_bytes := rr.Body.Bytes()
 	println(body_bytes)
@@ -103,7 +162,6 @@ func TestChatModel(t *testing.T) {
 	}
 	assert.Equal(t, len(results), 2)
 
-	// ensure the returned values are what we expect them to be
 	for i, api := range expectedResults {
 		assert.Equal(t, api.Name, results[i].Name)
 		assert.Equal(t, api.Label, results[i].Label)
@@ -113,66 +171,7 @@ func TestChatModel(t *testing.T) {
 		assert.Equal(t, api.ApiAuthKey, results[i].ApiAuthKey)
 		assert.Equal(t, api.UserID, results[i].UserID)
 	}
-
-	// Now lets update the the first element of our expected results array and call PUT on the endpoint
-
-	// Create an HTTP request so we can simulate a PUT with the payload
-	// ensure the new values are returned and were also updated in the database
-	firstRecordID := results[0].ID
-	updateFirstRecord(t, router, firstRecordID, admin, expectedResults[0])
-
-	// And now call the DELETE endpoint to remove all the created ChatModels
-	deleteReq, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", firstRecordID), nil)
-	deleteReq = deleteReq.WithContext(getContextWithUser(int(admin.ID)))
-	deleteRR := httptest.NewRecorder()
-	router.ServeHTTP(deleteRR, deleteReq)
-
-	assert.Equal(t, deleteRR.Code, http.StatusOK)
-
-	// only one left
-	req, _ = http.NewRequest("GET", "/chat_model", nil)
-	rr = httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
-	// ensure that we get an array of one chat API in the response body
-	body_bytes = rr.Body.Bytes()
-	println(body_bytes)
-	err = json.Unmarshal(body_bytes, &results)
-	if err != nil {
-		t.Errorf("error parsing response body: %s", err.Error())
-	}
-	assert.Equal(t, len(results), 1)
-	assert.Equal(t, results[0].Name, "Test API 2")
-	// delete all results
-	// Create a DELETE request
-	deleteRequest, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
-	// Add user context to the request
-	contextWithUser := getContextWithUser(int(admin.ID))
-	deleteRequest = deleteRequest.WithContext(contextWithUser)
-
-	// Create a ResponseRecorder to record the response
-	deleteResponseRecorder := httptest.NewRecorder()
-
-	// Serve the request
-	router.ServeHTTP(deleteResponseRecorder, deleteRequest)
-
-	// Check if the status code is correct
-	if status := deleteResponseRecorder.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	// Create a GET request
-	getRequest, _ := http.NewRequest("GET", "/chat_model", nil)
-	// Create a ResponseRecorder to record the response
-	getResponseRecorder := httptest.NewRecorder()
-	router.ServeHTTP(getResponseRecorder, getRequest)
-
-	// Get the response body
-	bodyBytes := getResponseRecorder.Body.Bytes()
-	println(bodyBytes)
-	err = json.Unmarshal(bodyBytes, &results)
-	if err != nil {
-		t.Errorf("error parsing response body: %s", err.Error())
-	}
-	assert.Equal(t, len(results), 0)
+	return results
 }
 
 func updateFirstRecord(t *testing.T, router *mux.Router, chatModelID int32, admin sqlc_queries.AuthUser, rec sqlc_queries.ChatModel) {
