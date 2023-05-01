@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -28,8 +27,6 @@ func (h *ChatSnapshotHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_snapshot/{uuid}", h.DeleteChatSnapshot).Methods(http.MethodDelete)
 	router.HandleFunc("/uuid/chat_snapshot_search", h.ChatSnapshotSearch).Methods(http.MethodGet)
 }
-
-// save all chat messages to database
 
 func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.Request) {
 	chatSessionUuid := mux.Vars(r)["uuid"]
@@ -66,6 +63,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 	}
 	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), userID)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
@@ -86,8 +84,6 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		w.Write([]byte("Failed to parse request body"))
 		return
 	}
-	log.Println(input)
-
 	userID, err := getUserID(r.Context())
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
