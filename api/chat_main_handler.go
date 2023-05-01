@@ -26,12 +26,12 @@ import (
 )
 
 type ChatHandler struct {
-	chatService *ChatService
+	service *ChatService
 }
 
 func NewChatHandler(chatService *ChatService) *ChatHandler {
 	return &ChatHandler{
-		chatService: chatService,
+		service: chatService,
 	}
 }
 
@@ -94,7 +94,7 @@ func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	answerMsg, err := h.chatService.Chat(req.SessionUuid, req.ChatUuid, req.Prompt, userIDInt32)
+	answerMsg, err := h.service.Chat(req.SessionUuid, req.ChatUuid, req.Prompt, userIDInt32)
 
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
@@ -146,7 +146,7 @@ func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWr
 //	it will create a message, use prompt + get latest N message + newQuestion as request
 func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string, newQuestion string, userID int32) {
 	ctx := context.Background()
-	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
+	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	fmt.Printf("chatSession: %+v ", chatSession)
 	if err != nil {
 		http.Error(w,
@@ -158,7 +158,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 
 	existingPrompt := true
 
-	_, err = h.chatService.q.GetOneChatPromptBySessionUUID(ctx, chatSessionUuid)
+	_, err = h.service.q.GetOneChatPromptBySessionUUID(ctx, chatSessionUuid)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -169,7 +169,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	if existingPrompt {
-		_, err := h.chatService.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, userID)
+		_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, userID)
 		if err != nil {
 			http.Error(w,
 				eris.Wrap(err, "fail to create message: ").Error(),
@@ -177,7 +177,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 			)
 		}
 	} else {
-		chatPrompt, err := h.chatService.CreateChatPromptSimple(chatSessionUuid, newQuestion, userID)
+		chatPrompt, err := h.service.CreateChatPromptSimple(chatSessionUuid, newQuestion, userID)
 		if err != nil {
 			http.Error(w,
 				eris.Wrap(err, "fail to create prompt: ").Error(),
@@ -188,7 +188,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		log.Printf("%+v\n", chatPrompt)
 	}
 
-	msgs, err := h.chatService.getAskMessages(chatSession, chatUuid, false)
+	msgs, err := h.service.getAskMessages(chatSession, chatUuid, false)
 	if err != nil {
 		RespondWithError(w,
 			http.StatusInternalServerError,
@@ -221,10 +221,10 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 	if !isTest(msgs) {
-		h.chatService.logChat(chatSession, msgs, answerText)
+		h.service.logChat(chatSession, msgs, answerText)
 	}
 
-	if _, err := h.chatService.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID); err != nil {
+	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
@@ -232,13 +232,13 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) {
 	ctx := context.Background()
-	chatSession, err := h.chatService.q.GetChatSessionByUUID(ctx, chatSessionUuid)
+	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat session").Error(), err)
 		return
 	}
 
-	msgs, err := h.chatService.getAskMessages(chatSession, chatUuid, true)
+	msgs, err := h.service.getAskMessages(chatSession, chatUuid, true)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Get chat message error", err)
 		return
@@ -266,10 +266,10 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		return
 	}
 
-	h.chatService.logChat(chatSession, msgs, answerText)
+	h.service.logChat(chatSession, msgs, answerText)
 
 	// Delete previous message and create new one
-	if err := h.chatService.UpdateChatMessageContent(ctx, chatUuid, answerText); err != nil {
+	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, answerText); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
 	}
 }
@@ -310,7 +310,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	// 	return true
 	// }
 	// get chatModel, check the per model rate limit is Enabled
-	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), model)
+	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get model by name").Error(), err)
@@ -320,7 +320,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		return false
 	}
 	ctx := context.Background()
-	rate, err := h.chatService.q.RateLimiteByUserAndSessionUUID(ctx,
+	rate, err := h.service.q.RateLimiteByUserAndSessionUUID(ctx,
 		sqlc_queries.RateLimiteByUserAndSessionUUIDParams{
 			Uuid:   chatSessionUuid,
 			UserID: userID,
@@ -332,7 +332,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	}
 
 	// get last model usage in 10min
-	usage10Min, err := h.chatService.q.GetChatMessagesCountByUserAndModel(ctx,
+	usage10Min, err := h.service.q.GetChatMessagesCountByUserAndModel(ctx,
 		sqlc_queries.GetChatMessagesCountByUserAndModelParams{
 			UserID: userID,
 			Model:  rate.ChatModelName,
@@ -357,7 +357,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		return "", "", true
 	}
 
-	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
@@ -453,7 +453,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 		return "", "", true
 	}
 
-	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
@@ -566,7 +566,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// Release the API token
 	defer func() { <-claudeRateLimiteToken }()
 	// set the api key
-	chatModel, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
@@ -698,7 +698,7 @@ type CustomModelResponse struct {
 func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
 	// set the api key
-	chat_model, err := h.chatService.q.ChatModelByName(context.Background(), chatSession.Model)
+	chat_model, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true

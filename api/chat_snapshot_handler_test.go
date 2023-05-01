@@ -22,7 +22,7 @@ func TestChatSnapshot(t *testing.T) {
 
 	// Create a chat service for testing
 	q := sqlc_queries.New(db)
-	service := NewChatMessageService(q)
+	service := NewChatSnapshotService(q)
 	h := NewChatSnapshotHandler(service) // Create a ChatSnapshotHandler
 
 	// Register snapshot API routes
