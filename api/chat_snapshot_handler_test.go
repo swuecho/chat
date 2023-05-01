@@ -15,8 +15,13 @@ import (
 	"gotest.tools/v3/assert"
 )
 
+func getContext(userID int) context.Context {
+	return context.WithValue(context.Background(), userContextKey, strconv.Itoa(userID))
+    }
 // the code below do db update directly in instead of using handler, please change to use handler
 func TestChatSnapshot(t *testing.T) {
+	const snapshotPath = "/uuid/chat_snapshot/%s"
+
 	q := sqlc_queries.New(db)
 	service := NewChatMessageService(q)
 	h := NewChatSnapshotHandler(service) // create a new ChatSnapshotHandler instance for testing
@@ -39,7 +44,7 @@ func TestChatSnapshot(t *testing.T) {
 		return
 	}
 	assert.Equal(t, one.Uuid, snapshot_uuid)
-	req, err := http.NewRequest("GET", fmt.Sprintf("/uuid/chat_snapshot/%s", one.Uuid), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(snapshotPath, one.Uuid), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +61,7 @@ func TestChatSnapshot(t *testing.T) {
 	println(body_bytes)
 	// test delete snapshot should fail without context,
 	// test delete ok with context
-	reqDelete, err := http.NewRequest("DELETE", fmt.Sprintf("/uuid/chat_snapshot/%s", one.Uuid), nil)
+	reqDelete, err := http.NewRequest("DELETE", fmt.Sprintf(snapshotPath, one.Uuid), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,19 +70,19 @@ func TestChatSnapshot(t *testing.T) {
 
 	router.ServeHTTP(rDelete, reqDelete)
 
-	if status := rDelete.Code; status != http.StatusOK {
+	if status := rDelete.Code; status != http.StatusForbidden {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
-	reqDeleteWitUserContext, err := http.NewRequest("DELETE", fmt.Sprintf("/uuid/chat_snapshot/%s", one.Uuid), nil)
+	reqDeleteWitUserContext, err := http.NewRequest("DELETE", fmt.Sprintf(snapshotPath, one.Uuid), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rDelete3 := httptest.NewRecorder()
 
-	ctx := context.WithValue(reqDeleteWitUserContext.Context(), userContextKey, strconv.Itoa(userID))
+	ctx := getContext(userID)
 	router.ServeHTTP(rDelete3, reqDeleteWitUserContext.WithContext(ctx))
 
 	if status := rDelete3.Code; status != http.StatusOK {
