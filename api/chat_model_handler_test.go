@@ -70,15 +70,8 @@ func TestChatModel(t *testing.T) {
 	h := NewChatModelHandler(q) // create a new ChatModelHandler instance for testing
 	router := mux.NewRouter()
 	h.Register(router)
-	defaultApis, _ := q.ListChatModels(context.Background())
 	// delete all existing chat APIs
-	for _, api := range defaultApis {
-		q.DeleteChatModel(context.Background(),
-			sqlc_queries.DeleteChatModelParams{
-				ID:     api.ID,
-				UserID: api.UserID,
-			})
-	}
+	clearChatModelsIfExists(q)
 
 	// Now let's create our expected results. Create two results and insert them into the database using the queries.
 	admin, expectedResults := createTwoChatModel(q)
@@ -214,4 +207,16 @@ func TestChatModel(t *testing.T) {
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
 	assert.Equal(t, len(results), 0)
+}
+
+func clearChatModelsIfExists(q *sqlc_queries.Queries) {
+	defaultApis, _ := q.ListChatModels(context.Background())
+
+	for _, api := range defaultApis {
+		q.DeleteChatModel(context.Background(),
+			sqlc_queries.DeleteChatModelParams{
+				ID:     api.ID,
+				UserID: api.UserID,
+			})
+	}
 }
