@@ -47,6 +47,10 @@ func getUserID(ctx context.Context) (int32, error) {
 	return userID, nil
 }
 
+func getContextWithUser(userID int) context.Context {
+	return context.WithValue(context.Background(), userContextKey, strconv.Itoa(userID))
+}
+
 func setSSEHeader(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")

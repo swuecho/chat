@@ -194,38 +194,45 @@ func TestChatModel(t *testing.T) {
 	// first results's name is  "Test API 2"
 	assert.Equal(t, results[0].Name, "Test API 2")
 	// delete all results
-
-	deleteReq2, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
+	// Create a DELETE request
+	deleteRequest, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx3 := context.WithValue(deleteReq2.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
-	deleteReq2 = deleteReq2.WithContext(ctx3)
+	// Add user context to the request
+	contextWithUser := getContextWithUser(int(admin.ID))
+	deleteRequest = deleteRequest.WithContext(contextWithUser)
 
-	deleteRR2 := httptest.NewRecorder()
-	router.ServeHTTP(deleteRR2, deleteReq2)
+	// Create a ResponseRecorder to record the response
+	deleteResponseRecorder := httptest.NewRecorder()
 
-	if status := deleteRR2.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+	// Serve the request
+	router.ServeHTTP(deleteResponseRecorder, deleteRequest)
+
+	// Check if the status code is correct
+	if status := deleteResponseRecorder.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
-	// there should be no results
-	req, err = http.NewRequest("GET", "/chat_model", nil)
+	// Create a GET request
+	getRequest, err := http.NewRequest("GET", "/chat_model", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	rr = httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
-	// ensure that we get an array of one chat API in the response body
-	body_bytes = rr.Body.Bytes()
-	println(body_bytes)
-	err = json.Unmarshal(body_bytes, &results)
+
+	// Create a ResponseRecorder to record the response
+	getResponseRecorder := httptest.NewRecorder()
+	router.ServeHTTP(getResponseRecorder, getRequest)
+
+	// Get the response body
+	bodyBytes := getResponseRecorder.Body.Bytes()
+	println(bodyBytes)
+	err = json.Unmarshal(bodyBytes, &results)
 	if err != nil {
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
-	// len 0
+
+	// Check the response
 	if len(results) != 0 {
 		t.Errorf("expected 0 chat API, got %d", len(results))
 	}
