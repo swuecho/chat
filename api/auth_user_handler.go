@@ -14,7 +14,6 @@ import (
 )
 
 type AuthUserHandler struct {
-	q       *sqlc_queries.Queries
 	authUserService *AuthUserService
 }
 
@@ -261,7 +260,7 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Retrieve user account from the database by email address
-	user, err := h.q.GetUserByEmail(context.Background(), req.Email)
+	user, err := h.authUserService.q.GetUserByEmail(context.Background(), req.Email)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -278,7 +277,7 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Update user account with new hashed password
-	err = h.q.UpdateUserPassword(
+	err = h.authUserService.q.UpdateUserPassword(
 		context.Background(),
 		sqlc_queries.UpdateUserPasswordParams{
 			Email:    req.Email,
@@ -329,7 +328,7 @@ func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Update password in the database
-	err = h.q.UpdateUserPassword(context.Background(), sqlc_queries.UpdateUserPasswordParams{
+	err = h.authUserService.q.UpdateUserPassword(context.Background(), sqlc_queries.UpdateUserPasswordParams{
 		Email:    req.Email,
 		Password: string(hashedPassword),
 	})
