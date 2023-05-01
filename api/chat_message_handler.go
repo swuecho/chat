@@ -12,12 +12,12 @@ import (
 )
 
 type ChatMessageHandler struct {
-	service *ChatMessageService
+	chatMessageService *ChatMessageService
 }
 
 func NewChatMessageHandler(service *ChatMessageService) *ChatMessageHandler {
 	return &ChatMessageHandler{
-		service: service,
+		chatMessageService: service,
 	}
 }
 
@@ -46,7 +46,7 @@ func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Re
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	message, err := h.service.CreateChatMessage(r.Context(), messageParams)
+	message, err := h.chatMessageService.CreateChatMessage(r.Context(), messageParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -61,7 +61,7 @@ func (h *ChatMessageHandler) GetChatMessageByID(w http.ResponseWriter, r *http.R
 		http.Error(w, "invalid chat message ID", http.StatusBadRequest)
 		return
 	}
-	message, err := h.service.GetChatMessageByID(r.Context(), int32(id))
+	message, err := h.chatMessageService.GetChatMessageByID(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -83,7 +83,7 @@ func (h *ChatMessageHandler) UpdateChatMessage(w http.ResponseWriter, r *http.Re
 		return
 	}
 	messageParams.ID = int32(id)
-	message, err := h.service.UpdateChatMessage(r.Context(), messageParams)
+	message, err := h.chatMessageService.UpdateChatMessage(r.Context(), messageParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -98,7 +98,7 @@ func (h *ChatMessageHandler) DeleteChatMessage(w http.ResponseWriter, r *http.Re
 		http.Error(w, "invalid chat message ID", http.StatusBadRequest)
 		return
 	}
-	err = h.service.DeleteChatMessage(r.Context(), int32(id))
+	err = h.chatMessageService.DeleteChatMessage(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -107,7 +107,7 @@ func (h *ChatMessageHandler) DeleteChatMessage(w http.ResponseWriter, r *http.Re
 }
 
 func (h *ChatMessageHandler) GetAllChatMessages(w http.ResponseWriter, r *http.Request) {
-	messages, err := h.service.GetAllChatMessages(r.Context())
+	messages, err := h.chatMessageService.GetAllChatMessages(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -118,7 +118,7 @@ func (h *ChatMessageHandler) GetAllChatMessages(w http.ResponseWriter, r *http.R
 // GetChatMessageByUUID get chat message by uuid
 func (h *ChatMessageHandler) GetChatMessageByUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	message, err := h.service.GetChatMessageByUUID(r.Context(), uuidStr)
+	message, err := h.chatMessageService.GetChatMessageByUUID(r.Context(), uuidStr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -141,7 +141,7 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 	tokenCount, _ := getTokenCount(simple_msg.Text)
 	messageParams.TokenCount = int32(tokenCount)
 	messageParams.IsPin = simple_msg.IsPin
-	message, err := h.service.UpdateChatMessageByUUID(r.Context(), messageParams)
+	message, err := h.chatMessageService.UpdateChatMessageByUUID(r.Context(), messageParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -152,7 +152,7 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 // DeleteChatMessageByUUID delete chat message by uuid
 func (h *ChatMessageHandler) DeleteChatMessageByUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatMessageByUUID(r.Context(), uuidStr)
+	err := h.chatMessageService.DeleteChatMessageByUUID(r.Context(), uuidStr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -172,7 +172,7 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 		pageSize = 200
 	}
 
-	messages, err := h.service.GetChatMessagesBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
+	messages, err := h.chatMessageService.GetChatMessagesBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -201,7 +201,7 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 	if err != nil {
 		pageSize = 200
 	}
-	simple_msgs, err := h.service.GetChatHistoryBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
+	simple_msgs, err := h.chatMessageService.GetChatHistoryBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -212,7 +212,7 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 // DeleteChatMessagesBySesionUUID delete chat messages by session uuid
 func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr)
+	err := h.chatMessageService.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
