@@ -15,12 +15,12 @@ import (
 )
 
 type ChatSessionHandler struct {
-	chatSessionService *ChatSessionService
+	service *ChatSessionService
 }
 
 func NewChatSessionHandler(service *ChatSessionService) *ChatSessionHandler {
 	return &ChatSessionHandler{
-		chatSessionService: service,
+		service: service,
 	}
 }
 
@@ -49,7 +49,7 @@ func (h *ChatSessionHandler) CreateChatSession(w http.ResponseWriter, r *http.Re
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	session, err := h.chatSessionService.CreateChatSession(r.Context(), sessionParams)
+	session, err := h.service.CreateChatSession(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -64,7 +64,7 @@ func (h *ChatSessionHandler) GetChatSessionByID(w http.ResponseWriter, r *http.R
 		http.Error(w, eris.Wrap(err, "invalid chat session ID ").Error(), http.StatusBadRequest)
 		return
 	}
-	session, err := h.chatSessionService.GetChatSessionByID(r.Context(), int32(id))
+	session, err := h.service.GetChatSessionByID(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -86,7 +86,7 @@ func (h *ChatSessionHandler) UpdateChatSession(w http.ResponseWriter, r *http.Re
 		return
 	}
 	sessionParams.ID = int32(id)
-	session, err := h.chatSessionService.UpdateChatSession(r.Context(), sessionParams)
+	session, err := h.service.UpdateChatSession(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -101,7 +101,7 @@ func (h *ChatSessionHandler) DeleteChatSession(w http.ResponseWriter, r *http.Re
 		http.Error(w, "invalid chat session ID", http.StatusBadRequest)
 		return
 	}
-	err = h.chatSessionService.DeleteChatSession(r.Context(), int32(id))
+	err = h.service.DeleteChatSession(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -110,7 +110,7 @@ func (h *ChatSessionHandler) DeleteChatSession(w http.ResponseWriter, r *http.Re
 }
 
 func (h *ChatSessionHandler) GetAllChatSessions(w http.ResponseWriter, r *http.Request) {
-	sessions, err := h.chatSessionService.GetAllChatSessions(r.Context())
+	sessions, err := h.service.GetAllChatSessions(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -125,7 +125,7 @@ func (h *ChatSessionHandler) GetChatSessionsByUserID(w http.ResponseWriter, r *h
 		http.Error(w, "invalid user ID", http.StatusBadRequest)
 		return
 	}
-	sessions, err := h.chatSessionService.GetChatSessionsByUserID(r.Context(), int32(id))
+	sessions, err := h.service.GetChatSessionsByUserID(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -136,7 +136,7 @@ func (h *ChatSessionHandler) GetChatSessionsByUserID(w http.ResponseWriter, r *h
 // GetChatSessionByUUID returns a chat session by its UUID
 func (h *ChatSessionHandler) GetChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
-	session, err := h.chatSessionService.GetChatSessionByUUID(r.Context(), uuid)
+	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
 	session_resp := &ChatSessionResponse{}
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -173,14 +173,14 @@ func (h *ChatSessionHandler) CreateChatSessionByUUID(w http.ResponseWriter, r *h
 
 	sessionParams.UserID = userIDInt
 	sessionParams.MaxLength = 10
-	session, err := h.chatSessionService.CreateChatSession(r.Context(), sessionParams)
+	session, err := h.service.CreateChatSession(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	// set active chat session when creating a new chat session
 	sessionParams.UserID = int32(userIDInt)
-	_, err = h.chatSessionService.q.CreateOrUpdateUserActiveChatSession(r.Context(),
+	_, err = h.service.q.CreateOrUpdateUserActiveChatSession(r.Context(),
 		sqlc_queries.CreateOrUpdateUserActiveChatSessionParams{
 			UserID:          session.UserID,
 			ChatSessionUuid: session.Uuid,
@@ -215,7 +215,7 @@ func (h *ChatSessionHandler) UpdateChatSessionByUUID(w http.ResponseWriter, r *h
 	}
 
 	sessionParams.UserID = userID
-	session, err := h.chatSessionService.UpdateChatSessionByUUID(r.Context(), sessionParams)
+	session, err := h.service.UpdateChatSessionByUUID(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -265,7 +265,7 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.N = sessionReq.N
 	sessionParams.MaxTokens = sessionReq.MaxTokens
 	sessionParams.Debug = sessionReq.Debug
-	session, err := h.chatSessionService.CreateOrUpdateChatSessionByUUID(r.Context(), sessionParams)
+	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -276,7 +276,7 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 // DeleteChatSessionByUUID deletes a chat session by its UUID
 func (h *ChatSessionHandler) DeleteChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
-	err := h.chatSessionService.DeleteChatSessionByUUID(r.Context(), uuid)
+	err := h.service.DeleteChatSessionByUUID(r.Context(), uuid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -294,7 +294,7 @@ func (h *ChatSessionHandler) GetSimpleChatSessionsByUserID(w http.ResponseWriter
 		return
 	}
 
-	sessions, err := h.chatSessionService.GetSimpleChatSessionsByUserID(ctx, int32(id))
+	sessions, err := h.service.GetSimpleChatSessionsByUserID(ctx, int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -322,7 +322,7 @@ func (h *ChatSessionHandler) UpdateChatSessionTopicByUUID(w http.ResponseWriter,
 
 	sessionParams.UserID = userID
 
-	session, err := h.chatSessionService.UpdateChatSessionTopicByUUID(r.Context(), sessionParams)
+	session, err := h.service.UpdateChatSessionTopicByUUID(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -341,7 +341,7 @@ func (h *ChatSessionHandler) UpdateSessionMaxLength(w http.ResponseWriter, r *ht
 	}
 	sessionParams.Uuid = uuid
 
-	session, err := h.chatSessionService.UpdateSessionMaxLength(r.Context(), sessionParams)
+	session, err := h.service.UpdateSessionMaxLength(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -365,7 +365,7 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 		return
 	}
 
-	snapshot, err := h.chatSessionService.q.ChatSnapshotByUUID(r.Context(), snapshot_uuid)
+	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), snapshot_uuid)
 	if err != nil {
 		RespondWithError(w, http.StatusUnauthorized, "Error retrieving chat snapshot", err)
 		return
@@ -376,12 +376,12 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 	var conversionsSimpleMessages []SimpleChatMessage
 	json.Unmarshal(conversions, &conversionsSimpleMessages)
 	promptMsg := conversionsSimpleMessages[0]
-	chatPrompt, err := h.chatSessionService.q.GetChatPromptByUUID(r.Context(), promptMsg.Uuid)
+	chatPrompt, err := h.service.q.GetChatPromptByUUID(r.Context(), promptMsg.Uuid)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get prompt").Error(), err)
 		return
 	}
-	originSession, err := h.chatSessionService.q.GetChatSessionByUUIDWithInActive(r.Context(), chatPrompt.ChatSessionUuid)
+	originSession, err := h.service.q.GetChatSessionByUUIDWithInActive(r.Context(), chatPrompt.ChatSessionUuid)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get origin session").Error(), err)
 		return
@@ -389,7 +389,7 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 
 	sessionUUID := uuid.New().String()
 
-	session, err := h.chatSessionService.q.CreateOrUpdateChatSessionByUUID(r.Context(), sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
+	session, err := h.service.q.CreateOrUpdateChatSessionByUUID(r.Context(), sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
 		Uuid:        sessionUUID,
 		UserID:      userID,
 		Topic:       sessionTitle,
@@ -406,7 +406,7 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 		return
 	}
 
-	_, err = h.chatSessionService.q.CreateChatPrompt(r.Context(), sqlc_queries.CreateChatPromptParams{
+	_, err = h.service.q.CreateChatPrompt(r.Context(), sqlc_queries.CreateChatPromptParams{
 		Uuid:            uuid.NewString(),
 		ChatSessionUuid: sessionUUID,
 		Role:            "system",
@@ -434,7 +434,7 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 			UserID:          userID,
 			Raw:             json.RawMessage([]byte("{}")),
 		}
-		_, err = h.chatSessionService.q.CreateChatMessage(r.Context(), messageParam)
+		_, err = h.service.q.CreateChatMessage(r.Context(), messageParam)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error creating messages for chat session from snapshot").Error(), err)
 			return
@@ -447,7 +447,7 @@ func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter
 		UserID:          userID,
 		ChatSessionUuid: session.Uuid,
 	}
-	_, err = h.chatSessionService.q.UpdateUserActiveChatSession(r.Context(), sessionParams)
+	_, err = h.service.q.UpdateUserActiveChatSession(r.Context(), sessionParams)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to update active session").Error(), err)
 	}

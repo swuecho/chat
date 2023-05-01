@@ -14,11 +14,11 @@ import (
 )
 
 type AuthUserHandler struct {
-	authUserService *AuthUserService
+	service *AuthUserService
 }
 
 func NewAuthUserHandler(service *AuthUserService) *AuthUserHandler {
-	return &AuthUserHandler{authUserService: service}
+	return &AuthUserHandler{service: service}
 }
 
 func (h *AuthUserHandler) Register(router *mux.Router) {
@@ -45,7 +45,7 @@ func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := h.authUserService.CreateAuthUser(r.Context(), userParams)
+	user, err := h.service.CreateAuthUser(r.Context(), userParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -59,7 +59,7 @@ func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
-	user, err := h.authUserService.GetAuthUserByID(r.Context(), userID)
+	user, err := h.service.GetAuthUserByID(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -81,7 +81,7 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userParams.ID = userID
-	user, err := h.authUserService.q.UpdateAuthUser(r.Context(), userParams)
+	user, err := h.service.q.UpdateAuthUser(r.Context(), userParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -98,7 +98,7 @@ func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := h.authUserService.q.UpdateAuthUserByEmail(r.Context(), userParams)
+	user, err := h.service.q.UpdateAuthUserByEmail(r.Context(), userParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -128,7 +128,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		Username: params.Email,
 	}
 
-	user, err := h.authUserService.CreateAuthUser(r.Context(), userParams)
+	user, err := h.service.CreateAuthUser(r.Context(), userParams)
 	if err != nil {
 		http.Error(w, eris.Wrap(err, "failed to create user ").Error(), http.StatusInternalServerError)
 		return
@@ -160,7 +160,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "error.invalid_request", nil)
 		return
 	}
-	user, err := h.authUserService.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
+	user, err := h.service.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
 	if err != nil {
 		RespondWithError(w, http.StatusUnauthorized, "error.invalid_email_or_password", err)
 		return
@@ -200,7 +200,7 @@ func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "empty token string", http.StatusBadRequest)
 	}
 
-	cookie, err := h.authUserService.Logout(tokenString)
+	cookie, err := h.service.Logout(tokenString)
 	if err != nil {
 		http.Error(w, "logout fail", http.StatusBadRequest)
 	}
@@ -260,7 +260,7 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Retrieve user account from the database by email address
-	user, err := h.authUserService.q.GetUserByEmail(context.Background(), req.Email)
+	user, err := h.service.q.GetUserByEmail(context.Background(), req.Email)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -277,7 +277,7 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Update user account with new hashed password
-	err = h.authUserService.q.UpdateUserPassword(
+	err = h.service.q.UpdateUserPassword(
 		context.Background(),
 		sqlc_queries.UpdateUserPasswordParams{
 			Email:    req.Email,
@@ -328,7 +328,7 @@ func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Update password in the database
-	err = h.authUserService.q.UpdateUserPassword(context.Background(), sqlc_queries.UpdateUserPasswordParams{
+	err = h.service.q.UpdateUserPassword(context.Background(), sqlc_queries.UpdateUserPasswordParams{
 		Email:    req.Email,
 		Password: string(hashedPassword),
 	})
@@ -360,7 +360,7 @@ func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userStatsRows, total, err := h.authUserService.GetUserStats(r.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
+	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -411,7 +411,7 @@ func (h *AuthUserHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	rate, err := h.authUserService.q.UpdateAuthUserRateLimitByEmail(r.Context(),
+	rate, err := h.service.q.UpdateAuthUserRateLimitByEmail(r.Context(),
 		sqlc_queries.UpdateAuthUserRateLimitByEmailParams{
 			Email:     rateLimitRequest.Email,
 			RateLimit: rateLimitRequest.RateLimit,
@@ -434,7 +434,7 @@ func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rate, err := h.authUserService.q.GetRateLimit(ctx, userID)
+	rate, err := h.service.q.GetRateLimit(ctx, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
