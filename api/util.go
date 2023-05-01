@@ -34,7 +34,10 @@ func firstN(s string, n int) string {
 }
 
 func getUserID(ctx context.Context) (int32, error) {
-	userIDStr := ctx.Value(userContextKey).(string)
+	userIDStr, ok := ctx.Value(userContextKey).(string)
+	if !ok {
+		return 0, eris.New("user ID not found in context")
+	}
 	userIDInt, err := strconv.ParseInt(userIDStr, 10, 32)
 	if err != nil {
 		return 0, eris.Wrap(err, "Error: '"+userIDStr+"' is not a valid user ID. should be a numeric value: ")
