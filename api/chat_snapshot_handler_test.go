@@ -19,19 +19,29 @@ func getContext(userID int) context.Context {
 	return context.WithValue(context.Background(), userContextKey, strconv.Itoa(userID))
     }
 // the code below do db update directly in instead of using handler, please change to use handler
-func TestChatSnapshot(t *testing.T) {
-	const snapshotPath = "/uuid/chat_snapshot/%s"
 
-	q := sqlc_queries.New(db)
+// TestChatSnapshot tests the ChatSnapshotHandler
+func TestChatSnapshot(t *testing.T) {
+	const snapshotPath = "/uuid/chat_snapshot/%s" // API path for snapshots
+
+	// Create a chat service for testing 
+	q := sqlc_queries.New(db)  
 	service := NewChatMessageService(q)
-	h := NewChatSnapshotHandler(service) // create a new ChatSnapshotHandler instance for testing
+	h := NewChatSnapshotHandler(service) // Create a ChatSnapshotHandler
+
+	// Register snapshot API routes
 	router := mux.NewRouter()
 	h.Register(router)
-	// add a system user
-	snapshot_uuid := uuid.NewString()
-	userID := 1
-	one, err := h.service.q.CreateChatSnapshot(context.Background(), sqlc_queries.CreateChatSnapshotParams{
-		Uuid:         snapshot_uuid,
+
+	// Add a test user
+	userID := 1  
+
+	// Generate a random UUID for the snapshot
+	snapshotUUID := uuid.NewString()
+
+	// Create a test snapshot 
+	snapshot, err := h.service.q.CreateChatSnapshot(context.Background(), sqlc_queries.CreateChatSnapshotParams{
+		Uuid:         snapshotUUID,  // Use the generated UUID
 		Model:        "gpt3",
 		Title:        "test chat snapshot",
 		UserID:       int32(userID),
@@ -41,53 +51,28 @@ func TestChatSnapshot(t *testing.T) {
 		Conversation: json.RawMessage([]byte("{}")),
 	})
 	if err != nil {
-		return
+		return  
 	}
-	assert.Equal(t, one.Uuid, snapshot_uuid)
-	req, err := http.NewRequest("GET", fmt.Sprintf(snapshotPath, one.Uuid), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Equal(t, snapshot.Uuid, snapshotUUID) 
 
+	// Test GET snapshot - should succeed
+	req, _ := http.NewRequest("GET", fmt.Sprintf(snapshotPath, snapshot.Uuid), nil)  
 	rr := httptest.NewRecorder()
-
 	router.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-	body_bytes := rr.Body.Bytes()
-	println(body_bytes)
-	// test delete snapshot should fail without context,
-	// test delete ok with context
-	reqDelete, err := http.NewRequest("DELETE", fmt.Sprintf(snapshotPath, one.Uuid), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Test DELETE snapshot without auth - should fail
+	reqDelete, _ := http.NewRequest("DELETE", fmt.Sprintf(snapshotPath, snapshot.Uuid), nil)  
+	rr = httptest.NewRecorder()
+	router.ServeHTTP(rr, reqDelete)
+	assert.Equal(t, http.StatusForbidden, rr.Code)
 
-	rDelete := httptest.NewRecorder()
+	// Test DELETE snapshot with auth - should succeed
+	reqDeleteWithAuth, _:= http.NewRequest("DELETE", fmt.Sprintf(snapshotPath, snapshot.Uuid), nil)  
+	ctx := getContext(userID) // Get auth context
+	reqDeleteWithAuth = reqDeleteWithAuth.WithContext(ctx)
+	rr = httptest.NewRecorder()
+	router.ServeHTTP(rr, reqDeleteWithAuth)
+	assert.Equal(t, http.StatusOK, rr.Code)
 
-	router.ServeHTTP(rDelete, reqDelete)
-
-	if status := rDelete.Code; status != http.StatusForbidden {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	reqDeleteWitUserContext, err := http.NewRequest("DELETE", fmt.Sprintf(snapshotPath, one.Uuid), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rDelete3 := httptest.NewRecorder()
-
-	ctx := getContext(userID)
-	router.ServeHTTP(rDelete3, reqDeleteWitUserContext.WithContext(ctx))
-
-	if status := rDelete3.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-}
+} 
