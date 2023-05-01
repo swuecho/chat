@@ -141,7 +141,7 @@ func TestChatModel(t *testing.T) {
 	// Create a ResponseRecorder to record the response
 	getResponseRecorder := httptest.NewRecorder()
 	router.ServeHTTP(getResponseRecorder, getRequest)
-	results = unmarshalResponseToChatModel(t, rr)
+	results = unmarshalResponseToChatModel(t, getResponseRecorder)
 	assert.Equal(t, len(results), 0)
 }
 
