@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -77,9 +78,12 @@ func clearChatModelsIfExists(q *sqlc_queries.Queries) {
 
 func unmarshalResponseToChatModel(t *testing.T, rr *httptest.ResponseRecorder) []sqlc_queries.ChatModel {
 	// read the response body
+	bodyBytes, err := ioutil.ReadAll(rr.Body)
+	assert.NilError(t, err)
+
 	// unmarshal the response body into a list of ChatModel
 	var results []sqlc_queries.ChatModel
-	err := json.NewDecoder(rr.Body).Decode(&results)
+	err = json.Unmarshal(bodyBytes, &results)
 	assert.NilError(t, err)
 
 	return results
