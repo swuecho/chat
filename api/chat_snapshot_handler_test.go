@@ -17,16 +17,17 @@ import (
 // the code below do db update directly in instead of using handler, please change to use handler
 func TestChatSnapshot(t *testing.T) {
 	q := sqlc_queries.New(db)
-	h := NewChatModelHandler(q) // create a new ChatModelHandler instance for testing
+	h := NewChatSnapshotHandler(q) // create a new ChatSnapshotHandler instance for testing
 	router := mux.NewRouter()
 	h.Register(router)
 	// add a system user
 	snapshot_uuid := uuid.NewString()
-	one, err := h.db.CreateChatSnapshot(context.Background(), sqlc_queries.CreateChatSnapshotParams{
+	userID := 1
+	one, err := h.service.q.CreateChatSnapshot(context.Background(), sqlc_queries.CreateChatSnapshotParams{
 		Uuid:         snapshot_uuid,
 		Model:        "gpt3",
 		Title:        "test chat snapshot",
-		UserID:       0,
+		UserID:       int32(userID),
 		Session:      json.RawMessage([]byte("{}")),
 		Tags:         json.RawMessage([]byte("{}")),
 		Text:         "test chat snapshot text",
@@ -51,5 +52,8 @@ func TestChatSnapshot(t *testing.T) {
 	}
 	body_bytes := rr.Body.Bytes()
 	println(body_bytes)
+	// test delete snapshot should fail without context,
+	// test delete ok with context
+	// ctx3 := context.WithValue(deleteReq2.Context(), userContextKey, strconv.Itoa(int(admin.ID)))
 
 }
