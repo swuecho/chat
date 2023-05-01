@@ -118,10 +118,11 @@ func TestChatModel(t *testing.T) {
 
 	// Create an HTTP request so we can simulate a PUT with the payload
 	// ensure the new values are returned and were also updated in the database
-	updateFirstRecord(t, router, results[0].ID, admin, expectedResults[0])
+	firstRecordID := results[0].ID
+	updateFirstRecord(t, router, firstRecordID, admin, expectedResults[0])
 
 	// And now call the DELETE endpoint to remove all the created ChatModels
-	deleteReq, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
+	deleteReq, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", firstRecordID), nil)
 	deleteReq = deleteReq.WithContext(getContextWithUser(int(admin.ID)))
 	deleteRR := httptest.NewRecorder()
 	router.ServeHTTP(deleteRR, deleteReq)
