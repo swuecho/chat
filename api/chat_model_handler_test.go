@@ -5,14 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
-	"google.golang.org/grpc/status"
 	"gotest.tools/v3/assert"
 )
 
@@ -79,12 +77,9 @@ func clearChatModelsIfExists(q *sqlc_queries.Queries) {
 
 func unmarshalResponseToChatModel(t *testing.T, rr *httptest.ResponseRecorder) []sqlc_queries.ChatModel {
 	// read the response body
-	bodyBytes, err := ioutil.ReadAll(rr.Body)
-	assert.NilError(t, err)
-
 	// unmarshal the response body into a list of ChatModel
 	var results []sqlc_queries.ChatModel
-	err = json.Unmarshal(bodyBytes, &results)
+	err := json.NewDecoder(rr.Body).Decode(&results)
 	assert.NilError(t, err)
 
 	return results
@@ -135,7 +130,7 @@ func TestChatModel(t *testing.T) {
 	deleteRequest = deleteRequest.WithContext(contextWithUser)
 	deleteResponseRecorder := httptest.NewRecorder()
 	router.ServeHTTP(deleteResponseRecorder, deleteRequest)
-	assert.Equal(t, status.Code, http.StatusOK)
+	assert.Equal(t, deleteResponseRecorder.Code, http.StatusOK)
 
 	// check no models left
 	getRequest, _ := http.NewRequest("GET", "/chat_model", nil)
