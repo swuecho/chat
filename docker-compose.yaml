@@ -3,7 +3,7 @@ version: '3'
 services:
   chat:
     container_name: chat
-    image: ghcr.io/swuecho/chat:latest # or use tag for better stability, e.g.v0.0.3
+    image: echowuhao/chat:latest # or ghcr.io/swuecho/chat:latest # or use tag for better stability, e.g.v0.0.3
     expose:
       - 8080
     ports:
