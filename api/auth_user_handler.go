@@ -15,11 +15,11 @@ import (
 
 type AuthUserHandler struct {
 	q       *sqlc_queries.Queries
-	service *AuthUserService
+	authUserService *AuthUserService
 }
 
 func NewAuthUserHandler(service *AuthUserService) *AuthUserHandler {
-	return &AuthUserHandler{service: service}
+	return &AuthUserHandler{authUserService: service}
 }
 
 func (h *AuthUserHandler) Register(router *mux.Router) {
@@ -46,7 +46,7 @@ func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := h.service.CreateAuthUser(r.Context(), userParams)
+	user, err := h.authUserService.CreateAuthUser(r.Context(), userParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -60,7 +60,7 @@ func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
-	user, err := h.service.GetAuthUserByID(r.Context(), userID)
+	user, err := h.authUserService.GetAuthUserByID(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -82,7 +82,7 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userParams.ID = userID
-	user, err := h.service.q.UpdateAuthUser(r.Context(), userParams)
+	user, err := h.authUserService.q.UpdateAuthUser(r.Context(), userParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -99,7 +99,7 @@ func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := h.service.q.UpdateAuthUserByEmail(r.Context(), userParams)
+	user, err := h.authUserService.q.UpdateAuthUserByEmail(r.Context(), userParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -129,7 +129,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		Username: params.Email,
 	}
 
-	user, err := h.service.CreateAuthUser(r.Context(), userParams)
+	user, err := h.authUserService.CreateAuthUser(r.Context(), userParams)
 	if err != nil {
 		http.Error(w, eris.Wrap(err, "failed to create user ").Error(), http.StatusInternalServerError)
 		return
@@ -161,7 +161,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "error.invalid_request", nil)
 		return
 	}
-	user, err := h.service.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
+	user, err := h.authUserService.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
 	if err != nil {
 		RespondWithError(w, http.StatusUnauthorized, "error.invalid_email_or_password", err)
 		return
@@ -201,7 +201,7 @@ func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "empty token string", http.StatusBadRequest)
 	}
 
-	cookie, err := h.service.Logout(tokenString)
+	cookie, err := h.authUserService.Logout(tokenString)
 	if err != nil {
 		http.Error(w, "logout fail", http.StatusBadRequest)
 	}
@@ -361,7 +361,7 @@ func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
+	userStatsRows, total, err := h.authUserService.GetUserStats(r.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -412,7 +412,7 @@ func (h *AuthUserHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	rate, err := h.service.q.UpdateAuthUserRateLimitByEmail(r.Context(),
+	rate, err := h.authUserService.q.UpdateAuthUserRateLimitByEmail(r.Context(),
 		sqlc_queries.UpdateAuthUserRateLimitByEmailParams{
 			Email:     rateLimitRequest.Email,
 			RateLimit: rateLimitRequest.RateLimit,
@@ -435,7 +435,7 @@ func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rate, err := h.service.q.GetRateLimit(ctx, userID)
+	rate, err := h.authUserService.q.GetRateLimit(ctx, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
