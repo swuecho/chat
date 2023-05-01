@@ -63,6 +63,18 @@ func createTwoChatModel(q *sqlc_queries.Queries) (sqlc_queries.AuthUser, []sqlc_
 	}
 	return admin, expectedResults
 }
+func clearChatModelsIfExists(q *sqlc_queries.Queries) {
+	defaultApis, _ := q.ListChatModels(context.Background())
+
+	for _, api := range defaultApis {
+		q.DeleteChatModel(context.Background(),
+			sqlc_queries.DeleteChatModelParams{
+				ID:     api.ID,
+				UserID: api.UserID,
+			})
+	}
+}
+
 
 // the code below do db update directly in instead of using handler, please change to use handler
 func TestChatModel(t *testing.T) {
@@ -114,12 +126,8 @@ func TestChatModel(t *testing.T) {
 	}
 
 	// Create an HTTP request so we can simulate a PUT with the payload
-	updateReq, err := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
+	updateReq, _ := http.NewRequest("PUT", fmt.Sprintf("/chat_model/%d", results[0].ID), bytes.NewBuffer(updateBytes))
 	updateReq = updateReq.WithContext(getContextWithUser(int(admin.ID)))
-
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	updateRR := httptest.NewRecorder()
 
@@ -135,25 +143,17 @@ func TestChatModel(t *testing.T) {
 
 	assert.Equal(t, expectedResults[0].Name, updatedResult.Name)
 	assert.Equal(t, expectedResults[0].Label, updatedResult.Label)
+
 	// And now call the DELETE endpoint to remove all the created ChatModels
-	deleteReq, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
+	deleteReq, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
 	deleteReq = deleteReq.WithContext(getContextWithUser(int(admin.ID)))
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	deleteRR := httptest.NewRecorder()
-
 	router.ServeHTTP(deleteRR, deleteReq)
 
 	assert.Equal(t, deleteRR.Code, http.StatusOK)
 
 	// only one left
-	req, err = http.NewRequest("GET", "/chat_model", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	req, _ = http.NewRequest("GET", "/chat_model", nil)
 	rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 	// ensure that we get an array of one chat API in the response body
@@ -163,18 +163,11 @@ func TestChatModel(t *testing.T) {
 	if err != nil {
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
-	// len 1
 	assert.Equal(t, len(results), 1)
-
-	// first results's name is  "Test API 2"
 	assert.Equal(t, results[0].Name, "Test API 2")
 	// delete all results
 	// Create a DELETE request
-	deleteRequest, err := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	deleteRequest, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
 	// Add user context to the request
 	contextWithUser := getContextWithUser(int(admin.ID))
 	deleteRequest = deleteRequest.WithContext(contextWithUser)
@@ -190,11 +183,7 @@ func TestChatModel(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 	// Create a GET request
-	getRequest, err := http.NewRequest("GET", "/chat_model", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	getRequest, _ := http.NewRequest("GET", "/chat_model", nil)
 	// Create a ResponseRecorder to record the response
 	getResponseRecorder := httptest.NewRecorder()
 	router.ServeHTTP(getResponseRecorder, getRequest)
@@ -209,14 +198,3 @@ func TestChatModel(t *testing.T) {
 	assert.Equal(t, len(results), 0)
 }
 
-func clearChatModelsIfExists(q *sqlc_queries.Queries) {
-	defaultApis, _ := q.ListChatModels(context.Background())
-
-	for _, api := range defaultApis {
-		q.DeleteChatModel(context.Background(),
-			sqlc_queries.DeleteChatModelParams{
-				ID:     api.ID,
-				UserID: api.UserID,
-			})
-	}
-}
