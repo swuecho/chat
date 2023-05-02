@@ -147,25 +147,13 @@ func checkGetModels(t *testing.T, router *mux.Router, expectedResults []sqlc_que
 	router.ServeHTTP(rr, req)
 
 	assert.Equal(t, rr.Code, http.StatusOK)
-
 	var results []sqlc_queries.ChatModel
-	body_bytes := rr.Body.Bytes()
-	println(body_bytes)
-	err := json.Unmarshal(body_bytes, &results)
+	err := json.NewDecoder(rr.Body).Decode(&results)
 	if err != nil {
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
 	assert.Equal(t, len(results), 2)
-
-	for i, api := range expectedResults {
-		assert.Equal(t, api.Name, results[i].Name)
-		assert.Equal(t, api.Label, results[i].Label)
-		assert.Equal(t, api.IsDefault, results[i].IsDefault)
-		assert.Equal(t, api.Url, results[i].Url)
-		assert.Equal(t, api.ApiAuthHeader, results[i].ApiAuthHeader)
-		assert.Equal(t, api.ApiAuthKey, results[i].ApiAuthKey)
-		assert.Equal(t, api.UserID, results[i].UserID)
-	}
+	assert.DeepEqual(t, expectedResults, results)
 	return results
 }
 
