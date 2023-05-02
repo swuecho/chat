@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"gotest.tools/v3/assert"
@@ -153,7 +154,7 @@ func checkGetModels(t *testing.T, router *mux.Router, expectedResults []sqlc_que
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
 	assert.Equal(t, len(results), 2)
-	assert.DeepEqual(t, expectedResults, results)
+	assert.DeepEqual(t, expectedResults, results, cmpopts.IgnoreFields(sqlc_queries.ChatModel{}, "ID"))
 	return results
 }
 
