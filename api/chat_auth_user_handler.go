@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -26,7 +25,6 @@ func (h *AuthUserHandler) Register(router *mux.Router) {
 	router.HandleFunc("/users/{id}", h.UpdateSelf).Methods(http.MethodPut)
 	router.HandleFunc("/signup", h.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
-	router.HandleFunc("/config", h.configHandler).Methods(http.MethodPost)
 	// admin
 	router.HandleFunc("/admin/users", h.CreateUser).Methods(http.MethodPost)
 	// change user first name, last name
@@ -210,36 +208,6 @@ func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 type TokenRequest struct {
 	Token string `json:"token"`
-}
-
-type ModelConfig struct {
-	ApiModel     string `json:"apiModel"`
-	ReverseProxy string `json:"reverseProxy"`
-	TimeoutMs    int    `json:"timeoutMs"`
-	SocksProxy   string `json:"socksProxy"`
-}
-
-func (h *AuthUserHandler) configHandler(w http.ResponseWriter, r *http.Request) {
-	apiModel := "ChatGPTAPI" // Replace with your actual API model
-	timeoutMs := 5000        // Replace with your actual timeout
-	socksProxy := "-"
-	if os.Getenv("SOCKS_PROXY_HOST") != "" && os.Getenv("SOCKS_PROXY_PORT") != "" {
-		socksProxy = os.Getenv("SOCKS_PROXY_HOST") + ":" + os.Getenv("SOCKS_PROXY_PORT")
-	}
-	reverseProxy := os.Getenv("API_REVERSE_PROXY")
-
-	// Create a ModelConfig object and populate it with values
-	config := ModelConfig{
-		ApiModel:     apiModel,
-		TimeoutMs:    timeoutMs,
-		ReverseProxy: reverseProxy,
-		SocksProxy:   socksProxy,
-	}
-
-	// Encode the ModelConfig object as JSON and send it as the response
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"status": "Success", "data": config})
-
 }
 
 type ResetPasswordRequest struct {
