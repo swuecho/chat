@@ -25,116 +25,19 @@ func NewChatSessionHandler(service *ChatSessionService) *ChatSessionHandler {
 }
 
 func (h *ChatSessionHandler) Register(router *mux.Router) {
-	router.HandleFunc("/chat_sessions", h.CreateChatSession).Methods(http.MethodPost)
+	router.HandleFunc("/chat_sessions/users", h.getSimpleChatSessionsByUserID).Methods(http.MethodGet)
 
-	router.HandleFunc("/chat_sessions/users", h.GetSimpleChatSessionsByUserID).Methods(http.MethodGet)
-	router.HandleFunc("/chat_sessions/{id}", h.GetChatSessionByID).Methods(http.MethodGet)
-	router.HandleFunc("/chat_sessions/{id}", h.UpdateChatSession).Methods(http.MethodPut)
-	router.HandleFunc("/chat_sessions/{id}", h.DeleteChatSession).Methods(http.MethodDelete)
-	router.HandleFunc("/chat_sessions", h.GetAllChatSessions).Methods(http.MethodGet)
-
-	router.HandleFunc("/uuid/chat_sessions/max_length/{uuid}", h.UpdateSessionMaxLength).Methods("PUT")
-	router.HandleFunc("/uuid/chat_sessions/topic/{uuid}", h.UpdateChatSessionTopicByUUID).Methods("PUT")
-	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.GetChatSessionByUUID).Methods("GET")
-	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.CreateOrUpdateChatSessionByUUID).Methods("PUT")
-	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.DeleteChatSessionByUUID).Methods("DELETE")
-	router.HandleFunc("/uuid/chat_sessions", h.CreateChatSessionByUUID).Methods("POST")
-	router.HandleFunc("/uuid/chat_session_from_snapshot/{uuid}", h.CreateChatSessionFromSnapshot).Methods(http.MethodPost)
+	router.HandleFunc("/uuid/chat_sessions/max_length/{uuid}", h.updateSessionMaxLength).Methods("PUT")
+	router.HandleFunc("/uuid/chat_sessions/topic/{uuid}", h.updateChatSessionTopicByUUID).Methods("PUT")
+	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.getChatSessionByUUID).Methods("GET")
+	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.createOrUpdateChatSessionByUUID).Methods("PUT")
+	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.deleteChatSessionByUUID).Methods("DELETE")
+	router.HandleFunc("/uuid/chat_sessions", h.createChatSessionByUUID).Methods("POST")
+	router.HandleFunc("/uuid/chat_session_from_snapshot/{uuid}", h.createChatSessionFromSnapshot).Methods(http.MethodPost)
 }
 
-func (h *ChatSessionHandler) CreateChatSession(w http.ResponseWriter, r *http.Request) {
-	var sessionParams sqlc_queries.CreateChatSessionParams
-	err := json.NewDecoder(r.Body).Decode(&sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	session, err := h.service.CreateChatSession(r.Context(), sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(session)
-}
-
-func (h *ChatSessionHandler) GetChatSessionByID(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, eris.Wrap(err, "invalid chat session ID ").Error(), http.StatusBadRequest)
-		return
-	}
-	session, err := h.service.GetChatSessionByID(r.Context(), int32(id))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	json.NewEncoder(w).Encode(session)
-}
-
-func (h *ChatSessionHandler) UpdateChatSession(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid chat session ID", http.StatusBadRequest)
-		return
-	}
-	var sessionParams sqlc_queries.UpdateChatSessionParams
-	err = json.NewDecoder(r.Body).Decode(&sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	sessionParams.ID = int32(id)
-	session, err := h.service.UpdateChatSession(r.Context(), sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(session)
-}
-
-func (h *ChatSessionHandler) DeleteChatSession(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid chat session ID", http.StatusBadRequest)
-		return
-	}
-	err = h.service.DeleteChatSession(r.Context(), int32(id))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-func (h *ChatSessionHandler) GetAllChatSessions(w http.ResponseWriter, r *http.Request) {
-	sessions, err := h.service.GetAllChatSessions(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(sessions)
-}
-
-func (h *ChatSessionHandler) GetChatSessionsByUserID(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid user ID", http.StatusBadRequest)
-		return
-	}
-	sessions, err := h.service.GetChatSessionsByUserID(r.Context(), int32(id))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	json.NewEncoder(w).Encode(sessions)
-}
-
-// GetChatSessionByUUID returns a chat session by its UUID
-func (h *ChatSessionHandler) GetChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
+// getChatSessionByUUID returns a chat session by its UUID
+func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
 	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
 	session_resp := &ChatSessionResponse{}
@@ -156,8 +59,8 @@ func (h *ChatSessionHandler) GetChatSessionByUUID(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(session_resp)
 }
 
-// CreateChatSessionByUUID creates a chat session by its UUID
-func (h *ChatSessionHandler) CreateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
+// createChatSessionByUUID creates a chat session by its UUID
+func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	var sessionParams sqlc_queries.CreateChatSessionParams
 	err := json.NewDecoder(r.Body).Decode(&sessionParams)
 	if err != nil {
@@ -196,33 +99,6 @@ func (h *ChatSessionHandler) CreateChatSessionByUUID(w http.ResponseWriter, r *h
 	json.NewEncoder(w).Encode(session)
 }
 
-// UpdateChatSessionByUUID updates a chat session by its UUID
-func (h *ChatSessionHandler) UpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
-	uuid := mux.Vars(r)["uuid"]
-	var sessionParams sqlc_queries.UpdateChatSessionByUUIDParams
-	err := json.NewDecoder(r.Body).Decode(&sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	sessionParams.Uuid = uuid
-
-	ctx := r.Context()
-	userID, err := getUserID(ctx)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
-	}
-
-	sessionParams.UserID = userID
-	session, err := h.service.UpdateChatSessionByUUID(r.Context(), sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(session)
-}
-
 type UpdateChatSessionRequest struct {
 	Uuid        string  `json:"uuid"`
 	Topic       string  `json:"topic"`
@@ -236,7 +112,7 @@ type UpdateChatSessionRequest struct {
 }
 
 // UpdateChatSessionByUUID updates a chat session by its UUID
-func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	var sessionReq UpdateChatSessionRequest
 	err := json.NewDecoder(r.Body).Decode(&sessionReq)
 	if err != nil {
@@ -273,8 +149,8 @@ func (h *ChatSessionHandler) CreateOrUpdateChatSessionByUUID(w http.ResponseWrit
 	json.NewEncoder(w).Encode(session)
 }
 
-// DeleteChatSessionByUUID deletes a chat session by its UUID
-func (h *ChatSessionHandler) DeleteChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
+// deleteChatSessionByUUID deletes a chat session by its UUID
+func (h *ChatSessionHandler) deleteChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
 	err := h.service.DeleteChatSessionByUUID(r.Context(), uuid)
 	if err != nil {
@@ -284,8 +160,8 @@ func (h *ChatSessionHandler) DeleteChatSessionByUUID(w http.ResponseWriter, r *h
 	w.WriteHeader(http.StatusOK)
 }
 
-// GetSimpleChatSessionsByUserID returns a list of simple chat sessions by user ID
-func (h *ChatSessionHandler) GetSimpleChatSessionsByUserID(w http.ResponseWriter, r *http.Request) {
+// getSimpleChatSessionsByUserID returns a list of simple chat sessions by user ID
+func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	idStr := ctx.Value(userContextKey).(string)
 	id, err := strconv.Atoi(idStr)
@@ -302,8 +178,8 @@ func (h *ChatSessionHandler) GetSimpleChatSessionsByUserID(w http.ResponseWriter
 	json.NewEncoder(w).Encode(sessions)
 }
 
-// UpdateChatSessionTopicByUUID updates a chat session topic by its UUID
-func (h *ChatSessionHandler) UpdateChatSessionTopicByUUID(w http.ResponseWriter, r *http.Request) {
+// updateChatSessionTopicByUUID updates a chat session topic by its UUID
+func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
 	var sessionParams sqlc_queries.UpdateChatSessionTopicByUUIDParams
 	err := json.NewDecoder(r.Body).Decode(&sessionParams)
@@ -330,8 +206,8 @@ func (h *ChatSessionHandler) UpdateChatSessionTopicByUUID(w http.ResponseWriter,
 	json.NewEncoder(w).Encode(session)
 }
 
-// UpdateSessionMaxLength
-func (h *ChatSessionHandler) UpdateSessionMaxLength(w http.ResponseWriter, r *http.Request) {
+// updateSessionMaxLength
+func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
 	var sessionParams sqlc_queries.UpdateSessionMaxLengthParams
 	err := json.NewDecoder(r.Body).Decode(&sessionParams)
@@ -355,7 +231,7 @@ func (h *ChatSessionHandler) UpdateSessionMaxLength(w http.ResponseWriter, r *ht
 // create messages based on the rest of messages.
 // return the new session uuid
 
-func (h *ChatSessionHandler) CreateChatSessionFromSnapshot(w http.ResponseWriter, r *http.Request) {
+func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	snapshot_uuid := vars["uuid"]
 
