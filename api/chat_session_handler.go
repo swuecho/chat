@@ -25,13 +25,7 @@ func NewChatSessionHandler(service *ChatSessionService) *ChatSessionHandler {
 }
 
 func (h *ChatSessionHandler) Register(router *mux.Router) {
-	router.HandleFunc("/chat_sessions", h.CreateChatSession).Methods(http.MethodPost)
-
 	router.HandleFunc("/chat_sessions/users", h.GetSimpleChatSessionsByUserID).Methods(http.MethodGet)
-	router.HandleFunc("/chat_sessions/{id}", h.GetChatSessionByID).Methods(http.MethodGet)
-	router.HandleFunc("/chat_sessions/{id}", h.UpdateChatSession).Methods(http.MethodPut)
-	router.HandleFunc("/chat_sessions/{id}", h.DeleteChatSession).Methods(http.MethodDelete)
-	router.HandleFunc("/chat_sessions", h.GetAllChatSessions).Methods(http.MethodGet)
 
 	router.HandleFunc("/uuid/chat_sessions/max_length/{uuid}", h.UpdateSessionMaxLength).Methods("PUT")
 	router.HandleFunc("/uuid/chat_sessions/topic/{uuid}", h.UpdateChatSessionTopicByUUID).Methods("PUT")
@@ -40,97 +34,6 @@ func (h *ChatSessionHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.DeleteChatSessionByUUID).Methods("DELETE")
 	router.HandleFunc("/uuid/chat_sessions", h.CreateChatSessionByUUID).Methods("POST")
 	router.HandleFunc("/uuid/chat_session_from_snapshot/{uuid}", h.CreateChatSessionFromSnapshot).Methods(http.MethodPost)
-}
-
-func (h *ChatSessionHandler) CreateChatSession(w http.ResponseWriter, r *http.Request) {
-	var sessionParams sqlc_queries.CreateChatSessionParams
-	err := json.NewDecoder(r.Body).Decode(&sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	session, err := h.service.CreateChatSession(r.Context(), sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(session)
-}
-
-func (h *ChatSessionHandler) GetChatSessionByID(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, eris.Wrap(err, "invalid chat session ID ").Error(), http.StatusBadRequest)
-		return
-	}
-	session, err := h.service.GetChatSessionByID(r.Context(), int32(id))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	json.NewEncoder(w).Encode(session)
-}
-
-func (h *ChatSessionHandler) UpdateChatSession(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid chat session ID", http.StatusBadRequest)
-		return
-	}
-	var sessionParams sqlc_queries.UpdateChatSessionParams
-	err = json.NewDecoder(r.Body).Decode(&sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	sessionParams.ID = int32(id)
-	session, err := h.service.UpdateChatSession(r.Context(), sessionParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(session)
-}
-
-func (h *ChatSessionHandler) DeleteChatSession(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid chat session ID", http.StatusBadRequest)
-		return
-	}
-	err = h.service.DeleteChatSession(r.Context(), int32(id))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-func (h *ChatSessionHandler) GetAllChatSessions(w http.ResponseWriter, r *http.Request) {
-	sessions, err := h.service.GetAllChatSessions(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(sessions)
-}
-
-func (h *ChatSessionHandler) GetChatSessionsByUserID(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid user ID", http.StatusBadRequest)
-		return
-	}
-	sessions, err := h.service.GetChatSessionsByUserID(r.Context(), int32(id))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	json.NewEncoder(w).Encode(sessions)
 }
 
 // GetChatSessionByUUID returns a chat session by its UUID
