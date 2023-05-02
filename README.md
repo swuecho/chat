@@ -12,7 +12,7 @@
 ## 规则
 
 - 第一个消息是系统消息（prompt）
-- 上下文默认附带最新创建的10条消息
+- 上下文默认附带最新创建的4条消息
 - 第一个注册的用户是管理员
 - 默认限流 100 chatGPT call /10分钟 (OPENAI_RATELIMIT=100)
 - 根据对话生成可以分享的静态页面(like ShareGPT), 也可以继续会话. 
@@ -97,7 +97,7 @@ OPENAI_RATELIMIT=0
 ## How to Use
 
 - The first message is a system message (prompt)
-- by default, the latest 10 messages are context
+- by default, the latest 4 messages are context
 - First user is superuser.
 - 100 chatgpt api call / 10 mins (OPENAI_RATELIMIT=100)
 - Snapshot conversation and Share (like ShareGPT)
