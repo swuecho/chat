@@ -36,7 +36,6 @@ func NewChatHandler(chatService *ChatService) *ChatHandler {
 }
 
 func (h *ChatHandler) Register(router *mux.Router) {
-	router.HandleFunc("/chat", h.chatHandler).Methods(http.MethodPost)
 	router.HandleFunc("/chat_stream", h.OpenAIChatCompletionAPIWithStreamHandler).Methods(http.MethodPost)
 }
 
@@ -77,32 +76,6 @@ type OpenaiChatRequest struct {
 
 func NewUserMessage(content string) openai.ChatCompletionMessage {
 	return openai.ChatCompletionMessage{Role: "user", Content: content}
-}
-
-func (h *ChatHandler) chatHandler(w http.ResponseWriter, r *http.Request) {
-	var req ChatRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{"error": "Invalid request body"})
-		return
-	}
-	defer r.Body.Close()
-	ctx := r.Context()
-	userIDInt32, err := getUserID(ctx)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
-	}
-	answerMsg, err := h.service.Chat(req.SessionUuid, req.ChatUuid, req.Prompt, userIDInt32)
-
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"status": "Success", "text": answerMsg.Content, "chatUuid": answerMsg.Uuid})
 }
 
 // OpenAIChatCompletionAPIWithStreamHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
