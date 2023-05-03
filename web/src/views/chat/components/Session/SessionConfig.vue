@@ -67,15 +67,14 @@ onMounted(async () => {
 })
 
 const tokenUpperLimit = computed(() => {
-  const discount_ratio = 0.8
   if (modelRef.value.chatModel === 'gpt-4')
-    return Math.floor(1024 * 8 * discount_ratio)
+    return Math.floor(1024 * 8)
   else if (modelRef.value.chatModel === 'gpt-4-32k')
-    return Math.floor(32 * 1024 * discount_ratio)
+    return Math.floor(32 * 1024)
   else if (modelRef.value.chatModel === 'text-davinci-003')
-    return Math.floor(4 * 1024 * discount_ratio)
+    return Math.floor(4 * 1024)
   else
-    return Math.floor(1024 * 2 * discount_ratio)
+    return Math.floor(1024 * 2)
 })
 // 1. how to fix the NSelect error?
 </script>
