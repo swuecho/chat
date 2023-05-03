@@ -10,7 +10,7 @@ import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { SvgIcon } from '@/components/common'
-import { fetchDefaultChatModel } from '@/api'
+import { fetchDefaultChatModel, getChatSessionDefault } from '@/api'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
@@ -32,19 +32,8 @@ async function handleAdd() {
   //   "maxTokens": 512,
   //   "debug": false
   // }//
-  const default_model = await fetchDefaultChatModel()
-  chatStore.addChatSession({
-    title: new_chat_text,
-    uuid: uuidv4(),
-    isEdit: false,
-    maxLength: 4,
-    temperature: 1,
-    model: default_model.Name,
-    topP: 1,
-    n: 1,
-    maxTokens: 512,
-    debug: false,
-  })
+  const default_model_parameters = await getChatSessionDefault(new_chat_text)
+  chatStore.addChatSession(default_model_parameters)
 }
 
 function handleUpdateCollapsed() {
