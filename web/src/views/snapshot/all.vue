@@ -6,8 +6,6 @@ import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
 import { displayLocaleDate, formatYearMonth } from '@/utils/date'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
-import { post_url } from '@/utils/url'
-
 const dialog = useDialog()
 const nui_msg = useMessage()
 const search_visible = ref(false)
@@ -16,6 +14,10 @@ interface PostLink {
   uuid: string
   date: string
   title: string
+}
+
+function post_url(uuid: string): string {
+  return `#/snapshot/${uuid}`
 }
 
 const postsByYearMonth = ref<Record<string, PostLink[]>>({})
