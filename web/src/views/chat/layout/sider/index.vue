@@ -1,7 +1,6 @@
 <script setup lang='ts'>
 import type { CSSProperties } from 'vue'
 import { computed, watch } from 'vue'
-import { v4 as uuidv4 } from 'uuid'
 
 import { NButton, NLayoutSider } from 'naive-ui'
 import List from './List.vue'
@@ -10,7 +9,7 @@ import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { SvgIcon } from '@/components/common'
-import { fetchDefaultChatModel, getChatSessionDefault } from '@/api'
+import { getChatSessionDefault } from '@/api'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
