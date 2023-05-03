@@ -10,6 +10,7 @@ import {
   deleteChatData,
   deleteChatSession,
   updateChatSession as fetchUpdateChatByUuid,
+  getChatSessionDefault,
   getChatMessagesBySessionUUID as getChatSessionHistory,
   getChatSessionsByUser,
   getUserActiveChatSession,
@@ -72,21 +73,11 @@ export const useChatStore = defineStore('chat-store', {
         // chatData.uuid = chatData?.uuid
         this.chat.unshift({ uuid: r.uuid, data: chatData })
       })
+
       if (this.sessions.length === 0) {
         const uuid = uuidv4()
         const new_chat_text = t('chat.new')
-        this.addChatSession({
-          title: new_chat_text,
-          isEdit: false,
-          uuid,
-          maxLength: 10,
-          temperature: 1,
-          model: 'gpt-3.5-turbo',
-          topP: 1,
-          n: 1,
-          maxTokens: 512,
-          debug: false,
-        })
+        this.addChatSession(await getChatSessionDefault(new_chat_text))
       }
 
       let active_session_uuid = this.sessions[0].uuid

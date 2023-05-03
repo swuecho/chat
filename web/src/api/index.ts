@@ -1,4 +1,5 @@
 import type { AxiosProgressEvent, GenericAbortSignal } from 'axios'
+import { v4 as uuidv4 } from 'uuid'
 import request from '@/utils/request/axios'
 import { post } from '@/utils/request'
 
@@ -149,6 +150,23 @@ export const fetchDefaultChatModel = async () => {
   catch (error) {
     console.error(error)
     throw error
+  }
+}
+
+export const getChatSessionDefault = async (title: string): Promise<Chat.History> => {
+  const default_model = await fetchDefaultChatModel()
+  const uuid = uuidv4()
+  return {
+    title,
+    isEdit: false,
+    uuid,
+    maxLength: 4,
+    temperature: 1,
+    model: default_model.Name,
+    topP: 1,
+    n: 1,
+    maxTokens: 512,
+    debug: false,
   }
 }
 
@@ -482,7 +500,6 @@ export const chatSnapshotSearch = async (search: string): Promise<any> => {
     throw error
   }
 }
-
 
 export const updateChatSnapshot = async (uuid: string, data: any): Promise<any> => {
   try {
