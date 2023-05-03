@@ -75,7 +75,6 @@ export const useChatStore = defineStore('chat-store', {
       })
 
       if (this.sessions.length === 0) {
-        const uuid = uuidv4()
         const new_chat_text = t('chat.new')
         this.addChatSession(await getChatSessionDefault(new_chat_text))
       }

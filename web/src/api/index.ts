@@ -153,7 +153,7 @@ export const fetchDefaultChatModel = async () => {
   }
 }
 
-export const getChatSessionDefault = async (title: string): Promise<Chat.History> => {
+export const getChatSessionDefault = async (title: string): Promise<Chat.Session> => {
   const default_model = await fetchDefaultChatModel()
   const uuid = uuidv4()
   return {
