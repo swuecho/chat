@@ -26,7 +26,7 @@ declare namespace Chat {
 
 	interface ChatState {
 		active: string | null
-		history: Session[]
+		sessions: Session[]
 		chat: { uuid: string; data: Message[] }[]
 	}
 

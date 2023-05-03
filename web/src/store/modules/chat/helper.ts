@@ -6,7 +6,7 @@ export function getLocalState(): Chat.ChatState {
   const localState = ss.get(LOCAL_NAME)
   return localState ?? {
     active: null,
-    history: [],
+    sessions: [],
     chat: [],
   }
 }

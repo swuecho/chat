@@ -14,14 +14,12 @@ const nui_msg = useMessage()
 const appStore = useAppStore()
 const chatStore = useChatStore()
 
-const dataSources = computed(() => chatStore.history)
+const dataSources = computed(() => chatStore.sessions)
 
 onMounted(async () => {
   await handleSyncChat()
 })
 async function handleSyncChat() {
-  // if (chatStore.history.length == 1 && chatStore.history[0].title == 'New Chat'
-  //   && chatStore.chat[0].data.length <= 0)
   try {
     await chatStore.syncChatSessions()
   }
@@ -33,7 +31,7 @@ async function handleSyncChat() {
   }
 }
 
-async function handleSelect({ uuid }: Chat.History) {
+async function handleSelect({ uuid }: Chat.Session) {
   if (isActive(uuid))
     return
 
@@ -46,11 +44,11 @@ async function handleSelect({ uuid }: Chat.History) {
     appStore.setSiderCollapsed(true)
 }
 
-function handleEdit({ uuid }: Chat.History, isEdit: boolean, event?: MouseEvent) {
+function handleEdit({ uuid }: Chat.Session, isEdit: boolean, event?: MouseEvent) {
   event?.stopPropagation()
   chatStore.updateChatSession(uuid, { isEdit })
 }
-function handleSave({ uuid, title }: Chat.History, isEdit: boolean, event?: MouseEvent) {
+function handleSave({ uuid, title }: Chat.Session, isEdit: boolean, event?: MouseEvent) {
   event?.stopPropagation()
   chatStore.updateChatSession(uuid, { isEdit })
   // should move to store
@@ -62,7 +60,7 @@ function handleDelete(index: number, event?: MouseEvent | TouchEvent) {
   chatStore.deleteChatSession(index)
 }
 
-function handleEnter({ uuid, title }: Chat.History, isEdit: boolean, event: KeyboardEvent) {
+function handleEnter({ uuid, title }: Chat.Session, isEdit: boolean, event: KeyboardEvent) {
   event?.stopPropagation()
   if (event.key === 'Enter') {
     chatStore.updateChatSession(uuid, { isEdit })
