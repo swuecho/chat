@@ -17,10 +17,10 @@ RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_l
 `
 
 type CreateChatSessionParams struct {
-	UserID    int32
-	Topic     string
-	MaxLength int32
-	Uuid      string
+	UserID    int32  `json:"userID"`
+	Topic     string `json:"topic"`
+	MaxLength int32  `json:"maxLength"`
+	Uuid      string `json:"uuid"`
 }
 
 func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionParams) (ChatSession, error) {
@@ -57,12 +57,12 @@ RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_l
 `
 
 type CreateChatSessionByUUIDParams struct {
-	UserID    int32
-	Uuid      string
-	Topic     string
-	CreatedAt time.Time
-	Active    bool
-	MaxLength int32
+	UserID    int32     `json:"userID"`
+	Uuid      string    `json:"uuid"`
+	Topic     string    `json:"topic"`
+	CreatedAt time.Time `json:"createdAt"`
+	Active    bool      `json:"active"`
+	MaxLength int32     `json:"maxLength"`
 }
 
 func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSessionByUUIDParams) (ChatSession, error) {
@@ -112,16 +112,16 @@ returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_l
 `
 
 type CreateOrUpdateChatSessionByUUIDParams struct {
-	Uuid        string
-	UserID      int32
-	Topic       string
-	MaxLength   int32
-	Temperature float64
-	Model       string
-	MaxTokens   int32
-	TopP        float64
-	N           int32
-	Debug       bool
+	Uuid        string  `json:"uuid"`
+	UserID      int32   `json:"userID"`
+	Topic       string  `json:"topic"`
+	MaxLength   int32   `json:"maxLength"`
+	Temperature float64 `json:"temperature"`
+	Model       string  `json:"model"`
+	MaxTokens   int32   `json:"maxTokens"`
+	TopP        float64 `json:"topP"`
+	N           int32   `json:"n"`
+	Debug       bool    `json:"debug"`
 }
 
 func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg CreateOrUpdateChatSessionByUUIDParams) (ChatSession, error) {
@@ -357,8 +357,8 @@ WHERE cs.id = $1 AND (cs.user_id = $2 OR au.is_superuser)
 `
 
 type HasChatSessionPermissionParams struct {
-	ID     int32
-	UserID int32
+	ID     int32 `json:"id"`
+	UserID int32 `json:"userID"`
 }
 
 func (q *Queries) HasChatSessionPermission(ctx context.Context, arg HasChatSessionPermissionParams) (bool, error) {
@@ -375,10 +375,10 @@ RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_l
 `
 
 type UpdateChatSessionParams struct {
-	ID     int32
-	UserID int32
-	Topic  string
-	Active bool
+	ID     int32  `json:"id"`
+	UserID int32  `json:"userID"`
+	Topic  string `json:"topic"`
+	Active bool   `json:"active"`
 }
 
 func (q *Queries) UpdateChatSession(ctx context.Context, arg UpdateChatSessionParams) (ChatSession, error) {
@@ -415,9 +415,9 @@ RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_l
 `
 
 type UpdateChatSessionByUUIDParams struct {
-	Uuid   string
-	UserID int32
-	Topic  string
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userID"`
+	Topic  string `json:"topic"`
 }
 
 func (q *Queries) UpdateChatSessionByUUID(ctx context.Context, arg UpdateChatSessionByUUIDParams) (ChatSession, error) {
@@ -453,9 +453,9 @@ returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_l
 `
 
 type UpdateChatSessionTopicByUUIDParams struct {
-	Uuid   string
-	UserID int32
-	Topic  string
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userID"`
+	Topic  string `json:"topic"`
 }
 
 func (q *Queries) UpdateChatSessionTopicByUUID(ctx context.Context, arg UpdateChatSessionTopicByUUIDParams) (ChatSession, error) {
@@ -489,8 +489,8 @@ RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_l
 `
 
 type UpdateSessionMaxLengthParams struct {
-	Uuid      string
-	MaxLength int32
+	Uuid      string `json:"uuid"`
+	MaxLength int32  `json:"maxLength"`
 }
 
 func (q *Queries) UpdateSessionMaxLength(ctx context.Context, arg UpdateSessionMaxLengthParams) (ChatSession, error) {

@@ -16,11 +16,11 @@ RETURNING id, user_id, chat_model_id, rate_limit, created_at, updated_at, create
 `
 
 type CreateUserChatModelPrivilegeParams struct {
-	UserID      int32
-	ChatModelID int32
-	RateLimit   int32
-	CreatedBy   int32
-	UpdatedBy   int32
+	UserID      int32 `json:"userID"`
+	ChatModelID int32 `json:"chatModelID"`
+	RateLimit   int32 `json:"rateLimit"`
+	CreatedBy   int32 `json:"createdBy"`
+	UpdatedBy   int32 `json:"updatedBy"`
 }
 
 func (q *Queries) CreateUserChatModelPrivilege(ctx context.Context, arg CreateUserChatModelPrivilegeParams) (UserChatModelPrivilege, error) {
@@ -140,11 +140,11 @@ ORDER by au.last_login DESC
 `
 
 type ListUserChatModelPrivilegesRateLimitRow struct {
-	ID            int32
-	UserEmail     string
-	FullName      string
-	ChatModelName string
-	RateLimit     int32
+	ID            int32  `json:"id"`
+	UserEmail     string `json:"userEmail"`
+	FullName      string `json:"fullName"`
+	ChatModelName string `json:"chatModelName"`
+	RateLimit     int32  `json:"rateLimit"`
 }
 
 func (q *Queries) ListUserChatModelPrivilegesRateLimit(ctx context.Context) ([]ListUserChatModelPrivilegesRateLimitRow, error) {
@@ -186,13 +186,13 @@ WHERE cs.uuid = $1
 `
 
 type RateLimiteByUserAndSessionUUIDParams struct {
-	Uuid   string
-	UserID int32
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userID"`
 }
 
 type RateLimiteByUserAndSessionUUIDRow struct {
-	RateLimit     int32
-	ChatModelName string
+	RateLimit     int32  `json:"rateLimit"`
+	ChatModelName string `json:"chatModelName"`
 }
 
 func (q *Queries) RateLimiteByUserAndSessionUUID(ctx context.Context, arg RateLimiteByUserAndSessionUUIDParams) (RateLimiteByUserAndSessionUUIDRow, error) {
@@ -209,9 +209,9 @@ RETURNING id, user_id, chat_model_id, rate_limit, created_at, updated_at, create
 `
 
 type UpdateUserChatModelPrivilegeParams struct {
-	ID        int32
-	RateLimit int32
-	UpdatedBy int32
+	ID        int32 `json:"id"`
+	RateLimit int32 `json:"rateLimit"`
+	UpdatedBy int32 `json:"updatedBy"`
 }
 
 func (q *Queries) UpdateUserChatModelPrivilege(ctx context.Context, arg UpdateUserChatModelPrivilegeParams) (UserChatModelPrivilege, error) {
@@ -255,8 +255,8 @@ SELECT id, user_id, chat_model_id, rate_limit, created_at, updated_at, created_b
 `
 
 type UserChatModelPrivilegeByUserAndModelIDParams struct {
-	UserID      int32
-	ChatModelID int32
+	UserID      int32 `json:"userID"`
+	ChatModelID int32 `json:"chatModelID"`
 }
 
 func (q *Queries) UserChatModelPrivilegeByUserAndModelID(ctx context.Context, arg UserChatModelPrivilegeByUserAndModelIDParams) (UserChatModelPrivilege, error) {

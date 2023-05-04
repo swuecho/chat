@@ -15,9 +15,9 @@ VALUES ($1, $2, $3) RETURNING id, name, secret, audience
 `
 
 type CreateJwtSecretParams struct {
-	Name     string
-	Secret   string
-	Audience string
+	Name     string `json:"name"`
+	Secret   string `json:"secret"`
+	Audience string `json:"audience"`
 }
 
 func (q *Queries) CreateJwtSecret(ctx context.Context, arg CreateJwtSecretParams) (JwtSecret, error) {

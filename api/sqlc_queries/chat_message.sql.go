@@ -17,16 +17,16 @@ RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at
 `
 
 type CreateChatMessageParams struct {
-	ChatSessionUuid string
-	Uuid            string
-	Role            string
-	Content         string
-	TokenCount      int32
-	Score           float64
-	UserID          int32
-	CreatedBy       int32
-	UpdatedBy       int32
-	Raw             json.RawMessage
+	ChatSessionUuid string          `json:"chatSessionUuid"`
+	Uuid            string          `json:"uuid"`
+	Role            string          `json:"role"`
+	Content         string          `json:"content"`
+	TokenCount      int32           `json:"tokenCount"`
+	Score           float64         `json:"score"`
+	UserID          int32           `json:"userID"`
+	CreatedBy       int32           `json:"createdBy"`
+	UpdatedBy       int32           `json:"updatedBy"`
+	Raw             json.RawMessage `json:"raw"`
 }
 
 func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error) {
@@ -178,8 +178,8 @@ LIMIT $1
 `
 
 type GetChatMessageBySessionUUIDParams struct {
-	Limit  int32
-	Offset int32
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
 }
 
 func (q *Queries) GetChatMessageBySessionUUID(ctx context.Context, arg GetChatMessageBySessionUUIDParams) (ChatMessage, error) {
@@ -246,9 +246,9 @@ LIMIT $3
 `
 
 type GetChatMessagesBySessionUUIDParams struct {
-	Uuid   string
-	Offset int32
-	Limit  int32
+	Uuid   string `json:"uuid"`
+	Offset int32  `json:"offset"`
+	Limit  int32  `json:"limit"`
 }
 
 func (q *Queries) GetChatMessagesBySessionUUID(ctx context.Context, arg GetChatMessagesBySessionUUIDParams) ([]ChatMessage, error) {
@@ -315,8 +315,8 @@ AND cm.created_at >= NOW() - INTERVAL '10 minutes'
 `
 
 type GetChatMessagesCountByUserAndModelParams struct {
-	UserID int32
-	Model  string
+	UserID int32  `json:"userID"`
+	Model  string `json:"model"`
 }
 
 // Get total chat message count for user of model in last 10 minutes
@@ -380,9 +380,9 @@ ORDER BY created_at
 `
 
 type GetLastNChatMessagesParams struct {
-	Uuid            string
-	Limit           int32
-	ChatSessionUuid string
+	Uuid            string `json:"uuid"`
+	Limit           int32  `json:"limit"`
+	ChatSessionUuid string `json:"chatSessionUuid"`
 }
 
 func (q *Queries) GetLastNChatMessages(ctx context.Context, arg GetLastNChatMessagesParams) ([]ChatMessage, error) {
@@ -445,8 +445,8 @@ ORDER BY created_at
 `
 
 type GetLatestMessagesBySessionUUIDParams struct {
-	ChatSessionUuid string
-	Limit           int32
+	ChatSessionUuid string `json:"chatSessionUuid"`
+	Limit           int32  `json:"limit"`
 }
 
 func (q *Queries) GetLatestMessagesBySessionUUID(ctx context.Context, arg GetLatestMessagesBySessionUUIDParams) ([]ChatMessage, error) {
@@ -497,8 +497,8 @@ WHERE cm.is_deleted = false and  cm.id = $1 AND (cs.user_id = $2 OR au.is_superu
 `
 
 type HasChatMessagePermissionParams struct {
-	ID     int32
-	UserID int32
+	ID     int32 `json:"id"`
+	UserID int32 `json:"userID"`
 }
 
 func (q *Queries) HasChatMessagePermission(ctx context.Context, arg HasChatMessagePermissionParams) (bool, error) {
@@ -515,12 +515,12 @@ RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at
 `
 
 type UpdateChatMessageParams struct {
-	ID        int32
-	Role      string
-	Content   string
-	Score     float64
-	UserID    int32
-	UpdatedBy int32
+	ID        int32   `json:"id"`
+	Role      string  `json:"role"`
+	Content   string  `json:"content"`
+	Score     float64 `json:"score"`
+	UserID    int32   `json:"userID"`
+	UpdatedBy int32   `json:"updatedBy"`
 }
 
 func (q *Queries) UpdateChatMessage(ctx context.Context, arg UpdateChatMessageParams) (ChatMessage, error) {
@@ -560,10 +560,10 @@ RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at
 `
 
 type UpdateChatMessageByUUIDParams struct {
-	Uuid       string
-	Content    string
-	IsPin      bool
-	TokenCount int32
+	Uuid       string `json:"uuid"`
+	Content    string `json:"content"`
+	IsPin      bool   `json:"isPin"`
+	TokenCount int32  `json:"tokenCount"`
 }
 
 func (q *Queries) UpdateChatMessageByUUID(ctx context.Context, arg UpdateChatMessageByUUIDParams) (ChatMessage, error) {
@@ -601,9 +601,9 @@ WHERE uuid = $1
 `
 
 type UpdateChatMessageContentParams struct {
-	Uuid       string
-	Content    string
-	TokenCount int32
+	Uuid       string `json:"uuid"`
+	Content    string `json:"content"`
+	TokenCount int32  `json:"tokenCount"`
 }
 
 func (q *Queries) UpdateChatMessageContent(ctx context.Context, arg UpdateChatMessageContentParams) error {

@@ -34,9 +34,9 @@ RETURNING id, session, question, answer, created_at
 `
 
 type CreateChatLogParams struct {
-	Session  json.RawMessage
-	Question json.RawMessage
-	Answer   json.RawMessage
+	Session  json.RawMessage `json:"session"`
+	Question json.RawMessage `json:"question"`
+	Answer   json.RawMessage `json:"answer"`
 }
 
 func (q *Queries) CreateChatLog(ctx context.Context, arg CreateChatLogParams) (ChatLog, error) {
@@ -101,10 +101,10 @@ RETURNING id, session, question, answer, created_at
 `
 
 type UpdateChatLogParams struct {
-	ID       int32
-	Session  json.RawMessage
-	Question json.RawMessage
-	Answer   json.RawMessage
+	ID       int32           `json:"id"`
+	Session  json.RawMessage `json:"session"`
+	Question json.RawMessage `json:"question"`
+	Answer   json.RawMessage `json:"answer"`
 }
 
 func (q *Queries) UpdateChatLog(ctx context.Context, arg UpdateChatLogParams) (ChatLog, error) {

@@ -16,13 +16,13 @@ RETURNING id, password, last_login, is_superuser, username, first_name, last_nam
 `
 
 type CreateAuthUserParams struct {
-	Email       string
-	Password    string
-	FirstName   string
-	LastName    string
-	Username    string
-	IsStaff     bool
-	IsSuperuser bool
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	FirstName   string `json:"firstName"`
+	LastName    string `json:"lastName"`
+	Username    string `json:"username"`
+	IsStaff     bool   `json:"isStaff"`
+	IsSuperuser bool   `json:"isSuperuser"`
 }
 
 func (q *Queries) CreateAuthUser(ctx context.Context, arg CreateAuthUserParams) (AuthUser, error) {
@@ -211,20 +211,20 @@ LIMIT $1
 `
 
 type GetUserStatsParams struct {
-	Limit            int32
-	Offset           int32
-	DefaultRateLimit int32
+	Limit            int32 `json:"limit"`
+	Offset           int32 `json:"offset"`
+	DefaultRateLimit int32 `json:"defaultRateLimit"`
 }
 
 type GetUserStatsRow struct {
-	FirstName              string
-	LastName               string
-	UserEmail              string
-	TotalChatMessages      int64
-	TotalTokenCount        int64
-	TotalChatMessages3Days int64
-	TotalTokenCount3Days   int64
-	RateLimit              int32
+	FirstName              string `json:"firstName"`
+	LastName               string `json:"lastName"`
+	UserEmail              string `json:"userEmail"`
+	TotalChatMessages      int64  `json:"totalChatMessages"`
+	TotalTokenCount        int64  `json:"totalTokenCount"`
+	TotalChatMessages3Days int64  `json:"totalChatMessages3Days"`
+	TotalTokenCount3Days   int64  `json:"totalTokenCount3Days"`
+	RateLimit              int32  `json:"rateLimit"`
 }
 
 func (q *Queries) GetUserStats(ctx context.Context, arg GetUserStatsParams) ([]GetUserStatsRow, error) {
@@ -264,8 +264,8 @@ SELECT id, password, last_login, is_superuser, username, first_name, last_name, 
 `
 
 type ListAuthUsersParams struct {
-	Limit  int32
-	Offset int32
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
 }
 
 func (q *Queries) ListAuthUsers(ctx context.Context, arg ListAuthUsersParams) ([]AuthUser, error) {
@@ -310,15 +310,15 @@ RETURNING first_name, last_name, email
 `
 
 type UpdateAuthUserParams struct {
-	ID        int32
-	FirstName string
-	LastName  string
+	ID        int32  `json:"id"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
 }
 
 type UpdateAuthUserRow struct {
-	FirstName string
-	LastName  string
-	Email     string
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
 }
 
 func (q *Queries) UpdateAuthUser(ctx context.Context, arg UpdateAuthUserParams) (UpdateAuthUserRow, error) {
@@ -335,15 +335,15 @@ RETURNING first_name, last_name, email
 `
 
 type UpdateAuthUserByEmailParams struct {
-	Email     string
-	FirstName string
-	LastName  string
+	Email     string `json:"email"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
 }
 
 type UpdateAuthUserByEmailRow struct {
-	FirstName string
-	LastName  string
-	Email     string
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
 }
 
 func (q *Queries) UpdateAuthUserByEmail(ctx context.Context, arg UpdateAuthUserByEmailParams) (UpdateAuthUserByEmailRow, error) {
@@ -361,8 +361,8 @@ RETURNING rate_limit
 `
 
 type UpdateAuthUserRateLimitByEmailParams struct {
-	Email     string
-	RateLimit int32
+	Email     string `json:"email"`
+	RateLimit int32  `json:"rateLimit"`
 }
 
 func (q *Queries) UpdateAuthUserRateLimitByEmail(ctx context.Context, arg UpdateAuthUserRateLimitByEmailParams) (int32, error) {
@@ -377,8 +377,8 @@ UPDATE auth_user SET "password" = $2 WHERE email = $1
 `
 
 type UpdateUserPasswordParams struct {
-	Email    string
-	Password string
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {

@@ -66,11 +66,11 @@ order by created_at desc
 `
 
 type ChatSnapshotMetaByUserIDRow struct {
-	Uuid      string
-	Title     string
-	Summary   string
-	Tags      json.RawMessage
-	CreatedAt time.Time
+	Uuid      string          `json:"uuid"`
+	Title     string          `json:"title"`
+	Summary   string          `json:"summary"`
+	Tags      json.RawMessage `json:"tags"`
+	CreatedAt time.Time       `json:"createdAt"`
 }
 
 func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, userID int32) ([]ChatSnapshotMetaByUserIDRow, error) {
@@ -111,14 +111,14 @@ LIMIT 20
 `
 
 type ChatSnapshotSearchParams struct {
-	UserID int32
-	Search string
+	UserID int32  `json:"userID"`
+	Search string `json:"search"`
 }
 
 type ChatSnapshotSearchRow struct {
-	Uuid  string
-	Title string
-	Rank  float32
+	Uuid  string  `json:"uuid"`
+	Title string  `json:"title"`
+	Rank  float32 `json:"rank"`
 }
 
 func (q *Queries) ChatSnapshotSearch(ctx context.Context, arg ChatSnapshotSearchParams) ([]ChatSnapshotSearchRow, error) {
@@ -151,15 +151,15 @@ RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation,
 `
 
 type CreateChatSnapshotParams struct {
-	Uuid         string
-	UserID       int32
-	Title        string
-	Model        string
-	Summary      string
-	Tags         json.RawMessage
-	Conversation json.RawMessage
-	Session      json.RawMessage
-	Text         string
+	Uuid         string          `json:"uuid"`
+	UserID       int32           `json:"userID"`
+	Title        string          `json:"title"`
+	Model        string          `json:"model"`
+	Summary      string          `json:"summary"`
+	Tags         json.RawMessage `json:"tags"`
+	Conversation json.RawMessage `json:"conversation"`
+	Session      json.RawMessage `json:"session"`
+	Text         string          `json:"text"`
 }
 
 func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshotParams) (ChatSnapshot, error) {
@@ -199,8 +199,8 @@ RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation,
 `
 
 type DeleteChatSnapshotParams struct {
-	Uuid   string
-	UserID int32
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userID"`
 }
 
 func (q *Queries) DeleteChatSnapshot(ctx context.Context, arg DeleteChatSnapshotParams) (ChatSnapshot, error) {
@@ -271,14 +271,14 @@ RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation,
 `
 
 type UpdateChatSnapshotParams struct {
-	ID           int32
-	Uuid         string
-	UserID       int32
-	Title        string
-	Summary      string
-	Tags         json.RawMessage
-	Conversation json.RawMessage
-	CreatedAt    time.Time
+	ID           int32           `json:"id"`
+	Uuid         string          `json:"uuid"`
+	UserID       int32           `json:"userID"`
+	Title        string          `json:"title"`
+	Summary      string          `json:"summary"`
+	Tags         json.RawMessage `json:"tags"`
+	Conversation json.RawMessage `json:"conversation"`
+	CreatedAt    time.Time       `json:"createdAt"`
 }
 
 func (q *Queries) UpdateChatSnapshot(ctx context.Context, arg UpdateChatSnapshotParams) (ChatSnapshot, error) {
@@ -317,10 +317,10 @@ WHERE uuid = $1 and user_id = $4
 `
 
 type UpdateChatSnapshotMetaByUUIDParams struct {
-	Uuid    string
-	Title   string
-	Summary string
-	UserID  int32
+	Uuid    string `json:"uuid"`
+	Title   string `json:"title"`
+	Summary string `json:"summary"`
+	UserID  int32  `json:"userID"`
 }
 
 func (q *Queries) UpdateChatSnapshotMetaByUUID(ctx context.Context, arg UpdateChatSnapshotMetaByUUIDParams) error {
