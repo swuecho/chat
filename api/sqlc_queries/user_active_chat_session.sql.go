@@ -20,8 +20,8 @@ returning id, user_id, chat_session_uuid, created_at, updated_at
 `
 
 type CreateOrUpdateUserActiveChatSessionParams struct {
-	UserID          int32
-	ChatSessionUuid string
+	UserID          int32  `json:"userID"`
+	ChatSessionUuid string `json:"chatSessionUuid"`
 }
 
 func (q *Queries) CreateOrUpdateUserActiveChatSession(ctx context.Context, arg CreateOrUpdateUserActiveChatSessionParams) (UserActiveChatSession, error) {
@@ -44,8 +44,8 @@ RETURNING id, user_id, chat_session_uuid, created_at, updated_at
 `
 
 type CreateUserActiveChatSessionParams struct {
-	UserID          int32
-	ChatSessionUuid string
+	UserID          int32  `json:"userID"`
+	ChatSessionUuid string `json:"chatSessionUuid"`
 }
 
 func (q *Queries) CreateUserActiveChatSession(ctx context.Context, arg CreateUserActiveChatSessionParams) (UserActiveChatSession, error) {
@@ -127,8 +127,8 @@ RETURNING id, user_id, chat_session_uuid, created_at, updated_at
 `
 
 type UpdateUserActiveChatSessionParams struct {
-	ChatSessionUuid string
-	UserID          int32
+	ChatSessionUuid string `json:"chatSessionUuid"`
+	UserID          int32  `json:"userID"`
 }
 
 func (q *Queries) UpdateUserActiveChatSession(ctx context.Context, arg UpdateUserActiveChatSessionParams) (UserActiveChatSession, error) {

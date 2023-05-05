@@ -10,135 +10,135 @@ import (
 )
 
 type AuthUser struct {
-	ID          int32
-	Password    string
-	LastLogin   time.Time
-	IsSuperuser bool
-	Username    string
-	FirstName   string
-	LastName    string
-	Email       string
-	IsStaff     bool
-	IsActive    bool
-	DateJoined  time.Time
+	ID          int32     `json:"id"`
+	Password    string    `json:"password"`
+	LastLogin   time.Time `json:"lastLogin"`
+	IsSuperuser bool      `json:"isSuperuser"`
+	Username    string    `json:"username"`
+	FirstName   string    `json:"firstName"`
+	LastName    string    `json:"lastName"`
+	Email       string    `json:"email"`
+	IsStaff     bool      `json:"isStaff"`
+	IsActive    bool      `json:"isActive"`
+	DateJoined  time.Time `json:"dateJoined"`
 }
 
 type AuthUserManagement struct {
-	ID        int32
-	UserID    int32
-	RateLimit int32
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int32     `json:"id"`
+	UserID    int32     `json:"userID"`
+	RateLimit int32     `json:"rateLimit"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type ChatLog struct {
-	ID        int32
-	Session   json.RawMessage
-	Question  json.RawMessage
-	Answer    json.RawMessage
-	CreatedAt time.Time
+	ID        int32           `json:"id"`
+	Session   json.RawMessage `json:"session"`
+	Question  json.RawMessage `json:"question"`
+	Answer    json.RawMessage `json:"answer"`
+	CreatedAt time.Time       `json:"createdAt"`
 }
 
 type ChatMessage struct {
-	ID              int32
-	Uuid            string
-	ChatSessionUuid string
-	Role            string
-	Content         string
-	Score           float64
-	UserID          int32
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	CreatedBy       int32
-	UpdatedBy       int32
-	IsDeleted       bool
-	IsPin           bool
-	TokenCount      int32
-	Raw             json.RawMessage
+	ID              int32           `json:"id"`
+	Uuid            string          `json:"uuid"`
+	ChatSessionUuid string          `json:"chatSessionUuid"`
+	Role            string          `json:"role"`
+	Content         string          `json:"content"`
+	Score           float64         `json:"score"`
+	UserID          int32           `json:"userID"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	CreatedBy       int32           `json:"createdBy"`
+	UpdatedBy       int32           `json:"updatedBy"`
+	IsDeleted       bool            `json:"isDeleted"`
+	IsPin           bool            `json:"isPin"`
+	TokenCount      int32           `json:"tokenCount"`
+	Raw             json.RawMessage `json:"raw"`
 }
 
 type ChatModel struct {
-	ID                     int32
-	Name                   string
-	Label                  string
-	IsDefault              bool
-	Url                    string
-	ApiAuthHeader          string
-	ApiAuthKey             string
-	UserID                 int32
-	EnablePerModeRatelimit bool
+	ID                     int32  `json:"id"`
+	Name                   string `json:"name"`
+	Label                  string `json:"label"`
+	IsDefault              bool   `json:"isDefault"`
+	Url                    string `json:"url"`
+	ApiAuthHeader          string `json:"apiAuthHeader"`
+	ApiAuthKey             string `json:"apiAuthKey"`
+	UserID                 int32  `json:"userID"`
+	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
 }
 
 type ChatPrompt struct {
-	ID              int32
-	Uuid            string
-	ChatSessionUuid string
-	Role            string
-	Content         string
-	Score           float64
-	UserID          int32
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	CreatedBy       int32
-	UpdatedBy       int32
-	IsDeleted       bool
-	TokenCount      int32
+	ID              int32     `json:"id"`
+	Uuid            string    `json:"uuid"`
+	ChatSessionUuid string    `json:"chatSessionUuid"`
+	Role            string    `json:"role"`
+	Content         string    `json:"content"`
+	Score           float64   `json:"score"`
+	UserID          int32     `json:"userID"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+	CreatedBy       int32     `json:"createdBy"`
+	UpdatedBy       int32     `json:"updatedBy"`
+	IsDeleted       bool      `json:"isDeleted"`
+	TokenCount      int32     `json:"tokenCount"`
 }
 
 type ChatSession struct {
-	ID          int32
-	UserID      int32
-	Uuid        string
-	Topic       string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	Active      bool
-	Model       string
-	MaxLength   int32
-	Temperature float64
-	TopP        float64
-	MaxTokens   int32
-	N           int32
-	Debug       bool
+	ID          int32     `json:"id"`
+	UserID      int32     `json:"userID"`
+	Uuid        string    `json:"uuid"`
+	Topic       string    `json:"topic"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+	Active      bool      `json:"active"`
+	Model       string    `json:"model"`
+	MaxLength   int32     `json:"maxLength"`
+	Temperature float64   `json:"temperature"`
+	TopP        float64   `json:"topP"`
+	MaxTokens   int32     `json:"maxTokens"`
+	N           int32     `json:"n"`
+	Debug       bool      `json:"debug"`
 }
 
 type ChatSnapshot struct {
-	ID           int32
-	Uuid         string
-	UserID       int32
-	Title        string
-	Summary      string
-	Model        string
-	Tags         json.RawMessage
-	Session      json.RawMessage
-	Conversation json.RawMessage
-	CreatedAt    time.Time
-	Text         string
-	SearchVector interface{}
+	ID           int32           `json:"id"`
+	Uuid         string          `json:"uuid"`
+	UserID       int32           `json:"userID"`
+	Title        string          `json:"title"`
+	Summary      string          `json:"summary"`
+	Model        string          `json:"model"`
+	Tags         json.RawMessage `json:"tags"`
+	Session      json.RawMessage `json:"session"`
+	Conversation json.RawMessage `json:"conversation"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	Text         string          `json:"text"`
+	SearchVector interface{}     `json:"searchVector"`
 }
 
 type JwtSecret struct {
-	ID       int32
-	Name     string
-	Secret   string
-	Audience string
+	ID       int32  `json:"id"`
+	Name     string `json:"name"`
+	Secret   string `json:"secret"`
+	Audience string `json:"audience"`
 }
 
 type UserActiveChatSession struct {
-	ID              int32
-	UserID          int32
-	ChatSessionUuid string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID              int32     `json:"id"`
+	UserID          int32     `json:"userID"`
+	ChatSessionUuid string    `json:"chatSessionUuid"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
 }
 
 type UserChatModelPrivilege struct {
-	ID          int32
-	UserID      int32
-	ChatModelID int32
-	RateLimit   int32
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	CreatedBy   int32
-	UpdatedBy   int32
+	ID          int32     `json:"id"`
+	UserID      int32     `json:"userID"`
+	ChatModelID int32     `json:"chatModelID"`
+	RateLimit   int32     `json:"rateLimit"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+	CreatedBy   int32     `json:"createdBy"`
+	UpdatedBy   int32     `json:"updatedBy"`
 }

@@ -22,60 +22,7 @@ func NewUserActiveChatSessionHandler(service *UserActiveChatSessionService) *Use
 
 func (h *UserActiveChatSessionHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/user_active_chat_session", h.GetUserActiveChatSessionHandler).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/user_active_chat_session", h.CreateUserActiveChatSessionHandler).Methods(http.MethodPost)
 	router.HandleFunc("/uuid/user_active_chat_session", h.CreateOrUpdateUserActiveChatSessionHandler).Methods(http.MethodPut)
-}
-
-// CreateUserActiveChatSessionHandler handles POST requests to create a new session.
-func (h *UserActiveChatSessionHandler) CreateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userID, err := getUserID(ctx)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
-	}
-
-	var sessionParams sqlc.CreateUserActiveChatSessionParams
-	if err := json.NewDecoder(r.Body).Decode(&sessionParams); err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-	sessionParams.UserID = userID
-
-	session, err := h.service.CreateUserActiveChatSession(r.Context(), sessionParams)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(session)
-}
-
-// CreateOrUpdateUserActiveChatSessionHandler handles POST requests to create a new session.
-func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userID, err := getUserID(ctx)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
-	}
-
-	var sessionParams sqlc.CreateOrUpdateUserActiveChatSessionParams
-	if err := json.NewDecoder(r.Body).Decode(&sessionParams); err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-	// use the user_id from token
-	sessionParams.UserID = userID
-	session, err := h.service.CreateOrUpdateUserActiveChatSession(r.Context(), sessionParams)
-	if err != nil {
-		http.Error(w, eris.Wrap(err, "fail to update or create action user session record, ").Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(session)
 }
 
 // GetUserActiveChatSessionHandler handles GET requests to get a session by user_id.
@@ -97,22 +44,27 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 	json.NewEncoder(w).Encode(session)
 }
 
-// UpdateUserActiveSessionHandler handles PUT requests to update an existing session.
-func (h *UserActiveChatSessionHandler) UpdateUserActiveSessionHandler(w http.ResponseWriter, r *http.Request) {
-	// Get the path variables using gorilla/mux
+
+
+// CreateOrUpdateUserActiveChatSessionHandler handles POST requests to create a new session.
+func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userIDInt, err := getUserID(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	// Get the query parameters using r.URL.Query() method
-	queryParams := r.URL.Query()
-	chatSessionUUID := queryParams.Get("chatSessionUuid")
 
-	session, err := h.service.UpdateUserActiveChatSession(r.Context(), userIDInt, chatSessionUUID)
+	var sessionParams sqlc.CreateOrUpdateUserActiveChatSessionParams
+	if err := json.NewDecoder(r.Body).Decode(&sessionParams); err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	// use the user_id from token
+	sessionParams.UserID = userID
+	session, err := h.service.CreateOrUpdateUserActiveChatSession(r.Context(), sessionParams)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, eris.Wrap(err, "fail to update or create action user session record, ").Error(), http.StatusInternalServerError)
 		return
 	}
 

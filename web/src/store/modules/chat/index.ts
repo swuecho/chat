@@ -79,10 +79,10 @@ export const useChatStore = defineStore('chat-store', {
       }
 
       let active_session_uuid = this.history[0].uuid
-      const active_session = await getUserActiveChatSession()
 
+      const active_session = await getUserActiveChatSession()
       if (active_session)
-        active_session_uuid = active_session.ChatSessionUuid
+        active_session_uuid = active_session.chatSessionUuid
 
       this.active = active_session_uuid
       this.reloadRoute(this.active)
@@ -142,7 +142,7 @@ export const useChatStore = defineStore('chat-store', {
     async setActive(uuid: string) {
       this.active = uuid
       await createOrUpdateUserActiveChatSession(uuid)
-      return await this.reloadRoute(uuid)
+      await this.reloadRoute(uuid)
     },
 
     getChatByUuidAndIndex(uuid: string, index: number) {

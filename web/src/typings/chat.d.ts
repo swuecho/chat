@@ -52,4 +52,15 @@ declare namespace Chat {
 		role: string
 		text: string
 	}
+
+	interface ChatModel {
+		id?: number
+		apiAuthHeader: string
+		apiAuthKey: string
+		isDefault: boolean
+		label: string
+		name: string
+		url: string
+		enablePerModeRatelimit: boolean
+	}
 }

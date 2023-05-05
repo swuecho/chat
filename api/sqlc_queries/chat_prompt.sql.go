@@ -16,14 +16,14 @@ RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at
 `
 
 type CreateChatPromptParams struct {
-	Uuid            string
-	ChatSessionUuid string
-	Role            string
-	Content         string
-	TokenCount      int32
-	UserID          int32
-	CreatedBy       int32
-	UpdatedBy       int32
+	Uuid            string `json:"uuid"`
+	ChatSessionUuid string `json:"chatSessionUuid"`
+	Role            string `json:"role"`
+	Content         string `json:"content"`
+	TokenCount      int32  `json:"tokenCount"`
+	UserID          int32  `json:"userID"`
+	CreatedBy       int32  `json:"createdBy"`
+	UpdatedBy       int32  `json:"updatedBy"`
 }
 
 func (q *Queries) CreateChatPrompt(ctx context.Context, arg CreateChatPromptParams) (ChatPrompt, error) {
@@ -342,8 +342,8 @@ WHERE cp.id = $1 AND (cp.user_id = $2 OR au.is_superuser) AND cp.is_deleted = fa
 `
 
 type HasChatPromptPermissionParams struct {
-	ID     int32
-	UserID int32
+	ID     int32 `json:"id"`
+	UserID int32 `json:"userID"`
 }
 
 func (q *Queries) HasChatPromptPermission(ctx context.Context, arg HasChatPromptPermissionParams) (bool, error) {
@@ -360,13 +360,13 @@ RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at
 `
 
 type UpdateChatPromptParams struct {
-	ID              int32
-	ChatSessionUuid string
-	Role            string
-	Content         string
-	Score           float64
-	UserID          int32
-	UpdatedBy       int32
+	ID              int32   `json:"id"`
+	ChatSessionUuid string  `json:"chatSessionUuid"`
+	Role            string  `json:"role"`
+	Content         string  `json:"content"`
+	Score           float64 `json:"score"`
+	UserID          int32   `json:"userID"`
+	UpdatedBy       int32   `json:"updatedBy"`
 }
 
 func (q *Queries) UpdateChatPrompt(ctx context.Context, arg UpdateChatPromptParams) (ChatPrompt, error) {
@@ -405,9 +405,9 @@ RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at
 `
 
 type UpdateChatPromptByUUIDParams struct {
-	Uuid       string
-	Content    string
-	TokenCount int32
+	Uuid       string `json:"uuid"`
+	Content    string `json:"content"`
+	TokenCount int32  `json:"tokenCount"`
 }
 
 func (q *Queries) UpdateChatPromptByUUID(ctx context.Context, arg UpdateChatPromptByUUIDParams) (ChatPrompt, error) {

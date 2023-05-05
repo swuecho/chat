@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/deckarep/golang-set/v2 v2.3.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
+	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.8
@@ -23,7 +24,6 @@ require (
 	github.com/dlclark/regexp2 v1.9.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect

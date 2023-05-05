@@ -78,13 +78,13 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 
 	var input struct {
-		Name                   string
-		Label                  string
-		IsDefault              bool
-		URL                    string
-		ApiAuthHeader          string
-		ApiAuthKey             string
-		EnablePerModeRatelimit bool
+		Name                   string `json:"name"`
+		Label                  string `json:"label"`
+		IsDefault              bool   `json:"isDefault"`
+		URL                    string `json:"url"`
+		ApiAuthHeader          string `json:"apiAuthHeader"`
+		ApiAuthKey             string `json:"apiAuthKey"`
+		EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&input)

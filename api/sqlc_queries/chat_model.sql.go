@@ -58,14 +58,14 @@ RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_
 `
 
 type CreateChatModelParams struct {
-	Name                   string
-	Label                  string
-	IsDefault              bool
-	Url                    string
-	ApiAuthHeader          string
-	ApiAuthKey             string
-	UserID                 int32
-	EnablePerModeRatelimit bool
+	Name                   string `json:"name"`
+	Label                  string `json:"label"`
+	IsDefault              bool   `json:"isDefault"`
+	Url                    string `json:"url"`
+	ApiAuthHeader          string `json:"apiAuthHeader"`
+	ApiAuthKey             string `json:"apiAuthKey"`
+	UserID                 int32  `json:"userID"`
+	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
 }
 
 func (q *Queries) CreateChatModel(ctx context.Context, arg CreateChatModelParams) (ChatModel, error) {
@@ -99,8 +99,8 @@ DELETE FROM chat_model WHERE id = $1 and user_id = $2
 `
 
 type DeleteChatModelParams struct {
-	ID     int32
-	UserID int32
+	ID     int32 `json:"id"`
+	UserID int32 `json:"userID"`
 }
 
 func (q *Queries) DeleteChatModel(ctx context.Context, arg DeleteChatModelParams) error {
@@ -213,15 +213,15 @@ RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_
 `
 
 type UpdateChatModelParams struct {
-	ID                     int32
-	Name                   string
-	Label                  string
-	IsDefault              bool
-	Url                    string
-	ApiAuthHeader          string
-	ApiAuthKey             string
-	UserID                 int32
-	EnablePerModeRatelimit bool
+	ID                     int32  `json:"id"`
+	Name                   string `json:"name"`
+	Label                  string `json:"label"`
+	IsDefault              bool   `json:"isDefault"`
+	Url                    string `json:"url"`
+	ApiAuthHeader          string `json:"apiAuthHeader"`
+	ApiAuthKey             string `json:"apiAuthKey"`
+	UserID                 int32  `json:"userID"`
+	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
 }
 
 func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams) (ChatModel, error) {
@@ -258,8 +258,8 @@ RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_
 `
 
 type UpdateChatModelKeyParams struct {
-	ID         int32
-	ApiAuthKey string
+	ID         int32  `json:"id"`
+	ApiAuthKey string `json:"apiAuthKey"`
 }
 
 func (q *Queries) UpdateChatModelKey(ctx context.Context, arg UpdateChatModelKeyParams) (ChatModel, error) {
