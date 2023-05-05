@@ -38,9 +38,9 @@ async function getPostLinks() {
   const rawPosts = await fetchSnapshotAll()
   const rawPostsFormated = rawPosts.map((post: any) => {
     return {
-      uuid: post.Uuid,
+      uuid: post.uuid,
       date: displayLocaleDate(post.CreatedAt),
-      title: post.Title,
+      title: post.title,
     }
   })
   return postsByYearMonthTransform(rawPostsFormated)
