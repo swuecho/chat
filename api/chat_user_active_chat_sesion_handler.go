@@ -25,6 +25,25 @@ func (h *UserActiveChatSessionHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/user_active_chat_session", h.CreateOrUpdateUserActiveChatSessionHandler).Methods(http.MethodPut)
 }
 
+// GetUserActiveChatSessionHandler handles GET requests to get a session by user_id.
+func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+
+	session, err := h.service.GetUserActiveChatSession(r.Context(), userID)
+	if err != nil {
+		http.Error(w, fmt.Errorf("error: %v", err).Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(session)
+}
+
 
 
 // CreateOrUpdateUserActiveChatSessionHandler handles POST requests to create a new session.
@@ -46,48 +65,6 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 	session, err := h.service.CreateOrUpdateUserActiveChatSession(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, eris.Wrap(err, "fail to update or create action user session record, ").Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(session)
-}
-
-// GetUserActiveChatSessionHandler handles GET requests to get a session by user_id.
-func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userID, err := getUserID(ctx)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
-	}
-
-	session, err := h.service.GetUserActiveChatSession(r.Context(), userID)
-	if err != nil {
-		http.Error(w, fmt.Errorf("error: %v", err).Error(), http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(session)
-}
-
-// UpdateUserActiveSessionHandler handles PUT requests to update an existing session.
-func (h *UserActiveChatSessionHandler) UpdateUserActiveSessionHandler(w http.ResponseWriter, r *http.Request) {
-	// Get the path variables using gorilla/mux
-	ctx := r.Context()
-	userIDInt, err := getUserID(ctx)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
-	}
-	// Get the query parameters using r.URL.Query() method
-	queryParams := r.URL.Query()
-	chatSessionUUID := queryParams.Get("chatSessionUuid")
-
-	session, err := h.service.UpdateUserActiveChatSession(r.Context(), userIDInt, chatSessionUUID)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
