@@ -39,7 +39,7 @@ async function getPostLinks() {
   const rawPostsFormated = rawPosts.map((post: any) => {
     return {
       uuid: post.uuid,
-      date: displayLocaleDate(post.CreatedAt),
+      date: displayLocaleDate(post.createdAt),
       title: post.title,
     }
   })

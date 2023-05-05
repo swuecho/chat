@@ -82,7 +82,7 @@ export const useChatStore = defineStore('chat-store', {
       const active_session = await getUserActiveChatSession()
 
       if (active_session)
-        active_session_uuid = active_session.ChatSessionUuid
+        active_session_uuid = active_session.chatSessionUuid
 
       this.active = active_session_uuid
       this.reloadRoute(this.active)
