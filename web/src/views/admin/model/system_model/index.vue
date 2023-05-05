@@ -187,7 +187,7 @@ async function deleteRow(row: any) {
 function checkNoRowIsDefaultTrue(v: boolean) {
   if (v === false)
     return
-  const defaultTrueRows = data.value.filter((row: Chat.ChatModel) => row.IsDefault === true)
+  const defaultTrueRows = data.value.filter((row: Chat.ChatModel) => row.isDefault === true)
   if (defaultTrueRows.length > 0) {
     // 'Only one row can be default, please disable existing default model first.'
     ms_ui.error(t('admin.model_one_default_only'))

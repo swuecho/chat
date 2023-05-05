@@ -3,19 +3,9 @@ import { ref } from 'vue'
 import { NButton, NForm, NFormItem, NInput, NSwitch } from 'naive-ui'
 import { createChatModel } from '@/api'
 
-interface RowData {
-  apiAuthHeader: string
-  apiAuthKey: string
-  isDefault: boolean
-  label: string
-  name: string
-  url: string
-  enablePerModeRatelimit: boolean
-}
-
 const emit = defineEmits<Emit>()
 
-const formData = ref<RowData>({
+const formData = ref<Chat.ChatModel>({
   name: '',
   label: '',
   url: '',
