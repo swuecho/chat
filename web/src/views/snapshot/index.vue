@@ -32,9 +32,9 @@ const model = ref<string>('')
 
 onMounted(async () => {
   const snapshot = await fetchChatSnapshot(uuid)
-  dataSources.value.push(...snapshot.Conversation)
-  title.value = snapshot.Title
-  model.value = snapshot.Model
+  dataSources.value.push(...snapshot.conversation)
+  title.value = snapshot.title
+  model.value = snapshot.model
 })
 
 const loading = ref<boolean>(false)
