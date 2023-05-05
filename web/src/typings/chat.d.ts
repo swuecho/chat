@@ -54,7 +54,7 @@ declare namespace Chat {
 	}
 
 	interface ChatModel {
-		ID?: number
+		id?: number
 		apiAuthHeader: string
 		apiAuthKey: string
 		isDefault: boolean

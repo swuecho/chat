@@ -21,8 +21,8 @@ async function refreshData() {
 }
 
 function UpdateRow(row: Chat.ChatModel) {
-  if (row.ID)
-    updateChatModel(row.ID, row)
+  if (row.id)
+    updateChatModel(row.id, row)
 }
 function createColumns(): DataTableColumns<Chat.ChatModel> {
   const nameField = {
