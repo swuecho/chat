@@ -32,6 +32,18 @@ func (q *Queries) CreateJwtSecret(ctx context.Context, arg CreateJwtSecretParams
 	return i, err
 }
 
+const deleteAllJwtSecrets = `-- name: DeleteAllJwtSecrets :execrows
+DELETE FROM jwt_secrets
+`
+
+func (q *Queries) DeleteAllJwtSecrets(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteAllJwtSecrets)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getJwtSecret = `-- name: GetJwtSecret :one
 SELECT id, name, secret, audience FROM jwt_secrets WHERE name = $1
 `
