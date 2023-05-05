@@ -80,7 +80,7 @@ Where chat_message.id in
     (
         SELECT chat_message.id
         FROM chat_message
-        WHERE chat_message.chat_session_uuid = $1 and chat_message.is_deleted = false and chat_message.is_pin = false
+        WHERE chat_message.chat_session_uuid = $1 and chat_message.is_deleted = false -- and chat_message.is_pin = false
         ORDER BY created_at DESC
         LIMIT $2
     )
@@ -108,7 +108,7 @@ WHERE chat_message.id in (
         FROM chat_message cm
         WHERE cm.chat_session_uuid = $3 
                 AND cm.id < (SELECT id FROM chat_message WHERE chat_message.uuid = $1)
-                AND cm.is_deleted = false and cm.is_pin = false
+                AND cm.is_deleted = false -- and cm.is_pin = false
         ORDER BY cm.created_at DESC
         LIMIT $2
     )
