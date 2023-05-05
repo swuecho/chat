@@ -9,18 +9,7 @@ import { t } from '@/locales'
 
 const ms_ui = useMessage()
 
-interface RowData {
-  ApiAuthHeader: string
-  ApiAuthKey: string
-  ID: number
-  IsDefault: boolean
-  Label: string
-  Name: string
-  Url: string
-  EnablePerModeRatelimit: boolean
-}
-
-const data = ref<RowData[]>([])
+const data = ref<Chat.ChatModel[]>([])
 const dialogVisible = ref(false)
 
 onMounted(async () => {
@@ -31,20 +20,21 @@ async function refreshData() {
   data.value = await fetchChatModel()
 }
 
-function UpdateRow(row: RowData) {
-  updateChatModel(row.ID, row)
+function UpdateRow(row: Chat.ChatModel) {
+  if (row.ID)
+    updateChatModel(row.ID, row)
 }
-function createColumns(): DataTableColumns<RowData> {
+function createColumns(): DataTableColumns<Chat.ChatModel> {
   const nameField = {
     title: t('admin.chat_model.name'),
-    key: 'Name',
+    key: 'name',
     width: 200,
-    render(row: RowData, index: number) {
+    render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
-        value: row.Name,
+        value: row.name,
         onUpdateValue(v: string) {
           // Assuming `data` is an array of FormData objects
-          data.value[index].Name = v
+          data.value[index].name = v
           UpdateRow(data.value[index])
         },
       })
@@ -53,14 +43,14 @@ function createColumns(): DataTableColumns<RowData> {
 
   const labelField = {
     title: t('admin.chat_model.label'),
-    key: 'Label',
+    key: 'label',
     width: 250,
-    render(row: RowData, index: number) {
+    render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
-        value: row.Label,
+        value: row.label,
         onUpdateValue(v: string) {
           // assuming that `data` is an array of FormData objects
-          data.value[index].Label = v
+          data.value[index].label = v
           UpdateRow(data.value[index])
         },
       })
@@ -69,15 +59,15 @@ function createColumns(): DataTableColumns<RowData> {
 
   const urlField = {
     title: t('admin.chat_model.url'),
-    key: 'Url',
+    key: 'url',
     resizable: true,
     minWidth: 200,
-    render(row: RowData, index: number) {
+    render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
-        value: row.Url,
+        value: row.url,
         onUpdateValue(v: string) {
           // Assuming `data` is an array of FormData objects
-          data.value[index].Url = v
+          data.value[index].url = v
           UpdateRow(data.value[index])
         },
       })
@@ -86,14 +76,14 @@ function createColumns(): DataTableColumns<RowData> {
 
   const apiAuthKeyField = {
     title: t('admin.chat_model.apiAuthKey'),
-    key: 'ApiAuthKey',
+    key: 'apiAuthKey',
     width: 200,
-    render(row: RowData, index: number) {
+    render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
-        value: row.ApiAuthKey,
+        value: row.apiAuthKey,
         onUpdateValue(v: string) {
           // Assuming `data` is an array of FormData objects
-          data.value[index].ApiAuthKey = v
+          data.value[index].apiAuthKey = v
           UpdateRow(data.value[index])
         },
       })
@@ -102,15 +92,15 @@ function createColumns(): DataTableColumns<RowData> {
 
   const apiAuthHeaderField = {
     title: t('admin.chat_model.apiAuthHeader'),
-    key: 'ApiAuthHeader',
+    key: 'apiAuthHeader',
     width: 200,
-    render(row: RowData, index: number) {
+    render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
-        value: row.ApiAuthHeader,
+        value: row.apiAuthHeader,
         width: 50,
         onUpdateValue(v: string) {
           // Assuming `data` is an array of FormData objects
-          data.value[index].ApiAuthHeader = v
+          data.value[index].apiAuthHeader = v
           UpdateRow(data.value[index])
         },
       })
@@ -119,16 +109,16 @@ function createColumns(): DataTableColumns<RowData> {
 
   const isDefaultField = {
     title: t('admin.chat_model.isDefault'),
-    key: 'IsDefault',
-    render(row: RowData, index: number) {
+    key: 'isDefault',
+    render(row: Chat.ChatModel, index: number) {
       return h(NSwitch, {
-        value: row.IsDefault,
+        value: row.isDefault,
         onUpdateValue(v: boolean) {
           // Assuming `data` is an array of FormData objects
           const has_default = checkNoRowIsDefaultTrue(v)
           if (has_default)
             return
-          data.value[index].IsDefault = v
+          data.value[index].isDefault = v
           UpdateRow(data.value[index])
         },
       })
@@ -136,13 +126,13 @@ function createColumns(): DataTableColumns<RowData> {
   }
   const perModelLimit = {
     title: t('admin.chat_model.EnablePerModeRatelimit'),
-    key: 'EnablePerModeRatelimit',
-    render(row: RowData, index: number) {
+    key: 'enablePerModeRatelimit',
+    render(row: Chat.ChatModel, index: number) {
       return h(NSwitch, {
-        value: row.EnablePerModeRatelimit,
+        value: row.enablePerModeRatelimit,
         onUpdateValue(v: boolean) {
           // Assuming `data` is an array of FormData objects
-          data.value[index].EnablePerModeRatelimit = v
+          data.value[index].enablePerModeRatelimit = v
           UpdateRow(data.value[index])
         },
       })
@@ -197,7 +187,7 @@ async function deleteRow(row: any) {
 function checkNoRowIsDefaultTrue(v: boolean) {
   if (v === false)
     return
-  const defaultTrueRows = data.value.filter((row: RowData) => row.IsDefault === true)
+  const defaultTrueRows = data.value.filter((row: Chat.ChatModel) => row.IsDefault === true)
   if (defaultTrueRows.length > 0) {
     // 'Only one row can be default, please disable existing default model first.'
     ms_ui.error(t('admin.model_one_default_only'))
