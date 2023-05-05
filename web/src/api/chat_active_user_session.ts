@@ -25,31 +25,3 @@ export const createOrUpdateUserActiveChatSession = async (chatSessionUuid: strin
     throw error
   }
 }
-
-// postUserActiveChatSession
-export const postUserActiveChatSession = async (chatSessionUuid: string) => {
-  try {
-    const response = await request.post('/uuid/user_active_chat_session', {
-      chatSessionUuid,
-    })
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
-
-// putUserActiveChatSession
-export const putUserActiveChatSession = async (chatSessionUuid: string) => {
-  try {
-    const response = await request.put('/uuid/user_active_chat_session/', {
-      chatSessionUuid,
-    })
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}

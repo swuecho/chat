@@ -22,35 +22,10 @@ func NewUserActiveChatSessionHandler(service *UserActiveChatSessionService) *Use
 
 func (h *UserActiveChatSessionHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/user_active_chat_session", h.GetUserActiveChatSessionHandler).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/user_active_chat_session", h.CreateUserActiveChatSessionHandler).Methods(http.MethodPost)
 	router.HandleFunc("/uuid/user_active_chat_session", h.CreateOrUpdateUserActiveChatSessionHandler).Methods(http.MethodPut)
 }
 
-// CreateUserActiveChatSessionHandler handles POST requests to create a new session.
-func (h *UserActiveChatSessionHandler) CreateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userID, err := getUserID(ctx)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
-	}
 
-	var sessionParams sqlc.CreateUserActiveChatSessionParams
-	if err := json.NewDecoder(r.Body).Decode(&sessionParams); err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-	sessionParams.UserID = userID
-
-	session, err := h.service.CreateUserActiveChatSession(r.Context(), sessionParams)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(session)
-}
 
 // CreateOrUpdateUserActiveChatSessionHandler handles POST requests to create a new session.
 func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
