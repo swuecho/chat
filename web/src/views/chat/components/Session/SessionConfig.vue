@@ -60,8 +60,8 @@ onMounted(async () => {
   const models = await fetchChatModel()
   chatModelOptions.push(...models.map((model: any) => {
     return {
-      label: model.Label,
-      value: model.Name,
+      label: model.label,
+      value: model.name,
     }
   }))
 })
