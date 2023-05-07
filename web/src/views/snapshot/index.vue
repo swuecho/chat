@@ -26,7 +26,7 @@ const { isMobile } = useBasicLayout()
 // session uuid
 const { uuid } = route.params as { uuid: string }
 
-const dataSources = ref<Chat.Chat[]>([])
+const dataSources = ref<Chat.Message[]>([])
 const title = ref<string>('')
 const model = ref<string>('')
 
@@ -74,7 +74,7 @@ function handleExport() {
     },
   })
 }
-function format_chat_md(chat: Chat.Chat): string {
+function format_chat_md(chat: Chat.Message): string {
   return `<sup><kbd><var>${chat.dateTime}</var></kbd></sup>:\n ${chat.text}`
 }
 
@@ -90,7 +90,7 @@ const chatToMarkdown = () => {
     isPrompt?: boolean
     */
     const chatData = dataSources.value
-    const markdown = chatData.map((chat: Chat.Chat) => {
+    const markdown = chatData.map((chat: Chat.Message) => {
       if (chat.isPrompt)
         return `**system** ${format_chat_md(chat)}}`
       else if (chat.inversion)
