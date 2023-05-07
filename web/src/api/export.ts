@@ -1,6 +1,6 @@
 import { getChatMessagesBySessionUUID } from './chat_message'
 
-function format_chat_md(chat: Chat.Chat): string {
+function format_chat_md(chat: Chat.Message): string {
   return `<sup><kbd><var>${chat.dateTime}</var></kbd></sup>:\n ${chat.text}`
 }
 
@@ -16,7 +16,7 @@ export const fetchMarkdown = async (uuid: string) => {
           loading?: boolean
           isPrompt?: boolean
           */
-    const markdown = chatData.map((chat: Chat.Chat) => {
+    const markdown = chatData.map((chat: Chat.Message) => {
       if (chat.isPrompt)
         return `**system** ${format_chat_md(chat)}}`
       else if (chat.inversion)
@@ -32,7 +32,7 @@ export const fetchMarkdown = async (uuid: string) => {
   }
 }
 
-export const fetchConversationSnapshot = async (uuid: string): Promise<Chat.Chat[]> => {
+export const fetchConversationSnapshot = async (uuid: string): Promise<Chat.Message[]> => {
   try {
     const chatData = await getChatMessagesBySessionUUID(uuid)
     /*

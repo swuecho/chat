@@ -67,7 +67,7 @@ export const useChatStore = defineStore('chat-store', {
       const sessions = await getChatSessionsByUser()
       this.history = []
       this.chat = []
-      await sessions.forEach(async (r: Chat.History) => {
+      await sessions.forEach(async (r: Chat.Session) => {
         this.history.unshift(r)
         const chatData = await getChatSessionHistory(r.uuid)
         // chatData.uuid = chatData?.uuid
@@ -88,7 +88,7 @@ export const useChatStore = defineStore('chat-store', {
       this.reloadRoute(this.active)
     },
 
-    addChatSession(history: Chat.History, chatData: Chat.Chat[] = []) {
+    addChatSession(history: Chat.Session, chatData: Chat.Message[] = []) {
       createChatSession(history.uuid, history.title)
       this.history.unshift(history)
       this.chat.unshift({ uuid: history.uuid, data: chatData })
@@ -96,7 +96,7 @@ export const useChatStore = defineStore('chat-store', {
       this.reloadRoute(history.uuid)
     },
 
-    async updateChatSession(uuid: string, edit: Partial<Chat.History>) {
+    async updateChatSession(uuid: string, edit: Partial<Chat.Session>) {
       const index = this.history.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
         this.history[index] = { ...this.history[index], ...edit }
@@ -157,7 +157,7 @@ export const useChatStore = defineStore('chat-store', {
       return null
     },
 
-    addChatByUuid(uuid: string, chat: Chat.Chat) {
+    addChatByUuid(uuid: string, chat: Chat.Message) {
       const new_chat_text = t('chat.new')
       if (!uuid) {
         if (this.history.length === 0) {
@@ -194,7 +194,7 @@ export const useChatStore = defineStore('chat-store', {
       }
     },
 
-    async updateChatByUuid(uuid: string, index: number, chat: Chat.Chat) {
+    async updateChatByUuid(uuid: string, index: number, chat: Chat.Message) {
       // TODO: sync with server
       if (!uuid) {
         if (this.chat.length) {
@@ -214,7 +214,7 @@ export const useChatStore = defineStore('chat-store', {
     updateChatPartialByUuid(
       uuid: string,
       index: number,
-      chat: Partial<Chat.Chat>,
+      chat: Partial<Chat.Message>,
     ) {
       if (!uuid) {
         if (this.chat.length) {
@@ -270,7 +270,7 @@ export const useChatStore = defineStore('chat-store', {
 
       const index = this.chat.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
-        const data: Chat.Chat[] = []
+        const data: Chat.Message[] = []
         for (const chat of this.chat[index].data) {
           if (chat.isPin || chat.isPrompt)
             data.push(chat)

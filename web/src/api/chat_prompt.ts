@@ -11,7 +11,7 @@ export const deleteChatPrompt = async (uuid: string) => {
   }
 }
 
-export const updateChatPrompt = async (chat: Chat.Chat) => {
+export const updateChatPrompt = async (chat: Chat.Message) => {
   try {
     const response = await request.put(`/uuid/chat_prompts/${chat.uuid}`, chat)
     return response.data
