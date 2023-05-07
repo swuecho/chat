@@ -1,6 +1,6 @@
 declare namespace Chat {
 
-	interface Chat {
+	interface Message {
 		uuid: string,
 		dateTime: string
 		text: string
@@ -27,7 +27,7 @@ declare namespace Chat {
 	interface ChatState {
 		active: string | null
 		history: History[]
-		chat: { uuid: string; data: Chat[] }[]
+		chat: { uuid: string; data: Message[] }[]
 	}
 
 	interface ConversationRequest {

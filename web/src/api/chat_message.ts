@@ -1,6 +1,6 @@
 import request from '@/utils/request/axios'
 
-export const updateChatMessage = async (chat: Chat.Chat) => {
+export const updateChatMessage = async (chat: Chat.Message) => {
   try {
     const response = await request.put(`/uuid/chat_messages/${chat.uuid}`, chat)
     return response.data
