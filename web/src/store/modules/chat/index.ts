@@ -67,7 +67,7 @@ export const useChatStore = defineStore('chat-store', {
       const sessions = await getChatSessionsByUser()
       this.history = []
       this.chat = []
-      await sessions.forEach(async (r: Chat.History) => {
+      await sessions.forEach(async (r: Chat.Session) => {
         this.history.unshift(r)
         const chatData = await getChatSessionHistory(r.uuid)
         // chatData.uuid = chatData?.uuid
@@ -88,7 +88,7 @@ export const useChatStore = defineStore('chat-store', {
       this.reloadRoute(this.active)
     },
 
-    addChatSession(history: Chat.History, chatData: Chat.Message[] = []) {
+    addChatSession(history: Chat.Session, chatData: Chat.Message[] = []) {
       createChatSession(history.uuid, history.title)
       this.history.unshift(history)
       this.chat.unshift({ uuid: history.uuid, data: chatData })
@@ -96,7 +96,7 @@ export const useChatStore = defineStore('chat-store', {
       this.reloadRoute(history.uuid)
     },
 
-    async updateChatSession(uuid: string, edit: Partial<Chat.History>) {
+    async updateChatSession(uuid: string, edit: Partial<Chat.Session>) {
       const index = this.history.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
         this.history[index] = { ...this.history[index], ...edit }

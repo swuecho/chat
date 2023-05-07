@@ -11,7 +11,7 @@ declare namespace Chat {
 		isPin?: boolean
 	}
 
-	interface History {
+	interface Session {
 		uuid: string
 		title: string
 		isEdit: boolean
@@ -26,7 +26,7 @@ declare namespace Chat {
 
 	interface ChatState {
 		active: string | null
-		history: History[]
+		history: Session[]
 		chat: { uuid: string; data: Message[] }[]
 	}
 

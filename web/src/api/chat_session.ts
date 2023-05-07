@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { fetchDefaultChatModel } from './chat_model'
 import request from '@/utils/request/axios'
 
-export const getChatSessionDefault = async (title: string): Promise<Chat.History> => {
+export const getChatSessionDefault = async (title: string): Promise<Chat.Session> => {
   const default_model = await fetchDefaultChatModel()
   const uuid = uuidv4()
   return {
@@ -77,7 +77,7 @@ export const clearSessionChatMessages = async (sessionUuid: string) => {
   }
 }
 
-export const updateChatSession = async (sessionUuid: string, session_data: Chat.History) => {
+export const updateChatSession = async (sessionUuid: string, session_data: Chat.Session) => {
   try {
     const response = await request.put(`/uuid/chat_sessions/${sessionUuid}`, session_data)
     return response.data
