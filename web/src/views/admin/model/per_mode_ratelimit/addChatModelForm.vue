@@ -42,8 +42,8 @@ onMounted(async () => {
   limitEnabledModels.value = (await fetchChatModel()).filter((x: any) => x.EnablePerModerateLimit)
     .map((x: any) => {
       return {
-        value: x.Name,
-        label: x.Label,
+        value: x.name,
+        label: x.label,
       }
     })
 })
