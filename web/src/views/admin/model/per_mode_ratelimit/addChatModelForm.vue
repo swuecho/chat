@@ -39,7 +39,7 @@ async function addRow(form: ChatModelPrivilege) {
 
 const limitEnabledModels = ref<SelectOption[]>([])
 onMounted(async () => {
-  limitEnabledModels.value = (await fetchChatModel()).filter((x: any) => x.EnablePerModerateLimit)
+  limitEnabledModels.value = (await fetchChatModel()).filter((x: any) => x.enablePerModeRatelimit)
     .map((x: any) => {
       return {
         value: x.name,
