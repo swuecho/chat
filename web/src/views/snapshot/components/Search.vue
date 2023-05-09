@@ -5,9 +5,9 @@ import { debounce } from 'lodash-es'
 import { chatSnapshotSearch } from '@/api'
 
 interface SearchRecord {
-  Uuid: string
-  Title: string
-  Rank: number
+  uuid: string
+  title: string
+  rank: number
 }
 
 const searchText = ref('')
@@ -23,8 +23,8 @@ const debouncedSearch = debounce(search, 200)
 <template>
   <NInput v-model:value="searchText" placeholder="Search ...(support english only)" @keyup="debouncedSearch" />
   <NList>
-    <NListItem v-for="result in results" :key="result.Uuid">
-      <a :href="`/static/#/snapshot/${result.Uuid}`" target="_blank">{{ result.Title }}</a>
+    <NListItem v-for="result in results" :key="result.uuid">
+      <a :href="`/static/#/snapshot/${result.uuid}`" target="_blank">{{ result.title }}</a>
     </NListItem>
   </NList>
 </template>
