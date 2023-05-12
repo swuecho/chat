@@ -13,6 +13,9 @@ defineProps({
     <template v-if="model === 'claude-v1'">
       <SvgIcon icon="eos-icons:ai" color="brown" />
     </template>
+    <template v-else-if="model === 'claude-v1-100k'">
+      <SvgIcon icon="fluent:document-100-20-regular" color="brown" />
+    </template>
     <template v-else-if="model === 'claude-instant-v1'">
       <SvgIcon icon="simple-icons:fastapi" color="brown" />
     </template>
