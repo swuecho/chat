@@ -33,7 +33,7 @@ func getModelBaseUrl(apiUrl string) (string, error) {
 	return fmt.Sprintf("%s://%s/%s", parsedUrl.Scheme, parsedUrl.Host, version), nil
 }
 
-func configOpenAIProxy(config openai.ClientConfig) {
+func configOpenAIProxy(config *openai.ClientConfig) {
 	proxyUrlStr := appConfig.OPENAI.PROXY_URL
 	if proxyUrlStr != "" {
 		proxyUrl, err := url.Parse(proxyUrlStr)
@@ -63,7 +63,7 @@ func genOpenAIConfig(chatModel sqlc_queries.ChatModel) (openai.ClientConfig, err
 		config = openai.DefaultConfig(token)
 		config.BaseURL = baseUrl
 
-		configOpenAIProxy(config)
+		configOpenAIProxy(&config)
 	}
 	return config, err
 }
