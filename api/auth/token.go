@@ -34,8 +34,8 @@ func GenJwtSecretAndAudience() (string, string) {
 	return secret, audience
 }
 
-func GenerateToken(userID int32, role string, secret, jwt_audience string) (string, error) {
-	expires := time.Now().Add(time.Hour * 8).Unix()
+func GenerateToken(userID int32, role string, secret, jwt_audience string, lifetime time.Duration) (string, error) {
+	expires := time.Now().Add(lifetime).Unix()
 	notBefore := time.Now().Unix()
 	issuer := "https://www.bestqa.net"
 

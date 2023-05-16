@@ -11,7 +11,7 @@ import (
 
 const createJwtSecret = `-- name: CreateJwtSecret :one
 INSERT INTO jwt_secrets (name, secret, audience)
-VALUES ($1, $2, $3) RETURNING id, name, secret, audience
+VALUES ($1, $2, $3) RETURNING id, name, secret, audience, lifetime
 `
 
 type CreateJwtSecretParams struct {
@@ -28,6 +28,7 @@ func (q *Queries) CreateJwtSecret(ctx context.Context, arg CreateJwtSecretParams
 		&i.Name,
 		&i.Secret,
 		&i.Audience,
+		&i.Lifetime,
 	)
 	return i, err
 }
@@ -45,7 +46,7 @@ func (q *Queries) DeleteAllJwtSecrets(ctx context.Context) (int64, error) {
 }
 
 const getJwtSecret = `-- name: GetJwtSecret :one
-SELECT id, name, secret, audience FROM jwt_secrets WHERE name = $1
+SELECT id, name, secret, audience, lifetime FROM jwt_secrets WHERE name = $1
 `
 
 func (q *Queries) GetJwtSecret(ctx context.Context, name string) (JwtSecret, error) {
@@ -56,6 +57,7 @@ func (q *Queries) GetJwtSecret(ctx context.Context, name string) (JwtSecret, err
 		&i.Name,
 		&i.Secret,
 		&i.Audience,
+		&i.Lifetime,
 	)
 	return i, err
 }

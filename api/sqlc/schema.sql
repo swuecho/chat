@@ -2,9 +2,11 @@ CREATE TABLE IF NOT EXISTS jwt_secrets (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     secret TEXT NOT NULL,
-    audience TEXT NOT NULL
+    audience TEXT NOT NULL,
+    lifetime smallint NOT NULL default 8
 );
 
+ALTER TABLE jwt_secrets ADD COLUMN IF NOT EXISTS lifetime small NOT NULL default 8;
 
 CREATE TABLE IF NOT EXISTS chat_model (
   id SERIAL PRIMARY KEY,  

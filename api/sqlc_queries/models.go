@@ -122,6 +122,7 @@ type JwtSecret struct {
 	Name     string `json:"name"`
 	Secret   string `json:"secret"`
 	Audience string `json:"audience"`
+	Lifetime int16  `json:"lifetime"`
 }
 
 type UserActiveChatSession struct {
