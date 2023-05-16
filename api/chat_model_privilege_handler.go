@@ -44,7 +44,6 @@ func (h *UserChatModelPrivilegeHandler) Register(r *mux.Router) {
 
 }
 
-
 type ChatModelPrivilege struct {
 	ID            int32  `json:"id"`
 	FullName      string `json:"fullName"`
@@ -52,7 +51,6 @@ type ChatModelPrivilege struct {
 	ChatModelName string `json:"chatModelName"`
 	RateLimit     int32  `json:"rateLimit"`
 }
-
 
 func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivileges(w http.ResponseWriter, r *http.Request) {
 	// TODO: check user is super_user

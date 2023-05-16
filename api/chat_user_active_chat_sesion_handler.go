@@ -44,8 +44,6 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 	json.NewEncoder(w).Encode(session)
 }
 
-
-
 // CreateOrUpdateUserActiveChatSessionHandler handles POST requests to create a new session.
 func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
