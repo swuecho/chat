@@ -25,6 +25,7 @@ func (h *AuthUserHandler) Register(router *mux.Router) {
 	router.HandleFunc("/users/{id}", h.UpdateSelf).Methods(http.MethodPut)
 	router.HandleFunc("/signup", h.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
+	router.HandleFunc("/token_10years", h.ForeverToken).Methods(http.MethodGet)
 	// admin
 	router.HandleFunc("/admin/users", h.CreateUser).Methods(http.MethodPost)
 	// change user first name, last name
@@ -183,6 +184,24 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	expiresIn := time.Now().Add(time.Hour * 8).Unix()
+	json.NewEncoder(w).Encode(TokenResult{AccessToken: token, ExpiresIn: int(expiresIn)})
+	w.WriteHeader(http.StatusOK)
+
+}
+
+func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
+
+	lifetime := time.Duration(10*365*24) * time.Hour
+	userId, _ := getUserID(r.Context())
+	userRole := r.Context().Value(userContextKey).(string)
+	token, err := auth.GenerateToken(userId, userRole, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
+
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_generate_token", err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	expiresIn := time.Now().Add(lifetime).Unix()
 	json.NewEncoder(w).Encode(TokenResult{AccessToken: token, ExpiresIn: int(expiresIn)})
 	w.WriteHeader(http.StatusOK)
 
