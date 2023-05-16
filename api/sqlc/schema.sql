@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS jwt_secrets (
     lifetime smallint NOT NULL default 8
 );
 
-ALTER TABLE jwt_secrets ADD COLUMN IF NOT EXISTS lifetime small NOT NULL default 8;
+ALTER TABLE jwt_secrets ADD COLUMN IF NOT EXISTS lifetime smallint NOT NULL default 8;
 
 CREATE TABLE IF NOT EXISTS chat_model (
   id SERIAL PRIMARY KEY,  
