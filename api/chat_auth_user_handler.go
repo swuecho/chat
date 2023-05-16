@@ -131,8 +131,8 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, eris.Wrap(err, "failed to create user ").Error(), http.StatusInternalServerError)
 		return
 	}
-
-	tokenString, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience)
+	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
+	tokenString, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 	if err != nil {
 		http.Error(w, "failed to generate token", http.StatusInternalServerError)
 		return
@@ -163,7 +163,8 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusUnauthorized, "error.invalid_email_or_password", err)
 		return
 	}
-	token, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience)
+	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
+	token, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_generate_token", err)
