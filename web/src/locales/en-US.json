@@ -1,4 +1,7 @@
 {
+    "prompt": {
+        "store": "prompt store"
+    },
     "admin": {
         "add_user_model_rate_limit": "Add User Session Count",
         "chat_model": {

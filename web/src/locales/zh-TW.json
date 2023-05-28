@@ -1,4 +1,7 @@
 {
+    "prompt": {
+        "store": "提示词库"
+    },
     "admin": {
         "add_user_model_rate_limit": "添加用戶會話數量",
         "chat_model": {

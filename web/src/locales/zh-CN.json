@@ -32,6 +32,9 @@
     "logout_failed": "登出失败",
     "please_register": "请先注册"
   },
+  "prompt": {
+    "store": "提示词库"
+  },
   "chat": {
     "new": "新对话",
     "placeholder": "来说点什么吧...（Shift + Enter = 换行, '/' 触发提示词）",

@@ -92,7 +92,7 @@ watch(
         </div>
         <div class="p-4">
           <NButton block @click="show = true">
-            Prompt Store
+            {{ t('prompt.store') }}
           </NButton>
         </div>
       </main>
