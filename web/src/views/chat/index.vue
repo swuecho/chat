@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
+import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
@@ -17,7 +18,6 @@ import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
-import { OnSelect } from 'naive-ui/es/auto-complete/src/interface'
 let controller = new AbortController()
 
 const route = useRoute()
