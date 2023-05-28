@@ -2,7 +2,7 @@
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, ref, watch } from 'vue'
 import { NButton, NCard, NDataTable, NDivider, NGi, NGrid, NInput, NLayoutContent, NMessageProvider, NModal, NPopconfirm, NSpace, NTabPane, NTabs, useMessage } from 'naive-ui'
-import PromptRecommend from '../../../assets/recommend.json'
+import PromptRecommend from '@/assets/recommend.json'
 import { SvgIcon } from '..'
 import { usePromptStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'

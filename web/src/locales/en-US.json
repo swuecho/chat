@@ -75,7 +75,7 @@
         "maxTokens": "Max Total Tokens : {maxTokens}",
         "model": "Model (OpenAI GPT4 needs separate application, Claude key can use all Claude models)",
         "new": "New Chat",
-        "placeholder": "What would you like to say... (Shift + Enter = newline)",
+        "placeholder": "What would you like to say... (Shift + Enter = newline, '/' to trigger prompts)",
         "placeholderMobile": "What would you like to say...",
         "presencePenalty": "Presence Penalty",
         "sessionConfig": "Conversation Settings:",

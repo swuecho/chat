@@ -10,6 +10,7 @@ import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { SvgIcon } from '@/components/common'
 import { getChatSessionDefault } from '@/api'
+import { PromptStore } from '@/components/common'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
