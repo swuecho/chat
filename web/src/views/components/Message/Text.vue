@@ -21,7 +21,7 @@ const { isMobile } = useBasicLayout()
 const textRef = ref<HTMLElement>()
 
 const mdi = new MarkdownIt({
-  html: true,
+  html: false,
   linkify: true,
   highlight(code, language) {
     const validLang = !!(language && hljs.getLanguage(language))
