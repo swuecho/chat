@@ -93,6 +93,6 @@ watch(
     </div>
   </NLayoutSider>
   <template v-if="isMobile">
-    <div v-show="!collapsed" class="fixed inset-0 z-40 bg-black/40" @click="handleUpdateCollapsed" />
+    <div v-show="!collapsed" class="fixed inset-0 z-40 w-full h-full bg-black/40" @click="handleUpdateCollapsed" />
   </template>
 </template>
