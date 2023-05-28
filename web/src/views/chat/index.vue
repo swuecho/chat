@@ -468,10 +468,11 @@ function handleStop() {
 }
 
 function handleSelectAutoComplete(value: string) {
-  if (value.startsWith('UUID|$|'))
+  if (value.startsWith('UUID|$|')) {
     // set active session to the selected uuid
     chatStore.setActive(value.split('|$|')[1])
     return ""
+  }
   return value
 }
 
