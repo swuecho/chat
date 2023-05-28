@@ -26,6 +26,7 @@
 
 ```bash
 cd chat; cd api
+go install github.com/cosmtrek/air@latest
 go mod tidy
 # export env var, change base on your env
 export PG_HOST=192.168.0.135

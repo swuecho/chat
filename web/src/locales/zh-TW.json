@@ -75,7 +75,7 @@
         "maxTokens": "最大問答總token數量: {maxTokens}",
         "model": "模型(OPENAI GPT4 需要個別申請,CLAUDE的免費密鑰可以使用所有CLAUDE模型)",
         "new": "新建聊天",
-        "placeholder": "說些什麼...（Shift + Enter = 換行）",
+        "placeholder": "說些什麼...（Shift + Enter = 換行,  '/' 触发提示词）",
         "placeholderMobile": "說些什麼...",
         "presencePenalty": "存在懲罰",
         "sessionConfig": "會話配置",
