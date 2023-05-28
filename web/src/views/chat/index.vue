@@ -544,10 +544,11 @@ function getDataFromResponseText(responseText: string): string {
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
           </HoverButton>
-          <NAutoComplete v-model:value="prompt"  id="message_textarea" data-testid="message_textarea" :options="searchOptions" :render-label="renderOption">
+          <NAutoComplete v-model:value="prompt"  :options="searchOptions" :render-label="renderOption">
             <template #default="{ handleInput, handleBlur, handleFocus }">
               <NInput
                 v-model:value="prompt" type="textarea" :placeholder="placeholder"
+                id="message_textarea" data-testid="message_textarea" 
                 :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8  }" @input="handleInput" @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter"
               />
             </template>
