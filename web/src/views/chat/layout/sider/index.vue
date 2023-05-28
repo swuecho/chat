@@ -1,6 +1,6 @@
 <script setup lang='ts'>
 import type { CSSProperties } from 'vue'
-import { computed, watch } from 'vue'
+import { computed, watch, ref } from 'vue'
 
 import { NButton, NLayoutSider } from 'naive-ui'
 import List from './List.vue'
@@ -15,6 +15,7 @@ const appStore = useAppStore()
 const chatStore = useChatStore()
 
 const { isMobile } = useBasicLayout()
+const show = ref(false)
 
 const collapsed = computed(() => appStore.siderCollapsed)
 
@@ -86,6 +87,11 @@ watch(
         <div class="flex-1 min-h-0 pb-4 overflow-hidden">
           <List />
         </div>
+        <div class="p-4">
+          <NButton block @click="show = true">
+            Prompt Store
+          </NButton>
+        </div>
       </main>
       <Footer />
     </div>
@@ -93,4 +99,5 @@ watch(
   <template v-if="isMobile">
     <div v-show="!collapsed" class="fixed inset-0 z-40 bg-black/40" @click="handleUpdateCollapsed" />
   </template>
+  <PromptStore v-model:visible="show" />
 </template>

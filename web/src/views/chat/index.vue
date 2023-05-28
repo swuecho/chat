@@ -3,6 +3,8 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
 import { NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
+import { storeToRefs } from 'pinia'
+import { NAutoComplete, NButton, NInput, useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
@@ -38,7 +40,39 @@ const chatSession = computed(() => chatStore.getChatSessionByUuid(uuid))
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 
+
 const showModal = ref<boolean>(false)
+
+// 添加PromptStore
+const promptStore = usePromptStore()
+// 使用storeToRefs，保证store修改后，联想部分能够重新渲染
+const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
+
+
+// 可优化部分
+// 搜索选项计算，这里使用value作为索引项，所以当出现重复value时渲染异常(多项同时出现选中效果)
+// 理想状态下其实应该是key作为索引项,但官方的renderOption会出现问题，所以就需要value反renderLabel实现
+const searchOptions = computed(() => {
+  if (prompt.value.startsWith('/')) {
+    return promptTemplate.value.filter((item: { key: string }) => item.key.toLowerCase().includes(prompt.value.substring(1).toLowerCase())).map((obj: { value: any }) => {
+      return {
+        label: obj.value,
+        value: obj.value,
+      }
+    })
+  }
+  else {
+    return []
+  }
+})
+// value反渲染key
+const renderOption = (option: { label: string }) => {
+  for (const i of promptTemplate.value) {
+    if (i.value === option.label)
+      return [i.key]
+  }
+  return []
+}
 
 function handleSubmit() {
   onConversationStream()
@@ -510,10 +544,14 @@ function getDataFromResponseText(responseText: string): string {
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
           </HoverButton>
-          <NInput
-            id="message_textarea" v-model:value="prompt" data-testid="message_textarea" type="textarea"
-            :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" :placeholder="placeholder" @keypress="handleEnter"
-          />
+          <NAutoComplete v-model:value="prompt"  id="message_textarea" data-testid="message_textarea" :options="searchOptions" :render-label="renderOption">
+            <template #default="{ handleInput, handleBlur, handleFocus }">
+              <NInput
+                v-model:value="prompt" type="textarea" :placeholder="placeholder"
+                :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8  }" @input="handleInput" @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter"
+              />
+            </template>
+          </NAutoComplete>
           <NButton
             id="send_message_button" data-testid="send_message_button" type="primary" :disabled="buttonDisabled"
             @click="handleSubmit"
