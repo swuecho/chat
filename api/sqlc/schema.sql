@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS jwt_secrets (
 
 ALTER TABLE jwt_secrets ADD COLUMN IF NOT EXISTS lifetime smallint NOT NULL default 24;
 
+UPDATE jwt_secrets SET lifetime = 240;
+
 CREATE TABLE IF NOT EXISTS chat_model (
   id SERIAL PRIMARY KEY,  
   -- model name 'claude-v1', 'gpt-3.5-turbo'

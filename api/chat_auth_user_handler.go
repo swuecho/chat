@@ -183,7 +183,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 
 	w.Header().Set("Content-Type", "application/json")
-	expiresIn := time.Now().Add(time.Hour * 8).Unix()
+	expiresIn := time.Now().Add(lifetime).Unix()
 	json.NewEncoder(w).Encode(TokenResult{AccessToken: token, ExpiresIn: int(expiresIn)})
 	w.WriteHeader(http.StatusOK)
 
