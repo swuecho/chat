@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
@@ -62,6 +63,8 @@ func genOpenAIConfig(chatModel sqlc_queries.ChatModel) (openai.ClientConfig, err
 	} else {
 		config = openai.DefaultConfig(token)
 		config.BaseURL = baseUrl
+		// two minutes timeout	
+		config.HTTPClient.Timeout = 120 * time.Second
 
 		configOpenAIProxy(&config)
 	}
