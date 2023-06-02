@@ -46,6 +46,7 @@ func configOpenAIProxy(config *openai.ClientConfig) {
 		}
 		config.HTTPClient = &http.Client{
 			Transport: transport,
+			Timeout:  120 * time.Second,
 		}
 	}
 }
