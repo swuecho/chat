@@ -67,6 +67,10 @@ type ChatModel struct {
 	ApiAuthKey             string `json:"apiAuthKey"`
 	UserID                 int32  `json:"userID"`
 	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
+	MaxToken               int32  `json:"maxToken"`
+	DefaultToken           int32  `json:"defaultToken"`
+	OrderNumber            int32  `json:"orderNumber"`
+	HttpTimeOut            int32  `json:"httpTimeOut"`
 }
 
 type ChatPrompt struct {
