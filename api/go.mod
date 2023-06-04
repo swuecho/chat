@@ -13,7 +13,7 @@ require (
 	github.com/pkoukk/tiktoken-go v0.1.1
 	github.com/rotisserie/eris v0.5.4
 	github.com/samber/lo v1.38.1
-	github.com/sashabaranov/go-openai v1.9.0
+	github.com/sashabaranov/go-openai v1.9.5
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.15.0
 	golang.org/x/crypto v0.8.0
