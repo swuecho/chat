@@ -18,6 +18,7 @@ interface RowData {
 const dialogVisible = ref(false)
 
 const data = ref<RowData[]>([])
+const loading = ref(true)
 
 onMounted(async () => {
   refreshData()
@@ -25,6 +26,7 @@ onMounted(async () => {
 
 async function refreshData() {
   data.value = await ListUserChatModelPrivilege()
+  loading.value = false
 }
 
 function UpdateRow(row: RowData) {
@@ -123,6 +125,6 @@ async function newRowAdded() {
         </span>
       </HoverButton>
     </div>
-    <NDataTable :columns="columns" :data="data" />
+    <NDataTable :columns="columns" :data="data" :loading="loading" />
   </div>
 </template>
