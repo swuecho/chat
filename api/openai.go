@@ -46,7 +46,7 @@ func configOpenAIProxy(config *openai.ClientConfig) {
 		}
 		config.HTTPClient = &http.Client{
 			Transport: transport,
-			Timeout:  120 * time.Second,
+			Timeout:   120 * time.Second,
 		}
 	}
 }
@@ -60,11 +60,17 @@ func genOpenAIConfig(chatModel sqlc_queries.ChatModel) (openai.ClientConfig, err
 
 	var config openai.ClientConfig
 	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
-		config = openai.DefaultAzureConfig(token, chatModel.Url, os.Getenv("AZURE_RESOURCE_NAME"))
+		config = openai.DefaultAzureConfig(token, chatModel.Url)
+		config.AzureModelMapperFunc = func(model string) string {
+			azureModelMapping := map[string]string{
+				"gpt-3.5-turbo": os.Getenv("AZURE_RESOURCE_NAME"),
+			}
+			return azureModelMapping[model]
+		}
 	} else {
 		config = openai.DefaultConfig(token)
 		config.BaseURL = baseUrl
-		// two minutes timeout	
+		// two minutes timeout
 		config.HTTPClient.Timeout = 120 * time.Second
 
 		configOpenAIProxy(&config)
