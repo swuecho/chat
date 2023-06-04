@@ -159,9 +159,6 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		UserID:                 userID,
 		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
 		OrderNumber:            input.OrderNumber,
-		DefaultToken:           input.DefaultToken,
-		MaxToken:               input.MaxToken,
-		HttpTimeOut:            input.HttpTimeOut,
 	})
 
 	if err != nil {
