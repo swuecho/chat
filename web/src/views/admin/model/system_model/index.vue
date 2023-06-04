@@ -107,6 +107,27 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     },
   }
 
+  const orderNumber = {
+    title: t('admin.chat_model.orderNumber'),
+    key: 'orderNumber',
+    width: 100,
+    render(row: Chat.ChatModel, index: number) {
+      return h(NInput, {
+        value: row.orderNumber,
+        width: 5,
+        onUpdateValue(v: string) {
+          // Assuming `data` is an array of FormData objects
+          const v_num = parseInt(v)
+          // v is NaN
+          if (!Number.isNaN(v_num)) {
+            data.value[index].orderNumber = v_num
+            UpdateRow(data.value[index])
+          }
+        },
+      })
+    },
+  }
+
   const isDefaultField = {
     title: t('admin.chat_model.isDefault'),
     key: 'isDefault',
@@ -133,28 +154,6 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
         onUpdateValue(v: boolean) {
           // Assuming `data` is an array of FormData objects
           data.value[index].enablePerModeRatelimit = v
-          UpdateRow(data.value[index])
-        },
-      })
-    },
-  }
-
-  const orderNumber = {
-    title: t('admin.chat_model.orderNumber'),
-    key: 'orderNumber',
-    width: 100,
-    render(row: Chat.ChatModel, index: number) {
-      return h(NInput, {
-        value: row.orderNumber,
-        width: 5,
-        onUpdateValue(v: string) {
-          // Assuming `data` is an array of FormData objects
-          const v_num = parseInt(v)
-          // v is NaN
-          if (v_num != v_num)
-            return
-          else
-            data.value[index].orderNumber = v_num
           UpdateRow(data.value[index])
         },
       })
