@@ -23,6 +23,7 @@ const props = defineProps<{
 const { data, isLoading } = useQuery({
   queryKey: ['chat_models'],
   queryFn: fetchChatModel,
+  staleTime: 5 * 60 * 1000,
 })
 
 const chatModelOptions = computed(() => 
