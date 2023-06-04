@@ -24,6 +24,7 @@ interface UserData {
   rateLimit: string
 }
 const tableData = ref<UserData[]>([])
+const loading = ref<boolean>(true)
 
 const columns = [
   {
@@ -133,6 +134,7 @@ const pagination = reactive({
 })
 
 async function fetchData() {
+  loading.value = true
   try {
     const { data, total } = await GetUserData(pagination.page, pagination.pageSize)
     tableData.value = data
@@ -143,6 +145,8 @@ async function fetchData() {
       ms_ui.error(t(err.response.data.message))
     else
       ms_ui.error(t(err.response.data.message))
+  } finally {
+    loading.value = false
   }
 }
 
@@ -167,6 +171,6 @@ async function handleRefresh() {
         </span>
       </HoverButton>
     </div>
-    <NDataTable remote :data="tableData" :columns="columns" :pagination="pagination" />
+    <NDataTable :loading="loading" remote :data="tableData" :columns="columns" :pagination="pagination" />
   </div>
 </template>

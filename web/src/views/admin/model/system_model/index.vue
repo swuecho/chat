@@ -11,6 +11,7 @@ const ms_ui = useMessage()
 
 const data = ref<Chat.ChatModel[]>([])
 const dialogVisible = ref(false)
+const loading = ref(true)
 
 onMounted(async () => {
   refreshData()
@@ -18,6 +19,7 @@ onMounted(async () => {
 
 async function refreshData() {
   data.value = await fetchChatModel()
+  loading.value = false
 }
 
 function UpdateRow(row: Chat.ChatModel) {
@@ -227,6 +229,6 @@ function checkNoRowIsDefaultTrue(v: boolean) {
         </span>
       </HoverButton>
     </div>
-    <NDataTable :columns="columns" :data="data" />
+    <NDataTable :columns="columns" :data="data" :loading="loading" />
   </div>
 </template>
