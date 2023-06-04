@@ -122,7 +122,9 @@
       "actions": "操作",
       "url": "访问接口(with full url path)",
       "enable_per_model_rate_limit": "是否单独流控",
-      "EnablePerModeRatelimit": "是否单独流控"
+      "EnablePerModeRatelimit": "是否单独流控",
+      "orderNumber": "次序",
+      "defaultToken": "默认token数量"
     },
     "per_model_rate_limit": {
       "FullName": "姓名",

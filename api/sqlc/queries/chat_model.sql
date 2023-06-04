@@ -1,10 +1,10 @@
 -- name: ListChatModels :many
-SELECT * FROM chat_model ORDER BY id;
+SELECT * FROM chat_model ORDER BY order_number;
 
 -- name: ListSystemChatModels :many
 SELECT * FROM chat_model
 where user_id in (select id from auth_user where is_superuser = true)
-ORDER BY id;
+ORDER BY order_number;
 
 -- name: ChatModelByID :one
 SELECT * FROM chat_model WHERE id = $1;

@@ -44,7 +44,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
   const labelField = {
     title: t('admin.chat_model.label'),
     key: 'label',
-    width: 250,
+    width: 150,
     render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
         value: row.label,
@@ -77,7 +77,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
   const apiAuthKeyField = {
     title: t('admin.chat_model.apiAuthKey'),
     key: 'apiAuthKey',
-    width: 200,
+    width: 150,
     render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
         value: row.apiAuthKey,
@@ -93,7 +93,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
   const apiAuthHeaderField = {
     title: t('admin.chat_model.apiAuthHeader'),
     key: 'apiAuthHeader',
-    width: 200,
+    width: 150,
     render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
         value: row.apiAuthHeader,
@@ -139,6 +139,49 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     },
   }
 
+  const orderNumber = {
+    title: t('admin.chat_model.orderNumber'),
+    key: 'orderNumber',
+    width: 100,
+    render(row: Chat.ChatModel, index: number) {
+      return h(NInput, {
+        value: row.orderNumber,
+        width: 5,
+        onUpdateValue(v: string) {
+          // Assuming `data` is an array of FormData objects
+          const v_num = parseInt(v)
+          // v is NaN
+          if (v_num != v_num)
+            return
+          else
+            data.value[index].orderNumber = v_num
+          UpdateRow(data.value[index])
+        },
+      })
+    },
+  }
+
+  const defaultToken = {
+    title: t('admin.chat_model.defaultToken'),
+    key: 'defaultToken',
+    width: 150,
+    render(row: Chat.ChatModel, index: number) {
+      return h(NInput, {
+        value: row.defaultToken,
+        width: 50,
+        onUpdateValue(v: string) {
+          const v_num = parseInt(v)
+          // v is NaN
+          if (v_num != v_num)
+            return
+          else
+            data.value[index].defaultToken = v_num
+          UpdateRow(data.value[index])
+        },
+      })
+    },
+  }
+
   const actionField = {
     title: t('admin.chat_model.actions'),
     key: 'actions',
@@ -169,6 +212,8 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     apiAuthHeaderField,
     isDefaultField,
     perModelLimit,
+    orderNumber,
+   // defaultToken,
     actionField,
   ])
 }
