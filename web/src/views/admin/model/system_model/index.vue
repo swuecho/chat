@@ -22,7 +22,7 @@ async function refreshData() {
 
 function UpdateRow(row: Chat.ChatModel) {
   if (row.id)
-    updateChatModel(row.id, row)
+    updateChatModel(row.id, { ...row, orderNumber: parseInt(row.orderNumber || '0') })
 }
 function createColumns(): DataTableColumns<Chat.ChatModel> {
   const nameField = {
@@ -117,12 +117,8 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
         width: 5,
         onUpdateValue(v: string) {
           // Assuming `data` is an array of FormData objects
-          const v_num = parseInt(v)
-          // v is NaN
-          if (!Number.isNaN(v_num)) {
-            data.value[index].orderNumber = v_num
-            UpdateRow(data.value[index])
-          }
+          data.value[index].orderNumber = v
+          UpdateRow(data.value[index])
         },
       })
     },
