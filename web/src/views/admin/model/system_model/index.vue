@@ -22,7 +22,7 @@ async function refreshData() {
 
 function UpdateRow(row: Chat.ChatModel) {
   if (row.id)
-    updateChatModel(row.id, row)
+    updateChatModel(row.id, { ...row, orderNumber: parseInt(row.orderNumber || '0') })
 }
 function createColumns(): DataTableColumns<Chat.ChatModel> {
   const nameField = {
@@ -44,7 +44,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
   const labelField = {
     title: t('admin.chat_model.label'),
     key: 'label',
-    width: 250,
+    width: 150,
     render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
         value: row.label,
@@ -77,7 +77,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
   const apiAuthKeyField = {
     title: t('admin.chat_model.apiAuthKey'),
     key: 'apiAuthKey',
-    width: 200,
+    width: 150,
     render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
         value: row.apiAuthKey,
@@ -93,7 +93,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
   const apiAuthHeaderField = {
     title: t('admin.chat_model.apiAuthHeader'),
     key: 'apiAuthHeader',
-    width: 200,
+    width: 150,
     render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
         value: row.apiAuthHeader,
@@ -101,6 +101,23 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
         onUpdateValue(v: string) {
           // Assuming `data` is an array of FormData objects
           data.value[index].apiAuthHeader = v
+          UpdateRow(data.value[index])
+        },
+      })
+    },
+  }
+
+  const orderNumber = {
+    title: t('admin.chat_model.orderNumber'),
+    key: 'orderNumber',
+    width: 100,
+    render(row: Chat.ChatModel, index: number) {
+      return h(NInput, {
+        value: row.orderNumber,
+        width: 5,
+        onUpdateValue(v: string) {
+          // Assuming `data` is an array of FormData objects
+          data.value[index].orderNumber = v
           UpdateRow(data.value[index])
         },
       })
@@ -169,6 +186,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     apiAuthHeaderField,
     isDefaultField,
     perModelLimit,
+    orderNumber,
     actionField,
   ])
 }

@@ -137,6 +137,10 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		ApiAuthHeader          string
 		ApiAuthKey             string
 		EnablePerModeRatelimit bool
+		OrderNumber            int32
+		DefaultToken           int32
+		MaxToken               int32
+		HttpTimeOut            int32
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
@@ -154,6 +158,10 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		ApiAuthKey:             input.ApiAuthKey,
 		UserID:                 userID,
 		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
+		OrderNumber:            input.OrderNumber,
+		DefaultToken:           input.DefaultToken,
+		MaxToken:               input.MaxToken,
+		HttpTimeOut:            input.HttpTimeOut,
 	})
 
 	if err != nil {
