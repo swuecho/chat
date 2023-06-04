@@ -161,27 +161,6 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     },
   }
 
-  const defaultToken = {
-    title: t('admin.chat_model.defaultToken'),
-    key: 'defaultToken',
-    width: 150,
-    render(row: Chat.ChatModel, index: number) {
-      return h(NInput, {
-        value: row.defaultToken,
-        width: 50,
-        onUpdateValue(v: string) {
-          const v_num = parseInt(v)
-          // v is NaN
-          if (v_num != v_num)
-            return
-          else
-            data.value[index].defaultToken = v_num
-          UpdateRow(data.value[index])
-        },
-      })
-    },
-  }
-
   const actionField = {
     title: t('admin.chat_model.actions'),
     key: 'actions',
@@ -213,7 +192,6 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     isDefaultField,
     perModelLimit,
     orderNumber,
-   // defaultToken,
     actionField,
   ])
 }
