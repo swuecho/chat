@@ -107,6 +107,7 @@ function isActive(uuid: string) {
                 <button class="p-1" data-testid="edit_session_topic">
                   <SvgIcon icon="ri:edit-line" @click="handleEdit(item, true, $event)" />
                 </button>
+                <div v-if="dataSources.length > 1">
                 <NPopconfirm placement="bottom" data-testid="confirm_delete_session"
                   @positive-click="handleDelete(index, $event)">
                   <template #trigger>
@@ -116,6 +117,7 @@ function isActive(uuid: string) {
                   </template>
                   {{ $t('chat.deleteChatSessionsConfirm') }}
                 </NPopconfirm>
+                </div>
               </template>
             </div>
           </a>
