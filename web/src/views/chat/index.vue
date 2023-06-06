@@ -18,6 +18,8 @@ import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
+import { nowISO } from '@/utils/date'
+
 let controller = new AbortController()
 
 const route = useRoute()
@@ -115,7 +117,7 @@ async function onConversationStream() {
     sessionUuid,
     {
       uuid: chatUuid,
-      dateTime: new Date().toLocaleString(),
+      dateTime: nowISO(),
       text: message,
       inversion: true,
       error: false,
@@ -131,7 +133,7 @@ async function onConversationStream() {
     sessionUuid,
     {
       uuid: '',
-      dateTime: new Date().toLocaleString(),
+      dateTime: nowISO(),
       text: '',
       loading: true,
       inversion: false,
@@ -179,7 +181,7 @@ async function onConversationStream() {
                   dataSources.value.length - 1,
                   {
                     uuid: answer_uuid,
-                    dateTime: new Date().toLocaleString(),
+                    dateTime: nowISO(),
                     text: answer,
                     inversion: false,
                     error: false,
@@ -229,7 +231,7 @@ async function onRegenerate(index: number) {
     index,
     {
       uuid: chatUuid,
-      dateTime: new Date().toLocaleString(),
+      dateTime: nowISO(),
       text: '',
       inversion: false,
       error: false,
@@ -265,7 +267,7 @@ async function onRegenerate(index: number) {
                 index,
                 {
                   uuid: answer_uuid,
-                  dateTime: new Date().toLocaleString(),
+                  dateTime: nowISO(),
                   text: answer,
                   inversion: false,
                   error: false,
@@ -308,7 +310,7 @@ async function onRegenerate(index: number) {
       index,
       {
         uuid: chatUuid,
-        dateTime: new Date().toLocaleString(),
+        dateTime: nowISO(),
         text: errorMessage,
         inversion: false,
         error: true,
@@ -518,10 +520,8 @@ function getDataFromResponseText(responseText: string): string {
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-        <div
-          id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
-          :class="[isMobile ? 'p-2' : 'p-4']"
-        >
+        <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
+          :class="[isMobile ? 'p-2' : 'p-4']">
           <template v-if="!dataSources.length">
             <div class="flex items-center justify-center mt-4 text-center text-neutral-300">
               <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
@@ -530,13 +530,11 @@ function getDataFromResponseText(responseText: string): string {
           </template>
           <template v-else>
             <div>
-              <Message
-                v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
+              <Message v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
                 :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
                 @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @toggle-pin="handleTogglePin(index)"
-                @after-edit="handleAfterEdit"
-              />
+                @after-edit="handleAfterEdit" />
               <div class="sticky bottom-0 left-0 flex justify-center">
                 <NButton v-if="loading" type="warning" @click="handleStop">
                   <template #icon>
@@ -564,10 +562,8 @@ function getDataFromResponseText(responseText: string): string {
             </span>
           </HoverButton>
 
-          <HoverButton
-            v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
-            @click="handleSnapshot"
-          >
+          <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
+            @click="handleSnapshot">
             <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="ic:twotone-ios-share" />
             </span>
@@ -578,22 +574,16 @@ function getDataFromResponseText(responseText: string): string {
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
           </HoverButton>
-          <NAutoComplete
-            v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
-            :on-select="handleSelectAutoComplete"
-          >
+          <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
+            :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
-              <NInput
-                id="message_textarea" v-model:value="prompt" type="textarea" :placeholder="placeholder"
+              <NInput id="message_textarea" v-model:value="prompt" type="textarea" :placeholder="placeholder"
                 data-testid="message_textarea" :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput"
-                @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter"
-              />
+                @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
             </template>
           </NAutoComplete>
-          <NButton
-            id="send_message_button" data-testid="send_message_button" type="primary" :disabled="buttonDisabled"
-            @click="handleSubmit"
-          >
+          <NButton id="send_message_button" data-testid="send_message_button" type="primary" :disabled="buttonDisabled"
+            @click="handleSubmit">
             <template #icon>
               <span class="dark:text-black">
                 <SvgIcon icon="ri:send-plane-fill" />

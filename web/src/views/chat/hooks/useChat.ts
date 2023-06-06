@@ -1,5 +1,6 @@
 import { updateChatData } from '@/api'
 import { useChatStore } from '@/store'
+import { nowISO } from '@/utils/date'
 
 export function useChat() {
   const chatStore = useChatStore()
@@ -26,7 +27,7 @@ export function useChat() {
       return
     chat.text = text
     // update time stamp
-    chat.dateTime = new Date().toLocaleString()
+    chat.dateTime = nowISO()
     chatStore.updateChatByUuid(uuid, index, chat)
     // sync text to server
     await updateChatData(chat)
