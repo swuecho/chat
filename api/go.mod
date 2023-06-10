@@ -10,7 +10,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.8
 	github.com/ory/dockertest/v3 v3.10.0
-	github.com/pkoukk/tiktoken-go v0.1.1
+	github.com/pkoukk/tiktoken-go v0.1.2
 	github.com/rotisserie/eris v0.5.4
 	github.com/samber/lo v1.38.1
 	github.com/sashabaranov/go-openai v1.9.5
