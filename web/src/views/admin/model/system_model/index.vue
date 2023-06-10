@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { h, onMounted, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
-import { NDataTable, NInput, NModal, NSwitch, useMessage } from 'naive-ui'
+import { NDataTable, NInput, NModal, NSwitch, useMessage, useDialog } from 'naive-ui'
 import AddModelForm from './AddModelForm.vue'
 import { deleteChatModel, fetchChatModel, updateChatModel } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 
 const ms_ui = useMessage()
-
+const dialog = useDialog()
 const data = ref<Chat.ChatModel[]>([])
 const dialogVisible = ref(false)
 const loading = ref(true)
@@ -197,11 +197,20 @@ const columns = createColumns()
 
 async function addRow() {
   await refreshData()
+  dialogVisible.value = false
 }
 
 async function deleteRow(row: any) {
-  await deleteChatModel(row.ID)
-  await refreshData()
+  dialog.warning({
+    title: t('admin.chat_model.deleteModel'),
+    content: t('admin.chat_model.deleteModelConfirm'),
+    positiveText: t('common.yes'),
+    negativeText: t('common.no'),
+    onPositiveClick: async () => {
+      await deleteChatModel(row.id)
+      await refreshData()
+    },
+  })
 }
 
 function checkNoRowIsDefaultTrue(v: boolean) {
