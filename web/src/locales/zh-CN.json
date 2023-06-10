@@ -111,6 +111,8 @@
     "rate_limit": "会话数量(10min)",
     "chat_model_name": "模型ID",
     "chat_model": {
+      "deleteModel": "删除",
+      "deleteModelConfirm": "确认删除",
       "name": "ID",
       "label": "模型名称",
       "is_default": "默认?",
