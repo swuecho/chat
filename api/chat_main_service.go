@@ -90,8 +90,10 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 
 	summary := ""
 
-	if numTokens > 500 {
+	if numTokens > 300 {
+		log.Println("summarizing")
 		summary = llm_summarize_with_timeout(baseURL, content)
+		log.Println("summarizing: " + summary)
 	}
 
 	chatMessage := sqlc_queries.CreateChatMessageParams{
@@ -129,7 +131,6 @@ func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, conten
 	})
 	return err
 }
-
 
 func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []Message, answerText string) {
 	// log chat

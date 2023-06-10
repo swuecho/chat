@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"strings"
 	"time"
 
@@ -22,12 +23,14 @@ func llm_summarize_with_timeout(baseURL, content string) string {
 	return summary
 }
 
-func llm_summarize(ctx context.Context, baseURL string, doc string, ) string {
+func llm_summarize(ctx context.Context, baseURL string, doc string) string {
+	baseURL = strings.TrimSuffix(baseURL, "/v1")
 	llm, err := openai.New(
 		openai.WithToken(appConfig.OPENAI.API_KEY),
 		openai.WithBaseURL(baseURL),
 	)
 	if err != nil {
+		log.Printf("failed to create openai client %s: %v", baseURL, err)
 		return ""
 	}
 
@@ -37,6 +40,7 @@ func llm_summarize(ctx context.Context, baseURL string, doc string, ) string {
 	)
 	outputValues, err := chains.Call(ctx, llmSummarizationChain, map[string]any{"input_documents": docs})
 	if err != nil {
+		log.Printf("failed to call chain: %s, %v", baseURL, err)
 		return ""
 	}
 	out := outputValues["text"].(string)
