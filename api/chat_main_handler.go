@@ -129,6 +129,16 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 
+	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
+	if err != nil {
+		http.Error(w,
+			eris.Wrap(err, "fail to get model: ").Error(),
+			http.StatusInternalServerError,
+		)
+		return
+	}
+	baseURL, _ := getModelBaseUrl(chatModel.Url)
+
 	existingPrompt := true
 
 	_, err = h.service.q.GetOneChatPromptBySessionUUID(ctx, chatSessionUuid)
@@ -142,7 +152,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	if existingPrompt {
-		_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, userID)
+		_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, userID, baseURL)
 		if err != nil {
 			http.Error(w,
 				eris.Wrap(err, "fail to create message: ").Error(),
@@ -197,7 +207,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		h.service.logChat(chatSession, msgs, answerText)
 	}
 
-	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID); err != nil {
+	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID, baseURL); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
