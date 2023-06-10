@@ -143,6 +143,7 @@ CREATE TABLE IF NOT EXISTS chat_message (
     chat_session_uuid character varying(255) NOT NUll,
     role character varying(255) NOT NULL,
     content character varying NOT NULL,
+    llm_summary character varying(1024) NOT NULL DEFAULT '',
     score double precision NOT NULL,
     user_id integer NOT NULL,
     created_at timestamp DEFAULT now() NOT NULL,
@@ -159,6 +160,7 @@ CREATE TABLE IF NOT EXISTS chat_message (
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN  NOT NULL DEFAULT false;
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 NOT NULL;
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_pin BOOLEAN  NOT NULL DEFAULT false;
+ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS llm_summary character varying(1024) NOT NULL DEFAULT '';
 
 -- add hash index on uuid
 CREATE INDEX IF NOT EXISTS chat_message_uuid_idx ON chat_message using hash (uuid) ;

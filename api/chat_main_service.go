@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -83,10 +82,18 @@ func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion
 }
 
 // CreateChatMessage creates a new chat message.
-func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content string, userId int32) (sqlc_queries.ChatMessage, error) {
+func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content string, userId int32, baseURL string) (sqlc_queries.ChatMessage, error) {
 	numTokens, err := getTokenCount(content)
 	if err != nil {
 		log.Println(eris.Wrap(err, "failed to get token count: "))
+	}
+
+	summary := ""
+
+	if numTokens > 300 {
+		log.Println("summarizing")
+		summary = llm_summarize_with_timeout(baseURL, content)
+		log.Println("summarizing: " + summary)
 	}
 
 	chatMessage := sqlc_queries.CreateChatMessageParams{
@@ -97,6 +104,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 		UserID:          userId,
 		CreatedBy:       userId,
 		UpdatedBy:       userId,
+		LlmSummary:      summary,
 		TokenCount:      int32(numTokens),
 		Raw:             json.RawMessage([]byte("{}")),
 	}
@@ -122,22 +130,6 @@ func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, conten
 		TokenCount: int32(num_tokens),
 	})
 	return err
-}
-
-func (s *ChatService) DeleteAndCreateChatMessage(chatSessionUUID string, chatUUID string, userID int32, answerID string, answerText string) error {
-	ctx := context.Background()
-	// Delete previous chat message
-	err := s.q.DeleteChatMessageByUUID(ctx, chatUUID)
-	if err != nil {
-		return eris.Wrap(err, fmt.Sprintf("Failed to delete chat message %s", chatSessionUUID))
-	}
-
-	// Create new chat message
-	_, err = s.CreateChatMessageSimple(ctx, chatSessionUUID, answerID, "assistant", answerText, userID)
-	if err != nil {
-		return eris.Wrap(err, fmt.Sprintf("Failed to delete chat message %s", answerID))
-	}
-	return nil
 }
 
 func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []Message, answerText string) {
