@@ -42,10 +42,12 @@ interface ModelType {
   topP: number
   n: number
   debug: boolean
+  summarizeMode: boolean
 }
 
 const modelRef: Ref<ModelType> = ref({
   chatModel: session.value?.model ?? 'gpt-3.5-turbo',
+  summarizeMode: session.value?.summarizeMode ?? false,
   contextCount: session.value?.maxLength ?? 4,
   temperature: session.value?.temperature ?? 1.0,
   maxTokens: session.value?.maxTokens ?? 2048,
@@ -106,8 +108,18 @@ const tokenUpperLimit = computed(() => {
           </NSpace>
         </NRadioGroup>
       </NFormItem>
+      <NFormItem :label="$t('chat.summarize_mode')" path="summarize_mode">
+        <NSwitch v-model:value="modelRef.summarizeMode" data-testid="summarize_mode">
+          <template #checked>
+            {{ $t('chat.is_summarize_mode') }}
+          </template>
+          <template #unchecked>
+            {{ $t('chat.no_summarize_mode') }}
+          </template>
+        </NSwitch>
+      </NFormItem>
       <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
-        <NSlider v-model:value="modelRef.contextCount" :min="1" :max="20" :tooltip="false" show-tooltip />
+        <NSlider v-model:value="modelRef.contextCount" :min="1" :max="40" :tooltip="false" show-tooltip />
       </NFormItem>
       <NFormItem :label="$t('chat.temperature', { temperature: modelRef.temperature })" path="temperature">
         <NSlider v-model:value="modelRef.temperature" :min="0.1" :max="1" :step="0.01" :tooltip="false" />

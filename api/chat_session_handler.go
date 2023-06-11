@@ -109,6 +109,7 @@ type UpdateChatSessionRequest struct {
 	N           int32   `json:"n"`
 	MaxTokens   int32   `json:"maxTokens"`
 	Debug       bool    `json:"debug"`
+	SummarizeMode bool  `json:"summarizeMode"`
 }
 
 // UpdateChatSessionByUUID updates a chat session by its UUID
@@ -141,6 +142,7 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.N = sessionReq.N
 	sessionParams.MaxTokens = sessionReq.MaxTokens
 	sessionParams.Debug = sessionReq.Debug
+	sessionParams.SummarizeMode = sessionReq.SummarizeMode
 	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), sessionParams)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
