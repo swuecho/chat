@@ -206,12 +206,10 @@ async function onConversationStream() {
       if (response.status >= 400)
         nui_msg.error(response.data.message)
     }
-    finally {
-      loading.value = false
-    }
   }
 
   await subscribleStrem()
+  loading.value = false
 }
 
 async function onRegenerate(index: number) {
@@ -284,7 +282,9 @@ async function onRegenerate(index: number) {
         throw error
       }
       finally {
+        console.log(loading.value)
         loading.value = false
+        console.log(loading.value)
       }
     }
 
@@ -478,7 +478,7 @@ const placeholder = computed(() => {
   return t('chat.placeholder')
 })
 
-const buttonDisabled = computed(() => {
+const sendButtonDisabled = computed(() => {
   return loading.value || !prompt.value || prompt.value.trim() === ''
 })
 
@@ -582,8 +582,8 @@ function getDataFromResponseText(responseText: string): string {
                 @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
             </template>
           </NAutoComplete>
-          <NButton id="send_message_button" data-testid="send_message_button" type="primary" :disabled="buttonDisabled"
-            @click="handleSubmit">
+          <NButton id="send_message_button" data-testid="send_message_button" type="primary"
+            :disabled="sendButtonDisabled" @click="handleSubmit">
             <template #icon>
               <span class="dark:text-black">
                 <SvgIcon icon="ri:send-plane-fill" />
