@@ -97,8 +97,8 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 }
 
 const createOrUpdateChatSessionByUUID = `-- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, debug)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, debug, summarize_mode)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 ON CONFLICT (uuid) 
 DO UPDATE SET
 max_length = EXCLUDED.max_length, 
@@ -108,22 +108,24 @@ temperature = EXCLUDED.temperature,
 top_p = EXCLUDED.top_p,
 n= EXCLUDED.n,
 model = EXCLUDED.model,
+summarize_mode = EXCLUDED.summarize_mode,
 topic = CASE WHEN chat_session.topic IS NULL THEN EXCLUDED.topic ELSE chat_session.topic END,
 updated_at = now()
 returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, debug
 `
 
 type CreateOrUpdateChatSessionByUUIDParams struct {
-	Uuid        string  `json:"uuid"`
-	UserID      int32   `json:"userID"`
-	Topic       string  `json:"topic"`
-	MaxLength   int32   `json:"maxLength"`
-	Temperature float64 `json:"temperature"`
-	Model       string  `json:"model"`
-	MaxTokens   int32   `json:"maxTokens"`
-	TopP        float64 `json:"topP"`
-	N           int32   `json:"n"`
-	Debug       bool    `json:"debug"`
+	Uuid          string  `json:"uuid"`
+	UserID        int32   `json:"userID"`
+	Topic         string  `json:"topic"`
+	MaxLength     int32   `json:"maxLength"`
+	Temperature   float64 `json:"temperature"`
+	Model         string  `json:"model"`
+	MaxTokens     int32   `json:"maxTokens"`
+	TopP          float64 `json:"topP"`
+	N             int32   `json:"n"`
+	Debug         bool    `json:"debug"`
+	SummarizeMode bool    `json:"summarizeMode"`
 }
 
 func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg CreateOrUpdateChatSessionByUUIDParams) (ChatSession, error) {
@@ -138,6 +140,7 @@ func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg Creat
 		arg.TopP,
 		arg.N,
 		arg.Debug,
+		arg.SummarizeMode,
 	)
 	var i ChatSession
 	err := row.Scan(
