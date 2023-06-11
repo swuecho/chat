@@ -41,7 +41,7 @@ WHERE uuid = $1
 RETURNING *;
 
 -- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, debug)
+INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, debug, summarize_mode)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 ON CONFLICT (uuid) 
 DO UPDATE SET
@@ -52,6 +52,7 @@ temperature = EXCLUDED.temperature,
 top_p = EXCLUDED.top_p,
 n= EXCLUDED.n,
 model = EXCLUDED.model,
+summarize_mode = EXCLUDED.summarize_mode,
 topic = CASE WHEN chat_session.topic IS NULL THEN EXCLUDED.topic ELSE chat_session.topic END,
 updated_at = now()
 returning *;

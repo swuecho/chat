@@ -37,6 +37,9 @@
   },
   "chat": {
     "new": "新对话",
+    "summarize_mode": "总结模式(可以支持更长的上下文20+)",
+    "is_summarize_mode": "开启",
+    "no_summarize_mode":  "关闭",
     "placeholder": "来说点什么吧...（Shift + Enter = 换行, '/' 触发提示词）",
     "placeholderMobile": "来说点什么...",
     "copy": "复制",

@@ -91,20 +91,21 @@ type ChatPrompt struct {
 }
 
 type ChatSession struct {
-	ID          int32     `json:"id"`
-	UserID      int32     `json:"userID"`
-	Uuid        string    `json:"uuid"`
-	Topic       string    `json:"topic"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	Active      bool      `json:"active"`
-	Model       string    `json:"model"`
-	MaxLength   int32     `json:"maxLength"`
-	Temperature float64   `json:"temperature"`
-	TopP        float64   `json:"topP"`
-	MaxTokens   int32     `json:"maxTokens"`
-	N           int32     `json:"n"`
-	Debug       bool      `json:"debug"`
+	ID            int32     `json:"id"`
+	UserID        int32     `json:"userID"`
+	Uuid          string    `json:"uuid"`
+	Topic         string    `json:"topic"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	Active        bool      `json:"active"`
+	Model         string    `json:"model"`
+	MaxLength     int32     `json:"maxLength"`
+	Temperature   float64   `json:"temperature"`
+	TopP          float64   `json:"topP"`
+	MaxTokens     int32     `json:"maxTokens"`
+	N             int32     `json:"n"`
+	SummarizeMode bool      `json:"summarizeMode"`
+	Debug         bool      `json:"debug"`
 }
 
 type ChatSnapshot struct {

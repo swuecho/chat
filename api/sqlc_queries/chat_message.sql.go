@@ -217,7 +217,7 @@ SELECT id, uuid, chat_session_uuid, role, content, llm_summary, score, user_id, 
 WHERE is_deleted = false and uuid = $1
 `
 
-//-- UUID ----
+// -- UUID ----
 func (q *Queries) GetChatMessageByUUID(ctx context.Context, uuid string) (ChatMessage, error) {
 	row := q.db.QueryRowContext(ctx, getChatMessageByUUID, uuid)
 	var i ChatMessage
