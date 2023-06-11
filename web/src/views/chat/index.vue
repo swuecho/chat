@@ -535,6 +535,7 @@ function getDataFromResponseText(responseText: string): string {
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
                 @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @toggle-pin="handleTogglePin(index)"
                 @after-edit="handleAfterEdit" />
+                <!--
               <div class="sticky bottom-0 left-0 flex justify-center">
                 <NButton v-if="loading" type="warning" @click="handleStop">
                   <template #icon>
@@ -543,6 +544,7 @@ function getDataFromResponseText(responseText: string): string {
                   {{ $t('chat.stopAnswer') }}
                 </NButton>
               </div>
+              -->
             </div>
           </template>
         </div>
