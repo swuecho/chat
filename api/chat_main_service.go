@@ -82,7 +82,7 @@ func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion
 }
 
 // CreateChatMessage creates a new chat message.
-func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content string, userId int32, baseURL string) (sqlc_queries.ChatMessage, error) {
+func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content string, userId int32, baseURL string, is_summarize_mode bool) (sqlc_queries.ChatMessage, error) {
 	numTokens, err := getTokenCount(content)
 	if err != nil {
 		log.Println(eris.Wrap(err, "failed to get token count: "))
@@ -90,7 +90,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 
 	summary := ""
 
-	if numTokens > 300 {
+	if is_summarize_mode && numTokens > 300 {
 		log.Println("summarizing")
 		summary = llm_summarize_with_timeout(baseURL, content)
 		log.Println("summarizing: " + summary)

@@ -152,7 +152,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	if existingPrompt {
-		_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, userID, baseURL)
+		_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, userID, baseURL, chatSession.SummarizeMode)
 		if err != nil {
 			http.Error(w,
 				eris.Wrap(err, "fail to create message: ").Error(),
@@ -207,7 +207,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		h.service.logChat(chatSession, msgs, answerText)
 	}
 
-	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID, baseURL); err != nil {
+	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID, baseURL, chatSession.SummarizeMode); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
