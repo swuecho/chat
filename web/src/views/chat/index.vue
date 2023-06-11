@@ -458,12 +458,12 @@ function handleEnter(event: KeyboardEvent) {
   }
 }
 
-function handleStop() {
-  if (loading.value) {
-    controller.abort()
-    loading.value = false
-  }
-}
+// function handleStop() {
+//   if (loading.value) {
+//     controller.abort()
+//     loading.value = false
+//   }
+// }
 
 const handleSelectAutoComplete: OnSelect = function (v: string | number) {
   if (typeof v === 'string' && v.startsWith('UUID|$|')) {
