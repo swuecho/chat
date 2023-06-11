@@ -42,12 +42,12 @@ interface ModelType {
   topP: number
   n: number
   debug: boolean
-  summarize_mode: boolean
+  summarizeMode: boolean
 }
 
 const modelRef: Ref<ModelType> = ref({
   chatModel: session.value?.model ?? 'gpt-3.5-turbo',
-  summarize_mode: session.value?.summarize_mode ?? false,
+  summarizeMode: session.value?.summarizeMode ?? false,
   contextCount: session.value?.maxLength ?? 4,
   temperature: session.value?.temperature ?? 1.0,
   maxTokens: session.value?.maxTokens ?? 2048,
@@ -109,7 +109,7 @@ const tokenUpperLimit = computed(() => {
         </NRadioGroup>
       </NFormItem>
       <NFormItem :label="$t('chat.summarize_mode')" path="summarize_mode">
-        <NSwitch v-model:value="modelRef.summarize_mode" data-testid="summarize_mode">
+        <NSwitch v-model:value="modelRef.summarizeMode" data-testid="summarize_mode">
           <template #checked>
             {{ $t('chat.is_summarize_mode') }}
           </template>

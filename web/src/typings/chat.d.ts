@@ -22,7 +22,7 @@ declare namespace Chat {
 		n?: number
 		maxTokens?: number
 		debug?: boolean
-		summarize_mode?: boolean
+		summarizeMode?: boolean
 	}
 
 	interface ChatState {
