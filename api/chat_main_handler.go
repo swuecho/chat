@@ -452,14 +452,14 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	// latest message contents
 	prompt := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
 
-	totalInputToken := chat_compeletion_messages[len(chat_compeletion_messages)-1].TokenCount()
+	//totalInputToken := chat_compeletion_messages[len(chat_compeletion_messages)-1].TokenCount()
 	// max - input = max possible output
-	maxOutputToken := int(chatSession.MaxTokens - totalInputToken) - 500
+	//maxOutputToken := int(chatSession.MaxTokens - totalInputToken) - 500
 
 	N := int(chatSession.N)
 	req := openai.CompletionRequest{
 		Model:       chatSession.Model,
-		MaxTokens:   maxOutputToken,
+		// MaxTokens:   maxOutputToken,
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
 		N:           N,
@@ -834,15 +834,15 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 
 func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message) openai.ChatCompletionRequest {
 	openai_message := messagesToOpenAIMesages(chat_compeletion_messages)
-	totalInputToken := lo.SumBy(chat_compeletion_messages, func(m Message) int32 {
-		return m.TokenCount()
-	})
+	//totalInputToken := lo.SumBy(chat_compeletion_messages, func(m Message) int32 {
+	//	return m.TokenCount()
+	//})
 	// max - input = max possible output
-	maxOutputToken := int(chatSession.MaxTokens - totalInputToken) - 500 // offset
+	//maxOutputToken := int(chatSession.MaxTokens - totalInputToken) - 500 // offset
 	openai_req := openai.ChatCompletionRequest{
 		Model:       chatSession.Model,
 		Messages:    openai_message,
-		MaxTokens:   maxOutputToken,
+		//MaxTokens:   maxOutputToken,
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
 		N:           int(chatSession.N),
