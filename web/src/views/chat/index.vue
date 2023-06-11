@@ -206,12 +206,10 @@ async function onConversationStream() {
       if (response.status >= 400)
         nui_msg.error(response.data.message)
     }
-    finally {
-      loading.value = false
-    }
   }
 
   await subscribleStrem()
+  loading.value = false
 }
 
 async function onRegenerate(index: number) {
@@ -284,7 +282,9 @@ async function onRegenerate(index: number) {
         throw error
       }
       finally {
+        console.log(loading.value)
         loading.value = false
+        console.log(loading.value)
       }
     }
 
@@ -458,12 +458,12 @@ function handleEnter(event: KeyboardEvent) {
   }
 }
 
-function handleStop() {
-  if (loading.value) {
-    controller.abort()
-    loading.value = false
-  }
-}
+// function handleStop() {
+//   if (loading.value) {
+//     controller.abort()
+//     loading.value = false
+//   }
+// }
 
 const handleSelectAutoComplete: OnSelect = function (v: string | number) {
   if (typeof v === 'string' && v.startsWith('UUID|$|')) {
@@ -478,7 +478,7 @@ const placeholder = computed(() => {
   return t('chat.placeholder')
 })
 
-const buttonDisabled = computed(() => {
+const sendButtonDisabled = computed(() => {
   return loading.value || !prompt.value || prompt.value.trim() === ''
 })
 
@@ -535,6 +535,7 @@ function getDataFromResponseText(responseText: string): string {
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
                 @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @toggle-pin="handleTogglePin(index)"
                 @after-edit="handleAfterEdit" />
+                <!--
               <div class="sticky bottom-0 left-0 flex justify-center">
                 <NButton v-if="loading" type="warning" @click="handleStop">
                   <template #icon>
@@ -543,6 +544,7 @@ function getDataFromResponseText(responseText: string): string {
                   {{ $t('chat.stopAnswer') }}
                 </NButton>
               </div>
+              -->
             </div>
           </template>
         </div>
@@ -582,8 +584,8 @@ function getDataFromResponseText(responseText: string): string {
                 @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
             </template>
           </NAutoComplete>
-          <NButton id="send_message_button" data-testid="send_message_button" type="primary" :disabled="buttonDisabled"
-            @click="handleSubmit">
+          <NButton id="send_message_button" data-testid="send_message_button" type="primary"
+            :disabled="sendButtonDisabled" @click="handleSubmit">
             <template #icon>
               <span class="dark:text-black">
                 <SvgIcon icon="ri:send-plane-fill" />
