@@ -36,7 +36,7 @@ test('test', async ({ page }) => {
   expect(new_sesion.temperature).toBe(1);
   // click the button to open the modal 
   await page.getByRole('contentinfo').getByRole('button').nth(3).click();
-  await page.getByText('关闭').nth(1).click();
+  await page.getByTestId('debug_mode').click();
   // sleep 1s
   await page.waitForTimeout(1000);
   const sessions_2 = await selectChatSessionsByUserId(pool, user.id);
