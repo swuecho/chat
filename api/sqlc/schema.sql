@@ -41,7 +41,7 @@ ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS http_time_out INTEGER NOT NULL d
 INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key, max_token, default_token, order_number)
 VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 4096, 2048, 1),
          ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 4096, 2048, 2),
-        ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 16384, 8192, 2),
+        ('gpt-3.5-turbo-16k', 'gpt-3.5-16k', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 16384, 8192, 2),
         ('claude-v1-100k', 'claude-v1-100k', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 102400, 102400, 3),
         ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY',  9192, 2048, 4 ),
         ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY',  9192, 2048, 5),
