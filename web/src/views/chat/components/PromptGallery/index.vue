@@ -3,6 +3,7 @@ import { computed, ref, h } from 'vue'
 import { DataTableColumns, NButton, NDataTable } from 'naive-ui'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { usePromptStore } from '@/store/modules'
+import { isASCII } from '@/utils/is'
 
 
 interface Emit {
@@ -25,7 +26,6 @@ interface DataProps {
         key: string
         value: string
 }
-const isASCII = (str: string) => /^[\x00-\x7F]*$/.test(str)
 
 // 移动端自适应相关
 const renderTemplate = () => {
