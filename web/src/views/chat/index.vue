@@ -19,7 +19,7 @@ import { useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
-import Promptgallery from '@/views/chat/components/Promptgallery/index.vue'
+import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 
 let controller = new AbortController()
 
