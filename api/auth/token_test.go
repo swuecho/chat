@@ -9,7 +9,7 @@ import (
 func TestGenerateToken(t *testing.T) {
 	user_id := int32(0)
 	secret := "abedefg"
-	lifetime := 8 * time.Hour 
+	lifetime := 8 * time.Hour
 	token, err := GenerateToken(user_id, "user", secret, "aud", lifetime)
 	if err != nil {
 		t.Fatalf("error generating password hash: %v", err)

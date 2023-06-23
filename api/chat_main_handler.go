@@ -458,7 +458,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	N := int(chatSession.N)
 	req := openai.CompletionRequest{
-		Model:       chatSession.Model,
+		Model: chatSession.Model,
 		// MaxTokens:   maxOutputToken,
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
@@ -840,8 +840,8 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compele
 	// max - input = max possible output
 	//maxOutputToken := int(chatSession.MaxTokens - totalInputToken) - 500 // offset
 	openai_req := openai.ChatCompletionRequest{
-		Model:       chatSession.Model,
-		Messages:    openai_message,
+		Model:    chatSession.Model,
+		Messages: openai_message,
 		//MaxTokens:   maxOutputToken,
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP),
