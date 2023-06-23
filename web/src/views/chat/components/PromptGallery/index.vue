@@ -3,6 +3,7 @@ import { computed, ref, h } from 'vue'
 import { DataTableColumns, NButton, NDataTable } from 'naive-ui'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { usePromptStore } from '@/store/modules'
+import { isASCII } from '@/utils/is'
 
 
 interface Emit {
@@ -28,16 +29,16 @@ interface DataProps {
 
 // 移动端自适应相关
 const renderTemplate = () => {
-        const [keyLimit, valueLimit] = isMobile.value ? [6, 9] : [15, 50]
-
-        return promptList.value.map((item: { key: string; value: string }) => {
-                return {
-                        renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit)}...`,
-                        renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit)}...`,
-                        key: item.key,
-                        value: item.value,
-                }
-        })
+  const [keyLimit, valueLimit] = isMobile.value ? [6, 9] : [15, 50]
+  return promptList.value.map((item: { key: string; value: string }) => {
+    let factor = isASCII(item.key) ? 10 : 1
+    return {
+      renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit * factor)}...`,
+      renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit * factor)}...`,
+      key: item.key,
+      value: item.value,
+    }
+  })
 }
 
 const actionUsePrompt = (type: string, row: any) => {
