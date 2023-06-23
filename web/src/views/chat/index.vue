@@ -6,7 +6,7 @@ import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'n
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
-import { Message } from './components'
+import Message from './components/Message/index.vue'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
 import { useCopyCode } from './hooks/useCopyCode'
@@ -19,6 +19,7 @@ import { useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
+import PromptGallary from '@/views/chat/components/PromptGallary/index.vue'
 
 let controller = new AbortController()
 
@@ -500,6 +501,9 @@ onUnmounted(() => {
     controller.abort()
 })
 
+const handleUsePrompt = (_: string, value: string): void => {
+  prompt.value = value
+}
 function getDataFromResponseText(responseText: string): string {
   // first data segment
   if (responseText.lastIndexOf('data:') === 0)
@@ -527,6 +531,7 @@ function getDataFromResponseText(responseText: string): string {
               <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
               <span>{{ $t('common.help') }}</span>
             </div>
+            <PromptGallary @usePrompt="handleUsePrompt"></PromptGallary>
           </template>
           <template v-else>
             <div>
@@ -535,7 +540,7 @@ function getDataFromResponseText(responseText: string): string {
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
                 @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @toggle-pin="handleTogglePin(index)"
                 @after-edit="handleAfterEdit" />
-                <!--
+              <!--
               <div class="sticky bottom-0 left-0 flex justify-center">
                 <NButton v-if="loading" type="warning" @click="handleStop">
                   <template #icon>
