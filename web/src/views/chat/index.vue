@@ -531,7 +531,7 @@ function getDataFromResponseText(responseText: string): string {
               <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
               <span>{{ $t('common.help') }}</span>
             </div>
-            <Promptgallery @usePrompt="handleUsePrompt"></Promptgallery>
+            <PromptGallery @usePrompt="handleUsePrompt"></PromptGallery>
           </template>
           <template v-else>
             <div>
