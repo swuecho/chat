@@ -6,6 +6,7 @@ import PromptRecommend from '@/assets/recommend.json'
 import { SvgIcon } from '..'
 import { usePromptStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
+import { isASCII } from '@/utils/is'
 
 interface DataProps {
   renderKey: string
@@ -197,9 +198,6 @@ const downloadPromptTemplate = async () => {
     message.error('网络导入出现问题，请检查网络状态与 JSON 文件有效性')
   }
 }
-
-// check str is ascii
-const isASCII = (str: string) => /^[\x00-\x7F]*$/.test(str)
 
 // 移动端自适应相关
 const renderTemplate = () => {
