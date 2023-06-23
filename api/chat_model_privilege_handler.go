@@ -24,19 +24,6 @@ func NewUserChatModelPrivilegeHandler(db *sqlc_queries.Queries) *UserChatModelPr
 
 func (h *UserChatModelPrivilegeHandler) Register(r *mux.Router) {
 
-	// Assuming db is an instance of the SQLC generated DB struct
-	//handler := NewUserChatModelPrivilegeHandler(db)
-	// r := mux.NewRouter()
-
-	// 	// TODO: user can read, remove user_id field from the response
-	// 	r.HandleFunc("/chat_model", h.ListSystemChatModels).Methods("GET")
-	// 	r.HandleFunc("/chat_model/default", h.GetDefaultChatModel).Methods("GET")
-	// 	r.HandleFunc("/chat_model/{id}", h.ChatModelByID).Methods("GET")
-	// 	// create delete update self's chat model
-	// 	r.HandleFunc("/chat_model", h.CreateChatModel).Methods("POST")
-	// 	r.HandleFunc("/chat_model/{id}", h.UpdateChatModel).Methods("PUT")
-	// 	r.HandleFunc("/chat_model/{id}", h.DeleteChatModel).Methods("DELETE")
-	//
 	r.HandleFunc("/admin/user_chat_model_privilege", h.ListUserChatModelPrivileges).Methods(http.MethodGet)
 	r.HandleFunc("/admin/user_chat_model_privilege", h.CreateUserChatModelPrivilege).Methods(http.MethodPost)
 	r.HandleFunc("/admin/user_chat_model_privilege/{id}", h.DeleteUserChatModelPrivilege).Methods(http.MethodDelete)
