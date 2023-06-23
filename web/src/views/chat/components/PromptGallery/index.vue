@@ -25,19 +25,21 @@ interface DataProps {
         key: string
         value: string
 }
+const isASCII = (str: string) => /^[\x00-\x7F]*$/.test(str)
 
 // 移动端自适应相关
 const renderTemplate = () => {
-        const [keyLimit, valueLimit] = isMobile.value ? [6, 9] : [15, 50]
-
-        return promptList.value.map((item: { key: string; value: string }) => {
-                return {
-                        renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit)}...`,
-                        renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit)}...`,
-                        key: item.key,
-                        value: item.value,
-                }
-        })
+  const [keyLimit, valueLimit] = isMobile.value ? [6, 9] : [15, 50]
+  return promptList.value.map((item: { key: string; value: string }) => {
+    let factor = isASCII(item.key) ? 10 : 1
+    console.log(factor)
+    return {
+      renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit * factor)}...`,
+      renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit * factor)}...`,
+      key: item.key,
+      value: item.value,
+    }
+  })
 }
 
 const actionUsePrompt = (type: string, row: any) => {

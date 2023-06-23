@@ -81,7 +81,7 @@ const setDownloadURL = (url: string) => {
 }
 
 // 控制 input 按钮
-const inputStatus = computed (() => tempPromptKey.value.trim().length < 1 || tempPromptValue.value.trim().length < 1)
+const inputStatus = computed(() => tempPromptKey.value.trim().length < 1 || tempPromptValue.value.trim().length < 1)
 
 // Prompt模板相关操作
 const addPromptTemplate = () => {
@@ -198,14 +198,18 @@ const downloadPromptTemplate = async () => {
   }
 }
 
+// check str is ascii
+const isASCII = (str: string) => /^[\x00-\x7F]*$/.test(str)
+
 // 移动端自适应相关
 const renderTemplate = () => {
   const [keyLimit, valueLimit] = isMobile.value ? [6, 9] : [15, 50]
-
   return promptList.value.map((item: { key: string; value: string }) => {
+    let factor = isASCII(item.key) ? 10 : 1
+    console.log(factor)
     return {
-      renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit)}...`,
-      renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit)}...`,
+      renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit * factor)}...`,
+      renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit * factor)}...`,
       key: item.key,
       value: item.value,
     }
@@ -302,13 +306,8 @@ watch(
                 </NPopconfirm>
               </NSpace>
               <br>
-              <NDataTable
-                :max-height="400"
-                :columns="columns"
-                :data="renderTemplate()"
-                :pagination="pagination"
-                :bordered="false"
-              />
+              <NDataTable :max-height="400" :columns="columns" :data="renderTemplate()" :pagination="pagination"
+                :bordered="false" />
             </NTabPane>
             <NTabPane name="download" tab="在线导入">
               注意：请检查下载 JSON 文件来源，恶意的JSON文件可能会破坏您的计算机！<br><br>
@@ -323,38 +322,27 @@ watch(
                 </NGi>
               </NGrid>
               <NDivider />
-              <NLayoutContent v-if="isMobile" style="height: 360px" content-style=" background:none;" :native-scrollbar="false">
-                <NCard
-                  v-for="info in promptRecommendList"
-                  :key="info.key" :title="info.key"
-                  style="margin: 5px;"
-                  embedded
-                  :bordered="true"
-                >
+              <NLayoutContent v-if="isMobile" style="height: 360px" content-style=" background:none;"
+                :native-scrollbar="false">
+                <NCard v-for="info in promptRecommendList" :key="info.key" :title="info.key" style="margin: 5px;" embedded
+                  :bordered="true">
                   {{ info.desc }}
                   <template #footer>
                     <NSpace justify="end">
                       <NButton text>
-                        <a
-                          :href="info.url"
-                          target="_blank"
-                        >
+                        <a :href="info.url" target="_blank">
                           <SvgIcon class="text-xl" icon="ri:link" />
                         </a>
                       </NButton>
-                      <NButton text @click="setDownloadURL(info.downloadUrl) ">
+                      <NButton text @click="setDownloadURL(info.downloadUrl)">
                         <SvgIcon class="text-xl" icon="ri:add-fill" />
                       </NButton>
                     </NSpace>
                   </template>
                 </NCard>
               </NLayoutContent>
-              <NLayoutContent
-                v-else
-                style="height: 360px"
-                content-style="padding: 10px; background:none;"
-                :native-scrollbar="false"
-              >
+              <NLayoutContent v-else style="height: 360px" content-style="padding: 10px; background:none;"
+                :native-scrollbar="false">
                 <NGrid x-gap="12" y-gap="12" :cols="isMobile ? 1 : 3">
                   <NGi v-for="info in promptRecommendList" :key="info.key">
                     <NCard :title="info.key" embedded :bordered="true">
@@ -362,14 +350,11 @@ watch(
                       <template #footer>
                         <NSpace justify="end">
                           <NButton text>
-                            <a
-                              :href="info.url"
-                              target="_blank"
-                            >
+                            <a :href="info.url" target="_blank">
                               <SvgIcon class="text-xl" icon="ri:link" />
                             </a>
                           </NButton>
-                          <NButton text @click="setDownloadURL(info.downloadUrl) ">
+                          <NButton text @click="setDownloadURL(info.downloadUrl)">
                             <SvgIcon class="text-xl" icon="ri:add-fill" />
                           </NButton>
                         </NSpace>
@@ -384,42 +369,22 @@ watch(
       </NCard>
     </NModal>
     <NModal v-model:show="showModal">
-      <NCard
-        style="width: 600px"
-        :bordered="false"
-        size="huge"
-        role="dialog"
-        aria-modal="true"
-      >
+      <NCard style="width: 600px" :bordered="false" size="huge" role="dialog" aria-modal="true">
         <NSpace v-if="modalMode === 'add' || modalMode === 'modify'" vertical>
           模板标题
           <NInput v-model:value="tempPromptKey" placeholder="搜索" />
           模板内容
           <NInput v-model:value="tempPromptValue" placeholder="搜索" type="textarea" />
-          <NButton
-            strong
-            secondary
-            :style="{ width: '100%' }"
-            :disabled="inputStatus"
-            @click="() => { modalMode === 'add' ? addPromptTemplate() : modifyPromptTemplate() }"
-          >
+          <NButton strong secondary :style="{ width: '100%' }" :disabled="inputStatus"
+            @click="() => { modalMode === 'add' ? addPromptTemplate() : modifyPromptTemplate() }">
             确定
           </NButton>
         </NSpace>
         <NSpace v-if="modalMode === 'local_import'" vertical>
-          <NInput
-            v-model:value="tempPromptValue"
-            placeholder="请粘贴json文件内容"
-            :autosize="{ minRows: 3, maxRows: 15 }"
-            type="textarea"
-          />
-          <NButton
-            strong
-            secondary
-            :style="{ width: '100%' }"
-            :disabled="inputStatus"
-            @click="() => { importPromptTemplate() }"
-          >
+          <NInput v-model:value="tempPromptValue" placeholder="请粘贴json文件内容" :autosize="{ minRows: 3, maxRows: 15 }"
+            type="textarea" />
+          <NButton strong secondary :style="{ width: '100%' }" :disabled="inputStatus"
+            @click="() => { importPromptTemplate() }">
             导入
           </NButton>
         </NSpace>
