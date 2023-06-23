@@ -48,7 +48,7 @@ const actionUsePrompt = (type: string, row: any) => {
 
 
 const pagination = computed(() => {
-        const [pageSize, pageSlot] = isMobile.value ? [6, 5] : [10, 15]
+        const [pageSize, pageSlot] = isMobile.value ? [10, 5] : [20, 15]
         return {
                 pageSize, pageSlot,
         }
