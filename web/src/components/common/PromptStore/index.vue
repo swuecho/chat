@@ -206,7 +206,6 @@ const renderTemplate = () => {
   const [keyLimit, valueLimit] = isMobile.value ? [6, 9] : [15, 50]
   return promptList.value.map((item: { key: string; value: string }) => {
     let factor = isASCII(item.key) ? 10 : 1
-    console.log(factor)
     return {
       renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit * factor)}...`,
       renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit * factor)}...`,
