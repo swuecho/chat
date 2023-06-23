@@ -19,7 +19,7 @@ import { useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
-import PromptGallary from '@/views/chat/components/PromptGallary/index.vue'
+import Promptgallery from '@/views/chat/components/Promptgallery/index.vue'
 
 let controller = new AbortController()
 
@@ -531,7 +531,7 @@ function getDataFromResponseText(responseText: string): string {
               <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
               <span>{{ $t('common.help') }}</span>
             </div>
-            <PromptGallary @usePrompt="handleUsePrompt"></PromptGallary>
+            <Promptgallery @usePrompt="handleUsePrompt"></Promptgallery>
           </template>
           <template v-else>
             <div>
