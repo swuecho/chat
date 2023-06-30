@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -416,7 +417,14 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		if answer_id == "" {
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
-		if strings.HasSuffix(delta, "\n") || len(answer) < 200 {
+
+		wl, err := strconv.Atoi(os.Getenv("WEBSOCKET_LIMIT"))
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Websocket limit error: %v", err), nil)
+			return "", "", true
+		}
+
+		if strings.HasSuffix(delta, "\n") || len(answer) < wl {
 			response.Choices[0].Delta.Content = answer
 			data, _ := json.Marshal(response)
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
