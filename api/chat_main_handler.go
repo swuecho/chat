@@ -418,9 +418,9 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
 
-		wl, err := strconv.Atoi(os.Getenv("WEBSOCKET_LIMIT"))
+		wl, err := strconv.Atoi(os.Getenv("PER_WORD_STREAM_LIMIT"))
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Websocket limit error: %v", err), nil)
+			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("per word stream limit error: %v", err), nil)
 			return "", "", true
 		}
 
