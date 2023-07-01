@@ -23,6 +23,7 @@ services:
       - PG_USER=postgres
       - PG_PASS=thisisapassword
       - PG_PORT=5432
+      # - PER_WORD_STREAM_LIMIT=200 # first 200 words are streamed per word, then by line.
       # or DATABASE_URL, with the 5 var above
       # you might need set proxy
       - OPENAI_PROXY_URL=hopethepeoplemakegreatfirewilldiesoon

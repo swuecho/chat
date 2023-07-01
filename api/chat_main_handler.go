@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -416,7 +417,19 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		if answer_id == "" {
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
-		if strings.HasSuffix(delta, "\n") || len(answer) < 200 {
+		perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")
+
+		if perWordStreamLimitStr == "" {
+			perWordStreamLimitStr = "200"
+		}
+
+		perWordStreamLimit, err := strconv.Atoi(perWordStreamLimitStr)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("per word stream limit error: %v", err), nil)
+			return "", "", true
+		}
+
+		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
 			response.Choices[0].Delta.Content = answer
 			data, _ := json.Marshal(response)
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
