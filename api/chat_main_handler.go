@@ -423,7 +423,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 			perWordStreamLimitStr = "200"
 		}
 
-		perWordStreamLimit, err := strconv.Atoi(limitStr)
+		perWordStreamLimit, err := strconv.Atoi(perWordStreamLimitStr)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("per word stream limit error: %v", err), nil)
 			return "", "", true
