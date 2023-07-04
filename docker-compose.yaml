@@ -26,7 +26,7 @@ services:
       # - PER_WORD_STREAM_LIMIT=200 # first 200 words are streamed per word, then by line.
       # or DATABASE_URL, with the 5 var above
       # you might need set proxy
-      - OPENAI_PROXY_URL=hopethepeoplemakegreatfirewilldiesoon
+      # - OPENAI_PROXY_URL=hopethepeoplemakegreatfirewilldiesoon
     depends_on:
       db:
         condition: service_healthy
