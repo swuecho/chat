@@ -11,9 +11,10 @@ import (
 )
 
 const createChatMessage = `-- name: CreateChatMessage :one
-INSERT INTO chat_message (chat_session_uuid, uuid, role, content, token_count, score, user_id, created_by, updated_by, llm_summary, raw)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-RETURNING id, uuid, chat_session_uuid, role, content, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
+INSERT INTO chat_message (id, chat_session_uuid, uuid, role, ip, content, token_count, score, user_id, created_by, updated_by, llm_summary, raw)
+SELECT COALESCE(MAX(id), 0) + 1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+FROM chat_message
+RETURNING id, uuid, chat_session_uuid, role, ip, content, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
 `
 
 type CreateChatMessageParams struct {
