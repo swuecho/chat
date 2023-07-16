@@ -56,7 +56,7 @@ UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4';
 UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4-32k';
 DELETE FROM chat_model where name = 'claude-v1';
 DELETE FROM chat_model where name = 'claude-v1-100k';
-
+UPDATE chat_model SET name = 'claude-instant-1' WHERE name = 'claude-instant-v1';
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
 
