@@ -44,6 +44,7 @@ VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.co
         ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 4096, 2048, 2),
         ('gpt-3.5-turbo-16k', 'gpt-3.5-16k', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 16384, 8192, 2),
         ('claude-v1-100k', 'claude-v1-100k', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 102400, 102400, 3),
+        ('claude-instant-1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY',  9192, 2048, 4 ),
         ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY',  9192, 2048, 4 ),
         ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY',  9192, 2048, 5),
         ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY',  9192, 2048, 6),
@@ -56,7 +57,7 @@ UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4';
 UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4-32k';
 DELETE FROM chat_model where name = 'claude-v1';
 DELETE FROM chat_model where name = 'claude-v1-100k';
-UPDATE chat_model SET name = 'claude-instant-1' WHERE name = 'claude-instant-v1';
+DELETE FROM chat_model where name = 'claude-instant-v1';
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
 
