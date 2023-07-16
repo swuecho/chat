@@ -10,14 +10,17 @@ defineProps({
 
 <template>
   <div>
-    <template v-if="model === 'claude-v1'">
+    <template v-if="model === 'claude-2'">
+      <SvgIcon icon="eos-icons:ai" color="brown" />
+    </template>
+    <template v-else-if="model === 'claude-instant-v1'">
+      <SvgIcon icon="simple-icons:fastapi" color="brown" />
+    </template>
+    <template v-if="model === 'claude-1'">
       <SvgIcon icon="eos-icons:ai" color="brown" />
     </template>
     <template v-else-if="model === 'claude-v1-100k'">
       <SvgIcon icon="fluent:document-100-20-regular" color="brown" />
-    </template>
-    <template v-else-if="model === 'claude-instant-v1'">
-      <SvgIcon icon="simple-icons:fastapi" color="brown" />
     </template>
     <template v-else-if="model?.startsWith('gpt-4')">
       <SvgIcon icon="material-symbols:filter-4-rounded" color="green" />

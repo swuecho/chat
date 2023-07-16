@@ -40,7 +40,8 @@ ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS http_time_out INTEGER NOT NULL d
 
 INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key, max_token, default_token, order_number)
 VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 4096, 2048, 1),
-         ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 4096, 2048, 2),
+        ('claude-2', 'claude', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 102400, 102400, 3),
+        ('claude-v1', 'claude-v1 (claude)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 4096, 2048, 2),
         ('gpt-3.5-turbo-16k', 'gpt-3.5-16k', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 16384, 8192, 2),
         ('claude-v1-100k', 'claude-v1-100k', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY', 102400, 102400, 3),
         ('claude-instant-v1', 'claude-instant(small,fast)', false, 'https://api.anthropic.com/v1/complete', 'x-api-key', 'CLAUDE_API_KEY',  9192, 2048, 4 ),
@@ -53,8 +54,9 @@ ON CONFLICT(name) DO NOTHING;
 
 UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4';
 UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4-32k';
-
-
+DELETE FROM chat_model where name = 'claude-v1';
+DELETE FROM chat_model where name = 'claude-v1-100k';
+UPDATE chat_model SET name = 'claude-instant-1' WHERE name = 'claude-instant-v1';
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
 
