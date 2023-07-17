@@ -86,7 +86,7 @@ const tokenUpperLimit = computed(() => {
     return Math.floor(4 * 1024)
   else if (modelRef.value.chatModel === 'text-davinci-003')
     return Math.floor(4 * 1024)
-  else if (modelRef.value.chatModel === 'claude-v1-100k')
+  else if (modelRef.value.chatModel === 'claude-2')
     return Math.floor(100 * 1024)
   else if (modelRef.value.chatModel === 'gpt-3.5-turbo-16k')
     return Math.floor(16 * 1024)
