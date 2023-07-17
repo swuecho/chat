@@ -10,10 +10,11 @@ import (
 )
 
 const createChatPrompt = `-- name: CreateChatPrompt :one
-INSERT INTO chat_prompt (uuid, chat_session_uuid, role, content, token_count, user_id, created_by, updated_by)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO chat_prompt (id, uuid, chat_session_uuid, role, content, token_count, user_id, created_by, updated_by)
+SELECT COALESCE(MAX(id), 0) + 1, $1, $2, $3, $4, $5, $6, $7, $8
+FROM chat_prompt
 RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, token_count
-`
+`;
 
 type CreateChatPromptParams struct {
 	Uuid            string `json:"uuid"`
