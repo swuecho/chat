@@ -167,6 +167,7 @@ async function onConversationStream() {
                 text: t(error_json.message), // how to add params to i18n
               },
             )
+            loading.value = false
           }
           else {
             const chunk = getDataFromResponseText(responseText)
@@ -206,6 +207,7 @@ async function onConversationStream() {
       const response = error.response
       if (response.status >= 400)
         nui_msg.error(response.data.message)
+        loading.value = false
     }
   }
 
