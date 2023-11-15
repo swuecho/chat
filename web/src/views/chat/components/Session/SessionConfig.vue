@@ -78,7 +78,7 @@ watch(modelRef, async (modelValue: ModelType) => {
 
 
 const tokenUpperLimit = computed(() => {
-  if (data.value) {
+  if (data && data.value) {
     for (let modelConfig of data.value) {
       if (modelConfig.name == modelRef.value.chatModel) {
         return modelConfig.maxToken
@@ -91,7 +91,7 @@ const tokenUpperLimit = computed(() => {
 })
 
 const defaultToken = computed(() => {
-  if (data.value) {
+  if (data && data.value) {
     for (let modelConfig of data.value) {
       if (modelConfig.name == modelRef.value.chatModel) {
         return modelConfig.defaultToken
