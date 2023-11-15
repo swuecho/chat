@@ -8,7 +8,6 @@ import { useChatStore } from '@/store'
 import { fetchChatModel } from '@/api'
 
 import { useQuery } from "@tanstack/vue-query";
-import { mode } from 'crypto-js'
 
 const optionFromModel = (model: any) => {
   return {
