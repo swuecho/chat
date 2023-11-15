@@ -24,7 +24,11 @@ async function refreshData() {
 
 function UpdateRow(row: Chat.ChatModel) {
   if (row.id)
-    updateChatModel(row.id, { ...row, orderNumber: parseInt(row.orderNumber || '0') })
+    updateChatModel(row.id, {
+      ...row, orderNumber: parseInt(row.orderNumber || '0'),
+      defaultToken: parseInt(row.defaultToken || '0'),
+      maxToken: parseInt(row.maxToken || '0')
+    })
 }
 function createColumns(): DataTableColumns<Chat.ChatModel> {
   const nameField = {
@@ -126,6 +130,40 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     },
   }
 
+  const defaultToken = {
+    title: t('admin.chat_model.defaultToken'),
+    key: 'defaultToken',
+    width: 100,
+    render(row: Chat.ChatModel, index: number) {
+      return h(NInput, {
+        value: row.defaultToken,
+        width: 5,
+        onUpdateValue(v: string) {
+          // Assuming `data` is an array of FormData objects
+          data.value[index].defaultToken = v
+          UpdateRow(data.value[index])
+        },
+      })
+    },
+  }
+
+  const maxToken = {
+    title: t('admin.chat_model.maxToken'),
+    key: 'maxToken',
+    width: 100,
+    render(row: Chat.ChatModel, index: number) {
+      return h(NInput, {
+        value: row.maxToken,
+        width: 5,
+        onUpdateValue(v: string) {
+          // Assuming `data` is an array of FormData objects
+          data.value[index].maxToken = v
+          UpdateRow(data.value[index])
+        },
+      })
+    },
+  }
+
   const isDefaultField = {
     title: t('admin.chat_model.isDefault'),
     key: 'isDefault',
@@ -188,6 +226,8 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     apiAuthHeaderField,
     isDefaultField,
     perModelLimit,
+    defaultToken,
+    maxToken,
     orderNumber,
     actionField,
   ])
