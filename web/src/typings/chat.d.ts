@@ -65,7 +65,7 @@ declare namespace Chat {
 		enablePerModeRatelimit: boolean,
 		maxToken?: number, 
 		defaultToken?: number,
-		orderNumber?: string,
+		orderNumber?: number,
 		httpTimeOut?: number
 
 	}
