@@ -7,9 +7,10 @@ import { debounce } from 'lodash-es'
 import { useChatStore } from '@/store'
 import { fetchChatModel } from '@/api'
 
-import {  useQuery } from "@tanstack/vue-query";
+import { useQuery } from "@tanstack/vue-query";
+import { mode } from 'crypto-js'
 
-const optiomFromModel = (model: any) => {
+const optionFromModel = (model: any) => {
   return {
     label: model.label,
     value: model.name,
@@ -26,8 +27,8 @@ const { data, isLoading } = useQuery({
   staleTime: 10 * 60 * 1000,
 })
 
-const chatModelOptions = computed(() => 
-  data?.value ? data.value.map(optiomFromModel) : []
+const chatModelOptions = computed(() =>
+  data?.value ? data.value.map(optionFromModel) : []
 )
 
 const chatStore = useChatStore()
@@ -78,20 +79,27 @@ watch(modelRef, async (modelValue: ModelType) => {
 
 
 const tokenUpperLimit = computed(() => {
-  if (modelRef.value.chatModel === 'gpt-4')
-    return Math.floor(1024 * 8)
-  else if (modelRef.value.chatModel === 'gpt-4-32k')
-    return Math.floor(32 * 1024)
-  else if (modelRef.value.chatModel === 'gpt-3.5-turbo')
-    return Math.floor(4 * 1024)
-  else if (modelRef.value.chatModel === 'text-davinci-003')
-    return Math.floor(4 * 1024)
-  else if (modelRef.value.chatModel === 'claude-2')
-    return Math.floor(100 * 1024)
-  else if (modelRef.value.chatModel === 'gpt-3.5-turbo-16k')
-    return Math.floor(16 * 1024)
-  else
-    return Math.floor(1024 * 2)
+  if (data.value) {
+    for (let modelConfig of data.value) {
+      if (modelConfig.name == modelRef.value.chatModel) {
+        return modelConfig.maxToken
+      }
+
+    }
+
+  }
+  return 1024*4
+})
+
+const defaultToken = computed(() => {
+  if (data.value) {
+    for (let modelConfig of data.value) {
+      if (modelConfig.name == modelRef.value.chatModel) {
+        return modelConfig.defaultToken
+      }
+    }
+  }
+  return 2048
 })
 // 1. how to fix the NSelect error?
 </script>
@@ -101,7 +109,9 @@ const tokenUpperLimit = computed(() => {
   <div>
     <NForm ref="formRef" :model="modelRef" size="small" label-placement="top" :label-width="20">
       <NFormItem :label="$t('chat.model')" path="chatModel">
-        <div v-if="isLoading"><NSpin size="medium" /></div>
+        <div v-if="isLoading">
+          <NSpin size="medium" />
+        </div>
         <NRadioGroup v-model:value="modelRef.chatModel">
           <NSpace>
             <NRadio v-for="model in chatModelOptions" :key="model.value" :value="model.value">
@@ -130,7 +140,8 @@ const tokenUpperLimit = computed(() => {
         <NSlider v-model:value="modelRef.topP" :min="0" :max="1" :step="0.01" :tooltip="false" />
       </NFormItem>
       <NFormItem :label="$t('chat.maxTokens', { maxTokens: modelRef.maxTokens })" path="maxTokens">
-        <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="tokenUpperLimit" :step="16" :tooltip="false" />
+        <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="tokenUpperLimit" :default-value="defaultToken"  :step="16"
+          :tooltip="false" />
       </NFormItem>
       <NFormItem v-if="modelRef.chatModel.startsWith('gpt') || modelRef.chatModel.includes('davinci')"
         :label="$t('chat.N', { n: modelRef.n })" path="n">
