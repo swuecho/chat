@@ -12,8 +12,10 @@ export interface AppState {
   language: Language
 }
 
+const defaultLanguage = navigator.language as Language
+
 export function defaultSetting(): AppState {
-  return { siderCollapsed: false, theme: 'light', language: 'zh-CN' }
+  return { siderCollapsed: false, theme: 'light', language: defaultLanguage }
 }
 
 export function getLocalSetting(): AppState {

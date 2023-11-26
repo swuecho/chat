@@ -12,7 +12,7 @@ test('test', async ({ page }) => {
   await page.getByTestId('signup').click();
   await page.waitForTimeout(1000);
 
-  await page.locator('a').filter({ hasText: '新对话' }).click();
+  await page.locator('a').filter({ hasText: 'New Chat' }).click();
 
   // set debug mode
   await page.getByRole('contentinfo').getByRole('button').nth(3).click();

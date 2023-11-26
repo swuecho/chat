@@ -42,7 +42,7 @@ test('after clear conversation, only system message remains', async ({ page }) =
 
   // clear
   await page.getByRole('contentinfo').getByRole('button').first().click();
-  await page.getByRole('button', { name: '是' }).click();
+  await page.getByRole('button', { name: 'Yes' }).click();
 
   // sleep 500 ms
   await page.waitForTimeout(1000);
