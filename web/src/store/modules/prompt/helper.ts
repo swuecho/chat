@@ -103,7 +103,7 @@ const defaultChinesePromptList: PromptList = [
         },
 ]
 
-let defaultEnglishPromptList = [
+let defaultEnglishPromptList: PromptList = [
 
         {
                 "key": "Act as an English Translator and Improver",
@@ -124,7 +124,7 @@ let defaultEnglishPromptList = [
 
 ]
 
-const defaultPromptMap = {
+let defaultPromptMap: { [key: string]: Prompt[] } = {
         'zh-CN': defaultChinesePromptList,
         'zh-TW': defaultChinesePromptList,
         'en-US': defaultEnglishPromptList,
