@@ -82,7 +82,6 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 	// set active chat session when creating a new chat session
-	sessionParams.UserID = int32(userIDInt)
 	_, err = h.service.q.CreateOrUpdateUserActiveChatSession(r.Context(),
 		sqlc_queries.CreateOrUpdateUserActiveChatSessionParams{
 			UserID:          session.UserID,

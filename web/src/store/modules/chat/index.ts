@@ -89,7 +89,7 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     addChatSession(history: Chat.Session, chatData: Chat.Message[] = []) {
-      createChatSession(history.uuid, history.title)
+      createChatSession(history.uuid, history.title, history.model)
       this.history.unshift(history)
       this.chat.unshift({ uuid: history.uuid, data: chatData })
       this.active = history.uuid
@@ -157,12 +157,14 @@ export const useChatStore = defineStore('chat-store', {
       return null
     },
 
-    addChatByUuid(uuid: string, chat: Chat.Message) {
+    async addChatByUuid(uuid: string, chat: Chat.Message) {
       const new_chat_text = t('chat.new')
       if (!uuid) {
         if (this.history.length === 0) {
           const uuid = uuidv4()
-          createChatSession(uuid, chat.text)
+          const default_model_parameters = await getChatSessionDefault(new_chat_text)
+
+          createChatSession(uuid, chat.text, default_model_parameters.model)
           this.history.push({ uuid, title: chat.text, isEdit: false })
           // first chat message is prompt
           this.chat.push({ uuid, data: [{ ...chat, isPrompt: true, isPin: false }] })

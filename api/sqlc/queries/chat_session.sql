@@ -4,8 +4,8 @@ where active = true
 ORDER BY id;
 
 -- name: CreateChatSession :one
-INSERT INTO chat_session (user_id, topic, max_length, uuid)
-VALUES ($1, $2, $3, $4)
+INSERT INTO chat_session (user_id, topic, max_length, uuid, model)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: UpdateChatSession :one
@@ -31,8 +31,8 @@ WHERE uuid = $1
 order by updated_at;
 
 -- name: CreateChatSessionByUUID :one
-INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length, model)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: UpdateChatSessionByUUID :one
