@@ -717,7 +717,13 @@ func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_que
 	// iterate through the messages and format them
 	// print the user's question
 	// convert assistant's response to json format
-	prompt := formatMinstralPrompt(chat_compeletion_messages)
+	var prompt string
+	if chatSession.Model == "ollama-neural-chat" {
+		prompt = formatNeuralChatPrompt(chat_compeletion_messages)
+	} else if chatSession.Model == "ollama-minstral" {
+		prompt = formatMinstralPrompt(chat_compeletion_messages)
+
+	}
 	// create the json data
 	jsonData := map[string]interface{}{
 		"prompt":               prompt,
