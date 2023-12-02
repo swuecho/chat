@@ -41,11 +41,12 @@ export const deleteChatSession = async (uuid: string) => {
   }
 }
 
-export const createChatSession = async (uuid: string, name: string) => {
+export const createChatSession = async (uuid: string, name: string, model: string | undefined) => {
   try {
     const response = await request.post('/uuid/chat_sessions', {
       uuid,
       topic: name,
+      model
     })
     return response.data
   }

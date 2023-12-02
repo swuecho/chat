@@ -11,8 +11,8 @@ import (
 )
 
 const createChatSession = `-- name: CreateChatSession :one
-INSERT INTO chat_session (user_id, topic, max_length, uuid)
-VALUES ($1, $2, $3, $4)
+INSERT INTO chat_session (user_id, topic, max_length, uuid, model)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, debug
 `
 
@@ -21,6 +21,7 @@ type CreateChatSessionParams struct {
 	Topic     string `json:"topic"`
 	MaxLength int32  `json:"maxLength"`
 	Uuid      string `json:"uuid"`
+	Model     string `json:"model"`
 }
 
 func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionParams) (ChatSession, error) {
@@ -29,6 +30,7 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 		arg.Topic,
 		arg.MaxLength,
 		arg.Uuid,
+		arg.Model,
 	)
 	var i ChatSession
 	err := row.Scan(
@@ -52,8 +54,8 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 }
 
 const createChatSessionByUUID = `-- name: CreateChatSessionByUUID :one
-INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length, model)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, debug
 `
 
@@ -64,6 +66,7 @@ type CreateChatSessionByUUIDParams struct {
 	CreatedAt time.Time `json:"createdAt"`
 	Active    bool      `json:"active"`
 	MaxLength int32     `json:"maxLength"`
+	Model     string    `json:"model"`
 }
 
 func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSessionByUUIDParams) (ChatSession, error) {
@@ -74,6 +77,7 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 		arg.CreatedAt,
 		arg.Active,
 		arg.MaxLength,
+		arg.Model,
 	)
 	var i ChatSession
 	err := row.Scan(
