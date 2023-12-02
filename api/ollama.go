@@ -21,7 +21,7 @@ func formatMinstralPrompt(chat_compeletion_messages []Message) string {
 	return prompt
 }
 
-//### Prompt Format
+// ### Prompt Format
 // ### System:
 // {system}
 // ### User:
