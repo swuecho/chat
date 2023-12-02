@@ -722,7 +722,8 @@ func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_que
 		prompt = formatNeuralChatPrompt(chat_compeletion_messages)
 	} else if chatSession.Model == "ollama-minstral" {
 		prompt = formatMinstralPrompt(chat_compeletion_messages)
-
+	} else {
+		prompt = formatNeuralChatPrompt(chat_compeletion_messages)
 	}
 	// create the json data
 	jsonData := map[string]interface{}{
