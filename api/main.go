@@ -147,7 +147,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	ChatModelHandler := NewChatModelHandler(sqlc_q)
 	ChatModelHandler.Register(router)
 
@@ -211,6 +210,8 @@ func main() {
 	user_model_privilege_handler := NewUserChatModelPrivilegeHandler(sqlc_q)
 	user_model_privilege_handler.Register(router)
 
+	router.HandleFunc("/tts", handleTTSRequest)
+
 	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		tpl, err1 := route.GetPathTemplate()
 		met, err2 := route.GetMethods()
@@ -239,7 +240,9 @@ func main() {
 		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
 	})
 
+	
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
+
 
 	// fly.io
 	if os.Getenv("FLY_APP_NAME") != "" {

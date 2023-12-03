@@ -77,7 +77,8 @@
     "sessionConfig": "会话设置",
     "enable_debug": "启用",
     "disable_debug": "关闭",
-    "completionsCount": "结果数量:  {contextCount}"
+    "completionsCount": "结果数量:  {contextCount}",
+    "playAudio": "语音"
   },
   "chat_snapshot": {
     "title": "对话集",
