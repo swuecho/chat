@@ -11,9 +11,9 @@ const props = defineProps<Props>()
 const source = ref('')
 const soundPlayer = ref();
 const isActive = ref(false);
-const speaker_id = ref('')
-const style_wav = ref('')
-const language_id = ref('')
+// const speaker_id = ref('')
+// const style_wav = ref('')
+// const language_id = ref('')
 
 
 // Add a method called 'playAudio' to handle sending the request to the backend.
