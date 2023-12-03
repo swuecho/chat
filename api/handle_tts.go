@@ -1,17 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
-
 
 func handleTTSRequest(w http.ResponseWriter, r *http.Request) {
 	// Create a new HTTP request with the same method, URL, and body as the original request
 	targetURL := r.URL
-	print(targetURL.String())
-	print(r.Method)
-	fullURL := "http://192.168.0.14:5002/api" + targetURL.String()
+	hostEnvVarName := "TTS_HOST"
+	portEnvVarName := "TTS_PORT"
+	realHost := fmt.Sprintf("http://%s:%s/api", os.Getenv(hostEnvVarName), os.Getenv(portEnvVarName))
+	fullURL := realHost + targetURL.String()
 	print(fullURL)
 	proxyReq, err := http.NewRequest(r.Method, fullURL, r.Body)
 	if err != nil {
