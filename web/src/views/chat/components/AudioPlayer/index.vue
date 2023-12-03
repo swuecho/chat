@@ -19,22 +19,26 @@ const isActive = ref(false);
 // Add a method called 'playAudio' to handle sending the request to the backend.
 async function playAudio() {
         console.log(props.text)
-        let text = encodeURIComponent(props.text)
-        try {
-                // Perform the HTTP request to send the request to the backend.
-                const response = await fetch(`/api/tts?text=${text}`,
-                        { cache: 'no-cache' });
-                if (response.ok) {
-                        // If the HTTP response is successful, parse the body into an object and play the sound.
-                        const blob = await response.blob();
-                        source.value = URL.createObjectURL(blob);
-                        console.log(source.value);
-                        isActive.value = true;
-                } else {
-                        console.log("request failed")
+        if (isActive.value) {
+                isActive.value = false
+        } else {
+                let text = encodeURIComponent(props.text)
+                try {
+                        // Perform the HTTP request to send the request to the backend.
+                        const response = await fetch(`/api/tts?text=${text}`,
+                                { cache: 'no-cache' });
+                        if (response.ok) {
+                                // If the HTTP response is successful, parse the body into an object and play the sound.
+                                const blob = await response.blob();
+                                source.value = URL.createObjectURL(blob);
+                                console.log(source.value);
+                                isActive.value = true;
+                        } else {
+                                console.log("request failed")
+                        }
+                } catch (error) {
+                        console.log(error);
                 }
-        } catch (error) {
-                console.log(error);
         }
 }
 
