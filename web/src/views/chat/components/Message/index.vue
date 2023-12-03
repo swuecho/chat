@@ -8,6 +8,7 @@ import { copyText } from '@/utils/format'
 import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
 import { displayLocaleDate } from '@/utils/date'
+import AudioPlayer from "../AudioPlayer/index.vue"
 
 interface Props {
   index: number
@@ -119,6 +120,7 @@ function handleRegenerate() {
           </NDropdown>
         </div>
       </div>
+      <AudioPlayer :text="text || ''"></AudioPlayer>
     </div>
   </div>
 </template>
