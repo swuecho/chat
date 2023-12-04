@@ -722,6 +722,8 @@ func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_que
 		prompt = formatNeuralChatPrompt(chat_compeletion_messages)
 	} else if chatSession.Model == "ollama-minstral" {
 		prompt = formatMinstralPrompt(chat_compeletion_messages)
+	} else if chatSession.Model =="ollama-openhermes-neural-chat" {
+		prompt = formatNeuralChatPrompt(chat_compeletion_messages)
 	} else {
 		prompt = formatNeuralChatPrompt(chat_compeletion_messages)
 	}
@@ -807,7 +809,7 @@ func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_que
 		if err != nil {
 			return "", "", true
 		}
-		answer += streamResp.Response
+		answer += strings.ReplaceAll(streamResp.Response, "<0x0A>", "\n")
 		if streamResp.Done {
 			// stream.isFinished = true
 			fmt.Println("DONE break")
