@@ -29,7 +29,7 @@ async function playAudio() {
                 let text = encodeURIComponent(props.text)
                 try {
                         // Perform the HTTP request to send the request to the backend.
-                        const response = await request.get(`/tts?text=${text}`, { cache: 'no-cache',  responseType: 'blob' });
+                        const response = await request.get(`/tts?text=${text}`, { responseType: 'blob' });
                         console.log(response)
                         if (response.status == 200) {
                                 // If the HTTP response is successful, parse the body into an object and play the sound.
