@@ -1,6 +1,7 @@
 <script lang="ts"  setup>
 import { ref } from "vue";
 import { HoverButton, SvgIcon } from '@/components/common'
+import request from '@/utils/request/axios'
 
 interface Props {
         text: string
@@ -14,7 +15,9 @@ const isActive = ref(false);
 // const speaker_id = ref('')
 // const style_wav = ref('')
 // const language_id = ref('')
-const BASE_URL =  import.meta.env.VITE_GLOB_API_URL
+
+
+
 
 
 // Add a method called 'playAudio' to handle sending the request to the backend.
@@ -26,11 +29,11 @@ async function playAudio() {
                 let text = encodeURIComponent(props.text)
                 try {
                         // Perform the HTTP request to send the request to the backend.
-                        const response = await fetch(`${BASE_URL}/tts?text=${text}`,
-                                { cache: 'no-cache' });
-                        if (response.ok) {
+                        const response = await request.get(`/tts?text=${text}`, { cache: 'no-cache',  responseType: 'blob' });
+                        console.log(response)
+                        if (response.status == 200) {
                                 // If the HTTP response is successful, parse the body into an object and play the sound.
-                                const blob = await response.blob();
+                                const blob = await response.data;
                                 source.value = URL.createObjectURL(blob);
                                 console.log(source.value);
                                 isActive.value = true;
