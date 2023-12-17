@@ -96,7 +96,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 		"/":       true,
 		"/login":  true,
 		"/signup": true,
-		"/tts": true,
+		"/tts":    true,
 	}
 	jwtSigningKey := []byte(jwtSecretAndAud.Secret)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -240,9 +240,7 @@ func main() {
 		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
 	})
 
-	
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
-
 
 	// fly.io
 	if os.Getenv("FLY_APP_NAME") != "" {
