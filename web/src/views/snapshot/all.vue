@@ -106,7 +106,7 @@ function handleDelete(post: PostLink) {
       <div class="max-w-screen-xl px-4 py-8 mx-auto">
         <div v-for="[yearMonth, postsOfYearMonth] in Object.entries(postsByYearMonth)" :key="yearMonth" class="flex mb-2">
           <h2 class="flex-none w-28 text-lg font-medium">
-            {{ yearMonth }}
+            {{ yearMonth }} 
           </h2>
           <ul>
             <li v-for="post in postsOfYearMonth" :key="post.uuid" class="flex justify-between">
