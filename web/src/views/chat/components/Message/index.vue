@@ -95,7 +95,7 @@ function handleRegenerate() {
     </div>
     <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
       <p class="text-xs text-[#b4bbc4]" :class="[inversion ? 'text-right' : 'text-left']">
-        {{ displayLocaleDate(dateTime) }}
+        {{ displayLocaleDate(dateTime) }} {{ model }}
       </p>
       <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
         <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
