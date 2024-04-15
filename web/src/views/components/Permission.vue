@@ -69,9 +69,6 @@ async function handleSignup() {
   if (!user_email_v || !user_password_v)
     return
 
-  if (!user_email_v || !user_password_v)
-    return
-
   // check user_email_v  is valid email
   if (!user_email_v.match(/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/)) {
     ms.error(t('error.invalidEmail'))
