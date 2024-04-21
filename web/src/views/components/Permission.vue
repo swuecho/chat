@@ -166,13 +166,13 @@ async function handleSignup() {
             <NForm :show-label="false">
               <NFormItemRow label="邮箱">
                 <NInput
-                  v-model:value="RegisterData.email" data-testid="email" type="text" :minlength="6"
+                  v-model:value="RegisterData.email" data-testid="signup_email" type="text" :minlength="6"
                   :placeholder="$t('common.email_placeholder')"
                 />
               </NFormItemRow>
               <NFormItemRow label="密码">
                 <NInput
-                  v-model:value="RegisterData.password" data-testid="password" type="password" :minlength="6" show-password-on="click"
+                  v-model:value="RegisterData.password" data-testid="signup_password" type="password" :minlength="6" show-password-on="click"
                   :placeholder="$t('common.password_placeholder')"
                 />
               </NFormItemRow>
