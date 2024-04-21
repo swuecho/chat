@@ -1,6 +1,6 @@
 <script setup lang='ts'>
-import { computed, ref } from 'vue'
-import { NButton, NInput, NModal, useMessage } from 'naive-ui'
+import { computed, reactive, ref } from 'vue'
+import { NButton, NForm, NFormItemRow, NInput, NModal, NTabPane, NTabs, useMessage } from 'naive-ui'
 import { fetchLogin, fetchSignUp } from '@/api'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store'
@@ -17,14 +17,26 @@ const authStore = useAuthStore()
 const ms = useMessage()
 
 const loading = ref(false)
-const user_email = ref('')
-const user_password = ref('')
+const LoginData = reactive({
+  email: '',
+  password: '',
+})
+const RegisterData = reactive({
+  email: '',
+  password: '',
+  repwd: '',
+})
 
-const user_pass_not_filled = computed(() => !user_email.value.trim() || !user_password.value.trim() || loading.value)
+function check_input(data: object) {
+  return !Object.values(data).every(({ length }) => length > 6) || loading.value
+}
+
+const login_not_filled = computed(() => check_input(LoginData))
+const register_not_filled = computed(() => check_input(RegisterData))
 
 async function handleLogin() {
-  const user_email_v = user_email.value.trim()
-  const user_password_v = user_password.value.trim()
+  const user_email_v = LoginData.email.trim()
+  const user_password_v = LoginData.password.trim()
 
   if (!user_email_v || !user_password_v)
     return
@@ -63,10 +75,11 @@ async function handleLogin() {
 }
 
 async function handleSignup() {
-  const user_email_v = user_email.value.trim()
-  const user_password_v = user_password.value.trim()
+  const user_email_v = RegisterData.email.trim()
+  const user_password_v = RegisterData.password.trim()
+  const user_repwd_v = RegisterData.repwd.trim()
 
-  if (!user_email_v || !user_password_v)
+  if (!user_email_v || !user_password_v || !user_repwd_v)
     return
 
   // check user_email_v  is valid email
@@ -77,6 +90,11 @@ async function handleSignup() {
   // check password is length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character
   if (!user_password_v.match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$/)) {
     ms.error(t('error.invalidPassword'))
+    return
+  }
+
+  if (user_password_v !== user_repwd_v) {
+    ms.error(t('error.invalidRepwd'))
     return
   }
   loading.value = true
@@ -105,7 +123,7 @@ async function handleSignup() {
 </script>
 
 <template>
-  <NModal :show="visible" style="width: 90%; max-width: 640px">
+  <NModal :show="visible" style="width: 90%; max-width: 400px">
     <div class="p-10 bg-white rounded dark:bg-slate-800">
       <div class="space-y-4">
         <header class="space-y-2">
@@ -117,20 +135,64 @@ async function handleSignup() {
           </p>
           <Icon403 class="w-[200px] m-auto" />
         </header>
-        <NInput v-model:value="user_email" data-testid="email" type="text" :minlength="6"
-          :placeholder="$t('common.email_placeholder')" />
-        <NInput v-model:value="user_password" data-testid="password" type="text" :minlength="6"
-          :placeholder="$t('common.password_placeholder')" />
-        <div class="flex justify-between">
-          <NButton type="primary" data-testid="signup" :disabled="user_pass_not_filled" :loading="loading"
-            @click="handleSignup">
-            {{ $t('common.signup') }}
-          </NButton>
-          <NButton type="primary" data-testid="login" :disabled="user_pass_not_filled" :loading="loading"
-            @click="handleLogin">
-            {{ $t('common.login') }}
-          </NButton>
-        </div>
+        <NTabs
+          class="card-tabs" default-value="signin" size="large" animated
+        >
+          <NTabPane name="signin" :tab="t('common.login')" :tab-props="{ title: 'signintab' }">
+            <NForm :show-label="false">
+              <NFormItemRow label="邮箱">
+                <NInput
+                  v-model:value="LoginData.email" data-testid="email" type="text" :minlength="6"
+                  :placeholder="$t('common.email_placeholder')"
+                />
+              </NFormItemRow>
+              <NFormItemRow label="密码">
+                <NInput
+                  v-model:value="LoginData.password" data-testid="password" type="password" :minlength="6" show-password-on="click"
+                  :placeholder="$t('common.password_placeholder')"
+                />
+              </NFormItemRow>
+            </NForm>
+            <div class="flex justify-between">
+              <NButton
+                type="primary" block secondary strong data-testid="login" :disabled="login_not_filled"
+                :loading="loading" @click="handleLogin"
+              >
+                {{ $t('common.login') }}
+              </NButton>
+            </div>
+          </NTabPane>
+          <NTabPane name="signup" :tab="t('common.signup')" :tab-props="{ title: 'signuptab' }">
+            <NForm :show-label="false">
+              <NFormItemRow label="邮箱">
+                <NInput
+                  v-model:value="RegisterData.email" data-testid="signup_email" type="text" :minlength="6"
+                  :placeholder="$t('common.email_placeholder')"
+                />
+              </NFormItemRow>
+              <NFormItemRow label="密码">
+                <NInput
+                  v-model:value="RegisterData.password" data-testid="signup_password" type="password" :minlength="6" show-password-on="click"
+                  :placeholder="$t('common.password_placeholder')"
+                />
+              </NFormItemRow>
+              <NFormItemRow label="确认密码">
+                <NInput
+                  v-model:value="RegisterData.repwd" data-testid="repwd" type="password" :minlength="6" show-password-on="click"
+                  :placeholder="$t('common.password_placeholder')"
+                />
+              </NFormItemRow>
+            </NForm>
+            <div class="flex justify-between">
+              <NButton
+                type="primary" block secondary strong data-testid="signup" :disabled="register_not_filled"
+                :loading="loading" @click="handleSignup"
+              >
+                {{ $t('common.signup') }}
+              </NButton>
+            </div>
+          </NTabPane>
+        </NTabs>
       </div>
     </div>
   </NModal>
