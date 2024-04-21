@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue'
 import { NInput, NPopconfirm, NScrollbar, useMessage } from 'naive-ui'
 import { renameChatSession } from '@/api'
 import { SvgIcon } from '@/components/common'
-import { useAppStore, useChatStore } from '@/store'
+import { useAppStore, useAuthStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import ModelAvatar from '@/views/components/Avatar/ModelAvatar.vue'
 import { t } from '@/locales'
@@ -13,11 +13,14 @@ const nui_msg = useMessage()
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
+const authStore = useAuthStore()
 
 const dataSources = computed(() => chatStore.history)
+const isLogined = computed(() => Boolean(authStore.token))
 
 onMounted(async () => {
-  await handleSyncChat()
+  if (isLogined.value)
+    await handleSyncChat()
 })
 async function handleSyncChat() {
   // if (chatStore.history.length == 1 && chatStore.history[0].title == 'New Chat'
