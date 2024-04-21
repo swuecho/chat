@@ -138,7 +138,7 @@ async function handleSignup() {
         <NTabs
           class="card-tabs" default-value="signin" size="large" animated
         >
-          <NTabPane name="signin" :tab="t('common.login')">
+          <NTabPane name="signin" :tab="t('common.login')" :tab-props="{ title: 'signintab' }">
             <NForm :show-label="false">
               <NFormItemRow label="邮箱">
                 <NInput
@@ -162,7 +162,7 @@ async function handleSignup() {
               </NButton>
             </div>
           </NTabPane>
-          <NTabPane name="signup" :tab="t('common.signup')">
+          <NTabPane name="signup" :tab="t('common.signup')" :tab-props="{ title: 'signuptab' }">
             <NForm :show-label="false">
               <NFormItemRow label="邮箱">
                 <NInput
@@ -178,7 +178,7 @@ async function handleSignup() {
               </NFormItemRow>
               <NFormItemRow label="确认密码">
                 <NInput
-                  v-model:value="RegisterData.repwd" data-testid="password" type="password" :minlength="6" show-password-on="click"
+                  v-model:value="RegisterData.repwd" data-testid="repwd" type="password" :minlength="6" show-password-on="click"
                   :placeholder="$t('common.password_placeholder')"
                 />
               </NFormItemRow>
