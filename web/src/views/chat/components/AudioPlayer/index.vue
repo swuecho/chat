@@ -5,7 +5,7 @@ import request from '@/utils/request/axios'
 
 interface Props {
         text: string
-        right: boolean
+        right?: boolean
 }
 
 const props = defineProps<Props>()
