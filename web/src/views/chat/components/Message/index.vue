@@ -93,7 +93,7 @@ function handleRegenerate() {
 
 <template>
   <p class="text-xs text-[#b4bbc4] text-center">{{ displayLocaleDate(dateTime) }}</p>
-  <div class="flex w-full mb-6 overflow-hidden" :class="[{ 'flex-row-reverse': inversion }]">
+  <div class="flex w-full mb-6 overflow-hidden chat-message" :class="[{ 'flex-row-reverse': inversion }]">
     <div class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
       :class="[inversion ? 'ml-2' : 'mr-2']">
       <AvatarComponent :inversion="inversion" :model="model" />
