@@ -90,6 +90,32 @@ OPENAI_RATELIMIT=0
 
 <img width="750" alt="image" src="https://user-images.githubusercontent.com/666683/232227529-284289a8-1336-49dd-b5c6-8e8226b9e862.png">
 
+
+## 使用本地Ollama 模型
+
+1. 安装ollma 并下载模型
+```
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull mistral
+```
+
+![image](https://github.com/swuecho/chat/assets/666683/3695c088-4dcd-4ff4-9a75-6b9d44186a4b)
+
+2. 在 Chat Admin 页面配置模型
+
+<img width="1293" alt="image" src="https://github.com/swuecho/chat/assets/666683/65cfca8a-edbf-4fa2-844c-c3b536b32cd0">
+
+id: ollama-{modelName}  # modelName 与 pull的 ollama 模型 一致， 比如 mistral, ollama3, ollama2
+name: does not matter, naming as you like, 
+baseUrl: http://hostname:11434/api/generate
+other fields is irrelevant.
+
+id 和 baseUrl 这两个地方配置对即可。
+
+enjoy!
+
+
+
 ## 致谢
 
 - web: [ChatGPT-Web](https://github.com/Chanzhaoyu/chatgpt-web) 复制过来的 。
