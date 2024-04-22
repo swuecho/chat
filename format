@@ -95,7 +95,7 @@ OPENAI_RATELIMIT=0
 
 ## 使用本地Ollama 模型
 
-1. 安装ollma 并下载模型
+1. 安装ollama 并下载模型
 ```
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull mistral
@@ -109,11 +109,12 @@ linux 下，默认的systemd 的配置限制了本机访问， 需要改HOST 能
 
 <img width="1293" alt="image" src="https://github.com/swuecho/chat/assets/666683/65cfca8a-edbf-4fa2-844c-c3b536b32cd0">
 
+```
 id: ollama-{modelName}  # modelName 与 pull的 ollama 模型 一致， 比如 mistral, ollama3, ollama2
 name: does not matter, naming as you like, 
 baseUrl: http://hostname:11434/api/generate
 other fields is irrelevant.
-
+````
 id 和 baseUrl 这两个地方配置对即可。
 
 enjoy!
@@ -172,12 +173,12 @@ ollama pull mistral
 2. config ollama model in chat admin
 
 <img width="1293" alt="image" src="https://github.com/swuecho/chat/assets/666683/65cfca8a-edbf-4fa2-844c-c3b536b32cd0">
-
+```
 id: ollama-{modelName}
 name: does not matter, naming as you like
 baseUrl: http://hostname:11434/api/generate
 other fields is irrelevant.
-
+```
 enjoy!
 
 ## Acknowledgments
