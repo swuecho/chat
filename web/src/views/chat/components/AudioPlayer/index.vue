@@ -5,6 +5,7 @@ import request from '@/utils/request/axios'
 
 interface Props {
         text: string
+        right?: boolean
 }
 
 const props = defineProps<Props>()
@@ -51,11 +52,13 @@ async function playAudio() {
 
 
 <template>
+        <div :align="props.right ? 'right' : undefined ">
         <HoverButton :tooltip="$t('chat.playAudio')" @click="playAudio">
                 <span class="text-xl text-[#4f555e] dark:text-white">
-                        <SvgIcon icon="system-uicons:audio-wave" />
+                        <SvgIcon icon="wpf:audio-wave" />
                 </span>
         </HoverButton>
         <audio ref="soundPlayer" id="audio" autoplay :src="source" v-if="isActive" controls></audio>
+        </div>
 </template>
       
