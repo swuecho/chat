@@ -101,6 +101,8 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama pull mistral
 ```
 
+linux 下，默认的systemd 的配置限制了本机访问， 需要改HOST 能远程访问，如果ollama 和chat 在同一个host， 则不存在这个问题
+
 ![image](https://github.com/swuecho/chat/assets/666683/3695c088-4dcd-4ff4-9a75-6b9d44186a4b)
 
 2. 在 Chat Admin 页面配置模型
