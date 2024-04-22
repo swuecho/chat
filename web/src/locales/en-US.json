@@ -158,6 +158,8 @@
         "chatHistory": "Chat History",
         "config": "Configuration",
         "description": "Description",
+        "defaultName": "New user",
+        "defaultDesc": "New description",
         "general": "Overview",
         "language": "Language",
         "name": "Name",

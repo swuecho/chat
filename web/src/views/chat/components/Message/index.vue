@@ -6,6 +6,7 @@ import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
 import { SvgIcon } from '@/components/common'
 import { copyText } from '@/utils/format'
 import { useIconRender } from '@/hooks/useIconRender'
+import { useUserStore } from '@/store'
 import { t } from '@/locales'
 import { displayLocaleDate } from '@/utils/date'
 import AudioPlayer from "../AudioPlayer/index.vue"
@@ -39,6 +40,9 @@ const { iconRender } = useIconRender()
 const textRef = ref<HTMLElement>()
 
 const editable = ref(false)
+
+const userStore = useUserStore()
+const userInfo = computed(() => userStore.userInfo)
 
 const options = [
   {
@@ -88,14 +92,15 @@ function handleRegenerate() {
 </script>
 
 <template>
+  <p class="text-xs text-[#b4bbc4] text-center">{{ displayLocaleDate(dateTime) }}</p>
   <div class="flex w-full mb-6 overflow-hidden" :class="[{ 'flex-row-reverse': inversion }]">
     <div class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
       :class="[inversion ? 'ml-2' : 'mr-2']">
       <AvatarComponent :inversion="inversion" :model="model" />
     </div>
     <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
-      <p class="text-xs text-[#b4bbc4]" :class="[inversion ? 'text-right' : 'text-left']">
-        {{ displayLocaleDate(dateTime) }} {{ model }}
+      <p :class="[inversion ? 'text-right' : 'text-left']">
+        {{ !inversion ? model : userInfo.name || $t('setting.defaultName') }}
       </p>
       <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
         <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
@@ -120,7 +125,7 @@ function handleRegenerate() {
           </NDropdown>
         </div>
       </div>
-      <AudioPlayer :text="text || ''"></AudioPlayer>
+      <AudioPlayer :text="text || ''" :right="inversion"></AudioPlayer>
     </div>
   </div>
 </template>

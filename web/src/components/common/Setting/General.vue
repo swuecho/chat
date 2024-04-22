@@ -16,9 +16,9 @@ const theme = computed(() => appStore.theme)
 
 const userInfo = computed(() => userStore.userInfo)
 
-const name = ref(userInfo.value.name ?? '')
+const name = ref(userInfo.value.name || t('setting.defaultName'))
 
-const description = ref(userInfo.value.description ?? '')
+const description = ref(userInfo.value.description || t('setting.defaultDesc'))
 
 const themeOptions: { label: string; key: Theme; icon: string }[] = [
   {
