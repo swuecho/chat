@@ -157,6 +157,25 @@ only adds rate limiting to trusted emails, so even if someone registers, it will
 
 This helps ensure only authorized users can access the deployed system by limiting registration to trusted emails and enabling rate limiting controls.
 
+1. download ollama and pull mistral model.
+```
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull mistral
+```
+
+![image](https://github.com/swuecho/chat/assets/666683/3695c088-4dcd-4ff4-9a75-6b9d44186a4b)
+
+2. config ollama model in chat admin
+
+<img width="1293" alt="image" src="https://github.com/swuecho/chat/assets/666683/65cfca8a-edbf-4fa2-844c-c3b536b32cd0">
+
+id: ollama-{modelName}
+name: does not matter, naming as you like
+baseUrl: http://hostname:11434/api/generate
+other fields is irrelevant.
+
+enjoy!
+
 ## Acknowledgments
 
 - web: copied from chatgpt-web <https://github.com/Chanzhaoyu/chatgpt-web>
