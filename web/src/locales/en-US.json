@@ -80,6 +80,7 @@
         "new": "New Chat",
         "placeholder": "What would you like to say... (Shift + Enter = newline, '/' to trigger prompts)",
         "placeholderMobile": "What would you like to say...",
+        "playAudio": "audio",
         "presencePenalty": "Presence Penalty",
         "sessionConfig": "Conversation Settings:",
         "snapshotSuccess": "Snapshot successful, please view in a new tab",

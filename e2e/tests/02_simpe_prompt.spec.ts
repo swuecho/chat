@@ -24,6 +24,7 @@ test('test', async ({ page }) => {
   await page.getByTestId('repwd').locator('input').click();
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
+  await page.waitForTimeout(2000);
 
   // locate by id #message_texarea and click
   // Find the element by Id and click on it
@@ -31,6 +32,7 @@ test('test', async ({ page }) => {
   //await messageTextArea?.click();
   //await messageTextArea?.fill('test_demo_bestqa');
   await page.getByTestId("message_textarea").click()
+  await page.waitForTimeout(1000);
   const input_area = await page.$("#message_textarea textarea")
   await input_area?.fill('test_demo_bestqa');
   // await page.fill("#message_textarea", 'test_demo_bestqa');
