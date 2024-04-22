@@ -207,7 +207,7 @@ async function onConversationStream() {
       const response = error.response
       if (response.status >= 400)
         nui_msg.error(response.data.message)
-      loading.value = false
+        loading.value = false
     }
   }
 
@@ -536,23 +536,23 @@ function getDataFromResponseText(responseText: string): string {
             <PromptGallery @usePrompt="handleUsePrompt"></PromptGallery>
           </template>
           <template v-else>
-            <div>
-              <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
+            <div >
+              <Message  v-for="(item, index) of dataSources" :key="index"  :date-time="item.dateTime"
                 :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
                 @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @toggle-pin="handleTogglePin(index)"
                 @after-edit="handleAfterEdit" />
-
+             
               <!--
               <div class="sticky bottom-0 left-0 flex justify-center">
                 <NButton v-if="loading" type="warning" @click="handleStop">
                   <template #icon>
                     <SvgIcon icon="ri:stop-circle-line" />
                   </template>
-{{ $t('chat.stopAnswer') }}
-</NButton>
-</div>
--->
+                  {{ $t('chat.stopAnswer') }}
+                </NButton>
+              </div>
+              -->
             </div>
           </template>
         </div>
@@ -588,8 +588,8 @@ function getDataFromResponseText(responseText: string): string {
             :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
               <NInput id="message_textarea" v-model:value="prompt" type="textarea" :placeholder="placeholder"
-                data-testid="message_textarea" :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
-                @input="handleInput" @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
+                data-testid="message_textarea" :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput"
+                @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
             </template>
           </NAutoComplete>
           <NButton id="send_message_button" data-testid="send_message_button" type="primary"
