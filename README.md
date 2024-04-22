@@ -96,6 +96,7 @@ OPENAI_RATELIMIT=0
 ## 使用本地Ollama 模型
 
 1. 安装ollama 并下载模型
+   
 ```
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull mistral
@@ -114,7 +115,7 @@ id: ollama-{modelName}  # modelName 与 pull的 ollama 模型 一致， 比如 m
 name: does not matter, naming as you like, 
 baseUrl: http://hostname:11434/api/generate
 other fields is irrelevant.
-````
+```
 id 和 baseUrl 这两个地方配置对即可。
 
 enjoy!
@@ -163,6 +164,7 @@ only adds rate limiting to trusted emails, so even if someone registers, it will
 This helps ensure only authorized users can access the deployed system by limiting registration to trusted emails and enabling rate limiting controls.
 
 1. download ollama and pull mistral model.
+   
 ```
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull mistral
@@ -173,12 +175,14 @@ ollama pull mistral
 2. config ollama model in chat admin
 
 <img width="1293" alt="image" src="https://github.com/swuecho/chat/assets/666683/65cfca8a-edbf-4fa2-844c-c3b536b32cd0">
+
 ```
 id: ollama-{modelName}
 name: does not matter, naming as you like
 baseUrl: http://hostname:11434/api/generate
 other fields is irrelevant.
 ```
+
 enjoy!
 
 ## Acknowledgments
