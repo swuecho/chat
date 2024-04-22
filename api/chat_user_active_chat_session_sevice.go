@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"database/sql"
 	"github.com/rotisserie/eris"
 	sqlc "github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -38,9 +37,6 @@ func (s *UserActiveChatSessionService) CreateOrUpdateUserActiveChatSession(ctx c
 func (s *UserActiveChatSessionService) GetUserActiveChatSession(ctx context.Context, user_id int32) (sqlc.UserActiveChatSession, error) {
 	session, err := s.q.GetUserActiveChatSession(ctx, user_id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return sqlc.UserActiveChatSession{}, nil
-		}
 		return sqlc.UserActiveChatSession{}, err
 	}
 	return session, nil
