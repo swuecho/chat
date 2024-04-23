@@ -78,6 +78,7 @@ type SimpleChatSession struct {
 	MaxTokens   int32   `json:"maxTokens"`
 	Debug       bool    `json:"debug"`
 	Model       string  `json:"model"`
+	SummarizeMode bool  `json:"summarizeMode"`
 }
 
 type ChatMessageResponse struct {

@@ -67,6 +67,7 @@ const debouneUpdate = debounce(async (model: ModelType) => {
     n: model.n,
     debug: model.debug,
     model: model.chatModel,
+    summarizeMode: model.summarizeMode,
   })
 }, 200)
 

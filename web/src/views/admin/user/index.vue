@@ -99,7 +99,7 @@ const columns = [
     width: 100,
     render: (row: any, index: number) => {
       return h(NInput, {
-        value: row.rateLimit,
+        value: row.rateLimit.toString(),
         width: 50,
         async onUpdateValue(v: string) {
           try {

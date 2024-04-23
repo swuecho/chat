@@ -90,6 +90,7 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 			MaxTokens:   session.MaxTokens,
 			Debug:       session.Debug,
 			Model:       session.Model,
+			SummarizeMode: session.SummarizeMode,
 		}
 	})
 	return simple_sessions, nil

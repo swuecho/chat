@@ -60,7 +60,7 @@ function createColumns(): DataTableColumns<RowData> {
     width: 250,
     render(row: RowData, index: number) {
       return h(NInput, {
-        value: row.rateLimit,
+        value: row.rateLimit.toString(),
         onUpdateValue(v: string) {
           // assuming that `data` is an array of FormData objects
           data.value[index].rateLimit = v
