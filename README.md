@@ -107,8 +107,8 @@ linux 下，默认的systemd 的配置限制了本机访问， 需要改HOST 能
 ![image](https://github.com/swuecho/chat/assets/666683/3695c088-4dcd-4ff4-9a75-6b9d44186a4b)
 
 2. 在 Chat Admin 页面配置模型
+![image](https://github.com/swuecho/chat/assets/666683/bc1d111f-7bd4-458d-bfed-0a0a5611809f)
 
-<img width="1293" alt="image" src="https://github.com/swuecho/chat/assets/666683/65cfca8a-edbf-4fa2-844c-c3b536b32cd0">
 
 ```
 id: ollama-{modelName}  # modelName 与 pull的 ollama 模型 一致， 比如 mistral, ollama3, ollama2
@@ -169,8 +169,7 @@ This helps ensure only authorized users can access the deployed system by limiti
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull mistral
 ```
-
-![image](https://github.com/swuecho/chat/assets/666683/3695c088-4dcd-4ff4-9a75-6b9d44186a4b)
+![image](https://github.com/swuecho/chat/assets/666683/bc1d111f-7bd4-458d-bfed-0a0a5611809f)
 
 2. config ollama model in chat admin
 
