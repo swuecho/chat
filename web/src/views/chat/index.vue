@@ -190,6 +190,7 @@ async function onConversationStream() {
                     loading: false,
                   },
                 )
+                scrollToBottom()
               }
               catch (error) {
                 // eslint-disable-next-line no-console
@@ -537,7 +538,7 @@ function getDataFromResponseText(responseText: string): string {
           </template>
           <template v-else>
             <div>
-              <Message v-for="(item, index) of dataSources" :key="index"  :date-time="item.dateTime"
+              <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
                 :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
                 @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @toggle-pin="handleTogglePin(index)"

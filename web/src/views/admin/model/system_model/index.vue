@@ -119,7 +119,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     width: 100,
     render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
-        value: row.orderNumber,
+        value: row.orderNumber?.toString(),
         width: 5,
         onUpdateValue(v: string) {
           // Assuming `data` is an array of FormData objects
@@ -136,7 +136,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     width: 100,
     render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
-        value: row.defaultToken,
+        value: row.defaultToken?.toString(),
         width: 5,
         onUpdateValue(v: string) {
           // Assuming `data` is an array of FormData objects
@@ -153,7 +153,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     width: 100,
     render(row: Chat.ChatModel, index: number) {
       return h(NInput, {
-        value: row.maxToken,
+        value: row.maxToken?.toString(),
         width: 5,
         onUpdateValue(v: string) {
           // Assuming `data` is an array of FormData objects

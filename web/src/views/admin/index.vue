@@ -4,7 +4,7 @@ import { computed, h, reactive, ref } from 'vue'
 import { NIcon, NLayout, NLayoutSider, NMenu } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
 import { PulseOutline, ShieldCheckmarkOutline } from '@vicons/ionicons5'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import Permission from '@/views/components/Permission.vue'
 import { t } from '@/locales'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
@@ -15,11 +15,14 @@ const { isMobile } = useBasicLayout()
 
 // login modal will appear when there is no token
 const authStore = useAuthStore()
+const currentRoute = useRoute()
+const USER_ROUTE = 'AdminUser'
+const MODEL_ROUTE = 'AdminModel'
 
 const needPermission = computed(() => !authStore.token) // || (!!authStore.token && authStore.expiresIn < Date.now() / 1000))
 
 const collapsed: Ref<boolean> = ref(true)
-const activeKey: Ref<string> = ref('rateLimit')
+const activeKey = ref(currentRoute.name?.toString())
 
 const getMobileClass = computed<CSSProperties>(() => {
   if (isMobile.value) {
@@ -43,12 +46,12 @@ const menuOptions: MenuOption[] = reactive([
           RouterLink,
           {
             to: {
-              name: 'AdminUser',
+              name: USER_ROUTE,
             },
           },
           { default: () => t('admin.rateLimit') },
         ),
-    key: 'rateLimit',
+    key: USER_ROUTE,
     icon: renderIcon(PulseOutline),
   },
   {
@@ -56,12 +59,12 @@ const menuOptions: MenuOption[] = reactive([
       RouterLink,
       {
         to: {
-          name: 'AdminModel',
+          name: MODEL_ROUTE,
         },
       },
       { default: () => t('admin.model') },
     ),
-    key: 'model',
+    key: MODEL_ROUTE,
     icon: renderIcon(ShieldCheckmarkOutline),
   },
 ])
@@ -88,7 +91,7 @@ function handleUpdateCollapsed() {
                 <SvgIcon v-else class="text-2xl" icon="ri:align-right" />
               </button>
             </div>
-            <h1  v-if="!isMobile" class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
+            <h1 v-if="!isMobile" class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
               Admin
             </h1>
             <!-- <div class="flex items-center space-x-2">
@@ -112,7 +115,7 @@ function handleUpdateCollapsed() {
             :style="getMobileClass" @collapse="collapsed = true" @expand="collapsed = false"
           >
             <NMenu
-              v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"
+              v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22" @update:value="handleUpdateCollapsed"
               :options="menuOptions"
             />
           </NLayoutSider>

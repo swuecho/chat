@@ -3,6 +3,7 @@ import { NTabPane, NTabs } from 'naive-ui'
 import { ref } from 'vue'
 import PerModelRatelimit from './per_mode_ratelimit/index.vue'
 import SystemModel from './system_model/index.vue'
+import { SvgIcon } from '@/components/common'
 const active = ref('System')
 </script>
 
