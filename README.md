@@ -113,7 +113,7 @@ linux 下，默认的systemd 的配置限制了本机访问， 需要改HOST 能
 ```
 id: ollama-{modelName}  # modelName 与 pull的 ollama 模型 一致， 比如 mistral, ollama3, ollama2
 name: does not matter, naming as you like, 
-baseUrl: http://hostname:11434/api/generate
+baseUrl: http://hostname:11434/api/chat
 other fields is irrelevant.
 ```
 id 和 baseUrl 这两个地方配置对即可。
@@ -179,7 +179,7 @@ ollama pull mistral
 ```
 id: ollama-{modelName}
 name: does not matter, naming as you like
-baseUrl: http://hostname:11434/api/generate
+baseUrl: http://hostname:11434/api/chat
 other fields is irrelevant.
 ```
 
