@@ -46,9 +46,9 @@ export const useChatStore = defineStore('chat-store', {
       return (uuid?: string) => {
         if (uuid)
           return state.chat[uuid] ?? []
-        return (
-          state.chat[state.active] ?? []
-        )
+        if (state.active)
+          return state.chat[state.active] ?? []
+        return []
       }
     },
   },
