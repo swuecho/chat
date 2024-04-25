@@ -37,8 +37,9 @@ const { scrollRef, scrollToBottom } = useScroll()
 // session uuid
 const { uuid } = route.params as { uuid: string }
 const sessionUuid = uuid
+chatStore.syncChatMessages(sessionUuid)
 const dataSources = computed(() => chatStore.getChatSessionDataByUuid(sessionUuid))
-const chatSession = computed(() => chatStore.getChatSessionByUuid(uuid))
+const chatSession = computed(() => chatStore.getChatSessionByUuid(sessionUuid))
 
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
