@@ -45,9 +45,9 @@ export const useChatStore = defineStore('chat-store', {
     getChatSessionDataByUuid(state: Chat.ChatState) {
       return (uuid?: string) => {
         if (uuid)
-          return state.chat.find(item => item.uuid === uuid)?.data ?? []
+          return state.chat[uuid] ?? []
         return (
-          state.chat.find(item => item.uuid === state.active)?.data ?? []
+          state.chat[state.active] ?? []
         )
       }
     },
@@ -66,12 +66,8 @@ export const useChatStore = defineStore('chat-store', {
     async syncChatSessions() {
       const sessions = await getChatSessionsByUser()
       this.history = []
-      this.chat = []
       await sessions.forEach(async (r: Chat.Session) => {
         this.history.unshift(r)
-        const chatData = await getChatSessionHistory(r.uuid)
-        // chatData.uuid = chatData?.uuid
-        this.chat.unshift({ uuid: r.uuid, data: chatData })
       })
       if (this.history.length === 0) {
         const new_chat_text = t('chat.new')
@@ -88,10 +84,18 @@ export const useChatStore = defineStore('chat-store', {
       this.reloadRoute(this.active)
     },
 
+    async syncChatMessages(need_uuid: string) {
+      if (need_uuid) {
+        const messageData = await getChatSessionHistory(need_uuid)
+        this.chat[need_uuid] = messageData
+        this.reloadRoute(need_uuid)
+      }
+    },
+
     addChatSession(history: Chat.Session, chatData: Chat.Message[] = []) {
       createChatSession(history.uuid, history.title, history.model)
       this.history.unshift(history)
-      this.chat.unshift({ uuid: history.uuid, data: chatData })
+      this.chat[history.uuid] = chatData
       this.active = history.uuid
       this.reloadRoute(history.uuid)
     },
@@ -108,8 +112,8 @@ export const useChatStore = defineStore('chat-store', {
 
     deleteChatSession(index: number) {
       deleteChatSession(this.history[index].uuid)
+      delete this.chat[this.history[index].uuid]
       this.history.splice(index, 1)
-      this.chat.splice(index, 1)
 
       if (this.history.length === 0) {
         this.active = null
@@ -146,19 +150,21 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     getChatByUuidAndIndex(uuid: string, index: number) {
+      const keys = Object.keys(this.chat)
       if (!uuid) {
-        if (this.chat.length)
-          return this.chat[0].data[index]
+        if (keys.length)
+          return this.chat[uuid][index]
         return null
       }
-      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
-      if (chatIndex !== -1)
-        return this.chat[chatIndex].data[index]
+      // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      if (keys.includes(uuid))
+        return this.chat[uuid][index]
       return null
     },
 
     async addChatByUuid(uuid: string, chat: Chat.Message) {
       const new_chat_text = t('chat.new')
+      const keys = Object.keys(this.chat)
       if (!uuid) {
         if (this.history.length === 0) {
           const uuid = uuidv4()
@@ -167,12 +173,14 @@ export const useChatStore = defineStore('chat-store', {
           createChatSession(uuid, chat.text, default_model_parameters.model)
           this.history.push({ uuid, title: chat.text, isEdit: false })
           // first chat message is prompt
-          this.chat.push({ uuid, data: [{ ...chat, isPrompt: true, isPin: false }] })
+          // this.chat.push({ uuid, data: [{ ...chat, isPrompt: true, isPin: false }] })
+          this.chat[uuid] = [{ ...chat, isPrompt: true, isPin: false }]
           this.active = uuid
           this.recordState()
         }
         else {
-          this.chat[0].data.push(chat)
+          // this.chat[0].data.push(chat)
+          this.chat[keys[0]].push(chat)
           if (this.history[0].title === new_chat_text) {
             this.history[0].title = chat.text
             renameChatSession(this.history[0].uuid, chat.text.substring(0, 20))
@@ -181,12 +189,12 @@ export const useChatStore = defineStore('chat-store', {
         }
       }
 
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      if (index !== -1) {
-        if (this.chat[index].data.length === 0)
-          this.chat[index].data.push({ ...chat, isPrompt: true, isPin: false })
+      // const index = this.chat.findIndex(item => item.uuid === uuid)
+      if (keys.includes(uuid)) {
+        if (this.chat[uuid].length === 0)
+          this.chat[uuid].push({ ...chat, isPrompt: true, isPin: false })
         else
-          this.chat[index].data.push(chat)
+          this.chat[uuid].push(chat)
 
         if (this.history[0].title === new_chat_text) {
           this.history[0].title = chat.text
@@ -198,17 +206,18 @@ export const useChatStore = defineStore('chat-store', {
 
     async updateChatByUuid(uuid: string, index: number, chat: Chat.Message) {
       // TODO: sync with server
+      const keys = Object.keys(this.chat)
       if (!uuid) {
-        if (this.chat.length) {
-          this.chat[0].data[index] = chat
+        if (keys.length) {
+          this.chat[keys[0]][index] = chat
           this.recordState()
         }
         return
       }
 
-      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
-      if (chatIndex !== -1) {
-        this.chat[chatIndex].data[index] = chat
+      // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      if (keys.includes(uuid)) {
+        this.chat[uuid][index] = chat
         this.recordState()
       }
     },
@@ -218,18 +227,19 @@ export const useChatStore = defineStore('chat-store', {
       index: number,
       chat: Partial<Chat.Message>,
     ) {
+      const keys = Object.keys(this.chat)
       if (!uuid) {
-        if (this.chat.length) {
-          this.chat[0].data[index] = { ...this.chat[0].data[index], ...chat }
+        if (keys.length) {
+          this.chat[keys[0]][index] = { ...this.chat[keys[0]][index], ...chat }
           this.recordState()
         }
         return
       }
 
-      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
-      if (chatIndex !== -1) {
-        this.chat[chatIndex].data[index] = {
-          ...this.chat[chatIndex].data[index],
+      // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      if (keys.includes(uuid)) {
+        this.chat[uuid][index] = {
+          ...this.chat[uuid][index],
           ...chat,
         }
         this.recordState()
@@ -237,9 +247,10 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     async deleteChatByUuid(uuid: string, index: number) {
+      const keys = Object.keys(this.chat)
       if (!uuid) {
-        if (this.chat.length) {
-          const chatData = this.chat[0].data
+        if (keys.length) {
+          const chatData = this.chat[keys[0]]
           const chat = chatData[index]
           chatData.splice(index, 1)
           this.recordState()
@@ -249,9 +260,9 @@ export const useChatStore = defineStore('chat-store', {
         return
       }
 
-      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
-      if (chatIndex !== -1) {
-        const chatData = this.chat[chatIndex].data
+      // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      if (keys.includes(uuid)) {
+        const chatData = this.chat[uuid]
         const chat = chatData[index]
         chatData.splice(index, 1)
         this.recordState()
@@ -262,29 +273,30 @@ export const useChatStore = defineStore('chat-store', {
 
     clearChatByUuid(uuid: string) {
       // does this every happen?
+      const keys = Object.keys(this.chat)
       if (!uuid) {
-        if (this.chat.length) {
-          this.chat[0].data = []
+        if (keys.length) {
+          this.chat[keys[0]] = []
           this.recordState()
         }
         return
       }
 
-      const index = this.chat.findIndex(item => item.uuid === uuid)
-      if (index !== -1) {
+      // const index = this.chat.findIndex(item => item.uuid === uuid)
+      if (keys.includes(uuid)) {
         const data: Chat.Message[] = []
-        for (const chat of this.chat[index].data) {
+        for (const chat of this.chat[uuid]) {
           if (chat.isPin || chat.isPrompt)
             data.push(chat)
         }
-        this.chat[index].data = data
+        this.chat[uuid] = data
         clearSessionChatMessages(uuid)
         this.recordState()
       }
     },
     clearState() {
       this.history = []
-      this.chat = []
+      this.chat = {}
       this.active = null
       this.recordState()
     },
