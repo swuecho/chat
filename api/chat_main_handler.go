@@ -750,7 +750,12 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	// first message is user instead of system
 	var messages []openai.ChatCompletionMessage
 	if len(chat_compeletion_messages) > 1 {
-		messages = messagesToOpenAIMesages(chat_compeletion_messages[1:])
+		// first message used as system message and first user message
+		chat_compeletion_messages[0].Role = "user"
+		messages = messagesToOpenAIMesages(chat_compeletion_messages)
+	} else {
+		chat_compeletion_messages[0].Role = "user"
+		messages = messagesToOpenAIMesages(chat_compeletion_messages)
 	}
 	// create the json data
 	jsonData := map[string]interface{}{
@@ -819,7 +824,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		answer_id = chatUuid
 	}
 
-	var headerData = []byte("event: ")
+	var headerData = []byte("data: ")
 	count := 0
 	for {
 		count++
@@ -828,29 +833,28 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			break
 		}
 		line, err := ioreader.ReadBytes('\n')
-		log.Println(line)
+
 		if err != nil {
 			return "", "", true
 		}
 		line = bytes.TrimPrefix(line, headerData)
 
-		if bytes.HasPrefix(line, []byte("content_block_stop")) {
+		if bytes.HasPrefix(line, []byte("[DONE]")) {
 			// stream.isFinished = true
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
 			break
 		}
+		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
+			log.Println(string(line))
+			RespondWithError(w, http.StatusInternalServerError, string(line), nil)
+			return "", "", true
+		}
 		if answer_id == "" {
 			answer_id = uuid.NewString()
 		}
-		if bytes.HasPrefix(line, []byte("content_block_start")) {
-			// reader next line
-			line, err := ioreader.ReadBytes('\n')
-			log.Println(line)
-			if err != nil {
-				return "", "", true
-			}
+		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
 			var response StartBlock
 			_ = json.Unmarshal(line, &response)
 			answer = response.ContentBlock.Text
@@ -860,16 +864,10 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 				flusher.Flush()
 			}
 		}
-		if bytes.HasPrefix(line, []byte("content_block_delta")) {
-			// reader next line
-			line, err := ioreader.ReadBytes('\n')
-			log.Println(line)
-			if err != nil {
-				return "", "", true
-			}
+		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
 			var response ContentBlockDelta
 			_ = json.Unmarshal(line, &response)
-			answer += response.Delta.Text
+			answer = response.Delta.Text
 			if len(answer) < 200 || len(answer)%2 == 0 {
 				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
