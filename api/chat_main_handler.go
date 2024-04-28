@@ -262,6 +262,11 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 	model := chat_session.Model
 	isTestChat := isTest(msgs)
 	isClaude := strings.HasPrefix(model, "claude")
+	isClaude3 := false
+	if strings.HasPrefix(model, "claude-3") {
+		isClaude = false
+		isClaude3 = true
+	}
 	isChatGPT := strings.HasPrefix(model, "gpt")
 	isOllama := strings.HasPrefix(model, "ollama-")
 	isGemini := strings.HasPrefix(model, "gemini")
@@ -275,6 +280,8 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 	chatStreamFn := h.customChatStream
 	if isClaude {
 		chatStreamFn = h.chatStreamClaude
+	} else if isClaude3 {
+		chatStreamFn = h.chatStreamClaude3
 	} else if isTestChat {
 		chatStreamFn = h.chatStreamTest
 	} else if isChatGPT {
@@ -688,6 +695,184 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
+		}
+	}
+
+	return answer, answer_id, false
+}
+
+type Delta struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type ContentBlockDelta struct {
+	Type  string `json:"type"`
+	Index int    `json:"index"`
+	Delta Delta  `json:"delta"`
+}
+
+type ContentBlock struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type StartBlock struct {
+	Type         string       `json:"type"`
+	Index        int          `json:"index"`
+	ContentBlock ContentBlock `json:"content_block"`
+}
+
+// claude-3-opus-20240229
+// claude-3-sonnet-20240229
+// claude-3-haiku-20240307
+func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
+	claudeRateLimiteToken <- struct{}{}
+	log.Printf("%+v", chatSession)
+	// Release the API token
+	defer func() { <-claudeRateLimiteToken }()
+	// set the api key
+	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
+	log.Printf("%+v", chatModel)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		return "", "", true
+	}
+
+	// create a new strings.Builder
+	// iterate through the messages and format them
+	// print the user's question
+	// convert assistant's response to json format
+	//     "messages": [
+	//	{"role": "user", "content": "Hello, world"}
+	//	]
+	// first message is user instead of system
+	var messages []openai.ChatCompletionMessage
+	if len(chat_compeletion_messages) > 1 {
+		// first message used as system message and first user message
+		chat_compeletion_messages[0].Role = "user"
+		messages = messagesToOpenAIMesages(chat_compeletion_messages)
+	} else {
+		chat_compeletion_messages[0].Role = "user"
+		messages = messagesToOpenAIMesages(chat_compeletion_messages)
+	}
+	// create the json data
+	jsonData := map[string]interface{}{
+		"system":      chat_compeletion_messages[0].Content,
+		"model":       chatSession.Model,
+		"messages":    messages,
+		"max_tokens":  chatSession.MaxTokens,
+		"temperature": chatSession.Temperature,
+		"top_p":       chatSession.TopP,
+		"stream":      true,
+	}
+	log.Printf("%+v", jsonData)
+
+	// convert data to json format
+	jsonValue, _ := json.Marshal(jsonData)
+	// create the request
+	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
+
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
+		return "", "", true
+	}
+
+	// add headers to the request
+	apiKey := os.Getenv(chatModel.ApiAuthKey)
+	authHeaderName := chatModel.ApiAuthHeader
+	if authHeaderName != "" {
+		req.Header.Set(authHeaderName, apiKey)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// set the streaming flag
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Connection", "keep-alive")
+
+	// create the http client and send the request
+	client := &http.Client{
+		Timeout: 2 * time.Minute,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		return "", "", true
+	}
+
+	ioreader := bufio.NewReader(resp.Body)
+
+	// read the response body
+	defer resp.Body.Close()
+	// loop over the response body and print data
+
+	setSSEHeader(w)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		return "", "", true
+	}
+
+	var answer string
+	var answer_id string
+
+	if regenerate {
+		answer_id = chatUuid
+	}
+
+	var headerData = []byte("data: ")
+	count := 0
+	for {
+		count++
+		// prevent infinite loop
+		if count > 10000 {
+			break
+		}
+		line, err := ioreader.ReadBytes('\n')
+
+		if err != nil {
+			return "", "", true
+		}
+		line = bytes.TrimPrefix(line, headerData)
+
+		if bytes.HasPrefix(line, []byte("[DONE]")) {
+			// stream.isFinished = true
+			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
+			break
+		}
+		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
+			log.Println(string(line))
+			RespondWithError(w, http.StatusInternalServerError, string(line), nil)
+			return "", "", true
+		}
+		if answer_id == "" {
+			answer_id = uuid.NewString()
+		}
+		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
+			var response StartBlock
+			_ = json.Unmarshal(line, &response)
+			answer = response.ContentBlock.Text
+			if len(answer) < 200 || len(answer)%2 == 0 {
+				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+				fmt.Fprintf(w, "data: %v\n\n", string(data))
+				flusher.Flush()
+			}
+		}
+		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
+			var response ContentBlockDelta
+			_ = json.Unmarshal(line, &response)
+			answer = response.Delta.Text
+			if len(answer) < 200 || len(answer)%2 == 0 {
+				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+				fmt.Fprintf(w, "data: %v\n\n", string(data))
+				flusher.Flush()
+			}
 		}
 	}
 
