@@ -6,7 +6,7 @@ import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from './hooks/useCopyCode'
 import Header from './components/Header/index.vue'
-import { CreateSessionFromSnapshot, fetchChatSnapshot } from '@/api'
+import { fetchChatSnapshot } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
@@ -146,10 +146,10 @@ function handleMarkdown() {
 async function handleChat() {
   if (!authStore.getToken())
     nui_msg.error(t('common.ask_user_register'))
-
-  const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
+  // const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
+  // console.log(SessionUuid)
   // open link at static/#/chat/{SessionUuid}
-  window.open(`static/#/chat/${SessionUuid}`, '_blank')
+  window.open('static/#/chat/', '_blank')
 }
 
 const footerClass = computed(() => {
@@ -176,18 +176,18 @@ function onScrollToTop() {
           :class="[isMobile ? 'p-2' : 'p-4']"
         >
           <Message
-            v-for="(item, index) of dataSources" :key="index" class="chat-message" :date-time="item.dateTime"
+            v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
             :model="model" :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading"
             :index="index"
           />
         </div>
-        <div class="flex justify-center items-center">
+        <!-- <div class="flex justify-center items-center">
           <HoverButton :tooltip="$t('chat_snapshot.continueChat')" @click="handleChat">
             <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
               <SvgIcon icon="mdi:chat-plus" width="40" height="40" />
             </span>
           </HoverButton>
-        </div>
+        </div> -->
       </div>
     </main>
     <div class="floating-button">

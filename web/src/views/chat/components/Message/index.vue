@@ -1,6 +1,7 @@
 <script setup lang='ts'>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { NDropdown } from 'naive-ui'
+import AudioPlayer from '../AudioPlayer/index.vue'
 import TextComponent from '@/views/components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
 import { SvgIcon } from '@/components/common'
@@ -9,7 +10,6 @@ import { useIconRender } from '@/hooks/useIconRender'
 import { useUserStore } from '@/store'
 import { t } from '@/locales'
 import { displayLocaleDate } from '@/utils/date'
-import AudioPlayer from "../AudioPlayer/index.vue"
 
 interface Props {
   index: number
@@ -68,7 +68,7 @@ function onContentChange(event: FocusEvent, index: number) {
   emit('afterEdit', index, text)
 }
 
-function handleSelect(key: 'copyText' | 'delete' | 'editText') {
+async function handleSelect(key: 'copyText' | 'delete' | 'editText') {
   switch (key) {
     case 'copyText':
       copyText({ text: props.text ?? '' })
@@ -79,6 +79,9 @@ function handleSelect(key: 'copyText' | 'delete' | 'editText') {
     case 'editText':
       // make the text editable
       editable.value = true
+      await nextTick()
+      textRef.value.textRef.focus()
+      break
   }
 }
 

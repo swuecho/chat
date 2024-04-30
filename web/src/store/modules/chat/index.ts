@@ -150,7 +150,7 @@ export const useChatStore = defineStore('chat-store', {
       const [keys, keys_length] = check_chat(this.chat)
       if (!uuid) {
         if (keys_length)
-          return this.chat[uuid][index]
+          return this.chat[keys[0]][index]
         return null
       }
       // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)

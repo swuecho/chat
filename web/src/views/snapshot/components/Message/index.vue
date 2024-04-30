@@ -8,6 +8,7 @@ import { copyText } from '@/utils/format'
 import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
 import { displayLocaleDate } from '@/utils/date'
+import { useUserStore } from '@/store'
 
 interface Props {
   index: number
@@ -22,6 +23,10 @@ interface Props {
 const props = defineProps<Props>()
 
 const { iconRender } = useIconRender()
+
+const userStore = useUserStore()
+
+const userInfo = computed(() => userStore.userInfo)
 
 const textRef = ref<HTMLElement>()
 
@@ -47,6 +52,8 @@ const code = computed(() => {
 </script>
 
 <template>
+  <div class="chat-message">
+  <p class="text-xs text-[#b4bbc4] text-center">{{ displayLocaleDate(dateTime) }}</p>
   <div class="flex w-full mb-6 overflow-hidden" :class="[{ 'flex-row-reverse': inversion }]">
     <div
       class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
@@ -61,7 +68,7 @@ const code = computed(() => {
     </div>
     <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
       <p class="text-xs text-[#b4bbc4]" :class="[inversion ? 'text-right' : 'text-left']">
-        {{ displayLocaleDate(dateTime) }} {{ model }}
+        {{ !inversion ? model : userInfo.name || $t('setting.defaultName') }}
       </p>
       <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
         <TextComponent
@@ -88,5 +95,6 @@ const code = computed(() => {
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>
