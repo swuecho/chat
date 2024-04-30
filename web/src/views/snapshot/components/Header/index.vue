@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { useRoute } from 'vue-router'
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { updateChatSnapshot } from '@/api'
 
@@ -28,8 +28,9 @@ async function handleEdit(e: Event) {
   await updateChatSnapshot(uuid, { title: title_value })
 }
 
-function handleEditTitle() {
+async function handleEditTitle() {
   isEditing.value = true
+  await nextTick()
   if (titleRef.value)
     // @ts-expect-error focus is ok
     titleRef.value.focus()
@@ -38,7 +39,7 @@ function handleEditTitle() {
 
 <template>
   <header
-    class="sticky top-0 left-0 right-0 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur"
+    class="sticky top-0 left-0 right-0 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur"
   >
     <div class="relative flex items-center justify-between min-w-0 overflow-hidden h-14">
       <span class="ml-5">

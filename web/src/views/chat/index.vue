@@ -207,9 +207,10 @@ async function onConversationStream() {
       // eslint-disable-next-line no-console
       console.log(error)
       const response = error.response
-      if (response.status >= 400)
+      if (response.status >= 400) {
         nui_msg.error(response.data.message)
         loading.value = false
+      }
     }
   }
 
@@ -367,7 +368,7 @@ function handleExport() {
 async function handleSnapshot() {
   // Get title input from user
   // Call API to create chat snapshot and get UUID
-  const snapshot = await createChatSnapshot(uuid)
+  const snapshot = await createChatSnapshot(sessionUuid)
   const snapshot_uuid = snapshot.uuid
   // Open new tab with snapshot UUID
   window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
@@ -403,7 +404,7 @@ async function handleTogglePin(index: number) {
   if (pining.value)
     return
 
-  const chat = chatStore.getChatByUuidAndIndex(uuid, index)
+  const chat = chatStore.getChatByUuidAndIndex(sessionUuid, index)
   if (chat == null)
     return
 
