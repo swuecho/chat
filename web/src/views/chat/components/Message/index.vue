@@ -37,7 +37,7 @@ const emit = defineEmits<Emit>()
 
 const { iconRender } = useIconRender()
 
-const textRef = ref<HTMLElement>()
+const textRef = ref()
 
 const editable = ref(false)
 
