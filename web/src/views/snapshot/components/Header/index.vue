@@ -22,6 +22,9 @@ function handleHome() {
   window.open('#/snapshot_all', '_blank')
 }
 
+function handleChatHome() {
+  window.open('static/#/chat/', '_blank')
+}
 async function handleEdit(e: Event) {
   const title_value = (e.target as HTMLInputElement).innerText
   isEditing.value = false
@@ -57,6 +60,11 @@ async function handleEditTitle() {
 
       <div class="flex mr-5 items-center space-x-2">
         <HoverButton @click="handleHome">
+          <span class="text-xl text-[#4f555e] dark:text-white">
+            <SvgIcon icon="carbon:table-of-contents" />
+          </span>
+        </HoverButton>
+        <HoverButton @click="handleChatHome">
           <span class="text-xl text-[#4f555e] dark:text-white">
             <SvgIcon icon="ic:baseline-home" />
           </span>
