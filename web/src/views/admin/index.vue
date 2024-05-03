@@ -72,6 +72,10 @@ const menuOptions: MenuOption[] = reactive([
 function handleUpdateCollapsed() {
   collapsed.value = !collapsed.value
 }
+
+function handleChatHome() {
+  window.open('static/#/chat/', '_blank')
+}
 </script>
 
 <template>
@@ -94,18 +98,13 @@ function handleUpdateCollapsed() {
             <h1 v-if="!isMobile" class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
               Admin
             </h1>
-            <!-- <div class="flex items-center space-x-2">
-              <HoverButton>
-                <span class="text-xl">
-                  <SvgIcon icon="ri:chat-history-line" />
-                </span>
-              </HoverButton>
-              <HoverButton>
-                <span class="text-xl text-[#4f555e] dark:text-white">
-                  <SvgIcon icon="ri:download-2-line" />
-                </span>
-              </HoverButton>
-            </div> -->
+            <div class="flex items-center space-x-2">
+              <HoverButton @click="handleChatHome">
+          <span class="text-xl text-[#4f555e] dark:text-white">
+            <SvgIcon icon="ic:baseline-home" />
+          </span>
+        </HoverButton>
+            </div> 
           </div>
         </header>
         <NLayout has-sider>
