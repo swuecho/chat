@@ -149,7 +149,8 @@ async function handleChat() {
     nui_msg.error(t('common.ask_user_register'))
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
   await chatStore.setActiveLocal(SessionUuid)
-  window.open('#/chat/', '_blank')
+  // open link at static/#/chat/{SessionUuid}
+  window.open(`static/#/chat/${SessionUuid}`, '_blank')
 }
 
 const footerClass = computed(() => {
@@ -171,15 +172,10 @@ function onScrollToTop() {
     <Header :title="title" />
     <main class="flex-1 overflow-hidden">
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-        <div
-          id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
-          :class="[isMobile ? 'p-2' : 'p-4']"
-        >
-          <Message
-            v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
-            :model="model" :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading"
-            :index="index"
-          />
+        <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
+          :class="[isMobile ? 'p-2' : 'p-4']">
+          <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime" :model="model"
+            :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading" :index="index" />
         </div>
         <!-- <div class="flex justify-center items-center">
           <HoverButton :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
