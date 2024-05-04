@@ -191,7 +191,7 @@ function onScrollToTop() {
       </div>
     </main>
     <div class="floating-button">
-      <HoverButton testid="continue-chat" :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
+      <HoverButton testid="create-chat" :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
         <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
           <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
         </span>
