@@ -52,7 +52,7 @@
     "chat": {
         "N": "結果數量: {n}",
         "adjustParameters": "調整參數",
-        "chatSnapshot": "會話快照到網頁",
+        "chatSnapshot": "生成會話記錄",
         "clearChat": "清空對話",
         "clearChatConfirm": "是否清空對話?",
         "clearHistoryConfirm": "確定清空聊天記錄?",
@@ -91,7 +91,7 @@
         "usingContext": "上下文模式"
     },
     "chat_snapshot": {
-        "continueChat": "繼續對話",
+        "createChat": "創建會話",
         "deleteFailed": "无法删除会话记录",
         "deletePost": "您确定要删除此会话记录吗？",
         "deletePostConfirm": "删除会话记录",
@@ -99,7 +99,7 @@
         "exportImage": "保存對話到圖片",
         "exportMarkdown": "匯出到Markdown檔",
         "scrollTop": "回到頂部",
-        "title": "對話集"
+        "title": "會話集"
     },
     "common": {
         "ask_user_register": "請註冊, 只有註冊帳號才能繼續對話",
@@ -166,7 +166,7 @@
         "resetUserInfo": "重置用戶信息",
         "reverseProxy": "反向代理",
         "setting": "設置",
-        "snapshotLink": "对话集",
+        "snapshotLink": "會话集",
         "socks": "Socks",
         "switchLanguage": "English(切换语言)",
         "theme": "主題",

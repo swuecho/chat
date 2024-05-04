@@ -6,15 +6,16 @@ import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from './hooks/useCopyCode'
 import Header from './components/Header/index.vue'
-import { CreateSessionFromSnapshot, fetchChatSnapshot } from '@/api'
+import { CreateSessionFromSnapshot, fetchChatSnapshot } from '@/api/chat_snapshot'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
-import { useAuthStore } from '@/store'
+import { useAuthStore, useChatStore } from '@/store'
 
 const authStore = useAuthStore()
+const chatStore = useChatStore()
 
 const route = useRoute()
 const dialog = useDialog()
@@ -147,6 +148,7 @@ async function handleChat() {
   if (!authStore.getToken())
     nui_msg.error(t('common.ask_user_register'))
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
+  await chatStore.setActiveLocal(SessionUuid)
   // open link at static/#/chat/{SessionUuid}
   window.open(`static/#/chat/${SessionUuid}`, '_blank')
 }
@@ -176,7 +178,7 @@ function onScrollToTop() {
             :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading" :index="index" />
         </div>
         <!-- <div class="flex justify-center items-center">
-          <HoverButton :tooltip="$t('chat_snapshot.continueChat')" @click="handleChat">
+          <HoverButton :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
             <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
               <SvgIcon icon="mdi:chat-plus" width="40" height="40" />
             </span>
@@ -185,7 +187,7 @@ function onScrollToTop() {
       </div>
     </main>
     <div class="floating-button">
-      <HoverButton testid="continue-chat" :tooltip="$t('chat_snapshot.continueChat')" @click="handleChat">
+      <HoverButton testid="create-chat" :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
         <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
           <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
         </span>
