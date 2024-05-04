@@ -48,7 +48,7 @@
     "clearChat": "清空会话",
     "clearChatConfirm": "是否清空会话?",
     "exportImage": "保存会话到图片",
-    "chatSnapshot": "会话快照到网页",
+    "chatSnapshot": "生成会话记录",
     "snapshotSuccess": "快照成功, 请在新标签页中查看, 链接任何人都可以打开, 谨慎分享",
     "adjustParameters": "调整参数",
     "exportImageConfirm": "是否将会话保存为图片?",
@@ -81,14 +81,14 @@
     "playAudio": "语音"
   },
   "chat_snapshot": {
-    "title": "对话集",
+    "title": "会话集",
     "deletePost": "您确定要删除此会话记录吗？",
     "deletePostConfirm": "删除会话记录",
     "deleteSuccess": "会话记录删除成功",
     "deleteFailed": "无法删除会话记录",
     "exportImage": "保存会话到图片",
     "exportMarkdown": "导出到markdown文件",
-    "continueChat": "继续对话",
+    "createChat": "创建会话",
     "scrollTop": "回到顶部"
   },
   "admin": {
@@ -152,7 +152,7 @@
     "name": "名称",
     "defaultName": "你",
     "defaultDesc": "签名",
-    "snapshotLink": "对话集",
+    "snapshotLink": "会话集",
     "description": "描述",
     "resetUserInfo": "重置用户信息",
     "chatHistory": "聊天记录",

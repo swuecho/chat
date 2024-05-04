@@ -146,6 +146,11 @@ export const useChatStore = defineStore('chat-store', {
       await this.reloadRoute(uuid)
     },
 
+    async setActiveLocal(uuid: string) {
+      this.active = uuid
+      this.recordState()
+    },
+
     getChatByUuidAndIndex(uuid: string, index: number) {
       const [keys, keys_length] = check_chat(this.chat)
       if (!uuid) {
