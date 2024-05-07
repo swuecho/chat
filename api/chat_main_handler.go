@@ -267,7 +267,7 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 		isClaude = false
 		isClaude3 = true
 	}
-	isChatGPT := strings.HasPrefix(model, "gpt") || strings.HasPrefix(model, "deepseek") 
+	isChatGPT := strings.HasPrefix(model, "gpt") || strings.HasPrefix(model, "deepseek")
 	isOllama := strings.HasPrefix(model, "ollama-")
 	isGemini := strings.HasPrefix(model, "gemini")
 
@@ -750,12 +750,12 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	// first message is user instead of system
 	var messages []openai.ChatCompletionMessage
 	if len(chat_compeletion_messages) > 1 {
-		// first message used as system message and first user message
-		chat_compeletion_messages[0].Role = "user"
-		messages = messagesToOpenAIMesages(chat_compeletion_messages)
+		// first message used as system message
+		// messages start with second message
+		messages = messagesToOpenAIMesages(chat_compeletion_messages[1:])
 	} else {
-		chat_compeletion_messages[0].Role = "user"
-		messages = messagesToOpenAIMesages(chat_compeletion_messages)
+		// only system message, return and do nothing
+		return "", "", true
 	}
 	// create the json data
 	jsonData := map[string]interface{}{
