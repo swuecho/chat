@@ -755,7 +755,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		messages = messagesToOpenAIMesages(chat_compeletion_messages[1:])
 	} else {
 		// only system message, return and do nothing
-		RespondWithError(w, http.StatusInternalServerError, "clause_system_message_notice", err)
+		RespondWithError(w, http.StatusInternalServerError, "error.claude_system_message_notice", err)
 		return "", "", true
 	}
 	// create the json data
