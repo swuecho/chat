@@ -41,36 +41,31 @@ async function handleEditTitle() {
 </script>
 
 <template>
-  <header
-    class="sticky top-0 left-0 right-0 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur"
-  >
-    <div class="relative flex items-center justify-between min-w-0 overflow-hidden h-14">
-      <span class="ml-5">
-        <HoverButton :tooltip="$t('common.edit')" @click="handleEditTitle">
-          <SvgIcon icon="ic:baseline-edit" />
-        </HoverButton>
-      </span>
-      <h1
-        ref="titleRef" class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
-        :class="[isEditing ? 'shadow-green-100' : '']" :contenteditable="isEditing" @blur="handleEdit"
-        @dblclick="handleEditTitle"
-      >
-        {{ title ?? '' }}
-      </h1>
-
-      <div class="flex mr-5 items-center space-x-2">
+  <header class="sticky h-16 flex items-center justify-between border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur  overflow-hidden">
+      <div class="flex items-center ml-10">
+        <div>
+          <HoverButton :tooltip="$t('common.edit')" @click="handleEditTitle">
+            <SvgIcon icon="ic:baseline-edit" />
+          </HoverButton>
+        </div>
+        <h1 ref="titleRef" class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+          :class="[isEditing ? 'shadow-green-100' : '']" :contenteditable="isEditing" @blur="handleEdit"
+          @dblclick="handleEditTitle">
+          {{ title ?? '' }}
+        </h1>
+      </div>
+      <div class="flex mr-10 items-center space-x-4">
         <HoverButton @click="handleHome">
-          <span class="text-xl text-[#4f555e] dark:text-white">
+          <span class="text-2xl text-[#4f555e] dark:text-white">
             <SvgIcon icon="carbon:table-of-contents" />
           </span>
         </HoverButton>
         <HoverButton @click="handleChatHome">
-          <span class="text-xl text-[#4f555e] dark:text-white">
+          <span class="text-2xl text-[#4f555e] dark:text-white">
             <SvgIcon icon="ic:baseline-home" />
           </span>
         </HoverButton>
       </div>
-    </div>
   </header>
 </template>
 

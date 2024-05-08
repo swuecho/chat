@@ -78,8 +78,8 @@ function handleDelete(post: PostLink) {
 
 <template>
   <div class="flex flex-col w-full h-full dark:text-white">
-    <header class="flex items-center justify-between p-4">
-      <div class="flex justify-end">
+    <header class="flex items-center justify-between h-16 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur">
+      <div class="flex items-center ml-10">
         <svg
           class="w-8 h-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
           stroke="currentColor"
@@ -89,11 +89,11 @@ function handleDelete(post: PostLink) {
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
           />
         </svg>
-        <h1 class="text-2xl font-semibold text-gray-900">
+        <h1 class="text-xl font-semibold text-gray-900">
           {{ $t('chat_snapshot.title') }}
         </h1>
       </div>
-      <div class="mr-4">
+      <div class="mr-10">
         <HoverButton @click="search_visible = true">
           <SvgIcon icon="ic:round-search" class="text-2xl" />
         </HoverButton>
