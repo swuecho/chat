@@ -21,7 +21,7 @@ const MODEL_ROUTE = 'AdminModel'
 
 const needPermission = computed(() => !authStore.token) // || (!!authStore.token && authStore.expiresIn < Date.now() / 1000))
 
-const collapsed: Ref<boolean> = ref(true)
+const collapsed: Ref<boolean> = ref(false)
 const activeKey = ref(currentRoute.name?.toString())
 
 const getMobileClass = computed<CSSProperties>(() => {
@@ -74,7 +74,7 @@ function handleUpdateCollapsed() {
 }
 
 function handleChatHome() {
-  window.open('static/#/chat/', '_blank')
+  window.open('/static/#/chat/', '_blank')
 }
 </script>
 
@@ -82,35 +82,37 @@ function handleChatHome() {
   <div>
     <div class="h-full dark:bg-[#24272e] transition-all">
       <div class="h-full overflow-hidden" :class="getMobileClass">
-        <header class="sticky flex items-center justify-between min-w-0 overflow-hidden h-14  z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur">
-            <h1 v-if="isMobile" class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
-              Admin
-            </h1>
-            <div v-if="isMobile" class="flex items-center">
-              <button class="flex items-center justify-center mr-5" @click="handleUpdateCollapsed">
-                <SvgIcon v-if="collapsed" class="text-2xl" icon="ri:align-justify" />
-                <SvgIcon v-else class="text-2xl" icon="ri:align-right" />
-              </button>
-            </div>
-            <h1 v-if="!isMobile" 
-              class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
-              Admin
-            </h1>
-              <HoverButton @click="handleChatHome" class="mr-5">
-                <span class="text-xl text-[#4f555e] dark:text-white">
-                  <SvgIcon icon="ic:baseline-home" />
-                </span>
-              </HoverButton>
+        <header
+          class="sticky flex items-center justify-between min-w-0 overflow-hidden h-14  z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur">
+          <h1 v-if="isMobile"
+            class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
+            Admin
+          </h1>
+          <div v-if="isMobile" class="flex items-center">
+            <button class="flex items-center justify-center mr-5" @click="handleUpdateCollapsed">
+              <SvgIcon v-if="collapsed" class="text-2xl" icon="ri:align-justify" />
+              <SvgIcon v-else class="text-2xl" icon="ri:align-right" />
+            </button>
+          </div>
+          <h1 v-if="!isMobile"
+            class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
+            Admin
+          </h1>
+          <HoverButton @click="handleChatHome" class="mr-5">
+            <span class="text-xl text-[#4f555e] dark:text-white">
+              <SvgIcon icon="ic:baseline-home" />
+            </span>
+          </HoverButton>
         </header>
         <NLayout has-sider>
-          <NLayoutSider bordered :width="240" :collapsed-width="10" :collapsed="collapsed"
-            :show-trigger="isMobile ? false : 'arrow-circle'" collapse-mode="transform" position="absolute"
+          <NLayoutSider bordered collapse-mode="width" :width="240" :collapsed-width="64" :collapsed="collapsed"   
+            :show-trigger="isMobile ? false : 'arrow-circle'"  
             :style="getMobileClass" @collapse="collapsed = true" @expand="collapsed = false">
             <NMenu v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"
-              @update:value="handleUpdateCollapsed" :options="menuOptions" />
+              :options="menuOptions" />
           </NLayoutSider>
           <NLayout>
-            <router-view />
+              <router-view />
             <Permission :visible="needPermission" />
           </NLayout>
         </NLayout>
