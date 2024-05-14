@@ -114,17 +114,23 @@ async function newRowAdded() {
 </script>
 
 <template>
-  <div class="mx-5">
+  <div class="h-full flex flex-col">
     <NModal v-model:show="dialogVisible" :title="$t('admin.add_user_model_rate_limit')" preset="dialog">
-      <AddChatModelForm @new-row-added="newRowAdded" />
+        <AddChatModelForm @new-row-added="newRowAdded" />
     </NModal>
-    <div class="flex justify-end">
-      <HoverButton @click="dialogVisible = true">
-        <span class="text-xl">
-          <SvgIcon icon="material-symbols:library-add-rounded" />
-        </span>
-      </HoverButton>
+    <div class="flex items-center justify-end h-16 w-full border-b border-gray-200">
+      <div class="flex justify-end">
+        <HoverButton @click="dialogVisible = true" class="mr-10">
+          <span class="text-xl">
+            <SvgIcon icon="material-symbols:library-add-rounded" />
+          </span>
+        </HoverButton>
+      </div>
     </div>
-    <NDataTable :columns="columns" :data="data" :loading="loading" />
+    <div class="flex-1">
+      <div class="m-5 rounded-sm" >
+        <NDataTable :columns="columns" :data="data" :loading="loading" />
+      </div>
+    </div>
   </div>
 </template>

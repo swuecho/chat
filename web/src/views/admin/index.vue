@@ -3,12 +3,12 @@ import type { CSSProperties, Component, Ref } from 'vue'
 import { computed, h, reactive, ref } from 'vue'
 import { NIcon, NLayout, NLayoutSider, NMenu } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
-import { PulseOutline, ShieldCheckmarkOutline } from '@vicons/ionicons5'
+import { PulseOutline, ShieldCheckmarkOutline, KeyOutline } from '@vicons/ionicons5'
 import { RouterLink, useRoute } from 'vue-router'
 import Permission from '@/views/components/Permission.vue'
 import { t } from '@/locales'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { SvgIcon } from '@/components/common'
+import { SvgIcon, HoverButton } from '@/components/common'
 import { useAuthStore } from '@/store'
 
 const { isMobile } = useBasicLayout()
@@ -18,6 +18,7 @@ const authStore = useAuthStore()
 const currentRoute = useRoute()
 const USER_ROUTE = 'AdminUser'
 const MODEL_ROUTE = 'AdminModel'
+const MODELRATELIMIT_ROUTUE = 'ModelRateLimit'
 
 const needPermission = computed(() => !authStore.token) // || (!!authStore.token && authStore.expiresIn < Date.now() / 1000))
 
@@ -49,7 +50,7 @@ const menuOptions: MenuOption[] = reactive([
               name: USER_ROUTE,
             },
           },
-          { default: () => t('admin.rateLimit') },
+          { default: () => t('admin.userMessage') },
         ),
     key: USER_ROUTE,
     icon: renderIcon(PulseOutline),
@@ -66,6 +67,19 @@ const menuOptions: MenuOption[] = reactive([
     ),
     key: MODEL_ROUTE,
     icon: renderIcon(ShieldCheckmarkOutline),
+  },
+  {
+    label: () => h(
+      RouterLink,
+      {
+        to: {
+          name: MODELRATELIMIT_ROUTUE,
+        },
+      },
+      { default: () => t('admin.rateLimit') },
+    ),
+    key: MODELRATELIMIT_ROUTUE,
+    icon: renderIcon(KeyOutline),
   },
 ])
 
@@ -105,14 +119,14 @@ function handleChatHome() {
           </HoverButton>
         </header>
         <NLayout has-sider>
-          <NLayoutSider bordered collapse-mode="width" :width="240" :collapsed-width="64" :collapsed="collapsed"   
-            :show-trigger="isMobile ? false : 'arrow-circle'"  
-            :style="getMobileClass" @collapse="collapsed = true" @expand="collapsed = false">
+          <NLayoutSider bordered collapse-mode="width" :width="240" :collapsed-width="64" :collapsed="collapsed"
+            :show-trigger="isMobile ? false : 'arrow-circle'" :style="getMobileClass" @collapse="collapsed = true"
+            @expand="collapsed = false">
             <NMenu v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"
               :options="menuOptions" />
           </NLayoutSider>
           <NLayout>
-              <router-view />
+            <router-view />
             <Permission :visible="needPermission" />
           </NLayout>
         </NLayout>

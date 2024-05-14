@@ -108,6 +108,7 @@
     "userStat": "用户统计",
     "permission": "权限",
     "rateLimit": "限流",
+    "userMessage": "用户",
     "model": "模型",
     "system_model_tab_title": "模型配置",
     "per_model_rate_limit_title": "模型流控",
