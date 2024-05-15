@@ -160,8 +160,7 @@ async function handleRefresh() {
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-end h-16 w-full border-b border-gray-200">
+    <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
       <HoverButton :tooltip="$t('admin.refresh')" @click="handleRefresh" class="mr-10">
         <span class="text-xl text-[#4f555e] dark:text-white">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -174,5 +173,4 @@ async function handleRefresh() {
     <div class="m-5">
       <NDataTable :loading="loading" remote :data="tableData" :columns="columns" :pagination="pagination" />
     </div>
-  </div>
 </template>
