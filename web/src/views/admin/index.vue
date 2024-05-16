@@ -95,7 +95,7 @@ function handleChatHome() {
 <template>
     <div class="h-full flex flex-col" :class="getMobileClass">
       <header
-        class="sticky flex items-center justify-between  overflow-hidden h-14 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur">
+        class="sticky flex flex-shrink-0 items-center justify-between  overflow-hidden h-14 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur">
         <h1 v-if="isMobile"
           class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
           Admin
@@ -116,7 +116,7 @@ function handleChatHome() {
           </span>
         </HoverButton>
       </header>
-        <NLayout has-sider class="flex-1">
+        <NLayout has-sider class="flex-1 overflow-y-auto">
           <NLayoutSider bordered collapse-mode="width" :width="240" :collapsed-width="64" :collapsed="collapsed"
             :show-trigger="isMobile ? false : 'arrow-circle'" :style="getMobileClass" @collapse="collapsed = true"
             @expand="collapsed = false">
