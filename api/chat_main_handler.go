@@ -669,6 +669,10 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 		}
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				fmt.Println("End of stream reached")
+				break // Exit loop if end of stream
+			}
 			return "", "", true
 		}
 		if !bytes.HasPrefix(line, headerData) {
@@ -835,6 +839,10 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		line, err := ioreader.ReadBytes('\n')
 
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				fmt.Println("End of stream reached")
+				break // Exit loop if end of stream
+			}
 			return "", "", true
 		}
 		line = bytes.TrimPrefix(line, headerData)
@@ -967,6 +975,10 @@ func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_que
 		}
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				fmt.Println("End of stream reached")
+				break // Exit loop if end of stream
+			}
 			return "", "", true
 		}
 		var streamResp OllamaResponse
@@ -1092,6 +1104,10 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 		}
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				fmt.Println("End of stream reached")
+				break // Exit loop if end of stream
+			}
 			return "", "", true
 		}
 		if !bytes.HasPrefix(line, headerData) {
@@ -1301,7 +1317,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		}
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				fmt.Println("End of stream reached")
 				break // Exit loop if end of stream
 			} else {
