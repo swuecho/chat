@@ -1201,7 +1201,7 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //         "parts":[{
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
-func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func genGemminPayload(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message) ([]byte, error) {
 	type Part struct {
 		Text string `json:"text"`
 	}
@@ -1236,22 +1236,31 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 
 		payload.Contents[i] = geminiMessage
 	}
-
 	payloadBytes, err := json.Marshal(payload)
 	fmt.Printf("%s\n", string(payloadBytes))
 	if err != nil {
 		fmt.Println("Error marshalling payload:", err)
 		// handle err
+		return nil, err
+	}
+	return payloadBytes, nil
+}
+
+func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+	payloadBytes, err := genGemminPayload(chatSession, chat_compeletion_messages)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
 	}
-	modelId := chatSession.Model
-	url := os.ExpandEnv("https://generativelanguage.googleapis.com/v1beta/models/CURRENT_MODEL:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY")
-	url = strings.Replace(url, "CURRENT_MODEL", modelId, 1)
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY", chatSession.Model)
+	url = os.ExpandEnv(url)
+
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		// handle err
 		fmt.Println("Error while creating request: ", err)
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "create request to gemini api").Error(), err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -1260,14 +1269,13 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error while sending request: ", err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
 	}
 
 	ioreader := bufio.NewReader(resp.Body)
 
 	// read the response body
 	defer resp.Body.Close()
-	// loop over the response body and print data
-
 	setSSEHeader(w)
 
 	flusher, ok := w.(http.Flusher)
@@ -1283,6 +1291,8 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	}
 
 	var headerData = []byte("data: ")
+
+	// loop over the response body and print data
 	count := 0
 	for {
 		count++
