@@ -200,7 +200,6 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	chatStreamFn := h.chooseChatStreamFn(chatSession, msgs)
 
 	answerText, answerID, shouldReturn := chatStreamFn(w, chatSession, msgs, chatUuid, false)
-
 	if shouldReturn {
 		return
 	}
@@ -1302,18 +1301,26 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		}
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
-			return "", "", true
+			if err == io.EOF {
+				fmt.Println("End of stream reached")
+				break // Exit loop if end of stream
+			} else {
+				// 2024/05/20 15:56:12 http: superfluous response.WriteHeader call from github.com/gorilla/handlers.(*responseLogger).WriteHeader (handlers.go:61)
+				fmt.Printf("Error while reading response: %+v", err)
+				return "", "", true
+			}
 		}
 		if !bytes.HasPrefix(line, headerData) {
 			continue
 		}
 		line = bytes.TrimPrefix(line, headerData)
-		answer = parseRespLine(line, answer)
-		data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
-		fmt.Fprintf(w, "data: %v\n\n", string(data))
-		flusher.Flush()
+		if len(line) > 0 {
+			answer = parseRespLine(line, answer)
+			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
+		}
 	}
-
 	return answer, answer_id, false
 
 }
