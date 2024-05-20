@@ -1201,7 +1201,7 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //         "parts":[{
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
-func genGemminPayload(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message) ([]byte, error) {
+func genGemminPayload(chat_compeletion_messages []Message) ([]byte, error) {
 	type Part struct {
 		Text string `json:"text"`
 	}
@@ -1247,7 +1247,7 @@ func genGemminPayload(chatSession sqlc_queries.ChatSession, chat_compeletion_mes
 }
 
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
-	payloadBytes, err := genGemminPayload(chatSession, chat_compeletion_messages)
+	payloadBytes, err := genGemminPayload(chat_compeletion_messages)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
