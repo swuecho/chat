@@ -1247,7 +1247,6 @@ func (h *ChatHandler) chatStreamGeminiStream(w http.ResponseWriter, chatSession 
 	modelId := chatSession.Model
 	url := os.ExpandEnv("https://generativelanguage.googleapis.com/v1beta/models/CURRENT_MODEL:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY")
 	url = strings.Replace(url, "CURRENT_MODEL", modelId, 1)
-	log.Println(url)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		// handle err
