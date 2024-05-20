@@ -291,7 +291,7 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 	} else if isCompletion {
 		chatStreamFn = h.CompletionStream
 	} else if isGemini {
-		chatStreamFn = h.chatStreamGemini
+		chatStreamFn = h.chatStreamGeminiStream
 	}
 	return chatStreamFn
 }
@@ -1201,6 +1201,157 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //         "parts":[{
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
+func (h *ChatHandler) chatStreamGeminiStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+	type Part struct {
+		Text string `json:"text"`
+	}
+
+	type GeminiMessage struct {
+		Role  string `json:"role"`
+		Parts []Part `json:"parts"`
+	}
+
+	type Payload struct {
+		Contents []GeminiMessage `json:"contents"`
+	}
+
+	payload := Payload{
+		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
+	}
+
+	for i, message := range chat_compeletion_messages {
+		println(message.Role)
+		geminiMessage := GeminiMessage{
+			Role: message.Role,
+			Parts: []Part{
+				{Text: message.Content},
+			},
+		}
+
+		if message.Role == "assistant" {
+			geminiMessage.Role = "model"
+		} else if message.Role == "system" {
+			geminiMessage.Role = "user"
+		}
+
+		payload.Contents[i] = geminiMessage
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	fmt.Printf("%s\n", string(payloadBytes))
+	if err != nil {
+		fmt.Println("Error marshalling payload:", err)
+		// handle err
+		return "", "", true
+	}
+	modelId := chatSession.Model
+	url := os.ExpandEnv("https://generativelanguage.googleapis.com/v1beta/models/CURRENT_MODEL:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY")
+	url = strings.Replace(url, "CURRENT_MODEL", modelId, 1)
+	log.Println(url)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		// handle err
+		fmt.Println("Error while creating request: ", err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// create the http client and send the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error while sending request: ", err)
+	}
+
+	ioreader := bufio.NewReader(resp.Body)
+
+	// read the response body
+	defer resp.Body.Close()
+	// loop over the response body and print data
+
+	setSSEHeader(w)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		return "", "", true
+	}
+
+	var answer string
+	answer_id := chatUuid
+	if !regenerate {
+		answer_id = uuid.NewString()
+	}
+
+	var headerData = []byte("data: ")
+	count := 0
+	for {
+		count++
+		// prevent infinite loop
+		if count > 10000 {
+			break
+		}
+		line, err := ioreader.ReadBytes('\n')
+		if err != nil {
+			return "", "", true
+		}
+		if !bytes.HasPrefix(line, headerData) {
+			continue
+		}
+		line = bytes.TrimPrefix(line, headerData)
+		answer = parseRespLine(line, answer)
+		data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+		fmt.Fprintf(w, "data: %v\n\n", string(data))
+		flusher.Flush()
+	}
+
+	return answer, answer_id, false
+
+}
+
+func parseRespLine(line []byte, answer string) string {
+	type Content struct {
+		Parts []struct {
+			Text string `json:"text"`
+		} `json:"parts"`
+		Role string `json:"role"`
+	}
+
+	type SafetyRating struct {
+		Category    string `json:"category"`
+		Probability string `json:"probability"`
+	}
+
+	type Candidate struct {
+		Content       Content        `json:"content"`
+		FinishReason  string         `json:"finishReason"`
+		Index         int            `json:"index"`
+		SafetyRatings []SafetyRating `json:"safetyRatings"`
+	}
+
+	type PromptFeedback struct {
+		SafetyRatings []SafetyRating `json:"safetyRatings"`
+	}
+
+	type RequestBody struct {
+		Candidates     []Candidate    `json:"candidates"`
+		PromptFeedback PromptFeedback `json:"promptFeedback"`
+	}
+
+	var requestBody RequestBody
+	if err := json.Unmarshal(line, &requestBody); err != nil {
+		fmt.Println("Failed to parse request body:", err)
+	}
+
+	for _, candidate := range requestBody.Candidates {
+		for _, part := range candidate.Content.Parts {
+			answer += part.Text
+		}
+
+	}
+	return answer
+}
+
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
 	type Part struct {
 		Text string `json:"text"`
@@ -1246,8 +1397,8 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	}
 	modelId := chatSession.Model
 	url := os.ExpandEnv("https://generativelanguage.googleapis.com/v1beta/models/CURRENT_MODEL:generateContent?key=$GEMINI_API_KEY")
+	//url := os.ExpandEnv("https://generativelanguage.googleapis.com/v1beta/models/CURRENT_MODEL:streamGenerateContent?key=$GEMINI_API_KEY")
 	url = strings.Replace(url, "CURRENT_MODEL", modelId, 1)
-	println(url)
 	log.Println(url)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
@@ -1272,13 +1423,6 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return "", "", true
 	}
-	// respDump, err := httputil.DumpResponse(resp, true)
-	// if err != nil {
-	//     log.Fatal(err)
-	// }
-
-	// fmt.Printf("RESPONSE:\n%s", string(respDump))
-	// println(resp.Status)
 	type Content struct {
 		Parts []struct {
 			Text string `json:"text"`
@@ -1321,10 +1465,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 
 	// Access the parsed data
 	for _, candidate := range requestBody.Candidates {
-		fmt.Println("Finish Reason:", candidate.FinishReason)
-		fmt.Println("Index:", candidate.Index)
 		for _, part := range candidate.Content.Parts {
-			fmt.Println(part.Text)
 			answer += part.Text
 		}
 
