@@ -7,6 +7,7 @@ import { useAppStore, useAuthStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import ModelAvatar from '@/views/components/Avatar/ModelAvatar.vue'
 import { t } from '@/locales'
+import { throttle } from 'lodash';
 
 const { isMobile } = useBasicLayout()
 const nui_msg = useMessage()
@@ -36,7 +37,7 @@ async function handleSyncChat() {
   }
 }
 
-async function handleSelect({ uuid }: Chat.Session) {
+async function handleSelect( uuid: string ) {
   if (isActive(uuid))
     return
 
@@ -48,6 +49,16 @@ async function handleSelect({ uuid }: Chat.Session) {
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
 }
+
+// throttle handleSelect
+// async function handleSelectThrottle() {
+//   throttle(async ({ uuid }: Chat.Session) => await handleSelect(uuid), 500)
+// } 
+
+ // Create a wrapper to debounce the handleSelect function
+const throttledHandleSelect = throttle((uuid) => {
+      handleSelect(uuid);
+}, 500); // 300ms debounce time
 
 function handleEdit({ uuid }: Chat.Session, isEdit: boolean, event?: MouseEvent) {
   event?.stopPropagation()
@@ -91,7 +102,7 @@ function isActive(uuid: string) {
         <div v-for="(item, index) of dataSources" :key="index">
           <a class="relative flex items-center gap-3 px-3 py-3 break-all border rounded-md cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
             :class="isActive(item.uuid) && ['border-[#4b9e5f]', 'bg-neutral-100', 'text-[#4b9e5f]', 'dark:bg-[#24272e]', 'dark:border-[#4b9e5f]', 'pr-14']"
-            @click="handleSelect(item)">
+            @click="throttledHandleSelect(item.uuid)">
             <span>
               <ModelAvatar :model="item.model" />
             </span>
