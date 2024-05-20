@@ -41,7 +41,7 @@ async function handleSelect({ uuid }: Chat.Session) {
     return
 
   if (chatStore.active)
-    chatStore.updateChatSession(chatStore.active, { isEdit: false })
+    await chatStore.updateChatSession(chatStore.active, { isEdit: false })
 
   await chatStore.setActive(uuid)
 
