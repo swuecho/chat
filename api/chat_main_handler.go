@@ -1201,7 +1201,7 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //         "parts":[{
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
-func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func genGemminPayload(chat_compeletion_messages []Message) ([]byte, error) {
 	type Part struct {
 		Text string `json:"text"`
 	}
@@ -1236,35 +1236,46 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 
 		payload.Contents[i] = geminiMessage
 	}
-
 	payloadBytes, err := json.Marshal(payload)
 	fmt.Printf("%s\n", string(payloadBytes))
 	if err != nil {
 		fmt.Println("Error marshalling payload:", err)
 		// handle err
+		return nil, err
+	}
+	return payloadBytes, nil
+}
+
+func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+	payloadBytes, err := genGemminPayload(chat_compeletion_messages)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
 	}
-	modelId := chatSession.Model
-	url := os.ExpandEnv("https://generativelanguage.googleapis.com/v1beta/models/CURRENT_MODEL:generateContent?key=$GEMINI_API_KEY")
-	url = strings.Replace(url, "CURRENT_MODEL", modelId, 1)
-	println(url)
-	log.Println(url)
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY", chatSession.Model)
+	url = os.ExpandEnv(url)
+
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		// handle err
 		fmt.Println("Error while creating request: ", err)
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "create request to gemini api").Error(), err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+
+	// create the http client and send the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
-		// handle err
-		fmt.Println("Error while do request: ", err)
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemni api").Error(), err)
+		fmt.Println("Error while sending request: ", err)
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
 	}
 
-	defer resp.Body.Close()
+	ioreader := bufio.NewReader(resp.Body)
 
+	// read the response body
+	defer resp.Body.Close()
 	setSSEHeader(w)
 
 	flusher, ok := w.(http.Flusher)
@@ -1272,13 +1283,42 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return "", "", true
 	}
-	// respDump, err := httputil.DumpResponse(resp, true)
-	// if err != nil {
-	//     log.Fatal(err)
-	// }
 
-	// fmt.Printf("RESPONSE:\n%s", string(respDump))
-	// println(resp.Status)
+	var answer string
+	answer_id := chatUuid
+	if !regenerate {
+		answer_id = uuid.NewString()
+	}
+
+	var headerData = []byte("data: ")
+
+	// loop over the response body and print data
+	count := 0
+	for {
+		count++
+		// prevent infinite loop
+		if count > 10000 {
+			break
+		}
+		line, err := ioreader.ReadBytes('\n')
+		if err != nil {
+			return "", "", true
+		}
+		if !bytes.HasPrefix(line, headerData) {
+			continue
+		}
+		line = bytes.TrimPrefix(line, headerData)
+		answer = parseRespLine(line, answer)
+		data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+		fmt.Fprintf(w, "data: %v\n\n", string(data))
+		flusher.Flush()
+	}
+
+	return answer, answer_id, false
+
+}
+
+func parseRespLine(line []byte, answer string) string {
 	type Content struct {
 		Parts []struct {
 			Text string `json:"text"`
@@ -1308,35 +1348,15 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	}
 
 	var requestBody RequestBody
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&requestBody); err != nil {
+	if err := json.Unmarshal(line, &requestBody); err != nil {
 		fmt.Println("Failed to parse request body:", err)
 	}
 
-	var answer string
-	answer_id := chatUuid
-	if !regenerate {
-		answer_id = uuid.NewString()
-	}
-
-	// Access the parsed data
 	for _, candidate := range requestBody.Candidates {
-		fmt.Println("Finish Reason:", candidate.FinishReason)
-		fmt.Println("Index:", candidate.Index)
 		for _, part := range candidate.Content.Parts {
-			fmt.Println(part.Text)
 			answer += part.Text
 		}
 
-		for _, safetyRating := range candidate.SafetyRatings {
-			fmt.Println("Safety Category:", safetyRating.Category)
-			fmt.Println("Safety Probability:", safetyRating.Probability)
-		}
 	}
-
-	data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
-	fmt.Fprintf(w, "data: %v\n\n", string(data))
-	flusher.Flush()
-	return answer, answer_id, false
-
+	return answer
 }
