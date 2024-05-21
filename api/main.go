@@ -115,6 +115,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer pgdb.Close(context.Background())
 
 	// Get current executable file path
 	ex, err := os.Executable()
