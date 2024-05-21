@@ -91,10 +91,6 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		http.Error(w, eris.Wrap(err, "fail to update or create action user session record, ").Error(), http.StatusInternalServerError)
 		return
 	}
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	json.NewEncoder(w).Encode(session)
 }
 
