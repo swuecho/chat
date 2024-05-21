@@ -13,7 +13,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -111,11 +111,11 @@ func main() {
 	} else {
 		connStr = dbURL
 	}
-	pgdb, err := pgx.Connect(context.Background(), connStr)
+	pgdb, err := pgxpool.New(context.Background(), connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer pgdb.Close(context.Background())
+	defer pgdb.Close()
 
 	// Get current executable file path
 	ex, err := os.Executable()

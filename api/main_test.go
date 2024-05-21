@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	log "github.com/sirupsen/logrus"
 )
 
-var db *pgx.Conn
+var db *pgxpool.Pool
 
 func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	pool.MaxWait = 120 * time.Second
 	if err = pool.Retry(func() error {
-		db, err = pgx.Connect(context.Background(),databaseUrl)
+		db, err = pgxpool.New(context.Background(),databaseUrl)
 		if err != nil {
 			return err
 		}
