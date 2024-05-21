@@ -21,6 +21,7 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
+	gemini "github.com/swuecho/chat_backend/llm/gemini"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 
 	"github.com/gorilla/mux"
@@ -1217,42 +1218,24 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
 func genGemminPayload(chat_compeletion_messages []Message) ([]byte, error) {
-	type Part struct {
-		Text string `json:"text"`
+	payload := gemini.Payload{
+		Contents: make([]gemini.GeminiMessage, len(chat_compeletion_messages)),
 	}
-
-	type GeminiMessage struct {
-		Role  string `json:"role"`
-		Parts []Part `json:"parts"`
-	}
-
-	type Payload struct {
-		Contents []GeminiMessage `json:"contents"`
-	}
-
-	payload := Payload{
-		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
-	}
-
 	for i, message := range chat_compeletion_messages {
-		println(message.Role)
-		geminiMessage := GeminiMessage{
+		geminiMessage := gemini.GeminiMessage{
 			Role: message.Role,
-			Parts: []Part{
+			Parts: []gemini.Part{
 				{Text: message.Content},
 			},
 		}
-
 		if message.Role == "assistant" {
 			geminiMessage.Role = "model"
 		} else if message.Role == "system" {
 			geminiMessage.Role = "user"
 		}
-
 		payload.Contents[i] = geminiMessage
 	}
 	payloadBytes, err := json.Marshal(payload)
-	fmt.Printf("%s\n", string(payloadBytes))
 	if err != nil {
 		fmt.Println("Error marshalling payload:", err)
 		// handle err
@@ -1331,7 +1314,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		}
 		line = bytes.TrimPrefix(line, headerData)
 		if len(line) > 0 {
-			answer = parseRespLine(line, answer)
+			answer = gemini.ParseRespLine(line, answer)
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
@@ -1341,45 +1324,3 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 
 }
 
-func parseRespLine(line []byte, answer string) string {
-	type Content struct {
-		Parts []struct {
-			Text string `json:"text"`
-		} `json:"parts"`
-		Role string `json:"role"`
-	}
-
-	type SafetyRating struct {
-		Category    string `json:"category"`
-		Probability string `json:"probability"`
-	}
-
-	type Candidate struct {
-		Content       Content        `json:"content"`
-		FinishReason  string         `json:"finishReason"`
-		Index         int            `json:"index"`
-		SafetyRatings []SafetyRating `json:"safetyRatings"`
-	}
-
-	type PromptFeedback struct {
-		SafetyRatings []SafetyRating `json:"safetyRatings"`
-	}
-
-	type RequestBody struct {
-		Candidates     []Candidate    `json:"candidates"`
-		PromptFeedback PromptFeedback `json:"promptFeedback"`
-	}
-
-	var requestBody RequestBody
-	if err := json.Unmarshal(line, &requestBody); err != nil {
-		fmt.Println("Failed to parse request body:", err)
-	}
-
-	for _, candidate := range requestBody.Candidates {
-		for _, part := range candidate.Content.Parts {
-			answer += part.Text
-		}
-
-	}
-	return answer
-}

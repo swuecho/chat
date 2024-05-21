@@ -17,6 +17,8 @@ type Message struct {
 	tokenCount int32
 }
 
+
+
 func (m Message) TokenCount() int32 {
 	if m.tokenCount != 0 {
 		return m.tokenCount
@@ -32,6 +34,16 @@ func (m Message) TokenCount() int32 {
 type TokenResult struct {
 	AccessToken string `json:"accessToken"`
 	ExpiresIn   int    `json:"expiresIn"`
+}
+
+type MultiMessage struct {
+	Role  string `json:"role"`
+	Parts []Part `json:"parts"`
+}
+
+type Part struct {
+	Content string `json:"content"`
+	Type    string `json:"type"`
 }
 
 type ConversationRequest struct {
@@ -68,17 +80,17 @@ func (msg SimpleChatMessage) GetRole() string {
 }
 
 type SimpleChatSession struct {
-	Uuid        string  `json:"uuid"`
-	IsEdit      bool    `json:"isEdit"`
-	Title       string  `json:"title"`
-	MaxLength   int     `json:"maxLength"`
-	Temperature float64 `json:"temperature"`
-	TopP        float64 `json:"topP"`
-	N           int32   `json:"n"`
-	MaxTokens   int32   `json:"maxTokens"`
-	Debug       bool    `json:"debug"`
-	Model       string  `json:"model"`
-	SummarizeMode bool  `json:"summarizeMode"`
+	Uuid          string  `json:"uuid"`
+	IsEdit        bool    `json:"isEdit"`
+	Title         string  `json:"title"`
+	MaxLength     int     `json:"maxLength"`
+	Temperature   float64 `json:"temperature"`
+	TopP          float64 `json:"topP"`
+	N             int32   `json:"n"`
+	MaxTokens     int32   `json:"maxTokens"`
+	Debug         bool    `json:"debug"`
+	Model         string  `json:"model"`
+	SummarizeMode bool    `json:"summarizeMode"`
 }
 
 type ChatMessageResponse struct {
