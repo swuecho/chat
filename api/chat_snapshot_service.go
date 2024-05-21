@@ -55,7 +55,7 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 		Conversation: simple_msgs_raw,
 	})
 	if err != nil {
-		log.Println(err)
+		log.Printf("error: %+v\n",err)
 		return "", err
 	}
 	return one.Uuid, nil
