@@ -1,7 +1,3 @@
-import { ss } from '@/utils/storage'
-
-const LOCAL_NAME = 'chatStorage'
-
 const default_chat_data: Chat.ChatState = {
   active: null,
   history: [],
@@ -9,12 +5,7 @@ const default_chat_data: Chat.ChatState = {
 }
 
 export function getLocalState(): Chat.ChatState {
-  const localState = ss.get(LOCAL_NAME)
-  return localState ?? default_chat_data
-}
-
-export function setLocalState(state: Chat.ChatState) {
-  ss.set(LOCAL_NAME, state)
+  return default_chat_data
 }
 
 export function check_chat(chat: Chat.ChatState['chat'], need_length = true) {

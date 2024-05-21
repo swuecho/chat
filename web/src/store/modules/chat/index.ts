@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 
-import { check_chat, getLocalState, setLocalState } from './helper'
+import { check_chat, getLocalState, } from './helper'
 import { router } from '@/router'
 import {
   clearSessionChatMessages,
@@ -54,12 +54,7 @@ export const useChatStore = defineStore('chat-store', {
   },
 
   actions: {
-    recordState() {
-      setLocalState(this.$state)
-    },
-
     async reloadRoute(uuid?: string) {
-      this.recordState()
       await router.push({ name: 'Chat', params: { uuid } })
     },
 
@@ -106,7 +101,6 @@ export const useChatStore = defineStore('chat-store', {
         this.history[index] = { ...this.history[index], ...edit }
         // update chat session
         await fetchUpdateChatByUuid(uuid, this.history[index])
-        this.recordState()
       }
     },
 
@@ -148,7 +142,6 @@ export const useChatStore = defineStore('chat-store', {
 
     async setActiveLocal(uuid: string) {
       this.active = uuid
-      this.recordState()
     },
 
     getChatByUuidAndIndex(uuid: string, index: number) {
@@ -178,7 +171,6 @@ export const useChatStore = defineStore('chat-store', {
           // this.chat.push({ uuid, data: [{ ...chat, isPrompt: true, isPin: false }] })
           this.chat[uuid] = [{ ...chat, isPrompt: true, isPin: false }]
           this.active = uuid
-          this.recordState()
         }
         else {
           // this.chat[0].data.push(chat)
@@ -187,7 +179,6 @@ export const useChatStore = defineStore('chat-store', {
             this.history[0].title = chat.text
             renameChatSession(this.history[0].uuid, chat.text.substring(0, 20))
           }
-          this.recordState()
         }
       }
 
@@ -202,7 +193,6 @@ export const useChatStore = defineStore('chat-store', {
           this.history[0].title = chat.text
           renameChatSession(this.history[0].uuid, chat.text.substring(0, 20))
         }
-        this.recordState()
       }
     },
 
@@ -212,7 +202,6 @@ export const useChatStore = defineStore('chat-store', {
       if (!uuid) {
         if (keys_length) {
           this.chat[keys[0]][index] = chat
-          this.recordState()
         }
         return
       }
@@ -220,7 +209,6 @@ export const useChatStore = defineStore('chat-store', {
       // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
       if (keys.includes(uuid)) {
         this.chat[uuid][index] = chat
-        this.recordState()
       }
     },
 
@@ -233,7 +221,6 @@ export const useChatStore = defineStore('chat-store', {
       if (!uuid) {
         if (keys_length) {
           this.chat[keys[0]][index] = { ...this.chat[keys[0]][index], ...chat }
-          this.recordState()
         }
         return
       }
@@ -244,7 +231,6 @@ export const useChatStore = defineStore('chat-store', {
           ...this.chat[uuid][index],
           ...chat,
         }
-        this.recordState()
       }
     },
 
@@ -255,7 +241,6 @@ export const useChatStore = defineStore('chat-store', {
           const chatData = this.chat[keys[0]]
           const chat = chatData[index]
           chatData.splice(index, 1)
-          this.recordState()
           if (chat)
             await deleteChatData(chat)
         }
@@ -267,7 +252,6 @@ export const useChatStore = defineStore('chat-store', {
         const chatData = this.chat[uuid]
         const chat = chatData[index]
         chatData.splice(index, 1)
-        this.recordState()
         if (chat)
           await deleteChatData(chat)
       }
@@ -279,7 +263,6 @@ export const useChatStore = defineStore('chat-store', {
       if (!uuid) {
         if (keys_length) {
           this.chat[keys[0]] = []
-          this.recordState()
         }
         return
       }
@@ -293,14 +276,12 @@ export const useChatStore = defineStore('chat-store', {
         }
         this.chat[uuid] = data
         clearSessionChatMessages(uuid)
-        this.recordState()
       }
     },
     clearState() {
       this.history = []
       this.chat = {}
       this.active = null
-      this.recordState()
     },
   },
 })
