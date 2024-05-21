@@ -13,9 +13,9 @@ type ChatSnapshotHandler struct {
 	service *ChatSnapshotService
 }
 
-func NewChatSnapshotHandler(service *ChatSnapshotService) *ChatSnapshotHandler {
+func NewChatSnapshotHandler(sqlc_q *sqlc_queries.Queries) *ChatSnapshotHandler {
 	return &ChatSnapshotHandler{
-		service: service,
+		service: NewChatSnapshotService(sqlc_q),
 	}
 }
 

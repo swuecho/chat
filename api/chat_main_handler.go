@@ -30,7 +30,9 @@ type ChatHandler struct {
 	service *ChatService
 }
 
-func NewChatHandler(chatService *ChatService) *ChatHandler {
+func NewChatHandler(sqlc_q *sqlc_queries.Queries) *ChatHandler {
+	// create a new ChatService instance
+	chatService := NewChatService(sqlc_q)
 	return &ChatHandler{
 		service: chatService,
 	}

@@ -16,8 +16,9 @@ type AuthUserHandler struct {
 	service *AuthUserService
 }
 
-func NewAuthUserHandler(service *AuthUserService) *AuthUserHandler {
-	return &AuthUserHandler{service: service}
+func NewAuthUserHandler(sqlc_q *sqlc_queries.Queries) *AuthUserHandler {
+	userService := NewAuthUserService(sqlc_q)
+	return &AuthUserHandler{service: userService}
 }
 
 func (h *AuthUserHandler) Register(router *mux.Router) {

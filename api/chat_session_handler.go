@@ -18,9 +18,11 @@ type ChatSessionHandler struct {
 	service *ChatSessionService
 }
 
-func NewChatSessionHandler(service *ChatSessionService) *ChatSessionHandler {
+func NewChatSessionHandler(sqlc_q *sqlc_queries.Queries) *ChatSessionHandler {
+	// create a new ChatSessionService instance
+	chatSessionService := NewChatSessionService(sqlc_q)
 	return &ChatSessionHandler{
-		service: service,
+		service: chatSessionService,
 	}
 }
 

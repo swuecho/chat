@@ -14,9 +14,11 @@ type UserActiveChatSessionHandler struct {
 	service *UserActiveChatSessionService
 }
 
-func NewUserActiveChatSessionHandler(service *UserActiveChatSessionService) *UserActiveChatSessionHandler {
+func NewUserActiveChatSessionHandler(sqlc_q *sqlc.Queries) *UserActiveChatSessionHandler {
+	activeSessionService := NewUserActiveChatSessionService(sqlc_q)
+
 	return &UserActiveChatSessionHandler{
-		service: service,
+		service: activeSessionService,
 	}
 }
 
