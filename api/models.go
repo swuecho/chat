@@ -36,16 +36,6 @@ type TokenResult struct {
 	ExpiresIn   int    `json:"expiresIn"`
 }
 
-type MultiMessage struct {
-	Role  string `json:"role"`
-	Parts []Part `json:"parts"`
-}
-
-type Part struct {
-	Content string `json:"content"`
-	Type    string `json:"type"`
-}
-
 type ConversationRequest struct {
 	UUID            string `json:"uuid,omitempty"`
 	ConversationID  string `json:"conversationId,omitempty"`

@@ -1,4 +1,4 @@
-package gemmi
+package main 
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ type GeminiMessage struct {
 	Parts []Part `json:"parts"`
 }
 
-type Payload struct {
+type GeminPayload struct {
 	Contents []GeminiMessage `json:"contents"`
 }
 
@@ -47,11 +47,6 @@ type ResponseBody struct {
 	PromptFeedback PromptFeedback `json:"promptFeedback"`
 }
 
-type Message struct {
-	Role       string `json:"role"`
-	Content    string `json:"content"`
-	tokenCount int32
-}
 func ParseRespLine(line []byte, answer string) string {
 	var resp ResponseBody
 	if err := json.Unmarshal(line, &resp); err != nil {
@@ -68,7 +63,7 @@ func ParseRespLine(line []byte, answer string) string {
 }
 
 func GenGemminPayload(chat_compeletion_messages []Message) ([]byte, error) {
-	payload := Payload{
+	payload := GeminPayload{
 		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
 	}
 	for i, message := range chat_compeletion_messages {

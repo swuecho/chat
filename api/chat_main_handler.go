@@ -21,7 +21,6 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
-	gemini "github.com/swuecho/chat_backend/llm/gemini"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 
 	"github.com/gorilla/mux"
@@ -1217,35 +1216,10 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //         "parts":[{
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
-func genGemminPayload(chat_compeletion_messages []Message) ([]byte, error) {
-	payload := gemini.Payload{
-		Contents: make([]gemini.GeminiMessage, len(chat_compeletion_messages)),
-	}
-	for i, message := range chat_compeletion_messages {
-		geminiMessage := gemini.GeminiMessage{
-			Role: message.Role,
-			Parts: []gemini.Part{
-				{Text: message.Content},
-			},
-		}
-		if message.Role == "assistant" {
-			geminiMessage.Role = "model"
-		} else if message.Role == "system" {
-			geminiMessage.Role = "user"
-		}
-		payload.Contents[i] = geminiMessage
-	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		fmt.Println("Error marshalling payload:", err)
-		// handle err
-		return nil, err
-	}
-	return payloadBytes, nil
-}
+
 
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
-	payloadBytes, err := genGemminPayload(chat_compeletion_messages)
+	payloadBytes, err := GenGemminPayload(chat_compeletion_messages)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
@@ -1314,7 +1288,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		}
 		line = bytes.TrimPrefix(line, headerData)
 		if len(line) > 0 {
-			answer = gemini.ParseRespLine(line, answer)
+			answer = ParseRespLine(line, answer)
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
