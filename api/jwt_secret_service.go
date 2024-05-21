@@ -5,9 +5,9 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -37,7 +37,7 @@ func (s *JWTSecretService) GetOrCreateJwtSecret(ctx context.Context, name string
 	secret, err := s.q.GetJwtSecret(ctx, name)
 	if err != nil {
 		// no row found, create it
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			secret_str, aud_str := auth.GenJwtSecretAndAudience()
 			secret, err = s.q.CreateJwtSecret(ctx, sqlc_queries.CreateJwtSecretParams{
 				Name:     name,

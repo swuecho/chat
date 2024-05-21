@@ -1,13 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/gorilla/mux"
 	"github.com/rotisserie/eris"
@@ -44,7 +44,7 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
 	session_resp := &ChatSessionResponse{}
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			session_resp.Uuid = session.Uuid
 			session_resp.MaxLength = 10
 			json.NewEncoder(w).Encode(session_resp)

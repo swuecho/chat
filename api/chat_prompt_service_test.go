@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	_ "github.com/lib/pq"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -50,10 +50,10 @@ func TestChatPromptService(t *testing.T) {
 		t.Fatalf("failed to delete chat prompt: %v", err)
 	}
 	_, err = service.GetChatPromptByID(context.Background(), prompt.ID)
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		print("Chat prompt deleted successfully")
 	}
-	if err == nil || !errors.Is(err, sql.ErrNoRows) {
+	if err == nil || !errors.Is(err, pgx.ErrNoRows) {
 		t.Error("expected error due to missing chat prompt, but got no error or different error")
 	}
 

@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	_ "github.com/lib/pq"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -58,7 +58,7 @@ func TestChatSessionService(t *testing.T) {
 		t.Fatalf("failed to delete chat session: %v", err)
 	}
 	deletedSession, err := service.GetChatSessionByID(context.Background(), session.ID)
-	if err == nil || !errors.Is(err, sql.ErrNoRows) {
+	if err == nil || !errors.Is(err, pgx.ErrNoRows) {
 		fmt.Printf("%+v", deletedSession)
 		t.Error("expected error due to missing chat session, but got no error or different error")
 	}
