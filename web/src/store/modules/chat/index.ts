@@ -110,6 +110,17 @@ export const useChatStore = defineStore('chat-store', {
       }
     },
 
+    async updateChatSessionIfEdited(uuid: string, edit: Partial<Chat.Session>) {
+      const index = this.history.findIndex(item => item.uuid === uuid)
+      if (index !== -1) {
+        // set inactive session to edit mode = false
+        if (this.history[index].isEdit) {
+          this.history[index] = { ...this.history[index], ...edit }
+          await fetchUpdateChatByUuid(uuid, this.history[index])
+        }
+      }
+    },
+
     deleteChatSession(index: number) {
       deleteChatSession(this.history[index].uuid)
       delete this.chat[this.history[index].uuid]
