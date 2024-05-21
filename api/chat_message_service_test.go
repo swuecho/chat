@@ -30,7 +30,7 @@ func TestChatMessageService(t *testing.T) {
 	}
 	if retrieved_msg.ID != msg.ID || retrieved_msg.ChatSessionUuid != msg.ChatSessionUuid ||
 		retrieved_msg.Role != msg.Role || retrieved_msg.Content != msg.Content || retrieved_msg.Score != msg.Score ||
-		retrieved_msg.UserID != msg.UserID || !retrieved_msg.CreatedAt.Equal(msg.CreatedAt) || !retrieved_msg.UpdatedAt.Equal(msg.UpdatedAt) ||
+		retrieved_msg.UserID != msg.UserID || !retrieved_msg.CreatedAt.Time.Equal(msg.CreatedAt.Time) || !retrieved_msg.UpdatedAt.Time.Equal(msg.UpdatedAt.Time) ||
 		retrieved_msg.CreatedBy != msg.CreatedBy || retrieved_msg.UpdatedBy != msg.UpdatedBy {
 		t.Error("retrieved chat message does not match expected values")
 	}

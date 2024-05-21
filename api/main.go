@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	_ "embed"
 	"fmt"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -111,11 +111,10 @@ func main() {
 	} else {
 		connStr = dbURL
 	}
-	pgdb, err := sql.Open("postgres", connStr)
+	pgdb, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer pgdb.Close()
 
 	// Get current executable file path
 	ex, err := os.Executable()
@@ -132,7 +131,7 @@ func main() {
 	sqlStatements := string(schemaBytes)
 
 	// Execute SQL statements
-	_, err = pgdb.Exec(sqlStatements)
+	_, err = pgdb.Exec(context.Background(), sqlStatements)
 	if err != nil {
 		panic(err.Error())
 	}

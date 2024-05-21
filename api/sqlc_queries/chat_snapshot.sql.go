@@ -7,8 +7,8 @@ package sqlc_queries
 
 import (
 	"context"
-	"encoding/json"
-	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const chatSnapshotByID = `-- name: ChatSnapshotByID :one
@@ -16,7 +16,7 @@ SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, cr
 `
 
 func (q *Queries) ChatSnapshotByID(ctx context.Context, id int32) (ChatSnapshot, error) {
-	row := q.db.QueryRowContext(ctx, chatSnapshotByID, id)
+	row := q.db.QueryRow(ctx, chatSnapshotByID, id)
 	var i ChatSnapshot
 	err := row.Scan(
 		&i.ID,
@@ -40,7 +40,7 @@ SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, cr
 `
 
 func (q *Queries) ChatSnapshotByUUID(ctx context.Context, uuid string) (ChatSnapshot, error) {
-	row := q.db.QueryRowContext(ctx, chatSnapshotByUUID, uuid)
+	row := q.db.QueryRow(ctx, chatSnapshotByUUID, uuid)
 	var i ChatSnapshot
 	err := row.Scan(
 		&i.ID,
@@ -66,15 +66,15 @@ order by created_at desc
 `
 
 type ChatSnapshotMetaByUserIDRow struct {
-	Uuid      string          `json:"uuid"`
-	Title     string          `json:"title"`
-	Summary   string          `json:"summary"`
-	Tags      json.RawMessage `json:"tags"`
-	CreatedAt time.Time       `json:"createdAt"`
+	Uuid      string           `json:"uuid"`
+	Title     string           `json:"title"`
+	Summary   string           `json:"summary"`
+	Tags      []byte           `json:"tags"`
+	CreatedAt pgtype.Timestamp `json:"createdAt"`
 }
 
 func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, userID int32) ([]ChatSnapshotMetaByUserIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, chatSnapshotMetaByUserID, userID)
+	rows, err := q.db.Query(ctx, chatSnapshotMetaByUserID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +92,6 @@ func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, userID int32) ([
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -122,7 +119,7 @@ type ChatSnapshotSearchRow struct {
 }
 
 func (q *Queries) ChatSnapshotSearch(ctx context.Context, arg ChatSnapshotSearchParams) ([]ChatSnapshotSearchRow, error) {
-	rows, err := q.db.QueryContext(ctx, chatSnapshotSearch, arg.UserID, arg.Search)
+	rows, err := q.db.Query(ctx, chatSnapshotSearch, arg.UserID, arg.Search)
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +131,6 @@ func (q *Queries) ChatSnapshotSearch(ctx context.Context, arg ChatSnapshotSearch
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -151,19 +145,19 @@ RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation,
 `
 
 type CreateChatSnapshotParams struct {
-	Uuid         string          `json:"uuid"`
-	UserID       int32           `json:"userID"`
-	Title        string          `json:"title"`
-	Model        string          `json:"model"`
-	Summary      string          `json:"summary"`
-	Tags         json.RawMessage `json:"tags"`
-	Conversation json.RawMessage `json:"conversation"`
-	Session      json.RawMessage `json:"session"`
-	Text         string          `json:"text"`
+	Uuid         string `json:"uuid"`
+	UserID       int32  `json:"userID"`
+	Title        string `json:"title"`
+	Model        string `json:"model"`
+	Summary      string `json:"summary"`
+	Tags         []byte `json:"tags"`
+	Conversation []byte `json:"conversation"`
+	Session      []byte `json:"session"`
+	Text         string `json:"text"`
 }
 
 func (q *Queries) CreateChatSnapshot(ctx context.Context, arg CreateChatSnapshotParams) (ChatSnapshot, error) {
-	row := q.db.QueryRowContext(ctx, createChatSnapshot,
+	row := q.db.QueryRow(ctx, createChatSnapshot,
 		arg.Uuid,
 		arg.UserID,
 		arg.Title,
@@ -204,7 +198,7 @@ type DeleteChatSnapshotParams struct {
 }
 
 func (q *Queries) DeleteChatSnapshot(ctx context.Context, arg DeleteChatSnapshotParams) (ChatSnapshot, error) {
-	row := q.db.QueryRowContext(ctx, deleteChatSnapshot, arg.Uuid, arg.UserID)
+	row := q.db.QueryRow(ctx, deleteChatSnapshot, arg.Uuid, arg.UserID)
 	var i ChatSnapshot
 	err := row.Scan(
 		&i.ID,
@@ -228,7 +222,7 @@ SELECT id, uuid, user_id, title, summary, model, tags, session, conversation, cr
 `
 
 func (q *Queries) ListChatSnapshots(ctx context.Context) ([]ChatSnapshot, error) {
-	rows, err := q.db.QueryContext(ctx, listChatSnapshots)
+	rows, err := q.db.Query(ctx, listChatSnapshots)
 	if err != nil {
 		return nil, err
 	}
@@ -254,9 +248,6 @@ func (q *Queries) ListChatSnapshots(ctx context.Context) ([]ChatSnapshot, error)
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -271,18 +262,18 @@ RETURNING id, uuid, user_id, title, summary, model, tags, session, conversation,
 `
 
 type UpdateChatSnapshotParams struct {
-	ID           int32           `json:"id"`
-	Uuid         string          `json:"uuid"`
-	UserID       int32           `json:"userID"`
-	Title        string          `json:"title"`
-	Summary      string          `json:"summary"`
-	Tags         json.RawMessage `json:"tags"`
-	Conversation json.RawMessage `json:"conversation"`
-	CreatedAt    time.Time       `json:"createdAt"`
+	ID           int32            `json:"id"`
+	Uuid         string           `json:"uuid"`
+	UserID       int32            `json:"userID"`
+	Title        string           `json:"title"`
+	Summary      string           `json:"summary"`
+	Tags         []byte           `json:"tags"`
+	Conversation []byte           `json:"conversation"`
+	CreatedAt    pgtype.Timestamp `json:"createdAt"`
 }
 
 func (q *Queries) UpdateChatSnapshot(ctx context.Context, arg UpdateChatSnapshotParams) (ChatSnapshot, error) {
-	row := q.db.QueryRowContext(ctx, updateChatSnapshot,
+	row := q.db.QueryRow(ctx, updateChatSnapshot,
 		arg.ID,
 		arg.Uuid,
 		arg.UserID,
@@ -324,7 +315,7 @@ type UpdateChatSnapshotMetaByUUIDParams struct {
 }
 
 func (q *Queries) UpdateChatSnapshotMetaByUUID(ctx context.Context, arg UpdateChatSnapshotMetaByUUIDParams) error {
-	_, err := q.db.ExecContext(ctx, updateChatSnapshotMetaByUUID,
+	_, err := q.db.Exec(ctx, updateChatSnapshotMetaByUUID,
 		arg.Uuid,
 		arg.Title,
 		arg.Summary,

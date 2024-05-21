@@ -26,7 +26,7 @@ type CreateAuthUserParams struct {
 }
 
 func (q *Queries) CreateAuthUser(ctx context.Context, arg CreateAuthUserParams) (AuthUser, error) {
-	row := q.db.QueryRowContext(ctx, createAuthUser,
+	row := q.db.QueryRow(ctx, createAuthUser,
 		arg.Email,
 		arg.Password,
 		arg.FirstName,
@@ -57,7 +57,7 @@ DELETE FROM auth_user WHERE email = $1
 `
 
 func (q *Queries) DeleteAuthUser(ctx context.Context, email string) error {
-	_, err := q.db.ExecContext(ctx, deleteAuthUser, email)
+	_, err := q.db.Exec(ctx, deleteAuthUser, email)
 	return err
 }
 
@@ -66,7 +66,7 @@ SELECT id, password, last_login, is_superuser, username, first_name, last_name, 
 `
 
 func (q *Queries) GetAllAuthUsers(ctx context.Context) ([]AuthUser, error) {
-	rows, err := q.db.QueryContext(ctx, getAllAuthUsers)
+	rows, err := q.db.Query(ctx, getAllAuthUsers)
 	if err != nil {
 		return nil, err
 	}
@@ -91,9 +91,6 @@ func (q *Queries) GetAllAuthUsers(ctx context.Context) ([]AuthUser, error) {
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -105,7 +102,7 @@ SELECT id, password, last_login, is_superuser, username, first_name, last_name, 
 `
 
 func (q *Queries) GetAuthUserByEmail(ctx context.Context, email string) (AuthUser, error) {
-	row := q.db.QueryRowContext(ctx, getAuthUserByEmail, email)
+	row := q.db.QueryRow(ctx, getAuthUserByEmail, email)
 	var i AuthUser
 	err := row.Scan(
 		&i.ID,
@@ -128,7 +125,7 @@ SELECT id, password, last_login, is_superuser, username, first_name, last_name, 
 `
 
 func (q *Queries) GetAuthUserByID(ctx context.Context, id int32) (AuthUser, error) {
-	row := q.db.QueryRowContext(ctx, getAuthUserByID, id)
+	row := q.db.QueryRow(ctx, getAuthUserByID, id)
 	var i AuthUser
 	err := row.Scan(
 		&i.ID,
@@ -151,7 +148,7 @@ SELECT COUNT(*) FROM auth_user WHERE is_active = true
 `
 
 func (q *Queries) GetTotalActiveUserCount(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getTotalActiveUserCount)
+	row := q.db.QueryRow(ctx, getTotalActiveUserCount)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -162,7 +159,7 @@ SELECT id, password, last_login, is_superuser, username, first_name, last_name, 
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AuthUser, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i AuthUser
 	err := row.Scan(
 		&i.ID,
@@ -228,7 +225,7 @@ type GetUserStatsRow struct {
 }
 
 func (q *Queries) GetUserStats(ctx context.Context, arg GetUserStatsParams) ([]GetUserStatsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUserStats, arg.Limit, arg.Offset, arg.DefaultRateLimit)
+	rows, err := q.db.Query(ctx, getUserStats, arg.Limit, arg.Offset, arg.DefaultRateLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -250,9 +247,6 @@ func (q *Queries) GetUserStats(ctx context.Context, arg GetUserStatsParams) ([]G
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -269,7 +263,7 @@ type ListAuthUsersParams struct {
 }
 
 func (q *Queries) ListAuthUsers(ctx context.Context, arg ListAuthUsersParams) ([]AuthUser, error) {
-	rows, err := q.db.QueryContext(ctx, listAuthUsers, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listAuthUsers, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -293,9 +287,6 @@ func (q *Queries) ListAuthUsers(ctx context.Context, arg ListAuthUsersParams) ([
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -322,7 +313,7 @@ type UpdateAuthUserRow struct {
 }
 
 func (q *Queries) UpdateAuthUser(ctx context.Context, arg UpdateAuthUserParams) (UpdateAuthUserRow, error) {
-	row := q.db.QueryRowContext(ctx, updateAuthUser, arg.ID, arg.FirstName, arg.LastName)
+	row := q.db.QueryRow(ctx, updateAuthUser, arg.ID, arg.FirstName, arg.LastName)
 	var i UpdateAuthUserRow
 	err := row.Scan(&i.FirstName, &i.LastName, &i.Email)
 	return i, err
@@ -347,7 +338,7 @@ type UpdateAuthUserByEmailRow struct {
 }
 
 func (q *Queries) UpdateAuthUserByEmail(ctx context.Context, arg UpdateAuthUserByEmailParams) (UpdateAuthUserByEmailRow, error) {
-	row := q.db.QueryRowContext(ctx, updateAuthUserByEmail, arg.Email, arg.FirstName, arg.LastName)
+	row := q.db.QueryRow(ctx, updateAuthUserByEmail, arg.Email, arg.FirstName, arg.LastName)
 	var i UpdateAuthUserByEmailRow
 	err := row.Scan(&i.FirstName, &i.LastName, &i.Email)
 	return i, err
@@ -366,7 +357,7 @@ type UpdateAuthUserRateLimitByEmailParams struct {
 }
 
 func (q *Queries) UpdateAuthUserRateLimitByEmail(ctx context.Context, arg UpdateAuthUserRateLimitByEmailParams) (int32, error) {
-	row := q.db.QueryRowContext(ctx, updateAuthUserRateLimitByEmail, arg.Email, arg.RateLimit)
+	row := q.db.QueryRow(ctx, updateAuthUserRateLimitByEmail, arg.Email, arg.RateLimit)
 	var rate_limit int32
 	err := row.Scan(&rate_limit)
 	return rate_limit, err
@@ -382,6 +373,6 @@ type UpdateUserPasswordParams struct {
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.Email, arg.Password)
+	_, err := q.db.Exec(ctx, updateUserPassword, arg.Email, arg.Password)
 	return err
 }

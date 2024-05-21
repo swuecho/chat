@@ -27,7 +27,7 @@ type CreateChatPromptParams struct {
 }
 
 func (q *Queries) CreateChatPrompt(ctx context.Context, arg CreateChatPromptParams) (ChatPrompt, error) {
-	row := q.db.QueryRowContext(ctx, createChatPrompt,
+	row := q.db.QueryRow(ctx, createChatPrompt,
 		arg.Uuid,
 		arg.ChatSessionUuid,
 		arg.Role,
@@ -63,7 +63,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteChatPrompt(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteChatPrompt, id)
+	_, err := q.db.Exec(ctx, deleteChatPrompt, id)
 	return err
 }
 
@@ -74,7 +74,7 @@ WHERE uuid = $1
 `
 
 func (q *Queries) DeleteChatPromptByUUID(ctx context.Context, uuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteChatPromptByUUID, uuid)
+	_, err := q.db.Exec(ctx, deleteChatPromptByUUID, uuid)
 	return err
 }
 
@@ -85,7 +85,7 @@ ORDER BY id
 `
 
 func (q *Queries) GetAllChatPrompts(ctx context.Context) ([]ChatPrompt, error) {
-	rows, err := q.db.QueryContext(ctx, getAllChatPrompts)
+	rows, err := q.db.Query(ctx, getAllChatPrompts)
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +112,6 @@ func (q *Queries) GetAllChatPrompts(ctx context.Context) ([]ChatPrompt, error) {
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -127,7 +124,7 @@ WHERE is_deleted = false and  id = $1
 `
 
 func (q *Queries) GetChatPromptByID(ctx context.Context, id int32) (ChatPrompt, error) {
-	row := q.db.QueryRowContext(ctx, getChatPromptByID, id)
+	row := q.db.QueryRow(ctx, getChatPromptByID, id)
 	var i ChatPrompt
 	err := row.Scan(
 		&i.ID,
@@ -153,7 +150,7 @@ WHERE uuid = $1
 `
 
 func (q *Queries) GetChatPromptByUUID(ctx context.Context, uuid string) (ChatPrompt, error) {
-	row := q.db.QueryRowContext(ctx, getChatPromptByUUID, uuid)
+	row := q.db.QueryRow(ctx, getChatPromptByUUID, uuid)
 	var i ChatPrompt
 	err := row.Scan(
 		&i.ID,
@@ -181,7 +178,7 @@ ORDER BY id
 `
 
 func (q *Queries) GetChatPromptsBySessionUUID(ctx context.Context, chatSessionUuid string) ([]ChatPrompt, error) {
-	rows, err := q.db.QueryContext(ctx, getChatPromptsBySessionUUID, chatSessionUuid)
+	rows, err := q.db.Query(ctx, getChatPromptsBySessionUUID, chatSessionUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -207,9 +204,6 @@ func (q *Queries) GetChatPromptsBySessionUUID(ctx context.Context, chatSessionUu
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -225,7 +219,7 @@ ORDER BY id
 `
 
 func (q *Queries) GetChatPromptsByUserID(ctx context.Context, userID int32) ([]ChatPrompt, error) {
-	rows, err := q.db.QueryContext(ctx, getChatPromptsByUserID, userID)
+	rows, err := q.db.Query(ctx, getChatPromptsByUserID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -251,9 +245,6 @@ func (q *Queries) GetChatPromptsByUserID(ctx context.Context, userID int32) ([]C
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -269,7 +260,7 @@ ORDER BY id
 `
 
 func (q *Queries) GetChatPromptsBysession_uuid(ctx context.Context, chatSessionUuid string) ([]ChatPrompt, error) {
-	rows, err := q.db.QueryContext(ctx, getChatPromptsBysession_uuid, chatSessionUuid)
+	rows, err := q.db.Query(ctx, getChatPromptsBysession_uuid, chatSessionUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -295,9 +286,6 @@ func (q *Queries) GetChatPromptsBysession_uuid(ctx context.Context, chatSessionU
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -314,7 +302,7 @@ LIMIT 1
 `
 
 func (q *Queries) GetOneChatPromptBySessionUUID(ctx context.Context, chatSessionUuid string) (ChatPrompt, error) {
-	row := q.db.QueryRowContext(ctx, getOneChatPromptBySessionUUID, chatSessionUuid)
+	row := q.db.QueryRow(ctx, getOneChatPromptBySessionUUID, chatSessionUuid)
 	var i ChatPrompt
 	err := row.Scan(
 		&i.ID,
@@ -347,7 +335,7 @@ type HasChatPromptPermissionParams struct {
 }
 
 func (q *Queries) HasChatPromptPermission(ctx context.Context, arg HasChatPromptPermissionParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, hasChatPromptPermission, arg.ID, arg.UserID)
+	row := q.db.QueryRow(ctx, hasChatPromptPermission, arg.ID, arg.UserID)
 	var has_permission bool
 	err := row.Scan(&has_permission)
 	return has_permission, err
@@ -370,7 +358,7 @@ type UpdateChatPromptParams struct {
 }
 
 func (q *Queries) UpdateChatPrompt(ctx context.Context, arg UpdateChatPromptParams) (ChatPrompt, error) {
-	row := q.db.QueryRowContext(ctx, updateChatPrompt,
+	row := q.db.QueryRow(ctx, updateChatPrompt,
 		arg.ID,
 		arg.ChatSessionUuid,
 		arg.Role,
@@ -411,7 +399,7 @@ type UpdateChatPromptByUUIDParams struct {
 }
 
 func (q *Queries) UpdateChatPromptByUUID(ctx context.Context, arg UpdateChatPromptByUUIDParams) (ChatPrompt, error) {
-	row := q.db.QueryRowContext(ctx, updateChatPromptByUUID, arg.Uuid, arg.Content, arg.TokenCount)
+	row := q.db.QueryRow(ctx, updateChatPromptByUUID, arg.Uuid, arg.Content, arg.TokenCount)
 	var i ChatPrompt
 	err := row.Scan(
 		&i.ID,

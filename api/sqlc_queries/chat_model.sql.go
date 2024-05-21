@@ -14,7 +14,7 @@ SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id,
 `
 
 func (q *Queries) ChatModelByID(ctx context.Context, id int32) (ChatModel, error) {
-	row := q.db.QueryRowContext(ctx, chatModelByID, id)
+	row := q.db.QueryRow(ctx, chatModelByID, id)
 	var i ChatModel
 	err := row.Scan(
 		&i.ID,
@@ -39,7 +39,7 @@ SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id,
 `
 
 func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, error) {
-	row := q.db.QueryRowContext(ctx, chatModelByName, name)
+	row := q.db.QueryRow(ctx, chatModelByName, name)
 	var i ChatModel
 	err := row.Scan(
 		&i.ID,
@@ -81,7 +81,7 @@ type CreateChatModelParams struct {
 }
 
 func (q *Queries) CreateChatModel(ctx context.Context, arg CreateChatModelParams) (ChatModel, error) {
-	row := q.db.QueryRowContext(ctx, createChatModel,
+	row := q.db.QueryRow(ctx, createChatModel,
 		arg.Name,
 		arg.Label,
 		arg.IsDefault,
@@ -124,7 +124,7 @@ type DeleteChatModelParams struct {
 }
 
 func (q *Queries) DeleteChatModel(ctx context.Context, arg DeleteChatModelParams) error {
-	_, err := q.db.ExecContext(ctx, deleteChatModel, arg.ID, arg.UserID)
+	_, err := q.db.Exec(ctx, deleteChatModel, arg.ID, arg.UserID)
 	return err
 }
 
@@ -134,7 +134,7 @@ and user_id in (select id from auth_user where is_superuser = true)
 `
 
 func (q *Queries) GetDefaultChatModel(ctx context.Context) (ChatModel, error) {
-	row := q.db.QueryRowContext(ctx, getDefaultChatModel)
+	row := q.db.QueryRow(ctx, getDefaultChatModel)
 	var i ChatModel
 	err := row.Scan(
 		&i.ID,
@@ -159,7 +159,7 @@ SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id,
 `
 
 func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
-	rows, err := q.db.QueryContext(ctx, listChatModels)
+	rows, err := q.db.Query(ctx, listChatModels)
 	if err != nil {
 		return nil, err
 	}
@@ -185,9 +185,6 @@ func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -202,7 +199,7 @@ ORDER BY order_number
 `
 
 func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error) {
-	rows, err := q.db.QueryContext(ctx, listSystemChatModels)
+	rows, err := q.db.Query(ctx, listSystemChatModels)
 	if err != nil {
 		return nil, err
 	}
@@ -228,9 +225,6 @@ func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error)
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -262,7 +256,7 @@ type UpdateChatModelParams struct {
 }
 
 func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams) (ChatModel, error) {
-	row := q.db.QueryRowContext(ctx, updateChatModel,
+	row := q.db.QueryRow(ctx, updateChatModel,
 		arg.ID,
 		arg.Name,
 		arg.Label,
@@ -308,7 +302,7 @@ type UpdateChatModelKeyParams struct {
 }
 
 func (q *Queries) UpdateChatModelKey(ctx context.Context, arg UpdateChatModelKeyParams) (ChatModel, error) {
-	row := q.db.QueryRowContext(ctx, updateChatModelKey, arg.ID, arg.ApiAuthKey)
+	row := q.db.QueryRow(ctx, updateChatModelKey, arg.ID, arg.ApiAuthKey)
 	var i ChatModel
 	err := row.Scan(
 		&i.ID,

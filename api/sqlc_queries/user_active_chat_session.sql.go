@@ -25,7 +25,7 @@ type CreateOrUpdateUserActiveChatSessionParams struct {
 }
 
 func (q *Queries) CreateOrUpdateUserActiveChatSession(ctx context.Context, arg CreateOrUpdateUserActiveChatSessionParams) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, createOrUpdateUserActiveChatSession, arg.UserID, arg.ChatSessionUuid)
+	row := q.db.QueryRow(ctx, createOrUpdateUserActiveChatSession, arg.UserID, arg.ChatSessionUuid)
 	var i UserActiveChatSession
 	err := row.Scan(
 		&i.ID,
@@ -49,7 +49,7 @@ type CreateUserActiveChatSessionParams struct {
 }
 
 func (q *Queries) CreateUserActiveChatSession(ctx context.Context, arg CreateUserActiveChatSessionParams) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, createUserActiveChatSession, arg.UserID, arg.ChatSessionUuid)
+	row := q.db.QueryRow(ctx, createUserActiveChatSession, arg.UserID, arg.ChatSessionUuid)
 	var i UserActiveChatSession
 	err := row.Scan(
 		&i.ID,
@@ -66,7 +66,7 @@ DELETE FROM user_active_chat_session WHERE user_id = $1
 `
 
 func (q *Queries) DeleteUserActiveChatSession(ctx context.Context, userID int32) error {
-	_, err := q.db.ExecContext(ctx, deleteUserActiveChatSession, userID)
+	_, err := q.db.Exec(ctx, deleteUserActiveChatSession, userID)
 	return err
 }
 
@@ -75,7 +75,7 @@ SELECT id, user_id, chat_session_uuid, created_at, updated_at FROM user_active_c
 `
 
 func (q *Queries) GetUserActiveChatSession(ctx context.Context, userID int32) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, getUserActiveChatSession, userID)
+	row := q.db.QueryRow(ctx, getUserActiveChatSession, userID)
 	var i UserActiveChatSession
 	err := row.Scan(
 		&i.ID,
@@ -92,7 +92,7 @@ SELECT id, user_id, chat_session_uuid, created_at, updated_at FROM user_active_c
 `
 
 func (q *Queries) ListUserActiveChatSessions(ctx context.Context) ([]UserActiveChatSession, error) {
-	rows, err := q.db.QueryContext(ctx, listUserActiveChatSessions)
+	rows, err := q.db.Query(ctx, listUserActiveChatSessions)
 	if err != nil {
 		return nil, err
 	}
@@ -110,9 +110,6 @@ func (q *Queries) ListUserActiveChatSessions(ctx context.Context) ([]UserActiveC
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -132,7 +129,7 @@ type UpdateUserActiveChatSessionParams struct {
 }
 
 func (q *Queries) UpdateUserActiveChatSession(ctx context.Context, arg UpdateUserActiveChatSessionParams) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, updateUserActiveChatSession, arg.ChatSessionUuid, arg.UserID)
+	row := q.db.QueryRow(ctx, updateUserActiveChatSession, arg.ChatSessionUuid, arg.UserID)
 	var i UserActiveChatSession
 	err := row.Scan(
 		&i.ID,

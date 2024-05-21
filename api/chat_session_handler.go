@@ -56,8 +56,8 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 	session_resp.Uuid = session.Uuid
 	session_resp.Topic = session.Topic
 	session_resp.MaxLength = session.MaxLength
-	session_resp.CreatedAt = session.CreatedAt
-	session_resp.UpdatedAt = session.UpdatedAt
+	session_resp.CreatedAt = session.CreatedAt.Time
+	session_resp.UpdatedAt = session.UpdatedAt.Time
 	json.NewEncoder(w).Encode(session_resp)
 }
 

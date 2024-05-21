@@ -24,7 +24,7 @@ type CreateUserChatModelPrivilegeParams struct {
 }
 
 func (q *Queries) CreateUserChatModelPrivilege(ctx context.Context, arg CreateUserChatModelPrivilegeParams) (UserChatModelPrivilege, error) {
-	row := q.db.QueryRowContext(ctx, createUserChatModelPrivilege,
+	row := q.db.QueryRow(ctx, createUserChatModelPrivilege,
 		arg.UserID,
 		arg.ChatModelID,
 		arg.RateLimit,
@@ -50,7 +50,7 @@ DELETE FROM user_chat_model_privilege WHERE id = $1
 `
 
 func (q *Queries) DeleteUserChatModelPrivilege(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteUserChatModelPrivilege, id)
+	_, err := q.db.Exec(ctx, deleteUserChatModelPrivilege, id)
 	return err
 }
 
@@ -59,7 +59,7 @@ SELECT id, user_id, chat_model_id, rate_limit, created_at, updated_at, created_b
 `
 
 func (q *Queries) ListUserChatModelPrivileges(ctx context.Context) ([]UserChatModelPrivilege, error) {
-	rows, err := q.db.QueryContext(ctx, listUserChatModelPrivileges)
+	rows, err := q.db.Query(ctx, listUserChatModelPrivileges)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +80,6 @@ func (q *Queries) ListUserChatModelPrivileges(ctx context.Context) ([]UserChatMo
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -100,7 +97,7 @@ ORDER BY id
 // TODO add ratelimit
 // LIMIT 1000
 func (q *Queries) ListUserChatModelPrivilegesByUserID(ctx context.Context, userID int32) ([]UserChatModelPrivilege, error) {
-	rows, err := q.db.QueryContext(ctx, listUserChatModelPrivilegesByUserID, userID)
+	rows, err := q.db.Query(ctx, listUserChatModelPrivilegesByUserID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -121,9 +118,6 @@ func (q *Queries) ListUserChatModelPrivilegesByUserID(ctx context.Context, userI
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -148,7 +142,7 @@ type ListUserChatModelPrivilegesRateLimitRow struct {
 }
 
 func (q *Queries) ListUserChatModelPrivilegesRateLimit(ctx context.Context) ([]ListUserChatModelPrivilegesRateLimitRow, error) {
-	rows, err := q.db.QueryContext(ctx, listUserChatModelPrivilegesRateLimit)
+	rows, err := q.db.Query(ctx, listUserChatModelPrivilegesRateLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -166,9 +160,6 @@ func (q *Queries) ListUserChatModelPrivilegesRateLimit(ctx context.Context) ([]L
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -196,7 +187,7 @@ type RateLimiteByUserAndSessionUUIDRow struct {
 }
 
 func (q *Queries) RateLimiteByUserAndSessionUUID(ctx context.Context, arg RateLimiteByUserAndSessionUUIDParams) (RateLimiteByUserAndSessionUUIDRow, error) {
-	row := q.db.QueryRowContext(ctx, rateLimiteByUserAndSessionUUID, arg.Uuid, arg.UserID)
+	row := q.db.QueryRow(ctx, rateLimiteByUserAndSessionUUID, arg.Uuid, arg.UserID)
 	var i RateLimiteByUserAndSessionUUIDRow
 	err := row.Scan(&i.RateLimit, &i.ChatModelName)
 	return i, err
@@ -215,7 +206,7 @@ type UpdateUserChatModelPrivilegeParams struct {
 }
 
 func (q *Queries) UpdateUserChatModelPrivilege(ctx context.Context, arg UpdateUserChatModelPrivilegeParams) (UserChatModelPrivilege, error) {
-	row := q.db.QueryRowContext(ctx, updateUserChatModelPrivilege, arg.ID, arg.RateLimit, arg.UpdatedBy)
+	row := q.db.QueryRow(ctx, updateUserChatModelPrivilege, arg.ID, arg.RateLimit, arg.UpdatedBy)
 	var i UserChatModelPrivilege
 	err := row.Scan(
 		&i.ID,
@@ -235,7 +226,7 @@ SELECT id, user_id, chat_model_id, rate_limit, created_at, updated_at, created_b
 `
 
 func (q *Queries) UserChatModelPrivilegeByID(ctx context.Context, id int32) (UserChatModelPrivilege, error) {
-	row := q.db.QueryRowContext(ctx, userChatModelPrivilegeByID, id)
+	row := q.db.QueryRow(ctx, userChatModelPrivilegeByID, id)
 	var i UserChatModelPrivilege
 	err := row.Scan(
 		&i.ID,
@@ -260,7 +251,7 @@ type UserChatModelPrivilegeByUserAndModelIDParams struct {
 }
 
 func (q *Queries) UserChatModelPrivilegeByUserAndModelID(ctx context.Context, arg UserChatModelPrivilegeByUserAndModelIDParams) (UserChatModelPrivilege, error) {
-	row := q.db.QueryRowContext(ctx, userChatModelPrivilegeByUserAndModelID, arg.UserID, arg.ChatModelID)
+	row := q.db.QueryRow(ctx, userChatModelPrivilegeByUserAndModelID, arg.UserID, arg.ChatModelID)
 	var i UserChatModelPrivilege
 	err := row.Scan(
 		&i.ID,

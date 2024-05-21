@@ -29,7 +29,7 @@ func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, 
 	simple_prompts := lo.Map(chat_prompts, func(prompt ChatPrompt, idx int) SimpleChatMessage {
 		return SimpleChatMessage{
 			Uuid:      prompt.Uuid,
-			DateTime:  prompt.UpdatedAt.Format(time.RFC3339),
+			DateTime:  prompt.UpdatedAt.Time.Format(time.RFC3339),
 			Text:      prompt.Content,
 			Inversion: idx%2 == 0,
 			Error:     false,
@@ -52,7 +52,7 @@ func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, 
 	simple_msgs := lo.Map(messages, func(message ChatMessage, _ int) SimpleChatMessage {
 		return SimpleChatMessage{
 			Uuid:      message.Uuid,
-			DateTime:  message.UpdatedAt.Format(time.RFC3339),
+			DateTime:  message.UpdatedAt.Time.Format(time.RFC3339),
 			Text:      message.Content,
 			Inversion: message.Role == "user",
 			Error:     false,

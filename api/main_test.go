@@ -1,20 +1,21 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	_ "github.com/lib/pq"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	log "github.com/sirupsen/logrus"
 )
 
-var db *sql.DB
+var db *pgx.Conn
 
 func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
@@ -57,11 +58,11 @@ func TestMain(m *testing.M) {
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	pool.MaxWait = 120 * time.Second
 	if err = pool.Retry(func() error {
-		db, err = sql.Open("postgres", databaseUrl)
+		db, err = pgx.Connect(context.Background(),databaseUrl)
 		if err != nil {
 			return err
 		}
-		return db.Ping()
+		return db.Ping(context.Background())
 	}); err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
@@ -79,7 +80,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not read file: %s", err)
 	}
 
-	_, err = db.Exec(string(bytes))
+	_, err = db.Exec(context.Background(), string(bytes))
 	if err != nil {
 		log.Fatalf("Could not execute SQL: %s", err)
 	}

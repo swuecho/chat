@@ -181,7 +181,7 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 
 	simple_msgs := lo.Map(messages, func(message sqlc_queries.ChatMessage, _ int) SimpleChatMessage {
 		return SimpleChatMessage{
-			DateTime:  message.UpdatedAt.Format(time.RFC3339),
+			DateTime:  message.UpdatedAt.Time.Format(time.RFC3339),
 			Text:      message.Content,
 			Inversion: message.Role != "user",
 			Error:     false,

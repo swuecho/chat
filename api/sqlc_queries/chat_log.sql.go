@@ -7,7 +7,6 @@ package sqlc_queries
 
 import (
 	"context"
-	"encoding/json"
 )
 
 const chatLogByID = `-- name: ChatLogByID :one
@@ -15,7 +14,7 @@ SELECT id, session, question, answer, created_at FROM chat_logs WHERE id = $1
 `
 
 func (q *Queries) ChatLogByID(ctx context.Context, id int32) (ChatLog, error) {
-	row := q.db.QueryRowContext(ctx, chatLogByID, id)
+	row := q.db.QueryRow(ctx, chatLogByID, id)
 	var i ChatLog
 	err := row.Scan(
 		&i.ID,
@@ -34,13 +33,13 @@ RETURNING id, session, question, answer, created_at
 `
 
 type CreateChatLogParams struct {
-	Session  json.RawMessage `json:"session"`
-	Question json.RawMessage `json:"question"`
-	Answer   json.RawMessage `json:"answer"`
+	Session  []byte `json:"session"`
+	Question []byte `json:"question"`
+	Answer   []byte `json:"answer"`
 }
 
 func (q *Queries) CreateChatLog(ctx context.Context, arg CreateChatLogParams) (ChatLog, error) {
-	row := q.db.QueryRowContext(ctx, createChatLog, arg.Session, arg.Question, arg.Answer)
+	row := q.db.QueryRow(ctx, createChatLog, arg.Session, arg.Question, arg.Answer)
 	var i ChatLog
 	err := row.Scan(
 		&i.ID,
@@ -57,7 +56,7 @@ DELETE FROM chat_logs WHERE id = $1
 `
 
 func (q *Queries) DeleteChatLog(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteChatLog, id)
+	_, err := q.db.Exec(ctx, deleteChatLog, id)
 	return err
 }
 
@@ -66,7 +65,7 @@ SELECT id, session, question, answer, created_at FROM chat_logs ORDER BY id
 `
 
 func (q *Queries) ListChatLogs(ctx context.Context) ([]ChatLog, error) {
-	rows, err := q.db.QueryContext(ctx, listChatLogs)
+	rows, err := q.db.Query(ctx, listChatLogs)
 	if err != nil {
 		return nil, err
 	}
@@ -85,9 +84,6 @@ func (q *Queries) ListChatLogs(ctx context.Context) ([]ChatLog, error) {
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -101,14 +97,14 @@ RETURNING id, session, question, answer, created_at
 `
 
 type UpdateChatLogParams struct {
-	ID       int32           `json:"id"`
-	Session  json.RawMessage `json:"session"`
-	Question json.RawMessage `json:"question"`
-	Answer   json.RawMessage `json:"answer"`
+	ID       int32  `json:"id"`
+	Session  []byte `json:"session"`
+	Question []byte `json:"question"`
+	Answer   []byte `json:"answer"`
 }
 
 func (q *Queries) UpdateChatLog(ctx context.Context, arg UpdateChatLogParams) (ChatLog, error) {
-	row := q.db.QueryRowContext(ctx, updateChatLog,
+	row := q.db.QueryRow(ctx, updateChatLog,
 		arg.ID,
 		arg.Session,
 		arg.Question,

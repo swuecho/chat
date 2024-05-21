@@ -7,7 +7,6 @@ package sqlc_queries
 
 import (
 	"context"
-	"encoding/json"
 )
 
 const createChatMessage = `-- name: CreateChatMessage :one
@@ -17,21 +16,21 @@ RETURNING id, uuid, chat_session_uuid, role, content, llm_summary, score, user_i
 `
 
 type CreateChatMessageParams struct {
-	ChatSessionUuid string          `json:"chatSessionUuid"`
-	Uuid            string          `json:"uuid"`
-	Role            string          `json:"role"`
-	Content         string          `json:"content"`
-	TokenCount      int32           `json:"tokenCount"`
-	Score           float64         `json:"score"`
-	UserID          int32           `json:"userID"`
-	CreatedBy       int32           `json:"createdBy"`
-	UpdatedBy       int32           `json:"updatedBy"`
-	LlmSummary      string          `json:"llmSummary"`
-	Raw             json.RawMessage `json:"raw"`
+	ChatSessionUuid string  `json:"chatSessionUuid"`
+	Uuid            string  `json:"uuid"`
+	Role            string  `json:"role"`
+	Content         string  `json:"content"`
+	TokenCount      int32   `json:"tokenCount"`
+	Score           float64 `json:"score"`
+	UserID          int32   `json:"userID"`
+	CreatedBy       int32   `json:"createdBy"`
+	UpdatedBy       int32   `json:"updatedBy"`
+	LlmSummary      string  `json:"llmSummary"`
+	Raw             []byte  `json:"raw"`
 }
 
 func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, createChatMessage,
+	row := q.db.QueryRow(ctx, createChatMessage,
 		arg.ChatSessionUuid,
 		arg.Uuid,
 		arg.Role,
@@ -72,7 +71,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteChatMessage(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteChatMessage, id)
+	_, err := q.db.Exec(ctx, deleteChatMessage, id)
 	return err
 }
 
@@ -82,7 +81,7 @@ WHERE uuid = $1
 `
 
 func (q *Queries) DeleteChatMessageByUUID(ctx context.Context, uuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteChatMessageByUUID, uuid)
+	_, err := q.db.Exec(ctx, deleteChatMessageByUUID, uuid)
 	return err
 }
 
@@ -93,7 +92,7 @@ WHERE is_deleted = false and is_pin = false and chat_session_uuid = $1
 `
 
 func (q *Queries) DeleteChatMessagesBySesionUUID(ctx context.Context, chatSessionUuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteChatMessagesBySesionUUID, chatSessionUuid)
+	_, err := q.db.Exec(ctx, deleteChatMessagesBySesionUUID, chatSessionUuid)
 	return err
 }
 
@@ -104,7 +103,7 @@ ORDER BY id
 `
 
 func (q *Queries) GetAllChatMessages(ctx context.Context) ([]ChatMessage, error) {
-	rows, err := q.db.QueryContext(ctx, getAllChatMessages)
+	rows, err := q.db.Query(ctx, getAllChatMessages)
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +133,6 @@ func (q *Queries) GetAllChatMessages(ctx context.Context) ([]ChatMessage, error)
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -149,7 +145,7 @@ WHERE is_deleted = false and id = $1
 `
 
 func (q *Queries) GetChatMessageByID(ctx context.Context, id int32) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, getChatMessageByID, id)
+	row := q.db.QueryRow(ctx, getChatMessageByID, id)
 	var i ChatMessage
 	err := row.Scan(
 		&i.ID,
@@ -188,7 +184,7 @@ type GetChatMessageBySessionUUIDParams struct {
 }
 
 func (q *Queries) GetChatMessageBySessionUUID(ctx context.Context, arg GetChatMessageBySessionUUIDParams) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, getChatMessageBySessionUUID, arg.Limit, arg.Offset)
+	row := q.db.QueryRow(ctx, getChatMessageBySessionUUID, arg.Limit, arg.Offset)
 	var i ChatMessage
 	err := row.Scan(
 		&i.ID,
@@ -219,7 +215,7 @@ WHERE is_deleted = false and uuid = $1
 
 // -- UUID ----
 func (q *Queries) GetChatMessageByUUID(ctx context.Context, uuid string) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, getChatMessageByUUID, uuid)
+	row := q.db.QueryRow(ctx, getChatMessageByUUID, uuid)
 	var i ChatMessage
 	err := row.Scan(
 		&i.ID,
@@ -259,7 +255,7 @@ type GetChatMessagesBySessionUUIDParams struct {
 }
 
 func (q *Queries) GetChatMessagesBySessionUUID(ctx context.Context, arg GetChatMessagesBySessionUUIDParams) ([]ChatMessage, error) {
-	rows, err := q.db.QueryContext(ctx, getChatMessagesBySessionUUID, arg.Uuid, arg.Offset, arg.Limit)
+	rows, err := q.db.Query(ctx, getChatMessagesBySessionUUID, arg.Uuid, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -289,9 +285,6 @@ func (q *Queries) GetChatMessagesBySessionUUID(ctx context.Context, arg GetChatM
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -307,7 +300,7 @@ AND created_at >= NOW() - INTERVAL '10 minutes'
 
 // Get total chat message count for user in last 10 minutes
 func (q *Queries) GetChatMessagesCount(ctx context.Context, userID int32) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getChatMessagesCount, userID)
+	row := q.db.QueryRow(ctx, getChatMessagesCount, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -329,7 +322,7 @@ type GetChatMessagesCountByUserAndModelParams struct {
 
 // Get total chat message count for user of model in last 10 minutes
 func (q *Queries) GetChatMessagesCountByUserAndModel(ctx context.Context, arg GetChatMessagesCountByUserAndModelParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getChatMessagesCountByUserAndModel, arg.UserID, arg.Model)
+	row := q.db.QueryRow(ctx, getChatMessagesCountByUserAndModel, arg.UserID, arg.Model)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -344,7 +337,7 @@ LIMIT 1
 `
 
 func (q *Queries) GetFirstMessageBySessionUUID(ctx context.Context, chatSessionUuid string) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, getFirstMessageBySessionUUID, chatSessionUuid)
+	row := q.db.QueryRow(ctx, getFirstMessageBySessionUUID, chatSessionUuid)
 	var i ChatMessage
 	err := row.Scan(
 		&i.ID,
@@ -395,7 +388,7 @@ type GetLastNChatMessagesParams struct {
 }
 
 func (q *Queries) GetLastNChatMessages(ctx context.Context, arg GetLastNChatMessagesParams) ([]ChatMessage, error) {
-	rows, err := q.db.QueryContext(ctx, getLastNChatMessages, arg.Uuid, arg.Limit, arg.ChatSessionUuid)
+	rows, err := q.db.Query(ctx, getLastNChatMessages, arg.Uuid, arg.Limit, arg.ChatSessionUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -424,9 +417,6 @@ func (q *Queries) GetLastNChatMessages(ctx context.Context, arg GetLastNChatMess
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -460,7 +450,7 @@ type GetLatestMessagesBySessionUUIDParams struct {
 }
 
 func (q *Queries) GetLatestMessagesBySessionUUID(ctx context.Context, arg GetLatestMessagesBySessionUUIDParams) ([]ChatMessage, error) {
-	rows, err := q.db.QueryContext(ctx, getLatestMessagesBySessionUUID, arg.ChatSessionUuid, arg.Limit)
+	rows, err := q.db.Query(ctx, getLatestMessagesBySessionUUID, arg.ChatSessionUuid, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -490,9 +480,6 @@ func (q *Queries) GetLatestMessagesBySessionUUID(ctx context.Context, arg GetLat
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -513,7 +500,7 @@ type HasChatMessagePermissionParams struct {
 }
 
 func (q *Queries) HasChatMessagePermission(ctx context.Context, arg HasChatMessagePermissionParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, hasChatMessagePermission, arg.ID, arg.UserID)
+	row := q.db.QueryRow(ctx, hasChatMessagePermission, arg.ID, arg.UserID)
 	var has_permission bool
 	err := row.Scan(&has_permission)
 	return has_permission, err
@@ -535,7 +522,7 @@ type UpdateChatMessageParams struct {
 }
 
 func (q *Queries) UpdateChatMessage(ctx context.Context, arg UpdateChatMessageParams) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, updateChatMessage,
+	row := q.db.QueryRow(ctx, updateChatMessage,
 		arg.ID,
 		arg.Role,
 		arg.Content,
@@ -579,7 +566,7 @@ type UpdateChatMessageByUUIDParams struct {
 }
 
 func (q *Queries) UpdateChatMessageByUUID(ctx context.Context, arg UpdateChatMessageByUUIDParams) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, updateChatMessageByUUID,
+	row := q.db.QueryRow(ctx, updateChatMessageByUUID,
 		arg.Uuid,
 		arg.Content,
 		arg.IsPin,
@@ -620,6 +607,6 @@ type UpdateChatMessageContentParams struct {
 }
 
 func (q *Queries) UpdateChatMessageContent(ctx context.Context, arg UpdateChatMessageContentParams) error {
-	_, err := q.db.ExecContext(ctx, updateChatMessageContent, arg.Uuid, arg.Content, arg.TokenCount)
+	_, err := q.db.Exec(ctx, updateChatMessageContent, arg.Uuid, arg.Content, arg.TokenCount)
 	return err
 }

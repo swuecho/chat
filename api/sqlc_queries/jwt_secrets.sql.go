@@ -21,7 +21,7 @@ type CreateJwtSecretParams struct {
 }
 
 func (q *Queries) CreateJwtSecret(ctx context.Context, arg CreateJwtSecretParams) (JwtSecret, error) {
-	row := q.db.QueryRowContext(ctx, createJwtSecret, arg.Name, arg.Secret, arg.Audience)
+	row := q.db.QueryRow(ctx, createJwtSecret, arg.Name, arg.Secret, arg.Audience)
 	var i JwtSecret
 	err := row.Scan(
 		&i.ID,
@@ -38,11 +38,11 @@ DELETE FROM jwt_secrets
 `
 
 func (q *Queries) DeleteAllJwtSecrets(ctx context.Context) (int64, error) {
-	result, err := q.db.ExecContext(ctx, deleteAllJwtSecrets)
+	result, err := q.db.Exec(ctx, deleteAllJwtSecrets)
 	if err != nil {
 		return 0, err
 	}
-	return result.RowsAffected()
+	return result.RowsAffected(), nil
 }
 
 const getJwtSecret = `-- name: GetJwtSecret :one
@@ -50,7 +50,7 @@ SELECT id, name, secret, audience, lifetime FROM jwt_secrets WHERE name = $1
 `
 
 func (q *Queries) GetJwtSecret(ctx context.Context, name string) (JwtSecret, error) {
-	row := q.db.QueryRowContext(ctx, getJwtSecret, name)
+	row := q.db.QueryRow(ctx, getJwtSecret, name)
 	var i JwtSecret
 	err := row.Scan(
 		&i.ID,
