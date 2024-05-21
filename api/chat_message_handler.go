@@ -15,9 +15,10 @@ type ChatMessageHandler struct {
 	service *ChatMessageService
 }
 
-func NewChatMessageHandler(service *ChatMessageService) *ChatMessageHandler {
+func NewChatMessageHandler(sqlc_q *sqlc_queries.Queries) *ChatMessageHandler {
+	chatMessageService := NewChatMessageService(sqlc_q)
 	return &ChatMessageHandler{
-		service: service,
+		service: chatMessageService,
 	}
 }
 

@@ -150,61 +150,28 @@ func main() {
 	ChatModelHandler := NewChatModelHandler(sqlc_q)
 	ChatModelHandler.Register(router)
 
-	// create a new AuthUserService instance
-	userService := NewAuthUserService(sqlc_q)
-
 	// create a new AuthUserHandler instance
-	userHandler := NewAuthUserHandler(userService)
-
+	userHandler := NewAuthUserHandler(sqlc_q)
 	// register the AuthUserHandler with the router
 	userHandler.Register(router)
 
-	// create a new ChatPromptService instance
-	promptService := NewChatPromptService(sqlc_q)
-
-	// create a new ChatPromptHandler instance
-	promptHandler := NewChatPromptHandler(promptService)
-
-	// register the ChatPromptHandler with the router
+	promptHandler := NewChatPromptHandler(sqlc_q)
 	promptHandler.Register(router)
 
-	// create a new ChatSessionService instance
-	chatSessionService := NewChatSessionService(sqlc_q)
-
-	// create a new ChatSessionHandler instance
-	chatSessionHandler := NewChatSessionHandler(chatSessionService)
-
-	// register the ChatSessionHandler with the router
+	chatSessionHandler := NewChatSessionHandler(sqlc_q)
 	chatSessionHandler.Register(router)
 
-	// create a new ChatMessageService instance
-	chatMessageService := NewChatMessageService(sqlc_q)
-
-	// create a new ChatMessageHandler instance
-	chatMessageHandler := NewChatMessageHandler(chatMessageService)
-
-	// register the ChatMessageHandler with the router
+	chatMessageHandler := NewChatMessageHandler(sqlc_q)
 	chatMessageHandler.Register(router)
 
-	chatSnapshotHandler := NewChatSnapshotHandler(NewChatSnapshotService(sqlc_q))
+	chatSnapshotHandler := NewChatSnapshotHandler(sqlc_q)
 	chatSnapshotHandler.Register(router)
 
-	// create a new UserActiveChatSessionService instance
-	activeSessionService := NewUserActiveChatSessionService(sqlc_q)
-
-	// UserActiveChatSessionHandler
-	activeSessionHandler := NewUserActiveChatSessionHandler(activeSessionService)
-
-	// register the UserActiveChatSessionHandler with the router
+	activeSessionHandler := NewUserActiveChatSessionHandler(sqlc_q)
 	activeSessionHandler.Register(router)
 
-	// create a new ChatService instance
-	chatService := NewChatService(sqlc_q)
-
 	// create a new ChatHandler instance
-	chatHandler := NewChatHandler(chatService)
-
-	// regiser the ChatHandler with the router
+	chatHandler := NewChatHandler(sqlc_q)
 	chatHandler.Register(router)
 
 	user_model_privilege_handler := NewUserChatModelPrivilegeHandler(sqlc_q)

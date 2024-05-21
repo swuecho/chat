@@ -13,9 +13,10 @@ type ChatPromptHandler struct {
 	service *ChatPromptService
 }
 
-func NewChatPromptHandler(service *ChatPromptService) *ChatPromptHandler {
+func NewChatPromptHandler(sqlc_q *sqlc_queries.Queries) *ChatPromptHandler {
+	promptService := NewChatPromptService(sqlc_q)
 	return &ChatPromptHandler{
-		service: service,
+		service: promptService,
 	}
 }
 
