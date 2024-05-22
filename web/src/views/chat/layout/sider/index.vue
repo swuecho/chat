@@ -15,7 +15,7 @@ import { PromptStore } from '@/components/common'
 const appStore = useAppStore()
 const chatStore = useChatStore()
 
-const { isMobile } = useBasicLayout()
+const { isMobile, isBigScreen } = useBasicLayout()
 const show = ref(false)
 
 const collapsed = computed(() => appStore.siderCollapsed)
@@ -62,6 +62,7 @@ const mobileSafeArea = computed(() => {
   return {}
 })
 
+
 watch(
   isMobile,
   (val) => {
@@ -76,7 +77,7 @@ watch(
 
 <template>
   <NLayoutSider
-    :collapsed="collapsed" :collapsed-width="0" :width="260" :show-trigger="isMobile ? false : 'arrow-circle'"
+    :collapsed="collapsed" :collapsed-width="0"  :width="isBigScreen ? 360 : 260" :show-trigger="isMobile ? false : 'arrow-circle'"
     collapse-mode="transform" position="absolute" bordered :style="getMobileClass"
     @update-collapsed="handleUpdateCollapsed"
   >

@@ -188,7 +188,7 @@ export const useChatStore = defineStore('chat-store', {
           this.chat[keys[0]].push(chat)
           if (this.history[0].title === new_chat_text) {
             this.history[0].title = chat.text
-            renameChatSession(this.history[0].uuid, chat.text.substring(0, 20))
+            renameChatSession(this.history[0].uuid, chat.text.substring(0, 40))
           }
         }
       }
@@ -202,7 +202,7 @@ export const useChatStore = defineStore('chat-store', {
 
         if (this.history[0].title === new_chat_text) {
           this.history[0].title = chat.text
-          renameChatSession(this.history[0].uuid, chat.text.substring(0, 20))
+          renameChatSession(this.history[0].uuid, chat.text.substring(0, 40))
         }
       }
     },
