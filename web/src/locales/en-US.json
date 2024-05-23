@@ -1,7 +1,4 @@
 {
-    "prompt": {
-        "store": "prompt store"
-    },
     "admin": {
         "add_user_model_rate_limit": "Add User Session Count",
         "chat_model": {
@@ -11,11 +8,16 @@
             "apiAuthKey": "API KEY corresponding to the environment variable",
             "api_auth_header": "Auth Header key",
             "api_auth_key": "Environment variable corresponding to API KEY",
+            "defaultToken": "Default token number",
+            "deleteModel": "Delete",
+            "deleteModelConfirm": "Confirm deletion",
             "enable_per_model_rate_limit": "Enable per-model rate limit",
             "isDefault": "Default?",
             "is_default": "Default?",
             "label": "Model name",
+            "maxToken": "Maximum token number",
             "name": "ID",
+            "orderNumber": "Order number",
             "url": "Request full URL"
         },
         "chat_model_name": "Model ID",
@@ -47,6 +49,7 @@
         "totalChatMessages3DaysTokenCount": "Total token count (3 days)",
         "totalChatMessagesTokenCount": "Total token count",
         "userEmail": "User Email",
+        "userMessage": "User",
         "userStat": "User Statistics"
     },
     "chat": {
@@ -75,9 +78,11 @@
         "exportMDConfirm": "Do you want to save the chat session as a markdown file?",
         "exportSuccess": "Saved successfully",
         "frequencyPenalty": "Frequency Penalty",
+        "is_summarize_mode": "On",
         "maxTokens": "Max Total Tokens : {maxTokens}",
         "model": "Model (OpenAI GPT4 needs separate application, Claude key can use all Claude models)",
         "new": "New Chat",
+        "no_summarize_mode": "Off",
         "placeholder": "What would you like to say... (Shift + Enter = newline, '/' to trigger prompts)",
         "placeholderMobile": "What would you like to say...",
         "playAudio": "audio",
@@ -85,6 +90,7 @@
         "sessionConfig": "Conversation Settings:",
         "snapshotSuccess": "Snapshot successful, please view in a new tab",
         "stopAnswer": "Stop Answering",
+        "summarize_mode": "Summary mode (supports longer context 20+)",
         "temperature": "Temperature : {temperature}",
         "topP": "Top P: {topP}",
         "turnOffContext": "In this mode, messages sent will not include previous chat logs.",
@@ -138,6 +144,7 @@
     "error": {
         "NotAdmin": "Non-administrators are prohibited from accessing",
         "NotAuthorized": "Please log in first",
+        "claude_system_message_notice": "Claude Model, the first message is a system message, please continue entering information to start the conversation",
         "fail_to_do_request": "Failed to request the model, please try again later or contact the administrator",
         "fail_to_generate_token": "Failed to generate token",
         "fail_to_get_rate_limit": "Failed to retrieve the quota corresponding to the model, please contact the administrator to enable it",
@@ -152,15 +159,18 @@
         "syncChatSession": "Sync Failed, Please Try Again Later",
         "token_length_exceed_limit": "Total message length exceeds limit, please reduce context quantity, message length or start a new conversation."
     },
+    "prompt": {
+        "store": "prompt store"
+    },
     "setting": {
         "admin": "Admin",
         "api": "API",
         "avatarLink": "Avatar Link",
         "chatHistory": "Chat History",
         "config": "Configuration",
-        "description": "Description",
-        "defaultName": "You",
         "defaultDesc": "Signature",
+        "defaultName": "You",
+        "description": "Description",
         "general": "Overview",
         "language": "Language",
         "name": "Name",
