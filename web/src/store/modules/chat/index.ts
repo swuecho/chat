@@ -58,6 +58,7 @@ export const useChatStore = defineStore('chat-store', {
       await router.push({ name: 'Chat', params: { uuid } })
     },
 
+
     async syncChatSessions() {
       const sessions = await getChatSessionsByUser()
       this.history = []
@@ -76,14 +77,16 @@ export const useChatStore = defineStore('chat-store', {
         active_session_uuid = active_session.chatSessionUuid
 
       this.active = active_session_uuid
-      this.reloadRoute(this.active)
+      if (router.currentRoute.value.params.uuid !== this.active) {
+        await this.reloadRoute(this.active)
+      }
     },
 
     async syncChatMessages(need_uuid: string) {
       if (need_uuid) {
         const messageData = await getChatSessionHistory(need_uuid)
         this.chat[need_uuid] = messageData
-        this.reloadRoute(need_uuid)
+        // this.reloadRoute(need_uuid) // !!! this cause cycle
       }
     },
 
