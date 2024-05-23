@@ -144,7 +144,7 @@
     "error": {
         "NotAdmin": "Non-administrators are prohibited from accessing",
         "NotAuthorized": "Please log in first",
-        "claude_system_message_notice": "Claude the first message is a system message, please continue entering information to start the conversation",
+        "claude_system_message_notice": "Claude Model, the first message is a system message, please continue entering information to start the conversation",
         "fail_to_do_request": "Failed to request the model, please try again later or contact the administrator",
         "fail_to_generate_token": "Failed to generate token",
         "fail_to_get_rate_limit": "Failed to retrieve the quota corresponding to the model, please contact the administrator to enable it",

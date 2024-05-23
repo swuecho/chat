@@ -144,7 +144,7 @@
     "error": {
         "NotAdmin": "非管理員禁止訪問",
         "NotAuthorized": "請先登入",
-        "claude_system_message_notice": "CLAUDE第一條是系統消息，請繼續輸入信息開始會話",
+        "claude_system_message_notice": "CLAUDE模型第一條是系統消息，請繼續輸入信息開始會話",
         "fail_to_do_request": "請求模型失敗, 請稍後再試, 或聯繫管理員",
         "fail_to_generate_token": "生成令牌失敗",
         "fail_to_get_rate_limit": "無法查詢模型對應的配額，請聯繫管理員開通",
