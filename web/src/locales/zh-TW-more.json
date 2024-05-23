@@ -1,24 +1,21 @@
 {
-        "common": {
-                "ask_user_register": "請註冊, 只有註冊帳號才能繼續對話"
-        },
         "chat": {
-                "N": "結果數量: {n}",
-                "completionsCount": "結果數量: {contextCount}"
+                "summarize_mode": "總結模式(可以支持更長的上下文20+)",
+                "is_summarize_mode": "開啟",
+                "no_summarize_mode": "關閉",
+                "playAudio": "語音"
         },
         "admin": {
+                "userMessage": "用戶",
                 "chat_model": {
-                        "is_default": "默認?",
-                        "api_auth_header": "Auth Header 鍵",
-                        "api_auth_key": "API KEY對應的環境變數",
-                        "enable_per_model_rate_limit": "是否單獨流控"
-                },
-                "per_model_rate_limit": {
-                        "FullName": "姓名"
+                        "deleteModel": "刪除",
+                        "deleteModelConfirm": "確認刪除",
+                        "orderNumber": "次序",
+                        "maxToken": "最大token數量",
+                        "defaultToken": "默認token數量"
                 }
         },
         "error": {
-                "fail_to_do_request": "請求模型失敗, 請稍後再試, 或聯繫管理員",
-                "fail_to_make_request": "請求模型失敗, 請稍後再試, 或聯繫管理員"
+                "claude_system_message_notice": "CLAUDE第一條是系統消息，請繼續輸入信息開始會話"
         }
 }
