@@ -25,6 +25,7 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 
 	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/llm/claude"
 	gemini "github.com/swuecho/chat_backend/llm/gemini"
 )
 
@@ -597,7 +598,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// iterate through the messages and format them
 	// print the user's question
 	// convert assistant's response to json format
-	prompt := formatClaudePrompt(chat_compeletion_messages)
+	prompt := claude.FormatClaudePrompt(chat_compeletion_messages)
 	// create the json data
 	jsonData := map[string]interface{}{
 		"prompt":               prompt,
@@ -1039,7 +1040,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	// iterate through the messages and format them
 	// print the user's question
 	// convert assistant's response to json format
-	prompt := formatClaudePrompt(chat_compeletion_messages)
+	prompt := claude.FormatClaudePrompt(chat_compeletion_messages)
 	// create the json data
 	jsonData := map[string]interface{}{
 		"prompt":               prompt,
