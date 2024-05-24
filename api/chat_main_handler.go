@@ -21,12 +21,13 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
-	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 
 	"github.com/gorilla/mux"
+
 	"github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/llm/gemini"
+	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type ChatHandler struct {
