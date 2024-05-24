@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	models "github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type ChatService struct {

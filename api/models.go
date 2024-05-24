@@ -10,8 +10,6 @@ type ErrorResponse struct {
 	Details interface{} `json:"details,omitempty"`
 }
 
-
-
 type TokenResult struct {
 	AccessToken string `json:"accessToken"`
 	ExpiresIn   int    `json:"expiresIn"`

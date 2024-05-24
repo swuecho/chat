@@ -11,9 +11,8 @@ import (
 
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	models "github.com/swuecho/chat_backend/models"
-
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 func messagesToOpenAIMesages(messages []models.Message) []openai.ChatCompletionMessage {
