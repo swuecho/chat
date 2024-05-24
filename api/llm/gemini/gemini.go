@@ -1,9 +1,10 @@
-package main 
+package gemini 
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
+	models "github.com/swuecho/chat_backend/models"
 )
 
 type Part struct {
@@ -62,7 +63,7 @@ func ParseRespLine(line []byte, answer string) string {
 	return answer
 }
 
-func GenGemminPayload(chat_compeletion_messages []Message) ([]byte, error) {
+func GenGemminPayload(chat_compeletion_messages []models.Message) ([]byte, error) {
 	payload := GeminPayload{
 		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
 	}

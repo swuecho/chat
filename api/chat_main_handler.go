@@ -21,9 +21,13 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 
 	"github.com/gorilla/mux"
+
+	"github.com/swuecho/chat_backend/llm/claude"
+	"github.com/swuecho/chat_backend/llm/gemini"
+	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type ChatHandler struct {
@@ -185,7 +189,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	// calc total tokens
-	totalTokens := lo.SumBy(msgs, func(msg Message) int32 {
+	totalTokens := lo.SumBy(msgs, func(msg models.Message) int32 {
 		return msg.TokenCount()
 	})
 
@@ -230,7 +234,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	}
 
 	// calc total tokens
-	totalTokens := lo.SumBy(msgs, func(msg Message) int32 {
+	totalTokens := lo.SumBy(msgs, func(msg models.Message) int32 {
 		return msg.TokenCount()
 	})
 
@@ -259,7 +263,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	}
 }
 
-func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []Message) func(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []models.Message) func(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	model := chat_session.Model
 	isTestChat := isTest(msgs)
 	isClaude := strings.HasPrefix(model, "claude")
@@ -297,7 +301,7 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 	return chatStreamFn
 }
 
-func isTest(msgs []Message) bool {
+func isTest(msgs []models.Message) bool {
 	lastMsgs := msgs[len(msgs)-1]
 	promptMsg := msgs[0]
 	return promptMsg.Content == "test_demo_bestqa" || lastMsgs.Content == "test_demo_bestqa"
@@ -347,7 +351,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	return false
 }
 
-func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// check per chat_model limit
 
 	openAIRateLimiter.Wait(context.Background())
@@ -455,7 +459,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	return answer, answer_id, false
 }
 
-func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// check per chat_model limit
 
 	openAIRateLimiter.Wait(context.Background())
@@ -577,7 +581,7 @@ type ClaudeResponse struct {
 	Exception  interface{} `json:"exception"`
 }
 
-func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
 	claudeRateLimiteToken <- struct{}{}
 	// Release the API token
@@ -595,7 +599,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// iterate through the messages and format them
 	// print the user's question
 	// convert assistant's response to json format
-	prompt := formatClaudePrompt(chat_compeletion_messages)
+	prompt := claude.FormatClaudePrompt(chat_compeletion_messages)
 	// create the json data
 	jsonData := map[string]interface{}{
 		"prompt":               prompt,
@@ -706,32 +710,10 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	return answer, answer_id, false
 }
 
-type Delta struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-}
-
-type ContentBlockDelta struct {
-	Type  string `json:"type"`
-	Index int    `json:"index"`
-	Delta Delta  `json:"delta"`
-}
-
-type ContentBlock struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-}
-
-type StartBlock struct {
-	Type         string       `json:"type"`
-	Index        int          `json:"index"`
-	ContentBlock ContentBlock `json:"content_block"`
-}
-
 // claude-3-opus-20240229
 // claude-3-sonnet-20240229
 // claude-3-haiku-20240307
-func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
 	claudeRateLimiteToken <- struct{}{}
 	log.Printf("%+v", chatSession)
@@ -865,9 +847,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			answer_id = uuid.NewString()
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
-			var response StartBlock
-			_ = json.Unmarshal(line, &response)
-			answer = response.ContentBlock.Text
+			answer = claude.AnswerFromBlockStart(line)
 			if len(answer) < 200 || len(answer)%2 == 0 {
 				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
@@ -875,9 +855,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			}
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
-			var response ContentBlockDelta
-			_ = json.Unmarshal(line, &response)
-			answer = response.Delta.Text
+			answer = claude.AnswerFromBlockDelta(line)
 			if len(answer) < 200 || len(answer)%2 == 0 {
 				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
@@ -890,19 +868,19 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 }
 
 type OllamaResponse struct {
-	Model              string    `json:"model"`
-	CreatedAt          time.Time `json:"created_at"`
-	Done               bool      `json:"done"`
-	Message            Message   `json:"message"`
-	TotalDuration      int64     `json:"total_duration"`
-	LoadDuration       int64     `json:"load_duration"`
-	PromptEvalCount    int       `json:"prompt_eval_count"`
-	PromptEvalDuration int64     `json:"prompt_eval_duration"`
-	EvalCount          int       `json:"eval_count"`
-	EvalDuration       int64     `json:"eval_duration"`
+	Model              string         `json:"model"`
+	CreatedAt          time.Time      `json:"created_at"`
+	Done               bool           `json:"done"`
+	Message            models.Message `json:"message"`
+	TotalDuration      int64          `json:"total_duration"`
+	LoadDuration       int64          `json:"load_duration"`
+	PromptEvalCount    int            `json:"prompt_eval_count"`
+	PromptEvalDuration int64          `json:"prompt_eval_duration"`
+	EvalCount          int            `json:"eval_count"`
+	EvalDuration       int64          `json:"eval_duration"`
 }
 
-func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
@@ -1021,7 +999,7 @@ type CustomModelResponse struct {
 	Exception  interface{} `json:"exception"`
 }
 
-func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
 	// set the api key
 	chat_model, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
@@ -1037,7 +1015,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	// iterate through the messages and format them
 	// print the user's question
 	// convert assistant's response to json format
-	prompt := formatClaudePrompt(chat_compeletion_messages)
+	prompt := claude.FormatClaudePrompt(chat_compeletion_messages)
 	// create the json data
 	jsonData := map[string]interface{}{
 		"prompt":               prompt,
@@ -1141,7 +1119,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	return answer, answer_id, false
 }
 
-func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
+func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	//message := Message{Role: "assitant", Content:}
 	answer_id := chatUuid
 	if !regenerate {
@@ -1174,7 +1152,7 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	return answer, answer_id, false
 }
 
-func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message) openai.ChatCompletionRequest {
+func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message) openai.ChatCompletionRequest {
 	openai_message := messagesToOpenAIMesages(chat_compeletion_messages)
 	//totalInputToken := lo.SumBy(chat_compeletion_messages, func(m Message) int32 {
 	//	return m.TokenCount()
@@ -1218,10 +1196,8 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //         "parts":[{
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
-
-
-func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []Message, chatUuid string, regenerate bool) (string, string, bool) {
-	payloadBytes, err := GenGemminPayload(chat_compeletion_messages)
+func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
+	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
@@ -1290,7 +1266,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		}
 		line = bytes.TrimPrefix(line, headerData)
 		if len(line) > 0 {
-			answer = ParseRespLine(line, answer)
+			answer = gemini.ParseRespLine(line, answer)
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
@@ -1299,4 +1275,3 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	return answer, answer_id, false
 
 }
-

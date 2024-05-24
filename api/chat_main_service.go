@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
+	models "github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -21,7 +22,7 @@ func NewChatService(q *sqlc_queries.Queries) *ChatService {
 	return &ChatService{q: q}
 }
 
-func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]Message, error) {
+func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -55,11 +56,15 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	if err != nil {
 		return nil, eris.Wrap(err, "fail to get messages: ")
 	}
-	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) Message {
-		return Message{Role: m.Role, Content: m.Content, tokenCount: m.TokenCount}
+	chat_prompt_msgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) models.Message {
+		msg := models.Message{Role: m.Role, Content: m.Content}
+		msg.SetTokenCount(int32(m.TokenCount))
+		return msg
 	})
-	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) Message {
-		return Message{Role: m.Role, Content: m.Content, tokenCount: m.TokenCount}
+	chat_message_msgs := lo.Map(chat_massages, func(m sqlc_queries.ChatMessage, _ int) models.Message {
+		msg := models.Message{Role: m.Role, Content: m.Content}
+		msg.SetTokenCount(int32(m.TokenCount))
+		return msg
 	})
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 	return msgs, nil
@@ -132,7 +137,7 @@ func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, conten
 	return err
 }
 
-func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []Message, answerText string) {
+func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []models.Message, answerText string) {
 	// log chat
 	sessionRaw := chatSession.ToRawMessage()
 	if sessionRaw == nil {

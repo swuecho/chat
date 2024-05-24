@@ -11,11 +11,12 @@ import (
 
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
+	models "github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-func messagesToOpenAIMesages(messages []Message) []openai.ChatCompletionMessage {
-	open_ai_msgs := lo.Map(messages, func(m Message, _ int) openai.ChatCompletionMessage {
+func messagesToOpenAIMesages(messages []models.Message) []openai.ChatCompletionMessage {
+	open_ai_msgs := lo.Map(messages, func(m models.Message, _ int) openai.ChatCompletionMessage {
 		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
 	})
 	return open_ai_msgs
