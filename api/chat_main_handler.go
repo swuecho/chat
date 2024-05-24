@@ -26,7 +26,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/llm/claude"
-	gemini "github.com/swuecho/chat_backend/llm/gemini"
+	"github.com/swuecho/chat_backend/llm/gemini"
 )
 
 type ChatHandler struct {
@@ -709,8 +709,6 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	return answer, answer_id, false
 }
 
-
-
 // claude-3-opus-20240229
 // claude-3-sonnet-20240229
 // claude-3-haiku-20240307
@@ -868,18 +866,17 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	return answer, answer_id, false
 }
 
-
 type OllamaResponse struct {
-	Model              string    `json:"model"`
-	CreatedAt          time.Time `json:"created_at"`
-	Done               bool      `json:"done"`
-	Message            models.Message   `json:"message"`
-	TotalDuration      int64     `json:"total_duration"`
-	LoadDuration       int64     `json:"load_duration"`
-	PromptEvalCount    int       `json:"prompt_eval_count"`
-	PromptEvalDuration int64     `json:"prompt_eval_duration"`
-	EvalCount          int       `json:"eval_count"`
-	EvalDuration       int64     `json:"eval_duration"`
+	Model              string         `json:"model"`
+	CreatedAt          time.Time      `json:"created_at"`
+	Done               bool           `json:"done"`
+	Message            models.Message `json:"message"`
+	TotalDuration      int64          `json:"total_duration"`
+	LoadDuration       int64          `json:"load_duration"`
+	PromptEvalCount    int            `json:"prompt_eval_count"`
+	PromptEvalDuration int64          `json:"prompt_eval_duration"`
+	EvalCount          int            `json:"eval_count"`
+	EvalDuration       int64          `json:"eval_duration"`
 }
 
 func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
@@ -1198,8 +1195,6 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //         "parts":[{
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
-
-
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages)
 	if err != nil {
@@ -1279,4 +1274,3 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	return answer, answer_id, false
 
 }
-
