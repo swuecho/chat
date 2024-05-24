@@ -709,27 +709,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	return answer, answer_id, false
 }
 
-type Delta struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-}
 
-type ContentBlockDelta struct {
-	Type  string `json:"type"`
-	Index int    `json:"index"`
-	Delta Delta  `json:"delta"`
-}
-
-type ContentBlock struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-}
-
-type StartBlock struct {
-	Type         string       `json:"type"`
-	Index        int          `json:"index"`
-	ContentBlock ContentBlock `json:"content_block"`
-}
 
 // claude-3-opus-20240229
 // claude-3-sonnet-20240229
@@ -868,9 +848,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			answer_id = uuid.NewString()
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
-			var response StartBlock
-			_ = json.Unmarshal(line, &response)
-			answer = response.ContentBlock.Text
+			answer = claude.AnswerFromBlockStart(line)
 			if len(answer) < 200 || len(answer)%2 == 0 {
 				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
@@ -878,9 +856,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			}
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
-			var response ContentBlockDelta
-			_ = json.Unmarshal(line, &response)
-			answer = response.Delta.Text
+			answer = claude.AnswerFromBlockDelta(line)
 			if len(answer) < 200 || len(answer)%2 == 0 {
 				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
@@ -891,6 +867,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 
 	return answer, answer_id, false
 }
+
 
 type OllamaResponse struct {
 	Model              string    `json:"model"`
