@@ -25,6 +25,7 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 
 	"github.com/gorilla/mux"
+	gemini "github.com/swuecho/chat_backend/llm/gemini"
 )
 
 type ChatHandler struct {
@@ -1222,7 +1223,7 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 
 
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
-	payloadBytes, err := GenGemminPayload(chat_compeletion_messages)
+	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
@@ -1291,7 +1292,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		}
 		line = bytes.TrimPrefix(line, headerData)
 		if len(line) > 0 {
-			answer = ParseRespLine(line, answer)
+			answer = gemini.ParseRespLine(line, answer)
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()

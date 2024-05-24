@@ -1,4 +1,4 @@
-package main 
+package gemini 
 
 import (
 	"encoding/json"
