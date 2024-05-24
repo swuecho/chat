@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"strings"
+	models "github.com/swuecho/chat_backend/models"
 )
 
-func formatClaudePrompt(chat_compeletion_messages []Message) string {
+func formatClaudePrompt(chat_compeletion_messages []models.Message) string {
 	var sb strings.Builder
 
 	for _, message := range chat_compeletion_messages {

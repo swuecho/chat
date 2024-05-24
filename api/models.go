@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"time"
 )
 
@@ -11,25 +10,7 @@ type ErrorResponse struct {
 	Details interface{} `json:"details,omitempty"`
 }
 
-type Message struct {
-	Role       string `json:"role"`
-	Content    string `json:"content"`
-	tokenCount int32
-}
 
-
-
-func (m Message) TokenCount() int32 {
-	if m.tokenCount != 0 {
-		return m.tokenCount
-	} else {
-		tokenCount, err := getTokenCount(m.Content)
-		if err != nil {
-			log.Println(err)
-		}
-		return int32(tokenCount) + 1
-	}
-}
 
 type TokenResult struct {
 	AccessToken string `json:"accessToken"`
