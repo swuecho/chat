@@ -31,8 +31,8 @@ function handleChatHome() {
 
 const { mutate } = useMutation({
   mutationFn: async (variables: { uuid: string, title: string }) => await updateChatSnapshot(variables.uuid, { title: variables.title }),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['chatSnapshot', uuid] })
+  onSuccess: (data) => {
+    queryClient.setQueriesData({ queryKey: ['chatSnapshot', uuid] }, data)
   },
 })
 
