@@ -28,8 +28,6 @@ const { isMobile } = useBasicLayout()
 // session uuid
 const { uuid } = route.params as { uuid: string }
 
-
-
 const { data: snapshot_data, isLoading } = useQuery({
   queryKey: ['chatSnapshot', uuid],
   queryFn: async () => await fetchChatSnapshot(uuid),
