@@ -4,6 +4,8 @@ import { NButton, NForm, NFormItem, NInput, NSwitch } from 'naive-ui'
 import { createChatModel } from '@/api'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 
+const queryClient = useQueryClient()
+
 const emit = defineEmits<Emit>()
 
 const formData = ref<Chat.ChatModel>({
@@ -20,8 +22,6 @@ interface Emit {
   (e: 'newRowAdded'): void
 }
 
-
-const queryClient = useQueryClient()
 
 const createChatModelMutation = useMutation({
   mutationFn: (formData: Chat.ChatModel) => createChatModel(formData),

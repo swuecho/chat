@@ -8,10 +8,11 @@ import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
+const queryClient = useQueryClient()
+
 const ms_ui = useMessage()
 const dialog = useDialog()
 const dialogVisible = ref(false)
-const queryClient = useQueryClient()
 
 
 // const data = ref<Chat.ChatModel[]>([])
