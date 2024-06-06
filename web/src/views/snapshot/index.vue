@@ -1,5 +1,5 @@
 <script lang='ts' setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
@@ -13,6 +13,7 @@ import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useChatStore } from '@/store'
+import { useQuery } from '@tanstack/vue-query'
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
@@ -27,21 +28,16 @@ const { isMobile } = useBasicLayout()
 // session uuid
 const { uuid } = route.params as { uuid: string }
 
-const dataSources = ref<Chat.Message[]>([])
-const title = ref<string>('')
-const model = ref<string>('')
 
-onMounted(async () => {
-  const snapshot = await fetchChatSnapshot(uuid)
-  dataSources.value.push(...snapshot.conversation)
-  title.value = snapshot.title
-  model.value = snapshot.model
+
+const { data: snapshot_data, isLoading } = useQuery({
+  queryKey: ['chatSnapshot', uuid],
+  queryFn: async () => await fetchChatSnapshot(uuid),
 })
 
-const loading = ref<boolean>(false)
 
 function handleExport() {
-  if (loading.value)
+  if (isLoading.value)
     return
 
   const dialogBox = dialog.warning({
@@ -80,6 +76,9 @@ function format_chat_md(chat: Chat.Message): string {
 }
 
 const chatToMarkdown = () => {
+  if (isLoading.value)
+    return
+
   try {
     /*
     uuid: string,
@@ -90,7 +89,8 @@ const chatToMarkdown = () => {
     loading?: boolean
     isPrompt?: boolean
     */
-    const chatData = dataSources.value
+    // @ts-ignore
+    const chatData = snapshot_data.conversation;
     const markdown = chatData.map((chat: Chat.Message) => {
       if (chat.isPrompt)
         return `**system** ${format_chat_md(chat)}}`
@@ -108,7 +108,7 @@ const chatToMarkdown = () => {
 }
 
 function handleMarkdown() {
-  if (loading.value)
+  if (isLoading.value)
     return
 
   const dialogBox = dialog.warning({
@@ -169,51 +169,54 @@ function onScrollToTop() {
 
 <template>
   <div class="flex flex-col w-full h-full">
-    <Header :title="title" />
-    <main class="flex-1 overflow-hidden">
-      <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-        <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
-          :class="[isMobile ? 'p-2' : 'p-4']">
-          <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime" :model="model"
-            :text="item.text" :inversion="item.inversion" :error="item.error" :loading="item.loading" :index="index" />
-        </div>
-        <!-- <div class="flex justify-center items-center">
+    <div v-if="!isLoading">
+      <Header :title="snapshot_data.title" />
+      <main class="flex-1 overflow-hidden">
+        <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
+          <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
+            :class="[isMobile ? 'p-2' : 'p-4']">
+            <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
+              :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
+              :loading="item.loading" :index="index" />
+          </div>
+          <!-- <div class="flex justify-center items-center">
           <HoverButton :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
             <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
               <SvgIcon icon="mdi:chat-plus" width="40" height="40" />
             </span>
           </HoverButton>
         </div> -->
-      </div>
-    </main>
-    <div class="floating-button">
-      <HoverButton testid="create-chat" :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
-        <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
-          <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
-        </span>
-      </HoverButton>
-    </div>
-    <footer :class="footerClass">
-      <div class="w-full max-w-screen-xl m-auto">
-        <div class="flex items-center justify-between space-x-2">
-          <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportImage')" @click="handleExport">
-            <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="ri:download-2-line" />
-            </span>
-          </HoverButton>
-          <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportMarkdown')" @click="handleMarkdown">
-            <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="mdi:language-markdown" />
-            </span>
-          </HoverButton>
-          <HoverButton :tooltip="$t('chat_snapshot.scrollTop')" @click="onScrollToTop">
-            <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="material-symbols:vertical-align-top" />
-            </span>
-          </HoverButton>
         </div>
+      </main>
+      <div class="floating-button">
+        <HoverButton testid="create-chat" :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
+          <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
+            <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
+          </span>
+        </HoverButton>
       </div>
-    </footer>
+      <footer :class="footerClass">
+        <div class="w-full max-w-screen-xl m-auto">
+          <div class="flex items-center justify-between space-x-2">
+            <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportImage')" @click="handleExport">
+              <span class="text-xl text-[#4f555e] dark:text-white">
+                <SvgIcon icon="ri:download-2-line" />
+              </span>
+            </HoverButton>
+            <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportMarkdown')" @click="handleMarkdown">
+              <span class="text-xl text-[#4f555e] dark:text-white">
+                <SvgIcon icon="mdi:language-markdown" />
+              </span>
+            </HoverButton>
+            <HoverButton :tooltip="$t('chat_snapshot.scrollTop')" @click="onScrollToTop">
+              <span class="text-xl text-[#4f555e] dark:text-white">
+                <SvgIcon icon="material-symbols:vertical-align-top" />
+              </span>
+            </HoverButton>
+          </div>
+        </div>
+      </footer>
+  </div>
   </div>
 </template>
 

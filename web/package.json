@@ -43,6 +43,7 @@
     "vue-router": "4.1.6"
   },
   "devDependencies": {
+    "@tanstack/vue-query-devtools": "^5.40.1",
     "@antfu/eslint-config": "^0.35.3",
     "@commitlint/cli": "^17.4.4",
     "@commitlint/config-conventional": "^17.4.4",
