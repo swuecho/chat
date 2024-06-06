@@ -23,7 +23,7 @@
     "common:prepare": "husky install"
   },
   "dependencies": {
-    "@tanstack/vue-query": "^4.29.11",
+    "@tanstack/vue-query": "^5.40.1",
     "@traptitech/markdown-it-katex": "^3.6.0",
     "@vicons/ionicons5": "^0.12.0",
     "@vueuse/core": "^9.13.0",
@@ -38,11 +38,12 @@
     "naive-ui": "^2.34.3",
     "pinia": "^2.0.32",
     "uuid": "^9.0.0",
-    "vue": "3.2.47",
+    "vue": "3.4.27",
     "vue-i18n": "^9.2.2",
     "vue-router": "4.1.6"
   },
   "devDependencies": {
+    "@tanstack/vue-query-devtools": "^5.40.1",
     "@antfu/eslint-config": "^0.35.3",
     "@commitlint/cli": "^17.4.4",
     "@commitlint/config-conventional": "^17.4.4",
