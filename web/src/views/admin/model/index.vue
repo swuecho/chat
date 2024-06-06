@@ -1,35 +1,53 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from 'vue'
+import { h, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NDataTable, NInput, NModal, NSwitch, useMessage, useDialog } from 'naive-ui'
 import AddModelForm from './AddModelForm.vue'
 import { deleteChatModel, fetchChatModel, updateChatModel } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
 const ms_ui = useMessage()
 const dialog = useDialog()
-const data = ref<Chat.ChatModel[]>([])
 const dialogVisible = ref(false)
-const loading = ref(true)
+const queryClient = useQueryClient()
 
-onMounted(async () => {
-  refreshData()
+
+// const data = ref<Chat.ChatModel[]>([])
+const { data, isLoading } = useQuery({
+  queryKey: ['chat_models'],
+  queryFn: fetchChatModel,
 })
 
-async function refreshData() {
-  data.value = await fetchChatModel()
-  loading.value = false
+const chatModelMutation = useMutation({
+  mutationFn: (variables: { id: number, data: any }) => updateChatModel(variables.id, variables.data),
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat_models'] })
+})
+
+const deteteModelMutation = useMutation({
+  mutationFn: async (id: number) => await deleteChatModel(id),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['chat_models'] })
+  },
+})
+
+
+const UpdateRow = (row: Chat.ChatModel) => {
+  if (row.id) {
+    chatModelMutation.mutate({
+      id: row.id,
+      data: {
+        ...row,
+        orderNumber: parseInt(row.orderNumber || '0'),
+        defaultToken: parseInt(row.defaultToken || '0'),
+        maxToken: parseInt(row.maxToken || '0'),
+      },
+    })
+  }
 }
 
-function UpdateRow(row: Chat.ChatModel) {
-  if (row.id)
-    updateChatModel(row.id, {
-      ...row, orderNumber: parseInt(row.orderNumber || '0'),
-      defaultToken: parseInt(row.defaultToken || '0'),
-      maxToken: parseInt(row.maxToken || '0')
-    })
-}
+
 function createColumns(): DataTableColumns<Chat.ChatModel> {
   const nameField = {
     title: t('admin.chat_model.name'),
@@ -236,7 +254,6 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
 const columns = createColumns()
 
 async function addRow() {
-  await refreshData()
   dialogVisible.value = false
 }
 
@@ -247,8 +264,7 @@ async function deleteRow(row: any) {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: async () => {
-      await deleteChatModel(row.id)
-      await refreshData()
+      await deteteModelMutation.mutateAsync(row.id)
     },
   })
 }
@@ -267,17 +283,17 @@ function checkNoRowIsDefaultTrue(v: boolean) {
 </script>
 
 <template>
-    <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
-      <HoverButton @click="dialogVisible = true" class="mr-10">
-        <span class="text-xl">
-          <SvgIcon icon="material-symbols:library-add-rounded" />
-        </span>
-      </HoverButton>
-    </div>
-    <div class="m-5">
-      <NDataTable :columns="columns" :data="data" :loading="loading" />
-    </div>
-    <NModal v-model:show="dialogVisible" :title="$t('admin.add_user_model_rate_limit')" preset="dialog">
-      <AddModelForm @new-row-added="addRow" />
-    </NModal>
+  <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
+    <HoverButton @click="dialogVisible = true" class="mr-10">
+      <span class="text-xl">
+        <SvgIcon icon="material-symbols:library-add-rounded" />
+      </span>
+    </HoverButton>
+  </div>
+  <div class="m-5">
+    <NDataTable :columns="columns" :data="data" :loading="isLoading" />
+  </div>
+  <NModal v-model:show="dialogVisible" :title="$t('admin.add_user_model_rate_limit')" preset="dialog">
+    <AddModelForm @new-row-added="addRow" />
+  </NModal>
 </template>
