@@ -1,7 +1,7 @@
 <script lang='ts' setup>
 import { computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { useDialog, useMessage } from 'naive-ui'
+import { useDialog, useMessage, NSpin } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from './hooks/useCopyCode'

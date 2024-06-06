@@ -101,6 +101,13 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		return
 	}
 
+	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuid)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+	json.NewEncoder(w).Encode(snapshot)
+
 }
 
 func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.Request) {
