@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
-import { NAutoComplete, NButton, NUpload, NInput, NModal, useDialog, useMessage } from 'naive-ui'
+import { NAutoComplete, NButton, NUpload, NCard, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
@@ -42,6 +42,7 @@ const chatSession = computed(() => chatStore.getChatSessionByUuid(sessionUuid))
 
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
+const showUploadModal = ref<boolean>(false)
 
 const showModal = ref<boolean>(false)
 
@@ -546,6 +547,7 @@ function getDataFromResponseText(responseText: string): string {
   const chunk = responseText.slice(lastIndex + 8)
   return chunk
 }
+
 </script>
 
 <template>
@@ -589,6 +591,22 @@ function getDataFromResponseText(responseText: string): string {
       </div>
     </main>
     <footer :class="footerClass">
+      <div>
+        <NModal v-model:show="showUploadModal">
+          <NCard style="width: 600px" title="Upload" :bordered="false" size="huge" role="dialog" aria-modal="true">
+            <template #header-extra>
+              upload doc or image (txt, png, excel or code file)
+            </template>
+            <NUpload 
+              :custom-request="customUploadRequest">
+              <NButton id="attach_file_button" data-testid="attach_file_button" type="primary"> Upload </NButton>
+            </NUpload>
+            <template #footer>
+              <NButton @click="showUploadModal = false">Cancel</NButton>
+            </template>
+          </NCard>
+        </NModal>
+      </div>
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
           <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
@@ -614,15 +632,13 @@ function getDataFromResponseText(responseText: string): string {
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
           </HoverButton>
-          <NUpload action="https://naive-upload.free.beeceptor.com/" class="flex-1" :show-file-list="false" :custom-request="customUploadRequest">
-            <NButton  id="attach_file_button" data-testid="attach_file_button" type="primary">
-              <template #icon>
-                <span class="dark:text-black">
-                  <SvgIcon icon="clarity:attachment-line" />
-                </span>
-              </template>
-            </NButton>
-          </NUpload>
+
+          <HoverButton @click="showUploadModal = true">
+              <span class="text-xl text-[#4b9e5f]">
+                <SvgIcon icon="clarity:attachment-line" />
+              </span>
+          </HoverButton>
+
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
             :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
@@ -640,11 +656,9 @@ function getDataFromResponseText(responseText: string): string {
               </span>
             </template>
           </NButton>
-          
+
         </div>
       </div>
     </footer>
   </div>
 </template>
-
-
