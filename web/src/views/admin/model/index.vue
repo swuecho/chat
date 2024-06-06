@@ -26,7 +26,7 @@ const chatModelMutation = useMutation({
 })
 
 const deteteModelMutation = useMutation({
-  mutationFn: async (id: number) => await deleteChatModel(id),
+  mutationFn: (id: number) => deleteChatModel(id),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['chat_models'] })
   },
@@ -253,7 +253,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
 
 const columns = createColumns()
 
-async function addRow() {
+async function newRowEventHandle() {
   dialogVisible.value = false
 }
 
@@ -263,8 +263,8 @@ async function deleteRow(row: any) {
     content: t('admin.chat_model.deleteModelConfirm'),
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
-    onPositiveClick: async () => {
-      await deteteModelMutation.mutateAsync(row.id)
+    onPositiveClick: () => {
+      deteteModelMutation.mutate(row.id)
     },
   })
 }
@@ -294,6 +294,6 @@ function checkNoRowIsDefaultTrue(v: boolean) {
     <NDataTable :columns="columns" :data="data" :loading="isLoading" />
   </div>
   <NModal v-model:show="dialogVisible" :title="$t('admin.add_user_model_rate_limit')" preset="dialog">
-    <AddModelForm @new-row-added="addRow" />
+    <AddModelForm @new-row-added="newRowEventHandle" />
   </NModal>
 </template>
