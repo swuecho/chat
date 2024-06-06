@@ -3,6 +3,9 @@ import { useRoute } from 'vue-router'
 import { nextTick, ref } from 'vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { updateChatSnapshot } from '@/api'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+
+const queryClient = useQueryClient()
 
 defineProps<Props>()
 
@@ -25,10 +28,23 @@ function handleHome() {
 function handleChatHome() {
   window.open('static/#/chat/', '_blank')
 }
+
+const { mutate } = useMutation({
+  mutationFn: async (variables: { uuid: string, title: string }) => await updateChatSnapshot(variables.uuid, { title: variables.title }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['chatSnapshot', uuid] })
+  },
+})
+
+const updateTitle = (uuid: string, title: string) => {
+  mutate({ uuid: uuid, title: title })
+}
+
+
 async function handleEdit(e: Event) {
   const title_value = (e.target as HTMLInputElement).innerText
+  updateTitle(uuid, title_value)
   isEditing.value = false
-  await updateChatSnapshot(uuid, { title: title_value })
 }
 
 async function handleEditTitle() {
@@ -41,31 +57,32 @@ async function handleEditTitle() {
 </script>
 
 <template>
-  <header class="sticky h-16 flex items-center justify-between border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur  overflow-hidden">
-      <div class="flex items-center ml-10">
-        <div>
-          <HoverButton :tooltip="$t('common.edit')" @click="handleEditTitle">
-            <SvgIcon icon="ic:baseline-edit" />
-          </HoverButton>
-        </div>
-        <h1 ref="titleRef" class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
-          :class="[isEditing ? 'shadow-green-100' : '']" :contenteditable="isEditing" @blur="handleEdit"
-          @dblclick="handleEditTitle">
-          {{ title ?? '' }}
-        </h1>
-      </div>
-      <div class="flex mr-10 items-center space-x-4">
-        <HoverButton @click="handleHome">
-          <span class="text-2xl text-[#4f555e] dark:text-white">
-            <SvgIcon icon="carbon:table-of-contents" />
-          </span>
-        </HoverButton>
-        <HoverButton @click="handleChatHome">
-          <span class="text-2xl text-[#4f555e] dark:text-white">
-            <SvgIcon icon="ic:baseline-home" />
-          </span>
+  <header
+    class="sticky h-16 flex items-center justify-between border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur  overflow-hidden">
+    <div class="flex items-center ml-10">
+      <div>
+        <HoverButton :tooltip="$t('common.edit')" @click="handleEditTitle">
+          <SvgIcon icon="ic:baseline-edit" />
         </HoverButton>
       </div>
+      <h1 ref="titleRef" class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+        :class="[isEditing ? 'shadow-green-100' : '']" :contenteditable="isEditing" @blur="handleEdit"
+        @dblclick="handleEditTitle">
+        {{ title ?? '' }}
+      </h1>
+    </div>
+    <div class="flex mr-10 items-center space-x-4">
+      <HoverButton @click="handleHome">
+        <span class="text-2xl text-[#4f555e] dark:text-white">
+          <SvgIcon icon="carbon:table-of-contents" />
+        </span>
+      </HoverButton>
+      <HoverButton @click="handleChatHome">
+        <span class="text-2xl text-[#4f555e] dark:text-white">
+          <SvgIcon icon="ic:baseline-home" />
+        </span>
+      </HoverButton>
+    </div>
   </header>
 </template>
 

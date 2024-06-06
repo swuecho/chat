@@ -37,8 +37,6 @@ const { data: snapshot_data, isLoading } = useQuery({
 
 
 function handleExport() {
-  if (isLoading.value)
-    return
 
   const dialogBox = dialog.warning({
     title: t('chat.exportImage'),
@@ -76,9 +74,6 @@ function format_chat_md(chat: Chat.Message): string {
 }
 
 const chatToMarkdown = () => {
-  if (isLoading.value)
-    return
-
   try {
     /*
     uuid: string,
@@ -108,9 +103,6 @@ const chatToMarkdown = () => {
 }
 
 function handleMarkdown() {
-  if (isLoading.value)
-    return
-
   const dialogBox = dialog.warning({
     title: t('chat.exportMD'),
     content: t('chat.exportMDConfirm'),
@@ -169,7 +161,10 @@ function onScrollToTop() {
 
 <template>
   <div class="flex flex-col w-full h-full">
-    <div v-if="!isLoading">
+    <div v-if="isLoading">
+          <NSpin size="large" />
+    </div>
+    <div v-else>
       <Header :title="snapshot_data.title" />
       <main class="flex-1 overflow-hidden">
         <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
@@ -179,13 +174,6 @@ function onScrollToTop() {
               :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
               :loading="item.loading" :index="index" />
           </div>
-          <!-- <div class="flex justify-center items-center">
-          <HoverButton :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
-            <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
-              <SvgIcon icon="mdi:chat-plus" width="40" height="40" />
-            </span>
-          </HoverButton>
-        </div> -->
         </div>
       </main>
       <div class="floating-button">
@@ -216,7 +204,7 @@ function onScrollToTop() {
           </div>
         </div>
       </footer>
-  </div>
+    </div>
   </div>
 </template>
 
