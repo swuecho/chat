@@ -558,7 +558,7 @@ function getDataFromResponseText(responseText: string): string {
           </template>
           <template v-else>
             <div>
-              <NUpload class="ml-40" multiline action="/api/upload"  :default-file-list="defaultFileList"></NUpload>
+              <NUpload class="px-40" multiline action="/api/upload"  :default-file-list="defaultFileList"></NUpload>
               <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
                 :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
