@@ -94,6 +94,6 @@ async function handleDownload(file) {
 
         // Remove the link from the document
         document.body.removeChild(link);
-        return false // cancel original download
+        return false //!!! cancel original download
 }
 </script>
