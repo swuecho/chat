@@ -272,7 +272,7 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 		isClaude = false
 		isClaude3 = true
 	}
-	isChatGPT := strings.HasPrefix(model, "gpt") || strings.HasPrefix(model, "deepseek") || strings.HasPrefix(model, "yi")
+	isChatGPT := strings.HasPrefix(model, "gpt") || strings.HasPrefix(model, "deepseek") || strings.HasPrefix(model, "yi") || strings.HasPrefix(model, "qwen")
 	isOllama := strings.HasPrefix(model, "ollama-")
 	isGemini := strings.HasPrefix(model, "gemini")
 
