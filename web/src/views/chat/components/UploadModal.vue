@@ -63,7 +63,10 @@ function beforeUpload(data: any) {
  * @param {Event} options.event - The upload event.
  * @returns {void}
  */
-function handleFinish({ file, event }: { file: File, event: Event }): void {
+function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressEvent } ): void {
+        if (!event) {
+                return
+        }
         file.url = JSON.parse(event.currentTarget.response)['url']
         //fileList.value.push(file)
         console.log(file, event)
