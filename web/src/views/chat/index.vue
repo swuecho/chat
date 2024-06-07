@@ -21,7 +21,7 @@ import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
 import UploadModal from './components/UploadModal.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useQuery } from '@tanstack/vue-query'
 import { getChatFilesList } from '@/api/chat_file'
 let controller = new AbortController()
 
@@ -47,7 +47,7 @@ const loading = ref<boolean>(false)
 const showUploadModal = ref<boolean>(false)
 const showModal = ref<boolean>(false)
 
-const { data: fileListData, isLoading: isFileListLoading } = useQuery({
+const { data: fileListData } = useQuery({
         queryKey: ['fileList', sessionUuid],
         queryFn: async () => await getChatFilesList(sessionUuid)
 })

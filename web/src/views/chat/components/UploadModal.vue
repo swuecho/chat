@@ -31,7 +31,7 @@ import { ref, computed } from 'vue';
 import { useAuthStore } from '@/store'
 import { useRoute } from 'vue-router'
 import request from '@/utils/request/axios'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useQuery } from '@tanstack/vue-query'
 import { getChatFilesList } from '@/api/chat_file'
 const props = defineProps(['showUploadModal', 'sessionUuid'])
 
@@ -43,7 +43,7 @@ const queryClient = useQueryClient()
 
 
 // sessionUuid not null.
-const { data: fileListData, isLoading } = useQuery({
+const { data: fileListData } = useQuery({
         queryKey: ['fileList', props.sessionUuid],
         queryFn: async () => await getChatFilesList(props.sessionUuid)
 })
@@ -99,7 +99,7 @@ function handleRemove({ file, fileList }) {
         // delete file at url
 
         // mutate fileList
-        
+
         request.delete(file.url)
         console.log(file.url)
 }
