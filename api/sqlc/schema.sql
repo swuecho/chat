@@ -274,5 +274,6 @@ CREATE TABLE IF NOT EXISTS chat_file (
     name VARCHAR(255) NOT NULL,
     data BYTEA NOT NULL,
     created_at TIMESTAMP DEFAULT now() NOT NULL,
+    user_id INTEGER NOT NULL default 1,
     chat_session_uuid VARCHAR(255) NOT NULL 
 );

@@ -2,34 +2,75 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+
+	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-func ReceiveFile(w http.ResponseWriter, r *http.Request) {
+type ChatFileHandler struct {
+	service *ChatFileService
+}
+
+func NewChatFileHandler(sqlc_q *sqlc_queries.Queries) *ChatFileHandler {
+	ChatFileService := NewChatFileService(sqlc_q)
+	return &ChatFileHandler{
+		service: ChatFileService,
+	}
+}
+
+func (h *ChatFileHandler) Register(router *mux.Router) {
+	router.HandleFunc("/upload", h.ReceiveFile).Methods(http.MethodPost)
+}
+
+func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(32 << 20) // limit your max input length!
 	var buf bytes.Buffer
+	// get formData(session-uuid) from request
+
+	// Get the session-uuid from the form data
+	sessionUUID := r.FormValue("session-uuid")
+	fmt.Println("Session UUID:", sessionUUID)
+
+	// get user-id from request
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+	fmt.Println("User ID:", userID)
+
 	// in your case file would be fileupload
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
-	name := strings.Split(header.Filename, ".")
-	fmt.Printf("File name %s\n", name[0])
+
+	name := header.Filename
+	fmt.Printf("File name: %s\n", name)
 	// Copy the file data to my buffer
 	io.Copy(&buf, file)
-	// do something with the contents...
-	// I normally have a struct defined and unmarshal into a struct, but this will
-	// work as an example
-	contents := buf.String()
-	fmt.Println(contents)
-	// I reset the buffer in case I want to use it again
-	// reduces memory allocations in more intense projects
+	// inser into chat_file
+	// check the raw content
+	// select encode(data, 'escape') as data from chat_file;
+	chatFile, err := h.service.q.CreateChatFile(r.Context(), sqlc_queries.CreateChatFileParams{
+		ChatSessionUuid: sessionUUID,
+		UserID:          userID,
+		Name:            name,
+		Data:            buf.Bytes(),
+	})
+
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
 	buf.Reset()
-	// do something else
-	// etc write header
-	return
+	// return file name, file id as json
+
+	json.NewEncoder(w).Encode(map[string]string{"chat_file_id": string(chatFile.ID)})
+	w.WriteHeader(http.StatusOK)
 }

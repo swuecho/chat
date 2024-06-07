@@ -36,6 +36,7 @@ type ChatFile struct {
 	Name            string    `json:"name"`
 	Data            []byte    `json:"data"`
 	CreatedAt       time.Time `json:"createdAt"`
+	UserID          int32     `json:"userID"`
 	ChatSessionUuid string    `json:"chatSessionUuid"`
 }
 

@@ -25,6 +25,10 @@
 import { NModal, NCard, NUpload, NButton } from 'naive-ui';
 import { ref } from 'vue';
 import { useAuthStore } from '@/store'
+import { useRoute } from 'vue-router'
+const route = useRoute()
+
+const { uuid: sessionUuid } = route.params as { uuid: string }
 
 const props = defineProps(['showUploadModal'])
 const emit = defineEmits(['update:showUploadModal']);
@@ -39,7 +43,7 @@ const headers = ref({
 })
 
 const data = ref({
-        'naive-data': 'cool! naive!'
+        'session-uuid': sessionUuid
 })
 
 function beforeUpload(data) {

@@ -177,8 +177,10 @@ func main() {
 	user_model_privilege_handler := NewUserChatModelPrivilegeHandler(sqlc_q)
 	user_model_privilege_handler.Register(router)
 
+	chatFileHandler := NewChatFileHandler(sqlc_q)
+	chatFileHandler.Register(router)
+
 	router.HandleFunc("/tts", handleTTSRequest)
-	router.HandleFunc("/upload", ReceiveFile).Methods("POST")
 
 	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		tpl, err1 := route.GetPathTemplate()
