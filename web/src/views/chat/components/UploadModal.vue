@@ -6,11 +6,7 @@
                                 <template #header-extra>
                                         upload doc or image (txt, png, excel or code file)
                                 </template>
-                                <NUpload multiline action="/api/upload" :headers="{
-                                        'naive-info': 'hello!'
-                                }" :data="{
-        'naive-data': 'cool! naive!'
-}" @finish="handleFinish" @before-upload="beforeUpload">
+                                <NUpload multiline action="/api/upload" :headers="headers" :data="data" @finish="handleFinish" @before-upload="beforeUpload">
                                         <NButton id="attach_file_button" data-testid="attach_file_button"
                                                 type="primary"> Upload
                                         </NButton>
@@ -27,6 +23,20 @@
 <script lang="ts" setup>
 import { NModal, NCard, NUpload, NButton } from 'naive-ui';
 import { ref } from 'vue';
+const { isMobile } = useBasicLayout()
+
+// login modal will appear when there is no token
+const authStore = useAuthStore()
+
+const token = authStore.getToken()
+
+const headers = ref({
+        'Authorization': 'Bearer ' + token
+})
+
+const data = ref({
+        'naive-data': 'cool! naive!'
+})
 
 
 const props = defineProps(['showUploadModal'])
