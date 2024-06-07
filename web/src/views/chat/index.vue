@@ -44,7 +44,6 @@ const chatSession = computed(() => chatStore.getChatSessionByUuid(sessionUuid))
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const showUploadModal = ref<boolean>(false)
-
 const showModal = ref<boolean>(false)
 
 // 添加PromptStore

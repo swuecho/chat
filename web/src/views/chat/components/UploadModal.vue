@@ -7,7 +7,7 @@
                                         upload doc or image (txt, png, excel or code file)
                                 </template>
                                 <NUpload multiline action="/api/upload" :headers="headers" :data="data"
-                                        show-download-button="true" @finish="handleFinish" @before-upload="beforeUpload"
+                                        :show-download-button="true" @finish="handleFinish" @before-upload="beforeUpload"
                                         @remove="handleRemove" @download="handleDownload">
                                         <NButton id="attach_file_button" data-testid="attach_file_button"
                                                 type="primary"> Upload
