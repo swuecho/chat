@@ -49,9 +49,6 @@ const (
 
 func IsChatSnapshotUUID(r *http.Request) bool {
 	// Check http method is GET
-	if strings.HasPrefix(r.URL.Path, "/upload") {
-		return true
-	}
 	if r.Method != http.MethodGet {
 		return false
 	}
