@@ -39,8 +39,6 @@ const route = useRoute()
 
 const { uuid: sessionUuid } = route.params as { uuid: string }
 
-const queryClient = useQueryClient()
-
 
 // sessionUuid not null.
 const { data: fileListData } = useQuery({
