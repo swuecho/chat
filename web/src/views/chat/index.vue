@@ -19,7 +19,7 @@ import { useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
-import  UploadModal  from './components/UploadModal.vue'
+import UploadModal from './components/UploadModal.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 
 let controller = new AbortController()
@@ -553,6 +553,9 @@ function getDataFromResponseText(responseText: string): string {
 
 <template>
   <div class="flex flex-col w-full h-full">
+    <div>
+    <UploadModal :showUploadModal="showUploadModal" @update:showUploadModal="showUploadModal = $event" />
+    </div>
     <HeaderComponent v-if="isMobile" @export="handleExport" @snapshot="handleSnapshot" @toggle="showModal = true" />
     <main class="flex-1 overflow-hidden">
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
@@ -592,9 +595,6 @@ function getDataFromResponseText(responseText: string): string {
       </div>
     </main>
     <footer :class="footerClass">
-      <div>
-        <UploadModal :showUploadModal="showUploadModal" @update:showUploadModal="showUploadModal = $event" />
-      </div>
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
           <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
@@ -622,9 +622,9 @@ function getDataFromResponseText(responseText: string): string {
           </HoverButton>
 
           <HoverButton @click="showUploadModal = true">
-              <span class="text-xl text-[#4b9e5f]">
-                <SvgIcon icon="clarity:attachment-line" />
-              </span>
+            <span class="text-xl text-[#4b9e5f]">
+              <SvgIcon icon="clarity:attachment-line" />
+            </span>
           </HoverButton>
 
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
