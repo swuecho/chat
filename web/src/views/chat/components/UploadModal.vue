@@ -69,9 +69,9 @@ function handleRemove({ file, fileList }) {
         console.log(file.url)
 }
 
-function handleDownload(file) {
+async function handleDownload(file) {
         console.log('download', file)
-        let response = request.get(file.url, {
+        let response = await request.get(file.url, {
                 responseType: 'blob', // Important: set the response type to blob
         })
         // Create a new Blob object using the response data of the file
