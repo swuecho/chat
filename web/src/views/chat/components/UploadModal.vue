@@ -55,8 +55,15 @@ function beforeUpload(data: any) {
         // You can return a Promise to reject the file
         // return Promise.reject(new Error('Invalid file type'))
 }
-// @ts-ignore
-function handleFinish({ file, event }) {
+/**
+ * Handles the completion of a file upload.
+ *
+ * @param {object} options - An object containing the file and the event.
+ * @param {File} options.file - The uploaded file.
+ * @param {Event} options.event - The upload event.
+ * @returns {void}
+ */
+function handleFinish({ file, event }: { file: File, event: Event }): void {
         file.url = JSON.parse(event.currentTarget.response)['url']
         //fileList.value.push(file)
         console.log(file, event)
