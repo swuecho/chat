@@ -7,8 +7,8 @@
                                         upload doc or image (txt, png, excel or code file)
                                 </template>
                                 <NUpload multiline action="/api/upload" :headers="headers" :data="data"
-                                        :show-download-button="true" @finish="handleFinish" @before-upload="beforeUpload"
-                                        @remove="handleRemove" @download="handleDownload">
+                                        :show-download-button="true" @finish="handleFinish"
+                                        @before-upload="beforeUpload" @remove="handleRemove" @download="handleDownload">
                                         <NButton id="attach_file_button" data-testid="attach_file_button"
                                                 type="primary"> Upload
                                         </NButton>
@@ -63,13 +63,15 @@ function beforeUpload(data: any) {
  * @param {Event} options.event - The upload event.
  * @returns {void}
  */
-function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressEvent } ): void {
+function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressEvent }): UploadFileInfo  | undefined {
         if (!event) {
                 return
         }
         file.url = JSON.parse(event.currentTarget.response)['url']
         //fileList.value.push(file)
         console.log(file, event)
+        return file
+
 }
 
 // @ts-ignore
