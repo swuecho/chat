@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
-import { NAutoComplete, NButton, NUpload, NCard, NInput, NModal, useDialog, useMessage } from 'naive-ui'
+import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
@@ -19,6 +19,7 @@ import { useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
+import  UploadModal  from './components/UploadModal.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 
 let controller = new AbortController()
@@ -592,20 +593,7 @@ function getDataFromResponseText(responseText: string): string {
     </main>
     <footer :class="footerClass">
       <div>
-        <NModal v-model:show="showUploadModal">
-          <NCard style="width: 600px" title="Upload" :bordered="false" size="huge" role="dialog" aria-modal="true">
-            <template #header-extra>
-              upload doc or image (txt, png, excel or code file)
-            </template>
-            <NUpload 
-              :custom-request="customUploadRequest">
-              <NButton id="attach_file_button" data-testid="attach_file_button" type="primary"> Upload </NButton>
-            </NUpload>
-            <template #footer>
-              <NButton @click="showUploadModal = false">Cancel</NButton>
-            </template>
-          </NCard>
-        </NModal>
+        <UploadModal :showUploadModal="showUploadModal" @update:showUploadModal="showUploadModal = $event" />
       </div>
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
