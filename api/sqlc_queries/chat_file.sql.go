@@ -61,6 +61,26 @@ func (q *Queries) DeleteChatFile(ctx context.Context, id int32) (ChatFile, error
 	return i, err
 }
 
+const getChatFileByID = `-- name: GetChatFileByID :one
+SELECT id, name, data, created_at, user_id, chat_session_uuid
+FROM chat_file
+WHERE id = $1
+`
+
+func (q *Queries) GetChatFileByID(ctx context.Context, id int32) (ChatFile, error) {
+	row := q.db.QueryRowContext(ctx, getChatFileByID, id)
+	var i ChatFile
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Data,
+		&i.CreatedAt,
+		&i.UserID,
+		&i.ChatSessionUuid,
+	)
+	return i, err
+}
+
 const listChatFiles = `-- name: ListChatFiles :many
 SELECT id, name, data, created_at, user_id, chat_session_uuid
 FROM chat_file

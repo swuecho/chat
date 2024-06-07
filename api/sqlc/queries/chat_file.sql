@@ -9,6 +9,11 @@ FROM chat_file
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
+-- name: GetChatFileByID :one
+SELECT id, name, data, created_at, user_id, chat_session_uuid
+FROM chat_file
+WHERE id = $1;
+
 -- name: DeleteChatFile :one
 DELETE FROM chat_file
 WHERE id = $1

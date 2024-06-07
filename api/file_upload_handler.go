@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -24,6 +25,8 @@ func NewChatFileHandler(sqlc_q *sqlc_queries.Queries) *ChatFileHandler {
 
 func (h *ChatFileHandler) Register(router *mux.Router) {
 	router.HandleFunc("/upload", h.ReceiveFile).Methods(http.MethodPost)
+	router.HandleFunc("/download/{id}", h.DownloadFile).Methods(http.MethodGet)
+	router.HandleFunc("/download/{id}", h.DeleteFile).Methods(http.MethodDelete)
 }
 
 func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +74,36 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	buf.Reset()
 	// return file name, file id as json
 
-	json.NewEncoder(w).Encode(map[string]int32{"chat_file_id": chatFile.ID})
+	url := fmt.Sprintf("/download/%d", chatFile.ID)
+
+	json.NewEncoder(w).Encode(map[string]string{"url": url})
 	w.WriteHeader(http.StatusOK)
 }
+
+func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
+	fileID := mux.Vars(r)["id"]
+	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
+	file, err := h.service.q.GetChatFileByID(r.Context(), int32(fileIdInt))
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+	w.Header().Set("Content-Disposition", "attachment; filename="+file.Name)
+	w.Header().Set("Content-Type", "application/octet-stream")
+	// w.Header().Set("Content-Disposition",fmt.Sprintf("attachment; filename=%s", file.Name))
+	w.Write(file.Data)
+}
+
+func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
+	fileID := mux.Vars(r)["id"]
+	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
+	_, err := h.service.q.DeleteChatFile(r.Context(), int32(fileIdInt))
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+
+
