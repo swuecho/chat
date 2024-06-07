@@ -404,10 +404,6 @@ async function handleSnapshot() {
 
 // }
 
-function customUploadRequest(options: any) {
-
-  return
-}
 // The user wants to delete the message with the given index.
 // If the message is already being deleted, we ignore the request.
 // If the user confirms that they want to delete the message, we call

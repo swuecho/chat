@@ -34,7 +34,7 @@ const route = useRoute()
 const { uuid: sessionUuid } = route.params as { uuid: string }
 
 const props = defineProps(['showUploadModal'])
-const emit = defineEmits(['update:showUploadModal']);
+// const emit = defineEmits(['update:showUploadModal']);
 
 // login modal will appear when there is no token
 const authStore = useAuthStore()
@@ -49,19 +49,20 @@ const data = ref({
         'session-uuid': sessionUuid
 })
 
-const fileList = ref<Array<UploadFileInfo>>([])
 
-function beforeUpload(data) {
+function beforeUpload(data: any) {
         console.log(data.file)
         // You can return a Promise to reject the file
         // return Promise.reject(new Error('Invalid file type'))
 }
+// @ts-ignore
 function handleFinish({ file, event }) {
         file.url = JSON.parse(event.currentTarget.response)['url']
         //fileList.value.push(file)
         console.log(file, event)
 }
 
+// @ts-ignore
 function handleRemove({ file, fileList }) {
         console.log('remove', file)
         // delete file at url
@@ -69,6 +70,7 @@ function handleRemove({ file, fileList }) {
         console.log(file.url)
 }
 
+// @ts-ignore
 async function handleDownload(file) {
         console.log('download', file)
         let response = await request.get(file.url, {
