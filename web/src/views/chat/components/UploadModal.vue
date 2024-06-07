@@ -23,7 +23,7 @@
 </template>
 
 <script lang="ts" setup>
-import { NModal, NCard, NUpload, NButton } from 'naive-ui';
+import { NModal, NCard, NUpload, NButton , UploadFileInfo} from 'naive-ui';
 import { ref } from 'vue';
 import { useAuthStore } from '@/store'
 import { useRoute } from 'vue-router'
