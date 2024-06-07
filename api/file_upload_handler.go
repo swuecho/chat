@@ -71,6 +71,6 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	buf.Reset()
 	// return file name, file id as json
 
-	json.NewEncoder(w).Encode(map[string]string{"chat_file_id": string(chatFile.ID)})
+	json.NewEncoder(w).Encode(map[string]int32{"chat_file_id": chatFile.ID})
 	w.WriteHeader(http.StatusOK)
 }
