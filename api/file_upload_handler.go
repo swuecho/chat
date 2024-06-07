@@ -25,6 +25,7 @@ func NewChatFileHandler(sqlc_q *sqlc_queries.Queries) *ChatFileHandler {
 
 func (h *ChatFileHandler) Register(router *mux.Router) {
 	router.HandleFunc("/upload", h.ReceiveFile).Methods(http.MethodPost)
+	router.HandleFunc("/chat_file/{uuid}/list", h.ChatFilesBySessionUUID).Methods(http.MethodGet)
 	router.HandleFunc("/download/{id}", h.DownloadFile).Methods(http.MethodGet)
 	router.HandleFunc("/download/{id}", h.DeleteFile).Methods(http.MethodDelete)
 }
@@ -105,5 +106,20 @@ func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-
-
+func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.Request) {
+	sessionUUID := mux.Vars(r)["uuid"]
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+	}
+	chatFiles, err := h.service.q.ListChatFilesBySessionUUID(r.Context(), sqlc_queries.ListChatFilesBySessionUUIDParams{
+		ChatSessionUuid: sessionUUID,
+		UserID:          userID,
+	})
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(chatFiles)
+}

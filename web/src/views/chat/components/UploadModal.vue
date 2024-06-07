@@ -7,13 +7,16 @@
                                         upload doc or image (txt, png, excel or code file)
                                 </template>
                                 <NUpload multiline action="/api/upload" :headers="headers" :data="data"
-                                        :show-download-button="true" @finish="handleFinish"
-                                        @before-upload="beforeUpload" @remove="handleRemove" @download="handleDownload">
+                                        :default-file-list="defaultFileList" :show-download-button="true"
+                                        @finish="handleFinish" @before-upload="beforeUpload" @remove="handleRemove"
+                                        @download="handleDownload">
                                         <NButton id="attach_file_button" data-testid="attach_file_button"
                                                 type="primary"> Upload
                                         </NButton>
                                 </NUpload>
                                 <template #footer>
+
+
                                         <NButton @click="$emit('update:showUploadModal', false)">Cancel</NButton>
                                 </template>
                         </NCard>
@@ -23,17 +26,32 @@
 </template>
 
 <script lang="ts" setup>
-import { NModal, NCard, NUpload, NButton , UploadFileInfo} from 'naive-ui';
-import { ref } from 'vue';
+import { NModal, NCard, NUpload, NButton, UploadFileInfo } from 'naive-ui';
+import { ref, computed } from 'vue';
 import { useAuthStore } from '@/store'
 import { useRoute } from 'vue-router'
 import request from '@/utils/request/axios'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { getChatFilesList } from '@/api/chat_file'
+const props = defineProps(['showUploadModal', 'sessionUuid'])
 
 const route = useRoute()
 
 const { uuid: sessionUuid } = route.params as { uuid: string }
 
-const props = defineProps(['showUploadModal'])
+const queryClient = useQueryClient()
+
+
+// sessionUuid not null.
+const { data: fileListData, isLoading } = useQuery({
+        queryKey: ['fileList', props.sessionUuid],
+        queryFn: async () => await getChatFilesList(props.sessionUuid)
+})
+
+const defaultFileList = computed(() => {
+        return fileListData.value || []
+})
+
 // const emit = defineEmits(['update:showUploadModal']);
 
 // login modal will appear when there is no token
@@ -63,7 +81,7 @@ function beforeUpload(data: any) {
  * @param {Event} options.event - The upload event.
  * @returns {void}
  */
-function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressEvent }): UploadFileInfo  | undefined {
+function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressEvent }): UploadFileInfo | undefined {
         if (!event) {
                 return
         }
@@ -79,6 +97,9 @@ function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressE
 function handleRemove({ file, fileList }) {
         console.log('remove', file)
         // delete file at url
+
+        // mutate fileList
+        
         request.delete(file.url)
         console.log(file.url)
 }

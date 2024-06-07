@@ -81,35 +81,33 @@ func (q *Queries) GetChatFileByID(ctx context.Context, id int32) (ChatFile, erro
 	return i, err
 }
 
-const listChatFiles = `-- name: ListChatFiles :many
-SELECT id, name, data, created_at, user_id, chat_session_uuid
+const listChatFilesBySessionUUID = `-- name: ListChatFilesBySessionUUID :many
+SELECT id, name
 FROM chat_file
+WHERE user_id = $1 and chat_session_uuid = $2
 ORDER BY created_at DESC
-LIMIT $1 OFFSET $2
 `
 
-type ListChatFilesParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+type ListChatFilesBySessionUUIDParams struct {
+	UserID          int32  `json:"userID"`
+	ChatSessionUuid string `json:"chatSessionUuid"`
 }
 
-func (q *Queries) ListChatFiles(ctx context.Context, arg ListChatFilesParams) ([]ChatFile, error) {
-	rows, err := q.db.QueryContext(ctx, listChatFiles, arg.Limit, arg.Offset)
+type ListChatFilesBySessionUUIDRow struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+}
+
+func (q *Queries) ListChatFilesBySessionUUID(ctx context.Context, arg ListChatFilesBySessionUUIDParams) ([]ListChatFilesBySessionUUIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listChatFilesBySessionUUID, arg.UserID, arg.ChatSessionUuid)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ChatFile
+	var items []ListChatFilesBySessionUUIDRow
 	for rows.Next() {
-		var i ChatFile
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Data,
-			&i.CreatedAt,
-			&i.UserID,
-			&i.ChatSessionUuid,
-		); err != nil {
+		var i ListChatFilesBySessionUUIDRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

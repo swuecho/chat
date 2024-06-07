@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
-import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
+import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage, NUpload } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
@@ -21,7 +21,8 @@ import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
 import UploadModal from './components/UploadModal.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
-
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { getChatFilesList } from '@/api/chat_file'
 let controller = new AbortController()
 
 const route = useRoute()
@@ -45,6 +46,15 @@ const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const showUploadModal = ref<boolean>(false)
 const showModal = ref<boolean>(false)
+
+const { data: fileListData, isLoading: isFileListLoading } = useQuery({
+        queryKey: ['fileList', sessionUuid],
+        queryFn: async () => await getChatFilesList(sessionUuid)
+})
+
+const defaultFileList = computed(() => {
+        return fileListData.value || []
+})
 
 // 添加PromptStore
 const promptStore = usePromptStore()
@@ -381,28 +391,7 @@ async function handleSnapshot() {
   // #/snapshot/<uuid>
 }
 
-// async function getLocalFile() {
-// }
 
-// async function handleUploadFile() {
-//   if (loading.value)
-//     return
-
-//   dialog.info({
-//     title: t('chat.uploadFile'),
-//     content: t('chat.uploadFileContent'),
-//     positiveText: t('common.yes'),
-//     negativeText: t('common.no'),
-//     onPositiveClick: async () => {
-//       const file = await getLocalFile()
-
-//       if (file == null)
-//         return
-//       // chatStore.uploadFile(sessionUuid, file)
-//     },
-//   })
-
-// }
 
 // The user wants to delete the message with the given index.
 // If the message is already being deleted, we ignore the request.
@@ -549,7 +538,8 @@ function getDataFromResponseText(responseText: string): string {
 <template>
   <div class="flex flex-col w-full h-full">
     <div>
-    <UploadModal :showUploadModal="showUploadModal" @update:showUploadModal="showUploadModal = $event" />
+      
+    <UploadModal v-if="showUploadModal" :showUploadModal="showUploadModal" :sessionUuid="sessionUuid" @update:showUploadModal="showUploadModal = $event" />
     </div>
     <HeaderComponent v-if="isMobile" @export="handleExport" @snapshot="handleSnapshot" @toggle="showModal = true" />
     <main class="flex-1 overflow-hidden">
@@ -568,6 +558,7 @@ function getDataFromResponseText(responseText: string): string {
           </template>
           <template v-else>
             <div>
+              <NUpload class="ml-40" multiline action="/api/upload"  :default-file-list="defaultFileList"></NUpload>
               <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
                 :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
