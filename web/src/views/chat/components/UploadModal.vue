@@ -67,6 +67,7 @@ function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressE
         if (!event) {
                 return
         }
+        // @ts-ignore
         file.url = JSON.parse(event.currentTarget.response)['url']
         //fileList.value.push(file)
         console.log(file, event)
