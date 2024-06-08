@@ -4,7 +4,7 @@ SELECT * FROM chat_model ORDER BY order_number;
 -- name: ListSystemChatModels :many
 SELECT * FROM chat_model
 where user_id in (select id from auth_user where is_superuser = true)
-ORDER BY order_number;
+ORDER BY order_number, id DESC;
 
 -- name: ChatModelByID :one
 SELECT * FROM chat_model WHERE id = $1;
