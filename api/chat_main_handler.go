@@ -378,7 +378,13 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 
 	client := openai.NewClientWithConfig(config)
 
-	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
+	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		return "", "", true
+	}
+
+	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages, chatFiles)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
@@ -729,6 +735,11 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return "", "", true
 	}
+	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		return "", "", true
+	}
 
 	// create a new strings.Builder
 	// iterate through the messages and format them
@@ -742,7 +753,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	if len(chat_compeletion_messages) > 1 {
 		// first message used as system message
 		// messages start with second message
-		messages = messagesToOpenAIMesages(chat_compeletion_messages[1:])
+		messages = messagesToOpenAIMesages(chat_compeletion_messages[1:], chatFiles)
 	} else {
 		// only system message, return and do nothing
 		RespondWithError(w, http.StatusInternalServerError, "error.claude_system_message_notice", err)
@@ -1124,6 +1135,12 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 
 func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	//message := Message{Role: "assitant", Content:}
+	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		return "", "", true
+	}
+
 	answer_id := chatUuid
 	if !regenerate {
 		answer_id = uuid.NewString()
@@ -1143,7 +1160,7 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	flusher.Flush()
 
 	if chatSession.Debug {
-		openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages)
+		openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages, chatFiles)
 
 		req_j, _ := json.Marshal(openai_req)
 		answer = answer + "\n" + string(req_j)
@@ -1155,8 +1172,9 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	return answer, answer_id, false
 }
 
-func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message) openai.ChatCompletionRequest {
-	openai_message := messagesToOpenAIMesages(chat_compeletion_messages)
+func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatFiles []sqlc_queries.ChatFile) openai.ChatCompletionRequest {
+	
+	openai_message := messagesToOpenAIMesages(chat_compeletion_messages, chatFiles)
 	//totalInputToken := lo.SumBy(chat_compeletion_messages, func(m Message) int32 {
 	//	return m.TokenCount()
 	//})

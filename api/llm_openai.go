@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,17 +10,69 @@ import (
 	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
 	models "github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-func messagesToOpenAIMesages(messages []models.Message) []openai.ChatCompletionMessage {
+func SupportedMimeTypes() mapset.Set[string] {
+	return mapset.NewSet(
+		"image/png",
+		"image/jpeg",
+		"image/webp",
+		"image/heic",
+		"image/heif",
+		"audio/wav",
+		"audio/mp3",
+		"audio/aiff",
+		"audio/aac",
+		"audio/ogg",
+		"audio/flac",
+		"video/mp4",
+		"video/mpeg",
+		"video/mov",
+		"video/avi",
+		"video/x-flv",
+		"video/mpg",
+		"video/webm",
+		"video/wmv",
+		"video/3gpp",
+	)
+}
+
+func messagesToOpenAIMesages(messages []models.Message, chatFiles []sqlc_queries.ChatFile) []openai.ChatCompletionMessage {
 	open_ai_msgs := lo.Map(messages, func(m models.Message, _ int) openai.ChatCompletionMessage {
 		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
 	})
+	parts := lo.Map(chatFiles, func(m sqlc_queries.ChatFile, _ int) openai.ChatMessagePart {
+		if SupportedMimeTypes().Contains(m.MimeType) {
+			return openai.ChatMessagePart{
+				Type: openai.ChatMessagePartTypeImageURL,
+				ImageURL: &openai.ChatMessageImageURL{
+					URL:    byteToImageURL(m.MimeType, m.Data),
+					Detail: openai.ImageURLDetailAuto,
+				},
+			}
+		} else {
+			return openai.ChatMessagePart{
+				Type: openai.ChatMessagePartTypeText,
+				Text: "file: " + m.Name + "\n<<<" + string(m.Data) + ">>>\n",
+			}
+		}
+	})
+
+	open_ai_msgs[0].MultiContent = append(
+		[]openai.ChatMessagePart{
+			{Type: openai.ChatMessagePartTypeText, Text: open_ai_msgs[0].Content},
+		}, parts...)
 	return open_ai_msgs
+}
+
+func byteToImageURL(mimeType string, data []byte) string {
+	return fmt.Sprintf("data:%s;base64,%s", mimeType,
+		base64.StdEncoding.EncodeToString(data))
 }
 
 func getModelBaseUrl(apiUrl string) (string, error) {
