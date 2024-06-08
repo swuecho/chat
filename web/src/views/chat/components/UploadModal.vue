@@ -4,7 +4,7 @@
                         <NCard style="width: 600px" title="Upload" :bordered="false" size="huge" role="dialog"
                                 aria-modal="true">
                                 <template #header-extra>
-                                        upload doc, image, audio, video (gemmi flash only)
+                                        upload doc, image, audio, video 
                                 </template>
                                 <Uploader :sessionUuid="sessionUuid" :showUploaderButton="true"></Uploader>
                                 <template #footer>
