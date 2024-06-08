@@ -546,6 +546,7 @@ function getDataFromResponseText(responseText: string): string {
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
+      <NUpload class="px-40" multiline action="/api/upload"  :default-file-list="defaultFileList"></NUpload>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
           :class="[isMobile ? 'p-2' : 'p-4']">
@@ -558,7 +559,6 @@ function getDataFromResponseText(responseText: string): string {
           </template>
           <template v-else>
             <div>
-              <NUpload class="px-40" multiline action="/api/upload"  :default-file-list="defaultFileList"></NUpload>
               <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
                 :model="chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
