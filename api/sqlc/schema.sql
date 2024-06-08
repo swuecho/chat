@@ -275,6 +275,7 @@ CREATE TABLE IF NOT EXISTS chat_file (
     data BYTEA NOT NULL,
     created_at TIMESTAMP DEFAULT now() NOT NULL,
     user_id INTEGER NOT NULL default 1,
-    chat_session_uuid VARCHAR(255) NOT NULL,
+    -- foreign key chat_session_uuid
+    chat_session_uuid VARCHAR(255) NOT NULL REFERENCES chat_session(uuid) ON DELETE CASCADE,
     mime_type VARCHAR(255) NOT NULL
 );

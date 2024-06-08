@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -72,7 +71,6 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 		Data:            buf.Bytes(),
 		MimeType:        mimeType,
 	})
-	
 
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
@@ -127,6 +125,5 @@ func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	log.Printf("chatFiles: %v", chatFiles)
 	json.NewEncoder(w).Encode(chatFiles)
 }
