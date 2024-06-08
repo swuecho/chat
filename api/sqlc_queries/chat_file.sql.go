@@ -120,3 +120,45 @@ func (q *Queries) ListChatFilesBySessionUUID(ctx context.Context, arg ListChatFi
 	}
 	return items, nil
 }
+
+const listChatFilesWithContentBySessionUUID = `-- name: ListChatFilesWithContentBySessionUUID :many
+SELECT id, name, data, created_at, user_id, chat_session_uuid
+FROM chat_file
+WHERE user_id = $1 and chat_session_uuid = $2
+ORDER BY created_at DESC
+`
+
+type ListChatFilesWithContentBySessionUUIDParams struct {
+	UserID          int32  `json:"userID"`
+	ChatSessionUuid string `json:"chatSessionUuid"`
+}
+
+func (q *Queries) ListChatFilesWithContentBySessionUUID(ctx context.Context, arg ListChatFilesWithContentBySessionUUIDParams) ([]ChatFile, error) {
+	rows, err := q.db.QueryContext(ctx, listChatFilesWithContentBySessionUUID, arg.UserID, arg.ChatSessionUuid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChatFile
+	for rows.Next() {
+		var i ChatFile
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Data,
+			&i.CreatedAt,
+			&i.UserID,
+			&i.ChatSessionUuid,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
