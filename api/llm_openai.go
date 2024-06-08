@@ -85,12 +85,16 @@ func byteToImageURL(mimeType string, data []byte) string {
 }
 
 func getModelBaseUrl(apiUrl string) (string, error) {
+	if apiUrl == "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions" {
+		return "https://dashscope.aliyuncs.com/compatible-mode/v1", nil
+	}
 	parsedUrl, err := url.Parse(apiUrl)
 	if err != nil {
 		return "", err
 	}
 	slashIndex := strings.Index(parsedUrl.Path[1:], "/")
 	version := ""
+	// https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
 	if slashIndex > 0 {
 		version = parsedUrl.Path[1 : slashIndex+1]
 	}
@@ -117,6 +121,7 @@ func configOpenAIProxy(config *openai.ClientConfig) {
 func genOpenAIConfig(chatModel sqlc_queries.ChatModel) (openai.ClientConfig, error) {
 	token := os.Getenv(chatModel.ApiAuthKey)
 	baseUrl, err := getModelBaseUrl(chatModel.Url)
+	log.Printf("baseUrl: %s\n", baseUrl)
 	if err != nil {
 		return openai.ClientConfig{}, err
 	}

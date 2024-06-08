@@ -371,6 +371,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 
 	config, err := genOpenAIConfig(chatModel)
+	log.Printf("%+v", config)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
 		return "", "", true
@@ -1192,7 +1193,7 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compele
 		Messages: openai_message,
 		//MaxTokens:   maxOutputToken,
 		Temperature: float32(chatSession.Temperature),
-		TopP:        float32(chatSession.TopP),
+		TopP:        float32(chatSession.TopP)-0.01,
 		N:           int(chatSession.N),
 		Stream:      true,
 	}
