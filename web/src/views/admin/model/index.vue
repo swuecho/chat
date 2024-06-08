@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, ref } from 'vue'
+import { h, ref, toRaw, watch } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NDataTable, NInput, NModal, NSwitch, useMessage, useDialog } from 'naive-ui'
 import AddModelForm from './AddModelForm.vue'
@@ -16,9 +16,18 @@ const dialogVisible = ref(false)
 
 
 // const data = ref<Chat.ChatModel[]>([])
-const { data, isLoading } = useQuery({
+const { data: modelData, isLoading } = useQuery({
   queryKey: ['chat_models'],
   queryFn: fetchChatModel,
+})
+
+const data = ref<Chat.ChatModel[]>([])
+
+// mapping modelData (readonly) to data (ref)
+watch(modelData, () => {
+  console.log(modelData.value)
+  console.log(toRaw(modelData.value))
+  data.value = toRaw(modelData?.value) ?? []
 })
 
 const chatModelMutation = useMutation({
@@ -291,7 +300,7 @@ function checkNoRowIsDefaultTrue(v: boolean) {
       </span>
     </HoverButton>
   </div>
-  <div class="m-5">
+  <div class="m-5" v-if="!isLoading">
     <NDataTable :columns="columns" :data="data" :loading="isLoading" />
   </div>
   <NModal v-model:show="dialogVisible" :title="$t('admin.add_user_model_rate_limit')" preset="dialog">
