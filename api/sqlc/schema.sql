@@ -269,4 +269,12 @@ CREATE INDEX IF NOT EXISTS chat_snapshot_created_at_idx ON chat_snapshot using b
 UPDATE chat_snapshot SET model = 'gpt-3.5-turbo' WHERE model = '';
 
 
-
+CREATE TABLE IF NOT EXISTS chat_file (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    data BYTEA NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    user_id INTEGER NOT NULL default 1,
+    chat_session_uuid VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(255) NOT NULL
+);

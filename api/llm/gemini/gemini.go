@@ -1,15 +1,71 @@
-package gemini 
+package gemini
 
 import (
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
+
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/samber/lo"
 	models "github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-type Part struct {
+type Part interface {
+	toPart() string
+}
+
+type PartString struct {
 	Text string `json:"text"`
 }
+
+func TextData(text string) PartString {
+	return PartString{
+		Text: text,
+	}
+}
+
+func (p *PartString) toPart() string {
+	return p.Text
+}
+
+type PartBlob struct {
+	Blob Blob `json:"inlineData"`
+}
+
+func (p PartBlob) toPart() string {
+	b := p.Blob
+	return fmt.Sprintf("data:%s;base64,%s", b.MIMEType, b.Data)
+}
+
+
+// from https://github.com/google/generative-ai-go/blob/main/genai/generativelanguagepb_veneer.gen.go#L56
+// Blob contains raw media bytes.
+//
+// Text should not be sent as raw bytes, use the 'text' field.
+type Blob struct {
+	// The IANA standard MIME type of the source data.
+	// Examples:
+	//   - image/png
+	//   - image/jpeg
+	//
+	// If an unsupported MIME type is provided, an error will be returned. For a
+	// complete list of supported types, see [Supported file
+	// formats](https://ai.google.dev/gemini-api/docs/prompting_with_media#supported_file_formats).
+	MIMEType string `json:"mimeType"`
+	// Raw bytes for media formats.
+	Data string `json:"data"`
+}
+
+func ImageData(mimeType string, data []byte) Blob {
+	return Blob{
+		MIMEType: mimeType,
+		Data:     b64.StdEncoding.EncodeToString(data),
+	}
+}
+
+
 
 type GeminiMessage struct {
 	Role  string `json:"role"`
@@ -63,7 +119,32 @@ func ParseRespLine(line []byte, answer string) string {
 	return answer
 }
 
-func GenGemminPayload(chat_compeletion_messages []models.Message) ([]byte, error) {
+func SupportedMimeTypes() mapset.Set[string] {
+	return mapset.NewSet(
+		"image/png",
+		"image/jpeg",
+		"image/webp",
+		"image/heic",
+		"image/heif",
+		"audio/wav",
+		"audio/mp3",
+		"audio/aiff",
+		"audio/aac",
+		"audio/ogg",
+		"audio/flac",
+		"video/mp4",
+		"video/mpeg",
+		"video/mov",
+		"video/avi",
+		"video/x-flv",
+		"video/mpg",
+		"video/webm",
+		"video/wmv",
+		"video/3gpp",
+	)
+}
+
+func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sqlc_queries.ChatFile) ([]byte, error) {
 	payload := GeminPayload{
 		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
 	}
@@ -71,7 +152,7 @@ func GenGemminPayload(chat_compeletion_messages []models.Message) ([]byte, error
 		geminiMessage := GeminiMessage{
 			Role: message.Role,
 			Parts: []Part{
-				{Text: message.Content},
+				&PartString{Text: message.Content},
 			},
 		}
 		if message.Role == "assistant" {
@@ -81,8 +162,22 @@ func GenGemminPayload(chat_compeletion_messages []models.Message) ([]byte, error
 		}
 		payload.Contents[i] = geminiMessage
 	}
+
+	if len(chatFiles) > 0 {
+		partsFromFiles := lo.Map(chatFiles, func(chatFile sqlc_queries.ChatFile, _ int) Part {
+			imageExt := SupportedMimeTypes()
+			if imageExt.Contains(chatFile.MimeType) {
+				return &PartBlob{Blob: ImageData(chatFile.MimeType, chatFile.Data)}
+			} else {
+				return &PartString{Text: "file: " + chatFile.Name + "\n<<<"+ string(chatFile.Data) + ">>>\n"}
+			}
+		})
+		fmt.Printf("partsFromFiles: %+v\n", partsFromFiles)
+		payload.Contents[0].Parts = append(payload.Contents[0].Parts, partsFromFiles...)
+	}
+
 	payloadBytes, err := json.Marshal(payload)
-	log.Printf("%s\n", string(payloadBytes))
+	log.Printf("\n%s\n", string(payloadBytes))
 	if err != nil {
 		fmt.Println("Error marshalling payload:", err)
 		// handle err

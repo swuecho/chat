@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
-import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
+import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage} from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
@@ -19,8 +19,10 @@ import { useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
-import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
+import UploadModal from './components/UploadModal.vue'
+import UploaderReadOnly from './components/UploaderReadOnly.vue'
 
+import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 let controller = new AbortController()
 
 const route = useRoute()
@@ -42,8 +44,9 @@ const chatSession = computed(() => chatStore.getChatSessionByUuid(sessionUuid))
 
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
-
+const showUploadModal = ref<boolean>(false)
 const showModal = ref<boolean>(false)
+
 
 // 添加PromptStore
 const promptStore = usePromptStore()
@@ -379,6 +382,9 @@ async function handleSnapshot() {
   // open new link in new tab with the chat snapshot uuid
   // #/snapshot/<uuid>
 }
+
+
+
 // The user wants to delete the message with the given index.
 // If the message is already being deleted, we ignore the request.
 // If the user confirms that they want to delete the message, we call
@@ -518,15 +524,21 @@ function getDataFromResponseText(responseText: string): string {
   const chunk = responseText.slice(lastIndex + 8)
   return chunk
 }
+
 </script>
 
 <template>
   <div class="flex flex-col w-full h-full">
+    <div>
+      
+    <UploadModal v-if="showUploadModal && !!sessionUuid" :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"  @update:showUploadModal="showUploadModal = $event" />
+    </div>
     <HeaderComponent v-if="isMobile" @export="handleExport" @snapshot="handleSnapshot" @toggle="showModal = true" />
     <main class="flex-1 overflow-hidden">
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
+      <UploaderReadOnly v-if="!!sessionUuid" class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false"></UploaderReadOnly>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
           :class="[isMobile ? 'p-2' : 'p-4']">
@@ -544,17 +556,17 @@ function getDataFromResponseText(responseText: string): string {
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :pining="pining" :index="index"
                 @regenerate="onRegenerate(index)" @delete="handleDelete(index)" @toggle-pin="handleTogglePin(index)"
                 @after-edit="handleAfterEdit" />
-             
+
               <!--
               <div class="sticky bottom-0 left-0 flex justify-center">
                 <NButton v-if="loading" type="warning" @click="handleStop">
                   <template #icon>
                     <SvgIcon icon="ri:stop-circle-line" />
                   </template>
-                  {{ $t('chat.stopAnswer') }}
-                </NButton>
-              </div>
-              -->
+{{ $t('chat.stopAnswer') }}
+</NButton>
+</div>
+-->
             </div>
           </template>
         </div>
@@ -586,14 +598,22 @@ function getDataFromResponseText(responseText: string): string {
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
           </HoverButton>
+
+          <HoverButton @click="showUploadModal = true">
+            <span class="text-xl text-[#4b9e5f]">
+              <SvgIcon icon="clarity:attachment-line" />
+            </span>
+          </HoverButton>
+
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
             :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
               <NInput id="message_textarea" v-model:value="prompt" type="textarea" :placeholder="placeholder"
-                data-testid="message_textarea" :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput"
-                @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
+                data-testid="message_textarea" :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
+                @input="handleInput" @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
             </template>
           </NAutoComplete>
+
           <NButton id="send_message_button" data-testid="send_message_button" type="primary"
             :disabled="sendButtonDisabled" @click="handleSubmit">
             <template #icon>
@@ -602,6 +622,7 @@ function getDataFromResponseText(responseText: string): string {
               </span>
             </template>
           </NButton>
+
         </div>
       </div>
     </footer>

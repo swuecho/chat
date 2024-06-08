@@ -31,6 +31,16 @@ type AuthUserManagement struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+type ChatFile struct {
+	ID              int32     `json:"id"`
+	Name            string    `json:"name"`
+	Data            []byte    `json:"data"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UserID          int32     `json:"userID"`
+	ChatSessionUuid string    `json:"chatSessionUuid"`
+	MimeType        string    `json:"mimeType"`
+}
+
 type ChatLog struct {
 	ID        int32           `json:"id"`
 	Session   json.RawMessage `json:"session"`
