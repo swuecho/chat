@@ -14,21 +14,24 @@ const ms_ui = useMessage()
 const dialog = useDialog()
 const dialogVisible = ref(false)
 
-
 // const data = ref<Chat.ChatModel[]>([])
-const { data: modelData, isLoading } = useQuery({
+const modelQuery = useQuery({
   queryKey: ['chat_models'],
   queryFn: fetchChatModel,
 })
 
-const data = ref<Chat.ChatModel[]>([])
+console.log(new Date().toLocaleString())
+const isLoading = modelQuery.isPending
+
+
+const data = ref<Chat.ChatModel[]>(toRaw(modelQuery.data.value))
 
 // mapping modelData (readonly) to data (ref)
-watch(modelData, () => {
-  console.log(modelData.value)
-  console.log(toRaw(modelData.value))
-  data.value = toRaw(modelData?.value) ?? []
+// watch does not happen, when switch menu back 
+watch(modelQuery.data, () => {
+  data.value = toRaw(modelQuery.data.value)
 })
+
 
 const chatModelMutation = useMutation({
   mutationFn: (variables: { id: number, data: any }) => updateChatModel(variables.id, variables.data),
