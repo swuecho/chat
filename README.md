@@ -140,7 +140,7 @@ enjoy!
 - Snapshot conversation and Share (like ShareGPT)
 - Support OPEN AI, Claude model [free application link](https://www.anthropic.com/earlyaccess)
 - Support Upload File
-- Support MultiMedia File (if Model support)
+- Support MultiMedia File (rely on Model support)
 
 ## How to Deploy
 
