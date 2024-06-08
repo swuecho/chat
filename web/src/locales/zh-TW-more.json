@@ -16,6 +16,6 @@
                 }
         },
         "error": {
-                "claude_system_message_notice": "CLAUDE第一條是系統消息，請繼續輸入信息開始會話"
+                "system_message_notice": "第一條是系統消息，請繼續輸入信息開始會話"
         }
 }

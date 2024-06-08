@@ -386,6 +386,10 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages, chatFiles)
+	if len(openai_req.Messages) <= 1 {
+		RespondWithError(w, http.StatusInternalServerError, "error.system_message_notice", err)
+		return "", "", true
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
@@ -758,7 +762,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		messages = messagesToOpenAIMesages(chat_compeletion_messages[1:], chatFiles)
 	} else {
 		// only system message, return and do nothing
-		RespondWithError(w, http.StatusInternalServerError, "error.claude_system_message_notice", err)
+		RespondWithError(w, http.StatusInternalServerError, "error.system_message_notice", err)
 		return "", "", true
 	}
 	// create the json data
