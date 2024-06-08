@@ -28,15 +28,7 @@ func createTwoChatModel(q *sqlc_queries.Queries) (sqlc_queries.AuthUser, []sqlc_
 		fmt.Printf("Error creating test data: %s", err.Error())
 	}
 	expectedResults := []sqlc_queries.ChatModel{
-		{
-			Name:          "Test API 1",
-			Label:         "Test Label 1",
-			IsDefault:     false,
-			Url:           "http://test.url.com",
-			ApiAuthHeader: "Authorization",
-			ApiAuthKey:    "TestKey1",
-			UserID:        admin.ID,
-		},
+
 		{
 			Name:          "Test API 2",
 			Label:         "Test Label 2",
@@ -44,6 +36,15 @@ func createTwoChatModel(q *sqlc_queries.Queries) (sqlc_queries.AuthUser, []sqlc_
 			Url:           "http://test.url2.com",
 			ApiAuthHeader: "Authorization",
 			ApiAuthKey:    "TestKey2",
+			UserID:        admin.ID,
+		},
+		{
+			Name:          "Test API 1",
+			Label:         "Test Label 1",
+			IsDefault:     false,
+			Url:           "http://test.url.com",
+			ApiAuthHeader: "Authorization",
+			ApiAuthKey:    "TestKey1",
 			UserID:        admin.ID,
 		},
 	}
