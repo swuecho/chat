@@ -1,9 +1,10 @@
 <template>
         <div>
                 <NUpload multiline action="/api/upload" :headers="headers" :data="data"
-                        :default-file-list="defaultFileList" :show-download-button="true" @finish="handleFinish"
+                        :default-file-list="fileListData" :show-download-button="true" @finish="handleFinish"
                         @before-upload="beforeUpload" @remove="handleRemove" @download="handleDownload">
-                        <NButton v-if="showUploaderButton" id="attach_file_button" data-testid="attach_file_button" type="primary"> Upload
+                        <NButton v-if="showUploaderButton" id="attach_file_button" data-testid="attach_file_button"
+                                type="primary"> Upload
                         </NButton>
                 </NUpload>
         </div>
@@ -11,11 +12,13 @@
 
 <script setup lang="ts">
 import { NUpload, NButton, UploadFileInfo } from 'naive-ui';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useAuthStore } from '@/store'
 import request from '@/utils/request/axios'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { getChatFilesList } from '@/api/chat_file'
+
+const queryClient = useQueryClient()
 
 interface Props {
         sessionUuid: string
@@ -32,9 +35,17 @@ const { data: fileListData } = useQuery({
         queryFn: async () => await getChatFilesList(sessionUuid)
 })
 
-const defaultFileList = computed(() => {
-        return fileListData.value || []
+const fileDeleteMutation = useMutation({
+        mutationFn: async (url: string) => {
+                request.delete(url)
+        },
+        onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['fileList', sessionUuid] })
+        },
 })
+
+
+
 
 // const emit = defineEmits(['update:showUploadModal']);
 
@@ -73,18 +84,17 @@ function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressE
         file.url = JSON.parse(event.currentTarget.response)['url']
         //fileList.value.push(file)
         console.log(file, event)
+        queryClient.invalidateQueries({ queryKey: ['fileList', sessionUuid] })
         return file
 
 }
 
 // @ts-ignore
-function handleRemove({ file, fileList }) {
+function handleRemove({ file }: { file: UploadFileInfo }) {
         console.log('remove', file)
-        // delete file at url
-
-        // mutate fileList
-
-        request.delete(file.url)
+        if (file.url) {
+                fileDeleteMutation.mutate(file.url)
+        }
         console.log(file.url)
 }
 

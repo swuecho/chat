@@ -1,12 +1,12 @@
 <template>
         <div>
-                <NModal v-model:show="props.showUploadModal">
+                <NModal :show="showUploadModal">
                         <NCard style="width: 600px" title="Upload" :bordered="false" size="huge" role="dialog"
                                 aria-modal="true">
                                 <template #header-extra>
                                         upload doc or image (txt, png, excel or code file)
                                 </template>
-                                <Uploader :sessionUuid="props.sessionUuid" :showUploaderButton="true" ></Uploader>
+                                <Uploader :sessionUuid="sessionUuid" :showUploaderButton="true"></Uploader>
                                 <template #footer>
                                         <NButton @click="$emit('update:showUploadModal', false)">Cancel</NButton>
                                 </template>
@@ -36,6 +36,6 @@ interface Props {
         sessionUuid: string
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 </script>

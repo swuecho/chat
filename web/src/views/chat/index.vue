@@ -531,7 +531,7 @@ function getDataFromResponseText(responseText: string): string {
   <div class="flex flex-col w-full h-full">
     <div>
       
-    <UploadModal v-if="showUploadModal" :showUploadModal="showUploadModal" :sessionUuid="sessionUuid" @update:showUploadModal="showUploadModal = $event" />
+    <UploadModal v-if="showUploadModal && !!sessionUuid" :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"  @update:showUploadModal="showUploadModal = $event" />
     </div>
     <HeaderComponent v-if="isMobile" @export="handleExport" @snapshot="handleSnapshot" @toggle="showModal = true" />
     <main class="flex-1 overflow-hidden">
