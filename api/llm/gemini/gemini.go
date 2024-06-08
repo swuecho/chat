@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
@@ -170,15 +169,15 @@ func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sq
 			if imageExt.Contains(chatFile.MimeType) {
 				return &PartBlob{Blob: ImageData(chatFile.MimeType, chatFile.Data)}
 			} else {
-				return &PartString{Text: string(chatFile.Data)}
+				return &PartString{Text: "file: " + chatFile.Name + "\n<<<"+ string(chatFile.Data) + ">>>\n"}
 			}
 		})
-
+		fmt.Printf("partsFromFiles: %+v\n", partsFromFiles)
 		payload.Contents[0].Parts = append(payload.Contents[0].Parts, partsFromFiles...)
 	}
 
 	payloadBytes, err := json.Marshal(payload)
-	log.Printf("%s\n", string(payloadBytes))
+	log.Printf("\n%s\n", string(payloadBytes))
 	if err != nil {
 		fmt.Println("Error marshalling payload:", err)
 		// handle err

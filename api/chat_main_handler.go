@@ -1201,15 +1201,16 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
 	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		return "", "", true
+	}
 	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages, chatFiles)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
 	}
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
-		return "", "", true
-	}
+	
 	
 
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY", chatSession.Model)
