@@ -62,17 +62,26 @@ func messagesToOpenAIMesages(messages []models.Message, chatFiles []sqlc_queries
 			}
 		}
 	})
+	// first user message
+	firstUserMessage, idx, found := lo.FindIndexOf(open_ai_msgs, func(msg openai.ChatCompletionMessage) bool { return msg.Role == "user" })
 
-	open_ai_msgs[0].MultiContent = append(
-		[]openai.ChatMessagePart{
-			{Type: openai.ChatMessagePartTypeText, Text: open_ai_msgs[0].Content},
-		}, parts...)
+	if found {
+		log.Printf("firstUserMessage: %+v\n", firstUserMessage)
+		open_ai_msgs[idx].MultiContent = append(
+			[]openai.ChatMessagePart{
+				{Type: openai.ChatMessagePartTypeText, Text: firstUserMessage.Content},
+			}, parts...)
+		open_ai_msgs[idx].Content = ""
+		log.Printf("firstUserMessage: %+v\n", firstUserMessage)
+	}
+
 	return open_ai_msgs
 }
 
 func byteToImageURL(mimeType string, data []byte) string {
-	return fmt.Sprintf("data:%s;base64,%s", mimeType,
+	b64 := fmt.Sprintf("data:%s;base64,%s", mimeType,
 		base64.StdEncoding.EncodeToString(data))
+	return b64
 }
 
 func getModelBaseUrl(apiUrl string) (string, error) {

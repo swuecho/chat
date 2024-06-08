@@ -390,6 +390,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 
 	if err != nil {
+		log.Printf("fail to do request: %+v", err)
 		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return "", "", true
 	}
@@ -1173,13 +1174,19 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 }
 
 func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatFiles []sqlc_queries.ChatFile) openai.ChatCompletionRequest {
-	
+
 	openai_message := messagesToOpenAIMesages(chat_compeletion_messages, chatFiles)
 	//totalInputToken := lo.SumBy(chat_compeletion_messages, func(m Message) int32 {
 	//	return m.TokenCount()
 	//})
 	// max - input = max possible output
 	//maxOutputToken := int(chatSession.MaxTokens - totalInputToken) - 500 // offset
+	for _, m := range openai_message {
+		b, _ := m.MarshalJSON()
+		log.Printf("messages: %+v\n", string(b))
+	}
+
+	log.Printf("messages: %+v\n", openai_message)
 	openai_req := openai.ChatCompletionRequest{
 		Model:    chatSession.Model,
 		Messages: openai_message,
@@ -1228,8 +1235,6 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
 	}
-	
-	
 
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY", chatSession.Model)
 	url = os.ExpandEnv(url)
