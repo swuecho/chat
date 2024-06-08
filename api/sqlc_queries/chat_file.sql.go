@@ -124,17 +124,12 @@ func (q *Queries) ListChatFilesBySessionUUID(ctx context.Context, arg ListChatFi
 const listChatFilesWithContentBySessionUUID = `-- name: ListChatFilesWithContentBySessionUUID :many
 SELECT id, name, data, created_at, user_id, chat_session_uuid
 FROM chat_file
-WHERE user_id = $1 and chat_session_uuid = $2
+WHERE chat_session_uuid = $1
 ORDER BY created_at DESC
 `
 
-type ListChatFilesWithContentBySessionUUIDParams struct {
-	UserID          int32  `json:"userID"`
-	ChatSessionUuid string `json:"chatSessionUuid"`
-}
-
-func (q *Queries) ListChatFilesWithContentBySessionUUID(ctx context.Context, arg ListChatFilesWithContentBySessionUUIDParams) ([]ChatFile, error) {
-	rows, err := q.db.QueryContext(ctx, listChatFilesWithContentBySessionUUID, arg.UserID, arg.ChatSessionUuid)
+func (q *Queries) ListChatFilesWithContentBySessionUUID(ctx context.Context, chatSessionUuid string) ([]ChatFile, error) {
+	rows, err := q.db.QueryContext(ctx, listChatFilesWithContentBySessionUUID, chatSessionUuid)
 	if err != nil {
 		return nil, err
 	}

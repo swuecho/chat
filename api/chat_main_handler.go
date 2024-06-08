@@ -31,14 +31,17 @@ import (
 )
 
 type ChatHandler struct {
-	service *ChatService
+	service         *ChatService
+	chatfileService *ChatFileService
 }
 
 func NewChatHandler(sqlc_q *sqlc_queries.Queries) *ChatHandler {
 	// create a new ChatService instance
 	chatService := NewChatService(sqlc_q)
+	ChatFileService := NewChatFileService(sqlc_q)
 	return &ChatHandler{
-		service: chatService,
+		service:         chatService,
+		chatfileService: ChatFileService,
 	}
 }
 
@@ -1197,11 +1200,17 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (string, string, bool) {
-	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages)
+	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages, chatFiles)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
 	}
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		return "", "", true
+	}
+	
 
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY", chatSession.Model)
 	url = os.ExpandEnv(url)

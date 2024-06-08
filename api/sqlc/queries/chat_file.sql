@@ -12,7 +12,7 @@ ORDER BY created_at DESC;
 -- name: ListChatFilesWithContentBySessionUUID :many
 SELECT *
 FROM chat_file
-WHERE user_id = $1 and chat_session_uuid = $2
+WHERE chat_session_uuid = $1
 ORDER BY created_at DESC;
 
 
