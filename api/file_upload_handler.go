@@ -55,6 +55,9 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	name := header.Filename
+	// mimetype
+	mimeType := header.Header.Get("Content-Type")
+	fmt.Println("File name:", name, "Mime type:", mimeType)
 	fmt.Printf("File name: %s\n", name)
 	// Copy the file data to my buffer
 	io.Copy(&buf, file)
@@ -66,7 +69,9 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 		UserID:          userID,
 		Name:            name,
 		Data:            buf.Bytes(),
+		MimeType:        mimeType,
 	})
+	
 
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)

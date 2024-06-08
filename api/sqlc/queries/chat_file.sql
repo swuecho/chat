@@ -1,6 +1,6 @@
 -- name: CreateChatFile :one
-INSERT INTO chat_file (name, data, user_id, chat_session_uuid)
-VALUES ($1, $2, $3, $4)
+INSERT INTO chat_file (name, data, user_id, chat_session_uuid, mime_type)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: ListChatFilesBySessionUUID :many

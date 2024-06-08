@@ -40,6 +40,7 @@ func (p PartBlob) toPart() string {
 	return fmt.Sprintf("data:%s;base64,%s", b.MIMEType, b.Data)
 }
 
+
 // from https://github.com/google/generative-ai-go/blob/main/genai/generativelanguagepb_veneer.gen.go#L56
 // Blob contains raw media bytes.
 //
@@ -119,6 +120,31 @@ func ParseRespLine(line []byte, answer string) string {
 	return answer
 }
 
+func SupportedMimeTypes() mapset.Set[string] {
+	return mapset.NewSet(
+		"image/png",
+		"image/jpeg",
+		"image/webp",
+		"image/heic",
+		"image/heif",
+		"audio/wav",
+		"audio/mp3",
+		"audio/aiff",
+		"audio/aac",
+		"audio/ogg",
+		"audio/flac",
+		"video/mp4",
+		"video/mpeg",
+		"video/mov",
+		"video/avi",
+		"video/x-flv",
+		"video/mpg",
+		"video/webm",
+		"video/wmv",
+		"video/3gpp",
+	)
+}
+
 func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sqlc_queries.ChatFile) ([]byte, error) {
 	payload := GeminPayload{
 		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
@@ -139,15 +165,10 @@ func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sq
 	}
 
 	if len(chatFiles) > 0 {
-		// for _, chatFile := range chatFiles {
-		// 	geminiMessage :=
-		// 	payload.Contents[0].Parts
-		// 	payload.Contents = append(payload.Contents, geminiMessage)
-		// }
 		partsFromFiles := lo.Map(chatFiles, func(chatFile sqlc_queries.ChatFile, _ int) Part {
-			imageExt := mapset.NewSet("png", "jpg", "jpeg")
-			if imageExt.Contains(strings.Split(chatFile.Name, ".")[1]) {
-				return &PartBlob{Blob: ImageData(chatFile.Name, chatFile.Data)}
+			imageExt := SupportedMimeTypes()
+			if imageExt.Contains(chatFile.MimeType) {
+				return &PartBlob{Blob: ImageData(chatFile.MimeType, chatFile.Data)}
 			} else {
 				return &PartString{Text: string(chatFile.Data)}
 			}

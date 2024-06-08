@@ -38,6 +38,7 @@ type ChatFile struct {
 	CreatedAt       time.Time `json:"createdAt"`
 	UserID          int32     `json:"userID"`
 	ChatSessionUuid string    `json:"chatSessionUuid"`
+	MimeType        string    `json:"mimeType"`
 }
 
 type ChatLog struct {

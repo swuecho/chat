@@ -7,12 +7,13 @@ package sqlc_queries
 
 import (
 	"context"
+	"time"
 )
 
 const createChatFile = `-- name: CreateChatFile :one
-INSERT INTO chat_file (name, data, user_id, chat_session_uuid)
-VALUES ($1, $2, $3, $4)
-RETURNING id, name, data, created_at, user_id, chat_session_uuid
+INSERT INTO chat_file (name, data, user_id, chat_session_uuid, mime_type)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, data, created_at, user_id, chat_session_uuid, mime_type
 `
 
 type CreateChatFileParams struct {
@@ -20,6 +21,7 @@ type CreateChatFileParams struct {
 	Data            []byte `json:"data"`
 	UserID          int32  `json:"userID"`
 	ChatSessionUuid string `json:"chatSessionUuid"`
+	MimeType        string `json:"mimeType"`
 }
 
 func (q *Queries) CreateChatFile(ctx context.Context, arg CreateChatFileParams) (ChatFile, error) {
@@ -28,6 +30,7 @@ func (q *Queries) CreateChatFile(ctx context.Context, arg CreateChatFileParams) 
 		arg.Data,
 		arg.UserID,
 		arg.ChatSessionUuid,
+		arg.MimeType,
 	)
 	var i ChatFile
 	err := row.Scan(
@@ -37,6 +40,7 @@ func (q *Queries) CreateChatFile(ctx context.Context, arg CreateChatFileParams) 
 		&i.CreatedAt,
 		&i.UserID,
 		&i.ChatSessionUuid,
+		&i.MimeType,
 	)
 	return i, err
 }
@@ -44,7 +48,7 @@ func (q *Queries) CreateChatFile(ctx context.Context, arg CreateChatFileParams) 
 const deleteChatFile = `-- name: DeleteChatFile :one
 DELETE FROM chat_file
 WHERE id = $1
-RETURNING id, name, data, created_at, user_id, chat_session_uuid
+RETURNING id, name, data, created_at, user_id, chat_session_uuid, mime_type
 `
 
 func (q *Queries) DeleteChatFile(ctx context.Context, id int32) (ChatFile, error) {
@@ -57,6 +61,7 @@ func (q *Queries) DeleteChatFile(ctx context.Context, id int32) (ChatFile, error
 		&i.CreatedAt,
 		&i.UserID,
 		&i.ChatSessionUuid,
+		&i.MimeType,
 	)
 	return i, err
 }
@@ -67,9 +72,18 @@ FROM chat_file
 WHERE id = $1
 `
 
-func (q *Queries) GetChatFileByID(ctx context.Context, id int32) (ChatFile, error) {
+type GetChatFileByIDRow struct {
+	ID              int32     `json:"id"`
+	Name            string    `json:"name"`
+	Data            []byte    `json:"data"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UserID          int32     `json:"userID"`
+	ChatSessionUuid string    `json:"chatSessionUuid"`
+}
+
+func (q *Queries) GetChatFileByID(ctx context.Context, id int32) (GetChatFileByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getChatFileByID, id)
-	var i ChatFile
+	var i GetChatFileByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -122,7 +136,7 @@ func (q *Queries) ListChatFilesBySessionUUID(ctx context.Context, arg ListChatFi
 }
 
 const listChatFilesWithContentBySessionUUID = `-- name: ListChatFilesWithContentBySessionUUID :many
-SELECT id, name, data, created_at, user_id, chat_session_uuid
+SELECT id, name, data, created_at, user_id, chat_session_uuid, mime_type
 FROM chat_file
 WHERE chat_session_uuid = $1
 ORDER BY created_at DESC
@@ -144,6 +158,7 @@ func (q *Queries) ListChatFilesWithContentBySessionUUID(ctx context.Context, cha
 			&i.CreatedAt,
 			&i.UserID,
 			&i.ChatSessionUuid,
+			&i.MimeType,
 		); err != nil {
 			return nil, err
 		}
