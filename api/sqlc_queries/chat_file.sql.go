@@ -99,7 +99,7 @@ const listChatFilesBySessionUUID = `-- name: ListChatFilesBySessionUUID :many
 SELECT id, name
 FROM chat_file
 WHERE user_id = $1 and chat_session_uuid = $2
-ORDER BY created_at DESC
+ORDER BY created_at
 `
 
 type ListChatFilesBySessionUUIDParams struct {
@@ -139,7 +139,7 @@ const listChatFilesWithContentBySessionUUID = `-- name: ListChatFilesWithContent
 SELECT id, name, data, created_at, user_id, chat_session_uuid, mime_type
 FROM chat_file
 WHERE chat_session_uuid = $1
-ORDER BY created_at DESC
+ORDER BY created_at
 `
 
 func (q *Queries) ListChatFilesWithContentBySessionUUID(ctx context.Context, chatSessionUuid string) ([]ChatFile, error) {

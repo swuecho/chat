@@ -20,7 +20,7 @@ import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
 import UploadModal from './components/UploadModal.vue'
-import Uploader from './components/Uploader.vue'
+import UploaderReadOnly from './components/UploaderReadOnly.vue'
 
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 let controller = new AbortController()
@@ -538,7 +538,7 @@ function getDataFromResponseText(responseText: string): string {
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
-      <Uploader class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false"></Uploader>
+      <UploaderReadOnly v-if="!!sessionUuid" class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false"></UploaderReadOnly>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
           :class="[isMobile ? 'p-2' : 'p-4']">

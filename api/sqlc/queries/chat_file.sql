@@ -7,13 +7,13 @@ RETURNING *;
 SELECT id, name
 FROM chat_file
 WHERE user_id = $1 and chat_session_uuid = $2
-ORDER BY created_at DESC;
+ORDER BY created_at ;
 
 -- name: ListChatFilesWithContentBySessionUUID :many
 SELECT *
 FROM chat_file
 WHERE chat_session_uuid = $1
-ORDER BY created_at DESC;
+ORDER BY created_at;
 
 
 -- name: GetChatFileByID :one

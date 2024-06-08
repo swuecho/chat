@@ -1,18 +1,14 @@
 <template>
         <div>
-                <NUpload multiline action="/api/upload" :headers="headers" :data="data" :default-file-list="fileListData"
-                        :show-download-button="true" @finish="handleFinish" @before-upload="beforeUpload"
+                <NUpload multiline action="/api/upload" :headers="headers" :data="data" :file-list="fileListData"
+                        :show-download-button="true" :show-remove-button="false" :show-cancel-button="false" @finish="handleFinish" @before-upload="beforeUpload"
                         @remove="handleRemove" @download="handleDownload" @update:file-list="handleFileListUpdate">
-
-                        <NButton v-if="showUploaderButton" id="attach_file_button" data-testid="attach_file_button"
-                                type="primary"> Upload
-                        </NButton>
                 </NUpload>
         </div>
 </template>
 
 <script setup lang="ts">
-import { NUpload, NButton, UploadFileInfo } from 'naive-ui';
+import { NUpload, UploadFileInfo } from 'naive-ui';
 import { ref } from 'vue';
 import { useAuthStore } from '@/store'
 import request from '@/utils/request/axios'
