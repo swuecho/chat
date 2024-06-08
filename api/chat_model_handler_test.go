@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/gorilla/mux"
+	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"gotest.tools/v3/assert"
 )
@@ -123,7 +124,7 @@ func TestChatModel(t *testing.T) {
 	// ensure that we get an array of one chat API in the response body
 	results = unmarshalResponseToChatModel(t, rr)
 	assert.Equal(t, len(results), 1)
-	assert.Equal(t, results[0].Name, "Test API 2")
+	assert.Equal(t, results[0].Name, "Test API 1")
 
 	// delete the last model
 	deleteRequest, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
@@ -154,7 +155,7 @@ func checkGetModels(t *testing.T, router *mux.Router, expectedResults []sqlc_que
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
 	assert.Equal(t, len(results), 2)
-	assert.DeepEqual(t, expectedResults, results, cmpopts.IgnoreFields(sqlc_queries.ChatModel{}, "ID"))
+	assert.DeepEqual(t, lo.Reverse(expectedResults), results, cmpopts.IgnoreFields(sqlc_queries.ChatModel{}, "ID"))
 	return results
 }
 

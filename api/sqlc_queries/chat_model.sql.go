@@ -198,7 +198,7 @@ func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
 const listSystemChatModels = `-- name: ListSystemChatModels :many
 SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out FROM chat_model
 where user_id in (select id from auth_user where is_superuser = true)
-ORDER BY order_number
+ORDER BY order_number, id desc
 `
 
 func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error) {
