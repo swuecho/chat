@@ -21,6 +21,8 @@
 - 对话快照目录(对话集), 支持全文查找(Enlgish), 方便整理, 搜索会话记录.
 - 支持OPEN AI, Claude 模型 [免费申请链接](https://www.anthropic.com/earlyaccess)
 - 支持Ollama host模型, 配置参考: https://github.com/swuecho/chat/discussions/396
+- 支持上传文本文件
+- 支持多媒体文件, 需要模型支持
 - 提示词管理, 提示词快捷键 '/'
 
 ## 参与开发
@@ -137,6 +139,8 @@ enjoy!
 - 100 chatgpt api call / 10 mins (OPENAI_RATELIMIT=100)
 - Snapshot conversation and Share (like ShareGPT)
 - Support OPEN AI, Claude model [free application link](https://www.anthropic.com/earlyaccess)
+- Support Upload File
+- Support MultiMedia File (if Model support)
 
 ## How to Deploy
 
