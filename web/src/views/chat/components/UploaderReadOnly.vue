@@ -1,8 +1,9 @@
 <template>
         <div>
-                <NUpload multiline action="/api/upload" :headers="headers" :data="data" :file-list="fileListData"
-                        :show-download-button="true" :show-remove-button="false" :show-cancel-button="false" @finish="handleFinish" @before-upload="beforeUpload"
-                        @remove="handleRemove" @download="handleDownload" @update:file-list="handleFileListUpdate">
+                <NUpload multiline :action="actionURL" :headers="headers" :data="data" :file-list="fileListData"
+                        :show-download-button="true" :show-remove-button="false" :show-cancel-button="false"
+                        @finish="handleFinish" @before-upload="beforeUpload" @remove="handleRemove"
+                        @download="handleDownload" @update:file-list="handleFileListUpdate">
                 </NUpload>
         </div>
 </template>
@@ -16,6 +17,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { getChatFilesList } from '@/api/chat_file'
 
 const queryClient = useQueryClient()
+
+const baseURL = import.meta.env.VITE_GLOB_API_URL
+
+const actionURL = baseURL != "/" ? baseURL + '/upload' : '/upload'
+
 
 interface Props {
         sessionUuid: string

@@ -1,6 +1,6 @@
 <template>
         <div>
-                <NUpload multiline action="/api/upload" :headers="headers" :data="data" :default-file-list="fileListData"
+                <NUpload multiline :action="actionURL" :headers="headers" :data="data" :default-file-list="fileListData"
                         :show-download-button="true" @finish="handleFinish" @before-upload="beforeUpload"
                         @remove="handleRemove" @download="handleDownload" @update:file-list="handleFileListUpdate">
 
@@ -18,6 +18,10 @@ import { useAuthStore } from '@/store'
 import request from '@/utils/request/axios'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { getChatFilesList } from '@/api/chat_file'
+
+const baseURL = import.meta.env.VITE_GLOB_API_URL
+
+const actionURL = baseURL != "/" ? baseURL + '/upload' : '/upload'
 
 const queryClient = useQueryClient()
 
