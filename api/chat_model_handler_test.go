@@ -124,7 +124,7 @@ func TestChatModel(t *testing.T) {
 	// ensure that we get an array of one chat API in the response body
 	results = unmarshalResponseToChatModel(t, rr)
 	assert.Equal(t, len(results), 1)
-	assert.Equal(t, results[0].Name, "Test API 2")
+	assert.Equal(t, results[0].Name, "Test API 1")
 
 	// delete the last model
 	deleteRequest, _ := http.NewRequest("DELETE", fmt.Sprintf("/chat_model/%d", results[0].ID), nil)
