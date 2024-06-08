@@ -31,7 +31,7 @@ func (p *PartString) toPart() string {
 }
 
 type PartBlob struct {
-	Blob Blob `json:"inline_data"`
+	Blob Blob `json:"inlineData"`
 }
 
 func (p PartBlob) toPart() string {
@@ -53,14 +53,14 @@ type Blob struct {
 	// If an unsupported MIME type is provided, an error will be returned. For a
 	// complete list of supported types, see [Supported file
 	// formats](https://ai.google.dev/gemini-api/docs/prompting_with_media#supported_file_formats).
-	MIMEType string
+	MIMEType string `json:"mimeType"`
 	// Raw bytes for media formats.
-	Data string
+	Data string `json:"data"`
 }
 
-func ImageData(format string, data []byte) Blob {
+func ImageData(mimeType string, data []byte) Blob {
 	return Blob{
-		MIMEType: "image/" + format,
+		MIMEType: mimeType,
 		Data:     b64.StdEncoding.EncodeToString(data),
 	}
 }
