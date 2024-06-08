@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
-import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage, NUpload } from 'naive-ui'
+import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage} from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
@@ -20,9 +20,9 @@ import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
 import UploadModal from './components/UploadModal.vue'
+import Uploader from './components/Uploader.vue'
+
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
-import { useQuery } from '@tanstack/vue-query'
-import { getChatFilesList } from '@/api/chat_file'
 let controller = new AbortController()
 
 const route = useRoute()
@@ -47,14 +47,6 @@ const loading = ref<boolean>(false)
 const showUploadModal = ref<boolean>(false)
 const showModal = ref<boolean>(false)
 
-const { data: fileListData } = useQuery({
-        queryKey: ['fileList', sessionUuid],
-        queryFn: async () => await getChatFilesList(sessionUuid)
-})
-
-const defaultFileList = computed(() => {
-        return fileListData.value || []
-})
 
 // 添加PromptStore
 const promptStore = usePromptStore()
@@ -546,7 +538,7 @@ function getDataFromResponseText(responseText: string): string {
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
-      <NUpload class="px-40" multiline action="/api/upload"  :default-file-list="defaultFileList"></NUpload>
+      <Uploader class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false"></Uploader>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
           :class="[isMobile ? 'p-2' : 'p-4']">
