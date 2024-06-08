@@ -166,7 +166,7 @@
     "socks": "Socks"
   },
   "error": {
-    "claude_system_message_notice": "claude 第一条是系统消息, 请继续输入信息开始会话",
+    "system_message_notice": "第一条是系统消息已经是收到, 请继续输入信息开始会话",
     "invalid_request": "无效请求",
     "invalid_email_or_password": "无效的电子邮件或密码",
     "fail_to_generate_token": "生成令牌失败",

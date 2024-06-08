@@ -15,6 +15,6 @@
                 }
         },
         "error": {
-                "claude_system_message_notice": "Claude the first message is a system message, please continue entering information to start the conversation"
+                "system_message_notice": "the first message is a system message, please continue entering information to start the conversation"
         }
 }
