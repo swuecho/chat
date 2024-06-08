@@ -29,7 +29,6 @@ async function refreshData() {
   loading.value = false
 }
 
-
 function UpdateRow(row: RowData) {
   // @ts-expect-error rateLimit is a number in golang
   row.rateLimit = parseInt(row.rateLimit)
