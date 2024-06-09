@@ -98,11 +98,17 @@ function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressE
 
 }
 
+function fileUrl(file: UploadFileInfo): string {
+        const file_id = file.url?.split('/').pop(); 
+        const url = `/download/${file_id}`
+        return url
+}
+
 // @ts-ignore
 function handleRemove({ file }: { file: UploadFileInfo }) {
         console.log('remove', file)
         if (file.url) {
-                const url = `/download/${file.id}`
+                const url = fileUrl(file)
                 fileDeleteMutation.mutate(url)
         }
         console.log(file.url)
@@ -111,7 +117,7 @@ function handleRemove({ file }: { file: UploadFileInfo }) {
 // @ts-ignore
 async function handleDownload(file) {
         console.log('download', file)
-        const url = `/download/${file.id}`
+        const url = fileUrl(file)
         let response = await request.get(url, {
                 responseType: 'blob', // Important: set the response type to blob
         })
