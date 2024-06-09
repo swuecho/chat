@@ -530,7 +530,6 @@ function getDataFromResponseText(responseText: string): string {
 <template>
   <div class="flex flex-col w-full h-full">
     <div>
-      
     <UploadModal  :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"  @update:showUploadModal="showUploadModal = $event" />
     </div>
     <HeaderComponent v-if="isMobile" @export="handleExport" @snapshot="handleSnapshot" @toggle="showModal = true" />
