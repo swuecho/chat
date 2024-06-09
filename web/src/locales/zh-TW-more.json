@@ -1,8 +1,8 @@
 {
         "chat": {
-                "上傳者標題": "上傳檔案",
-                "上傳按鈕": "上傳",
-                "上傳關閉": "關閉",
-                "上傳幫助文字": "支援上傳檔案類型： text、image、audio、video"
+                "uploader_title": "上傳檔案",
+                "uploader_button": "上傳",
+                "uploader_close": "關閉",
+                "uploader_help_text": "支援上傳檔案類型： text、image、audio、video"
         }
 }

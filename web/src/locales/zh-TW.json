@@ -95,11 +95,11 @@
         "topP": "Top P: {topP}",
         "turnOffContext": "在此模式下，發送的消息將不包括以前的聊天記錄。",
         "turnOnContext": "在此模式下，發送的消息將包括以前的聊天記錄。",
-        "usingContext": "上下文模式",
-        "上傳幫助文字": "支援上傳檔案類型： text、image、audio、video",
-        "上傳按鈕": "上傳",
-        "上傳者標題": "上傳檔案",
-        "上傳關閉": "關閉"
+        "uploader_button": "上傳",
+        "uploader_close": "關閉",
+        "uploader_help_text": "支援上傳檔案類型： text、image、audio、video",
+        "uploader_title": "上傳檔案",
+        "usingContext": "上下文模式"
     },
     "chat_snapshot": {
         "createChat": "創建會話",
