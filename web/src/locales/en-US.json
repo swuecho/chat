@@ -80,7 +80,7 @@
         "frequencyPenalty": "Frequency Penalty",
         "is_summarize_mode": "On",
         "maxTokens": "Max Total Tokens : {maxTokens}",
-        "model": "Model (OpenAI GPT4 needs separate application, Claude key can use all Claude models)",
+        "model": "Model",
         "new": "New Chat",
         "no_summarize_mode": "Off",
         "placeholder": "What would you like to say... (Shift + Enter = newline, '/' to trigger prompts)",

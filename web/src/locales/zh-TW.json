@@ -80,7 +80,7 @@
         "frequencyPenalty": "頻率懲罰",
         "is_summarize_mode": "開啟",
         "maxTokens": "最大問答總token數量: {maxTokens}",
-        "model": "模型(OPENAI GPT4 需要個別申請,CLAUDE的免費密鑰可以使用所有CLAUDE模型)",
+        "model": "模型",
         "new": "新建聊天",
         "no_summarize_mode": "關閉",
         "placeholder": "說些什麼...（Shift + Enter = 換行,  '/' 触发提示词）",
