@@ -141,6 +141,9 @@ func main() {
 	// create a new Gorilla Mux router instance
 	// Create a new router
 	router := mux.NewRouter()
+
+	apiRouter := router.PathPrefix("/api").Subrouter()
+
 	sqlc_q := sqlc_queries.New(pgdb)
 	secretService := NewJWTSecretService(sqlc_q)
 	jwtSecretAndAud, err = secretService.GetOrCreateJwtSecret(context.Background(), "chat")
@@ -148,46 +151,41 @@ func main() {
 		log.Fatal(err)
 	}
 	ChatModelHandler := NewChatModelHandler(sqlc_q)
-	ChatModelHandler.Register(router)
+	ChatModelHandler.Register(apiRouter)
 
 	// create a new AuthUserHandler instance
 	userHandler := NewAuthUserHandler(sqlc_q)
 	// register the AuthUserHandler with the router
-	userHandler.Register(router)
+	userHandler.Register(apiRouter)
 
 	promptHandler := NewChatPromptHandler(sqlc_q)
-	promptHandler.Register(router)
+	promptHandler.Register(apiRouter)
 
 	chatSessionHandler := NewChatSessionHandler(sqlc_q)
-	chatSessionHandler.Register(router)
+	chatSessionHandler.Register(apiRouter)
 
 	chatMessageHandler := NewChatMessageHandler(sqlc_q)
-	chatMessageHandler.Register(router)
+	chatMessageHandler.Register(apiRouter)
 
 	chatSnapshotHandler := NewChatSnapshotHandler(sqlc_q)
-	chatSnapshotHandler.Register(router)
+	chatSnapshotHandler.Register(apiRouter)
 
 	activeSessionHandler := NewUserActiveChatSessionHandler(sqlc_q)
-	activeSessionHandler.Register(router)
+	activeSessionHandler.Register(apiRouter)
 
 	// create a new ChatHandler instance
 	chatHandler := NewChatHandler(sqlc_q)
-	chatHandler.Register(router)
+	chatHandler.Register(apiRouter)
 
 	user_model_privilege_handler := NewUserChatModelPrivilegeHandler(sqlc_q)
-	user_model_privilege_handler.Register(router)
+	user_model_privilege_handler.Register(apiRouter)
 
 	chatFileHandler := NewChatFileHandler(sqlc_q)
-	chatFileHandler.Register(router)
+	chatFileHandler.Register(apiRouter)
 
-	router.HandleFunc("/tts", handleTTSRequest)
+	apiRouter.HandleFunc("/tts", handleTTSRequest)
 
-	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-		tpl, err1 := route.GetPathTemplate()
-		met, err2 := route.GetMethods()
-		fmt.Println(tpl, err1, met, err2)
-		return nil
-	})
+	
 
 	// Embed static/* directory
 	fs := http.FileServer(http.FS(static.StaticFiles))
@@ -224,6 +222,12 @@ func main() {
 	// loggedMux := loggingMiddleware(router, logger)
 	loggedRouter := handlers.LoggingHandler(logger.Out, router)
 
+	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+		tpl, err1 := route.GetPathTemplate()
+		met, err2 := route.GetMethods()
+		fmt.Println(tpl, err1, met, err2)
+		return nil
+	})
 	// fly.io
 
 	if os.Getenv("FLY_APP_NAME") != "" {

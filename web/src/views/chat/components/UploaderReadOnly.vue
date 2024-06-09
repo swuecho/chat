@@ -1,11 +1,10 @@
 <template>
         <div>
-                <NUpload  :with-credentials="true" :action="actionURL" :headers="headers" :data="data" :file-list="fileListData"
-                        :show-download-button="true" :show-remove-button="false" :show-cancel-button="false"
-                        @finish="handleFinish" @before-upload="beforeUpload" @remove="handleRemove"
-                        @download="handleDownload" @update:file-list="handleFileListUpdate"
-                        @preview="handlePreview"
-                        >
+                <NUpload :with-credentials="true" :action="actionURL" :headers="headers" :data="data"
+                        :file-list="fileListData" :show-download-button="true" :show-remove-button="false"
+                        :show-cancel-button="false" @finish="handleFinish" @before-upload="beforeUpload"
+                        @remove="handleRemove" @download="handleDownload" @update:file-list="handleFileListUpdate"
+                        @preview="handlePreview">
                 </NUpload>
         </div>
 </template>
@@ -22,8 +21,7 @@ const queryClient = useQueryClient()
 
 const baseURL = import.meta.env.VITE_GLOB_API_URL
 
-const actionURL = baseURL != "/" ? baseURL + '/upload' : '/upload'
-
+const actionURL = baseURL + '/upload'
 
 interface Props {
         sessionUuid: string
@@ -48,8 +46,6 @@ const fileDeleteMutation = useMutation({
                 queryClient.invalidateQueries({ queryKey: ['fileList', sessionUuid] })
         },
 })
-
-
 
 
 // const emit = defineEmits(['update:showUploadModal']);
@@ -99,7 +95,7 @@ function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressE
 }
 
 function fileUrl(file: UploadFileInfo): string {
-        const file_id = file.url?.split('/').pop(); 
+        const file_id = file.url?.split('/').pop();
         const url = `/download/${file_id}`
         return url
 }
