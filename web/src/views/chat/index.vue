@@ -538,6 +538,9 @@ function getDataFromResponseText(responseText: string): string {
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
+      <div class="flex items-center justify-center mt-4 ">
+      {{ chatSession?.model}} 
+      </div>
       <UploaderReadOnly v-if="!!sessionUuid" class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false"></UploaderReadOnly>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
