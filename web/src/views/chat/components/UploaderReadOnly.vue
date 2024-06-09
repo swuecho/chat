@@ -1,6 +1,5 @@
 <template>
         <div>
-                <a target="_blank" href="/api/download/1" @click="handleClick"> abc</a>
                 <NUpload :with-credentials="true" :action="actionURL" :headers="headers" :data="data"
                         :file-list="fileListData" :show-download-button="true" :show-remove-button="false"
                         :show-cancel-button="false" @finish="handleFinish" @before-upload="beforeUpload"
@@ -48,11 +47,6 @@ const fileDeleteMutation = useMutation({
         },
 })
 
-
-function handleClick(e: MouseEvent) {
-        e.preventDefault()
-        console.log("clicked")
-}
 
 // const emit = defineEmits(['update:showUploadModal']);
 
