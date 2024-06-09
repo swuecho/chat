@@ -5,7 +5,7 @@
                         @remove="handleRemove" @download="handleDownload" @update:file-list="handleFileListUpdate">
 
                         <NButton v-if="showUploaderButton" id="attach_file_button" data-testid="attach_file_button"
-                                type="primary"> Upload
+                                type="primary"> {{ $t('chat.uploader_button') }} 
                         </NButton>
                 </NUpload>
         </div>
