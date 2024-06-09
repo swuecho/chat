@@ -1,21 +1,8 @@
 {
         "chat": {
-                "summarize_mode": "總結模式(可以支持更長的上下文20+)",
-                "is_summarize_mode": "開啟",
-                "no_summarize_mode": "關閉",
-                "playAudio": "語音"
-        },
-        "admin": {
-                "userMessage": "用戶",
-                "chat_model": {
-                        "deleteModel": "刪除",
-                        "deleteModelConfirm": "確認刪除",
-                        "orderNumber": "次序",
-                        "maxToken": "最大token數量",
-                        "defaultToken": "默認token數量"
-                }
-        },
-        "error": {
-                "system_message_notice": "第一條是系統消息，請繼續輸入信息開始會話"
+                "上傳者標題": "上傳檔案",
+                "上傳按鈕": "上傳",
+                "上傳關閉": "關閉",
+                "上傳幫助文字": "支援上傳檔案類型： text、image、audio、video"
         }
 }

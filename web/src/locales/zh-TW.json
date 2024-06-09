@@ -95,7 +95,11 @@
         "topP": "Top P: {topP}",
         "turnOffContext": "在此模式下，發送的消息將不包括以前的聊天記錄。",
         "turnOnContext": "在此模式下，發送的消息將包括以前的聊天記錄。",
-        "usingContext": "上下文模式"
+        "usingContext": "上下文模式",
+        "上傳幫助文字": "支援上傳檔案類型： text、image、audio、video",
+        "上傳按鈕": "上傳",
+        "上傳者標題": "上傳檔案",
+        "上傳關閉": "關閉"
     },
     "chat_snapshot": {
         "createChat": "創建會話",
@@ -144,7 +148,6 @@
     "error": {
         "NotAdmin": "非管理員禁止訪問",
         "NotAuthorized": "請先登入",
-        "system_message_notice": "第一條是系統消息，請繼續輸入信息開始會話",
         "fail_to_do_request": "請求模型失敗, 請稍後再試, 或聯繫管理員",
         "fail_to_generate_token": "生成令牌失敗",
         "fail_to_get_rate_limit": "無法查詢模型對應的配額，請聯繫管理員開通",
@@ -157,6 +160,7 @@
         "invalid_request": "無效請求",
         "rateLimit": "發送消息數量已經達到上限，請聯繫管理員",
         "syncChatSession": "同步失敗，請稍後再試",
+        "system_message_notice": "第一條是系統消息，請繼續輸入信息開始會話",
         "token_length_exceed_limit": "總消息長度數量超過上限，請減少上下文數量、減少消息長度或者開啟新的會話"
     },
     "prompt": {

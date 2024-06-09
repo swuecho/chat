@@ -1,20 +1,8 @@
 {
         "chat": {
-                "summarize_mode": "Summary mode (supports longer context 20+)",
-                "is_summarize_mode": "On",
-                "no_summarize_mode": "Off"
-        },
-        "admin": {
-                "userMessage": "User",
-                "chat_model": {
-                        "deleteModel": "Delete",
-                        "deleteModelConfirm": "Confirm deletion",
-                        "orderNumber": "Order number",
-                        "maxToken": "Maximum token number",
-                        "defaultToken": "Default token number"
-                }
-        },
-        "error": {
-                "system_message_notice": "the first message is a system message, please continue entering information to start the conversation"
+                "uploader_title": "Upload File",
+                "uploader_button": "Upload",
+                "uploader_close": "Close",
+                "uploader_help_text": "Supported file types: text, image, audio, video"
         }
 }

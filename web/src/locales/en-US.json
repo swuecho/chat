@@ -95,6 +95,10 @@
         "topP": "Top P: {topP}",
         "turnOffContext": "In this mode, messages sent will not include previous chat logs.",
         "turnOnContext": "In this mode, messages sent will include previous chat logs.",
+        "uploader_button": "Upload",
+        "uploader_close": "Close",
+        "uploader_help_text": "Supported file types: text, image, audio, video",
+        "uploader_title": "Upload File",
         "usingContext": "Context Mode"
     },
     "chat_snapshot": {
@@ -144,7 +148,6 @@
     "error": {
         "NotAdmin": "Non-administrators are prohibited from accessing",
         "NotAuthorized": "Please log in first",
-        "system_message_notice": "the first message is a system message, please continue entering information to start the conversation",
         "fail_to_do_request": "Failed to request the model, please try again later or contact the administrator",
         "fail_to_generate_token": "Failed to generate token",
         "fail_to_get_rate_limit": "Failed to retrieve the quota corresponding to the model, please contact the administrator to enable it",
@@ -157,6 +160,7 @@
         "invalid_request": "Invalid Request",
         "rateLimit": "The message sending limit has been reached, please contact the administrator.",
         "syncChatSession": "Sync Failed, Please Try Again Later",
+        "system_message_notice": "the first message is a system message, please continue entering information to start the conversation",
         "token_length_exceed_limit": "Total message length exceeds limit, please reduce context quantity, message length or start a new conversation."
     },
     "prompt": {
