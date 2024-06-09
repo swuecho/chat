@@ -78,7 +78,11 @@
     "enable_debug": "启用",
     "disable_debug": "关闭",
     "completionsCount": "结果数量:  {contextCount}",
-    "playAudio": "语音"
+    "playAudio": "语音",
+    "uploader_title": "上传文件",
+    "uploader_button": "上传",
+    "uploader_close": "关闭",
+    "uploader_help_text": "支持上传文件类型： text, image, audio, video"
   },
   "chat_snapshot": {
     "title": "会话集",

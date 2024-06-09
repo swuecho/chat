@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -125,5 +126,11 @@ func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+	log.Printf("chatFiles: %+v", chatFiles)
+	// why this?
+	if len(chatFiles) == 0 {
+		w.Write([]byte("[]"))
+		return
+	}
 	json.NewEncoder(w).Encode(chatFiles)
 }

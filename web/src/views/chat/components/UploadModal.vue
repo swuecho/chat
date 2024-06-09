@@ -1,17 +1,18 @@
 <template>
         <div>
-                <NModal :show="showUploadModal">
-                        <NCard style="width: 600px" title="Upload" :bordered="false" size="huge" role="dialog"
-                                aria-modal="true">
+                <NModal :show="showUploadModal" >
+                        <NCard style="width: 600px" :title="$t('chat.uploader_title')" :bordered="false" size="huge"
+                                role="dialog" aria-modal="true">
                                 <template #header-extra>
-                                        upload doc, image, audio, video 
+                                        {{ $t('chat.uploader_help_text') }}
                                 </template>
                                 <Uploader :sessionUuid="sessionUuid" :showUploaderButton="true"></Uploader>
                                 <template #footer>
-                                        <NButton @click="$emit('update:showUploadModal', false)">Cancel</NButton>
+                                        <NButton @click="$emit('update:showUploadModal', false)">{{ $t('chat.uploader_close') }}</NButton>
                                 </template>
                         </NCard>
                 </NModal>
+
 
         </div>
 </template>
