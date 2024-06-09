@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useRoute } from 'vue-router'
-import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage} from 'naive-ui'
+import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
@@ -530,8 +530,8 @@ function getDataFromResponseText(responseText: string): string {
 <template>
   <div class="flex flex-col w-full h-full">
     <div>
-      
-    <UploadModal  :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"  @update:showUploadModal="showUploadModal = $event" />
+      <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
+        @update:showUploadModal="showUploadModal = $event" />
     </div>
     <HeaderComponent v-if="isMobile" @export="handleExport" @snapshot="handleSnapshot" @toggle="showModal = true" />
     <main class="flex-1 overflow-hidden">
@@ -539,9 +539,10 @@ function getDataFromResponseText(responseText: string): string {
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
       <div class="flex items-center justify-center mt-4 ">
-      {{ chatSession?.model}} 
+        {{ chatSession?.model }}
       </div>
-      <UploaderReadOnly v-if="!!sessionUuid" class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false"></UploaderReadOnly>
+      <UploaderReadOnly v-if="!!sessionUuid" class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false">
+      </UploaderReadOnly>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
           :class="[isMobile ? 'p-2' : 'p-4']">
