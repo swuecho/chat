@@ -1,6 +1,6 @@
 <template>
         <div>
-                <NModal :show="showUploadModal">
+                <NModal :show="showUploadModal" >
                         <NCard style="width: 600px" :title="$t('chat.uploader_title')" :bordered="false" size="huge"
                                 role="dialog" aria-modal="true">
                                 <template #header-extra>

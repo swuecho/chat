@@ -1,9 +1,11 @@
 <template>
         <div>
-                <NUpload multiline :action="actionURL" :headers="headers" :data="data" :file-list="fileListData"
+                <NUpload  :with-credentials="true" :action="actionURL" :headers="headers" :data="data" :file-list="fileListData"
                         :show-download-button="true" :show-remove-button="false" :show-cancel-button="false"
                         @finish="handleFinish" @before-upload="beforeUpload" @remove="handleRemove"
-                        @download="handleDownload" @update:file-list="handleFileListUpdate">
+                        @download="handleDownload" @update:file-list="handleFileListUpdate"
+                        @preview="handlePreview"
+                        >
                 </NUpload>
         </div>
 </template>
@@ -100,7 +102,8 @@ function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressE
 function handleRemove({ file }: { file: UploadFileInfo }) {
         console.log('remove', file)
         if (file.url) {
-                fileDeleteMutation.mutate(file.url)
+                const url = `/download/${file.id}`
+                fileDeleteMutation.mutate(url)
         }
         console.log(file.url)
 }
@@ -108,7 +111,8 @@ function handleRemove({ file }: { file: UploadFileInfo }) {
 // @ts-ignore
 async function handleDownload(file) {
         console.log('download', file)
-        let response = await request.get(file.url, {
+        const url = `/download/${file.id}`
+        let response = await request.get(url, {
                 responseType: 'blob', // Important: set the response type to blob
         })
         // Create a new Blob object using the response data of the file
@@ -132,5 +136,11 @@ async function handleDownload(file) {
         // Remove the link from the document
         document.body.removeChild(link);
         return false //!!! cancel original download
+}
+
+async function handlePreview(file: UploadFileInfo) {
+        console.log('preview', file)
+        await handleDownload(file)
+        return false
 }
 </script>

@@ -5,7 +5,7 @@
                         @remove="handleRemove" @download="handleDownload" @update:file-list="handleFileListUpdate">
 
                         <NButton v-if="showUploaderButton" id="attach_file_button" data-testid="attach_file_button"
-                                type="primary"> {{ $t('chat.uploader_button') }} 
+                                type="primary"> {{ $t('chat.uploader_button') }}
                         </NButton>
                 </NUpload>
         </div>
@@ -102,7 +102,8 @@ function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressE
 function handleRemove({ file }: { file: UploadFileInfo }) {
         console.log('remove', file)
         if (file.url) {
-                fileDeleteMutation.mutate(file.url)
+                const url = `/download/${file.id}`
+                fileDeleteMutation.mutate(url)
         }
         console.log(file.url)
 }
@@ -110,7 +111,8 @@ function handleRemove({ file }: { file: UploadFileInfo }) {
 // @ts-ignore
 async function handleDownload(file) {
         console.log('download', file)
-        let response = await request.get(file.url, {
+        const url = `/download/${file.id}`
+        let response = await request.get(url, {
                 responseType: 'blob', // Important: set the response type to blob
         })
         // Create a new Blob object using the response data of the file
