@@ -21,7 +21,7 @@ import { getChatFilesList } from '@/api/chat_file'
 
 const baseURL = import.meta.env.VITE_GLOB_API_URL
 
-const actionURL = baseURL != "/" ? baseURL + '/upload' : '/upload'
+const actionURL = baseURL + '/upload'
 
 const queryClient = useQueryClient()
 
@@ -109,7 +109,7 @@ function handleRemove({ file }: { file: UploadFileInfo }) {
 }
 
 function fileUrl(file: UploadFileInfo): string {
-        const file_id = file.url?.split('/').pop(); 
+        const file_id = file.url?.split('/').pop();
         const url = `/download/${file_id}`
         return url
 }

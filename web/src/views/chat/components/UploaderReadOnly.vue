@@ -22,8 +22,7 @@ const queryClient = useQueryClient()
 
 const baseURL = import.meta.env.VITE_GLOB_API_URL
 
-const actionURL = baseURL != "/" ? baseURL + '/upload' : '/upload'
-
+const actionURL = baseURL + '/upload'
 
 interface Props {
         sessionUuid: string
