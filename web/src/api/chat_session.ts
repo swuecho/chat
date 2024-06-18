@@ -1,3 +1,4 @@
+// @ts-ignore
 import { v7 as uuidv7 } from 'uuid'
 import { fetchDefaultChatModel } from './chat_model'
 import request from '@/utils/request/axios'

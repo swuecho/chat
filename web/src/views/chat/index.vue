@@ -1,5 +1,6 @@
 <script lang='ts' setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+// @ts-ignore
 import { v7 as uuidv7 } from 'uuid'
 import { useRoute } from 'vue-router'
 import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
