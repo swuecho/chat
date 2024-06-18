@@ -46,6 +46,7 @@ const (
 	userContextKey contextKey = "user"
 	guidContextKey contextKey = "guid"
 )
+const snapshotPrefix = "/api/uuid/chat_snapshot/"
 
 func IsChatSnapshotUUID(r *http.Request) bool {
 	// Check http method is GET
@@ -53,7 +54,7 @@ func IsChatSnapshotUUID(r *http.Request) bool {
 		return false
 	}
 	// Check if request url path has the required prefix and does not have "/all" suffix
-	if strings.HasPrefix(r.URL.Path, "/api/uuid/chat_snapshot/") && !strings.HasSuffix(r.URL.Path, "/all") {
+	if strings.HasPrefix(r.URL.Path, snapshotPrefix) && !strings.HasSuffix(r.URL.Path, "/all") {
 		return true
 	}
 	return false
@@ -93,7 +94,7 @@ func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 
 func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 	noAuthPaths := map[string]bool{
-		"/":       true,
+		"/":           true,
 		"/api/login":  true,
 		"/api/signup": true,
 		"/api/tts":    true,
