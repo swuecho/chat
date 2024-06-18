@@ -46,6 +46,9 @@ func messagesToOpenAIMesages(messages []models.Message, chatFiles []sqlc_queries
 	open_ai_msgs := lo.Map(messages, func(m models.Message, _ int) openai.ChatCompletionMessage {
 		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
 	})
+	if len(chatFiles) == 0 {
+		return open_ai_msgs
+	}
 	parts := lo.Map(chatFiles, func(m sqlc_queries.ChatFile, _ int) openai.ChatMessagePart {
 		if SupportedMimeTypes().Contains(m.MimeType) {
 			return openai.ChatMessagePart{
