@@ -1,6 +1,4 @@
 import { defineStore } from 'pinia'
-import { v4 as uuidv4 } from 'uuid'
-
 import { check_chat, getLocalState, } from './helper'
 import { router } from '@/router'
 import {
@@ -176,9 +174,8 @@ export const useChatStore = defineStore('chat-store', {
       const [keys] = check_chat(this.chat, false)
       if (!uuid) {
         if (this.history.length === 0) {
-          const uuid = uuidv4()
           const default_model_parameters = await getChatSessionDefault(new_chat_text)
-
+          const uuid = default_model_parameters.uuid;
           createChatSession(uuid, chat.text, default_model_parameters.model)
           this.history.push({ uuid, title: chat.text, isEdit: false })
           // first chat message is prompt

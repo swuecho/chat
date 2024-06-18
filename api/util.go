@@ -6,10 +6,18 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/rotisserie/eris"
 )
 
+func NewUUID() string {
+	uuidv7, err := uuid.NewV7()
+	if err != nil {
+		return uuid.NewString()
+	}
+	return uuidv7.String()
+}
 func getTokenCount(content string) (int, error) {
 	encoding := "cl100k_base"
 	tke, err := tiktoken.GetEncoding(encoding)

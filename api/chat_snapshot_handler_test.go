@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"gotest.tools/v3/assert"
@@ -32,7 +31,7 @@ func TestChatSnapshot(t *testing.T) {
 	userID := 1
 
 	// Generate a random UUID for the snapshot
-	snapshotUUID := uuid.NewString()
+	snapshotUUID := NewUUID()
 
 	// Create a test snapshot
 	snapshot, err := h.service.q.CreateChatSnapshot(context.Background(), sqlc_queries.CreateChatSnapshotParams{

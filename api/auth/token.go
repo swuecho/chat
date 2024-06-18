@@ -10,9 +10,16 @@ import (
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-
 	"github.com/google/uuid"
 )
+
+func NewUUID() string {
+	uuidv7, err := uuid.NewV7()
+	if err != nil {
+		return uuid.NewString()
+	}
+	return uuidv7.String()
+}
 
 var ErrInvalidToken = errors.New("invalid token")
 
@@ -43,7 +50,7 @@ func GenerateToken(userID int32, role string, secret, jwt_audience string, lifet
 		"user_id": strconv.FormatInt(int64(userID), 10),
 		"exp":     expires,
 		"role":    role,
-		"jti":     uuid.NewString(),
+		"jti":     NewUUID(),
 		"iss":     issuer,
 		"nbf":     notBefore,
 		"aud":     jwt_audience,

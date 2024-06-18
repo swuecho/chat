@@ -282,7 +282,7 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	}
 
 	_, err = h.service.q.CreateChatPrompt(r.Context(), sqlc_queries.CreateChatPromptParams{
-		Uuid:            uuid.NewString(),
+		Uuid:            NewUUID(),
 		ChatSessionUuid: sessionUUID,
 		Role:            "system",
 		Content:         promptMsg.Text,
@@ -303,7 +303,7 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 
 		messageParam := sqlc_queries.CreateChatMessageParams{
 			ChatSessionUuid: sessionUUID,
-			Uuid:            uuid.NewString(),
+			Uuid:            NewUUID(),
 			Role:            message.GetRole(),
 			Content:         message.Text,
 			UserID:          userID,

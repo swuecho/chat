@@ -1,10 +1,10 @@
-import { v4 as uuidv4 } from 'uuid'
+import { v7 as uuidv7 } from 'uuid'
 import { fetchDefaultChatModel } from './chat_model'
 import request from '@/utils/request/axios'
 
 export const getChatSessionDefault = async (title: string): Promise<Chat.Session> => {
   const default_model = await fetchDefaultChatModel()
-  const uuid = uuidv4()
+  const uuid = uuidv7()
   return {
     title,
     isEdit: false,
