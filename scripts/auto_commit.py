@@ -31,7 +31,7 @@ def generate_commit_message(diff):
         "messages": [
             {
                 "role": "user",
-                "content": f"分析以下代码更改并生成一个简洁的提交注释，只给出文本文字：\n\n{diff}\n\nCommit message:",
+                "content": f"write a concise commit message：\n\n{diff}\n\nCommit message:",
             }
         ],
         "max_tokens": 100,
