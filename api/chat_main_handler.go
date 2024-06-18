@@ -17,7 +17,6 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
@@ -710,7 +709,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if answer_id == "" {
-			answer_id = uuid.NewString()
+			answer_id = NewUUID()
 		}
 		var response ClaudeResponse
 		_ = json.Unmarshal(line, &response)
@@ -864,7 +863,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			return "", "", true
 		}
 		if answer_id == "" {
-			answer_id = uuid.NewString()
+			answer_id = NewUUID()
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
 			answer = claude.AnswerFromBlockStart(line)
@@ -996,7 +995,7 @@ func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_que
 			break
 		}
 		if answer_id == "" {
-			answer_id = uuid.NewString()
+			answer_id = NewUUID()
 		}
 
 		if len(answer) < 200 || len(answer)%2 == 0 {
@@ -1124,7 +1123,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if answer_id == "" {
-			answer_id = uuid.NewString()
+			answer_id = NewUUID()
 		}
 		var response CustomModelResponse
 		_ = json.Unmarshal(line, &response)
@@ -1149,7 +1148,7 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 
 	answer_id := chatUuid
 	if !regenerate {
-		answer_id = uuid.NewString()
+		answer_id = NewUUID()
 	}
 	setSSEHeader(w)
 
@@ -1197,7 +1196,7 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_compele
 		Messages: openai_message,
 		//MaxTokens:   maxOutputToken,
 		Temperature: float32(chatSession.Temperature),
-		TopP:        float32(chatSession.TopP)-0.01,
+		TopP:        float32(chatSession.TopP) - 0.01,
 		N:           int(chatSession.N),
 		Stream:      true,
 	}
@@ -1275,7 +1274,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	var answer string
 	answer_id := chatUuid
 	if !regenerate {
-		answer_id = uuid.NewString()
+		answer_id = NewUUID()
 	}
 
 	var headerData = []byte("data: ")

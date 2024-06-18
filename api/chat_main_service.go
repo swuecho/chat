@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	models "github.com/swuecho/chat_backend/models"
@@ -74,7 +73,7 @@ func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion
 	tokenCount, _ := getTokenCount(newQuestion)
 	chatPrompt, err := s.q.CreateChatPrompt(context.Background(),
 		sqlc_queries.CreateChatPromptParams{
-			Uuid:            uuid.NewString(),
+			Uuid:            NewUUID(),
 			ChatSessionUuid: chatSessionUuid,
 			Role:            "system",
 			Content:         newQuestion,

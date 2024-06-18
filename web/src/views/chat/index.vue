@@ -1,6 +1,7 @@
 <script lang='ts' setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { v4 as uuidv4 } from 'uuid'
+// @ts-ignore
+import { v7 as uuidv7 } from 'uuid'
 import { useRoute } from 'vue-router'
 import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import { storeToRefs } from 'pinia'
@@ -115,7 +116,7 @@ async function onConversationStream() {
   if (!message || message.trim() === '')
     return
 
-  const chatUuid = uuidv4()
+  const chatUuid = uuidv7()
 
   addChat(
     sessionUuid,
