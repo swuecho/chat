@@ -65,7 +65,8 @@ test('test', async ({ page }) => {
   await page_snapshot.locator('.floating-button > div > .flex').click();
   const page_back_to_chat_promise = page_snapshot.waitForEvent('popup');
   const page_back = await page_back_to_chat_promise
-  expect(page_back.url()).toMatch(/chat/)
+  // open new chat, attract user to login or register
+  expect(page_back.url()).toMatch(/static/)
   await page_back.waitForTimeout(500)
   const message_counts = await page_back.$$eval('.message-text', (messages) => messages.length);
   expect(message_counts).toBe(4);
