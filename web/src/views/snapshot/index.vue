@@ -83,7 +83,8 @@ const chatToMarkdown = () => {
     isPrompt?: boolean
     */
     // @ts-ignore
-    const chatData = snapshot_data.conversation;
+    console.log(snapshot_data.value);
+    const chatData = snapshot_data.value.conversation;
     const markdown = chatData.map((chat: Chat.Message) => {
       if (chat.isPrompt)
         return `**system** ${format_chat_md(chat)}}`
