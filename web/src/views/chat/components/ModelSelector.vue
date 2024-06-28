@@ -63,6 +63,6 @@ chatStore.$subscribe((mutation, state) => {
 
 <template>
         <NForm ref="formRef" :model="modelRef">
-                <NSelect v-model:value="modelRef.model" :options="chatModelOptions" />
+                <NSelect v-model:value="modelRef.model" :options="chatModelOptions" size='large' />
         </NForm>
 </template>
