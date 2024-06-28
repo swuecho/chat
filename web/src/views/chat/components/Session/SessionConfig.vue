@@ -120,6 +120,7 @@ const defaultToken = computed(() => {
           </NSpace>
         </NRadioGroup>
       </NFormItem>
+      <!-- not implemented
       <NFormItem :label="$t('chat.summarize_mode')" path="summarize_mode">
         <NSwitch v-model:value="modelRef.summarizeMode" data-testid="summarize_mode">
           <template #checked>
@@ -130,6 +131,7 @@ const defaultToken = computed(() => {
           </template>
         </NSwitch>
       </NFormItem>
+      -->
       <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
         <NSlider v-model:value="modelRef.contextCount" :min="1" :max="40" :tooltip="false" show-tooltip />
       </NFormItem>
