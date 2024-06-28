@@ -274,7 +274,6 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 		isClaude = false
 		isClaude3 = true
 	}
-	isChatGPT := strings.HasPrefix(model, "gpt") || strings.HasPrefix(model, "deepseek") || strings.HasPrefix(model, "yi") || strings.HasPrefix(model, "qwen")
 	isOllama := strings.HasPrefix(model, "ollama-")
 	isGemini := strings.HasPrefix(model, "gemini")
 
@@ -283,22 +282,23 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 	completionModel.Add(openai.GPT3TextDavinci003)
 	completionModel.Add(openai.GPT3TextDavinci002)
 	isCompletion := completionModel.Contains(model)
+	isCustom := strings.HasPrefix(model, "custom-")
 
-	chatStreamFn := h.customChatStream
+	chatStreamFn := h.chatStream
 	if isClaude {
 		chatStreamFn = h.chatStreamClaude
 	} else if isClaude3 {
 		chatStreamFn = h.chatStreamClaude3
 	} else if isTestChat {
 		chatStreamFn = h.chatStreamTest
-	} else if isChatGPT {
-		chatStreamFn = h.chatStream
 	} else if isOllama {
 		chatStreamFn = h.chatOllamStram
 	} else if isCompletion {
 		chatStreamFn = h.CompletionStream
 	} else if isGemini {
 		chatStreamFn = h.chatStreamGemini
+	} else if isCustom {
+		chatStreamFn = h.customChatStream
 	}
 	return chatStreamFn
 }
