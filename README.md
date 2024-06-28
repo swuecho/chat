@@ -2,7 +2,7 @@
 
 [video.webm](https://user-images.githubusercontent.com/666683/230305516-60154c5b-7170-4d2b-9670-a5ff4c851d25.webm)
 
-<img width="1116" alt="image" src="https://github.com/swuecho/chat/assets/666683/8064b861-3089-47a7-8331-fc714ab4fe98">
+<img width="1116" alt="image" src="https://github.com/swuecho/chat/assets/666683/68e44981-8df7-48d2-a104-45b643a5eff5">
 
 <img width="850" alt="image" src="https://user-images.githubusercontent.com/666683/234461014-d717a0ff-92ff-45a1-a981-ac480145b25c.png">
 
