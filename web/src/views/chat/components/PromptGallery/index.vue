@@ -98,6 +98,6 @@ const createColumns = (): DataTableColumns<DataProps> => {
 const columns = createColumns()
 </script>
 <template>
-        <NDataTable class="mt-10" :max-height="maxHeight" :columns="columns" :data="renderTemplate()" :pagination="pagination"
+        <NDataTable  :max-height="maxHeight" :columns="columns" :data="renderTemplate()" :pagination="pagination"
                 :bordered="false" />
 </template>
