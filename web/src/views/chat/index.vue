@@ -22,8 +22,10 @@ import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
 import UploadModal from './components/UploadModal.vue'
 import UploaderReadOnly from './components/UploaderReadOnly.vue'
+import ModelSelector from './components/ModelSelector.vue'
 
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
+import { mode } from 'crypto-js'
 let controller = new AbortController()
 
 const route = useRoute()
@@ -540,7 +542,9 @@ function getDataFromResponseText(responseText: string): string {
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
       <div class="flex items-center justify-center mt-4 ">
-        {{ chatSession?.model }}
+        <div class="w-1/3">
+        <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
+        </div>
       </div>
       <UploaderReadOnly v-if="!!sessionUuid" class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false">
       </UploaderReadOnly>
