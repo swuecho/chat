@@ -18,7 +18,7 @@ const props = defineProps<{
 
 const chatSession = computed(() => chatStore.getChatSessionByUuid(props.uuid))
 
-const { data, isLoading } = useQuery({
+const { data } = useQuery({
         queryKey: ['chat_models'],
         queryFn: fetchChatModel,
         staleTime: 10 * 60 * 1000,
