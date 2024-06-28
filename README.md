@@ -4,8 +4,7 @@
 
 <img width="1116" alt="image" src="https://github.com/swuecho/chat/assets/666683/68e44981-8df7-48d2-a104-45b643a5eff5">
 
-<img width="850" alt="image" src="https://user-images.githubusercontent.com/666683/234461014-d717a0ff-92ff-45a1-a981-ac480145b25c.png">
-
+<img width="850" alt="image" src="https://github.com/swuecho/chat/assets/666683/e41742c8-2a44-43bc-8fd6-4b66db783967">
 
 <img width="850" alt="image" src="https://github.com/swuecho/chat/assets/666683/45dd865e-7f9f-4209-8587-4781e37dd928">
 
