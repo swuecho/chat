@@ -25,7 +25,6 @@ import UploaderReadOnly from './components/UploaderReadOnly.vue'
 import ModelSelector from './components/ModelSelector.vue'
 
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
-import { mode } from 'crypto-js'
 let controller = new AbortController()
 
 const route = useRoute()
