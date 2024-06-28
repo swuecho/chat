@@ -51,6 +51,13 @@ watch(modelRef, async (modelValue: any) => {
 
 }, { deep: true })
 
+chatStore.$subscribe((mutation, state) => {
+        const session = chatStore.getChatSessionByUuid(props.uuid)
+        if (modelRef.value.model != session?.model) {
+                modelRef.value.model = session?.model
+        }
+})
+
 
 </script>
 
