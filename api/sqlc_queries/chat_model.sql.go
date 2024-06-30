@@ -246,26 +246,26 @@ func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error)
 
 const updateChatModel = `-- name: UpdateChatModel :one
 UPDATE chat_model SET name = $2, label = $3, is_default = $4, url = $5, api_auth_header = $6, api_auth_key = $7, enable_per_mode_ratelimit = $9,
-max_token = $10, default_token = $11, order_number = $12, http_time_out = $13. is_enable = $14
+max_token = $10, default_token = $11, order_number = $12, http_time_out = $13, is_enable = $14
 WHERE id = $1 and user_id = $8
 RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable
 `
 
 type UpdateChatModelParams struct {
-	ID                     int32       `json:"id"`
-	Name                   string      `json:"name"`
-	Label                  string      `json:"label"`
-	IsDefault              bool        `json:"isDefault"`
-	Url                    string      `json:"url"`
-	ApiAuthHeader          string      `json:"apiAuthHeader"`
-	ApiAuthKey             string      `json:"apiAuthKey"`
-	UserID                 int32       `json:"userID"`
-	EnablePerModeRatelimit bool        `json:"enablePerModeRatelimit"`
-	MaxToken               int32       `json:"maxToken"`
-	DefaultToken           int32       `json:"defaultToken"`
-	OrderNumber            int32       `json:"orderNumber"`
-	Column13               interface{} `json:"column13"`
-	Column14               interface{} `json:"column14"`
+	ID                     int32  `json:"id"`
+	Name                   string `json:"name"`
+	Label                  string `json:"label"`
+	IsDefault              bool   `json:"isDefault"`
+	Url                    string `json:"url"`
+	ApiAuthHeader          string `json:"apiAuthHeader"`
+	ApiAuthKey             string `json:"apiAuthKey"`
+	UserID                 int32  `json:"userID"`
+	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
+	MaxToken               int32  `json:"maxToken"`
+	DefaultToken           int32  `json:"defaultToken"`
+	OrderNumber            int32  `json:"orderNumber"`
+	HttpTimeOut            int32  `json:"httpTimeOut"`
+	IsEnable               bool   `json:"isEnable"`
 }
 
 func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams) (ChatModel, error) {
@@ -282,8 +282,8 @@ func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams
 		arg.MaxToken,
 		arg.DefaultToken,
 		arg.OrderNumber,
-		arg.Column13,
-		arg.Column14,
+		arg.HttpTimeOut,
+		arg.IsEnable,
 	)
 	var i ChatModel
 	err := row.Scan(

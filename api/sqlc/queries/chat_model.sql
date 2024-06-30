@@ -19,7 +19,7 @@ RETURNING *;
 
 -- name: UpdateChatModel :one
 UPDATE chat_model SET name = $2, label = $3, is_default = $4, url = $5, api_auth_header = $6, api_auth_key = $7, enable_per_mode_ratelimit = $9,
-max_token = $10, default_token = $11, order_number = $12, http_time_out = $13. is_enable = $14
+max_token = $10, default_token = $11, order_number = $12, http_time_out = $13, is_enable = $14
 WHERE id = $1 and user_id = $8
 RETURNING *;
 

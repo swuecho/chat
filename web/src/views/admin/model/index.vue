@@ -48,7 +48,7 @@ const deteteModelMutation = useMutation({
 
 const UpdateRow = (row: Chat.ChatModel) => {
   if (row.id) {
-    chatModelMutation.mutate({
+    const newRow = {
       id: row.id,
       data: {
         ...row,
@@ -56,7 +56,9 @@ const UpdateRow = (row: Chat.ChatModel) => {
         defaultToken: parseInt(row.defaultToken || '0'),
         maxToken: parseInt(row.maxToken || '0'),
       },
-    })
+    }
+    console.log(newRow)
+    chatModelMutation.mutate(newRow)
   }
 }
 
@@ -272,11 +274,11 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     apiAuthHeaderField,
     isDefaultField,
     perModelLimit,
+    isEnableColumn,
     defaultToken,
     maxToken,
     orderNumber,
     actionField,
-    isEnableColumn,
   ])
 }
 
