@@ -227,6 +227,21 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     },
   }
 
+  const isEnableColumn = {
+    title: t('admin.chat_model.isEnable'),
+    key: 'isEnable',
+    render(row: Chat.ChatModel, index: number) {
+      return h(NSwitch, {
+        value: row.isEnable,
+        onUpdateValue(v: boolean) {
+          // Assuming `data` is an array of FormData objects
+          data.value[index].isEnable = v
+          UpdateRow(data.value[index])
+        },
+      })
+    },
+  }
+
   const actionField = {
     title: t('admin.chat_model.actions'),
     key: 'actions',
@@ -261,6 +276,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     maxToken,
     orderNumber,
     actionField,
+    isEnableColumn,
   ])
 }
 

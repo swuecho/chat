@@ -36,6 +36,7 @@ ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS max_token INTEGER NOT NULL defau
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS default_token INTEGER NOT NULL default 2048;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS order_number INTEGER NOT NULL default 1;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS http_time_out INTEGER NOT NULL default 120;
+ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS is_enable BOOLEAN DEFAULT true NOT NULL;
 
 
 INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key, max_token, default_token, order_number)

@@ -141,6 +141,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		DefaultToken           int32
 		MaxToken               int32
 		HttpTimeOut            int32
+		isEnable				bool
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
@@ -162,6 +163,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		DefaultToken:           input.DefaultToken,
 		MaxToken:               input.MaxToken,
 		HttpTimeOut:            input.HttpTimeOut,
+		isEnable:		input.isEnable,
 	})
 
 	if err != nil {
