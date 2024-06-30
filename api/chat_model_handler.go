@@ -141,7 +141,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		DefaultToken           int32
 		MaxToken               int32
 		HttpTimeOut            int32
-		IsEnable               *bool
+		IsEnable               bool
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
@@ -149,12 +149,6 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// default is enabled
-	isEnabled := input.IsEnable
-	if isEnabled == nil {
-		isEnabled = new(bool)
-		*isEnabled = true
-	}
 
 	ChatModel, err := h.db.UpdateChatModel(r.Context(), sqlc_queries.UpdateChatModelParams{
 		ID:                     int32(id),
@@ -170,7 +164,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		DefaultToken:           input.DefaultToken,
 		MaxToken:               input.MaxToken,
 		HttpTimeOut:            input.HttpTimeOut,
-		IsEnable:               *isEnabled,
+		IsEnable:               input.isEnable,
 	})
 
 	if err != nil {
