@@ -27,7 +27,7 @@ const { data, isLoading } = useQuery({
 })
 
 const chatModelOptions = computed(() =>
-  data?.value ? data.value.map(optionFromModel) : []
+  data?.value ? data.value.filter((x: any) => x.isEnable).map(optionFromModel) : []
 )
 
 const chatStore = useChatStore()

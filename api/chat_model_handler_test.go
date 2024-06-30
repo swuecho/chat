@@ -155,7 +155,7 @@ func checkGetModels(t *testing.T, router *mux.Router, expectedResults []sqlc_que
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
 	assert.Equal(t, len(results), 2)
-	assert.DeepEqual(t, lo.Reverse(expectedResults), results, cmpopts.IgnoreFields(sqlc_queries.ChatModel{}, "ID"))
+	assert.DeepEqual(t, lo.Reverse(expectedResults), results, cmpopts.IgnoreFields(sqlc_queries.ChatModel{}, "ID", "IsEnable"))
 	return results
 }
 

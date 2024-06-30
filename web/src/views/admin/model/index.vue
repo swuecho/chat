@@ -48,7 +48,7 @@ const deteteModelMutation = useMutation({
 
 const UpdateRow = (row: Chat.ChatModel) => {
   if (row.id) {
-    chatModelMutation.mutate({
+    const newRow = {
       id: row.id,
       data: {
         ...row,
@@ -56,7 +56,9 @@ const UpdateRow = (row: Chat.ChatModel) => {
         defaultToken: parseInt(row.defaultToken || '0'),
         maxToken: parseInt(row.maxToken || '0'),
       },
-    })
+    }
+    console.log(newRow)
+    chatModelMutation.mutate(newRow)
   }
 }
 
@@ -213,7 +215,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     },
   }
   const perModelLimit = {
-    title: t('admin.chat_model.EnablePerModeRatelimit'),
+    title: t('admin.chat_model.enablePerModeRatelimit'),
     key: 'enablePerModeRatelimit',
     render(row: Chat.ChatModel, index: number) {
       return h(NSwitch, {
@@ -221,6 +223,21 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
         onUpdateValue(v: boolean) {
           // Assuming `data` is an array of FormData objects
           data.value[index].enablePerModeRatelimit = v
+          UpdateRow(data.value[index])
+        },
+      })
+    },
+  }
+
+  const isEnableColumn = {
+    title: t('admin.chat_model.isEnable'),
+    key: 'isEnable',
+    render(row: Chat.ChatModel, index: number) {
+      return h(NSwitch, {
+        value: row.isEnable,
+        onUpdateValue(v: boolean) {
+          // Assuming `data` is an array of FormData objects
+          data.value[index].isEnable = v
           UpdateRow(data.value[index])
         },
       })
@@ -257,6 +274,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     apiAuthHeaderField,
     isDefaultField,
     perModelLimit,
+    isEnableColumn,
     defaultToken,
     maxToken,
     orderNumber,

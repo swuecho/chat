@@ -141,12 +141,14 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		DefaultToken           int32
 		MaxToken               int32
 		HttpTimeOut            int32
+		IsEnable               bool
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
 		return
 	}
+
 
 	ChatModel, err := h.db.UpdateChatModel(r.Context(), sqlc_queries.UpdateChatModelParams{
 		ID:                     int32(id),
@@ -162,6 +164,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		DefaultToken:           input.DefaultToken,
 		MaxToken:               input.MaxToken,
 		HttpTimeOut:            input.HttpTimeOut,
+		IsEnable:               input.IsEnable,
 	})
 
 	if err != nil {

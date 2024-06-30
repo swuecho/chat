@@ -185,8 +185,6 @@ func main() {
 
 	apiRouter.HandleFunc("/tts", handleTTSRequest)
 
-	
-
 	// Embed static/* directory
 	fs := http.FileServer(http.FS(static.StaticFiles))
 

@@ -63,6 +63,7 @@ declare namespace Chat {
 		name: string
 		url: string
 		enablePerModeRatelimit: boolean,
+		isEnable: boolean,
 		maxToken?: string, 
 		defaultToken?: string,
 		orderNumber?: string,
