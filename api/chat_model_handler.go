@@ -164,7 +164,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		DefaultToken:           input.DefaultToken,
 		MaxToken:               input.MaxToken,
 		HttpTimeOut:            input.HttpTimeOut,
-		IsEnable:               input.isEnable,
+		IsEnable:               input.IsEnable,
 	})
 
 	if err != nil {
