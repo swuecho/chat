@@ -16,6 +16,7 @@ const formData = ref<Chat.ChatModel>({
   apiAuthHeader: '',
   apiAuthKey: '',
   enablePerModeRatelimit: false,
+  isEnable: true,
 })
 
 interface Emit {
