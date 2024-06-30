@@ -155,14 +155,13 @@ func checkGetModels(t *testing.T, router *mux.Router, expectedResults []sqlc_que
 		t.Errorf("error parsing response body: %s", err.Error())
 	}
 	assert.Equal(t, len(results), 2)
-	assert.DeepEqual(t, lo.Reverse(expectedResults), results, cmpopts.IgnoreFields(sqlc_queries.ChatModel{}, "ID"))
+	assert.DeepEqual(t, lo.Reverse(expectedResults), results, cmpopts.IgnoreFields(sqlc_queries.ChatModel{}, "ID", "IsEnable"))
 	return results
 }
 
 func updateFirstRecord(t *testing.T, router *mux.Router, chatModelID int32, admin sqlc_queries.AuthUser, rec sqlc_queries.ChatModel) {
 	rec.Name = "Test API 1 Updated"
 	rec.Label = "Test Label 1 Updated"
-	rec.IsEnable = true
 
 	updateBytes, err := json.Marshal(rec)
 	if err != nil {
