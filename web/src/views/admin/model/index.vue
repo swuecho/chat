@@ -215,7 +215,7 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
     },
   }
   const perModelLimit = {
-    title: t('admin.chat_model.EnablePerModeRatelimit'),
+    title: t('admin.chat_model.enablePerModeRatelimit'),
     key: 'enablePerModeRatelimit',
     render(row: Chat.ChatModel, index: number) {
       return h(NSwitch, {

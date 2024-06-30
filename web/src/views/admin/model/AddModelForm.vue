@@ -51,16 +51,16 @@ async function addRow() {
       <NFormItem path="url" :label="$t('admin.chat_model.url')">
         <NInput v-model:value="formData.url" />
       </NFormItem>
-      <NFormItem path="apiAuthHeader" :label="$t('admin.chat_model.api_auth_header')">
+      <NFormItem path="apiAuthHeader" :label="$t('admin.chat_model.apiAuthHeader')">
         <NInput v-model:value="formData.apiAuthHeader" />
       </NFormItem>
-      <NFormItem path="apiAuthKey" :label="$t('admin.chat_model.api_auth_key')">
+      <NFormItem path="apiAuthKey" :label="$t('admin.chat_model.apiAuthKey')">
         <NInput v-model:value="formData.apiAuthKey" />
       </NFormItem>
-      <NFormItem path="isDefault" :label="$t('admin.chat_model.is_default')">
+      <NFormItem path="isDefault" :label="$t('admin.chat_model.isDefault')">
         <NSwitch v-model:value="formData.isDefault" />
       </NFormItem>
-      <NFormItem path="enablePerModeRatelimit" :label="$t('admin.chat_model.enable_per_model_rate_limit')">
+      <NFormItem path="enablePerModeRatelimit" :label="$t('admin.chat_model.enablePerModeRatelimit')">
         <NSwitch v-model:value="formData.enablePerModeRatelimit" />
       </NFormItem>
     </NForm>
