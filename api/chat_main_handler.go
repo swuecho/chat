@@ -845,7 +845,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			break
 		}
 		line, err := ioreader.ReadBytes('\n')
-		log.Printf("%+v", string(line))
+		// log.Printf("%+v", string(line))
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
