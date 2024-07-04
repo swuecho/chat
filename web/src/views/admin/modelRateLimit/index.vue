@@ -7,17 +7,10 @@ import { DeleteUserChatModelPrivilege, ListUserChatModelPrivilege, UpdateUserCha
 import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 
-interface RowData {
-  id: string
-  chatModelName: string
-  fullName: string
-  userEmail: string
-  rateLimit: string
-}
 
 const dialogVisible = ref(false)
 
-const data = ref<RowData[]>([])
+const data = ref<Chat.ChatModelPrivilege[]>([])
 const loading = ref(true)
 
 onMounted(async () => {
@@ -30,13 +23,11 @@ async function refreshData() {
 }
 
 
-function UpdateRow(row: RowData) {
-  // @ts-expect-error rateLimit is a number in golang
-  row.rateLimit = parseInt(row.rateLimit)
-  UpdateUserChatModelPrivilege(row.id, row)
+function UpdateRow(row: Chat.ChatModelPrivilege) {
+  UpdateUserChatModelPrivilege(row.id, {...row, rateLimit: parseInt(row.rateLimit)})
 }
 
-function createColumns(): DataTableColumns<RowData> {
+function createColumns(): DataTableColumns<Chat.ChatModelPrivilege> {
   const userEmailField = {
     title: t('admin.per_model_rate_limit.UserEmail'),
     key: 'userEmail',
@@ -59,7 +50,7 @@ function createColumns(): DataTableColumns<RowData> {
     title: t('admin.per_model_rate_limit.RateLimit'),
     key: 'rateLimit',
     width: 250,
-    render(row: RowData, index: number) {
+    render(row: Chat.ChatModelPrivilege, index: number) {
       return h(NInput, {
         value: row.rateLimit.toString(),
         onUpdateValue(v: string) {
@@ -104,8 +95,8 @@ function createColumns(): DataTableColumns<RowData> {
 
 const columns = createColumns()
 
-async function deleteRow(row: any) {
-  await DeleteUserChatModelPrivilege(row.ID)
+async function deleteRow(row: Chat.ChatModelPrivilege) {
+  await DeleteUserChatModelPrivilege(row.id)
   await refreshData()
 }
 

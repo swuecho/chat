@@ -64,10 +64,18 @@ declare namespace Chat {
 		url: string
 		enablePerModeRatelimit: boolean,
 		isEnable: boolean,
-		maxToken?: string, 
+		maxToken?: string,
 		defaultToken?: string,
 		orderNumber?: string,
 		httpTimeOut?: number
 
+	}
+
+	interface ChatModelPrivilege {
+		id: string
+		chatModelName: string
+		fullName: string
+		userEmail: string
+		rateLimit: string
 	}
 }
