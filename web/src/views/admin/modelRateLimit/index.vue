@@ -24,9 +24,7 @@ async function refreshData() {
 
 
 function UpdateRow(row: Chat.ChatModelPrivilege) {
-  // @ts-expect-error rateLimit is a number in golang
-  row.rateLimit = parseInt(row.rateLimit)
-  UpdateUserChatModelPrivilege(row.id, row)
+  UpdateUserChatModelPrivilege(row.id, {...row, rateLimit: parseInt(row.rateLimit)})
 }
 
 function createColumns(): DataTableColumns<Chat.ChatModelPrivilege> {
