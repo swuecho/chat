@@ -196,7 +196,8 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	})
 
 	// check if total tokens exceed limit
-	if totalTokens > chatSession.MaxTokens*2/3 {
+	// context window, max token
+	if totalTokens > chatSession.MaxTokens {
 		RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
 			map[string]interface{}{
 				"max_tokens":   chatSession.MaxTokens,
@@ -778,10 +779,12 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 
 	// convert data to json format
 	jsonValue, _ := json.Marshal(jsonData)
+	log.Printf("%+v", string(jsonValue))
 	// create the request
 	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
+		log.Printf("%+v", err)
 		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
 		return "", "", true
 	}
@@ -799,6 +802,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("anthropic-version", "2023-06-01")
 
 	// create the http client and send the request
 	client := &http.Client{
@@ -806,6 +810,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("%+v", err)
 		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return "", "", true
 	}
@@ -840,9 +845,12 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			break
 		}
 		line, err := ioreader.ReadBytes('\n')
-
+		// log.Printf("%+v", string(line))
 		if err != nil {
 			if errors.Is(err, io.EOF) {
+				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
+					log.Println(string(line))
+				}
 				fmt.Println("End of stream reached")
 				break // Exit loop if end of stream
 			}
@@ -867,14 +875,12 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
 			answer = claude.AnswerFromBlockStart(line)
-			if len(answer) < 200 || len(answer)%2 == 0 {
-				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
-				fmt.Fprintf(w, "data: %v\n\n", string(data))
-				flusher.Flush()
-			}
+			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
-			answer = claude.AnswerFromBlockDelta(line)
+			answer += claude.AnswerFromBlockDelta(line)
 			if len(answer) < 200 || len(answer)%2 == 0 {
 				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
