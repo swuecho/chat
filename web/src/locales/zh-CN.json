@@ -68,7 +68,7 @@
     "contextCount": "上下文数量: {contextCount}",
     "temperature": "温度: {temperature}, 越高回答越发散, 越低回答越精确",
     "model": "模型",
-    "maxTokens": "最大问答总token数量: {maxTokens}",
+    "maxTokens": "最大输出token数量: {maxTokens}",
     "topP": "Top P: {topP}, 常用词占比, 一般与温度参数只调节一个即可",
     "N": "结果数量: {n}",
     "frequencyPenalty": "频率惩罚",
@@ -132,8 +132,8 @@
       "enablePerModeRatelimit": "是否单独流控",
       "isEnable": "是否启用",
       "orderNumber": "次序",
-      "maxToken": "最大token数量",
-      "defaultToken": "默认token数量"
+      "maxToken": "最大输出token数量",
+      "defaultToken": "默认输出token数量"
     },
     "per_model_rate_limit": {
       "FullName": "姓名",
