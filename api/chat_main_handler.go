@@ -190,21 +190,17 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 
-	// calc total tokens
-	totalTokens := lo.SumBy(msgs, func(msg models.Message) int32 {
-		return msg.TokenCount()
-	})
-
 	// check if total tokens exceed limit
 	// context window, max token
-	if totalTokens > chatSession.MaxTokens {
-		RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
-			map[string]interface{}{
-				"max_tokens":   chatSession.MaxTokens,
-				"total_tokens": totalTokens,
-			})
-		return
-	}
+	// totalTokens := totalInputToken(msgs)
+	// if totalTokens > chatSession.MaxTokens {
+	// 	RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
+	// 		map[string]interface{}{
+	// 			"max_tokens":   chatSession.MaxTokens,
+	// 			"total_tokens": totalTokens,
+	// 		})
+	// 	return
+	// }
 
 	chatStreamFn := h.chooseChatStreamFn(chatSession, msgs)
 
@@ -222,6 +218,12 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 }
 
+func totalInputToken(msgs []models.Message) int32 {
+	return lo.SumBy(msgs, func(msg models.Message) int32 {
+		return msg.TokenCount()
+	})
+}
+
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) {
 	ctx := context.Background()
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
@@ -236,19 +238,17 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		return
 	}
 
-	// calc total tokens
-	totalTokens := lo.SumBy(msgs, func(msg models.Message) int32 {
-		return msg.TokenCount()
-	})
+	// // calc total tokens
+	// totalTokens := totalInputToken(msgs)
 
-	if totalTokens > chatSession.MaxTokens*2/3 {
-		RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
-			map[string]interface{}{
-				"max_tokens":   chatSession.MaxTokens,
-				"total_tokens": totalTokens,
-			})
-		return
-	}
+	// if totalTokens > chatSession.MaxTokens*2/3 {
+	// 	RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
+	// 		map[string]interface{}{
+	// 			"max_tokens":   chatSession.MaxTokens,
+	// 			"total_tokens": totalTokens,
+	// 		})
+	// 	return
+	// }
 
 	// Determine whether the chat is a test or not
 	chatStreamFn := h.chooseChatStreamFn(chatSession, msgs)
@@ -850,6 +850,9 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 					log.Println(string(line))
+					data, _ := json.Marshal(constructChatCompletionStreamReponse(NewUUID(), string(line)))
+					fmt.Fprintf(w, "data: %v\n\n", string(data))
+					flusher.Flush()
 				}
 				fmt.Println("End of stream reached")
 				break // Exit loop if end of stream
