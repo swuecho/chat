@@ -269,12 +269,12 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
   return ([
     nameField,
     labelField,
+    isEnableColumn,
     urlField,
     apiAuthKeyField,
     apiAuthHeaderField,
     isDefaultField,
     perModelLimit,
-    isEnableColumn,
     defaultToken,
     maxToken,
     orderNumber,
