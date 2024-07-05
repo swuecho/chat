@@ -149,7 +149,6 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-
 	ChatModel, err := h.db.UpdateChatModel(r.Context(), sqlc_queries.UpdateChatModelParams{
 		ID:                     int32(id),
 		Name:                   input.Name,
