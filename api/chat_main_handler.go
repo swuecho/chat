@@ -845,7 +845,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			break
 		}
 		line, err := ioreader.ReadBytes('\n')
-		// log.Printf("%+v", string(line))
+		log.Printf("%+v", string(line))
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
@@ -858,7 +858,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		}
 		line = bytes.TrimPrefix(line, headerData)
 
-		if bytes.HasPrefix(line, []byte("[DONE]")) {
+		if bytes.HasPrefix(line, []byte("event: message_stop")) {
 			// stream.isFinished = true
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
@@ -881,11 +881,9 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
 			answer += claude.AnswerFromBlockDelta(line)
-			if len(answer) < 200 || len(answer)%2 == 0 {
-				data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
-				fmt.Fprintf(w, "data: %v\n\n", string(data))
-				flusher.Flush()
-			}
+			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
 		}
 	}
 
