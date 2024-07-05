@@ -850,6 +850,9 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 					log.Println(string(line))
+					data, _ := json.Marshal(constructChatCompletionStreamReponse(NewUUID(), string(line)))
+					fmt.Fprintf(w, "data: %v\n\n", string(data))
+					flusher.Flush()
 				}
 				fmt.Println("End of stream reached")
 				break // Exit loop if end of stream
