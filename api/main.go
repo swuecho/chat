@@ -192,8 +192,7 @@ func main() {
 	cacheHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "assets/") {
 			w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
-		} else {
-			fmt.Println("url:|" + r.URL.Path + "|end")
+		} else if r.URL.Path == "" {
 			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 			w.Header().Set("Pragma", "no-cache")
 			w.Header().Set("Expires", "0")
