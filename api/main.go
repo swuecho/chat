@@ -190,10 +190,10 @@ func main() {
 
 	// Set cache headers for static/assets files
 	cacheHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.URL.Path)
 		if strings.HasPrefix(r.URL.Path, "assets/") {
 			w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
-		} else if r.URL.Path == "/index.html" {
-			// Set no cache headers for index.html
+		} else {
 			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 			w.Header().Set("Pragma", "no-cache")
 			w.Header().Set("Expires", "0")
