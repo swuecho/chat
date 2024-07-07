@@ -67,7 +67,7 @@ test('test', async ({ page }) => {
   const page_back = await page_back_to_chat_promise
   // open new chat, attract user to login or register
   expect(page_back.url()).toMatch(/static/)
-  await page_back.waitForTimeout(500)
+  await page_back.waitForTimeout(2000)
   const message_counts = await page_back.$$eval('.message-text', (messages) => messages.length);
   expect(message_counts).toBe(4);
   const sessions_new = await selectChatSessionsByUserId(pool, user.id);
