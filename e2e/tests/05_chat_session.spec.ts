@@ -50,7 +50,7 @@ test('test', async ({ page }) => {
         await page.getByTestId('edit_session_topic_input').locator('input').fill('test_session_topic_3');
         await page.getByTestId('save_session_topic').click();
         // sleep 500ms
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(1000);;
         // should have three sessions
         const sessions_3 = await selectChatSessionsByUserId(pool, user.id);
         expect(sessions_3.length).toBe(3);

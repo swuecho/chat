@@ -51,7 +51,7 @@ test('test', async ({ page }) => {
   expect(prompts.length).toBe(1);
   expect(prompts[0].updated_by).toBe(user.id);
   // sleep 5 seconds
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);;
   const messages = await selectChatMessagesBySessionUUID(pool, session.uuid)
   expect(messages.length).toBe(1);
 

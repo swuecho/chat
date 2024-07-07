@@ -22,13 +22,13 @@ test('test', async ({ page }) => {
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
 
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);;
   await page.getByTestId('edit_session_topic').click();
   await page.getByTestId('edit_session_topic_input').locator('input').fill('This is a test topic');
   await page.getByTestId('save_session_topic').click();
 
   // sleep 500ms
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);;
   const user = await selectUserByEmail(pool, test_email);
   expect(user.email).toBe(test_email);
   // expect(user.id).toBe(37);

@@ -49,12 +49,12 @@ test('test', async ({ page }) => {
   expect(prompts.length).toBe(1);
   expect(prompts[0].updated_by).toBe(user.id);
   // sleep 500ms
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);;
   const messages = await selectChatMessagesBySessionUUID(pool, session.uuid)
   expect(messages.length).toBe(3);
   const page1Promise = page.waitForEvent('popup');
   await page.getByTestId('snpashot-button').getByRole('button').click();
-  await page.waitForTimeout(500)
+  await page.waitForTimeout(1000);
   const page_snapshot = await page1Promise;
   await page_snapshot.waitForTimeout(500)
   snapshot_url = page_snapshot.url()

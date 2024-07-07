@@ -25,7 +25,7 @@ test('test', async ({ page }) => {
   await page.getByTestId('repwd').locator('input').click();
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
-  
+
   await page.waitForTimeout(1000);
   let input_area = await page.$("#message_textarea textarea")
   await input_area?.click();
@@ -50,7 +50,7 @@ test('test', async ({ page }) => {
   expect(prompts.length).toBe(1);
   expect(prompts[0].updated_by).toBe(user.id);
   // sleep 5 seconds
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);;
   const messages = await selectChatMessagesBySessionUUID(pool, session.uuid)
   expect(messages.length).toBe(3);
 
@@ -61,7 +61,7 @@ test('test', async ({ page }) => {
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);;
 
   const sessions_1 = await selectChatSessionsByUserId(pool, user.id);
   const session_1 = sessions_1[0];
@@ -70,7 +70,7 @@ test('test', async ({ page }) => {
   expect(prompts_1.length).toBe(1);
   expect(prompts_1[0].updated_by).toBe(user.id);
   // sleep 5 seconds
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);;
   const messages_1 = await selectChatMessagesBySessionUUID(pool, session_1.uuid)
   expect(messages_1.length).toBe(5);
 
