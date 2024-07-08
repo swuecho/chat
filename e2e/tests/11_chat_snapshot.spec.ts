@@ -25,7 +25,7 @@ test('test', async ({ page }) => {
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
 
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(2000);
   let input_area = await page.$("#message_textarea textarea")
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
@@ -33,12 +33,12 @@ test('test', async ({ page }) => {
   //await page.getByPlaceholder('来说点什么吧...（Shift + Enter = 换行）').press('Enter');
   await input_area?.press('Enter');
   // sleep 500ms
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(2000);
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
 
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(2000);
 
   const user = await selectUserByEmail(pool, test_email);
   expect(user.email).toBe(test_email);
@@ -49,12 +49,12 @@ test('test', async ({ page }) => {
   expect(prompts.length).toBe(1);
   expect(prompts[0].updated_by).toBe(user.id);
   // sleep 500ms
-  await page.waitForTimeout(1000);;
+  await page.waitForTimeout(2000);;
   const messages = await selectChatMessagesBySessionUUID(pool, session.uuid)
   expect(messages.length).toBe(3);
   const page1Promise = page.waitForEvent('popup');
   await page.getByTestId('snpashot-button').getByRole('button').click();
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(2000);
   const page_snapshot = await page1Promise;
   await page_snapshot.waitForTimeout(500)
   snapshot_url = page_snapshot.url()
