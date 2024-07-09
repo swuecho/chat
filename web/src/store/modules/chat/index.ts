@@ -9,7 +9,7 @@ import {
   deleteChatSession,
   updateChatSession as fetchUpdateChatByUuid,
   getChatSessionDefault,
-  getChatMessagesBySessionUUID as getChatSessionHistory,
+  getChatMessagesBySessionUUID,
   getChatSessionsByUser,
   getUserActiveChatSession,
   renameChatSession,
@@ -82,9 +82,11 @@ export const useChatStore = defineStore('chat-store', {
 
     async syncChatMessages(need_uuid: string) {
       if (need_uuid) {
-        const messageData = await getChatSessionHistory(need_uuid)
+        const messageData = await getChatMessagesBySessionUUID(need_uuid)
         this.chat[need_uuid] = messageData
-        // this.reloadRoute(need_uuid) // !!! this cause cycle
+        await createOrUpdateUserActiveChatSession(need_uuid)
+        this.setActiveLocal(need_uuid)
+        //await this.reloadRoute(this.active) // !!! this cause cycle
       }
     },
 
@@ -93,7 +95,7 @@ export const useChatStore = defineStore('chat-store', {
       this.history.unshift(history)
       this.chat[history.uuid] = chatData
       this.active = history.uuid
-      this.reloadRoute(history.uuid)
+      this.reloadRoute(this.active)
     },
 
     async updateChatSession(uuid: string, edit: Partial<Chat.Session>) {
