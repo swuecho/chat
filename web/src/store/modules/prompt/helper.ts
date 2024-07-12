@@ -133,10 +133,10 @@ let defaultPromptMap: { [key: string]: Prompt[] } = {
 
 export function getLocalPromptList(): PromptStore {
         const promptStore: PromptStore | undefined = ss.get(LOCAL_NAME)
-        let defaultPromptList = defaultPromptMap[navigator.language];
         if (promptStore && promptStore?.promptList?.length > 0) {
                 return promptStore
         } else {
+                let defaultPromptList = defaultPromptMap[navigator.language];
                 setLocalPromptList({ promptList: defaultPromptList })
                 return { promptList: defaultPromptList }
         }

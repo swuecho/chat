@@ -369,9 +369,9 @@ watch(
       <NCard style="width: 600px" :bordered="false" size="huge" role="dialog" aria-modal="true">
         <NSpace v-if="modalMode === 'add' || modalMode === 'modify'" vertical>
           模板标题
-          <NInput v-model:value="tempPromptKey" placeholder="搜索" />
+          <NInput v-model:value="tempPromptKey" placeholder="搜索模版标题" />
           模板内容
-          <NInput v-model:value="tempPromptValue" placeholder="搜索" type="textarea" />
+          <NInput v-model:value="tempPromptValue" placeholder="请输入提示词" type="textarea" />
           <NButton strong secondary :style="{ width: '100%' }" :disabled="inputStatus"
             @click="() => { modalMode === 'add' ? addPromptTemplate() : modifyPromptTemplate() }">
             确定
