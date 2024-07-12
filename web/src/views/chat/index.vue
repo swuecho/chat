@@ -518,8 +518,6 @@ onUnmounted(() => {
 const handleUsePrompt = (_: string, value: string): void => {
   prompt.value = value
 }
-
-
 </script>
 
 <template>
