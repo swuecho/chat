@@ -108,6 +108,7 @@ func main() {
 		pg := appConfig.PG
 		connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 			pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
+		print(connStr)
 	} else {
 		connStr = dbURL
 	}

@@ -25,6 +25,7 @@ import UploaderReadOnly from './components/UploaderReadOnly.vue'
 import ModelSelector from './components/ModelSelector.vue'
 
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
+import { getDataFromResponseText } from '@/utils/string'
 let controller = new AbortController()
 
 const route = useRoute()
@@ -517,16 +518,7 @@ onUnmounted(() => {
 const handleUsePrompt = (_: string, value: string): void => {
   prompt.value = value
 }
-function getDataFromResponseText(responseText: string): string {
-  // first data segment
-  if (responseText.lastIndexOf('data:') === 0)
-    return responseText.slice(5)
-  // Find the last occurrence of the data segment
-  const lastIndex = responseText.lastIndexOf('\n\ndata:')
-  // Extract the JSON data chunk from the responseText
-  const chunk = responseText.slice(lastIndex + 8)
-  return chunk
-}
+
 
 </script>
 
