@@ -99,9 +99,7 @@ watch(appStore, () => {
   <footer class="flex items-center justify-between min-w-0 p-4 overflow-hidden border-t dark:border-neutral-800">
     <Setting v-if="show" v-model:visible="show" />
     <div class="flex-1 flex-shrink-0 overflow-hidden">
-      <NDropdown :options="options" @select="handleSelect">
-        <UserAvatar />
-      </NDropdown>
+      <UserAvatar />
     </div>
     <HoverButton :tooltip="$t('setting.snapshotLink')" @click="openSnapshotAll">
       <span class="text-xl text-[#4f555e] dark:text-white">
@@ -113,5 +111,10 @@ watch(appStore, () => {
         <SvgIcon icon="eos-icons:admin-outlined" />
       </span>
     </HoverButton>
+    <NDropdown :options="options" @select="handleSelect">
+      <HoverButton>
+        <SvgIcon icon="lucide:more-vertical" />
+      </HoverButton>
+    </NDropdown>
   </footer>
 </template>
