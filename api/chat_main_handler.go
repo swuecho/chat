@@ -218,11 +218,6 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 }
 
-func totalInputToken(msgs []models.Message) int32 {
-	return lo.SumBy(msgs, func(msg models.Message) int32 {
-		return msg.TokenCount()
-	})
-}
 
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) {
 	ctx := context.Background()
@@ -895,8 +890,8 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			flusher.Flush()
 		}
 	}
-
-	return answer, answer_id, false
+	shouldReturn := len(answer) == 0
+	return answer, answer_id, shouldReturn
 }
 
 // dropFirstAssistantMessageIfFirst removes the first assistant message from the given message slice,
