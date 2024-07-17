@@ -5,6 +5,7 @@ import mdKatex from '@traptitech/markdown-it-katex'
 import hljs from 'highlight.js'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
+import { escapeBrackets, escapeDollarNumber } from '@/utils/string'
 
 interface Props {
   inversion?: boolean
@@ -49,10 +50,11 @@ const wrapClass = computed(() => {
 
 const text = computed(() => {
   const value = props.text ?? ''
-
-  if (!props.inversion)
-    return mdi.render(value)
-
+    // 对数学公式进行处理，自动添加 $$ 符号
+  if (!props.inversion) {
+    const escapedText = escapeBrackets(escapeDollarNumber(value))
+    return mdi.render(escapedText)
+  }
   return value
 })
 
@@ -61,6 +63,7 @@ function highlightBlock(str: string, lang?: string) {
 }
 
 defineExpose({ textRef })
+
 </script>
 
 <template>
