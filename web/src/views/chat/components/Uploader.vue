@@ -2,7 +2,8 @@
         <div>
                 <NUpload multiline :action="actionURL" :headers="headers" :data="data" :default-file-list="fileListData"
                         :show-download-button="true" @finish="handleFinish" @before-upload="beforeUpload"
-                        @remove="handleRemove" @download="handleDownload" @update:file-list="handleFileListUpdate">
+                        @preview="handlePreview" @remove="handleRemove" @download="handleDownload"
+                        @update:file-list="handleFileListUpdate">
 
                         <NButton v-if="showUploaderButton" id="attach_file_button" data-testid="attach_file_button"
                                 type="primary"> {{ $t('chat.uploader_button') }}
@@ -98,7 +99,6 @@ function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressE
 
 }
 
-// @ts-ignore
 function handleRemove({ file }: { file: UploadFileInfo }) {
         console.log('remove', file)
         if (file.url) {
@@ -113,8 +113,13 @@ function fileUrl(file: UploadFileInfo): string {
         const url = `/download/${file_id}`
         return url
 }
-// @ts-ignore
-async function handleDownload(file) {
+
+function handlePreview(file: UploadFileInfo, detail: { event: MouseEvent }) {
+        detail.event.preventDefault()
+        handleDownload(file)
+}
+
+async function handleDownload(file: UploadFileInfo) {
         console.log('download', file)
         // get last part of file.url
         const url = fileUrl(file)
