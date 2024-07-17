@@ -854,7 +854,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 					flusher.Flush()
 				}
 				fmt.Println("End of stream reached")
-				break // Exit loop if end of stream
+				return "", "", false
 			}
 			return "", "", true
 		}
@@ -888,16 +888,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			flusher.Flush()
 		}
 	}
-	shouldReturn := len(answer) == 0
-	return answer, answer_id, shouldReturn
-}
-
-// dropFirstAssistantMessageIfFirst removes the first assistant message from the given message slice,
-// if the first message is an assistant message.
-func dropFirstAssistantMessageIfFirst(messages []models.Message) {
-	if len(messages) > 0 && messages[0].Role == "assistant" {
-		messages = messages[1:]
-	}
+	return answer, answer_id, false
 }
 
 type OllamaResponse struct {
