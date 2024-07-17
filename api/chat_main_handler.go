@@ -759,7 +759,13 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	if len(chat_compeletion_messages) > 1 {
 		// first message used as system message
 		// messages start with second message
-		messages = messagesToOpenAIMesages(chat_compeletion_messages[1:], chatFiles)
+		// drop the first assistant message if it is an assistant message
+		claude_messages := chat_compeletion_messages[1:]
+
+		if len(claude_messages) > 0 && claude_messages[0].Role == "assistant" {
+			claude_messages = claude_messages[1:]
+		}
+		messages = messagesToOpenAIMesages(claude_messages, chatFiles)
 	} else {
 		// only system message, return and do nothing
 		RespondWithError(w, http.StatusInternalServerError, "error.system_message_notice", err)
@@ -891,6 +897,14 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	}
 
 	return answer, answer_id, false
+}
+
+// dropFirstAssistantMessageIfFirst removes the first assistant message from the given message slice,
+// if the first message is an assistant message.
+func dropFirstAssistantMessageIfFirst(messages []models.Message) {
+	if len(messages) > 0 && messages[0].Role == "assistant" {
+		messages = messages[1:]
+	}
 }
 
 type OllamaResponse struct {
