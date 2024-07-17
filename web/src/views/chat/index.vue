@@ -38,7 +38,7 @@ useCopyCode()
 
 const { isMobile } = useBasicLayout()
 const { addChat, updateChat, updateChatPartial, updateChatText } = useChat()
-const { scrollRef, scrollToBottom } = useScroll()
+const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
 // session uuid
 const { uuid: sessionUuid } = route.params as { uuid: string }
 chatStore.syncChatMessages(sessionUuid)
@@ -148,7 +148,7 @@ async function onConversationStream() {
       error: false,
     },
   )
-  scrollToBottom()
+  scrollToBottomIfAtBottom()
   const subscribleStrem = async () => {
     try {
       // Send the request with axios
@@ -197,7 +197,7 @@ async function onConversationStream() {
                     loading: false,
                   },
                 )
-                scrollToBottom()
+                scrollToBottomIfAtBottom()
               }
               catch (error) {
                 // eslint-disable-next-line no-console
