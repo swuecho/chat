@@ -100,7 +100,6 @@ function fileUrl(file: UploadFileInfo): string {
         return url
 }
 
-// @ts-ignore
 function handleRemove({ file }: { file: UploadFileInfo }) {
         console.log('remove', file)
         if (file.url) {
@@ -109,6 +108,12 @@ function handleRemove({ file }: { file: UploadFileInfo }) {
         }
         console.log(file.url)
 }
+
+async function handlePreview(file: UploadFileInfo, detail: { event: MouseEvent }) {
+        detail.event.preventDefault()
+        await handleDownload(file)
+}
+
 
 // @ts-ignore
 async function handleDownload(file) {
@@ -140,9 +145,4 @@ async function handleDownload(file) {
         return false //!!! cancel original download
 }
 
-async function handlePreview(file: UploadFileInfo) {
-        console.log('preview', file)
-        await handleDownload(file)
-        return false
-}
 </script>
