@@ -498,7 +498,7 @@ const sendButtonDisabled = computed(() => {
 })
 
 const footerClass = computed(() => {
-  let classes = ['p-4']
+  let classes = ['m-2', 'p-2']
   if (isMobile.value)
     classes = ['sticky', 'left-0', 'bottom-0', 'right-0', 'p-2', 'pr-3', 'overflow-hidden']
   return classes
@@ -539,7 +539,7 @@ const handleUsePrompt = (_: string, value: string): void => {
       <UploaderReadOnly v-if="!!sessionUuid" class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false">
       </UploaderReadOnly>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-        <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
+        <div id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-8"
           :class="[isMobile ? 'p-2' : 'p-4']">
           <template v-if="!dataSources.length">
             <div class="flex items-center justify-center mt-4 text-center text-neutral-300">
