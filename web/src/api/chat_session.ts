@@ -10,7 +10,7 @@ export const getChatSessionDefault = async (title: string): Promise<Chat.Session
     title,
     isEdit: false,
     uuid,
-    maxLength: 4,
+    maxLength: 6,
     temperature: 1,
     model: default_model.name,
     maxTokens: default_model.defaultToken,
