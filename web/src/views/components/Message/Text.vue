@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
-import mdKatex from '@traptitech/markdown-it-katex'
+import mdKatex from '@vscode/markdown-it-katex'
 import hljs from 'highlight.js'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
