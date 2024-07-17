@@ -18,7 +18,6 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/rotisserie/eris"
-	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/gorilla/mux"
@@ -217,7 +216,6 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 }
-
 
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) {
 	ctx := context.Background()
