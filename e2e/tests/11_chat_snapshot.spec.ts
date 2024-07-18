@@ -56,7 +56,7 @@ test('test', async ({ page }) => {
   await page.getByTestId('snpashot-button').getByRole('button').click();
   await page.waitForTimeout(5000);
   const page_snapshot = await page1Promise;
-  await page_snapshot.waitForTimeout(500)
+  await page_snapshot.waitForTimeout(5000)
   snapshot_url = page_snapshot.url()
   expect(snapshot_url).toMatch(/snapshot/)
   const message_counts_in_snapshot = await page_snapshot.$$eval('.message-text', (messages) => messages.length);
@@ -67,7 +67,7 @@ test('test', async ({ page }) => {
   const page_back = await page_back_to_chat_promise
   // open new chat, attract user to login or register
   expect(page_back.url()).toMatch(/static/)
-  await page_back.waitForTimeout(2000)
+  await page_back.waitForTimeout(5000)
   const message_counts = await page_back.$$eval('.message-text', (messages) => messages.length);
   expect(message_counts).toBe(4);
   const sessions_new = await selectChatSessionsByUserId(pool, user.id);
