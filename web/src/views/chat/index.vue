@@ -532,7 +532,7 @@ const handleUsePrompt = (_: string, value: string): void => {
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
       <div class="flex items-center justify-center mt-4 ">
-        <div class="w-1/3">
+        <div class="w-4/5 md:w-1/3">
         <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
         </div>
       </div>
