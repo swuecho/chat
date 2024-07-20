@@ -26,9 +26,8 @@ const collapsed: Ref<boolean> = ref(false)
 const activeKey = ref(currentRoute.name?.toString())
 
 const getMobileClass = computed<CSSProperties>(() => {
-  if (isMobile.value) {
+    if (isMobile.value) {
     return {
-      position: 'fixed',
       zIndex: 50,
     }
   }
@@ -90,6 +89,8 @@ function handleUpdateCollapsed() {
 function handleChatHome() {
   window.open('/static/#/chat/', '_blank')
 }
+
+
 </script>
 
 <template>
@@ -117,10 +118,10 @@ function handleChatHome() {
         </HoverButton>
       </header>
         <NLayout has-sider class="flex-1 overflow-y-auto">
-          <NLayoutSider bordered collapse-mode="width" :width="240" :collapsed-width="64" :collapsed="collapsed"
+          <NLayoutSider bordered collapse-mode="width" :width="240"  :collapsed="collapsed"  :collapsed-width="isMobile ? 0 : 64"
             :show-trigger="isMobile ? false : 'arrow-circle'" :style="getMobileClass" @collapse="collapsed = true"
             @expand="collapsed = false">
-            <NMenu v-model:value="activeKey" :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22"
+            <NMenu v-model:value="activeKey" :collapsed="collapsed"  :collapsed-icon-size="22"
               :options="menuOptions" />
           </NLayoutSider>
           <NLayout>
