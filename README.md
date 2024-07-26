@@ -1,7 +1,5 @@
 ## Demo
 
-[video.webm](https://user-images.githubusercontent.com/666683/230305516-60154c5b-7170-4d2b-9670-a5ff4c851d25.webm)
-
 <img width="1116" alt="image" src="https://github.com/swuecho/chat/assets/666683/68e44981-8df7-48d2-a104-45b643a5eff5">
 
 <img width="850" alt="image" src="https://github.com/swuecho/chat/assets/666683/e41742c8-2a44-43bc-8fd6-4b66db783967">
