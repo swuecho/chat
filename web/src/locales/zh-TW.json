@@ -8,8 +8,10 @@
             "defaultToken": "默認token數量",
             "deleteModel": "刪除",
             "deleteModelConfirm": "確認刪除",
+            "enablePerModeRatelimit": "是否單獨流控",
             "enablePerModelRateLimit": "是否單獨流控",
             "isDefault": "默認?",
+            "isEnable": "是否啟用",
             "label": "模型名稱",
             "maxToken": "最大token數量",
             "name": "身分識別號",
@@ -48,9 +50,16 @@
         "userMessage": "用戶",
         "userStat": "用戶統計"
     },
+    "bot": {
+        "all": {
+            "title": "機器人列表"
+        },
+        "list": "機器人列表"
+    },
     "chat": {
         "N": "結果數量: {n}",
         "adjustParameters": "調整參數",
+        "chatSettings": "對話設定",
         "chatSnapshot": "生成會話記錄",
         "clearChat": "清空對話",
         "clearChatConfirm": "是否清空對話?",
@@ -61,6 +70,7 @@
         "copied": "複製成功",
         "copy": "複製",
         "copyCode": "複製代碼",
+        "createBot": "建立機器人",
         "debug": "調試模式",
         "deleteChatSessionsConfirm": "確定刪除此記錄?",
         "deleteMessage": "刪除消息",
@@ -91,6 +101,7 @@
         "topP": "Top P: {topP}",
         "turnOffContext": "在此模式下，發送的消息將不包括以前的聊天記錄。",
         "turnOnContext": "在此模式下，發送的消息將包括以前的聊天記錄。",
+        "uploadFiles": "上傳檔案",
         "uploader_button": "上傳",
         "uploader_close": "關閉",
         "uploader_help_text": "支援上傳檔案類型： text、image、audio、video",

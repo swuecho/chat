@@ -1,8 +1,21 @@
 {
+        "bot": {
+          "list": "Robot List",
+          "all": {
+            "title": "Robot List"
+          }
+        },
         "chat": {
-                "uploader_title": "Upload File",
-                "uploader_button": "Upload",
-                "uploader_close": "Close",
-                "uploader_help_text": "Supported file types: text, image, audio, video"
+          "chatSettings": "Chat Settings",
+          "uploadFiles": "Upload Files",
+          "createBot": "Create Bot"
+        },
+        "admin": {
+          "chat_model": {
+            "enablePerModeRatelimit": "Enable Rate Limit Per Mode",
+            "isEnable": "Is Enabled"
+          }
         }
-}
+      }
+      
+      
