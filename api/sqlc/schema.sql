@@ -239,6 +239,7 @@ CREATE INDEX IF NOT EXISTS user_active_chat_session_user_id_idx ON user_active_c
 -- for share chat feature
 CREATE TABLE IF NOT EXISTS chat_snapshot (
     id SERIAL PRIMARY KEY,
+    typ VARCHAR(255) NOT NULL default 'snapshot',
     uuid VARCHAR(255) NOT NULL default '',
     user_id INTEGER NOT NULL default 0,
     title VARCHAR(255) NOT NULL default '',
@@ -252,6 +253,7 @@ CREATE TABLE IF NOT EXISTS chat_snapshot (
     search_vector tsvector generated always as (setweight(to_tsvector('simple', coalesce(title, '')), 'A') || ' ' || setweight(to_tsvector('simple', coalesce(text, '')), 'B') :: tsvector) stored
 );
 
+ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS typ VARCHAR(255) NOT NULL default 'snapshot' ;
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS model VARCHAR(255) NOT NULL default '' ;
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS session JSONB DEFAULT '{}' NOT NULL;
 ALTER TABLE chat_snapshot ADD COLUMN IF NOT EXISTS text text DEFAULT '' NOT NULL;

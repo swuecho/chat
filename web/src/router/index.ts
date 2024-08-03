@@ -23,6 +23,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/snapshot/all.vue'),
   },
   {
+    path: '/bot_all',
+    name: 'BotAll',
+    component: () => import('@/views/snapshot/bot_all.vue'),
+  },
+  {
     path: '/admin',
     name: 'Admin',
     component: () => import('@/views/admin/index.vue'),

@@ -1,8 +1,20 @@
 {
+        "bot": {
+            "list": "機器人列表",
+            "all": {
+                "title": "機器人列表"
+            }
+        },
         "chat": {
-                "uploader_title": "上傳檔案",
-                "uploader_button": "上傳",
-                "uploader_close": "關閉",
-                "uploader_help_text": "支援上傳檔案類型： text、image、audio、video"
+            "chatSettings": "對話設定",
+            "uploadFiles": "上傳檔案",
+            "createBot": "建立機器人"
+        },
+        "admin": {
+            "chat_model": {
+                "enablePerModeRatelimit": "是否單獨流控",
+                "isEnable": "是否啟用"
+            }
         }
-}
+    }
+    

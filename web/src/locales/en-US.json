@@ -8,8 +8,10 @@
             "defaultToken": "Default token number",
             "deleteModel": "Delete",
             "deleteModelConfirm": "Confirm deletion",
+            "enablePerModeRatelimit": "Enable Rate Limit Per Mode",
             "enablePerModelRateLimit": "Enable per-model rate limit",
             "isDefault": "Default?",
+            "isEnable": "Is Enabled",
             "label": "Model name",
             "maxToken": "Maximum token number",
             "name": "ID",
@@ -48,9 +50,16 @@
         "userMessage": "User",
         "userStat": "User Statistics"
     },
+    "bot": {
+        "all": {
+            "title": "Bot List"
+        },
+        "list": "Bot List"
+    },
     "chat": {
         "N": "Number of results: {n}",
         "adjustParameters": "Adjust parameters",
+        "chatSettings": "Chat Settings",
         "chatSnapshot": "Generate the conversation",
         "clearChat": "Clear chat session",
         "clearChatConfirm": "Do you want to clear the chat session?",
@@ -61,6 +70,7 @@
         "copied": "Copied",
         "copy": "Copy",
         "copyCode": "Copy code",
+        "createBot": "Create Bot",
         "debug": "Debug Mode",
         "deleteChatSessionsConfirm": "Are you sure you want to delete this record?",
         "deleteMessage": "Delete message",
@@ -91,6 +101,7 @@
         "topP": "Top P: {topP}",
         "turnOffContext": "In this mode, messages sent will not include previous chat logs.",
         "turnOnContext": "In this mode, messages sent will include previous chat logs.",
+        "uploadFiles": "Upload Files",
         "uploader_button": "Upload",
         "uploader_close": "Close",
         "uploader_help_text": "Supported file types: text, image, audio, video",

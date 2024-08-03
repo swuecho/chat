@@ -35,6 +35,12 @@
   "prompt": {
     "store": "提示词库"
   },
+  "bot": {
+    "list": "机器人列表",
+    "all": {
+      "title": "机器人列表"
+    }
+  },
   "chat": {
     "new": "新对话",
     "summarize_mode": "总结模式(可以支持更长的上下文20+)",
@@ -49,6 +55,9 @@
     "clearChatConfirm": "是否清空会话?",
     "exportImage": "保存会话到图片",
     "chatSnapshot": "生成会话记录",
+    "chatSettings": "对话设置",
+    "uploadFiles": "上传文件",
+    "createBot": "创建机器人",
     "snapshotSuccess": "快照成功, 请在新标签页中查看, 链接任何人都可以打开, 谨慎分享",
     "adjustParameters": "调整参数",
     "exportImageConfirm": "是否将会话保存为图片?",

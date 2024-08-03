@@ -50,14 +50,14 @@ jobs:
       - name: change docker image tag
         run: python scripts/replace_tag_to_test.py ${GITHUB_SHA}
 
-      - name: docker-compose
-        run: docker-compose up -d
+      - name: docker compose
+        run: docker compose up -d
 
       - name: show docker ps
-        run: docker-compose ps
+        run: docker compose ps
 
       - name: show docker logs
-        run: docker-compose logs
+        run: docker compose logs
 
       # Setup cache for node_modules
       - name: Cache node modules

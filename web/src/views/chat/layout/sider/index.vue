@@ -73,6 +73,13 @@ watch(
     flush: 'post',
   },
 )
+
+
+
+function openBotAll() {
+  window.open('/#/bot_all', '_blank')
+}
+
 </script>
 
 <template>
@@ -91,7 +98,12 @@ watch(
         <div class="flex-1 min-h-0 pb-4 overflow-hidden">
           <List />
         </div>
-        <div class="p-4">
+        <div class="px-4 pb-2">
+          <NButton block @click="openBotAll">
+            {{ t('bot.list') }}
+          </NButton>
+        </div>
+        <div class="px-4 pb-2">
           <NButton block @click="show = true">
             {{ t('prompt.store') }}
           </NButton>
