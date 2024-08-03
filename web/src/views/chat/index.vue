@@ -386,6 +386,11 @@ async function handleSnapshot() {
   // open new link in new tab with the chat snapshot uuid
   // #/snapshot/<uuid>
 }
+async function handleCreateBot() {
+  const snapshot = await createChatSnapshot(sessionUuid)
+  const snapshot_uuid = snapshot.uuid
+  window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
+}
 
 
 
@@ -592,13 +597,21 @@ const handleUsePrompt = (_: string, value: string): void => {
             </span>
           </HoverButton>
 
-          <HoverButton v-if="!isMobile" @click="showModal = true">
+          <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')" >
             <span class="text-xl text-[#4b9e5f]">
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
           </HoverButton>
 
-          <HoverButton @click="showUploadModal = true">
+
+          <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
+            @click="handleCreateBot">
+            <span class="text-xl text-[#4b9e5f] dark:text-white">
+              <SvgIcon icon="fluent:bot-add-24-regular" />
+            </span>
+          </HoverButton>
+
+          <HoverButton @click="showUploadModal = true" :tooltip="$t('chat.uploadFiles')">
             <span class="text-xl text-[#4b9e5f]">
               <SvgIcon icon="clarity:attachment-line" />
             </span>
