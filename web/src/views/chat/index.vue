@@ -13,7 +13,7 @@ import { useChat } from './hooks/useChat'
 import { useCopyCode } from './hooks/useCopyCode'
 import HeaderComponent from './components/Header/index.vue'
 import SessionConfig from './components/Session/SessionConfig.vue'
-import { createChatSnapshot, fetchChatStream, updateChatData } from '@/api'
+import { createChatBot, createChatSnapshot, fetchChatStream, updateChatData } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore, usePromptStore } from '@/store'
@@ -387,7 +387,7 @@ async function handleSnapshot() {
   // #/snapshot/<uuid>
 }
 async function handleCreateBot() {
-  const snapshot = await createChatSnapshot(sessionUuid)
+  const snapshot = await createChatBot(sessionUuid)
   const snapshot_uuid = snapshot.uuid
   window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
 }
@@ -538,7 +538,7 @@ const handleUsePrompt = (_: string, value: string): void => {
       </NModal>
       <div class="flex items-center justify-center mt-4 ">
         <div class="w-4/5 md:w-1/3">
-        <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
+          <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
         </div>
       </div>
       <UploaderReadOnly v-if="!!sessionUuid" class="px-40" :sessionUuid="sessionUuid" :showUploaderButton="false">
@@ -597,7 +597,7 @@ const handleUsePrompt = (_: string, value: string): void => {
             </span>
           </HoverButton>
 
-          <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')" >
+          <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
             <span class="text-xl text-[#4b9e5f]">
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>

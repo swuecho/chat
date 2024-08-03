@@ -35,6 +35,9 @@
   "prompt": {
     "store": "提示词库"
   },
+  "bot": {
+    "list": "机器人列表"
+  },
   "chat": {
     "new": "新对话",
     "summarize_mode": "总结模式(可以支持更长的上下文20+)",
