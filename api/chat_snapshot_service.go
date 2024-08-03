@@ -61,3 +61,47 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 	return one.Uuid, nil
 
 }
+
+
+func (s *ChatSnapshotService) CreateChatBot(ctx context.Context, chatSessionUuid string, userId int32) (string, error) {
+	chatSession, err := s.q.GetChatSessionByUUID(ctx, chatSessionUuid)
+	if err != nil {
+		return "", err
+	}
+	// TODO: fix hardcode
+	simple_msgs, err := s.q.GetChatHistoryBySessionUUID(ctx, chatSessionUuid, int32(1), int32(10000))
+	text := lo.Reduce(simple_msgs, func(acc string, curr sqlc_queries.SimpleChatMessage, _ int) string {
+		return acc + curr.Text
+	}, "")
+	// save all simple_msgs to a jsonb field in chat_snapshot
+	if err != nil {
+		return "", err
+	}
+	// simple_msgs to RawMessage
+	simple_msgs_raw, err := json.Marshal(simple_msgs)
+	if err != nil {
+		return "", err
+	}
+	snapshot_uuid := uuid.New().String()
+	chatSessionMessage, err := json.Marshal(chatSession)
+	if err != nil {
+		return "", err
+	}
+	one, err := s.q.CreateChatBot(ctx, sqlc_queries.CreateChatBotParams{
+		Uuid:         snapshot_uuid,
+		Model:        chatSession.Model,
+		Typ:          "chatbot",
+		Title:        firstN(chatSession.Topic, 100),
+		UserID:       userId,
+		Session:      chatSessionMessage,
+		Tags:         json.RawMessage([]byte("{}")),
+		Text:         text,
+		Conversation: simple_msgs_raw,
+	})
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+	return one.Uuid, nil
+
+}

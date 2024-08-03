@@ -77,7 +77,7 @@ watch(
 
 
 function openBotAll() {
-  window.open('/#/snapshot_all', '_blank')
+  window.open('/#/bot_all', '_blank')
 }
 
 </script>

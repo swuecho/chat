@@ -121,6 +121,7 @@ type ChatSession struct {
 
 type ChatSnapshot struct {
 	ID           int32           `json:"id"`
+	Typ          string          `json:"typ"`
 	Uuid         string          `json:"uuid"`
 	UserID       int32           `json:"userID"`
 	Title        string          `json:"title"`

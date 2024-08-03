@@ -26,6 +26,7 @@ func (h *ChatSnapshotHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_snapshot/{uuid}", h.UpdateChatSnapshotMetaByUUID).Methods(http.MethodPut)
 	router.HandleFunc("/uuid/chat_snapshot/{uuid}", h.DeleteChatSnapshot).Methods(http.MethodDelete)
 	router.HandleFunc("/uuid/chat_snapshot_search", h.ChatSnapshotSearch).Methods(http.MethodGet)
+	router.HandleFunc("/uuid/chat_bot/{uuid}", h.CreateChatBot).Methods(http.MethodPost)
 }
 
 func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +37,24 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 		return
 	}
 	uuid, err := h.service.CreateChatSnapshot(r.Context(), chatSessionUuid, user_id)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+	}
+	json.NewEncoder(w).Encode(
+		map[string]interface{}{
+			"uuid": uuid,
+		})
+
+}
+
+func (h *ChatSnapshotHandler) CreateChatBot(w http.ResponseWriter, r *http.Request) {
+	chatSessionUuid := mux.Vars(r)["uuid"]
+	user_id, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+	uuid, err := h.service.CreateChatBot(r.Context(), chatSessionUuid, user_id)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 	}

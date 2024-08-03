@@ -36,7 +36,7 @@ function postsByYearMonthTransform(posts: PostLink[]) {
 
 async function getPostLinks() {
   const rawPosts = await fetchSnapshotAll()
-  const rawPostsFormated = rawPosts.filter( (post: any) => post.typ === 'snapshot' ).map((post: any) => {
+  const rawPostsFormated = rawPosts.filter( (post: any) => post.typ === 'chatbot').map((post: any) => {
     return {
       uuid: post.uuid,
       date: displayLocaleDate(post.createdAt),
@@ -90,7 +90,7 @@ function handleDelete(post: PostLink) {
           />
         </svg>
         <h1 class="text-xl font-semibold text-gray-900">
-          {{ $t('chat_snapshot.title') }}
+          {{ $t('bot.all.title') }}
         </h1>
       </div>
       <div class="mr-10">
