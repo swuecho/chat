@@ -52,9 +52,9 @@
     },
     "bot": {
         "all": {
-            "title": "Robot List"
+            "title": "Bot List"
         },
-        "list": "Robot List"
+        "list": "Bot List"
     },
     "chat": {
         "N": "Number of results: {n}",
