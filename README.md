@@ -1,6 +1,7 @@
 ## Demo
 
-<img width="1116" alt="image" src="https://github.com/swuecho/chat/assets/666683/68e44981-8df7-48d2-a104-45b643a5eff5">
+
+<img width="850" alt="Snipaste_2024-08-03_18-32-02" src="https://github.com/user-attachments/assets/d9ccb0ef-1409-43e4-94a1-80aed2fd33d6">
 
 <img width="850" alt="image" src="https://github.com/swuecho/chat/assets/666683/e41742c8-2a44-43bc-8fd6-4b66db783967">
 
