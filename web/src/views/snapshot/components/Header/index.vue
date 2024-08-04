@@ -26,7 +26,7 @@ function handleHome() {
 }
 
 function handleChatHome() {
-  window.open('static/#/chat/', '_blank')
+  window.open('/static/#/chat/', '_blank')
 }
 
 const { mutate } = useMutation({
