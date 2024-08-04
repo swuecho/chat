@@ -3,9 +3,9 @@ import { computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDialog, useMessage, NSpin } from 'naive-ui'
 import html2canvas from 'html2canvas'
-import Message from './components/Message/index.vue'
+import Message from '../snapshot/components/Message/index.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
-import Header from './components/Header/index.vue'
+import Header from '../snapshot/components/Header/index.vue'
 import { CreateSessionFromSnapshot, fetchChatSnapshot } from '@/api/chat_snapshot'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
@@ -163,7 +163,7 @@ function onScrollToTop() {
       <NSpin size="large" />
     </div>
     <div v-else>
-      <Header :title="snapshot_data.title" typ="snapshot" />
+      <Header :title="snapshot_data.title" typ="chatbot" />
       <main class="flex-1 overflow-hidden">
         <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
