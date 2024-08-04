@@ -13,6 +13,7 @@ const route = useRoute()
 
 interface Props {
   title: string
+  typ: string
 }
 
 const { uuid } = route.params as { uuid: string }
@@ -22,7 +23,7 @@ const isEditing = ref<boolean>(false)
 const titleRef = ref(null)
 
 function handleHome() {
-  window.open('#/snapshot_all', '_blank')
+  window.open('#/bot_all', '_blank')
 }
 
 function handleChatHome() {

@@ -17,7 +17,7 @@ interface PostLink {
 }
 
 function post_url(uuid: string): string {
-  return `#/snapshot/${uuid}`
+  return `#/bot/${uuid}`
 }
 
 const postsByYearMonth = ref<Record<string, PostLink[]>>({})

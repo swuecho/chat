@@ -18,6 +18,18 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/bot',
+    name: 'Bot',
+    component: () => import('@/views/snapshot/bot_index.vue'),
+    children: [
+      {
+        path: ':uuid?',
+        name: 'Bot',
+        component: () => import('@/views/snapshot/bot_index.vue'),
+      },
+    ],
+  },
+  {
     path: '/snapshot_all',
     name: 'SnapshotAll',
     component: () => import('@/views/snapshot/all.vue'),
