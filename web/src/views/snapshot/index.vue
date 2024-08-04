@@ -163,7 +163,7 @@ function onScrollToTop() {
           <NSpin size="large" />
     </div>
     <div v-else>
-      <Header :title="snapshot_data.title" />
+      <Header :title="snapshot_data.title" typ="snapshot" />
       <main class="flex-1 overflow-hidden">
         <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"

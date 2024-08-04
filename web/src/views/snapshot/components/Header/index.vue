@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 
 const queryClient = useQueryClient()
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const route = useRoute()
 
@@ -23,7 +23,12 @@ const isEditing = ref<boolean>(false)
 const titleRef = ref(null)
 
 function handleHome() {
-  window.open('#/bot_all', '_blank')
+  const typ = props.typ
+  if (typ === 'snapshot') {
+    window.open('#/snapshot_all', '_blank')
+  } else if (typ === 'chatbot') {
+    window.open('#/bot_all', '_blank')
+  }
 }
 
 function handleChatHome() {
