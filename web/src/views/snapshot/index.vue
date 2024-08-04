@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { useDialog, useMessage, NSpin } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
-import { useCopyCode } from './hooks/useCopyCode'
+import { useCopyCode } from '../../hooks/useCopyCode'
 import Header from './components/Header/index.vue'
 import { CreateSessionFromSnapshot, fetchChatSnapshot } from '@/api/chat_snapshot'
 import { HoverButton, SvgIcon } from '@/components/common'
@@ -136,7 +136,7 @@ function handleMarkdown() {
 async function handleChat() {
   if (!authStore.getToken())
     nui_msg.error(t('common.ask_user_register'))
-    window.open(`/`, '_blank')
+  window.open(`/`, '_blank')
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
   await chatStore.setActiveLocal(SessionUuid)
   // open link at static/#/chat/{SessionUuid}
@@ -160,7 +160,7 @@ function onScrollToTop() {
 <template>
   <div class="flex flex-col w-full h-full">
     <div v-if="isLoading">
-          <NSpin size="large" />
+      <NSpin size="large" />
     </div>
     <div v-else>
       <Header :title="snapshot_data.title" typ="snapshot" />
