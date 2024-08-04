@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { NModal, useDialog, useMessage } from 'naive-ui'
-import Search from './components/Search.vue'
+import Search from '../snapshot/components/Search.vue'
 import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
 import { displayLocaleDate, formatYearMonth } from '@/utils/date'
 import { HoverButton, SvgIcon } from '@/components/common'
