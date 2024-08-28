@@ -613,12 +613,12 @@ const handleUsePrompt = (_: string, value: string): void => {
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
             :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
-              <NInput id="message_textarea" class="input-field"  v-model:value="prompt" type="textarea" :placeholder="placeholder"
+              <NInput id="message_textarea"   v-model:value="prompt" type="textarea" :placeholder="placeholder"
                 data-testid="message_textarea" :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
                 @input="handleInput" @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
             </template>
           </NAutoComplete>
-          <button class="upload-button" @click="showUploadModal = true">
+          <button class="!-ml-8 z-10" @click="showUploadModal = true">
             <span class="text-xl text-[#4b9e5f]">
               <SvgIcon icon="clarity:attachment-line" />
             </span>
@@ -637,10 +637,3 @@ const handleUsePrompt = (_: string, value: string): void => {
     </footer>
   </div>
 </template>
-
-<style lang="css">
-.upload-button {
-  margin-left: -2rem !important;
-  z-index: 10;
-}
-</style>
