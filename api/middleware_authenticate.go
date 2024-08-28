@@ -94,7 +94,8 @@ func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 
 func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 	noAuthPaths := map[string]bool{
-		"/":           true,
+		"/": true,
+		"/favicon.ico": true,
 		"/api/login":  true,
 		"/api/signup": true,
 		"/api/tts":    true,

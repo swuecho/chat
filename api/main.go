@@ -191,7 +191,7 @@ func main() {
 
 	// Set cache headers for static/assets files
 	cacheHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "assets/") {
+		if strings.HasPrefix(r.URL.Path, "static/") {
 			w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
 		} else if r.URL.Path == "" {
 			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -202,17 +202,17 @@ func main() {
 	})
 
 	// Redirect "/" to "/static/"
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
-	})
+	//router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	//	http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
+	//})
 
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", makeGzipHandler(cacheHandler)))
+	router.Use(IsAuthorizedMiddleware)
+	router.PathPrefix("/").Handler(makeGzipHandler(cacheHandler))
 
 	// fly.io
 	if os.Getenv("FLY_APP_NAME") != "" {
 		router.Use(UpdateLastRequestTime)
 	}
-	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)
 	// Wrap the router with the logging middleware

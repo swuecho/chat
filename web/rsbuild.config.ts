@@ -17,7 +17,6 @@ export default defineConfig((env) => {
     output: {
       path: 'dist',
       filename: '[name].js',
-      publicPath: '/static/',
     },
     plugins: [
       pluginVue(),
