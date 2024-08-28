@@ -26,7 +26,6 @@ export default defineConfig((env) => {
         },
       },
     },
-    base: '/static/',
     build: {
       reportCompressedSize: false,
       sourcemap: false,
