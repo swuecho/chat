@@ -613,7 +613,7 @@ const handleUsePrompt = (_: string, value: string): void => {
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
             :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
-              <NInput id="message_textarea"  v-model:value="prompt" type="textarea" :placeholder="placeholder"
+              <NInput id="message_textarea" v-model:value="prompt" type="textarea" :placeholder="placeholder"
                 data-testid="message_textarea" :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
                 @input="handleInput" @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
             </template>
