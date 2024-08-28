@@ -578,7 +578,7 @@ const handleUsePrompt = (_: string, value: string): void => {
     </main>
     <footer :class="footerClass">
       <div class="w-full max-w-screen-xl m-auto">
-        <div class="flex items-center justify-between space-x-2">
+        <div class="flex items-center justify-between space-x-1">
           <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
             <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="icon-park-outline:clear" />
@@ -610,13 +610,6 @@ const handleUsePrompt = (_: string, value: string): void => {
               <SvgIcon icon="fluent:bot-add-24-regular" />
             </span>
           </HoverButton>
-
-          <HoverButton @click="showUploadModal = true" :tooltip="$t('chat.uploadFiles')">
-            <span class="text-xl text-[#4b9e5f]">
-              <SvgIcon icon="clarity:attachment-line" />
-            </span>
-          </HoverButton>
-
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
             :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
@@ -625,8 +618,12 @@ const handleUsePrompt = (_: string, value: string): void => {
                 @input="handleInput" @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
             </template>
           </NAutoComplete>
-
-          <NButton id="send_message_button" data-testid="send_message_button" type="primary"
+          <button class="!-ml-8 z-10" @click="showUploadModal = true">
+            <span class="text-xl text-[#4b9e5f]">
+              <SvgIcon icon="clarity:attachment-line" />
+            </span>
+          </button>
+          <NButton id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
             :disabled="sendButtonDisabled" @click="handleSubmit">
             <template #icon>
               <span class="dark:text-black">
