@@ -584,9 +584,10 @@ const handleUsePrompt = (_: string, value: string): void => {
               <SvgIcon icon="icon-park-outline:clear" />
             </span>
           </HoverButton>
-          <HoverButton v-if="!isMobile" :tooltip="$t('chat.exportImage')" @click="handleExport">
+          <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
+            @click="handleCreateBot">
             <span class="text-xl text-[#4b9e5f] dark:text-white">
-              <SvgIcon icon="ri:download-2-line" />
+              <SvgIcon icon="fluent:bot-add-24-regular" />
             </span>
           </HoverButton>
 
@@ -604,12 +605,7 @@ const handleUsePrompt = (_: string, value: string): void => {
           </HoverButton>
 
 
-          <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
-            @click="handleCreateBot">
-            <span class="text-xl text-[#4b9e5f] dark:text-white">
-              <SvgIcon icon="fluent:bot-add-24-regular" />
-            </span>
-          </HoverButton>
+      
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
             :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
