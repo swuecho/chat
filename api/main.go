@@ -201,18 +201,14 @@ func main() {
 		fs.ServeHTTP(w, r)
 	})
 
-	// Redirect "/" to "/static/"
-	//router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	//	http.Redirect(w, r, "/static/", http.StatusMovedPermanently)
-	//})
-
-	router.Use(IsAuthorizedMiddleware)
 	router.PathPrefix("/").Handler(makeGzipHandler(cacheHandler))
 
 	// fly.io
 	if os.Getenv("FLY_APP_NAME") != "" {
 		router.Use(UpdateLastRequestTime)
 	}
+
+	router.Use(IsAuthorizedMiddleware)
 	limitedRouter := RateLimitByUserID(sqlc_q)
 	router.Use(limitedRouter)
 	// Wrap the router with the logging middleware

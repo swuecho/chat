@@ -11,19 +11,11 @@
     "vue"
   ],
   "scripts": {
-    "dev": "vite dev",
-    "dev-rs": "rsbuild dev",
-    "preview-rs": "rsbuild preview",
-    "build-rs": "rsbuild build",
-    "build": "run-p type-check build-only",
-    "preview": "vite preview",
-    "build-only": "vite build",
-    "type-check": "vue-tsc --noEmit",
+    "dev": "rsbuild dev",
+    "preview": "rsbuild preview",
+    "build": "rsbuild build",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "bootstrap": "pnpm install && pnpm run common:prepare",
-    "common:cleanup": "rimraf node_modules && rimraf pnpm-lock.yaml",
-    "common:prepare": "husky install"
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.40.1",
