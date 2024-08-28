@@ -139,8 +139,6 @@ async function handleChat() {
   window.open(`/`, '_blank')
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
   await chatStore.setActiveLocal(SessionUuid)
-  // open link at static/#/chat/{SessionUuid}
-  //window.open(`/static/#/chat/${SessionUuid}`, '_blank')
 }
 
 const footerClass = computed(() => {

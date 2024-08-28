@@ -32,7 +32,7 @@ function handleHome() {
 }
 
 function handleChatHome() {
-  window.open('/static/#/chat/', '_blank')
+  window.open('/#/chat/', '_blank')
 }
 
 const { mutate } = useMutation({

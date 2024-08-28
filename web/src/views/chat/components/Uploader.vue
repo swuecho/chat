@@ -20,7 +20,7 @@ import request from '@/utils/request/axios'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { getChatFilesList } from '@/api/chat_file'
 
-const baseURL = import.meta.env.VITE_GLOB_API_URL
+const baseURL = "/api"
 
 const actionURL = baseURL + '/upload'
 

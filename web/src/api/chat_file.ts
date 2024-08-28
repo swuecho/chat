@@ -3,7 +3,7 @@ import request from '@/utils/request/axios'
 
 // /chat_file/{uuid}/list
 
-const baseURL = import.meta.env.VITE_GLOB_API_URL
+const baseURL = "/api"
 
 
 export async function getChatFilesList(uuid: string) {

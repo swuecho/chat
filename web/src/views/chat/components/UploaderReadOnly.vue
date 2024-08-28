@@ -19,7 +19,7 @@ import { getChatFilesList } from '@/api/chat_file'
 
 const queryClient = useQueryClient()
 
-const baseURL = import.meta.env.VITE_GLOB_API_URL
+const baseURL = "/api"
 
 const actionURL = baseURL + '/upload'
 

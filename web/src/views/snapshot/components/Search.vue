@@ -24,7 +24,7 @@ const debouncedSearch = debounce(search, 200)
   <NInput v-model:value="searchText" placeholder="Search ...(support english only)" @keyup="debouncedSearch" />
   <NList>
     <NListItem v-for="result in results" :key="result.uuid">
-      <a :href="`/static/#/snapshot/${result.uuid}`" target="_blank">{{ result.title }}</a>
+      <a :href="`/#/snapshot/${result.uuid}`" target="_blank">{{ result.title }}</a>
     </NListItem>
   </NList>
 </template>
