@@ -2,4 +2,3 @@ tmp/
 chat_backend
 env.sh
 static/static
-static/index.html

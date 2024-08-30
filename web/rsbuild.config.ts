@@ -11,11 +11,6 @@ export default defineConfig({
         index: './src/main.ts',
       },
     },
-    output: {
-      distPath: {
-          root: '../api/static/',
-      }
-  },
     plugins: [
       pluginVue(),
       pluginLess(),
