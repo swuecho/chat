@@ -30,9 +30,6 @@ jobs:
           npm install
           npm run build
         working-directory: web
-      - name: copy to api/static
-        run: |
-          cp -R web/dist/* api/static/
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
