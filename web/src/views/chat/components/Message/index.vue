@@ -105,18 +105,22 @@ function handleDelete() {
             <!--
             <AudioPlayer :text="text || ''" :right="inversion" class="mr-2" />
           -->
+            <HoverButton :tooltip="$t('common.delete')"
+              class="transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+              @click="handleDelete">
+              <SvgIcon icon="ri:delete-bin-line" />
+            </HoverButton>
             <HoverButton :tooltip="$t('common.edit')"
-              class="transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300" @click="handleEdit">
+              class="transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+              @click="handleEdit">
               <SvgIcon icon="ri:edit-line" />
             </HoverButton>
             <HoverButton :tooltip="$t('chat.copy')"
-              class="transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300" @click="handleCopy">
+              class="transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+              @click="handleCopy">
               <SvgIcon icon="ri:file-copy-2-line" />
             </HoverButton>
-            <HoverButton :tooltip="$t('common.delete')"
-              class="transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300" @click="handleDelete">
-              <SvgIcon icon="ri:delete-bin-line" />
-            </HoverButton>
+
           </div>
         </div>
 
@@ -125,7 +129,7 @@ function handleDelete() {
   </div>
 
   <!-- Updated modal for editing -->
-  <NModal v-model:show="showEditModal" :mask-closable="false"  style="width: 90%; max-width: 800px;">
+  <NModal v-model:show="showEditModal" :mask-closable="false" style="width: 90%; max-width: 800px;">
     <NCard :bordered="false" size="medium" role="dialog" aria-modal="true" :title="$t('common.edit')">
 
       <NInput v-model:value="editedText" type="textarea" :autosize="{ minRows: 10, maxRows: 20 }" :autofocus="true" />
