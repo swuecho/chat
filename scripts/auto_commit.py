@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "requests",
+# ]
+# ///
 """
 translate from  https://github.com/zhufengme/GPTCommit/blob/main/gptcommit.sh
 

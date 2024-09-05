@@ -21,6 +21,7 @@
     "signup": "注册",
     "email": "邮箱",
     "confirm": "确认",
+    "cancel": "取消",
     "email_placeholder": "请输入邮箱",
     "password_placeholder": "请输入密码",
     "unauthorizedTips": "请注册或者登录",
