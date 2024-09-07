@@ -121,6 +121,7 @@
     },
     "common": {
         "ask_user_register": "請註冊, 只有註冊帳號才能繼續對話",
+        "cancel": "取消",
         "clear": "清空",
         "confirm": "確認",
         "delete": "刪除",
@@ -176,6 +177,9 @@
     "setting": {
         "admin": "管理",
         "api": "API",
+        "apiToken": "API Token",
+        "apiTokenCopied": "API Token 已複製",
+        "apiTokenCopyFailed": "無法複製 API Token",
         "avatarLink": "頭像鏈接",
         "chatHistory": "聊天記錄",
         "config": "配置",

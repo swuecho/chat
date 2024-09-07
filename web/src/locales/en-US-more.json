@@ -1,21 +1,10 @@
 {
-        "bot": {
-          "list": "Robot List",
-          "all": {
-            "title": "Robot List"
-          }
-        },
-        "chat": {
-          "chatSettings": "Chat Settings",
-          "uploadFiles": "Upload Files",
-          "createBot": "Create Bot"
-        },
-        "admin": {
-          "chat_model": {
-            "enablePerModeRatelimit": "Enable Rate Limit Per Mode",
-            "isEnable": "Is Enabled"
-          }
-        }
-      }
-      
-      
+  "common": {
+    "cancel": "Cancel"
+  },
+  "setting": {
+    "apiToken": "API Token",
+    "apiTokenCopied": "API Token copied",
+    "apiTokenCopyFailed": "Failed to copy API Token"
+  }
+}
