@@ -93,7 +93,6 @@ type BotRequest struct {
 	Stream       bool   `json:"stream"`
 }
 
-
 // ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
 func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req BotRequest
@@ -106,7 +105,6 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 
 	snapshotUuid := req.SnapshotUuid
 	newQuestion := req.Message
-
 
 	log.Printf("snapshotUuid: %s", snapshotUuid)
 	log.Printf("newQuestion: %s", newQuestion)
@@ -899,7 +897,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		"max_tokens":  chatSession.MaxTokens,
 		"temperature": chatSession.Temperature,
 		"top_p":       chatSession.TopP,
-		"stream":      true,
+		"stream":      stream,
 	}
 	log.Printf("%+v", jsonData)
 
@@ -924,11 +922,16 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 
 	req.Header.Set("Content-Type", "application/json")
 
-	// set the streaming flag
-	req.Header.Set("Accept", "text/event-stream")
-	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("anthropic-version", "2023-06-01")
+	if !stream {
+		req.Header.Set("Accept", "application/json")
+	} else {
+		// set the streaming flag
+		req.Header.Set("Accept", "text/event-stream")
+		req.Header.Set("Cache-Control", "no-cache")
+		req.Header.Set("Connection", "keep-alive")
+		// TODO: remove this?
+		req.Header.Set("anthropic-version", "2023-06-01")
+	}
 
 	// create the http client and send the request
 	client := &http.Client{
@@ -939,6 +942,20 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		log.Printf("%+v", err)
 		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return "", "", true
+	}
+
+	if !stream {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_read_response", err)
+			return "", "", true
+		}
+		log.Printf("%+v", string(body))
+		uuid := NewUUID()
+		answer := constructChatCompletionStreamReponse(uuid, string(body))
+		data, _ := json.Marshal(answer)
+		fmt.Fprint(w, string(data))
+		return string(data), uuid, false
 	}
 
 	ioreader := bufio.NewReader(resp.Body)
@@ -1373,6 +1390,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	}
 
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY", chatSession.Model)
+	
 	url = os.ExpandEnv(url)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
