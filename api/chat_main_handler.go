@@ -96,10 +96,9 @@ type BotRequest struct {
 // ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
 func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req BotRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Error decoding request: %v", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request format", err)
 		return
 	}
 
@@ -113,7 +112,8 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		log.Printf("Error getting user ID: %v", err)
+		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
 		return
 	}
 
@@ -150,10 +150,9 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 // ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
 func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Error decoding request: %v", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request format", err)
 		return
 	}
 
@@ -169,7 +168,8 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		log.Printf("Error getting user ID: %v", err)
+		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
 		return
 	}
 
