@@ -398,7 +398,7 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 	} else if isTestChat {
 		chatStreamFn = h.chatStreamTest
 	} else if isOllama {
-		chatStreamFn = h.chatOllamStram
+		chatStreamFn = h.chatOllamStream
 	} else if isCompletion {
 		chatStreamFn = h.CompletionStream
 	} else if isGemini {
@@ -1048,7 +1048,7 @@ type OllamaResponse struct {
 	EvalDuration       int64          `json:"eval_duration"`
 }
 
-func (h *ChatHandler) chatOllamStram(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (string, string, bool) {
+func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (string, string, bool) {
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
