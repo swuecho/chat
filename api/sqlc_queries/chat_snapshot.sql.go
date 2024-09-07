@@ -61,6 +61,36 @@ func (q *Queries) ChatSnapshotByUUID(ctx context.Context, uuid string) (ChatSnap
 	return i, err
 }
 
+const chatSnapshotByUserIdAndUuid = `-- name: ChatSnapshotByUserIdAndUuid :one
+SELECT id, typ, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector FROM chat_snapshot WHERE user_id = $1 AND uuid = $2
+`
+
+type ChatSnapshotByUserIdAndUuidParams struct {
+	UserID int32  `json:"userID"`
+	Uuid   string `json:"uuid"`
+}
+
+func (q *Queries) ChatSnapshotByUserIdAndUuid(ctx context.Context, arg ChatSnapshotByUserIdAndUuidParams) (ChatSnapshot, error) {
+	row := q.db.QueryRowContext(ctx, chatSnapshotByUserIdAndUuid, arg.UserID, arg.Uuid)
+	var i ChatSnapshot
+	err := row.Scan(
+		&i.ID,
+		&i.Typ,
+		&i.Uuid,
+		&i.UserID,
+		&i.Title,
+		&i.Summary,
+		&i.Model,
+		&i.Tags,
+		&i.Session,
+		&i.Conversation,
+		&i.CreatedAt,
+		&i.Text,
+		&i.SearchVector,
+	)
+	return i, err
+}
+
 const chatSnapshotMetaByUserID = `-- name: ChatSnapshotMetaByUserID :many
 SELECT uuid, title, summary, tags, created_at, typ 
 FROM chat_snapshot WHERE user_id = $1
