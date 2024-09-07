@@ -11,7 +11,7 @@ export async function fetchChatStream(
   try {
     const response = await request.post(
       '/chat_stream',
-      { regenerate, prompt, sessionUuid, chatUuid },
+      { regenerate, prompt, sessionUuid, chatUuid, stream: true },
       { onDownloadProgress },
     )
 

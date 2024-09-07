@@ -1,7 +1,6 @@
 <script setup lang='ts'>
 import { computed, ref } from 'vue'
 import { NModal, NInput, NCard, NButton } from 'naive-ui'
-import AudioPlayer from '../AudioPlayer/index.vue'
 import TextComponent from '@/views/components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
