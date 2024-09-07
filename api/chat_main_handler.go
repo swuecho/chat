@@ -44,18 +44,18 @@ func NewChatHandler(sqlc_q *sqlc_queries.Queries) *ChatHandler {
 }
 
 func (h *ChatHandler) Register(router *mux.Router) {
-	router.HandleFunc("/chat_stream", h.OpenAIChatCompletionAPIWithStreamHandler).Methods(http.MethodPost)
+	router.HandleFunc("/chat_stream", h.ChatCompletionHandler).Methods(http.MethodPost)
+	// for bot
+	// given a chat_uuid, a user message, return the answer
+	//
+	router.HandleFunc("/chat_bot", h.ChatBotCompletionHandler).Methods(http.MethodPost)
 }
 
-type ChatOptions struct {
-	Uuid string
-}
 type ChatRequest struct {
 	Prompt      string
 	SessionUuid string
 	ChatUuid    string
 	Regenerate  bool
-	Options     ChatOptions
 }
 
 type ChatCompletionResponse struct {
@@ -86,8 +86,70 @@ func NewUserMessage(content string) openai.ChatCompletionMessage {
 	return openai.ChatCompletionMessage{Role: "user", Content: content}
 }
 
-// OpenAIChatCompletionAPIWithStreamHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
-func (h *ChatHandler) OpenAIChatCompletionAPIWithStreamHandler(w http.ResponseWriter, r *http.Request) {
+
+type BotRequest struct {
+	Message string
+	SnapshotUuid string
+	Stream       bool
+}
+
+// ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
+func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
+	var req BotRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+
+	snapshotUuid := req.SnapshotUuid
+	newQuestion := req.Message
+
+
+	log.Printf("snapshotUuid: %s", snapshotUuid)
+	log.Printf("newQuestion: %s", newQuestion)
+
+	ctx := r.Context()
+
+	userID, err := getUserID(ctx)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+
+	fmt.Printf("userID: %d", userID)
+
+	chatSnapshot, err := h.service.q.ChatSnapshotByUserIdAndUuid(ctx, sqlc_queries.ChatSnapshotByUserIdAndUuidParams{
+		UserID: userID,
+		Uuid:   snapshotUuid,
+	})
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat snapshot").Error(), err)
+		return
+	}
+
+	fmt.Printf("chatSnapshot: %+v", chatSnapshot)
+
+	var session sqlc_queries.ChatSession
+	err = json.Unmarshal(chatSnapshot.Session, &session)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to deserialize chat session").Error(), err)
+		return
+	}
+	var simpleChatMessages []SimpleChatMessage
+	err = json.Unmarshal(chatSnapshot.Conversation, &simpleChatMessages)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to deserialize conversation").Error(), err)
+		return
+	}
+
+	genBotAnswer(h, w, session, simpleChatMessages, newQuestion, userID)
+
+}
+
+// ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
+func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -215,6 +277,57 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
+}
+
+func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, newQuestion string, userID int32) {
+	chatModel, err := h.service.q.ChatModelByName(context.Background(), session.Model)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		return
+	}
+
+	baseURL, _ := getModelBaseUrl(chatModel.Url)
+
+	messages := simpleChatMessagesToMessages(simpleChatMessages)
+	messages = append(messages, models.Message{
+		Role:    "user",
+		Content: newQuestion,
+	})
+	chatStreamFn := h.chooseChatStreamFn(session, messages)
+
+	answerText, answerID, shouldReturn := chatStreamFn(w, session, messages, "", false)
+	if shouldReturn {
+		return
+	}
+
+	if !isTest(messages) {
+		h.service.logChat(session, messages, answerText)
+	}
+
+	ctx := context.Background()
+	if _, err := h.service.CreateChatMessageSimple(ctx, session.Uuid, answerID, "assistant", answerText, userID, baseURL, session.SummarizeMode); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
+		return
+	}
+}
+
+// Helper function to convert SimpleChatMessage to Message
+func simpleChatMessagesToMessages(simpleChatMessages []SimpleChatMessage) []models.Message {
+	messages := make([]models.Message, len(simpleChatMessages))
+	for i, scm := range simpleChatMessages {
+		role := "user"
+		if scm.Inversion {
+			role = "assistant"
+		}
+		if i == 0 {
+			role = "system"
+		}
+		messages[i] = models.Message{
+			Role:    role,
+			Content: scm.Text,
+		}
+	}
+	return messages
 }
 
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string) {

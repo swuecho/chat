@@ -17,7 +17,7 @@ OPENAI_API_KEY = os.getenv('DEEPSEEK_API_KEY', '')
 LLM_URL = "https://api.deepseek.com/v1/chat/completions"
 
 # 设置你的 Proxy，默认使用HTTPS_PROXY环境变量
-CURL_PROXY = os.getenv('HTTPS_PROXY', '')
+HTTP_PROXY = os.getenv('HTTPS_PROXY', '')
 
 def get_git_diff(diff_type):
     try:
@@ -44,15 +44,15 @@ def generate_commit_message(diff):
         "temperature": 0.7,
     }
     proxies = {
-        "https": CURL_PROXY,
-    } if CURL_PROXY else {}
+        "https": HTTP_PROXY,
+    } if HTTP_PROXY else {}
 
     try:
         response = requests.post(LLM_URL,
                                  headers=headers,
                                  proxies=proxies,
                                  json=payload,
-                                 timeout=5)
+                                 timeout=20)
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
     except requests.RequestException as e:
@@ -94,7 +94,7 @@ def main():
         return
 
     # 提交代码
-    print("提交代码...")
+    print("git commit...")
     try:
         subprocess.run(['git', 'commit', '-m', commit_message], check=True)
     except subprocess.CalledProcessError as e:

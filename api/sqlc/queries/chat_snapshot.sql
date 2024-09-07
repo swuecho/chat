@@ -30,6 +30,8 @@ RETURNING *;
 -- name: ChatSnapshotByUUID :one
 SELECT * FROM chat_snapshot WHERE uuid = $1;
 
+-- name: ChatSnapshotByUserIdAndUuid :one
+SELECT * FROM chat_snapshot WHERE user_id = $1 AND uuid = $2;
 
 -- name: ChatSnapshotMetaByUserID :many
 SELECT uuid, title, summary, tags, created_at, typ 
