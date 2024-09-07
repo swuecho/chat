@@ -1389,32 +1389,58 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		return "", "", true
 	}
 
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY", chatSession.Model)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=$GEMINI_API_KEY", chatSession.Model)
+	if stream {
+		url = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY", chatSession.Model)
+	}
 	
 	url = os.ExpandEnv(url)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		// handle err
 		fmt.Println("Error while creating request: ", err)
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "create request to gemini api").Error(), err)
+		return "", "", true
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	// create the http client and send the request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error while sending request: ", err)
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
+		return "", "", true
+	}
+	defer resp.Body.Close()
+
+	answer_id := chatUuid
+	if !regenerate {
+		answer_id = NewUUID()
 	}
 
-	ioreader := bufio.NewReader(resp.Body)
+	if !stream {
+		// Handle non-streaming response
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error reading response body").Error(), err)
+			return "", "", true
+		}
+		// body to GeminiResponse
+		var geminiResp gemini.ResponseBody
+		err = json.Unmarshal(body, &geminiResp)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error unmarshalling response body").Error(), err)
+			return "", "", true
+		}
+		answer := geminiResp.Candidates[0].Content.Parts[0].Text
+		response := constructChatCompletionStreamReponse(answer_id, answer)
+		data, _ := json.Marshal(response)
+		fmt.Fprint(w, string(data))
+		return answer, answer_id, false
+	}
 
-	// read the response body
-	defer resp.Body.Close()
+	// Handle streaming response
 	setSSEHeader(w)
-
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
@@ -1422,18 +1448,12 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	}
 
 	var answer string
-	answer_id := chatUuid
-	if !regenerate {
-		answer_id = NewUUID()
-	}
-
 	var headerData = []byte("data: ")
+	ioreader := bufio.NewReader(resp.Body)
 
-	// loop over the response body and print data
 	count := 0
 	for {
 		count++
-		// prevent infinite loop
 		if count > 10000 {
 			break
 		}
@@ -1441,9 +1461,8 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				fmt.Println("End of stream reached")
-				break // Exit loop if end of stream
+				break
 			} else {
-				// 2024/05/20 15:56:12 http: superfluous response.WriteHeader call from github.com/gorilla/handlers.(*responseLogger).WriteHeader (handlers.go:61)
 				fmt.Printf("Error while reading response: %+v", err)
 				return "", "", true
 			}
@@ -1460,5 +1479,4 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		}
 	}
 	return answer, answer_id, false
-
 }
