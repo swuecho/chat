@@ -48,7 +48,7 @@ func (h *ChatHandler) Register(router *mux.Router) {
 	// for bot
 	// given a chat_uuid, a user message, return the answer
 	//
-	router.HandleFunc("/chat_bot", h.ChatBotCompletionHandler).Methods(http.MethodPost)
+	router.HandleFunc("/chatbot", h.ChatBotCompletionHandler).Methods(http.MethodPost)
 }
 
 type ChatRequest struct {
@@ -86,15 +86,15 @@ func NewUserMessage(content string) openai.ChatCompletionMessage {
 	return openai.ChatCompletionMessage{Role: "user", Content: content}
 }
 
-
 type BotRequest struct {
-	Message string
-	SnapshotUuid string
-	Stream       bool
+	Message      string `json:"message"`
+	SnapshotUuid string `json:"snapshot_uuid"`
+	Stream       bool   `json:"stream"`
 }
 
+
 // ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
-func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req BotRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -149,7 +149,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
-func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
