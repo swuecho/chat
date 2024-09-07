@@ -37,7 +37,7 @@ def generate_commit_message(diff):
         "messages": [
             {
                 "role": "user",
-                "content": f"write a concise commit message：\n\n{diff}\n\nCommit message:",
+                "content": f"write a concise commit message in plain text：\n\n{diff}\n\nCommit message:",
             }
         ],
         "max_tokens": 100,
