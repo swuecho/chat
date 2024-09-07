@@ -121,6 +121,7 @@
     },
     "common": {
         "ask_user_register": "Please register, only registered accounts can continue the conversation",
+        "cancel": "Cancel",
         "clear": "Clear",
         "confirm": "Confirm",
         "delete": "Delete",
@@ -176,6 +177,9 @@
     "setting": {
         "admin": "Admin",
         "api": "API",
+        "apiToken": "API Token",
+        "apiTokenCopied": "API Token copied",
+        "apiTokenCopyFailed": "Failed to copy API Token",
         "avatarLink": "Avatar Link",
         "chatHistory": "Chat History",
         "config": "Configuration",

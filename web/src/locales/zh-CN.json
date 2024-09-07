@@ -165,6 +165,7 @@
     "defaultName": "你",
     "defaultDesc": "签名",
     "snapshotLink": "会话集",
+    "apiToken": "API Token",
     "description": "描述",
     "resetUserInfo": "重置用户信息",
     "chatHistory": "聊天记录",
@@ -174,7 +175,9 @@
     "api": "API",
     "reverseProxy": "反向代理",
     "timeout": "超时",
-    "socks": "Socks"
+    "socks": "Socks",
+    "apiTokenCopied": "API Token 已复制",
+    "apiTokenCopyFailed": "无法复制 API Token"
   },
   "error": {
     "system_message_notice": "第一条是系统消息已经是收到, 请继续输入信息开始会话",

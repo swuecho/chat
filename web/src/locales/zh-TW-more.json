@@ -1,20 +1,10 @@
 {
-        "bot": {
-            "list": "機器人列表",
-            "all": {
-                "title": "機器人列表"
-            }
-        },
-        "chat": {
-            "chatSettings": "對話設定",
-            "uploadFiles": "上傳檔案",
-            "createBot": "建立機器人"
-        },
-        "admin": {
-            "chat_model": {
-                "enablePerModeRatelimit": "是否單獨流控",
-                "isEnable": "是否啟用"
-            }
-        }
-    }
-    
+  "common": {
+    "cancel": "取消"
+  },
+  "setting": {
+    "apiToken": "API Token",
+    "apiTokenCopied": "API Token 已複製",
+    "apiTokenCopyFailed": "無法複製 API Token"
+  }
+}
