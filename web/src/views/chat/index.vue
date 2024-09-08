@@ -1,5 +1,5 @@
 <script lang='ts' setup>
-import Conversation from './Conversation.vue';
+import Conversation from './components/Conversation.vue';
 </script>
 
 <template>
