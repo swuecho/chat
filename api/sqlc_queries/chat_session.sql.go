@@ -322,7 +322,7 @@ const getChatSessionsByUserID = `-- name: GetChatSessionsByUserID :many
 SELECT cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.n, cs.summarize_mode, cs.debug
 FROM chat_session cs
 WHERE cs.user_id = $1 and cs.active = true
-ORDER BY cs.id
+ORDER BY cs.id DESC
 `
 
 func (q *Queries) GetChatSessionsByUserID(ctx context.Context, userID int32) ([]ChatSession, error) {

@@ -75,7 +75,7 @@ returning *;
 SELECT cs.*
 FROM chat_session cs
 WHERE cs.user_id = $1 and cs.active = true
-ORDER BY cs.id;
+ORDER BY cs.id DESC;
 
 -- name: HasChatSessionPermission :one
 SELECT COUNT(*) > 0 as has_permission
