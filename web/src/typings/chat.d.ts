@@ -78,4 +78,24 @@ declare namespace Chat {
 		userEmail: string
 		rateLimit: string
 	}
+
+	
+}
+
+declare namespace Snapshot {
+
+	interface Snapshot {
+		uuid: string;
+		title: string;
+		summary: string;
+		tags: Record<string, unknown>;
+		createdAt: string;
+		typ: 'chatbot' | 'snapshot';
+	      }
+	      
+	interface PostLink {
+		uuid: string;
+		date: string;
+		title: string;
+	}
 }
