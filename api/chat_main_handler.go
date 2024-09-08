@@ -250,18 +250,6 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 
-	// check if total tokens exceed limit
-	// context window, max token
-	// totalTokens := totalInputToken(msgs)
-	// if totalTokens > chatSession.MaxTokens {
-	// 	RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
-	// 		map[string]interface{}{
-	// 			"max_tokens":   chatSession.MaxTokens,
-	// 			"total_tokens": totalTokens,
-	// 		})
-	// 	return
-	// }
-
 	chatStreamFn := h.chooseChatStreamFn(chatSession, msgs)
 
 	answerText, answerID, shouldReturn := chatStreamFn(w, chatSession, msgs, chatUuid, false, streamOutput)
@@ -385,8 +373,7 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 
 	completionModel := mapset.NewSet[string]()
 
-	completionModel.Add(openai.GPT3TextDavinci003)
-	completionModel.Add(openai.GPT3TextDavinci002)
+	// completionModel.Add(openai.GPT3TextDavinci002)
 	isCompletion := completionModel.Contains(model)
 	isCustom := strings.HasPrefix(model, "custom-")
 
