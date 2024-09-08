@@ -437,6 +437,16 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 			Model:  rate.ChatModelName,
 		})
 
+	if err != nil {
+		// no rows
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
+			return true 
+		}
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
+		return true
+	}
+
 	log.Printf("%+v", usage10Min)
 
 	if int32(usage10Min) > rate.RateLimit {
