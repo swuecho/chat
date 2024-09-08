@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getChatKeys, getLocalState, } from './helper'
+import { getChatKeys, getLocalState } from './helper'
 import { router } from '@/router'
 import {
   clearSessionChatMessages,
@@ -56,13 +56,9 @@ export const useChatStore = defineStore('chat-store', {
       await router.push({ name: 'Chat', params: { uuid } })
     },
 
-
     async syncChatSessions() {
-      const sessions = await getChatSessionsByUser()
-      this.history = []
-      await sessions.forEach(async (r: Chat.Session) => {
-        this.history.unshift(r)
-      })
+      this.history = await getChatSessionsByUser()
+
       if (this.history.length === 0) {
         const new_chat_text = t('chat.new')
         this.addChatSession(await getChatSessionDefault(new_chat_text))
