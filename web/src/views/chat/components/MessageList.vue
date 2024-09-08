@@ -9,7 +9,7 @@
 import Message from './Message/index.vue';
 import { computed, ref } from 'vue';
 import { useChatStore } from '@/store';
-import { useChat } from '../hooks/useChat'
+import { useChat } from '@/views/chat/hooks/useChat'
 import { updateChatData } from '@/api'
 import { useDialog } from 'naive-ui'
 
