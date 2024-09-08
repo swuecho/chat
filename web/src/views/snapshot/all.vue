@@ -3,54 +3,29 @@ import { onMounted, ref } from 'vue'
 import { NModal, useDialog, useMessage } from 'naive-ui'
 import Search from './components/Search.vue'
 import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
-import { displayLocaleDate, formatYearMonth } from '@/utils/date'
 import { HoverButton, SvgIcon } from '@/components/common'
+import { getSnapshotPostLinks } from '@/service/snapshot'
 import { t } from '@/locales'
 const dialog = useDialog()
 const nui_msg = useMessage()
 const search_visible = ref(false)
 
-interface PostLink {
-  uuid: string
-  date: string
-  title: string
-}
-
 function post_url(uuid: string): string {
   return `#/snapshot/${uuid}`
 }
 
-const postsByYearMonth = ref<Record<string, PostLink[]>>({})
-
-function postsByYearMonthTransform(posts: PostLink[]) {
-  const init: Record<string, PostLink[]> = {}
-  return posts.reduce((acc, post) => {
-    const yearMonth = formatYearMonth(new Date(post.date))
-    if (!acc[yearMonth])
-      acc[yearMonth] = []
-
-    acc[yearMonth].push(post)
-    return acc
-  }, init)
-}
-
-async function getPostLinks() {
-  const rawPosts = await fetchSnapshotAll()
-  const rawPostsFormated = rawPosts.filter( (post: any) => post.typ === 'snapshot' ).map((post: any) => {
-    return {
-      uuid: post.uuid,
-      date: displayLocaleDate(post.createdAt),
-      title: post.title,
-    }
-  })
-  return postsByYearMonthTransform(rawPostsFormated)
-}
+const postsByYearMonth = ref<Record<string, Snapshot.PostLink[]>>({})
 
 onMounted(async () => {
-  postsByYearMonth.value = await getPostLinks()
+  await refreshSnapshot()
 })
 
-function handleDelete(post: PostLink) {
+async function refreshSnapshot() {
+  const snapshots: Snapshot.Snapshot[] = await fetchSnapshotAll()
+  postsByYearMonth.value = getSnapshotPostLinks(snapshots)
+}
+
+function handleDelete(post: Snapshot.PostLink) {
   const dialogBox = dialog.warning({
     title: t('chat_snapshot.deletePost'),
     content: post.title,
@@ -60,7 +35,7 @@ function handleDelete(post: PostLink) {
       try {
         dialogBox.loading = true
         await fetchSnapshotDelete(post.uuid)
-        postsByYearMonth.value = await getPostLinks()
+        await refreshSnapshot()
         dialogBox.loading = false
         nui_msg.success(t('chat_snapshot.deleteSuccess'))
         Promise.resolve()
