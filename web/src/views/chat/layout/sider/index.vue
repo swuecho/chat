@@ -34,7 +34,7 @@ async function handleAdd() {
   //   "debug": false
   // }//
   const default_model_parameters = await getChatSessionDefault(new_chat_text)
-  chatStore.addChatSession(default_model_parameters)
+  await chatStore.addChatSession(default_model_parameters)
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
 }

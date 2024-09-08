@@ -61,7 +61,7 @@ export const useChatStore = defineStore('chat-store', {
 
       if (this.history.length === 0) {
         const new_chat_text = t('chat.new')
-        this.addChatSession(await getChatSessionDefault(new_chat_text))
+        await this.addChatSession(await getChatSessionDefault(new_chat_text))
       }
 
       let active_session_uuid = this.history[0].uuid
@@ -86,8 +86,8 @@ export const useChatStore = defineStore('chat-store', {
       }
     },
 
-    addChatSession(history: Chat.Session, chatData: Chat.Message[] = []) {
-      createChatSession(history.uuid, history.title, history.model)
+    async addChatSession(history: Chat.Session, chatData: Chat.Message[] = []) {
+      await createChatSession(history.uuid, history.title, history.model)
       this.history.unshift(history)
       this.chat[history.uuid] = chatData
       this.active = history.uuid
