@@ -27,11 +27,17 @@ import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import { getDataFromResponseText } from '@/utils/string'
 let controller = new AbortController()
 
-const route = useRoute()
 const dialog = useDialog()
 const nui_msg = useMessage()
 
 const chatStore = useChatStore()
+
+const { sessionUuid } = defineProps({
+        sessionUuid: {
+                type: String,
+                required: true
+        },
+});
 
 useCopyCode()
 
@@ -39,7 +45,6 @@ const { isMobile } = useBasicLayout()
 const { addChat, updateChat, updateChatPartial } = useChat()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
 // session uuid
-const { uuid: sessionUuid } = route.params as { uuid: string }
 chatStore.syncChatMessages(sessionUuid)
 
 const dataSources = computed(() => chatStore.getChatSessionDataByUuid(sessionUuid))
