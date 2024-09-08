@@ -4,19 +4,19 @@ import { NModal, useDialog, useMessage } from 'naive-ui'
 import Search from '../snapshot/components/Search.vue'
 import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
-import { generateAPIHelper, post_url, getPostLinks } from '@/service/bot'
+import { generateAPIHelper, getBotPostLinks } from '@/service/snapshot'
 import request from '@/utils/request/axios'
 import { t } from '@/locales'
 const dialog = useDialog()
 const nui_msg = useMessage()
+
 const search_visible = ref(false)
 const apiToken = ref('')
 
 const postsByYearMonth = ref<Record<string, Snapshot.PostLink[]>>({})
 
 onMounted(async () => {
-  const rawPosts: Snapshot.Snapshot[] = await fetchSnapshotAll()
-  postsByYearMonth.value = getPostLinks(rawPosts)
+  await refreshSnapshot()
   try {
     const response = await request.get('/token_10years')
     if (response.status === 200) {
@@ -30,6 +30,12 @@ onMounted(async () => {
   }
 })
 
+
+async function refreshSnapshot() {
+  const bots: Snapshot.Snapshot[] = await fetchSnapshotAll()
+  postsByYearMonth.value = getBotPostLinks(bots)
+}
+
 function handleDelete(post: Snapshot.PostLink) {
   const dialogBox = dialog.warning({
     title: t('chat_snapshot.deletePost'),
@@ -40,8 +46,7 @@ function handleDelete(post: Snapshot.PostLink) {
       try {
         dialogBox.loading = true
         await fetchSnapshotDelete(post.uuid)
-        const snapshots: Snapshot.Snapshot[] = await fetchSnapshotAll()
-        postsByYearMonth.value = getPostLinks(snapshots)
+        await refreshSnapshot()
         dialogBox.loading = false
         nui_msg.success(t('chat_snapshot.deleteSuccess'))
         Promise.resolve()
@@ -56,9 +61,6 @@ function handleDelete(post: Snapshot.PostLink) {
   })
 }
 
-function genAPIHelper(post: Snapshot.PostLink) {
-  return generateAPIHelper(post.uuid, apiToken.value, window.location.origin)
-}
 
 function handleShowCode(post: Snapshot.PostLink) {
   const dialogBox = dialog.info({
@@ -73,6 +75,17 @@ function handleShowCode(post: Snapshot.PostLink) {
     },
   })
 }
+
+
+function post_url(uuid: string): string {
+        return `#/bot/${uuid}`
+}
+
+function genAPIHelper(post: Snapshot.PostLink) {
+  return generateAPIHelper(post.uuid, apiToken.value, window.location.origin)
+}
+
+
 </script>
 
 <template>
@@ -111,7 +124,7 @@ function handleShowCode(post: Snapshot.PostLink) {
                 <div class="flex">
                   <time :datetime="post.date" class="mb-1 text-sm font-medium text-gray-600">{{
                     post.date
-                  }}</time>
+                    }}</time>
                   <div class="ml-2 text-sm" @click="handleDelete(post)">
                     <SvgIcon icon="ic:baseline-delete-forever" />
                   </div>

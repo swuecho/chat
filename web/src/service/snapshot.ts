@@ -1,9 +1,7 @@
 import { displayLocaleDate, formatYearMonth } from '@/utils/date'
 
 
-export function post_url(uuid: string): string {
-        return `#/bot/${uuid}`
-}
+
 
 
 export function generateAPIHelper(uuid: string, apiToken: string, origin: string) {
@@ -25,6 +23,16 @@ export function getChatbotPosts(posts: Snapshot.Snapshot[]) {
                 }))
 }
 
+export function getSnapshotPosts(posts: Snapshot.Snapshot[]) {
+        return posts
+                .filter((post: Snapshot.Snapshot) => post.typ === 'snapshot')
+                .map((post: Snapshot.Snapshot): Snapshot.PostLink => ({
+                        uuid: post.uuid,
+                        date: displayLocaleDate(post.createdAt),
+                        title: post.title,
+                }))
+}
+
 export function postsByYearMonthTransform(posts: Snapshot.PostLink[]) {
         const init: Record<string, Snapshot.PostLink[]> = {}
         return posts.reduce((acc, post) => {
@@ -37,7 +45,12 @@ export function postsByYearMonthTransform(posts: Snapshot.PostLink[]) {
         }, init)
 }
 
-export function getPostLinks(snapshots: Snapshot.Snapshot[]): Record<string, Snapshot.PostLink[]> {
-        const chatbotPosts = getChatbotPosts(snapshots)
+export function getSnapshotPostLinks(snapshots: Snapshot.Snapshot[]): Record<string, Snapshot.PostLink[]> {
+        const snapshotPosts = getSnapshotPosts(snapshots)
+        return postsByYearMonthTransform(snapshotPosts)
+}
+
+export function getBotPostLinks(bots: Snapshot.Snapshot[]): Record<string, Snapshot.PostLink[]> {
+        const chatbotPosts = getChatbotPosts(bots)
         return postsByYearMonthTransform(chatbotPosts)
 }
