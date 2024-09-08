@@ -102,7 +102,6 @@ export const useChatStore = defineStore('chat-store', {
       const index = this.history.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
         this.history[index] = { ...this.history[index], ...edit }
-        // update chat session
         await fetchUpdateChatByUuid(uuid, this.history[index])
       }
     },
@@ -110,7 +109,6 @@ export const useChatStore = defineStore('chat-store', {
     async updateChatSessionIfEdited(uuid: string, edit: Partial<Chat.Session>) {
       const index = this.history.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
-        // set inactive session to edit mode = false
         if (this.history[index].isEdit) {
           this.history[index] = { ...this.history[index], ...edit }
           await fetchUpdateChatByUuid(uuid, this.history[index])
@@ -165,7 +163,6 @@ export const useChatStore = defineStore('chat-store', {
           return this.chat[keys[0]][index]
         return null
       }
-      // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
       if (keys.includes(uuid))
         return this.chat[uuid][index]
       return null
@@ -178,15 +175,12 @@ export const useChatStore = defineStore('chat-store', {
         if (this.history.length === 0) {
           const default_model_parameters = await getChatSessionDefault(new_chat_text)
           const uuid = default_model_parameters.uuid;
-          createChatSession(uuid, chat.text, default_model_parameters.model)
+          await createChatSession(uuid, chat.text, default_model_parameters.model)
           this.history.push({ uuid, title: chat.text, isEdit: false })
-          // first chat message is prompt
-          // this.chat.push({ uuid, data: [{ ...chat, isPrompt: true, isPin: false }] })
           this.chat[uuid] = [{ ...chat, isPrompt: true, isPin: false }]
           this.active = uuid
         }
         else {
-          // this.chat[0].data.push(chat)
           this.chat[keys[0]].push(chat)
           if (this.history[0].title === new_chat_text) {
             this.history[0].title = chat.text
@@ -195,7 +189,6 @@ export const useChatStore = defineStore('chat-store', {
         }
       }
 
-      // const index = this.chat.findIndex(item => item.uuid === uuid)
       if (keys.includes(uuid)) {
         if (this.chat[uuid].length === 0)
           this.chat[uuid].push({ ...chat, isPrompt: true, isPin: false })
@@ -218,7 +211,6 @@ export const useChatStore = defineStore('chat-store', {
         return
       }
 
-      // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
       if (keys.includes(uuid)) {
         this.chat[uuid][index] = chat
       }
@@ -237,7 +229,6 @@ export const useChatStore = defineStore('chat-store', {
         return
       }
 
-      // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
       if (keys.includes(uuid)) {
         this.chat[uuid][index] = {
           ...this.chat[uuid][index],
@@ -259,7 +250,6 @@ export const useChatStore = defineStore('chat-store', {
         return
       }
 
-      // const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
       if (keys.includes(uuid)) {
         const chatData = this.chat[uuid]
         const chat = chatData[index]
@@ -270,7 +260,6 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     clearChatByUuid(uuid: string) {
-      // does this every happen?
       const [keys, keys_length] = getChatKeys(this.chat)
       if (!uuid) {
         if (keys_length) {
