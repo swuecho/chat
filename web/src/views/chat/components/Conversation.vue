@@ -2,7 +2,6 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 // @ts-ignore
 import { v7 as uuidv7 } from 'uuid'
-import { useRoute } from 'vue-router'
 import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'

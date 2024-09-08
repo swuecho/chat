@@ -1,19 +1,14 @@
 const default_chat_data: Chat.ChatState = {
-  active: null,
-  history: [],
-  chat: {},
+  active: null, // uuid | null
+  history: [], // Chat.Session[]
+  chat: {}, // { [key: string]: Chat.ChatMessage[] }
 }
 
 export function getLocalState(): Chat.ChatState {
   return default_chat_data
 }
 
-export function check_chat(chat: Chat.ChatState['chat'], need_length = true) {
+export function getChatKeys(chat: Chat.ChatState['chat'], includeLength = true) {
   const keys = Object.keys(chat)
-  const data: [Array<string>, number?] = [keys]
-  if (need_length) {
-    const keys_length = keys.length
-    data.push(keys_length)
-  }
-  return data
+  return includeLength ? [keys, keys.length] as const : [keys]
 }
