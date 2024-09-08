@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { check_chat, getLocalState, } from './helper'
+import { getChatKeys, getLocalState, } from './helper'
 import { router } from '@/router'
 import {
   clearSessionChatMessages,
@@ -159,7 +159,7 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     getChatByUuidAndIndex(uuid: string, index: number) {
-      const [keys, keys_length] = check_chat(this.chat)
+      const [keys, keys_length] = getChatKeys(this.chat)
       if (!uuid) {
         if (keys_length)
           return this.chat[keys[0]][index]
@@ -173,7 +173,7 @@ export const useChatStore = defineStore('chat-store', {
 
     async addChatByUuid(uuid: string, chat: Chat.Message) {
       const new_chat_text = t('chat.new')
-      const [keys] = check_chat(this.chat, false)
+      const [keys] = getChatKeys(this.chat, false)
       if (!uuid) {
         if (this.history.length === 0) {
           const default_model_parameters = await getChatSessionDefault(new_chat_text)
@@ -210,8 +210,7 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     async updateChatByUuid(uuid: string, index: number, chat: Chat.Message) {
-      // TODO: sync with server
-      const [keys, keys_length] = check_chat(this.chat)
+      const [keys, keys_length] = getChatKeys(this.chat)
       if (!uuid) {
         if (keys_length) {
           this.chat[keys[0]][index] = chat
@@ -230,7 +229,7 @@ export const useChatStore = defineStore('chat-store', {
       index: number,
       chat: Partial<Chat.Message>,
     ) {
-      const [keys, keys_length] = check_chat(this.chat)
+      const [keys, keys_length] = getChatKeys(this.chat)
       if (!uuid) {
         if (keys_length) {
           this.chat[keys[0]][index] = { ...this.chat[keys[0]][index], ...chat }
@@ -248,7 +247,7 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     async deleteChatByUuid(uuid: string, index: number) {
-      const [keys, keys_length] = check_chat(this.chat)
+      const [keys, keys_length] = getChatKeys(this.chat)
       if (!uuid) {
         if (keys_length) {
           const chatData = this.chat[keys[0]]
@@ -272,15 +271,13 @@ export const useChatStore = defineStore('chat-store', {
 
     clearChatByUuid(uuid: string) {
       // does this every happen?
-      const [keys, keys_length] = check_chat(this.chat)
+      const [keys, keys_length] = getChatKeys(this.chat)
       if (!uuid) {
         if (keys_length) {
           this.chat[keys[0]] = []
         }
         return
       }
-
-      // const index = this.chat.findIndex(item => item.uuid === uuid)
       if (keys.includes(uuid)) {
         const data: Chat.Message[] = []
         for (const chat of this.chat[uuid]) {
