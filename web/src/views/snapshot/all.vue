@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { NModal, useDialog, useMessage } from 'naive-ui'
+import { useDialog, useMessage } from 'naive-ui'
 import Search from './components/Search.vue'
 import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
@@ -10,60 +9,43 @@ import { t } from '@/locales'
 import { useAuthStore } from '@/store'
 import Permission from '@/views/components/Permission.vue'
 const dialog = useDialog()
-const nui_msg = useMessage()
-const search_visible = ref(false)
-const router = useRouter()
-
-function post_url(uuid: string): string {
-  return `#/snapshot/${uuid}`
-}
-
+const message = useMessage()
+const searchVisible = ref(false)
 const postsByYearMonth = ref<Record<string, Snapshot.PostLink[]>>({})
-
-onMounted(async () => {
-  await refreshSnapshot()
-})
-
 const authStore = useAuthStore()
 
 const needPermission = computed(() => !authStore.isValid)
 
+onMounted(refreshSnapshot)
+
+function postUrl(uuid: string): string {
+  return `#/snapshot/${uuid}`
+}
+
 async function refreshSnapshot() {
   try {
-    const snapshots: Snapshot.Snapshot[] = await fetchSnapshotAll()
+    const snapshots = await fetchSnapshotAll()
     postsByYearMonth.value = getSnapshotPostLinks(snapshots)
-  }
-  catch (error: any) {
-    // if (error.response.status === 401) {
-    //   nui_msg.error(t('common.unauthorized'))
-    //   router.push('/#login')
-    // }
-    // else {
-    //   nui_msg.error(t('common.error'))
-    // }
+  } catch (error) {
+    console.error('Failed to fetch snapshots:', error)
+    // Error handling can be implemented here
   }
 }
 
 function handleDelete(post: Snapshot.PostLink) {
-  const dialogBox = dialog.warning({
+  dialog.warning({
     title: t('chat_snapshot.deletePost'),
     content: post.title,
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: async () => {
       try {
-        dialogBox.loading = true
         await fetchSnapshotDelete(post.uuid)
         await refreshSnapshot()
-        dialogBox.loading = false
-        nui_msg.success(t('chat_snapshot.deleteSuccess'))
-        Promise.resolve()
-      }
-      catch (error: any) {
-        nui_msg.error(t('chat_snapshot.deleteFailed'))
-      }
-      finally {
-        dialogBox.loading = false
+        message.success(t('chat_snapshot.deleteSuccess'))
+      } catch (error) {
+        message.error(t('chat_snapshot.deleteFailed'))
+        console.error('Failed to delete snapshot:', error)
       }
     },
   })
@@ -85,17 +67,17 @@ function handleDelete(post: Snapshot.PostLink) {
         </h1>
       </div>
       <div class="mr-10">
-        <HoverButton @click="search_visible = true">
+        <HoverButton @click="searchVisible = true">
           <SvgIcon icon="ic:round-search" class="text-2xl" />
         </HoverButton>
-        <NModal v-model:show="search_visible" preset="dialog">
+        <NModal v-model:show="searchVisible" preset="dialog">
           <Search />
         </NModal>
       </div>
     </header>
-    <Permission :visible="needPermission" />
     <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-      <div class="max-w-screen-xl px-4 py-8 mx-auto">
+      <Permission :visible="needPermission" />
+      <div v-if="!needPermission" class="max-w-screen-xl px-4 py-8 mx-auto">
         <div v-for="[yearMonth, postsOfYearMonth] in Object.entries(postsByYearMonth)" :key="yearMonth"
           class="flex mb-2">
           <h2 class="flex-none w-28 text-lg font-medium">
@@ -112,7 +94,7 @@ function handleDelete(post: Snapshot.PostLink) {
                     <SvgIcon icon="ic:baseline-delete-forever" />
                   </div>
                 </div>
-                <a :href="post_url(post.uuid)" :title="post.title"
+                <a :href="postUrl(post.uuid)" :title="post.title"
                   class="block text-xl font-semibold text-gray-900 hover:text-blue-600 mb-2">{{ post.title }}</a>
               </div>
             </li>
