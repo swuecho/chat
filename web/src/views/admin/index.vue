@@ -20,13 +20,13 @@ const USER_ROUTE = 'AdminUser'
 const MODEL_ROUTE = 'AdminModel'
 const MODELRATELIMIT_ROUTUE = 'ModelRateLimit'
 
-const needPermission = computed(() => !authStore.token) // || (!!authStore.token && authStore.expiresIn < Date.now() / 1000))
+const needPermission = computed(() => !authStore.isValid)
 
 const collapsed: Ref<boolean> = ref(false)
 const activeKey = ref(currentRoute.name?.toString())
 
 const getMobileClass = computed<CSSProperties>(() => {
-    if (isMobile.value) {
+  if (isMobile.value) {
     return {
       zIndex: 50,
     }
@@ -94,40 +94,39 @@ function handleChatHome() {
 </script>
 
 <template>
-    <div class="h-full flex flex-col" :class="getMobileClass">
-      <header
-        class="sticky flex flex-shrink-0 items-center justify-between  overflow-hidden h-14 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur">
-        <h1 v-if="isMobile"
-          class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
-          Admin
-        </h1>
-        <div v-if="isMobile" class="flex items-center">
-          <button class="flex items-center justify-center mr-5" @click="handleUpdateCollapsed">
-            <SvgIcon v-if="collapsed" class="text-2xl" icon="ri:align-justify" />
-            <SvgIcon v-else class="text-2xl" icon="ri:align-right" />
-          </button>
-        </div>
-        <h1 v-if="!isMobile"
-          class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap ml-16">
-          Admin
-        </h1>
-        <HoverButton @click="handleChatHome" class="mr-5">
-          <span class="text-xl text-[#4f555e] dark:text-white">
-            <SvgIcon icon="ic:baseline-home" />
-          </span>
-        </HoverButton>
-      </header>
-        <NLayout has-sider class="flex-1 overflow-y-auto">
-          <NLayoutSider bordered collapse-mode="width" :width="240"  :collapsed="collapsed"  :collapsed-width="isMobile ? 0 : 64"
-            :show-trigger="isMobile ? false : 'arrow-circle'" :style="getMobileClass" @collapse="collapsed = true"
-            @expand="collapsed = false">
-            <NMenu v-model:value="activeKey" :collapsed="collapsed"  :collapsed-icon-size="22"
-              :options="menuOptions" />
-          </NLayoutSider>
-          <NLayout>
-            <router-view />
-            <Permission :visible="needPermission" />
-          </NLayout>
-        </NLayout>
-    </div>
+  <div class="h-full flex flex-col" :class="getMobileClass">
+    <header
+      class="sticky flex flex-shrink-0 items-center justify-between  overflow-hidden h-14 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur">
+      <h1 v-if="isMobile"
+        class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap">
+        Admin
+      </h1>
+      <div v-if="isMobile" class="flex items-center">
+        <button class="flex items-center justify-center mr-5" @click="handleUpdateCollapsed">
+          <SvgIcon v-if="collapsed" class="text-2xl" icon="ri:align-justify" />
+          <SvgIcon v-else class="text-2xl" icon="ri:align-right" />
+        </button>
+      </div>
+      <h1 v-if="!isMobile"
+        class="flex-1 px-4 pr-6 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap ml-16">
+        Admin
+      </h1>
+      <HoverButton @click="handleChatHome" class="mr-5">
+        <span class="text-xl text-[#4f555e] dark:text-white">
+          <SvgIcon icon="ic:baseline-home" />
+        </span>
+      </HoverButton>
+    </header>
+    <NLayout has-sider class="flex-1 overflow-y-auto">
+      <NLayoutSider bordered collapse-mode="width" :width="240" :collapsed="collapsed"
+        :collapsed-width="isMobile ? 0 : 64" :show-trigger="isMobile ? false : 'arrow-circle'" :style="getMobileClass"
+        @collapse="collapsed = true" @expand="collapsed = false">
+        <NMenu v-model:value="activeKey" :collapsed="collapsed" :collapsed-icon-size="22" :options="menuOptions" />
+      </NLayoutSider>
+      <NLayout>
+        <router-view />
+        <Permission :visible="needPermission" />
+      </NLayout>
+    </NLayout>
+  </div>
 </template>
