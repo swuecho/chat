@@ -5,16 +5,16 @@ import Search from '../snapshot/components/Search.vue'
 import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { generateAPIHelper, getBotPostLinks } from '@/service/snapshot'
-import request from '@/utils/request/axios'
+import { fetchAPIToken } from '@/api/token'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store'
 import Permission from '@/views/components/Permission.vue'
 const authStore = useAuthStore()
 
 const dialog = useDialog()
-const nui_msg = useMessage()
+const message = useMessage()
 
-const search_visible = ref(false)
+const searchVisible = ref(false)
 const apiToken = ref('')
 
 const needPermission = computed(() => !authStore.isValid)
@@ -23,17 +23,8 @@ const postsByYearMonth = ref<Record<string, Snapshot.PostLink[]>>({})
 
 onMounted(async () => {
   await refreshSnapshot()
-  try {
-    const response = await request.get('/token_10years')
-    if (response.status === 200) {
-      apiToken.value = response.data.accessToken
-    }
-    else {
-      nui_msg.error('Failed to fetch API token')
-    }
-  } catch (error) {
-    nui_msg.error('Error fetching API token')
-  }
+  const data = await fetchAPIToken()
+  apiToken.value = data.accessToken
 })
 
 
@@ -43,25 +34,19 @@ async function refreshSnapshot() {
 }
 
 function handleDelete(post: Snapshot.PostLink) {
-  const dialogBox = dialog.warning({
+  dialog.warning({
     title: t('chat_snapshot.deletePost'),
     content: post.title,
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: async () => {
       try {
-        dialogBox.loading = true
         await fetchSnapshotDelete(post.uuid)
         await refreshSnapshot()
-        dialogBox.loading = false
-        nui_msg.success(t('chat_snapshot.deleteSuccess'))
-        Promise.resolve()
+        message.success(t('chat_snapshot.deleteSuccess'))
       }
       catch (error: any) {
-        nui_msg.error(t('chat_snapshot.deleteFailed'))
-      }
-      finally {
-        dialogBox.loading = false
+        message.error(t('chat_snapshot.deleteFailed'))
       }
     },
   })
@@ -69,26 +54,23 @@ function handleDelete(post: Snapshot.PostLink) {
 
 
 function handleShowCode(post: Snapshot.PostLink) {
+  const code = generateAPIHelper(post.uuid, apiToken.value, window.location.origin)
   const dialogBox = dialog.info({
     title: t('bot.showCode'),
-    content: () => h('code', { class: 'whitespace-pre-wrap' }, genAPIHelper(post)),
+    content: () => h('code', { class: 'whitespace-pre-wrap' }, code),
     positiveText: t('common.copy'),
     onPositiveClick: () => {
       // copy to clipboard
-      navigator.clipboard.writeText(genAPIHelper(post))
+      navigator.clipboard.writeText(code)
       dialogBox.loading = false
-      nui_msg.success(t('common.success'))
+      message.success(t('common.success'))
     },
   })
 }
 
 
-function post_url(uuid: string): string {
-        return `#/bot/${uuid}`
-}
-
-function genAPIHelper(post: Snapshot.PostLink) {
-  return generateAPIHelper(post.uuid, apiToken.value, window.location.origin)
+function postUrl(uuid: string): string {
+  return `#/bot/${uuid}`
 }
 
 
@@ -109,10 +91,10 @@ function genAPIHelper(post: Snapshot.PostLink) {
         </h1>
       </div>
       <div class="mr-10">
-        <HoverButton @click="search_visible = true">
+        <HoverButton @click="searchVisible = true">
           <SvgIcon icon="ic:round-search" class="text-2xl" />
         </HoverButton>
-        <NModal v-model:show="search_visible" preset="dialog">
+        <NModal v-model:show="searchVisible" preset="dialog">
           <Search />
         </NModal>
       </div>
@@ -139,7 +121,7 @@ function genAPIHelper(post: Snapshot.PostLink) {
                     <SvgIcon icon="ic:outline-code" />
                   </div>
                 </div>
-                <a :href="post_url(post.uuid)" :title="post.title"
+                <a :href="postUrl(post.uuid)" :title="post.title"
                   class="block text-xl font-semibold text-gray-900 hover:text-blue-600 mb-2">{{ post.title }}</a>
               </div>
             </li>
