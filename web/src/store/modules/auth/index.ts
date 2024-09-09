@@ -13,6 +13,12 @@ export const useAuthStore = defineStore('auth-store', {
     expiresIn: getExpiresIn(),
   }),
 
+  getters: {
+    isValid(): boolean {
+      return !!(this.token && this.expiresIn && this.expiresIn > Date.now() / 1000)
+    },
+  },
+
   actions: {
     getToken() {
       return this.token
@@ -36,6 +42,7 @@ export const useAuthStore = defineStore('auth-store', {
       this.expiresIn = undefined
       removeExpiresIn()
     },
+
   },
 })
 

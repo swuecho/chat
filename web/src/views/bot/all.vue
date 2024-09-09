@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, h } from 'vue'
+import { computed, onMounted, ref, h } from 'vue'
 import { NModal, useDialog, useMessage } from 'naive-ui'
 import Search from '../snapshot/components/Search.vue'
 import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
@@ -7,11 +7,17 @@ import { HoverButton, SvgIcon } from '@/components/common'
 import { generateAPIHelper, getBotPostLinks } from '@/service/snapshot'
 import request from '@/utils/request/axios'
 import { t } from '@/locales'
+import { useAuthStore } from '@/store'
+import Permission from '@/views/components/Permission.vue'
+const authStore = useAuthStore()
+
 const dialog = useDialog()
 const nui_msg = useMessage()
 
 const search_visible = ref(false)
 const apiToken = ref('')
+
+const needPermission = computed(() => !authStore.isValid)
 
 const postsByYearMonth = ref<Record<string, Snapshot.PostLink[]>>({})
 
@@ -111,6 +117,7 @@ function genAPIHelper(post: Snapshot.PostLink) {
         </NModal>
       </div>
     </header>
+    <Permission :visible="needPermission" />
     <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
       <div class="max-w-screen-xl px-4 py-8 mx-auto">
         <div v-for="[yearMonth, postsOfYearMonth] in Object.entries(postsByYearMonth)" :key="yearMonth"
