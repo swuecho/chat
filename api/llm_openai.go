@@ -142,8 +142,7 @@ func genOpenAIConfig(chatModel sqlc_queries.ChatModel) (openai.ClientConfig, err
 		config = openai.DefaultConfig(token)
 		config.BaseURL = baseUrl
 		// two minutes timeout
-		config.HTTPClient.Timeout = 120 * time.Second
-
+		// config.HTTPClient.Timeout = 120 * time.Second
 		configOpenAIProxy(&config)
 	}
 	return config, err
