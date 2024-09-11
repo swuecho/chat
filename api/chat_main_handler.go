@@ -546,13 +546,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	if regenerate {
 		answer_id = chatUuid
 	}
-
-	initial_resp := constructChatCompletionStreamReponse(answer_id, "!!!!")
-	data, _ := json.Marshal(initial_resp)
-	fmt.Fprintf(w, "data: %v\n\n", string(data))
-	flusher.Flush()
-	log.Println("initial_resp")
-	time.Sleep(time.Second * 5)
+	
 	for {
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
