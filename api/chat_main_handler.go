@@ -456,7 +456,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	return false
 }
 
-func getPerWordStreamLimit() (int, error) {
+func getPerWordStreamLimit() int {
 	perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")
 
 	if perWordStreamLimitStr == "" {
@@ -465,10 +465,11 @@ func getPerWordStreamLimit() (int, error) {
 
 	perWordStreamLimit, err := strconv.Atoi(perWordStreamLimitStr)
 	if err != nil {
-		return 0, fmt.Errorf("per word stream limit error: %v", err)
+		log.Printf("get per word stream limit: %v", eris.Wrap(err, "get per word stream limit").Error())
+		return 200
 	}
 
-	return perWordStreamLimit, nil
+	return perWordStreamLimit
 }
 
 func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (string, string, bool) {
@@ -550,7 +551,8 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	data, _ := json.Marshal(initial_resp)
 	fmt.Fprintf(w, "data: %v\n\n", string(data))
 	flusher.Flush()
-
+	log.Println("initial_resp")
+	time.Sleep(time.Second * 5)
 	for {
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -587,11 +589,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		if answer_id == "" {
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
-		perWordStreamLimit, err := getPerWordStreamLimit()
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error(), nil)
-			return "", "", true
-		}
+		perWordStreamLimit := getPerWordStreamLimit()
 
 		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
 			resp := constructChatCompletionStreamReponse(answer_id, answer)
@@ -705,12 +703,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 		// concatenate all string builders into a single string
 		answer = textBuffer.String("\n\n")
 
-		perWordStreamLimit, err := getPerWordStreamLimit()
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error(), nil)
-			return "", "", true
-		}
-
+		perWordStreamLimit := getPerWordStreamLimit()
 		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
 			response := constructChatCompletionStreamReponse(answer_id, answer)
 			data, _ := json.Marshal(response)
