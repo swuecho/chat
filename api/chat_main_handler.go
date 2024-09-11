@@ -441,7 +441,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		// no rows
 		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
-			return true 
+			return true
 		}
 		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
 		return true
@@ -454,6 +454,21 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		return true
 	}
 	return false
+}
+
+func getPerWordStreamLimit() (int, error) {
+	perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")
+
+	if perWordStreamLimitStr == "" {
+		perWordStreamLimitStr = "200"
+	}
+
+	perWordStreamLimit, err := strconv.Atoi(perWordStreamLimitStr)
+	if err != nil {
+		return 0, fmt.Errorf("per word stream limit error: %v", err)
+	}
+
+	return perWordStreamLimit, nil
 }
 
 func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (string, string, bool) {
@@ -516,7 +531,12 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 	defer stream.Close()
 
-	setSSEHeader(w)
+	// setSSEHeader(w)
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -530,6 +550,11 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	if regenerate {
 		answer_id = chatUuid
 	}
+
+	initial_resp := constructChatCompletionStreamReponse(answer_id, "!!!!")
+	data, _ := json.Marshal(initial_resp)
+	fmt.Fprintf(w, "data: %v\n\n", string(data))
+	flusher.Flush()
 
 	for {
 		response, err := stream.Recv()
@@ -559,7 +584,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Delta.Content
 		textBuffer.appendByIndex(textIdx, delta)
-		// log.Println(delta)
+
 		if chatSession.Debug {
 			log.Printf("%s", delta)
 		}
@@ -567,21 +592,15 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		if answer_id == "" {
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
-		perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")
-
-		if perWordStreamLimitStr == "" {
-			perWordStreamLimitStr = "200"
-		}
-
-		perWordStreamLimit, err := strconv.Atoi(perWordStreamLimitStr)
+		perWordStreamLimit, err := getPerWordStreamLimit()
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("per word stream limit error: %v", err), nil)
+			RespondWithError(w, http.StatusInternalServerError, err.Error(), nil)
 			return "", "", true
 		}
 
 		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
-			response.Choices[0].Delta.Content = answer
-			data, _ := json.Marshal(response)
+			resp := constructChatCompletionStreamReponse(answer_id, answer)
+			data, _ := json.Marshal(resp)
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
 		}
@@ -691,7 +710,13 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 		// concatenate all string builders into a single string
 		answer = textBuffer.String("\n\n")
 
-		if strings.HasSuffix(delta, "\n") || len(answer) < 200 {
+		perWordStreamLimit, err := getPerWordStreamLimit()
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error(), nil)
+			return "", "", true
+		}
+
+		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
 			response := constructChatCompletionStreamReponse(answer_id, answer)
 			data, _ := json.Marshal(response)
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
@@ -1390,7 +1415,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	if stream {
 		url = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=$GEMINI_API_KEY", chatSession.Model)
 	}
-	
+
 	url = os.ExpandEnv(url)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
