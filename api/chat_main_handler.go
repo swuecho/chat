@@ -617,6 +617,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 		return "", "", true
 	}
 
+
 	client := openai.NewClientWithConfig(config)
 	// latest message contents
 	prompt := chat_compeletion_messages[len(chat_compeletion_messages)-1].Content
