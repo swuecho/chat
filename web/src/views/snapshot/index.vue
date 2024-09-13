@@ -167,7 +167,7 @@ function onScrollToTop() {
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
-              :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
+              :model="item?.model || snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
               :loading="item.loading" :index="index" />
           </div>
         </div>

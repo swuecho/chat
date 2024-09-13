@@ -12,6 +12,7 @@ type SimpleChatMessage struct {
 	Uuid      string `json:"uuid"`
 	DateTime  string `json:"dateTime"`
 	Text      string `json:"text"`
+	Model     string `json:"model"`
 	Inversion bool   `json:"inversion"`
 	Error     bool   `json:"error"`
 	Loading   bool   `json:"loading"`
@@ -54,6 +55,7 @@ func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, 
 			Uuid:      message.Uuid,
 			DateTime:  message.UpdatedAt.Format(time.RFC3339),
 			Text:      message.Content,
+			Model:     message.Model,
 			Inversion: message.Role == "user",
 			Error:     false,
 			Loading:   false,

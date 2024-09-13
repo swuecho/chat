@@ -30,8 +30,8 @@ SELECT * FROM chat_message WHERE chat_session_id = $1 ORDER BY id;
 SELECT * FROM chat_message WHERE id = $1;
 
 -- name: CreateChatMessage :one
-INSERT INTO chat_message (chat_session_id, role, content, score, user_id, created_at, updated_at, created_by, updated_by, raw)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INSERT INTO chat_message (chat_session_id, role, content, model, score, user_id, created_at, updated_at, created_by, updated_by, raw)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 RETURNING *;
 
 -- name: UpdateChatMessage :one
