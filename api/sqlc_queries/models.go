@@ -55,6 +55,7 @@ type ChatMessage struct {
 	ChatSessionUuid string          `json:"chatSessionUuid"`
 	Role            string          `json:"role"`
 	Content         string          `json:"content"`
+	Model           string          `json:"model"`
 	LlmSummary      string          `json:"llmSummary"`
 	Score           float64         `json:"score"`
 	UserID          int32           `json:"userID"`

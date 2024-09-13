@@ -221,7 +221,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	if existingPrompt {
-		_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, userID, baseURL, chatSession.SummarizeMode)
+		_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
 		if err != nil {
 			http.Error(w,
 				eris.Wrap(err, "fail to create message: ").Error(),
@@ -260,7 +260,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		h.service.logChat(chatSession, msgs, answerText)
 	}
 
-	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, userID, baseURL, chatSession.SummarizeMode); err != nil {
+	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, answerID, "assistant", answerText, chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
@@ -292,7 +292,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	}
 
 	ctx := context.Background()
-	if _, err := h.service.CreateChatMessageSimple(ctx, session.Uuid, answerID, "assistant", answerText, userID, baseURL, session.SummarizeMode); err != nil {
+	if _, err := h.service.CreateChatMessageSimple(ctx, session.Uuid, answerID, "assistant", answerText, session.Model, userID, baseURL, session.SummarizeMode); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
