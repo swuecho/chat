@@ -36,7 +36,7 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
-uuid, err := h.service.CreateChatSnapshot(r.Context(), chatSessionUuid, user_id)
+	uuid, err := h.service.CreateChatSnapshot(r.Context(), chatSessionUuid, user_id)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
 	}

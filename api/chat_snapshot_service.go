@@ -62,7 +62,6 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 
 }
 
-
 func (s *ChatSnapshotService) CreateChatBot(ctx context.Context, chatSessionUuid string, userId int32) (string, error) {
 	chatSession, err := s.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {

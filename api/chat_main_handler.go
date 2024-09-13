@@ -546,31 +546,33 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	if regenerate {
 		answer_id = chatUuid
 	}
-	
+
 	for {
 		response, err := stream.Recv()
-		if errors.Is(err, io.EOF) {
-			// send the last message
-			if len(answer) > 0 {
-				final_resp := constructChatCompletionStreamReponse(answer_id, answer)
-				data, _ := json.Marshal(final_resp)
-				fmt.Fprintf(w, "data: %v\n\n", string(data))
-				flusher.Flush()
-			}
-			if chatSession.Debug {
-				req_j, _ := json.Marshal(openai_req)
-				log.Println(string(req_j))
-				answer = answer + "\n" + string(req_j)
-				req_as_resp := constructChatCompletionStreamReponse(answer_id, answer)
-				data, _ := json.Marshal(req_as_resp)
-				fmt.Fprintf(w, "data: %v\n\n", string(data))
-				flusher.Flush()
-			}
-			break
-		}
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
-			return "", "", true
+			if errors.Is(err, io.EOF) {
+				// send the last message
+				if len(answer) > 0 {
+					final_resp := constructChatCompletionStreamReponse(answer_id, answer)
+					data, _ := json.Marshal(final_resp)
+					fmt.Fprintf(w, "data: %v\n\n", string(data))
+					flusher.Flush()
+				}
+				if chatSession.Debug {
+					req_j, _ := json.Marshal(openai_req)
+					log.Println(string(req_j))
+					answer = answer + "\n" + string(req_j)
+					req_as_resp := constructChatCompletionStreamReponse(answer_id, answer)
+					data, _ := json.Marshal(req_as_resp)
+					fmt.Fprintf(w, "data: %v\n\n", string(data))
+					flusher.Flush()
+				}
+				return answer, answer_id, false
+			} else {
+				log.Printf("%v", err)
+				RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
+				return "", "", true
+			}
 		}
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Delta.Content
@@ -592,7 +594,6 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 			flusher.Flush()
 		}
 	}
-	return answer, answer_id, false
 }
 
 func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (string, string, bool) {
@@ -616,7 +617,6 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
 		return "", "", true
 	}
-
 
 	client := openai.NewClientWithConfig(config)
 	// latest message contents
@@ -1466,7 +1466,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				fmt.Println("End of stream reached")
-				break
+				return answer, answer_id, false
 			} else {
 				fmt.Printf("Error while reading response: %+v", err)
 				return "", "", true

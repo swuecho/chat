@@ -39,7 +39,6 @@ func (p PartBlob) toPart() string {
 	return fmt.Sprintf("data:%s;base64,%s", b.MIMEType, b.Data)
 }
 
-
 // from https://github.com/google/generative-ai-go/blob/main/genai/generativelanguagepb_veneer.gen.go#L56
 // Blob contains raw media bytes.
 //
@@ -64,8 +63,6 @@ func ImageData(mimeType string, data []byte) Blob {
 		Data:     b64.StdEncoding.EncodeToString(data),
 	}
 }
-
-
 
 type GeminiMessage struct {
 	Role  string `json:"role"`
@@ -169,7 +166,7 @@ func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sq
 			if imageExt.Contains(chatFile.MimeType) {
 				return &PartBlob{Blob: ImageData(chatFile.MimeType, chatFile.Data)}
 			} else {
-				return &PartString{Text: "file: " + chatFile.Name + "\n<<<"+ string(chatFile.Data) + ">>>\n"}
+				return &PartString{Text: "file: " + chatFile.Name + "\n<<<" + string(chatFile.Data) + ">>>\n"}
 			}
 		})
 		fmt.Printf("partsFromFiles: %+v\n", partsFromFiles)
