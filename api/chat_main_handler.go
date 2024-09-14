@@ -22,7 +22,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/swuecho/chat_backend/llm/claude"
+	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/llm/gemini"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -949,14 +949,14 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	}
 
 	if !stream {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_read_response", err)
+		// Unmarshal directly from resp.Body
+		var message claude.Response
+		if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
 			return "", "", true
 		}
-		log.Printf("%+v", string(body))
-		uuid := NewUUID()
-		answer := constructChatCompletionStreamReponse(uuid, string(body))
+		uuid := message.ID
+		answer := constructChatCompletionStreamReponse(uuid, message.Content[0].Text)
 		data, _ := json.Marshal(answer)
 		fmt.Fprint(w, string(data))
 		return string(data), uuid, false
@@ -1426,14 +1426,14 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		// Handle non-streaming response
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error reading response body").Error(), err)
+			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_read_response", err)
 			return "", "", true
 		}
 		// body to GeminiResponse
 		var geminiResp gemini.ResponseBody
 		err = json.Unmarshal(body, &geminiResp)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error unmarshalling response body").Error(), err)
+			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
 			return "", "", true
 		}
 		answer := geminiResp.Candidates[0].Content.Parts[0].Text
