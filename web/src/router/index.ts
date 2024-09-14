@@ -18,7 +18,7 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: '/prompt',
+    path: '/prompt/new',
     name: 'Prompt',
     component: () => import('@/views/prompt/creator.vue')
   },
