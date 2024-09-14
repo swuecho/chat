@@ -926,6 +926,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("anthropic-version", "2023-06-01")
 
 	if !stream {
 		req.Header.Set("Accept", "application/json")
@@ -934,8 +935,6 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		req.Header.Set("Accept", "text/event-stream")
 		req.Header.Set("Cache-Control", "no-cache")
 		req.Header.Set("Connection", "keep-alive")
-		// TODO: remove this?
-		req.Header.Set("anthropic-version", "2023-06-01")
 	}
 
 	// create the http client and send the request
