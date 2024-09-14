@@ -955,6 +955,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
 			return "", "", true
 		}
+		defer resp.Body.Close()
 		uuid := message.ID
 		answer := constructChatCompletionStreamReponse(uuid, message.Content[0].Text)
 		data, _ := json.Marshal(answer)
