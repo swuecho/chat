@@ -7,7 +7,7 @@
                                         <n-input v-model:value="formValue.role" placeholder="Enter role" />
                                 </n-form-item>
                                 <n-form-item label="Role Characteristics" path="characteristics">
-                                        <n-input v-model:value="formValue.characteristics" type="textarea"
+                                        <n-dynamic-input v-model:value="formValue.characteristics" type="textarea"
                                                 placeholder="Enter role characteristics" />
                                 </n-form-item>
                                 <n-form-item label="Requirements" path="requirements">
@@ -19,8 +19,8 @@
                                         </n-dynamic-input>
                                 </n-form-item>
                                 <n-form-item label="Definitions" path="definitions">
-          <Definitions v-model:value="formValue.definitions" />
-        </n-form-item>
+                                        <Definitions v-model:value="formValue.definitions" />
+                                </n-form-item>
                                 <n-form-item label="Step by Step" path="process">
                                         <PromptProcess v-model:value="formValue.process" />
                                 </n-form-item>
@@ -47,7 +47,7 @@ const xmlOutput = ref('')
 
 const formValue = ref({
         role: '',
-        characteristics: '',
+        characteristics: [],
         requirements: [],
         process: []
 })
@@ -59,7 +59,8 @@ const rules = {
                 trigger: 'blur'
         },
         characteristics: {
-                required: true,
+                type: 'array',
+                min: 1,
                 message: 'Please enter role characteristics',
                 trigger: 'blur'
         },
@@ -91,22 +92,41 @@ const handleSubmit = (e) => {
 const generateXML = () => {
         let xml = ''
         xml += `  <role>${formValue.value.role}</role>\n`
-        xml += `  <characteristics>${formValue.value.characteristics}</characteristics>\n`
+        xml += generateCharacteristics()
         xml += '  <requirements>\n'
         formValue.value.requirements.forEach(req => {
                 xml += `    <requirement>${req}</requirement>\n`
         })
         xml += '  </requirements>\n'
-        xml += '  <definitions>\n'
-  formValue.value.definitions.forEach(def => {
-    xml += `    <definition>\n      <name>${def.key}</name>\n      <value>${def.value}</value>\n    </definition>\n`
-  })
-  xml += '  </definitions>\n'
+        xml += generateDefinition()
         xml += '  <process>\n'
         xml += generateProcessXML(formValue.value.process, 2)
         xml += '  </process>\n'
-        xml += '</prompt>'
         xmlOutput.value = xml
+}
+
+const generateCharacteristics = () => {
+        let xml = ''
+        xml += '  <characteristics>\n'
+        formValue.value.characteristics.forEach(req => {
+                xml += `    <characteristic>${req}</characteristics>\n`
+        })
+        xml += '  </characteristics>\n'
+        return xml
+}
+
+const generateDefinition = () => {
+        if (formValue.value.length > 0) {
+                let xml = ''
+                xml += '  <definitions>\n'
+                formValue.value.definitions.forEach(def => {
+                        xml += `    <definition>\n      <name>${def.key}</name>\n      <value>${def.value}</value>\n    </definition>\n`
+                })
+                xml += '  </definitions>\n'
+        } else {
+                return ''
+        }
+
 }
 
 const generateProcessXML = (steps, indent) => {
