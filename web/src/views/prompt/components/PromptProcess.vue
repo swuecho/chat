@@ -100,6 +100,7 @@ const updateTreeData = (data, keyParts, updateFn) => {
     newData[index] = updateFn(newData[index])
     return newData
   } else {
+    const index = parseInt(keyParts[0])
     const newData = [...data]
     newData[index] = {
       ...newData[index],
