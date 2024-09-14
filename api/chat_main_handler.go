@@ -957,10 +957,11 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		}
 		defer resp.Body.Close()
 		uuid := message.ID
-		answer := constructChatCompletionStreamReponse(uuid, message.Content[0].Text)
+		firstMessage := message.Content[0].Text
+		answer := constructChatCompletionStreamReponse(uuid, firstMessage)
 		data, _ := json.Marshal(answer)
 		fmt.Fprint(w, string(data))
-		return string(data), uuid, false
+		return firstMessage, uuid, false
 	}
 
 	ioreader := bufio.NewReader(resp.Body)
