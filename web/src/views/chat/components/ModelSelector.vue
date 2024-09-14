@@ -44,7 +44,6 @@ const modelRef = ref({
 
 // why watch not work?, missed the deep = true option
 watch(modelRef, async (modelValue: any) => {
-        console.log(modelValue)
         await chatStore.updateChatSession(props.uuid, {
                 model: modelValue.model
         })
