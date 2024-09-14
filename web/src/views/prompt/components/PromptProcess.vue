@@ -9,6 +9,8 @@
 <script setup>
 import { ref, computed, watch, h } from 'vue'
 import { NTree, NInput, NButton, NSpace } from 'naive-ui'
+import { SvgIcon } from '@/components/common'
+
 
 const props = defineProps(['value'])
 const emit = defineEmits(['update:value'])
@@ -45,8 +47,9 @@ const renderSuffix = (info) => {
   const { option } = info
   return h(NSpace, null, {
     default: () => [
-      h(NButton, { onClick: () => addChild(option.key), text: true }, { default: () => 'Add' }),
-      h(NButton, { onClick: () => removeNode(option.key), text: true }, { default: () => 'Remove' })
+      h(NButton, { onClick: () => addChild(option.key), text: true }, { default: () => h(SvgIcon, { icon: 'mdi-plus' }) }),
+      h(NButton, { onClick: () => addSibling(option.key), text: true }, { default: () => h(SvgIcon, { icon: 'mdi-account-plus' }) }),
+      h(NButton, { onClick: () => removeNode(option.key), text: true }, { default: () => h(SvgIcon, { icon: 'mdi-delete' }) })
     ]
   })
 }
@@ -62,11 +65,29 @@ const updateNodeValue = (key, value) => {
 const addChild = (key) => {
   const newValue = updateTreeData(props.value, key.split('-'), (node) => {
     if (!node.children) node.children = []
-    node.children.push({ description: 'New Step' })
+    node.children.push({ description: 'New Child Step' })
     return node
   })
   emit('update:value', newValue)
   expandedKeys.value = [...expandedKeys.value, key]
+}
+
+const addSibling = (key) => {
+  const keyParts = key.split('-')
+  if (keyParts.length === 1) {
+    // Adding a sibling to a root node
+    const newValue = [...props.value, { description: 'New Root Step' }]
+    emit('update:value', newValue)
+  } else {
+    const parentKeyParts = keyParts.slice(0, -1)
+    const newValue = updateTreeData(props.value, parentKeyParts, (node) => {
+      if (!node.children) node.children = []
+      node.children.push({ description: 'Next Step' })
+      return node
+    })
+    emit('update:value', newValue)
+    expandedKeys.value = [...expandedKeys.value, parentKeyParts.join('-')]
+  }
 }
 
 const removeNode = (key) => {
