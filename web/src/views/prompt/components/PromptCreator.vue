@@ -27,6 +27,7 @@
                         </n-form>
                         <n-space justify="end">
                                 <n-button @click="handleSubmit" type="primary">Generate XML</n-button>
+                                <n-button @click="copyToClipboard" type="primary">Copy XML</n-button>
                         </n-space>
                 </n-card>
                 <n-card v-if="xmlOutput" title="Generated XML">
@@ -142,5 +143,15 @@ const generateProcessXML = (steps, indent) => {
                 xml += ' '.repeat(indent * 2) + `</step>\n`
         })
         return xml
+}
+
+const copyToClipboard = () => {
+        navigator.clipboard.writeText(xmlOutput.value)
+                .then(() => {
+                        console.log('XML copied to clipboard')
+                })
+                .catch(err => {
+                        console.error('Failed to copy XML: ', err)
+                })
 }
 </script>
