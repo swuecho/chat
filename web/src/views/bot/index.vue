@@ -1,7 +1,7 @@
 <script lang='ts' setup>
-import { computed, nextTick } from 'vue'
+import { computed, nextTick, ref, onMounted, h } from 'vue'
 import { useRoute } from 'vue-router'
-import { useDialog, useMessage, NSpin } from 'naive-ui'
+import { useDialog, useMessage, NSpin, NInput } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import Message from '../snapshot/components/Message/index.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
@@ -14,6 +14,8 @@ import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useChatStore } from '@/store'
 import { useQuery } from '@tanstack/vue-query'
+import { generateAPIHelper } from '@/service/snapshot'
+import { fetchAPIToken } from '@/api/token'
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
@@ -31,6 +33,14 @@ const { uuid } = route.params as { uuid: string }
 const { data: snapshot_data, isLoading } = useQuery({
   queryKey: ['chatSnapshot', uuid],
   queryFn: async () => await fetchChatSnapshot(uuid),
+})
+
+
+const apiToken = ref('')
+
+onMounted(async () => {
+  const data = await fetchAPIToken()
+  apiToken.value = data.accessToken
 })
 
 
@@ -148,6 +158,24 @@ const footerClass = computed(() => {
   return classes
 })
 
+
+function handleShowCode() {
+  const postUuid = route.path.split('/')[2]
+  const code = generateAPIHelper(postUuid, apiToken.value, window.location.origin)
+  const dialogBox = dialog.info({
+    title: t('bot.showCode'),
+    content: () => h('code', { class: 'whitespace-pre-wrap' }, code),
+    positiveText: t('common.copy'),
+    onPositiveClick: () => {
+      // copy to clipboard
+      navigator.clipboard.writeText(code)
+      dialogBox.loading = false
+      nui_msg.success(t('common.success'))
+    },
+  })
+}
+
+
 function onScrollToTop() {
   const scrollRef = document.querySelector('#scrollRef')
   if (scrollRef)
@@ -166,6 +194,11 @@ function onScrollToTop() {
         <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
+            <div class="flex items-center justify-center mt-4 ">
+              <div class="w-4/5 md:w-1/3 mb-3">
+                <NInput type="text" :value="snapshot_data.model" readonly class="w-1/3" />
+              </div>
+            </div>
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
               :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
               :loading="item.loading" :index="index" />
@@ -182,9 +215,9 @@ function onScrollToTop() {
       <footer :class="footerClass">
         <div class="w-full max-w-screen-xl m-auto">
           <div class="flex items-center justify-between space-x-2">
-            <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportImage')" @click="handleExport">
+            <HoverButton :tooltip="$t('chat_snapshot.showCode')" @click="handleShowCode">
               <span class="text-xl text-[#4f555e] dark:text-white">
-                <SvgIcon icon="ri:download-2-line" />
+                <SvgIcon icon="ic:outline-code" />
               </span>
             </HoverButton>
             <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportMarkdown')" @click="handleMarkdown">
