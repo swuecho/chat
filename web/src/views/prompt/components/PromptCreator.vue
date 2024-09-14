@@ -18,6 +18,9 @@
                                                 </template>
                                         </n-dynamic-input>
                                 </n-form-item>
+                                <n-form-item label="Definitions" path="definitions">
+          <Definitions v-model:value="formValue.definitions" />
+        </n-form-item>
                                 <n-form-item label="Step by Step" path="process">
                                         <PromptProcess v-model:value="formValue.process" />
                                 </n-form-item>
@@ -36,6 +39,8 @@
 import { ref } from 'vue'
 import { NSpace, NCard, NForm, NFormItem, NInput, NDynamicInput, NButton } from 'naive-ui'
 import PromptProcess from './PromptProcess.vue'
+import Definitions from './Definitions.vue'
+
 
 const formRef = ref(null)
 const xmlOutput = ref('')
@@ -92,6 +97,11 @@ const generateXML = () => {
                 xml += `    <requirement>${req}</requirement>\n`
         })
         xml += '  </requirements>\n'
+        xml += '  <definitions>\n'
+  formValue.value.definitions.forEach(def => {
+    xml += `    <definition>\n      <name>${def.key}</name>\n      <value>${def.value}</value>\n    </definition>\n`
+  })
+  xml += '  </definitions>\n'
         xml += '  <process>\n'
         xml += generateProcessXML(formValue.value.process, 2)
         xml += '  </process>\n'
