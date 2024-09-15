@@ -1470,6 +1470,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	var answer string
 	var headerData = []byte("data: ")
 	ioreader := bufio.NewReader(resp.Body)
+	defer resp.Body.Close()
 
 	count := 0
 	for {
@@ -1478,6 +1479,9 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		line, err := ioreader.ReadBytes('\n')
+		if chatSession.Debug {
+			log.Printf("%s", line)
+		}
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				fmt.Println("End of stream reached")
