@@ -574,6 +574,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 				return "", "", true
 			}
 		}
+		log.Printf("%+v", response)
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Delta.Content
 		textBuffer.appendByIndex(textIdx, delta)
