@@ -182,3 +182,11 @@ func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sq
 	}
 	return payloadBytes, nil
 }
+
+type ErrorResponse struct {
+	Error struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Status  string `json:"status"`
+	} `json:"error"`
+}
