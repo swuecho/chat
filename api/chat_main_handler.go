@@ -1484,10 +1484,10 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		}
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				fmt.Println("End of stream reached")
+				log.Printf("End of stream reached: %+v", err)
 				return answer, answer_id, false
 			} else {
-				fmt.Printf("Error while reading response: %+v", err)
+				log.Printf("Error while reading response: %+v", err)
 				return "", "", true
 			}
 		}
