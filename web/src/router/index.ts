@@ -23,6 +23,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/prompt/creator.vue')
   },
   {
+    path: '/prompt/svg',
+    name: 'Prompt',
+    component: () => import('@/views/prompt/svgViewer.vue')
+  },
+  {
     path: '/bot',
     name: 'Bot',
     component: () => import('@/views/bot/index.vue'),
