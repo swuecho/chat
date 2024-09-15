@@ -542,7 +542,12 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 
 	var answer string
 	var answer_id string
-	textBuffer := newTextBuffer(int(chatSession.N), "", "")
+	bufferLen := int(chatSession.N)
+	if bufferLen == 0 {
+		log.Println("chatSession.N is 0")
+		bufferLen += 1
+	}
+	textBuffer := newTextBuffer(bufferLen, "", "")
 	if regenerate {
 		answer_id = chatUuid
 	}
@@ -574,12 +579,12 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 				return "", "", true
 			}
 		}
-		log.Printf("%+v", response)
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Delta.Content
 		textBuffer.appendByIndex(textIdx, delta)
 
 		if chatSession.Debug {
+			log.Printf("%+v", response)
 			log.Printf("%s", delta)
 		}
 		answer = textBuffer.String("\n")

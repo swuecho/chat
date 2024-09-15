@@ -274,6 +274,7 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 		MaxTokens:   originSession.MaxTokens,
 		TopP:        originSession.TopP,
 		Debug:       originSession.Debug,
+		N:           1,
 	})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
