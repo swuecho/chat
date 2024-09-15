@@ -39,6 +39,3 @@ func (m *Message) SetTokenCount(tokenCount int32) *Message {
 	m.tokenCount = tokenCount
 	return m
 }
-
-
-    
