@@ -1484,18 +1484,11 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		}
 		if err != nil {
 			// Create an instance of ErrorResponse
-			var errorResponse gemini.ErrorResponse
-
-			// Unmarshal the JSON string into the ErrorResponse struct
-			err := json.Unmarshal(line, &errorResponse)
-			if err != nil {
-				fmt.Println("Error unmarshaling JSON:", err)
-			}
 			if errors.Is(err, io.EOF) {
-				log.Printf("End of stream reached: %+v, %+v", err, errorResponse)
+				log.Printf("End of stream reached: %+v, %+v", err, line)
 				return answer, answer_id, false
 			} else {
-				log.Printf("Error while reading response: %+v, %+v", err, errorResponse)
+				log.Printf("Error while reading response: %+v, %+v", err, line)
 				return "", "", true
 			}
 		}
