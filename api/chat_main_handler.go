@@ -588,10 +588,14 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		perWordStreamLimit := getPerWordStreamLimit()
 
 		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
-			resp := constructChatCompletionStreamReponse(answer_id, answer)
-			data, _ := json.Marshal(resp)
-			fmt.Fprintf(w, "data: %v\n\n", string(data))
-			flusher.Flush()
+			if len(answer) == 0 {
+				log.Printf("%s", "no content in answer")
+			} else {
+				response := constructChatCompletionStreamReponse(answer_id, answer)
+				data, _ := json.Marshal(response)
+				fmt.Fprintf(w, "data: %v\n\n", string(data))
+				flusher.Flush()
+			}
 		}
 	}
 }
