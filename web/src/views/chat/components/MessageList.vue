@@ -12,11 +12,15 @@ import { useChatStore } from '@/store';
 import { useChat } from '@/views/chat/hooks/useChat'
 import { updateChatData } from '@/api'
 import { useDialog } from 'naive-ui'
+import { useCopyCode } from '@/views/chat/hooks/useCopyCode'
 
 
 import { t } from '@/locales'
 const dialog = useDialog()
 const { updateChatText, updateChat } = useChat()
+
+useCopyCode()
+
 
 const props = defineProps({
         sessionUuid: {

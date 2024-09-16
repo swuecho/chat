@@ -8,7 +8,6 @@ import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
 import { useScroll } from '@/views/chat/hooks/useScroll'
 import { useChat } from '@/views/chat/hooks/useChat'
-import { useCopyCode } from '@/views/chat/hooks/useCopyCode'
 import HeaderComponent from '@/views/chat/components/Header/index.vue'
 import SessionConfig from '@/views/chat/components/Session/SessionConfig.vue'
 import { createChatBot, createChatSnapshot, fetchChatStream } from '@/api'
@@ -38,7 +37,7 @@ const { sessionUuid } = defineProps({
         },
 });
 
-useCopyCode()
+
 
 const { isMobile } = useBasicLayout()
 const { addChat, updateChat, updateChatPartial } = useChat()
