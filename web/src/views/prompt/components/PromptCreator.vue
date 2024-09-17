@@ -50,7 +50,8 @@ const formValue = ref({
         role: '',
         characteristics: [],
         requirements: [],
-        process: []
+        process: [],
+        definitions: [],
 })
 
 const rules = {
@@ -117,13 +118,14 @@ const generateCharacteristics = () => {
 }
 
 const generateDefinition = () => {
-        if (formValue.value.length > 0) {
+        if (formValue.value.definitions.length > 0) {
                 let xml = ''
                 xml += '  <definitions>\n'
                 formValue.value.definitions.forEach(def => {
                         xml += `    <definition>\n      <name>${def.key}</name>\n      <value>${def.value}</value>\n    </definition>\n`
                 })
                 xml += '  </definitions>\n'
+                return xml
         } else {
                 return ''
         }
