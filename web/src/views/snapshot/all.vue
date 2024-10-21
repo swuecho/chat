@@ -66,7 +66,7 @@ function handleDelete(post: Snapshot.PostLink) {
           {{ $t('chat_snapshot.title') }}
         </h1>
       </div>
-      <div class="mr-20">
+      <div class="mr-10">
         <HoverButton @click="searchVisible = true">
           <SvgIcon icon="ic:round-search" class="text-2xl" />
         </HoverButton>
