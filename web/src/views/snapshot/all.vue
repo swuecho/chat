@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useDialog, useMessage } from 'naive-ui'
+import { useDialog, useMessage, NModal } from 'naive-ui'
 import Search from './components/Search.vue'
 import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
@@ -66,15 +66,17 @@ function handleDelete(post: Snapshot.PostLink) {
           {{ $t('chat_snapshot.title') }}
         </h1>
       </div>
-      <div class="mr-10">
+      <div class="mr-20">
         <HoverButton @click="searchVisible = true">
           <SvgIcon icon="ic:round-search" class="text-2xl" />
         </HoverButton>
-        <NModal v-model:show="searchVisible" preset="dialog">
-          <Search />
-        </NModal>
+
       </div>
+
     </header>
+    <NModal v-model:show="searchVisible" preset="dialog">
+      <Search />
+    </NModal>
     <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
       <Permission :visible="needPermission" />
       <div v-if="!needPermission" class="max-w-screen-xl px-4 py-8 mx-auto">
@@ -89,7 +91,7 @@ function handleDelete(post: Snapshot.PostLink) {
                 <div class="flex">
                   <time :datetime="post.date" class="mb-1 text-sm font-medium text-gray-600">{{
                     post.date
-                    }}</time>
+                  }}</time>
                   <div class="ml-2 text-sm" @click="handleDelete(post)">
                     <SvgIcon icon="ic:baseline-delete-forever" />
                   </div>
