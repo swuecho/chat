@@ -6,7 +6,7 @@ export function nowISO(): string {
 
 export function getCurrentDate() {
   const now = DateTime.now()
-  const formattedDate = now.toFormat('YYYY-MM-DD HH:mm:ss')
+  const formattedDate = now.toFormat('yyyy-MM-dd-HHmm-ss')
   return formattedDate
 }
 
