@@ -27,7 +27,7 @@ func NewChatSessionHandler(sqlc_q *sqlc_queries.Queries) *ChatSessionHandler {
 }
 
 func (h *ChatSessionHandler) Register(router *mux.Router) {
-	router.HandleFunc("/chat_sessions/users", h.getSimpleChatSessionsByUserID).Methods(http.MethodGet)
+	router.HandleFunc("/chat_sessions/user", h.getSimpleChatSessionsByUserID).Methods(http.MethodGet)
 
 	router.HandleFunc("/uuid/chat_sessions/max_length/{uuid}", h.updateSessionMaxLength).Methods("PUT")
 	router.HandleFunc("/uuid/chat_sessions/topic/{uuid}", h.updateChatSessionTopicByUUID).Methods("PUT")
