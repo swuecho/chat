@@ -321,13 +321,15 @@ func (q *Queries) GetChatSessionByUUIDWithInActive(ctx context.Context, uuid str
 const getChatSessionsByUserID = `-- name: GetChatSessionsByUserID :many
 SELECT cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.n, cs.summarize_mode, cs.debug
 FROM chat_session cs
-JOIN (
+LEFT JOIN (
     SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
     FROM chat_message
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.user_id = $1 AND cs.active = true
-ORDER BY cm.latest_message_time DESC
+ORDER BY 
+    cm.latest_message_time DESC,
+    cs.id DESC
 `
 
 func (q *Queries) GetChatSessionsByUserID(ctx context.Context, userID int32) ([]ChatSession, error) {
