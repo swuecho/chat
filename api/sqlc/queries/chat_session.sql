@@ -74,8 +74,21 @@ returning *;
 -- name: GetChatSessionsByUserID :many
 SELECT cs.*
 FROM chat_session cs
-WHERE cs.user_id = $1 and cs.active = true
-ORDER BY cs.id DESC;
+LEFT JOIN (
+    SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
+    FROM chat_message
+    GROUP BY chat_session_uuid
+) cm ON cs.uuid = cm.chat_session_uuid
+WHERE cs.user_id = $1 AND cs.active = true
+ORDER BY 
+    cm.latest_message_time DESC,
+    cs.id DESC;
+
+
+-- SELECT cs.*
+-- FROM chat_session cs
+-- WHERE cs.user_id = $1 and cs.active = true
+-- ORDER BY cs.updated_at DESC;
 
 -- name: HasChatSessionPermission :one
 SELECT COUNT(*) > 0 as has_permission

@@ -22,7 +22,7 @@ export const getChatSessionDefault = async (title: string): Promise<Chat.Session
 
 export const getChatSessionsByUser = async () => {
   try {
-    const response = await request.get('/chat_sessions/users')
+    const response = await request.get('/chat_sessions/user')
     return response.data
   }
   catch (error) {

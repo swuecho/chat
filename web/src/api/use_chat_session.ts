@@ -34,7 +34,7 @@ const renameChatSessionQuery = useMutation({
 })
 
 const updateChatSessionQuery = useMutation({
-        mutationFn: (variables: { sessionUuid: string, session_data: Chat.Session }) => updateChatSession(variables.sessionUuid, variables.session_data),
+        mutationFn: (variables: { sessionUuid: string, sessionData: Chat.Session }) => updateChatSession(variables.sessionUuid, variables.sessionData),
         onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ['sessions'] })
         }
