@@ -40,6 +40,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/snapshot/all.vue'),
   },
   {
+    path: '/snapshot_all2',
+    name: 'SnapshotAll2',
+    component: () => import('@/views/snapshot/all2.vue'),
+  },
+  {
     path: '/bot_all',
     name: 'BotAll',
     component: () => import('@/views/bot/all.vue'),
