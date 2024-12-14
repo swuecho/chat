@@ -1,6 +1,5 @@
 import axios, { type AxiosResponse } from 'axios'
 import { useAuthStore } from '@/store'
-import { useMessage } from 'naive-ui';
 
 const service = axios.create({
   baseURL: "/api"
