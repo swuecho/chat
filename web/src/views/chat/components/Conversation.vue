@@ -23,6 +23,7 @@ import ModelSelector from '@/views/chat/components/ModelSelector.vue'
 import MessageList from '@/views/chat/components/MessageList.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import { getDataFromResponseText } from '@/utils/string'
+import renderMessage from './RenderMessage.vue'
 let controller = new AbortController()
 
 const dialog = useDialog()
@@ -31,10 +32,10 @@ const nui_msg = useMessage()
 const chatStore = useChatStore()
 
 const { sessionUuid } = defineProps({
-        sessionUuid: {
-                type: String,
-                required: true
-        },
+  sessionUuid: {
+    type: String,
+    required: true
+  },
 });
 
 
@@ -167,15 +168,14 @@ async function onConversationStream() {
           } = xhr
           if (status >= 400) {
             const error_json: { code: number; message: string; details: any } = JSON.parse(responseText)
-            updateChatPartial(
-              sessionUuid,
-              dataSources.value.length - 1,
-              {
-                loading: false,
-                error: true,
-                text: t(error_json.message), // how to add params to i18n
-              },
-            )
+            nui_msg.error(t(error_json.message), {
+              duration: 5000,
+              closable: true,
+              render: renderMessage
+            })
+
+            chatStore.deleteChatByUuid(sessionUuid, dataSources.value.length -1)
+            // remove last input box
             loading.value = false
           }
           else {
@@ -203,7 +203,7 @@ async function onConversationStream() {
               }
               catch (error) {
                 // eslint-disable-next-line no-console
-                console.log(error)
+                console.log("xxx", error)
               }
             }
           }
@@ -506,7 +506,7 @@ const handleUsePrompt = (_: string, value: string): void => {
           </template>
           <template v-else>
             <div>
-              <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate"/>
+              <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate" />
             </div>
           </template>
         </div>
