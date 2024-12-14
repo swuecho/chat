@@ -508,6 +508,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		RespondWithError(w, http.StatusInternalServerError, "error.system_message_notice", err)
 		return "", "", true
 	}
+	log.Printf("%+v", openai_req)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
