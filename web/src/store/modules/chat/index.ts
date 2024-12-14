@@ -240,7 +240,7 @@ export const useChatStore = defineStore('chat-store', {
           const chatData = this.chat[keys[0]]
           const chat = chatData[index]
           chatData.splice(index, 1)
-          if (chat)
+          if (chat && chat.uuid)
             await deleteChatData(chat)
         }
         return
@@ -250,7 +250,7 @@ export const useChatStore = defineStore('chat-store', {
         const chatData = this.chat[uuid]
         const chat = chatData[index]
         chatData.splice(index, 1)
-        if (chat)
+        if (chat && chat.uuid)
           await deleteChatData(chat)
       }
     },

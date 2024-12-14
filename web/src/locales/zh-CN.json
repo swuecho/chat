@@ -135,7 +135,7 @@
     "chat_model": {
       "deleteModel": "删除",
       "deleteModelConfirm": "确认删除",
-      "name": "模型名称(ID)",
+      "name": "模型名称(model ID in api)",
       "label": "模型标签",
       "isDefault": "默认?",
       "apiAuthHeader": "Auth Header key",

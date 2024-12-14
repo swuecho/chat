@@ -14,7 +14,7 @@
             "isEnable": "Is Enabled",
             "label": "Model name",
             "maxToken": "Maximum token number",
-            "name": "ID",
+            "name": "Model ID",
             "orderNumber": "Order number",
             "url": "Request full URL"
         },

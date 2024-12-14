@@ -12,7 +12,7 @@
             "enablePerModelRateLimit": "是否單獨流控",
             "isDefault": "默認?",
             "isEnable": "是否啟用",
-            "label": "模型名稱",
+            "label": "模型名稱(ID)",
             "maxToken": "最大token數量",
             "name": "身分識別號",
             "orderNumber": "次序",
