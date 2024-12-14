@@ -1,5 +1,6 @@
 import axios, { type AxiosResponse } from 'axios'
 import { useAuthStore } from '@/store'
+import { useMessage } from 'naive-ui';
 
 const service = axios.create({
   baseURL: "/api"
@@ -27,6 +28,8 @@ service.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => {
     if (response.status === 200 || response.status === 201 || response.status === 204)
       return response
+
+
 
     throw new Error(response.status.toString())
   },
