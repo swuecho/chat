@@ -10,7 +10,7 @@ import { useScroll } from '@/views/chat/hooks/useScroll'
 import { useChat } from '@/views/chat/hooks/useChat'
 import HeaderComponent from '@/views/chat/components/Header/index.vue'
 import SessionConfig from '@/views/chat/components/Session/SessionConfig.vue'
-import { createChatBot, createChatSnapshot, fetchChatStream } from '@/api'
+import { createChatBot, createChatSnapshot, deleteChatMessage, fetchChatStream } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore, usePromptStore } from '@/store'
@@ -41,7 +41,7 @@ const { sessionUuid } = defineProps({
 
 
 const { isMobile } = useBasicLayout()
-const { addChat, updateChat, updateChatPartial } = useChat()
+const { addChat, deleteChat, updateChat, updateChatPartial } = useChat()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
 // session uuid
 chatStore.syncChatMessages(sessionUuid)
@@ -237,50 +237,51 @@ async function onRegenerate(index: number) {
   console.log("regen", chat)
 
   const chatUuid = chat.uuid
-  const message = chat.text
   // from user
   const inversion = chat.inversion
 
   loading.value = true
 
   let updateIndex = index;
-  let regenerate = true;
+  let isRegenerate = true;
 
   if (inversion) {
-    const chatNext = dataSources.value[index+1]
+    // trigger from user message
+    const chatNext = dataSources.value[index + 1]
     if (chatNext) {
-      updateIndex = index+1
-      regenerate = false
+      updateIndex = index + 1
+      isRegenerate = false
       // if there are answer below. then clear
+      await deleteChatMessage(chatNext.uuid)
       updateChat(
-      sessionUuid,
-      index+1,
-      {
-        uuid: chatNext.uuid,
-        dateTime: nowISO(),
-        text: '',
-        inversion: false,
-        error: false,
-        loading: true,
-      },
-    )
-      
-    } else  {
-        // add a blank response
-        updateIndex = index+1
-        regenerate = false
-        addChat(
-          sessionUuid,
-          {
-            uuid: '',
-            dateTime: nowISO(),
-            text: '',
-            loading: true,
-            inversion: false,
-            error: false,
-          },
-        )
-      }
+        sessionUuid,
+        updateIndex,
+        {
+          uuid: chatNext.uuid,
+          dateTime: nowISO(),
+          text: '',
+          inversion: false,
+          error: false,
+          loading: true,
+        },
+      )
+
+    } else {
+      // add a blank response
+      updateIndex = index + 1
+      isRegenerate = false
+      addChat(
+        sessionUuid,
+        {
+          uuid: '',
+          dateTime: nowISO(),
+          text: '',
+          loading: true,
+          inversion: false,
+          error: false,
+        },
+      )
+    }
     // if there are answer below. then clear
     // if not, add answer
 
@@ -307,8 +308,8 @@ async function onRegenerate(index: number) {
         const response = fetchChatStream(
           sessionUuid,
           chatUuid,
-          true,
-          message,
+          isRegenerate,
+          "",
           (progress: any) => {
             const xhr = progress.event.target
             const {
