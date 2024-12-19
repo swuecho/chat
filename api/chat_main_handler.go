@@ -221,12 +221,16 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	if existingPrompt {
-		_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
-		if err != nil {
-			http.Error(w,
-				eris.Wrap(err, "fail to create message: ").Error(),
-				http.StatusInternalServerError,
-			)
+		if newQuestion != "" {
+			_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
+			if err != nil {
+				http.Error(w,
+					eris.Wrap(err, "fail to create message: ").Error(),
+					http.StatusInternalServerError,
+				)
+			}
+		} else {
+			log.Println("no new question, regenerate answer")
 		}
 	} else {
 		chatPrompt, err := h.service.CreateChatPromptSimple(chatSessionUuid, newQuestion, userID)

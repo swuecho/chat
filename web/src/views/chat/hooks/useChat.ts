@@ -13,6 +13,10 @@ export function useChat() {
     chatStore.addChatByUuid(uuid, chat)
   }
 
+  const deleteChat = (uuid: string, index: number) => {
+    chatStore.deleteChatByUuid(uuid, index)
+  }
+
   const updateChat = (uuid: string, index: number, chat: Chat.Message) => {
     chatStore.updateChatByUuid(uuid, index, chat)
   }
@@ -35,6 +39,7 @@ export function useChat() {
 
   return {
     addChat,
+    deleteChat,
     updateChat,
     updateChatText,
     updateChatPartial,

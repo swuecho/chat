@@ -6,6 +6,7 @@ export const deleteChatData = async (chat: Chat.Message) => {
     await deleteChatPrompt(chat.uuid)
   else
     await deleteChatMessage(chat.uuid)
+  
 }
 
 export const updateChatData = async (chat: Chat.Message) => {
