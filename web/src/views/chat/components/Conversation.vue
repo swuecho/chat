@@ -247,7 +247,7 @@ async function onRegenerate(index: number) {
       text: '',
       inversion: false,
       error: false,
-      loading: false,
+      loading: true,
     },
   )
 
