@@ -174,7 +174,7 @@ async function onConversationStream() {
               render: renderMessage
             })
 
-            chatStore.deleteChatByUuid(sessionUuid, dataSources.value.length -1)
+            chatStore.deleteChatByUuid(sessionUuid, dataSources.value.length - 1)
             // remove last input box
             loading.value = false
           }
@@ -264,28 +264,42 @@ async function onRegenerate(index: number) {
             const xhr = progress.event.target
             const {
               responseText,
+              status
             } = xhr
-            // Extract the JSON data chunk from the responseText
-            const chunk = getDataFromResponseText(responseText)
 
-            // Check if the chunk is not empty
-            if (chunk) {
-              // Parse the JSON data chunk
-              const data = JSON.parse(chunk)
-              const answer = data.choices[0].delta.content
-              const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
-              updateChat(
-                sessionUuid,
-                index,
-                {
-                  uuid: answer_uuid,
-                  dateTime: nowISO(),
-                  text: answer,
-                  inversion: false,
-                  error: false,
-                  loading: false,
-                },
-              )
+            if (status >= 400) {
+              const error_json: { code: number; message: string; details: any } = JSON.parse(responseText)
+              nui_msg.error(t(error_json.message), {
+                duration: 5000,
+                closable: true,
+                render: renderMessage
+              })
+
+              loading.value = false
+            }
+            else {
+              // Extract the JSON data chunk from the responseText
+              const chunk = getDataFromResponseText(responseText)
+
+              // Check if the chunk is not empty
+              if (chunk) {
+                // Parse the JSON data chunk
+                const data = JSON.parse(chunk)
+                const answer = data.choices[0].delta.content
+                const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
+                updateChat(
+                  sessionUuid,
+                  index,
+                  {
+                    uuid: answer_uuid,
+                    dateTime: nowISO(),
+                    text: answer,
+                    inversion: false,
+                    error: false,
+                    loading: false,
+                  },
+                )
+              }
             }
           },
         )
