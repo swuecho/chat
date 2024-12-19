@@ -84,18 +84,18 @@ function handleDelete() {
           <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
             :code="code" :loading="loading" :idex="index" />
           <div class="flex flex-col">
-            <!-- testid="chat-message-regenerate" not ok, someting like testclass -->
-            <button v-if="!inversion"
-              class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
-              @click="handleRegenerate">
-              <SvgIcon icon="ri:restart-line" />
-            </button>
+
             <button v-if="!isPrompt && inversion"
               class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
               :disabled="pining" @click="emit('togglePin')">
               <SvgIcon :icon="isPin ? 'ri:unpin-line' : 'ri:pushpin-line'" />
             </button>
-
+            <!-- testid="chat-message-regenerate" not ok, something like testclass -->
+            <button v-if="!isPrompt"
+              class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
+              @click="handleRegenerate">
+              <SvgIcon icon="ri:restart-line" />
+            </button>
 
           </div>
         </div>

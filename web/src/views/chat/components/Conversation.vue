@@ -174,7 +174,7 @@ async function onConversationStream() {
               render: renderMessage
             })
 
-            chatStore.deleteChatByUuid(sessionUuid, dataSources.value.length -1)
+            chatStore.deleteChatByUuid(sessionUuid, dataSources.value.length - 1)
             // remove last input box
             loading.value = false
           }
@@ -234,23 +234,68 @@ async function onRegenerate(index: number) {
 
   const chat = dataSources.value[index]
 
+  console.log("regen", chat)
+
   const chatUuid = chat.uuid
   const message = chat.text
+  // from user
+  const inversion = chat.inversion
 
   loading.value = true
-  updateChat(
-    sessionUuid,
-    index,
-    {
-      uuid: chatUuid,
-      dateTime: nowISO(),
-      text: '',
-      inversion: false,
-      error: false,
-      loading: false,
-    },
-  )
 
+  let updateIndex = index;
+  if (inversion) {
+    const chatNext = dataSources.value[index+1]
+    if (chatNext) {
+      updateIndex = index+1
+      // if there are answer below. then clear
+      updateChat(
+      sessionUuid,
+      index+1,
+      {
+        uuid: chatNext.uuid,
+        dateTime: nowISO(),
+        text: '',
+        inversion: false,
+        error: false,
+        loading: true,
+      },
+    )
+      
+    } else  {
+        // add a blank response
+        updateIndex = index+1
+        addChat(
+          sessionUuid,
+          {
+            uuid: '',
+            dateTime: nowISO(),
+            text: '',
+            loading: true,
+            inversion: false,
+            error: false,
+          },
+        )
+      }
+    // if there are answer below. then clear
+    // if not, add answer
+
+  } else {
+    // clear the old answer for regenerating
+    updateChat(
+      sessionUuid,
+      index,
+      {
+        uuid: chatUuid,
+        dateTime: nowISO(),
+        text: '',
+        inversion: false,
+        error: false,
+        loading: true,
+      },
+    )
+
+  }
   try {
     const subscribleStrem = async () => {
       try {
@@ -276,7 +321,7 @@ async function onRegenerate(index: number) {
               const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
               updateChat(
                 sessionUuid,
-                index,
+                updateIndex,
                 {
                   uuid: answer_uuid,
                   dateTime: nowISO(),
