@@ -244,10 +244,13 @@ async function onRegenerate(index: number) {
   loading.value = true
 
   let updateIndex = index;
+  let regenerate = true;
+
   if (inversion) {
     const chatNext = dataSources.value[index+1]
     if (chatNext) {
       updateIndex = index+1
+      regenerate = false
       // if there are answer below. then clear
       updateChat(
       sessionUuid,
@@ -265,6 +268,7 @@ async function onRegenerate(index: number) {
     } else  {
         // add a blank response
         updateIndex = index+1
+        regenerate = false
         addChat(
           sessionUuid,
           {
