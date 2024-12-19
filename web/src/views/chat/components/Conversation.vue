@@ -234,14 +234,11 @@ async function onRegenerate(index: number) {
 
   const chat = dataSources.value[index]
 
-  console.log("regen", chat)
-
   const chatUuid = chat.uuid
   // from user
   const inversion = chat.inversion
 
   loading.value = true
-
 
   let updateIndex = index;
   let isRegenerate = true;
@@ -341,7 +338,7 @@ async function onRegenerate(index: number) {
                 const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
                 updateChat(
                   sessionUuid,
-                  index,
+                  updateIndex,
                   {
                     uuid: answer_uuid,
                     dateTime: nowISO(),
