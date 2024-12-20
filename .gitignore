@@ -1,4 +1,6 @@
 .DS_Store
 .env*
+env.sh
+env.ps
 data
 .python-version
