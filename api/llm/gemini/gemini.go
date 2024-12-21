@@ -108,15 +108,9 @@ func ParseRespLine(line []byte, answer string) string {
 	}
 
 	for _, candidate := range resp.Candidates {
-		var totalParts = len(candidate.Content.Parts)
 		for idx, part := range candidate.Content.Parts {
-			// gemini thought
-			if totalParts > 1 {
-				if idx == 0 {
-					answer += "## Thought"
-				} else if idx == 1 {
-					answer += "\n\n## Answer"
-				}
+			if (idx > 0) {
+				answer += "\n\n"
 			}
 			answer += part.Text
 		}
