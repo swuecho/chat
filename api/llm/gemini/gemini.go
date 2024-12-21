@@ -108,7 +108,10 @@ func ParseRespLine(line []byte, answer string) string {
 	}
 
 	for _, candidate := range resp.Candidates {
-		for _, part := range candidate.Content.Parts {
+		for idx, part := range candidate.Content.Parts {
+			if (idx > 0) {
+				answer += "\n\n"
+			}
 			answer += part.Text
 		}
 
