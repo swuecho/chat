@@ -3,6 +3,8 @@
 
 <img width="850" alt="Snipaste_2024-08-03_18-32-02" src="https://github.com/user-attachments/assets/d9ccb0ef-1409-43e4-94a1-80aed2fd33d6">
 
+<img width="850" alt="image" src="https://github.com/user-attachments/assets/65b7286e-9df6-429c-98a4-64bd8ad1518b">
+
 <img width="850" alt="image" src="https://github.com/swuecho/chat/assets/666683/e41742c8-2a44-43bc-8fd6-4b66db783967">
 
 <img width="850" alt="image" src="https://github.com/swuecho/chat/assets/666683/45dd865e-7f9f-4209-8587-4781e37dd928">
