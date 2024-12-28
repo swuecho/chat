@@ -205,10 +205,6 @@ func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Reques
 
 func (h *ChatModelHandler) GetDefaultChatModel(w http.ResponseWriter, r *http.Request) {
 	ChatModel, err := h.db.GetDefaultChatModel(r.Context())
-	// default 512 is for history reasaon, now most model support 4096 and token is cheap
-	if ChatModel.MaxToken == 512 {
-		ChatModel.MaxToken = 4096
-	}
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Error retrieving default chat API: %s", err.Error())))
