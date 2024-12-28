@@ -80,6 +80,10 @@ function openBotAll() {
   window.open('/#/bot_all', '_blank')
 }
 
+function openAllSnapshot() {
+  window.open('/#/snapshot_all', '_blank')
+}
+
 </script>
 
 <template>
@@ -97,6 +101,11 @@ function openBotAll() {
         </div>
         <div class="flex-1 min-h-0 pb-4 overflow-hidden">
           <List />
+        </div>
+        <div class="px-4 pb-2">
+          <NButton block @click="openAllSnapshot">
+            {{ t('chat_snapshot.title') }}
+          </NButton>
         </div>
         <div class="px-4 pb-2">
           <NButton block @click="openBotAll">

@@ -101,11 +101,6 @@ watch(appStore, () => {
     <div class="flex-1 flex-shrink-0 overflow-hidden">
       <UserAvatar />
     </div>
-    <HoverButton :tooltip="$t('setting.snapshotLink')" @click="openSnapshotAll">
-      <span class="text-xl text-[#4f555e] dark:text-white">
-        <SvgIcon icon="carbon:table-of-contents" />
-      </span>
-    </HoverButton>
     <HoverButton v-if="isAdminUser" :tooltip="$t('setting.admin')" @click="openAdminPanel">
       <span class="text-xl text-[#4f555e] dark:text-white">
         <SvgIcon icon="eos-icons:admin-outlined" />
