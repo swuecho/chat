@@ -1,6 +1,7 @@
 {
     "admin": {
         "add_user_model_rate_limit": "Add User Session Count",
+        "add_model": "Add Model",
         "chat_model": {
             "actions": "Actions",
             "apiAuthHeader": "Auth Header key",

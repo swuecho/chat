@@ -1,6 +1,7 @@
 {
     "admin": {
         "add_user_model_rate_limit": "添加用戶會話數量",
+        "add_model": "添加模型",
         "chat_model": {
             "actions": "操作",
             "apiAuthHeader": "Auth Header 鍵",

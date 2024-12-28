@@ -42,11 +42,11 @@ async function addRow() {
 <template>
   <div>
     <NForm :model="formData">
-      <NFormItem path="label" :label="$t('admin.chat_model.label')">
-        <NInput v-model:value="formData.label" />
-      </NFormItem>
       <NFormItem path="name" :label="$t('admin.chat_model.name')">
         <NInput v-model:value="formData.name" />
+      </NFormItem>
+      <NFormItem path="label" :label="$t('admin.chat_model.label')">
+        <NInput v-model:value="formData.label" />
       </NFormItem>
       <NFormItem path="url" :label="$t('admin.chat_model.url')">
         <NInput v-model:value="formData.url" />

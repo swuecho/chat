@@ -130,9 +130,11 @@
     "system_model_tab_title": "模型配置",
     "per_model_rate_limit_title": "模型流控",
     "add_user_model_rate_limit": "添加用户会话数量",
+    "add_model": "添加模型",  
     "rate_limit": "会话数量(10min)",
     "chat_model_name": "模型ID",
     "chat_model": {
+      "copy_success": "复制成功",
       "deleteModel": "删除",
       "deleteModelConfirm": "确认删除",
       "name": "模型ID",
