@@ -247,24 +247,43 @@ function createColumns(): DataTableColumns<Chat.ChatModel> {
   const actionField = {
     title: t('admin.chat_model.actions'),
     key: 'actions',
+    width: 100,
     render(row: any) {
-      return h(
+      return h('div', { class: 'flex' }, [
+      h(
         HoverButton,
         {
-          tooltip: 'Delete',
-          onClick: () => deleteRow(row),
+        tooltip: 'Delete',
+        onClick: () => deleteRow(row),
         },
         {
-          default: () => {
-            return h(SvgIcon, {
-              class: 'text-xl',
-              icon: 'material-symbols:delete',
-            })
-          },
+        default: () => {
+          return h(SvgIcon, {
+          class: 'text-xl',
+          icon: 'material-symbols:delete',
+          })
         },
-      )
+        },
+      ),
+      h(
+        HoverButton,
+        {
+        tooltip: 'Copy',
+        onClick: () => copyRow(row),
+        },
+        {
+        default: () => {
+          return h(SvgIcon, {
+          class: 'text-xl',
+          icon: 'material-symbols:content-copy-outline-rounded',
+          })
+        },
+        },
+      ),
+      ])
     },
-  }
+    }
+
 
   return ([
     nameField,
@@ -300,6 +319,13 @@ async function deleteRow(row: any) {
   })
 }
 
+async function copyRow(row: any) {
+  // copy to clipboard
+  const text = JSON.stringify(row)
+  navigator.clipboard.writeText(text);
+  ms_ui.success(t('admin.chat_model.copy_success'))
+}
+
 function checkNoRowIsDefaultTrue(v: boolean) {
   if (v === false)
     return
@@ -324,7 +350,7 @@ function checkNoRowIsDefaultTrue(v: boolean) {
   <div class="m-5" v-if="!isLoading">
     <NDataTable :columns="columns" :data="data" :loading="isLoading" />
   </div>
-  <NModal v-model:show="dialogVisible" :title="$t('admin.add_user_model_rate_limit')" preset="dialog">
+  <NModal v-model:show="dialogVisible" :title="$t('admin.add_model')" preset="dialog">
     <AddModelForm @new-row-added="newRowEventHandle" />
   </NModal>
 </template>
