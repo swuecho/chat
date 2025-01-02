@@ -283,39 +283,39 @@ watch(
         <div class="space-y-4">
           <NTabs type="segment">
             <NTabPane name="local" tab="本地管理">
-              <NSpace justify="end">
+                <NSpace justify="end">
                 <NButton type="primary" @click="changeShowModal('add')">
-                  添加
+                  {{ $t('prompt.add') }}
                 </NButton>
                 <NButton @click="changeShowModal('local_import')">
-                  导入
+                  {{ $t('prompt.import') }}
                 </NButton>
                 <NButton @click="exportPromptTemplate()">
-                  导出
+                  {{ $t('prompt.export') }}
                 </NButton>
                 <NPopconfirm @positive-click="clearPromptTemplate">
                   <template #trigger>
-                    <NButton>
-                      清空
-                    </NButton>
+                  <NButton>
+                    {{ $t('prompt.clear') }}
+                  </NButton>
                   </template>
-                  确认是否清空数据?
+                  {{ $t('prompt.confirmClear') }}
                 </NPopconfirm>
               </NSpace>
               <br>
               <NDataTable :max-height="400" :columns="columns" :data="renderTemplate()" :pagination="pagination"
                 :bordered="false" />
             </NTabPane>
-            <NTabPane name="download" tab="在线导入">
-              注意：请检查下载 JSON 文件来源，恶意的JSON文件可能会破坏您的计算机！<br><br>
+            <NTabPane name="downloadOnline" :tab="$t('prompt.downloadOnline')">
+              {{ $t('prompt.downloadOnlineWarning') }}<br><br>
               <NGrid x-gap="12" y-gap="12" :cols="24">
-                <NGi :span="isMobile ? 18 : 22">
-                  <NInput v-model:value="downloadURL" placeholder="请输入正确的 JSON 地址" />
-                </NGi>
-                <NGi>
-                  <NButton strong secondary :disabled="downloadDisabled" @click="downloadPromptTemplate()">
-                    下载
-                  </NButton>
+              <NGi :span="isMobile ? 18 : 22">
+                <NInput v-model:value="downloadURL" :placeholder="$t('prompt.enterJsonUrl')" />
+              </NGi>
+              <NGi>
+                <NButton strong secondary :disabled="downloadDisabled" @click="downloadPromptTemplate()">
+                {{ $t('prompt.downloadOnline') }}
+                </NButton>
                 </NGi>
               </NGrid>
               <NDivider />

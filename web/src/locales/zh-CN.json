@@ -35,7 +35,25 @@
     "please_register": "请先注册"
   },
   "prompt": {
-    "store": "提示词库"
+    "store": "提示词库",
+    "add": "添加",
+    "edit": "编辑",
+    "delete": "删除",
+    "deleteConfirm": "是否删除?",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败",
+    "addSuccess": "添加成功",
+    "addFailed": "添加失败",
+    "editSuccess": "编辑成功",
+    "editFailed": "编辑失败",
+    "import":"导入",
+    "export":"导出",
+    "clear":"清空",
+    "confirmClear": "是否清空?",
+    "downloadOnline": "在线导入",
+    "downloadOnlineWarning": "注意：请检查下载 JSON 文件来源，恶意的JSON文件可能会破坏您的计算机！",
+    "download": "下载",
+    "enterJsonUrl": "请输入正确的JSON地址"
   },
   "bot": {
     "list": "机器人列表",
