@@ -1,6 +1,6 @@
 <template>
-        <div>
-                <NUpload :with-credentials="true" :action="actionURL" :headers="headers" :data="data"
+        <div v-if="fileListData && fileListData.length">
+                <NUpload class="w-full max-w-screen-xl m-auto px-4" :action="actionURL" :headers="headers" :data="data"
                         :file-list="fileListData" :show-download-button="true" :show-remove-button="false"
                         :show-cancel-button="false" @finish="handleFinish" @before-upload="beforeUpload"
                         @remove="handleRemove" @download="handleDownload" @update:file-list="handleFileListUpdate"
@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 import { NUpload, UploadFileInfo } from 'naive-ui';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useAuthStore } from '@/store'
 import request from '@/utils/request/axios'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
@@ -32,9 +32,11 @@ const props = defineProps<Props>()
 
 const sessionUuid = props.sessionUuid
 
+const fileListQueryKey = computed(() => ['fileList', sessionUuid]);
+
 // sessionUuid not null.
 const { data: fileListData } = useQuery({
-        queryKey: ['fileList', sessionUuid],
+        queryKey: fileListQueryKey,
         queryFn: async () => await getChatFilesList(sessionUuid)
 })
 

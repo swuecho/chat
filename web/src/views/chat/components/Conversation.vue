@@ -551,12 +551,12 @@ const handleUsePrompt = (_: string, value: string): void => {
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
-      <div class="flex items-center justify-center mt-4 ">
+      <div class="flex items-center justify-center mt-4">
         <div class="w-4/5 md:w-1/3">
           <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
         </div>
       </div>
-      <UploaderReadOnly class="w-full max-w-screen-xl m-auto p-4" v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
+      <UploaderReadOnly  v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
       </UploaderReadOnly>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10"
