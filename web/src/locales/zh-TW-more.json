@@ -1,10 +1,36 @@
 {
   "common": {
-    "cancel": "取消"
+    "copy": "複製"
   },
-  "setting": {
-    "apiToken": "API Token",
-    "apiTokenCopied": "API Token 已複製",
-    "apiTokenCopyFailed": "無法複製 API Token"
+  "prompt": {
+    "add": "新增",
+    "edit": "編輯",
+    "delete": "刪除",
+    "deleteConfirm": "是否刪除？",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗",
+    "addSuccess": "新增成功",
+    "addFailed": "新增失敗",
+    "editSuccess": "編輯成功",
+    "editFailed": "編輯失敗",
+    "import": "匯入",
+    "export": "匯出",
+    "clear": "清空",
+    "confirmClear": "是否清空？",
+    "downloadOnline": "線上匯入",
+    "downloadOnlineWarning": "注意：請檢查下載 JSON 檔案來源，惡意的 JSON 檔案可能會破壞您的電腦！",
+    "download": "下載",
+    "enterJsonUrl": "請輸入正確的 JSON 位址"
+  },
+  "bot": {
+    "showCode": "產生 API 呼叫程式碼"
+  },
+   "chat_snapshot": {
+    "showCode": "產生 API 呼叫程式碼"
+  },
+  "admin": {
+    "chat_model": {
+      "copy_success": "複製成功"
+    }
   }
 }

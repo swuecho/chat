@@ -1,11 +1,12 @@
 {
     "admin": {
-        "add_user_model_rate_limit": "Add User Session Count",
         "add_model": "Add Model",
+        "add_user_model_rate_limit": "Add User Session Count",
         "chat_model": {
             "actions": "Actions",
             "apiAuthHeader": "Auth Header key",
             "apiAuthKey": "API KEY corresponding to the environment variable",
+            "copy_success": "Copied successfully",
             "defaultToken": "Default token number",
             "deleteModel": "Delete",
             "deleteModelConfirm": "Confirm deletion",
@@ -55,7 +56,8 @@
         "all": {
             "title": "Bot List"
         },
-        "list": "Bot List"
+        "list": "Bot List",
+        "showCode": "Generate API call code"
     },
     "chat": {
         "N": "Number of results: {n}",
@@ -118,6 +120,7 @@
         "exportImage": "Save conversation as image",
         "exportMarkdown": "Export to markdown file",
         "scrollTop": "Scroll to top",
+        "showCode": "Generate API call code",
         "title": "Chat Records"
     },
     "common": {
@@ -125,6 +128,7 @@
         "cancel": "Cancel",
         "clear": "Clear",
         "confirm": "Confirm",
+        "copy": "Copy",
         "delete": "Delete",
         "edit": "Edit",
         "email": "Email",
@@ -173,6 +177,24 @@
         "token_length_exceed_limit": "Total message length exceeds limit, please reduce context quantity, message length or start a new conversation."
     },
     "prompt": {
+        "add": "Add",
+        "addFailed": "Add failed",
+        "addSuccess": "Add successful",
+        "clear": "Clear",
+        "confirmClear": "Are you sure you want to clear?",
+        "delete": "Delete",
+        "deleteConfirm": "Are you sure you want to delete?",
+        "deleteFailed": "Delete failed",
+        "deleteSuccess": "Delete successful",
+        "download": "Download",
+        "downloadOnline": "Import from URL",
+        "downloadOnlineWarning": "Warning: Please verify the source of the downloaded JSON file. Malicious JSON files could harm your computer!",
+        "edit": "Edit",
+        "editFailed": "Edit failed",
+        "editSuccess": "Edit successful",
+        "enterJsonUrl": "Please enter a valid JSON URL",
+        "export": "Export",
+        "import": "Import",
         "store": "prompt store"
     },
     "setting": {

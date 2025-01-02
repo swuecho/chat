@@ -1,11 +1,12 @@
 {
     "admin": {
-        "add_user_model_rate_limit": "添加用戶會話數量",
         "add_model": "添加模型",
+        "add_user_model_rate_limit": "添加用戶會話數量",
         "chat_model": {
             "actions": "操作",
             "apiAuthHeader": "Auth Header 鍵",
             "apiAuthKey": "API KEY對應的環境變量",
+            "copy_success": "複製成功",
             "defaultToken": "默認token數量",
             "deleteModel": "刪除",
             "deleteModelConfirm": "確認刪除",
@@ -55,7 +56,8 @@
         "all": {
             "title": "機器人列表"
         },
-        "list": "機器人列表"
+        "list": "機器人列表",
+        "showCode": "產生 API 呼叫程式碼"
     },
     "chat": {
         "N": "結果數量: {n}",
@@ -118,6 +120,7 @@
         "exportImage": "保存對話到圖片",
         "exportMarkdown": "匯出到Markdown檔",
         "scrollTop": "回到頂部",
+        "showCode": "產生 API 呼叫程式碼",
         "title": "會話集"
     },
     "common": {
@@ -125,6 +128,7 @@
         "cancel": "取消",
         "clear": "清空",
         "confirm": "確認",
+        "copy": "複製",
         "delete": "刪除",
         "edit": "編輯",
         "email": "郵箱",
@@ -173,6 +177,24 @@
         "token_length_exceed_limit": "總消息長度數量超過上限，請減少上下文數量、減少消息長度或者開啟新的會話"
     },
     "prompt": {
+        "add": "新增",
+        "addFailed": "新增失敗",
+        "addSuccess": "新增成功",
+        "clear": "清空",
+        "confirmClear": "是否清空？",
+        "delete": "刪除",
+        "deleteConfirm": "是否刪除？",
+        "deleteFailed": "刪除失敗",
+        "deleteSuccess": "刪除成功",
+        "download": "下載",
+        "downloadOnline": "線上匯入",
+        "downloadOnlineWarning": "注意：請檢查下載 JSON 檔案來源，惡意的 JSON 檔案可能會破壞您的電腦！",
+        "edit": "編輯",
+        "editFailed": "編輯失敗",
+        "editSuccess": "編輯成功",
+        "enterJsonUrl": "請輸入正確的 JSON 位址",
+        "export": "匯出",
+        "import": "匯入",
         "store": "提示词库"
     },
     "setting": {
