@@ -551,7 +551,7 @@ const handleUsePrompt = (_: string, value: string): void => {
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
       </NModal>
-      <div class="flex items-center justify-center mt-4">
+      <div class="flex items-center justify-center mt-2 mb-2">
         <div class="w-4/5 md:w-1/3">
           <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
         </div>
