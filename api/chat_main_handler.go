@@ -585,6 +585,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 			}
 		}
 		textIdx := response.Choices[0].Index
+		log.Printf("%+v", response)
 		delta := response.Choices[0].Delta.Content
 		textBuffer.appendByIndex(textIdx, delta)
 
@@ -602,8 +603,8 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 			if len(answer) == 0 {
 				log.Printf("%s", "no content in answer")
 			} else {
-				response := constructChatCompletionStreamReponse(answer_id, answer)
-				data, _ := json.Marshal(response)
+				constructedResponse := constructChatCompletionStreamReponse(answer_id, answer)
+				data, _ := json.Marshal(constructedResponse)
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
 				flusher.Flush()
 			}
