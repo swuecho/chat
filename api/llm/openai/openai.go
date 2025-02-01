@@ -1,5 +1,5 @@
 package openai
-
+// code is copied from openai go to add reasoningContent field
 type ChatCompletionStreamChoiceDelta struct {
 	Content          string        `json:"content,omitempty"`
 	ReasoningContent string        `json:"reasoning_content,omitempty"`
