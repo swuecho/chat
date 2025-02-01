@@ -561,7 +561,6 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 	for {
 		rawLine, err := stream.RecvRaw()
-		log.Printf("%+v", string(rawLine))
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				// send the last message
@@ -594,7 +593,6 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 			continue
 		}
 		textIdx := response.Choices[0].Index
-		log.Printf("%+v", response)
 		delta := response.Choices[0].Delta
 		textBuffer.appendByIndex(textIdx, delta.Content)
 		if len(delta.ReasoningContent) > 0 {
