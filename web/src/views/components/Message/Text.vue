@@ -66,7 +66,6 @@ const text = computed(() => {
     // prcessing <think></think> tag
     const thinked = processTextForCollapsibles(value)
     const escapedText = escapeBrackets(escapeDollarNumber(thinked))
-    console.log(escapedText)
     return mdi.render(escapedText)
   }
   return value
