@@ -24,6 +24,7 @@ import (
 
 	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/llm/gemini"
+	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -547,12 +548,14 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 
 	var answer string
 	var answer_id string
+	var hasReason bool
 	bufferLen := int(chatSession.N)
 	if bufferLen == 0 {
 		log.Println("chatSession.N is 0")
 		bufferLen += 1
 	}
 	textBuffer := newTextBuffer(bufferLen, "", "")
+	reasonBuffer := newTextBuffer(bufferLen, "\n\n", "\n\n")
 	if regenerate {
 		answer_id = chatUuid
 	}
@@ -584,7 +587,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 				return "", "", true
 			}
 		}
-		response := openai.ChatCompletionStreamResponse{}
+		response := llm_openai.ChatCompletionStreamResponse{}
 		err = json.Unmarshal(rawLine, &response)
 		if err != nil {
 			log.Printf("Could not unmarshal response: %v\n", err)
@@ -592,20 +595,28 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		}
 		textIdx := response.Choices[0].Index
 		log.Printf("%+v", response)
-		delta := response.Choices[0].Delta.Content
-		textBuffer.appendByIndex(textIdx, delta)
+		delta := response.Choices[0].Delta
+		textBuffer.appendByIndex(textIdx, delta.Content)
+		if len(delta.ReasoningContent) > 0 {
+			hasReason = true
+			reasonBuffer.appendByIndex(textIdx, delta.ReasoningContent)
+		}
 
 		if chatSession.Debug {
 			log.Printf("%+v", response)
-			log.Printf("%s", delta)
+			log.Printf("%+v", delta)
 		}
-		answer = textBuffer.String("\n")
+		if hasReason {
+			answer = reasonBuffer.String("\n") + textBuffer.String("\n")
+		} else {
+			answer = textBuffer.String("\n")
+		}
 		if answer_id == "" {
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
 		perWordStreamLimit := getPerWordStreamLimit()
 
-		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
+		if strings.HasSuffix(answer, "\n") || len(answer) < perWordStreamLimit {
 			if len(answer) == 0 {
 				log.Printf("%s", "no content in answer")
 			} else {
