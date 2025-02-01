@@ -8,7 +8,7 @@ import { t } from '@/locales'
 import { escapeBrackets, escapeDollarNumber } from '@/utils/string'
 
 interface Props {
-  inversion?: boolean
+  inversion?: boolean // user message is inversioned (on the right side)
   error?: boolean
   text?: string
   loading?: boolean
@@ -22,7 +22,7 @@ const { isMobile } = useBasicLayout()
 const textRef = ref<HTMLElement>()
 
 const mdi = new MarkdownIt({
-  html: false,
+  html: false, // true vs false
   linkify: true,
   highlight(code, language) {
     const validLang = !!(language && hljs.getLanguage(language))
@@ -48,11 +48,25 @@ const wrapClass = computed(() => {
   ]
 })
 
+function processTextForCollapsibles(text: string): string {
+  return text.replace(/<think>(.*?)<\/think>/gs, (_, content) => {
+    return `**reason**
+
+${content.trim()}
+
+**answer**
+`
+  })
+}
+
 const text = computed(() => {
   const value = props.text ?? ''
-    // 对数学公式进行处理，自动添加 $$ 符号
+  // 对数学公式进行处理，自动添加 $$ 符号
   if (!props.inversion) {
-    const escapedText = escapeBrackets(escapeDollarNumber(value))
+    // prcessing <think></think> tag
+    const thinked = processTextForCollapsibles(value)
+    const escapedText = escapeBrackets(escapeDollarNumber(thinked))
+    console.log(escapedText)
     return mdi.render(escapedText)
   }
   return value

@@ -555,7 +555,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		bufferLen += 1
 	}
 	textBuffer := newTextBuffer(bufferLen, "", "")
-	reasonBuffer := newTextBuffer(bufferLen, "\n\n", "\n\n")
+	reasonBuffer := newTextBuffer(bufferLen, "<think>\n\n", "\n\n</think>\n\n")
 	if regenerate {
 		answer_id = chatUuid
 	}
@@ -579,7 +579,8 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 					fmt.Fprintf(w, "data: %v\n\n", string(data))
 					flusher.Flush()
 				}
-				return answer, answer_id, false
+				// no reason in the answer (so do not disrupt the context)
+				return textBuffer.String("\n"), answer_id, false
 			} else {
 				log.Printf("%v", err)
 				RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
