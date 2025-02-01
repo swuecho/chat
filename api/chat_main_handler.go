@@ -556,9 +556,9 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	if regenerate {
 		answer_id = chatUuid
 	}
-
 	for {
-		response, err := stream.Recv()
+		rawLine, err := stream.RecvRaw()
+		log.Printf("%+v", string(rawLine))
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				// send the last message
@@ -583,6 +583,12 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 				RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
 				return "", "", true
 			}
+		}
+		response := openai.ChatCompletionStreamResponse{}
+		err = json.Unmarshal(rawLine, &response)
+		if err != nil {
+			log.Printf("Could not unmarshal response: %v\n", err)
+			continue
 		}
 		textIdx := response.Choices[0].Index
 		log.Printf("%+v", response)
