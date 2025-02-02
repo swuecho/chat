@@ -82,7 +82,7 @@ defineExpose({ textRef })
     <template v-else>
       <div ref="textRef" class="leading-relaxed break-words" tabindex="-1">
         <div
-          v-if="!inversion && thinkText" class="markdown-body p-4 mb-2 border-l-2  border-lime-600 "
+          v-if="!inversion && thinkText" class="markdown-body p-4 mb-2 border-l-2  border-lime-600 dark:border-white"
           v-html="thinkText"
         />
         <div v-if="!inversion" class="markdown-body" v-html="text" />
