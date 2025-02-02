@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import mdKatex from '@vscode/markdown-it-katex'
 import hljs from 'highlight.js'
-import { ThinkResult, parseText } from "./Util"
+import { parseText } from './Util'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { escapeBrackets, escapeDollarNumber } from '@/utils/string'
@@ -72,7 +72,6 @@ function highlightBlock(str: string, lang?: string) {
 }
 
 defineExpose({ textRef })
-
 </script>
 
 <template>
@@ -82,7 +81,10 @@ defineExpose({ textRef })
     </template>
     <template v-else>
       <div ref="textRef" class="leading-relaxed break-words" tabindex="-1">
-        <div v-if="!inversion" class="markdown-body p-4 mb-2 border-l-2  border-lime-600 " v-html="thinkText" />
+        <div
+          v-if="!inversion && thinkText" class="markdown-body p-4 mb-2 border-l-2  border-lime-600 "
+          v-html="thinkText"
+        />
         <div v-if="!inversion" class="markdown-body" v-html="text" />
         <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
