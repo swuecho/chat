@@ -75,7 +75,8 @@ type GeminPayload struct {
 
 type Content struct {
 	Parts []struct {
-		Text string `json:"text"`
+		Text    string `json:"text"`
+		Thought bool   `json:"thought"`
 	} `json:"parts"`
 	Role string `json:"role"`
 }
@@ -109,10 +110,14 @@ func ParseRespLine(line []byte, answer string) string {
 
 	for _, candidate := range resp.Candidates {
 		for idx, part := range candidate.Content.Parts {
-			if (idx > 0) {
+			if idx > 0 {
 				answer += "\n\n"
 			}
-			answer += part.Text
+			if part.Thought {
+				answer += ("<think>" + part.Text + "<think>")
+			} else {
+				answer += part.Text
+			}
 		}
 
 	}
