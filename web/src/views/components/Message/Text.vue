@@ -3,10 +3,10 @@ import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import mdKatex from '@vscode/markdown-it-katex'
 import hljs from 'highlight.js'
+import { parseText } from './Util'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { escapeBrackets, escapeDollarNumber } from '@/utils/string'
-
 interface Props {
   inversion?: boolean // user message is inversioned (on the right side)
   error?: boolean
@@ -48,28 +48,23 @@ const wrapClass = computed(() => {
   ]
 })
 
-function processTextForCollapsibles(text: string): string {
-  return text.replace(/<think>(.*?)<\/think>/gs, (_, content) => {
-    return `**reason**
-
-${content.trim()}
-
-**answer**
-`
-  })
-}
-
 const text = computed(() => {
-  const value = props.text ?? ''
+  const value = parseText(props.text ?? '').answerPart
   // 对数学公式进行处理，自动添加 $$ 符号
   if (!props.inversion) {
     // prcessing <think></think> tag
-    const thinked = processTextForCollapsibles(value)
-    const escapedText = escapeBrackets(escapeDollarNumber(thinked))
-    console.log(escapedText)
+    const escapedText = escapeBrackets(escapeDollarNumber(value))
     return mdi.render(escapedText)
   }
   return value
+})
+
+const thinkText = computed(() => {
+  if (!props.inversion) {
+    const think = parseText(props.text ?? '').thinkPart
+    return mdi.render(think)
+  }
+  return ''
 })
 
 function highlightBlock(str: string, lang?: string) {
@@ -77,7 +72,6 @@ function highlightBlock(str: string, lang?: string) {
 }
 
 defineExpose({ textRef })
-
 </script>
 
 <template>
@@ -87,6 +81,10 @@ defineExpose({ textRef })
     </template>
     <template v-else>
       <div ref="textRef" class="leading-relaxed break-words" tabindex="-1">
+        <div
+          v-if="!inversion && thinkText" class="markdown-body p-4 mb-2 border-l-2  border-lime-600 "
+          v-html="thinkText"
+        />
         <div v-if="!inversion" class="markdown-body" v-html="text" />
         <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
