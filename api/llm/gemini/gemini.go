@@ -67,10 +67,20 @@ func ImageData(mimeType string, data []byte) Blob {
 type GeminiMessage struct {
 	Role  string `json:"role"`
 	Parts []Part `json:"parts"`
+
+}
+
+type GenerationConfig struct {
+	Thought bool `json:"thought"`
+	// Temperature     float64 `json:"temperature"`
+	// TopP            float64 `json:"topP"`
+	// TopK            int     `json:"topK"`
+	// MaxOutputTokens int     `json:"maxOutputTokens"`
 }
 
 type GeminPayload struct {
 	Contents []GeminiMessage `json:"contents"`
+	GenerationConfig  GenerationConfig `json:"generationConfig"`
 }
 
 type Content struct {
@@ -104,6 +114,7 @@ type ResponseBody struct {
 
 func ParseRespLine(line []byte, answer string) string {
 	var resp ResponseBody
+	log.Println(string(line))
 	if err := json.Unmarshal(line, &resp); err != nil {
 		fmt.Println("Failed to parse request body:", err)
 	}
@@ -149,9 +160,12 @@ func SupportedMimeTypes() mapset.Set[string] {
 	)
 }
 
-func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sqlc_queries.ChatFile) ([]byte, error) {
+func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sqlc_queries.ChatFile, thought bool) ([]byte, error) {
 	payload := GeminPayload{
 		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
+		// GenerationConfig: GenerationConfig{
+		// 	Thought: thought,
+		// },
 	}
 	for i, message := range chat_compeletion_messages {
 		geminiMessage := GeminiMessage{

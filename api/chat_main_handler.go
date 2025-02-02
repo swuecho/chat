@@ -1425,7 +1425,11 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
 		return "", "", true
 	}
-	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages, chatFiles)
+	thought := false
+	if strings.Contains(chatSession.Model, "thinking") {
+		thought = true
+	}
+	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages, chatFiles, thought)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return "", "", true
