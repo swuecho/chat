@@ -606,7 +606,6 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		textBuffer.appendByIndex(textIdx, delta.Content)
 		if len(delta.ReasoningContent) > 0 {
 			hasReason = true
-			log.Printf("%+v", delta.ReasoningContent)
 			reasonBuffer.appendByIndex(textIdx, delta.ReasoningContent)
 		}
 
