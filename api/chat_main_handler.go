@@ -262,7 +262,8 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 	if !isTest(msgs) {
-		h.service.logChat(chatSession, msgs, LLMAnswer.Answer)
+		log.Printf("LLMAnswer: %+v", LLMAnswer)
+		h.service.logChat(chatSession, msgs, LLMAnswer.ReasoningContent+LLMAnswer.Answer)
 	}
 
 	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
@@ -512,6 +513,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages, chatFiles, streamOutput)
 	if len(openai_req.Messages) <= 1 {
+		err := eris.New("system message notice")
 		RespondWithError(w, http.StatusInternalServerError, "error.system_message_notice", err)
 		return nil, err
 	}
@@ -582,8 +584,8 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 					flusher.Flush()
 				}
 				// no reason in the answer (so do not disrupt the context)
-				llmAnswer := models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id,}
-				if (hasReason) {
+				llmAnswer := models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id}
+				if hasReason {
 					llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 				}
 				return &llmAnswer, nil
