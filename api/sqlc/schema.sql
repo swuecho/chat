@@ -171,7 +171,7 @@ ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS token_count INTEGER DEFAULT 0 
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS is_pin BOOLEAN  NOT NULL DEFAULT false;
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS llm_summary character varying(1024) NOT NULL DEFAULT '';
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS model character varying(255) NOT NULL DEFAULT '';
-ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS reasoning_content character varying(255) NOT NULL DEFAULT '';
+ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS reasoning_content character varying NOT NULL DEFAULT '';
 
 -- add hash index on uuid
 CREATE INDEX IF NOT EXISTS chat_message_uuid_idx ON chat_message using hash (uuid) ;
