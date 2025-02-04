@@ -86,7 +86,7 @@ func (s *ChatService) CreateChatPromptSimple(chatSessionUuid string, newQuestion
 }
 
 // CreateChatMessage creates a new chat message.
-func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content, model string, userId int32, baseURL string, is_summarize_mode bool) (sqlc_queries.ChatMessage, error) {
+func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode bool) (sqlc_queries.ChatMessage, error) {
 	numTokens, err := getTokenCount(content)
 	if err != nil {
 		log.Println(eris.Wrap(err, "failed to get token count: "))
@@ -105,6 +105,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 		Uuid:            uuid,
 		Role:            role,
 		Content:         content,
+		ReasoningContent: reasoningContent,
 		Model:           model,
 		UserID:          userId,
 		CreatedBy:       userId,

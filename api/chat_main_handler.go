@@ -223,7 +223,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 
 	if existingPrompt {
 		if newQuestion != "" {
-			_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
+			_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
 			if err != nil {
 				http.Error(w,
 					eris.Wrap(err, "fail to create message: ").Error(),
@@ -265,7 +265,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		h.service.logChat(chatSession, msgs, LLMAnswer.Answer)
 	}
 
-	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
+	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
@@ -298,7 +298,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	}
 
 	ctx := context.Background()
-	if _, err := h.service.CreateChatMessageSimple(ctx, session.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, session.Model, userID, baseURL, session.SummarizeMode); err != nil {
+	if _, err := h.service.CreateChatMessageSimple(ctx, session.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, session.Model, userID, baseURL, session.SummarizeMode); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
@@ -582,7 +582,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 					flusher.Flush()
 				}
 				// no reason in the answer (so do not disrupt the context)
-				return &models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id, ReasonContent: reasonBuffer.String("\n")}, nil
+				return &models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id, ReasoningContent: reasonBuffer.String("\n")}, nil
 			} else {
 				log.Printf("%v", err)
 				RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
