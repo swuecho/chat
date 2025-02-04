@@ -582,7 +582,11 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 					flusher.Flush()
 				}
 				// no reason in the answer (so do not disrupt the context)
-				return &models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id, ReasoningContent: reasonBuffer.String("\n")}, nil
+				llmAnswer := models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id,}
+				if (hasReason) {
+					llmAnswer.ReasoningContent = reasonBuffer.String("\n")
+				}
+				return &llmAnswer, nil
 			} else {
 				log.Printf("%v", err)
 				RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
