@@ -39,3 +39,9 @@ func (m *Message) SetTokenCount(tokenCount int32) *Message {
 	m.tokenCount = tokenCount
 	return m
 }
+
+type LLMAnswer struct {
+	AnswerId         string `json:"id"`
+	Answer           string `json:"answer"`
+	ReasoningContent string `json:"reason_content"`
+}
