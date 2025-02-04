@@ -13,7 +13,7 @@ import (
 const createChatMessage = `-- name: CreateChatMessage :one
 INSERT INTO chat_message (chat_session_uuid, uuid, role, content, model, token_count, score, user_id, created_by, updated_by, llm_summary, raw)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, uuid, chat_session_uuid, role, content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
+RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
 `
 
 type CreateChatMessageParams struct {
@@ -53,6 +53,7 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 		&i.ChatSessionUuid,
 		&i.Role,
 		&i.Content,
+		&i.ReasoningContent,
 		&i.Model,
 		&i.LlmSummary,
 		&i.Score,
@@ -101,7 +102,7 @@ func (q *Queries) DeleteChatMessagesBySesionUUID(ctx context.Context, chatSessio
 }
 
 const getAllChatMessages = `-- name: GetAllChatMessages :many
-SELECT id, uuid, chat_session_uuid, role, content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw FROM chat_message 
+SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw FROM chat_message 
 WHERE is_deleted = false
 ORDER BY id
 `
@@ -121,6 +122,7 @@ func (q *Queries) GetAllChatMessages(ctx context.Context) ([]ChatMessage, error)
 			&i.ChatSessionUuid,
 			&i.Role,
 			&i.Content,
+			&i.ReasoningContent,
 			&i.Model,
 			&i.LlmSummary,
 			&i.Score,
@@ -148,7 +150,7 @@ func (q *Queries) GetAllChatMessages(ctx context.Context) ([]ChatMessage, error)
 }
 
 const getChatMessageByID = `-- name: GetChatMessageByID :one
-SELECT id, uuid, chat_session_uuid, role, content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw FROM chat_message 
+SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw FROM chat_message 
 WHERE is_deleted = false and id = $1
 `
 
@@ -161,6 +163,7 @@ func (q *Queries) GetChatMessageByID(ctx context.Context, id int32) (ChatMessage
 		&i.ChatSessionUuid,
 		&i.Role,
 		&i.Content,
+		&i.ReasoningContent,
 		&i.Model,
 		&i.LlmSummary,
 		&i.Score,
@@ -178,7 +181,7 @@ func (q *Queries) GetChatMessageByID(ctx context.Context, id int32) (ChatMessage
 }
 
 const getChatMessageBySessionUUID = `-- name: GetChatMessageBySessionUUID :one
-SELECT cm.id, cm.uuid, cm.chat_session_uuid, cm.role, cm.content, cm.model, cm.llm_summary, cm.score, cm.user_id, cm.created_at, cm.updated_at, cm.created_by, cm.updated_by, cm.is_deleted, cm.is_pin, cm.token_count, cm.raw
+SELECT cm.id, cm.uuid, cm.chat_session_uuid, cm.role, cm.content, cm.reasoning_content, cm.model, cm.llm_summary, cm.score, cm.user_id, cm.created_at, cm.updated_at, cm.created_by, cm.updated_by, cm.is_deleted, cm.is_pin, cm.token_count, cm.raw
 FROM chat_message cm
 INNER JOIN chat_session cs ON cm.chat_session_uuid = cs.uuid
 WHERE cm.is_deleted = false and cs.active = true and cs.uuid = $1 
@@ -201,6 +204,7 @@ func (q *Queries) GetChatMessageBySessionUUID(ctx context.Context, arg GetChatMe
 		&i.ChatSessionUuid,
 		&i.Role,
 		&i.Content,
+		&i.ReasoningContent,
 		&i.Model,
 		&i.LlmSummary,
 		&i.Score,
@@ -219,7 +223,7 @@ func (q *Queries) GetChatMessageBySessionUUID(ctx context.Context, arg GetChatMe
 
 const getChatMessageByUUID = `-- name: GetChatMessageByUUID :one
 
-SELECT id, uuid, chat_session_uuid, role, content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw FROM chat_message 
+SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw FROM chat_message 
 WHERE is_deleted = false and uuid = $1
 `
 
@@ -233,6 +237,7 @@ func (q *Queries) GetChatMessageByUUID(ctx context.Context, uuid string) (ChatMe
 		&i.ChatSessionUuid,
 		&i.Role,
 		&i.Content,
+		&i.ReasoningContent,
 		&i.Model,
 		&i.LlmSummary,
 		&i.Score,
@@ -250,7 +255,7 @@ func (q *Queries) GetChatMessageByUUID(ctx context.Context, uuid string) (ChatMe
 }
 
 const getChatMessagesBySessionUUID = `-- name: GetChatMessagesBySessionUUID :many
-SELECT cm.id, cm.uuid, cm.chat_session_uuid, cm.role, cm.content, cm.model, cm.llm_summary, cm.score, cm.user_id, cm.created_at, cm.updated_at, cm.created_by, cm.updated_by, cm.is_deleted, cm.is_pin, cm.token_count, cm.raw
+SELECT cm.id, cm.uuid, cm.chat_session_uuid, cm.role, cm.content, cm.reasoning_content, cm.model, cm.llm_summary, cm.score, cm.user_id, cm.created_at, cm.updated_at, cm.created_by, cm.updated_by, cm.is_deleted, cm.is_pin, cm.token_count, cm.raw
 FROM chat_message cm
 INNER JOIN chat_session cs ON cm.chat_session_uuid = cs.uuid
 WHERE cm.is_deleted = false and cs.active = true and cs.uuid = $1  
@@ -280,6 +285,7 @@ func (q *Queries) GetChatMessagesBySessionUUID(ctx context.Context, arg GetChatM
 			&i.ChatSessionUuid,
 			&i.Role,
 			&i.Content,
+			&i.ReasoningContent,
 			&i.Model,
 			&i.LlmSummary,
 			&i.Score,
@@ -344,7 +350,7 @@ func (q *Queries) GetChatMessagesCountByUserAndModel(ctx context.Context, arg Ge
 }
 
 const getFirstMessageBySessionUUID = `-- name: GetFirstMessageBySessionUUID :one
-SELECT id, uuid, chat_session_uuid, role, content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
+SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
 FROM chat_message
 WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY created_at 
@@ -360,6 +366,7 @@ func (q *Queries) GetFirstMessageBySessionUUID(ctx context.Context, chatSessionU
 		&i.ChatSessionUuid,
 		&i.Role,
 		&i.Content,
+		&i.ReasoningContent,
 		&i.Model,
 		&i.LlmSummary,
 		&i.Score,
@@ -377,7 +384,7 @@ func (q *Queries) GetFirstMessageBySessionUUID(ctx context.Context, chatSessionU
 }
 
 const getLastNChatMessages = `-- name: GetLastNChatMessages :many
-SELECT id, uuid, chat_session_uuid, role, content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
+SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
 FROM chat_message
 WHERE chat_message.id in (
     SELECT id
@@ -418,6 +425,7 @@ func (q *Queries) GetLastNChatMessages(ctx context.Context, arg GetLastNChatMess
 			&i.ChatSessionUuid,
 			&i.Role,
 			&i.Content,
+			&i.ReasoningContent,
 			&i.Model,
 			&i.LlmSummary,
 			&i.Score,
@@ -445,7 +453,7 @@ func (q *Queries) GetLastNChatMessages(ctx context.Context, arg GetLastNChatMess
 }
 
 const getLatestMessagesBySessionUUID = `-- name: GetLatestMessagesBySessionUUID :many
-SELECT id, uuid, chat_session_uuid, role, content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
+SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
 FROM chat_message
 Where chat_message.id in 
 (
@@ -484,6 +492,7 @@ func (q *Queries) GetLatestMessagesBySessionUUID(ctx context.Context, arg GetLat
 			&i.ChatSessionUuid,
 			&i.Role,
 			&i.Content,
+			&i.ReasoningContent,
 			&i.Model,
 			&i.LlmSummary,
 			&i.Score,
@@ -533,7 +542,7 @@ func (q *Queries) HasChatMessagePermission(ctx context.Context, arg HasChatMessa
 const updateChatMessage = `-- name: UpdateChatMessage :one
 UPDATE chat_message SET role = $2, content = $3, score = $4, user_id = $5, updated_by = $6, updated_at = now()
 WHERE id = $1
-RETURNING id, uuid, chat_session_uuid, role, content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
+RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
 `
 
 type UpdateChatMessageParams struct {
@@ -561,6 +570,7 @@ func (q *Queries) UpdateChatMessage(ctx context.Context, arg UpdateChatMessagePa
 		&i.ChatSessionUuid,
 		&i.Role,
 		&i.Content,
+		&i.ReasoningContent,
 		&i.Model,
 		&i.LlmSummary,
 		&i.Score,
@@ -580,7 +590,7 @@ func (q *Queries) UpdateChatMessage(ctx context.Context, arg UpdateChatMessagePa
 const updateChatMessageByUUID = `-- name: UpdateChatMessageByUUID :one
 UPDATE chat_message SET content = $2, is_pin = $3, token_count = $4,  updated_at = now() 
 WHERE uuid = $1
-RETURNING id, uuid, chat_session_uuid, role, content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
+RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
 `
 
 type UpdateChatMessageByUUIDParams struct {
@@ -604,6 +614,7 @@ func (q *Queries) UpdateChatMessageByUUID(ctx context.Context, arg UpdateChatMes
 		&i.ChatSessionUuid,
 		&i.Role,
 		&i.Content,
+		&i.ReasoningContent,
 		&i.Model,
 		&i.LlmSummary,
 		&i.Score,

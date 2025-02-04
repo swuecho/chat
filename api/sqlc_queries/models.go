@@ -50,23 +50,24 @@ type ChatLog struct {
 }
 
 type ChatMessage struct {
-	ID              int32           `json:"id"`
-	Uuid            string          `json:"uuid"`
-	ChatSessionUuid string          `json:"chatSessionUuid"`
-	Role            string          `json:"role"`
-	Content         string          `json:"content"`
-	Model           string          `json:"model"`
-	LlmSummary      string          `json:"llmSummary"`
-	Score           float64         `json:"score"`
-	UserID          int32           `json:"userID"`
-	CreatedAt       time.Time       `json:"createdAt"`
-	UpdatedAt       time.Time       `json:"updatedAt"`
-	CreatedBy       int32           `json:"createdBy"`
-	UpdatedBy       int32           `json:"updatedBy"`
-	IsDeleted       bool            `json:"isDeleted"`
-	IsPin           bool            `json:"isPin"`
-	TokenCount      int32           `json:"tokenCount"`
-	Raw             json.RawMessage `json:"raw"`
+	ID               int32           `json:"id"`
+	Uuid             string          `json:"uuid"`
+	ChatSessionUuid  string          `json:"chatSessionUuid"`
+	Role             string          `json:"role"`
+	Content          string          `json:"content"`
+	ReasoningContent string          `json:"reasoningContent"`
+	Model            string          `json:"model"`
+	LlmSummary       string          `json:"llmSummary"`
+	Score            float64         `json:"score"`
+	UserID           int32           `json:"userID"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	UpdatedAt        time.Time       `json:"updatedAt"`
+	CreatedBy        int32           `json:"createdBy"`
+	UpdatedBy        int32           `json:"updatedBy"`
+	IsDeleted        bool            `json:"isDeleted"`
+	IsPin            bool            `json:"isPin"`
+	TokenCount       int32           `json:"tokenCount"`
+	Raw              json.RawMessage `json:"raw"`
 }
 
 type ChatModel struct {
