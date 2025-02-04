@@ -44,5 +44,4 @@ type LLMAnswer struct {
 	AnswerId      string `json:"id"`
 	Answer        string `json:"answer"`
 	ReasonContent string `json:"reason_content"`
-	ShouldReturn  bool   `json:"should_return"`
 }
