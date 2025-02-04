@@ -21,6 +21,8 @@ const { isMobile } = useBasicLayout()
 
 const textRef = ref<HTMLElement>()
 
+const isCollapsed = ref(false)
+
 const mdi = new MarkdownIt({
   html: false, // true vs false
   linkify: true,
@@ -75,15 +77,26 @@ defineExpose({ textRef })
 </script>
 
 <template>
-  <div class="text-black" :class="wrapClass">
+  <div class="text-black relative" :class="wrapClass">
+    <button
+      class="absolute right-1 top-1 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+      @click="isCollapsed = !isCollapsed"
+    >
+      <svg
+        class="w-4 h-4 transform transition-transform" :class="{ 'rotate-180': !isCollapsed }"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
     <template v-if="loading">
       <span class="dark:text-white w-[4px] h-[20px] block animate-blink" />
     </template>
     <template v-else>
-      <div ref="textRef" class="leading-relaxed break-words" tabindex="-1">
+      <div ref="textRef" class="leading-relaxed break-words " tabindex="-1">
         <div
-          v-if="!inversion && thinkText" class="markdown-body p-4 mb-2 border-l-2  border-lime-600 dark:border-white"
-          v-html="thinkText"
+          v-if="!inversion && thinkText" class="markdown-body p-2 border-l-2 border-lime-600 dark:border-white "
+          :class="{ hidden: isCollapsed }" v-html="thinkText"
         />
         <div v-if="!inversion" class="markdown-body" v-html="text" />
         <div v-else class="whitespace-pre-wrap" v-text="text" />
