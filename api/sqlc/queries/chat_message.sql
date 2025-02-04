@@ -29,8 +29,8 @@ WHERE is_deleted = false and id = $1;
 
 
 -- name: CreateChatMessage :one
-INSERT INTO chat_message (chat_session_uuid, uuid, role, content, model, token_count, score, user_id, created_by, updated_by, llm_summary, raw)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+INSERT INTO chat_message (chat_session_uuid, uuid, role, content, reasoning_content,  model, token_count, score, user_id, created_by, updated_by, llm_summary, raw)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING *;
 
 -- name: UpdateChatMessage :one

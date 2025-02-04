@@ -11,24 +11,25 @@ import (
 )
 
 const createChatMessage = `-- name: CreateChatMessage :one
-INSERT INTO chat_message (chat_session_uuid, uuid, role, content, model, token_count, score, user_id, created_by, updated_by, llm_summary, raw)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+INSERT INTO chat_message (chat_session_uuid, uuid, role, content, reasoning_content,  model, token_count, score, user_id, created_by, updated_by, llm_summary, raw)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw
 `
 
 type CreateChatMessageParams struct {
-	ChatSessionUuid string          `json:"chatSessionUuid"`
-	Uuid            string          `json:"uuid"`
-	Role            string          `json:"role"`
-	Content         string          `json:"content"`
-	Model           string          `json:"model"`
-	TokenCount      int32           `json:"tokenCount"`
-	Score           float64         `json:"score"`
-	UserID          int32           `json:"userID"`
-	CreatedBy       int32           `json:"createdBy"`
-	UpdatedBy       int32           `json:"updatedBy"`
-	LlmSummary      string          `json:"llmSummary"`
-	Raw             json.RawMessage `json:"raw"`
+	ChatSessionUuid  string          `json:"chatSessionUuid"`
+	Uuid             string          `json:"uuid"`
+	Role             string          `json:"role"`
+	Content          string          `json:"content"`
+	ReasoningContent string          `json:"reasoningContent"`
+	Model            string          `json:"model"`
+	TokenCount       int32           `json:"tokenCount"`
+	Score            float64         `json:"score"`
+	UserID           int32           `json:"userID"`
+	CreatedBy        int32           `json:"createdBy"`
+	UpdatedBy        int32           `json:"updatedBy"`
+	LlmSummary       string          `json:"llmSummary"`
+	Raw              json.RawMessage `json:"raw"`
 }
 
 func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error) {
@@ -37,6 +38,7 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 		arg.Uuid,
 		arg.Role,
 		arg.Content,
+		arg.ReasoningContent,
 		arg.Model,
 		arg.TokenCount,
 		arg.Score,
