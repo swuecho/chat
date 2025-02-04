@@ -51,10 +51,15 @@ func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, 
 	}
 
 	simple_msgs := lo.Map(messages, func(message ChatMessage, _ int) SimpleChatMessage {
+		text := message.Content
+		// prepend reason content
+		if len(message.ReasoningContent) > 0 {
+			text = message.ReasoningContent + message.Content
+		}
 		return SimpleChatMessage{
 			Uuid:      message.Uuid,
 			DateTime:  message.UpdatedAt.Format(time.RFC3339),
-			Text:      message.Content,
+			Text:      text,
 			Model:     message.Model,
 			Inversion: message.Role == "user",
 			Error:     false,
