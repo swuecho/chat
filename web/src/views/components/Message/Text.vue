@@ -79,6 +79,7 @@ defineExpose({ textRef })
 <template>
   <div class="text-black relative" :class="wrapClass">
     <button
+      v-if="!inversion && thinkText"
       class="absolute right-1 top-1 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
       @click="isCollapsed = !isCollapsed"
     >
