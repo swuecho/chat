@@ -518,7 +518,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		return nil, err
 	}
 	log.Printf("%+v", openai_req)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	if !streamOutput {
@@ -676,7 +676,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 		Prompt:      prompt,
 		Stream:      true,
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
@@ -818,7 +818,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 
 	// create the http client and send the request
 	client := &http.Client{
-		Timeout: 2 * time.Minute,
+		Timeout: 5 * time.Minute,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -986,7 +986,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 
 	// create the http client and send the request
 	client := &http.Client{
-		Timeout: 2 * time.Minute,
+		Timeout: 5 * time.Minute,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1144,7 +1144,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 
 	// create the http client and send the request
 	client := &http.Client{
-		Timeout: 2 * time.Minute,
+		Timeout: 5 * time.Minute,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
