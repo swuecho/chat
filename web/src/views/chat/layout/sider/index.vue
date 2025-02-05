@@ -94,7 +94,7 @@ function openAllSnapshot() {
   >
     <div class="flex flex-col h-full" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
-        <div class="p-4">
+        <div class="p-2">
           <NButton dashed block @click="handleAdd">
             <SvgIcon icon="material-symbols:add-circle-outline" /> {{ $t('chat.new') }}
           </NButton>

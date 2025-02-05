@@ -90,17 +90,17 @@ function isActive(uuid: string) {
 </script>
 
 <template>
-  <NScrollbar class="px-4">
-    <div class="flex flex-col gap-2 text-sm">
+  <NScrollbar class="px-2">
+    <div class="flex flex-col gap-1 text-sm">
       <template v-if="!dataSources.length">
-        <div class="flex flex-col items-center mt-4 text-center text-neutral-300">
+        <div class="flex flex-col items-center mt-2 text-center text-neutral-300">
           <SvgIcon icon="ri:inbox-line" class="mb-2 text-3xl" />
           <span>{{ $t('common.noData') }}</span>
         </div>
       </template>
       <template v-else>
         <div v-for="(item, index) of dataSources" :key="index">
-          <a class="relative flex items-center gap-3 px-3 py-3 break-all border rounded-md cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
+          <a class="relative flex items-center gap-2 p-2 break-all border rounded-sm cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
             :class="isActive(item.uuid) && ['border-[#4b9e5f]', 'bg-neutral-100', 'text-[#4b9e5f]', 'dark:bg-[#24272e]', 'dark:border-[#4b9e5f]', 'pr-14']"
             @click="throttledHandleSelect(item.uuid)">
             <span>
