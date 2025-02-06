@@ -102,17 +102,17 @@ function openAllSnapshot() {
         <div class="flex-1 min-h-0 pb-4 overflow-hidden">
           <List />
         </div>
-        <div class="px-4 pb-2">
+        <div class="px-2 pb-2">
           <NButton block @click="openAllSnapshot">
             {{ t('chat_snapshot.title') }}
           </NButton>
         </div>
-        <div class="px-4 pb-2">
+        <div class="px-2 pb-2">
           <NButton block @click="openBotAll">
             {{ t('bot.list') }}
           </NButton>
         </div>
-        <div class="px-4 pb-2">
+        <div class="px-2 pb-2">
           <NButton block @click="show = true">
             {{ t('prompt.store') }}
           </NButton>
