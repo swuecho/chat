@@ -167,8 +167,8 @@ function onScrollToTop() {
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
-              :model="item?.model || snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
-              :loading="item.loading" :index="index" />
+              :model="item?.model || snapshot_data.model" :text="item.text" :inversion="item.inversion"
+              :error="item.error" :loading="item.loading" :index="index" />
           </div>
         </div>
       </main>
@@ -204,7 +204,7 @@ function onScrollToTop() {
   </div>
 </template>
 
-<style>
+<style lang="css">
 /* CSS for the button */
 .floating-button {
   position: fixed;

@@ -19,6 +19,9 @@ build: vet
 	go build
 .PHONY: build
 
+install:
+	go install github.com/air-verse/air@latest
+	go mod tidy
  
 serve:
 	@echo "Starting server..."

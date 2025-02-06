@@ -237,7 +237,7 @@ function onScrollToTop() {
   </div>
 </template>
 
-<style>
+<style lang="css">
 /* CSS for the button */
 .floating-button {
   position: fixed;
