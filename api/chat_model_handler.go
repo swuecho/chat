@@ -11,7 +11,6 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
-	"golang.org/x/exp/slices"
 )
 
 type ChatModelHandler struct {
