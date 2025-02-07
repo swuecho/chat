@@ -9,7 +9,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/rotisserie/eris"
+	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"golang.org/x/exp/slices"
 )
 
 type ChatModelHandler struct {
@@ -62,18 +64,19 @@ func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.R
 	// create a ChatModelWithUsage struct
 	type ChatModelWithUsage struct {
 		sqlc_queries.ChatModel
-		LastUsageTime time.Time `json:"lastUsageTime"`
+		LastUsageTime time.Time `json:"lastUsageTime,omitempty"`
 		MessageCount  int64     `json:"messageCount"`
 	}
-	// merge ChatModels and usageTimeMap
-	var chatModelsWithUsage []ChatModelWithUsage
-	for _, ChatModel := range ChatModels {
-		chatModelsWithUsage = append(chatModelsWithUsage, ChatModelWithUsage{
-			ChatModel:     ChatModel,
-			LastUsageTime: usageTimeMap[ChatModel.Name].LatestMessageTime,
-			MessageCount:  usageTimeMap[ChatModel.Name].MessageCount,
-		})
-	}
+
+	// merge ChatModels and usageTimeMap with pre-allocated slice
+	chatModelsWithUsage := lo.Map(ChatModels, func(model sqlc_queries.ChatModel, _ int) ChatModelWithUsage {
+		usage := usageTimeMap[model.Name]
+		return ChatModelWithUsage{
+			ChatModel:     model,
+			LastUsageTime: usage.LatestMessageTime,
+			MessageCount:  usage.MessageCount,
+		}
+	})
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(chatModelsWithUsage)

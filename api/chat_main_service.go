@@ -101,18 +101,18 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	}
 
 	chatMessage := sqlc_queries.CreateChatMessageParams{
-		ChatSessionUuid: sessionUuid,
-		Uuid:            uuid,
-		Role:            role,
-		Content:         content,
+		ChatSessionUuid:  sessionUuid,
+		Uuid:             uuid,
+		Role:             role,
+		Content:          content,
 		ReasoningContent: reasoningContent,
-		Model:           model,
-		UserID:          userId,
-		CreatedBy:       userId,
-		UpdatedBy:       userId,
-		LlmSummary:      summary,
-		TokenCount:      int32(numTokens),
-		Raw:             json.RawMessage([]byte("{}")),
+		Model:            model,
+		UserID:           userId,
+		CreatedBy:        userId,
+		UpdatedBy:        userId,
+		LlmSummary:       summary,
+		TokenCount:       int32(numTokens),
+		Raw:              json.RawMessage([]byte("{}")),
 	}
 	message, err := s.q.CreateChatMessage(ctx, chatMessage)
 	if err != nil {
