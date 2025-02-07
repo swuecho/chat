@@ -8,6 +8,7 @@ package sqlc_queries
 import (
 	"context"
 	"encoding/json"
+	"time"
 )
 
 const createChatMessage = `-- name: CreateChatMessage :one
@@ -508,6 +509,49 @@ func (q *Queries) GetLatestMessagesBySessionUUID(ctx context.Context, arg GetLat
 			&i.TokenCount,
 			&i.Raw,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLatestUsageTimeOfModel = `-- name: GetLatestUsageTimeOfModel :many
+SELECT 
+    model,
+    MAX(created_at)::timestamp as latest_message_time,
+    COUNT(*) as message_count
+FROM chat_message
+WHERE 
+    created_at >= NOW() - $1::text::INTERVAL
+    AND is_deleted = false
+    AND model != ''
+GROUP BY model
+ORDER BY latest_message_time DESC
+`
+
+type GetLatestUsageTimeOfModelRow struct {
+	Model             string    `json:"model"`
+	LatestMessageTime time.Time `json:"latestMessageTime"`
+	MessageCount      int64     `json:"messageCount"`
+}
+
+func (q *Queries) GetLatestUsageTimeOfModel(ctx context.Context, timeInterval string) ([]GetLatestUsageTimeOfModelRow, error) {
+	rows, err := q.db.QueryContext(ctx, getLatestUsageTimeOfModel, timeInterval)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLatestUsageTimeOfModelRow
+	for rows.Next() {
+		var i GetLatestUsageTimeOfModelRow
+		if err := rows.Scan(&i.Model, &i.LatestMessageTime, &i.MessageCount); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
