@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/rotisserie/eris"
+	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -46,8 +48,37 @@ func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	latestUsageTimeOfModels, err := h.db.GetLatestUsageTimeOfModel(ctx, "30 days")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("Error listing chat APIs: %s", err.Error())))
+		return
+	}
+	// create a map of model id to usage time
+	usageTimeMap := make(map[string]sqlc_queries.GetLatestUsageTimeOfModelRow)
+	for _, usageTime := range latestUsageTimeOfModels {
+		usageTimeMap[usageTime.Model] = usageTime
+	}
+
+	// create a ChatModelWithUsage struct
+	type ChatModelWithUsage struct {
+		sqlc_queries.ChatModel
+		LastUsageTime time.Time `json:"lastUsageTime,omitempty"`
+		MessageCount  int64     `json:"messageCount"`
+	}
+
+	// merge ChatModels and usageTimeMap with pre-allocated slice
+	chatModelsWithUsage := lo.Map(ChatModels, func(model sqlc_queries.ChatModel, _ int) ChatModelWithUsage {
+		usage := usageTimeMap[model.Name]
+		return ChatModelWithUsage{
+			ChatModel:     model,
+			LastUsageTime: usage.LatestMessageTime,
+			MessageCount:  usage.MessageCount,
+		}
+	})
+
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(ChatModels)
+	json.NewEncoder(w).Encode(chatModelsWithUsage)
 }
 
 func (h *ChatModelHandler) ChatModelByID(w http.ResponseWriter, r *http.Request) {

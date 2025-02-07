@@ -144,3 +144,17 @@ JOIN chat_session cs ON (cm.chat_session_uuid = cs.uuid AND cs.user_id = cm.user
 WHERE cm.user_id = $1
 AND cs.model = $2 
 AND cm.created_at >= NOW() - INTERVAL '10 minutes';
+
+
+-- name: GetLatestUsageTimeOfModel :many
+SELECT 
+    model,
+    MAX(created_at)::timestamp as latest_message_time,
+    COUNT(*) as message_count
+FROM chat_message
+WHERE 
+    created_at >= NOW() - sqlc.arg(time_interval)::text::INTERVAL
+    AND is_deleted = false
+    AND model != ''
+GROUP BY model
+ORDER BY latest_message_time DESC;
