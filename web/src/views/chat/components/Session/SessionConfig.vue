@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { Ref } from 'vue'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, h } from 'vue'
 import type { FormInst } from 'naive-ui'
 import { NForm, NFormItem, NRadio, NRadioGroup, NSlider, NSpace, NSpin, NSwitch } from 'naive-ui'
 import { debounce } from 'lodash-es'
@@ -8,13 +8,20 @@ import { useChatStore } from '@/store'
 import { fetchChatModel } from '@/api'
 
 import { useQuery } from "@tanstack/vue-query";
+import { formatDistanceToNow, differenceInDays } from 'date-fns'
 
-const optionFromModel = (model: any) => {
-  return {
-    label: model.label,
-    value: model.name,
+
+
+// format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now
+const formatTimestamp = (timestamp: string) => {
+  const date = new Date(timestamp)
+  const days = differenceInDays(new Date(), date)
+  if (days > 30) {
+    return 'a month ago'
   }
+  return formatDistanceToNow(date, { addSuffix: true })
 }
+
 const props = defineProps<{
   uuid: string
 }>()
@@ -26,8 +33,11 @@ const { data, isLoading } = useQuery({
   staleTime: 10 * 60 * 1000,
 })
 
+// Remove or comment out the optionFromModel function
+// const optionFromModel = (model: any) => { ... }
+
 const chatModelOptions = computed(() =>
-  data?.value ? data.value.filter((x: any) => x.isEnable).map(optionFromModel) : []
+  data?.value ? data.value.filter((x: any) => x.isEnable) : []
 )
 
 const chatStore = useChatStore()
@@ -88,7 +98,7 @@ const tokenUpperLimit = computed(() => {
     }
 
   }
-  return 1024*4
+  return 1024 * 4
 })
 
 const defaultToken = computed(() => {
@@ -115,7 +125,12 @@ const defaultToken = computed(() => {
         <NRadioGroup v-model:value="modelRef.chatModel">
           <NSpace>
             <NRadio v-for="model in chatModelOptions" :key="model.value" :value="model.value">
-              {{ model.label }}
+              <div>
+                {{ model.label }}
+                <span style="color: #999; font-size: 0.8rem; margin-left: 4px">
+                  - {{ formatTimestamp(model.lastUsageTime) }}
+                </span>
+              </div>
             </NRadio>
           </NSpace>
         </NRadioGroup>
@@ -126,12 +141,12 @@ const defaultToken = computed(() => {
           <template #checked>
             {{ $t('chat.is_summarize_mode') }}
           </template>
-          <template #unchecked>
+<template #unchecked>
             {{ $t('chat.no_summarize_mode') }}
           </template>
-        </NSwitch>
-      </NFormItem>
-      -->
+</NSwitch>
+</NFormItem>
+-->
       <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
         <NSlider v-model:value="modelRef.contextCount" :min="1" :max="40" :tooltip="false" show-tooltip />
       </NFormItem>
@@ -142,8 +157,8 @@ const defaultToken = computed(() => {
         <NSlider v-model:value="modelRef.topP" :min="0" :max="1" :step="0.01" :tooltip="false" />
       </NFormItem>
       <NFormItem :label="$t('chat.maxTokens', { maxTokens: modelRef.maxTokens })" path="maxTokens">
-        <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="tokenUpperLimit" :default-value="defaultToken"  :step="16"
-          :tooltip="false" />
+        <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="tokenUpperLimit" :default-value="defaultToken"
+          :step="16" :tooltip="false" />
       </NFormItem>
       <NFormItem v-if="modelRef.chatModel.startsWith('gpt') || modelRef.chatModel.includes('davinci')"
         :label="$t('chat.N', { n: modelRef.n })" path="n">
