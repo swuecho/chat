@@ -6,6 +6,7 @@ import { useChatStore } from '@/store'
 import { fetchChatModel } from '@/api'
 
 import { useQuery } from "@tanstack/vue-query";
+import { formatDistanceToNow, differenceInDays } from 'date-fns'
 
 const chatStore = useChatStore()
 
@@ -24,9 +25,19 @@ const { data } = useQuery({
         staleTime: 10 * 60 * 1000,
 })
 
+// format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now
+const formatTimestamp = (timestamp: string) => {
+  const date = new Date(timestamp)
+  const days = differenceInDays(new Date(), date)
+  if (days > 30) {
+    return 'a month ago'
+  }
+  return formatDistanceToNow(date, { addSuffix: true })
+}
+
 const optionFromModel = (model: any) => {
         return {
-                label: model.label,
+                label: `${model.label} - ${formatTimestamp(model.lastUsageTime)}`,
                 value: model.name,
         }
 }
