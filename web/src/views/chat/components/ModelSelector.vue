@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref, watch, } from 'vue'
+import { computed, ref, watch, h } from 'vue'
 import { NSelect, NForm } from 'naive-ui'
 import { useChatStore } from '@/store'
 
@@ -27,17 +27,21 @@ const { data } = useQuery({
 
 // format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now
 const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp)
-  const days = differenceInDays(new Date(), date)
-  if (days > 30) {
-    return 'a month ago'
-  }
-  return formatDistanceToNow(date, { addSuffix: true })
+        const date = new Date(timestamp)
+        const days = differenceInDays(new Date(), date)
+        if (days > 30) {
+                return 'a month ago'
+        }
+        return formatDistanceToNow(date, { addSuffix: true })
 }
 
 const optionFromModel = (model: any) => {
         return {
-                label: `${model.label} - ${formatTimestamp(model.lastUsageTime)}`,
+                label: () => h('div', {}, [
+                        model.label,
+                        h('span', { style: 'color: #999; font-size: 0.8rem; margin-left: 4px' },
+                                `- ${formatTimestamp(model.lastUsageTime)}`)
+                ]),
                 value: model.name,
         }
 }
