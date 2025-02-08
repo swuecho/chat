@@ -25,7 +25,7 @@
 - 第一个注册的用户是管理员
 - 默认限流 100 chatGPT call /10分钟 (OPENAI_RATELIMIT=100)
 - 根据对话生成可以分享的静态页面(like ShareGPT), 也可以继续会话. 
-- 对话快照目录(对话集), 支持全文查找(Enlgish), 方便整理, 搜索会话记录.
+- 对话快照目录(对话集), 支持全文查找(English), 方便整理, 搜索会话记录.
 - 支持OPEN AI, Claude 模型 
 - 支持Ollama host模型, 配置参考: https://github.com/swuecho/chat/discussions/396
 - 支持上传文本文件
