@@ -203,18 +203,3 @@ function onScrollToTop() {
     </div>
   </div>
 </template>
-
-<style lang="css">
-/* CSS for the button */
-.floating-button {
-  position: fixed;
-  bottom: 10vh;
-  right: 10vmin;
-  z-index: 99;
-  padding: 0.5em;
-  border-radius: 50%;
-  cursor: pointer;
-  background-color: #4ff09a;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-}
-</style>
