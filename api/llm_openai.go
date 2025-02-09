@@ -91,6 +91,16 @@ func getModelBaseUrl(apiUrl string) (string, error) {
 	if apiUrl == "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions" {
 		return "https://dashscope.aliyuncs.com/compatible-mode/v1", nil
 	}
+	// open router
+	// https://openrouter.ai/api/v1
+	if strings.Contains(apiUrl, "openrouter") {
+		// keep the url until /v1
+		slashIndex := strings.Index(apiUrl, "/v1")
+		if slashIndex > 0 {
+			return apiUrl[:slashIndex] + "/v1", nil
+		}
+		return apiUrl, nil
+	}
 	parsedUrl, err := url.Parse(apiUrl)
 	if err != nil {
 		return "", err
