@@ -497,7 +497,8 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 
 	config, err := genOpenAIConfig(chatModel)
-	log.Printf("%+v", config)
+	log.Printf("%+v", config.String()) 
+	// print all config details
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
 		return nil, err
@@ -533,6 +534,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 		fmt.Fprint(w, string(data))
 		return &models.LLMAnswer{Answer: completion.Choices[0].Message.Content, AnswerId: completion.ID}, nil
 	}
+	log.Print("before request")
 	stream, err := client.CreateChatCompletionStream(ctx, openai_req)
 
 	if err != nil {
@@ -566,6 +568,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	for {
 		rawLine, err := stream.RecvRaw()
 		if err != nil {
+			log.Printf("stream error: %+v", err)
 			if errors.Is(err, io.EOF) {
 				// send the last message
 				if len(answer) > 0 {
