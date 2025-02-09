@@ -197,12 +197,7 @@ cd chat; cd api
 go install github.com/cosmtrek/air@latest
 go mod tidy
 # export env var, change base on your env
-export PG_HOST=192.168.0.135
-export PG_DB=hwu
-export PG_USER=hwu
-export PG_PASS=pass
-export PG_PORT=5432
-# export DATABASE_URL= postgres://user:pass@192.168.0.1:5432/db?sslmode=disable
+export DATABASE_URL= postgres://user:pass@192.168.0.1:5432/db?sslmode=disable
 
 # export OPENAI_API_KEY=sk-xxx, not required if you use `debug` model
 # export OPENAI_RATELIMIT=100
@@ -223,11 +218,8 @@ npm run dev
 ```bash
 cd ..; cd e2e
 # export env var, change base on your env
-export PG_HOST=192.168.0.135
-export PG_DB=hwu
-export PG_USER=hwu
-export PG_PASS=pass
-export PG_PORT=5432
+export DATABASE_URL= postgres://user:pass@192.168.0.1:5432/db?sslmode=disable
+
 npm install
 npx playwright test # --ui 
 ```
