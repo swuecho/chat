@@ -32,6 +32,11 @@
 - 支持多媒体文件, 需要模型支持
 - 提示词管理, 提示词快捷键 '/'
 
+## 接口配置
+
+参考：
+https://github.com/swuecho/chat/discussions
+
 ## 参与开发
 
 1. git clone
@@ -140,6 +145,10 @@ enjoy!
 - Support OPEN AI, Claude model 
 - Support Upload File
 - Support MultiMedia File (rely on Model support)
+
+## How to Add LLM
+
+check：https://github.com/swuecho/chat/discussions
 
 ## How to Deploy
 
