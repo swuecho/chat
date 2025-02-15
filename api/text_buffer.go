@@ -11,7 +11,7 @@ type textBuffer struct {
 	suffix   string
 }
 
-func newTextBuffer(n int, prefix, suffix string) *textBuffer {
+func newTextBuffer(n int32, prefix, suffix string) *textBuffer {
 	buffer := &textBuffer{
 		builders: make([]strings.Builder, n),
 		prefix:   prefix,
