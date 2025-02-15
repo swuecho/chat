@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -70,4 +72,20 @@ func setSSEHeader(w http.ResponseWriter) {
 func RespondWithError(w http.ResponseWriter, code int, message string, details interface{}) {
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(ErrorResponse{Code: code, Message: message, Details: details})
+}
+
+func getPerWordStreamLimit() int {
+	perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")
+
+	if perWordStreamLimitStr == "" {
+		perWordStreamLimitStr = "200"
+	}
+
+	perWordStreamLimit, err := strconv.Atoi(perWordStreamLimitStr)
+	if err != nil {
+		log.Printf("get per word stream limit: %v", eris.Wrap(err, "get per word stream limit").Error())
+		return 200
+	}
+
+	return perWordStreamLimit
 }

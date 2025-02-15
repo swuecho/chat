@@ -12,7 +12,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -255,8 +254,8 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		return
 	}
 
-	chatStreamFn := h.chooseChatStreamFn(chatSession, msgs)
-	LLMAnswer, err := chatStreamFn(w, chatSession, msgs, chatUuid, false, streamOutput)
+	model := h.chooseChatModel(chatSession, msgs)
+	LLMAnswer, err := model.Stream(w, chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
 		log.Printf("Error generating answer: %v", err)
 		return
@@ -286,9 +285,9 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 		Role:    "user",
 		Content: newQuestion,
 	})
-	chatStreamFn := h.chooseChatStreamFn(session, messages)
+	model := h.chooseChatModel(session, messages)
 
-	LLMAnswer, err := chatStreamFn(w, session, messages, "", false, streamOutput)
+	LLMAnswer, err := model.Stream(w, session, messages, "", false, streamOutput)
 	if err != nil {
 		log.Printf("Error generating answer: %v", err)
 		return
@@ -351,9 +350,9 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	// }
 
 	// Determine whether the chat is a test or not
-	chatStreamFn := h.chooseChatStreamFn(chatSession, msgs)
+	model := h.chooseChatModel(chatSession, msgs)
 
-	LLMAnswer, err := chatStreamFn(w, chatSession, msgs, chatUuid, true, stream)
+	LLMAnswer, err := model.Stream(w, chatSession, msgs, chatUuid, true, stream)
 	if err != nil {
 		log.Printf("Error regenerating answer: %v", err)
 		return
@@ -367,7 +366,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	}
 }
 
-func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, msgs []models.Message) func(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msgs []models.Message) ChatModel {
 	model := chat_session.Model
 	isTestChat := isTest(msgs)
 	isClaude := strings.HasPrefix(model, "claude")
@@ -385,23 +384,25 @@ func (h *ChatHandler) chooseChatStreamFn(chat_session sqlc_queries.ChatSession, 
 	isCompletion := completionModel.Contains(model)
 	isCustom := strings.HasPrefix(model, "custom-")
 
-	chatStreamFn := h.chatStream
+	var chatModel ChatModel
 	if isClaude {
-		chatStreamFn = h.chatStreamClaude
+		chatModel = &ClaudeChatModel{h: h}
 	} else if isClaude3 {
-		chatStreamFn = h.chatStreamClaude3
+		chatModel = &Claude3ChatModel{h: h}
 	} else if isTestChat {
-		chatStreamFn = h.chatStreamTest
+		chatModel = &TestChatModel{h: h}
 	} else if isOllama {
-		chatStreamFn = h.chatOllamStream
+		chatModel = &OllamaChatModel{h: h}
 	} else if isCompletion {
-		chatStreamFn = h.CompletionStream
+		chatModel = &CompletionChatModel{h: h}
 	} else if isGemini {
-		chatStreamFn = h.chatStreamGemini
+		chatModel = &GeminiChatModel{h: h}
 	} else if isCustom {
-		chatStreamFn = h.customChatStream
+		chatModel = &CustomChatModel{h: h}
+	} else {
+		chatModel = &OpenAIChatModel{h: h}
 	}
-	return chatStreamFn
+	return chatModel
 }
 
 func isTest(msgs []models.Message) bool {
@@ -464,22 +465,6 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	return false
 }
 
-func getPerWordStreamLimit() int {
-	perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")
-
-	if perWordStreamLimitStr == "" {
-		perWordStreamLimitStr = "200"
-	}
-
-	perWordStreamLimit, err := strconv.Atoi(perWordStreamLimitStr)
-	if err != nil {
-		log.Printf("get per word stream limit: %v", eris.Wrap(err, "get per word stream limit").Error())
-		return 200
-	}
-
-	return perWordStreamLimit
-}
-
 func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
 	// check per chat_model limit
 
@@ -497,7 +482,7 @@ func (h *ChatHandler) chatStream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 
 	config, err := genOpenAIConfig(chatModel)
-	log.Printf("%+v", config.String()) 
+	log.Printf("%+v", config.String())
 	// print all config details
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
@@ -1566,4 +1551,81 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		AnswerId: answer_id,
 		Answer:   answer,
 	}, nil
+}
+
+// ChatModel interface
+type ChatModel interface {
+	Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error)
+}
+
+// OpenAI ChatModel implementation
+type OpenAIChatModel struct {
+	h *ChatHandler
+}
+
+func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
+	return m.h.chatStream(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, streamOutput)
+}
+
+// Claude ChatModel implementation
+type ClaudeChatModel struct {
+	h *ChatHandler
+}
+
+func (m *ClaudeChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.chatStreamClaude(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
+}
+
+// Claude3 ChatModel implementation
+type Claude3ChatModel struct {
+	h *ChatHandler
+}
+
+func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.chatStreamClaude3(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
+}
+
+// Test ChatModel implementation
+type TestChatModel struct {
+	h *ChatHandler
+}
+
+func (m *TestChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.chatStreamTest(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
+}
+
+// Ollama ChatModel implementation
+type OllamaChatModel struct {
+	h *ChatHandler
+}
+
+func (m *OllamaChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.chatOllamStream(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
+}
+
+// Completion ChatModel implementation
+type CompletionChatModel struct {
+	h *ChatHandler
+}
+
+func (m *CompletionChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.CompletionStream(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
+}
+
+// Gemini ChatModel implementation
+type GeminiChatModel struct {
+	h *ChatHandler
+}
+
+func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.chatStreamGemini(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
+}
+
+// Custom ChatModel implementation
+type CustomChatModel struct {
+	h *ChatHandler
+}
+
+func (m *CustomChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.customChatStream(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
 }
