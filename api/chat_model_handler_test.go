@@ -88,7 +88,7 @@ func unmarshalResponseToChatModel(t *testing.T, rr *httptest.ResponseRecorder) [
 }
 
 // the code below do db update directly in instead of using handler, please change to use handler
-func TestChatModel(t *testing.T) {
+func TestChatModelTest(t *testing.T) {
 	q := sqlc_queries.New(db)
 	h := NewChatModelHandler(q) // create a new ChatModelHandler instance for testing
 	router := mux.NewRouter()

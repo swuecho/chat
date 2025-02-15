@@ -1,7 +1,11 @@
 package main
 
 import (
+	"net/http"
 	"time"
+
+	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type ErrorResponse struct {
@@ -92,4 +96,9 @@ type Pagination struct {
 
 func (p *Pagination) Offset() int32 {
 	return (p.Page - 1) * p.Size
+}
+
+// ChatModel interface
+type ChatModel interface {
+	Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error)
 }
