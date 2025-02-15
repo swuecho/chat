@@ -54,7 +54,6 @@ const text = computed(() => {
   const value = parseText(props.text ?? '').answerPart
   // 对数学公式进行处理，自动添加 $$ 符号
   if (!props.inversion) {
-    // prcessing <think></think> tag
     const escapedText = escapeBrackets(escapeDollarNumber(value))
     return mdi.render(escapedText)
   }
@@ -64,7 +63,8 @@ const text = computed(() => {
 const thinkText = computed(() => {
   if (!props.inversion) {
     const think = parseText(props.text ?? '').thinkPart
-    return mdi.render(think)
+    const escapedText = escapeBrackets(escapeDollarNumber(think))
+    return mdi.render(escapedText)
   }
   return ''
 })
