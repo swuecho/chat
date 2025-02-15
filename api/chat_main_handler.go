@@ -719,21 +719,23 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	}, nil
 }
 
-// claude-3-opus-20240229
-// claude-3-sonnet-20240229
-// claude-3-haiku-20240307
-func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+// Claude3 ChatModel implementation
+type Claude3ChatModel struct {
+	h *ChatHandler
+}
+
+func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
 	log.Printf("%+v", chatSession)
 	// Release the API token
 	// set the api key
-	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
+	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
 		return nil, err
 	}
-	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
 		return nil, err
@@ -799,12 +801,17 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 
 	if !stream {
 		req.Header.Set("Accept", "application/json")
+		return doGenerateClaude3(w, req)
 	} else {
 		// set the streaming flag
 		req.Header.Set("Accept", "text/event-stream")
 		req.Header.Set("Cache-Control", "no-cache")
 		req.Header.Set("Connection", "keep-alive")
+		return m.h.chatStreamClaude3(w, req, chatUuid, regenerate)
 	}
+}
+
+func doGenerateClaude3(w http.ResponseWriter, req *http.Request) (*models.LLMAnswer, error) {
 
 	// create the http client and send the request
 	client := &http.Client{
@@ -817,23 +824,38 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, chatSession sqlc_
 		return nil, err
 	}
 
-	if !stream {
-		// Unmarshal directly from resp.Body
-		var message claude.Response
-		if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
-			return nil, err
-		}
-		defer resp.Body.Close()
-		uuid := message.ID
-		firstMessage := message.Content[0].Text
-		answer := constructChatCompletionStreamReponse(uuid, firstMessage)
-		data, _ := json.Marshal(answer)
-		fmt.Fprint(w, string(data))
-		return &models.LLMAnswer{
-			AnswerId: uuid,
-			Answer:   firstMessage,
-		}, nil
+	// Unmarshal directly from resp.Body
+	var message claude.Response
+	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+	uuid := message.ID
+	firstMessage := message.Content[0].Text
+	answer := constructChatCompletionStreamReponse(uuid, firstMessage)
+	data, _ := json.Marshal(answer)
+	fmt.Fprint(w, string(data))
+	return &models.LLMAnswer{
+		AnswerId: uuid,
+		Answer:   firstMessage,
+	}, nil
+}
+
+// claude-3-opus-20240229
+// claude-3-sonnet-20240229
+// claude-3-haiku-20240307
+func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
+
+	// create the http client and send the request
+	client := &http.Client{
+		Timeout: 5 * time.Minute,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("%+v", err)
+		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		return nil, err
 	}
 
 	ioreader := bufio.NewReader(resp.Body)
@@ -1394,15 +1416,6 @@ type ClaudeChatModel struct {
 
 func (m *ClaudeChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	return m.h.chatStreamClaude(w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
-}
-
-// Claude3 ChatModel implementation
-type Claude3ChatModel struct {
-	h *ChatHandler
-}
-
-func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.h.chatStreamClaude3(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
 }
 
 // Test ChatModel implementation
