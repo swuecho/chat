@@ -273,7 +273,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, newQuestion string, userID int32, streamOutput bool) {
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), session.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", session.Model), err)
 		return
 	}
 
@@ -476,7 +476,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 
@@ -595,7 +595,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 
@@ -732,7 +732,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
@@ -955,7 +955,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 	jsonData := map[string]interface{}{
@@ -1078,7 +1078,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	// set the api key
 	chat_model, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 	apiKey := os.Getenv(chat_model.ApiAuthKey)

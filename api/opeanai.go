@@ -33,7 +33,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 
 	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "get chat model").Error(), err)
+		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 
