@@ -69,9 +69,14 @@ func setSSEHeader(w http.ResponseWriter) {
 }
 
 // message string | Error() type
-func RespondWithError(w http.ResponseWriter, code int, message string, details interface{}) {
+func RespondWithErrorMessage(w http.ResponseWriter, code int, message string, details interface{}) {
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(ErrorResponse{Code: code, Message: message, Details: details})
+}
+
+func RespondWithServerErrorRepsonse(w http.ResponseWriter, errorResponse ErrorResponse) {
+	w.WriteHeader(http.StatusInternalServerError)
+	json.NewEncoder(w).Encode(errorResponse)
 }
 
 func getPerWordStreamLimit() int {

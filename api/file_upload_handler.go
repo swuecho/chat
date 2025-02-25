@@ -42,7 +42,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	// get user-id from request
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 	fmt.Println("User ID:", userID)
@@ -73,7 +73,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 	buf.Reset()
@@ -90,7 +90,7 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
 	file, err := h.service.q.GetChatFileByID(r.Context(), int32(fileIdInt))
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 	w.Header().Set("Content-Disposition", "attachment; filename="+file.Name)
@@ -104,7 +104,7 @@ func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
 	_, err := h.service.q.DeleteChatFile(r.Context(), int32(fileIdInt))
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -114,14 +114,14 @@ func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.
 	sessionUUID := mux.Vars(r)["uuid"]
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 	}
 	chatFiles, err := h.service.q.ListChatFilesBySessionUUID(r.Context(), sqlc_queries.ListChatFilesBySessionUUIDParams{
 		ChatSessionUuid: sessionUUID,
 		UserID:          userID,
 	})
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

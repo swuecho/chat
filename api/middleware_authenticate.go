@@ -65,11 +65,11 @@ func AdminOnlyHander(h http.Handler) http.Handler {
 		ctx := r.Context()
 		userRole, ok := ctx.Value(roleContextKey).(string)
 		if !ok {
-			RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
 			return
 		}
 		if userRole != "admin" {
-			RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
 			return
 		}
 		h.ServeHTTP(w, r)
@@ -81,11 +81,11 @@ func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 		ctx := r.Context()
 		userRole, ok := ctx.Value(roleContextKey).(string)
 		if !ok {
-			RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
 			return
 		}
 		if userRole != "admin" {
-			RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
 			return
 		}
 		handlerFunc(w, r)
@@ -145,7 +145,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 				ctx = context.WithValue(ctx, roleContextKey, role)
 				// superuser
 				if strings.HasPrefix(r.URL.Path, "/admin") && role != "admin" {
-					RespondWithError(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+					RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
 					return
 				}
 
@@ -160,7 +160,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 			}
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
-			RespondWithError(w, http.StatusUnauthorized, "error.NotAuthorized", "Not Authorized")
+			RespondWithErrorMessage(w, http.StatusUnauthorized, "error.NotAuthorized", "Not Authorized")
 		}
 	})
 }

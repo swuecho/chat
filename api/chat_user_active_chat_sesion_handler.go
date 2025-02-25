@@ -32,7 +32,7 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
@@ -51,7 +51,7 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 

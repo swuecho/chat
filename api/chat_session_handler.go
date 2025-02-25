@@ -72,7 +72,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 	ctx := r.Context()
 	userIDInt, err := getUserID(ctx)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 	var sessionParams sqlc_queries.CreateOrUpdateChatSessionByUUIDParams
@@ -191,7 +191,7 @@ func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter,
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
@@ -236,13 +236,13 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
 	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), snapshot_uuid)
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Error retrieving chat snapshot", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Error retrieving chat snapshot", err)
 		return
 	}
 
@@ -253,12 +253,12 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	promptMsg := conversionsSimpleMessages[0]
 	chatPrompt, err := h.service.q.GetChatPromptByUUID(r.Context(), promptMsg.Uuid)
 	if err != nil {
-		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get prompt").Error(), err)
+		RespondWithErrorMessage(w, http.StatusNotFound, eris.Wrap(err, "can not get prompt").Error(), err)
 		return
 	}
 	originSession, err := h.service.q.GetChatSessionByUUIDWithInActive(r.Context(), chatPrompt.ChatSessionUuid)
 	if err != nil {
-		RespondWithError(w, http.StatusNotFound, eris.Wrap(err, "can not get origin session").Error(), err)
+		RespondWithErrorMessage(w, http.StatusNotFound, eris.Wrap(err, "can not get origin session").Error(), err)
 		return
 	}
 
@@ -312,7 +312,7 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 		}
 		_, err = h.service.q.CreateChatMessage(r.Context(), messageParam)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error creating messages for chat session from snapshot").Error(), err)
+			RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error creating messages for chat session from snapshot").Error(), err)
 			return
 		}
 
@@ -325,7 +325,7 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	}
 	_, err = h.service.q.UpdateUserActiveChatSession(r.Context(), sessionParams)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to update active session").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "failed to update active session").Error(), err)
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"SessionUuid": session.Uuid})

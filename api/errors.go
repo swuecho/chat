@@ -49,6 +49,8 @@ var ErrServiceUnavailable = errors.New("service unavailable")
 // ErrRateLimitExceeded is returned when the client has sent too many requests in a given amount of time.
 var ErrRateLimitExceeded = errors.New("rate limit exceeded")
 
+var ErrModelNotFound = ErrorResponse{Code: 5001, Message: "Model not found", Details: nil}
+
 // More errors
 
 // ErrPermissionDenied is returned when the user does not have permission to access the requested resource.
