@@ -14,7 +14,7 @@ COPY web/ .
 # Build the application
 RUN npm run build
 
-FROM golang:1.19-alpine3.16 AS builder
+FROM golang:1.24-alpine3.20 AS builder
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ COPY --from=frontend_builder /app/dist/ ./static/
 
 RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -a -installsuffix cgo -o /app/app
 
-FROM alpine:3.16
+FROM alpine:3.20
 
 WORKDIR /app
 
