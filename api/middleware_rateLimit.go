@@ -19,7 +19,7 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				// role := ctx.Value(roleContextKey).(string)
 
 				if err != nil {
-					RespondWithError(w, http.StatusUnauthorized, "no user", err)
+					RespondWithErrorMessage(w, http.StatusUnauthorized, "no user", err)
 					return
 				}
 				messageCount, err := q.GetChatMessagesCount(r.Context(), int32(userIDInt))
@@ -33,7 +33,7 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				}
 
 				if messageCount >= int64(maxRate) {
-					RespondWithError(w, http.StatusTooManyRequests, "error.rateLimit", map[string]interface{}{
+					RespondWithErrorMessage(w, http.StatusTooManyRequests, "error.rateLimit", map[string]interface{}{
 						"messageCount": messageCount,
 						"maxRate":      maxRate,
 					})

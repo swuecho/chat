@@ -97,7 +97,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	var req BotRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Error decoding request: %v", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request format", err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, "Invalid request format", err)
 		return
 	}
 
@@ -112,7 +112,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	userID, err := getUserID(ctx)
 	if err != nil {
 		log.Printf("Error getting user ID: %v", err)
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
 		return
 	}
 
@@ -123,7 +123,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 		Uuid:   snapshotUuid,
 	})
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat snapshot").Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat snapshot").Error(), err)
 		return
 	}
 
@@ -132,13 +132,13 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	var session sqlc_queries.ChatSession
 	err = json.Unmarshal(chatSnapshot.Session, &session)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to deserialize chat session").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "fail to deserialize chat session").Error(), err)
 		return
 	}
 	var simpleChatMessages []SimpleChatMessage
 	err = json.Unmarshal(chatSnapshot.Conversation, &simpleChatMessages)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to deserialize conversation").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "fail to deserialize conversation").Error(), err)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Error decoding request: %v", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request format", err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, "Invalid request format", err)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	userID, err := getUserID(ctx)
 	if err != nil {
 		log.Printf("Error getting user ID: %v", err)
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
 		return
 	}
 
@@ -245,7 +245,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 
 	msgs, err := h.service.getAskMessages(chatSession, chatUuid, false)
 	if err != nil {
-		RespondWithError(w,
+		RespondWithErrorMessage(w,
 			http.StatusInternalServerError,
 			eris.Wrap(err, "fail to collect messages: ").Error(),
 			err,
@@ -265,7 +265,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
 }
@@ -273,7 +273,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, newQuestion string, userID int32, streamOutput bool) {
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), session.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", session.Model), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", session.Model), err)
 		return
 	}
 
@@ -298,7 +298,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 
 	ctx := context.Background()
 	if _, err := h.service.CreateChatMessageSimple(ctx, session.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, session.Model, userID, baseURL, session.SummarizeMode); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
 		return
 	}
 }
@@ -326,13 +326,13 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	ctx := context.Background()
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat session").Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat session").Error(), err)
 		return
 	}
 
 	msgs, err := h.service.getAskMessages(chatSession, chatUuid, true)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Get chat message error", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Get chat message error", err)
 		return
 	}
 
@@ -361,7 +361,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 
 	// Delete previous message and create new one
 	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, LLMAnswer.Answer); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
 	}
 }
 
@@ -420,7 +420,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get model by name").Error(), err)
+		RespondWithServerErrorRepsonse(w, ErrModelNotFound.WithDetails(chatModel.Name))
 		return true
 	}
 	if !chatModel.EnablePerModeRatelimit {
@@ -434,7 +434,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		})
 	log.Printf("%+v", rate)
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "error.fail_to_get_rate_limit", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "error.fail_to_get_rate_limit", err)
 		return true
 	}
 
@@ -448,17 +448,17 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	if err != nil {
 		// no rows
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
+			RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
 			return true
 		}
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
 		return true
 	}
 
 	log.Printf("%+v", usage10Min)
 
 	if int32(usage10Min) > rate.RateLimit {
-		RespondWithError(w, http.StatusTooManyRequests, fmt.Sprintf("error.%s_over_limit", rate.ChatModelName), err)
+		RespondWithErrorMessage(w, http.StatusTooManyRequests, fmt.Sprintf("error.%s_over_limit", rate.ChatModelName), err)
 		return true
 	}
 	return false
@@ -476,13 +476,13 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 
 	config, err := genOpenAIConfig(chatModel)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
 		return nil, err
 	}
 
@@ -508,7 +508,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	defer cancel()
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return nil, err
 	}
 	defer stream.Close()
@@ -517,7 +517,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return nil, eris.New("Streaming unsupported!")
 	}
 
@@ -550,7 +550,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
+			RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
 			return nil, err
 		}
 		textIdx := response.Choices[0].Index
@@ -595,7 +595,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 
@@ -622,7 +622,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
 		return nil, err
 	}
 
@@ -646,7 +646,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return nil, err
 	}
 
@@ -660,7 +660,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return nil, err
 	}
 
@@ -732,12 +732,12 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
 		return nil, err
 	}
 
@@ -762,7 +762,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		messages = messagesToOpenAIMesages(claude_messages, chatFiles)
 	} else {
 		// only system message, return and do nothing
-		RespondWithError(w, http.StatusInternalServerError, "error.system_message_notice", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.system_message_notice", err)
 		return nil, err
 	}
 	// create the json data
@@ -785,7 +785,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 
 	if err != nil {
 		log.Printf("%+v", err)
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
 		return nil, err
 	}
 
@@ -820,14 +820,14 @@ func doGenerateClaude3(w http.ResponseWriter, req *http.Request) (*models.LLMAns
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("%+v", err)
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return nil, err
 	}
 
 	// Unmarshal directly from resp.Body
 	var message claude.Response
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -854,7 +854,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("%+v", err)
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return nil, err
 	}
 
@@ -868,7 +868,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return nil, err
 	}
 
@@ -913,7 +913,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 			log.Println(string(line))
-			RespondWithError(w, http.StatusInternalServerError, string(line), nil)
+			RespondWithErrorMessage(w, http.StatusInternalServerError, string(line), nil)
 			return nil, err
 		}
 		if answer_id == "" {
@@ -955,7 +955,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 	jsonData := map[string]interface{}{
@@ -968,7 +968,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
 		return nil, err
 	}
 
@@ -992,7 +992,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
 		return nil, err
 	}
 
@@ -1006,7 +1006,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return nil, err
 	}
 
@@ -1078,7 +1078,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	// set the api key
 	chat_model, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
 		return nil, err
 	}
 	apiKey := os.Getenv(chat_model.ApiAuthKey)
@@ -1106,7 +1106,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		fmt.Println("Error while creating request: ", err)
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
 		return nil, err
 	}
 
@@ -1138,7 +1138,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return nil, err
 	}
 
@@ -1201,7 +1201,7 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	//message := Message{Role: "assitant", Content:}
 	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
 		return nil, err
 	}
 
@@ -1214,7 +1214,7 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	flusher, ok := w.(http.Flusher)
 
 	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return nil, err
 	}
 	answer := "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."
@@ -1294,12 +1294,12 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
 		return nil, err
 	}
 	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages, chatFiles)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
 		return nil, err
 	}
 
@@ -1313,7 +1313,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		fmt.Println("Error while creating request: ", err)
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "create request to gemini api").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "create request to gemini api").Error(), err)
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -1322,7 +1322,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error while sending request: ", err)
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1336,14 +1336,14 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		// Handle non-streaming response
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_read_response", err)
+			RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_read_response", err)
 			return nil, err
 		}
 		// body to GeminiResponse
 		var geminiResp gemini.ResponseBody
 		err = json.Unmarshal(body, &geminiResp)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
+			RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
 			return nil, err
 		}
 		answer := geminiResp.Candidates[0].Content.Parts[0].Text
@@ -1360,7 +1360,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	setSSEHeader(w)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
 		return nil, err
 	}
 

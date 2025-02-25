@@ -14,6 +14,13 @@ type ErrorResponse struct {
 	Details interface{} `json:"details,omitempty"`
 }
 
+// withDetails
+func (e ErrorResponse) WithDetails(details interface{}) ErrorResponse {
+	e.Details = details
+	return e
+}
+
+
 type TokenResult struct {
 	AccessToken string `json:"accessToken"`
 	ExpiresIn   int    `json:"expiresIn"`

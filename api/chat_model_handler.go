@@ -105,7 +105,7 @@ func (h *ChatModelHandler) ChatModelByID(w http.ResponseWriter, r *http.Request)
 func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
 	}
 
 	var input struct {
@@ -157,7 +157,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
 	}
 
 	var input struct {
@@ -176,7 +176,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
 		return
 	}
 
@@ -198,7 +198,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	})
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error updating chat API").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error updating chat API").Error(), err)
 		return
 	}
 
@@ -217,7 +217,7 @@ func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Reques
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
 	}
 
 	err = h.db.DeleteChatModel(r.Context(),

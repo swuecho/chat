@@ -56,7 +56,7 @@ func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 	user, err := h.service.GetAuthUserByID(r.Context(), userID)
@@ -70,7 +70,7 @@ func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
@@ -157,19 +157,19 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginParams LoginParams
 	err := json.NewDecoder(r.Body).Decode(&loginParams)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, "error.invalid_request", nil)
+		RespondWithErrorMessage(w, http.StatusBadRequest, "error.invalid_request", nil)
 		return
 	}
 	user, err := h.service.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "error.invalid_email_or_password", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "error.invalid_email_or_password", err)
 		return
 	}
 	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
 	token, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_generate_token", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_generate_token", err)
 		return
 	}
 
@@ -198,7 +198,7 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GenerateToken(userId, userRole, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error.fail_to_generate_token", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_generate_token", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -419,7 +419,7 @@ func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 

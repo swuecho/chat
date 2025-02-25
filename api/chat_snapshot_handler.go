@@ -33,12 +33,12 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 	chatSessionUuid := mux.Vars(r)["uuid"]
 	user_id, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 	uuid, err := h.service.CreateChatSnapshot(r.Context(), chatSessionUuid, user_id)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 	}
 	json.NewEncoder(w).Encode(
 		map[string]interface{}{
@@ -51,12 +51,12 @@ func (h *ChatSnapshotHandler) CreateChatBot(w http.ResponseWriter, r *http.Reque
 	chatSessionUuid := mux.Vars(r)["uuid"]
 	user_id, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 	uuid, err := h.service.CreateChatBot(r.Context(), chatSessionUuid, user_id)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 	}
 	json.NewEncoder(w).Encode(
 		map[string]interface{}{
@@ -69,7 +69,7 @@ func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Req
 	uuidStr := mux.Vars(r)["uuid"]
 	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuidStr)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 	json.NewEncoder(w).Encode(snapshot)
@@ -79,12 +79,12 @@ func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Req
 func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 	}
 	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), userID)
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 	}
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 
@@ -116,13 +116,13 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		UserID:  userID,
 	})
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 
 	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuid)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 	json.NewEncoder(w).Encode(snapshot)
@@ -134,7 +134,7 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 	uuid := vars["uuid"]
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusForbidden, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusForbidden, err.Error(), err)
 		return
 	}
 
@@ -143,7 +143,7 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 		UserID: userID,
 	})
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 
@@ -159,7 +159,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 	}
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 		Search: search,
 	})
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "failed to retrieve chat snapshots").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "failed to retrieve chat snapshots").Error(), err)
 		return
 	}
 

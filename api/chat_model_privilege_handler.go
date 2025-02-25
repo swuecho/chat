@@ -43,7 +43,7 @@ func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivileges(w http.Respo
 	// TODO: check user is super_user
 	userChatModelRows, err := h.db.ListUserChatModelPrivilegesRateLimit(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error listing user chat model privileges").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error listing user chat model privileges").Error(), err)
 		return
 	}
 	output := lo.Map(userChatModelRows, func(r sqlc_queries.ListUserChatModelPrivilegesRateLimitRow, idx int) ChatModelPrivilege {
@@ -71,7 +71,7 @@ func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByID(w http.Respon
 
 	userChatModelPrivilege, err := h.db.UserChatModelPrivilegeByID(r.Context(), int32(id))
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting user chat model privilege").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting user chat model privilege").Error(), err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -82,18 +82,19 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 	var input ChatModelPrivilege
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
 		return
 	}
 
 	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get user by email").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get user by email").Error(), err)
 	}
 	chatModel, err := h.db.ChatModelByName(r.Context(), input.ChatModelName)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get model by name").Error(), err)
+		RespondWithServerErrorRepsonse(w, ErrModelNotFound.WithDetails(chatModel.Name))
+
 	}
 	log.Printf("%+v\n", chatModel)
 
@@ -106,7 +107,7 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 	})
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error creating user chat model privilege").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error creating user chat model privilege").Error(), err)
 		return
 	}
 
@@ -131,13 +132,13 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
 	}
 
 	var input ChatModelPrivilege
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
 		return
 	}
 
@@ -148,7 +149,7 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 	})
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error updating user chat model privilege").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error updating user chat model privilege").Error(), err)
 		return
 	}
 	output := ChatModelPrivilege{
@@ -172,7 +173,7 @@ func (h *UserChatModelPrivilegeHandler) DeleteUserChatModelPrivilege(w http.Resp
 
 	err = h.db.DeleteUserChatModelPrivilege(r.Context(), int32(id))
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error deleting user chat model privilege").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error deleting user chat model privilege").Error(), err)
 		return
 	}
 
@@ -182,7 +183,7 @@ func (h *UserChatModelPrivilegeHandler) DeleteUserChatModelPrivilege(w http.Resp
 func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByUserAndModelID(w http.ResponseWriter, r *http.Request) {
 	_, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
 		return
 	}
 
@@ -192,7 +193,7 @@ func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByUserAndModelID(w
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
 		return
 	}
 
@@ -203,7 +204,7 @@ func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByUserAndModelID(w
 		})
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting user chat model privilege").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting user chat model privilege").Error(), err)
 		return
 	}
 
@@ -214,14 +215,14 @@ func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByUserAndModelID(w
 func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivilegesByUserID(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
 		return
 	}
 
 	privileges, err := h.db.ListUserChatModelPrivilegesByUserID(r.Context(), int32(userID))
 
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, eris.Wrap(err, "Error listing privileges for user").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error listing privileges for user").Error(), err)
 		return
 	}
 
