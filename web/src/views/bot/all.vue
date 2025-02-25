@@ -110,15 +110,20 @@ function postUrl(uuid: string): string {
           <ul>
             <li v-for="post in postsOfYearMonth" :key="post.uuid" class="flex justify-between">
               <div>
-                <div class="flex">
-                  <time :datetime="post.date" class="mb-1 text-sm font-medium text-gray-600">{{
-                    post.date
-                    }}</time>
-                  <div class="ml-2 text-sm" @click="handleDelete(post)">
-                    <SvgIcon icon="ic:baseline-delete-forever" />
+                <div class="flex items-center">
+                  <time :datetime="post.date" class="text-sm font-medium text-gray-600">{{
+                  post.date
+                  }}</time>
+                  <div class="ml-2 text-sm flex items-center cursor-pointer" @click="handleDelete(post)">
+                  <SvgIcon icon="ic:baseline-delete-forever" />
                   </div>
-                  <div class="ml-4 cursor-pointer" @click="handleShowCode(post)">
-                    <SvgIcon icon="ic:outline-code" />
+                </div>
+                <div class="flex items-center">
+                    <div class="text-xs text-gray-500">
+                    {{ post.uuid }}
+                    </div>
+                  <div class="ml-4 cursor-pointer flex items-center" @click="handleShowCode(post)">
+                  <SvgIcon icon="ic:outline-code" />
                   </div>
                 </div>
                 <a :href="postUrl(post.uuid)" :title="post.title"
