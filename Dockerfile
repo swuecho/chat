@@ -14,7 +14,7 @@ COPY web/ .
 # Build the application
 RUN npm run build
 
-FROM golang:1.19-alpine3.16 AS builder
+FROM golang:1.24-alpine3.16 AS builder
 
 WORKDIR /app
 
