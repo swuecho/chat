@@ -93,7 +93,8 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 	}
 	chatModel, err := h.db.ChatModelByName(r.Context(), input.ChatModelName)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get model by name").Error(), err)
+		RespondWithServerErrorRepsonse(w, ErrModelNotFound.WithDetails(chatModel.Name))
+
 	}
 	log.Printf("%+v\n", chatModel)
 

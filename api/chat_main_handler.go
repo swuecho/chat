@@ -420,7 +420,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("Model not found: %s", chatModel.Name), err)
+		RespondWithServerErrorRepsonse(w, ErrModelNotFound.WithDetails(chatModel.Name))
 		return true
 	}
 	if !chatModel.EnablePerModeRatelimit {
