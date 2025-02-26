@@ -161,31 +161,10 @@ var errorResourceNotFound = ErrResourceNotFound("resource")
 var errorResourceAlreadyExists = ErrResourceAlreadyExists("resource")
 
 // ErrorCatalog holds all error codes for documentation purposes
-var ErrorCatalog = map[string]struct {
-	HTTPCode int
-	Message  string
-	Example  string
-}{
-	"AUTH_001": {
-		HTTPCode: http.StatusUnauthorized,
-		Message:  "Invalid credentials",
-		Example:  "Username or password is incorrect",
-	},
-	"AUTH_002": {
-		HTTPCode: http.StatusUnauthorized,
-		Message:  "Token has expired",
-		Example:  "Your session has expired, please log in again",
-	},
-	errorResourceNotFound.Code: {
-		HTTPCode: errorResourceNotFound.HTTPCode,
-		Message:  errorResourceNotFound.Message,
-		Example:  "The user with ID 123 could not be found",
-	},
-	errorResourceAlreadyExists.Code: {
-		HTTPCode: errorResourceAlreadyExists.HTTPCode,
-		Message:  errorResourceAlreadyExists.Message,
-		Example:  "A user with that email address already exists",
-	},
+var ErrorCatalog = map[string]APIError{
+	"AUTH_001":                      ErrAuthInvalidCredentials,
+	errorResourceNotFound.Code:      errorResourceNotFound,
+	errorResourceAlreadyExists.Code: errorResourceAlreadyExists,
 }
 
 func WrapError(err error, detail string) APIError {
@@ -218,7 +197,6 @@ func ErrorCatalogHandler(w http.ResponseWriter, r *http.Request) {
 		Code     string `json:"code"`
 		HTTPCode int    `json:"http_code"`
 		Message  string `json:"message"`
-		Example  string `json:"example"`
 	}
 
 	docs := make([]ErrorDoc, 0, len(ErrorCatalog))
@@ -227,7 +205,6 @@ func ErrorCatalogHandler(w http.ResponseWriter, r *http.Request) {
 			Code:     code,
 			HTTPCode: info.HTTPCode,
 			Message:  info.Message,
-			Example:  info.Example,
 		})
 	}
 
