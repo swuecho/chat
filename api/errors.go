@@ -1,66 +1,219 @@
 package main
 
-import "errors"
+import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"sort"
 
-// ErrUsageLimitExceeded is returned when the usage limit is exceeded.
-var ErrUsageLimitExceeded = errors.New("usage limit exceeded")
+	"github.com/jackc/pgconn"
+)
 
-// auth related
+type APIError struct {
+	HTTPCode  int    `json:"-"`                // HTTP status code (not exposed in response)
+	Code      string `json:"code"`             // Application-specific error code
+	Message   string `json:"message"`          // Human-readable message
+	Detail    string `json:"detail,omitempty"` // Optional error details
+	DebugInfo string `json:"-"`                // Internal debugging info (not exposed)
+}
 
-var ErrInvalidCredentials = errors.New("invalid credentials")
-var ErrInvalidUserID = errors.New("invalid user id")
+func (e APIError) Error() string {
+	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
+}
 
-/// token related
+// Define error code prefixes by domain
+const (
+	ErrAuth       = "AUTH" // Authentication/Authorization errors
+	ErrValidation = "VALD" // Validation errors
+	ErrResource   = "RES"  // Resource-related errors
+	ErrDatabase   = "DB"   // Database errors
+	ErrExternal   = "EXT"  // External service errors
+	ErrInternal   = "INTN" // Internal application errors
+)
 
-// ErrTokenExpired is returned when the token is expired.
-var ErrTokenExpired = errors.New("token expired")
+// Define specific error codes
+var (
+	// Auth errors
+	ErrAuthInvalidCredentials = APIError{
+		HTTPCode: http.StatusUnauthorized,
+		Code:     ErrAuth + "_001",
+		Message:  "Invalid credentials",
+	}
+	ErrAuthExpiredToken = APIError{
+		HTTPCode: http.StatusUnauthorized,
+		Code:     ErrAuth + "_002",
+		Message:  "Token has expired",
+	}
 
-// ErrTokenNotYetValid is returned when the token is not yet valid.
-var ErrTokenNotYetValid = errors.New("token not yet valid")
+	// Resource errors
+	ErrResourceNotFound = func(resource string) APIError {
+		return APIError{
+			HTTPCode: http.StatusInternalServerError,
+			Code:     ErrResource + "_001",
+			Message:  resource + " not found",
+		}
+	}
+	ErrResourceAlreadyExists = func(resource string) APIError {
+		return APIError{
+			HTTPCode: http.StatusConflict,
+			Code:     ErrResource + "_002",
+			Message:  resource + " already exists",
+		}
+	}
 
-// ErrTokenMalformed is returned when the token is malformed.
-var ErrTokenMalformed = errors.New("token malformed")
+	// Validation errors
+	ErrValidationInvalidInput = func(detail string) APIError {
+		return APIError{
+			HTTPCode: http.StatusBadRequest,
+			Code:     ErrValidation + "_001",
+			Message:  "Invalid input",
+			Detail:   detail,
+		}
+	}
 
-// ErrTokenInvalid is returned when the token is invalid.
-var ErrTokenInvalid = errors.New("token invalid")
+	// Database errors
+	ErrDatabaseQuery = APIError{
+		HTTPCode:  http.StatusInternalServerError,
+		Code:      ErrDatabase + "_001",
+		Message:   "Database query failed",
+		DebugInfo: "Database operation failed - check logs for details",
+	}
 
-// openapi related
+	// Internal errors
+	ErrInternalUnexpected = APIError{
+		HTTPCode:  http.StatusInternalServerError,
+		Code:      ErrInternal + "_001",
+		Message:   "An unexpected error occurred",
+		DebugInfo: "Unexpected internal error - check logs for stack trace",
+	}
+)
 
-// ErrInvalidOpenAPI is returned when the openapi is invalid.
-var ErrInvalidOpenAPI = errors.New("invalid openapi")
+func RespondWithAPIError(w http.ResponseWriter, err error) {
+	w.Header().Set("Content-Type", "application/json")
 
-// ErrOpenAiApiError is returned when the openai api returns an error.
-var ErrOpenAiApiError = errors.New("openai api error")
+	var apiErr APIError
+	switch e := err.(type) {
+	case APIError:
+		apiErr = e
+	default:
+		// Log unexpected errors
+		log.Printf("Unexpected error: %v", err)
+		apiErr = ErrInternalUnexpected
+	}
 
-// http service related
+	// Set status code from the error
+	w.WriteHeader(apiErr.HTTPCode)
 
-// ErrBadRequest is returned when the request is malformed or contains invalid data.
-var ErrBadRequest = errors.New("bad request")
+	// Create response object (don't expose debug info)
+	response := struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Detail  string `json:"detail,omitempty"`
+	}{
+		Code:    apiErr.Code,
+		Message: apiErr.Message,
+		Detail:  apiErr.Detail,
+	}
 
-// ErrNotFound is returned when the requested resource is not found.
-var ErrNotFound = errors.New("not found")
+	// Log error with debug info if available
+	if apiErr.DebugInfo != "" {
+		log.Printf("Error [%s]: %s - %s", apiErr.Code, apiErr.Message, apiErr.DebugInfo)
+	}
 
-// ErrInternalServerError is returned when an internal server error occurs.
-var ErrInternalServerError = errors.New("internal server error")
+	json.NewEncoder(w).Encode(response)
+}
 
-// ErrServiceUnavailable is returned when the service is temporarily unavailable.
-var ErrServiceUnavailable = errors.New("service unavailable")
+func MapDatabaseError(err error) error {
+	// Map common database errors to appropriate application errors
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrResourceNotFound("Record")
+	}
 
-// ErrRateLimitExceeded is returned when the client has sent too many requests in a given amount of time.
-var ErrRateLimitExceeded = errors.New("rate limit exceeded")
+	// Check for other specific database errors
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case "23505": // Unique violation
+			return ErrResourceAlreadyExists("Record")
+		case "23503": // Foreign key violation
+			return APIError{
+				HTTPCode:  http.StatusBadRequest,
+				Code:      ErrDatabase + "_003",
+				Message:   "Referenced resource does not exist",
+				DebugInfo: fmt.Sprintf("Foreign key violation: %s", pgErr.Detail),
+			}
+		}
+	}
 
-var ErrModelNotFound = ErrorResponse{Code: 5001, Message: "Model not found", Details: nil}
+	// Log the unhandled database error
+	log.Printf("Unhandled database error: %v", err)
 
-// More errors
+	// Return generic database error
+	dbErr := ErrDatabaseQuery
+	dbErr.DebugInfo = err.Error()
+	return dbErr
+}
 
-// ErrPermissionDenied is returned when the user does not have permission to access the requested resource.
-var ErrPermissionDenied = errors.New("permission denied")
+var errorResourceNotFound = ErrResourceNotFound("resource")
+var errorResourceAlreadyExists = ErrResourceAlreadyExists("resource")
 
-// ErrResourceConflict is returned when there is a conflict with the requested resource.
-var ErrResourceConflict = errors.New("resource conflict")
+// ErrorCatalog holds all error codes for documentation purposes
+var ErrorCatalog = map[string]APIError{
+	"AUTH_001":                      ErrAuthInvalidCredentials,
+	errorResourceNotFound.Code:      errorResourceNotFound,
+	errorResourceAlreadyExists.Code: errorResourceAlreadyExists,
+}
 
-// ErrUnprocessableEntity is returned when the server cannot process the request due to client-side errors.
-var ErrUnprocessableEntity = errors.New("unprocessable entity")
+func WrapError(err error, detail string) APIError {
+	var apiErr APIError
 
-// ErrGatewayTimeout is returned when the server did not receive a timely response from an external service.
-var ErrGatewayTimeout = errors.New("gateway timeout")
+	switch e := err.(type) {
+	case APIError:
+		// Clone the API error and add detail
+		apiErr = e
+		if detail != "" {
+			if apiErr.Detail != "" {
+				apiErr.Detail = fmt.Sprintf("%s: %s", detail, apiErr.Detail)
+			} else {
+				apiErr.Detail = detail
+			}
+		}
+	default:
+		// Create a new internal error
+		apiErr = ErrInternalUnexpected
+		apiErr.Detail = detail
+		apiErr.DebugInfo = err.Error()
+	}
+
+	return apiErr
+}
+
+// Add a handler to serve the error catalog
+func ErrorCatalogHandler(w http.ResponseWriter, r *http.Request) {
+	type ErrorDoc struct {
+		Code     string `json:"code"`
+		HTTPCode int    `json:"http_code"`
+		Message  string `json:"message"`
+	}
+
+	docs := make([]ErrorDoc, 0, len(ErrorCatalog))
+	for code, info := range ErrorCatalog {
+		docs = append(docs, ErrorDoc{
+			Code:     code,
+			HTTPCode: info.HTTPCode,
+			Message:  info.Message,
+		})
+	}
+
+	// Sort by error code
+	sort.Slice(docs, func(i, j int) bool {
+		return docs[i].Code < docs[j].Code
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(docs)
+}

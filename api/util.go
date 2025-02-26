@@ -74,11 +74,6 @@ func RespondWithErrorMessage(w http.ResponseWriter, code int, message string, de
 	json.NewEncoder(w).Encode(ErrorResponse{Code: code, Message: message, Details: details})
 }
 
-func RespondWithServerErrorRepsonse(w http.ResponseWriter, errorResponse ErrorResponse) {
-	w.WriteHeader(http.StatusInternalServerError)
-	json.NewEncoder(w).Encode(errorResponse)
-}
-
 func getPerWordStreamLimit() int {
 	perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")
 

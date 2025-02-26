@@ -182,6 +182,7 @@ func main() {
 	chatFileHandler.Register(apiRouter)
 
 	apiRouter.HandleFunc("/tts", handleTTSRequest)
+	apiRouter.HandleFunc("/errors", ErrorCatalogHandler)
 
 	// Embed static/* directory
 	fs := http.FileServer(http.FS(static.StaticFiles))
