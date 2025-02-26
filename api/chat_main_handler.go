@@ -420,7 +420,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
-		RespondWithServerErrorRepsonse(w, ErrModelNotFound.WithDetails(chatModel.Name))
+		RespondWithAPIError(w, ErrResourceNotFound("chat model"+chatModel.Name))
 		return true
 	}
 	if !chatModel.EnablePerModeRatelimit {
@@ -476,7 +476,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithAPIError(w, ErrResourceNotFound("chat model "+chatSession.Model))
 		return nil, err
 	}
 
@@ -595,7 +595,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
 		return nil, err
 	}
 
@@ -732,12 +732,12 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
 		return nil, err
 	}
 	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		RespondWithAPIError(w, ErrResourceNotFound("chat files "+chatSession.Uuid))
 		return nil, err
 	}
 
@@ -955,7 +955,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
 		return nil, err
 	}
 	jsonData := map[string]interface{}{
@@ -1078,7 +1078,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	// set the api key
 	chat_model, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", chatSession.Model), err)
+		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
 		return nil, err
 	}
 	apiKey := os.Getenv(chat_model.ApiAuthKey)

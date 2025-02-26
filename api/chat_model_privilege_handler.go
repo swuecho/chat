@@ -82,18 +82,19 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 	var input ChatModelPrivilege
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to parse request body"))
 		return
 	}
 
 	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
 
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to get user by email").Error(), err)
+		RespondWithAPIError(w, ErrResourceNotFound("email "+input.UserEmail))
 	}
 	chatModel, err := h.db.ChatModelByName(r.Context(), input.ChatModelName)
 	if err != nil {
-		RespondWithServerErrorRepsonse(w, ErrModelNotFound.WithDetails(chatModel.Name))
+		RespondWithAPIError(w, ErrResourceNotFound("chat model "+chatModel.Name))
+		return
 
 	}
 	log.Printf("%+v\n", chatModel)
