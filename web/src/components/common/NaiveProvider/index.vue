@@ -33,7 +33,7 @@ const NaiveProviderContent = defineComponent({
   <NLoadingBarProvider>
     <NDialogProvider>
         <NNotificationProvider>
-          <NMessageProvider>
+          <NMessageProvider placement="top-right" >
             <slot />
             <NaiveProviderContent />
           </NMessageProvider>

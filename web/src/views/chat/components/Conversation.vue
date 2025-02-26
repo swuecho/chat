@@ -168,7 +168,8 @@ async function onConversationStream() {
           } = xhr
           if (status >= 400) {
             const error_json: { code: number; message: string; details: any } = JSON.parse(responseText)
-            nui_msg.error(t(error_json.message), {
+            console.log(responseText)
+            nui_msg.error(`${error_json.code} : ${t(error_json.message)}`, {
               duration: 5000,
               closable: true,
               render: renderMessage
@@ -556,7 +557,7 @@ const handleUsePrompt = (_: string, value: string): void => {
           <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
         </div>
       </div>
-      <UploaderReadOnly  v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
+      <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
       </UploaderReadOnly>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10"
