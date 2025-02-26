@@ -190,19 +190,13 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	fmt.Printf("chatSession: %+v ", chatSession)
 	if err != nil {
-		http.Error(w,
-			eris.Wrap(err, "fail to get session: ").Error(),
-			http.StatusInternalServerError,
-		)
+		RespondWithAPIError(w, ErrResourceNotFound("chat session: "+chatSessionUuid))
 		return
 	}
 
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		http.Error(w,
-			eris.Wrap(err, "fail to get model: ").Error(),
-			http.StatusInternalServerError,
-		)
+		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
 		return
 	}
 	baseURL, _ := getModelBaseUrl(chatModel.Url)
