@@ -59,6 +59,12 @@ var (
 		Code:     ErrResource + "_002",
 		Message:  "Resource already exists",
 	}
+	ErrTooManyRequests = APIError{
+		HTTPCode: http.StatusTooManyRequests,
+		Code:     ErrResource + "_003",
+		Message:  "Rate limit exceeded",
+		Detail:   "Too many requests in the given time period",
+	}
 
 	// Validation errors
 	ErrValidationInvalidInputGeneric = APIError{
@@ -189,6 +195,7 @@ var ErrorCatalog = map[string]APIError{
 	// Resource errors
 	ErrResourceNotFoundGeneric.Code:      ErrResourceNotFoundGeneric,
 	ErrResourceAlreadyExistsGeneric.Code: ErrResourceAlreadyExistsGeneric,
+	ErrTooManyRequests.Code:              ErrTooManyRequests,
 	
 	// Validation errors
 	ErrValidationInvalidInputGeneric.Code: ErrValidationInvalidInputGeneric,

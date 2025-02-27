@@ -486,12 +486,9 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	log.Printf("%+v", usage10Min)
 
 	if int32(usage10Min) > rate.RateLimit {
-		apiErr := APIError{
-			HTTPCode: http.StatusTooManyRequests,
-			Code:     ErrResource + "_003",
-			Message:  fmt.Sprintf("Rate limit exceeded for %s", rate.ChatModelName),
-			Detail:   fmt.Sprintf("Usage: %d, Limit: %d", usage10Min, rate.RateLimit),
-		}
+		apiErr := ErrTooManyRequests
+		apiErr.Message = fmt.Sprintf("Rate limit exceeded for %s", rate.ChatModelName)
+		apiErr.Detail = fmt.Sprintf("Usage: %d, Limit: %d", usage10Min, rate.RateLimit)
 		RespondWithAPIError(w, apiErr)
 		return true
 	}
