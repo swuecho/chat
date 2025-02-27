@@ -8,10 +8,12 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
+// ChatSnapshotHandler handles requests related to chat snapshots
 type ChatSnapshotHandler struct {
 	service *ChatSnapshotService
 }
 
+// NewChatSnapshotHandler creates a new handler instance
 func NewChatSnapshotHandler(sqlc_q *sqlc_queries.Queries) *ChatSnapshotHandler {
 	return &ChatSnapshotHandler{
 		service: NewChatSnapshotService(sqlc_q),
