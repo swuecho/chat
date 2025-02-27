@@ -96,10 +96,7 @@ type BotRequest struct {
 func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req BotRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding request: %v", err)
-		apiErr := ErrValidationInvalidInput("Failed to decode request body")
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 
