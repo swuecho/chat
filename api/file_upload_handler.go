@@ -33,8 +33,27 @@ func (h *ChatFileHandler) Register(router *mux.Router) {
 
 const (
 	maxUploadSize = 32 << 20 // 32 MB
-	allowedTypes  = "image/jpeg,image/png,application/pdf,text/plain"
 )
+
+var allowedTypes = map[string]string{
+	"image/jpeg":       ".jpg",
+	"image/png":        ".png",
+	"application/pdf":  ".pdf",
+	"text/plain":       ".txt",
+	"application/json": ".json",
+}
+
+// isValidFileType checks if the file type is allowed and matches the extension
+func isValidFileType(mimeType, fileName string) bool {
+	// Get expected extension for mime type
+	expectedExt, ok := allowedTypes[mimeType]
+	if !ok {
+		return false
+	}
+
+	// Check if file has the expected extension
+	return strings.HasSuffix(strings.ToLower(fileName), expectedExt)
+}
 
 func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	// Parse multipart form with size limit
@@ -65,12 +84,16 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Validate file type
+	// Validate file type and extension
 	mimeType := header.Header.Get("Content-Type")
-	if !strings.Contains(allowedTypes, mimeType) {
-		RespondWithAPIError(w, ErrValidationInvalidInput(fmt.Sprintf("unsupported file type: %s", mimeType)))
+	if !isValidFileType(mimeType, header.Filename) {
+		RespondWithAPIError(w, ErrValidationInvalidInput(
+			fmt.Sprintf("unsupported file type: %s or invalid extension for type", mimeType)))
 		return
 	}
+
+	log.Printf("Uploading file: %s (%s, %d bytes)", 
+		header.Filename, mimeType, header.Size)
 
 	// Validate file size
 	if header.Size > maxUploadSize {
@@ -78,15 +101,20 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read file into buffer
+	// Read file into buffer with size limit
 	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, file); err != nil {
+	limitedReader := &io.LimitedReader{R: file, N: maxUploadSize}
+	if _, err := io.Copy(&buf, limitedReader); err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to read uploaded file"))
 		return
 	}
-	fmt.Printf("File name: %s\n", name)
-	// Copy the file data to my buffer
-	io.Copy(&buf, file)
+
+	// Check if we hit the size limit
+	if limitedReader.N <= 0 {
+		RespondWithAPIError(w, ErrValidationInvalidInput(
+			fmt.Sprintf("file exceeds maximum size of %d bytes", maxUploadSize)))
+		return
+	}
 	// Create chat file record
 	chatFile, err := h.service.q.CreateChatFile(r.Context(), sqlc_queries.CreateChatFileParams{
 		ChatSessionUuid: sessionUUID,
@@ -117,16 +145,26 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 
 func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	fileID := mux.Vars(r)["id"]
-	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
+	fileIdInt, err := strconv.ParseInt(fileID, 10, 32)
+	if err != nil {
+		RespondWithAPIError(w, ErrValidationInvalidInput("invalid file ID"))
+		return
+	}
+
 	file, err := h.service.q.GetChatFileByID(r.Context(), int32(fileIdInt))
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to get chat file"))
 		return
 	}
-	w.Header().Set("Content-Disposition", "attachment; filename="+file.Name)
-	w.Header().Set("Content-Type", "application/octet-stream")
-	// w.Header().Set("Content-Disposition",fmt.Sprintf("attachment; filename=%s", file.Name))
-	w.Write(file.Data)
+
+	// Set proper content type from stored mime type
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
+	w.Header().Set("Content-Type", file.MimeType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(file.Data)))
+
+	if _, err := w.Write(file.Data); err != nil {
+		log.Printf("Failed to write file data: %v", err)
+	}
 }
 
 func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
