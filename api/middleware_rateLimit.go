@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/rotisserie/eris"
@@ -33,10 +34,7 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				}
 
 				if messageCount >= int64(maxRate) {
-					RespondWithErrorMessage(w, http.StatusTooManyRequests, "error.rateLimit", map[string]interface{}{
-						"messageCount": messageCount,
-						"maxRate":      maxRate,
-					})
+					RespondWithErrorMessage(w, http.StatusTooManyRequests, "error.rateLimit", eris.New(fmt.Sprintf("rate limit exceeded: messageCount=%d, maxRate=%d", messageCount, maxRate)))
 					return
 				}
 			}
