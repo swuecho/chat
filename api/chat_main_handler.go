@@ -154,7 +154,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	genBotAnswer(h, w, session, simpleChatMessages, newQuestion, userID, req.Stream)
+	genBotAnswer(h, w, r, session, simpleChatMessages, newQuestion, userID, req.Stream)
 
 }
 
@@ -189,9 +189,9 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	if req.Regenerate {
-		regenerateAnswer(h, w, chatSessionUuid, chatUuid, req.Stream)
+		regenerateAnswer(h, w, r, chatSessionUuid, chatUuid, req.Stream)
 	} else {
-		genAnswer(h, w, chatSessionUuid, chatUuid, newQuestion, userID, req.Stream)
+		genAnswer(h, w, r, chatSessionUuid, chatUuid, newQuestion, userID, req.Stream)
 	}
 
 }
@@ -201,7 +201,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 // otherwise,
 //
 //	it will create a message, use prompt + get latest N message + newQuestion as request
-func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string, newQuestion string, userID int32, streamOutput bool) {
+func genAnswer(h *ChatHandler, w http.ResponseWriter, r *http.Request, chatSessionUuid string, chatUuid string, newQuestion string, userID int32, streamOutput bool) {
 	ctx := context.Background()
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	fmt.Printf("chatSession: %+v ", chatSession)
@@ -283,7 +283,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 }
 
-func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, newQuestion string, userID int32, streamOutput bool) {
+func genBotAnswer(h *ChatHandler, w http.ResponseWriter, r *http.Request, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, newQuestion string, userID int32, streamOutput bool) {
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), session.Model)
 	if err != nil {
 		apiErr := ErrResourceNotFound("Chat model: " + session.Model)
@@ -340,7 +340,7 @@ func simpleChatMessagesToMessages(simpleChatMessages []SimpleChatMessage) []mode
 	return messages
 }
 
-func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string, stream bool) {
+func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, r *http.Request, chatSessionUuid string, chatUuid string, stream bool) {
 	ctx := context.Background()
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
