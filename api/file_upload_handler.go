@@ -42,7 +42,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	// get user-id from request
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
 		return
 	}
 	fmt.Println("User ID:", userID)
@@ -50,7 +50,8 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	// in your case file would be fileupload
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		panic(err)
+		RespondWithAPIError(w, ErrValidationInvalidInput("missing or invalid file upload"))
+		return
 	}
 	defer file.Close()
 
@@ -73,7 +74,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithAPIError(w, WrapError(err, "failed to create chat file record"))
 		return
 	}
 	buf.Reset()
@@ -90,7 +91,7 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
 	file, err := h.service.q.GetChatFileByID(r.Context(), int32(fileIdInt))
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithAPIError(w, WrapError(err, "failed to get chat file"))
 		return
 	}
 	w.Header().Set("Content-Disposition", "attachment; filename="+file.Name)
@@ -104,7 +105,7 @@ func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
 	_, err := h.service.q.DeleteChatFile(r.Context(), int32(fileIdInt))
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithAPIError(w, WrapError(err, "failed to delete chat file"))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -114,14 +115,15 @@ func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.
 	sessionUUID := mux.Vars(r)["uuid"]
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
+		return
 	}
 	chatFiles, err := h.service.q.ListChatFilesBySessionUUID(r.Context(), sqlc_queries.ListChatFilesBySessionUUIDParams{
 		ChatSessionUuid: sessionUUID,
 		UserID:          userID,
 	})
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		RespondWithAPIError(w, WrapError(err, "failed to list chat files for session"))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
