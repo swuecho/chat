@@ -94,7 +94,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	if err != nil {
 		log.Printf("fail to do request: %+v", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.INTN_004", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to create chat completion stream").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 	defer stream.Close()

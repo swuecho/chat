@@ -1056,7 +1056,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.INTN_004", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to create chat completion stream").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -1206,7 +1206,11 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithAPIError(w, APIError{
+			HTTPCode: http.StatusInternalServerError,
+			Code:     "STREAM_UNSUPPORTED", 
+			Message:  "Streaming unsupported by client",
+		})
 		return nil, err
 	}
 
