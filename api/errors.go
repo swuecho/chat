@@ -51,21 +51,6 @@ var (
 	}
 )
 
-// Define external service errors
-var (
-	ErrExternalTimeout = APIError{
-		HTTPCode: http.StatusGatewayTimeout,
-		Code:     ErrExternal + "_001",
-		Message:  "External service timed out",
-	}
-	
-	ErrExternalUnavailable = APIError{
-		HTTPCode: http.StatusServiceUnavailable,
-		Code:     ErrExternal + "_002",
-		Message:  "External service unavailable",
-	}
-)
-
 // Define all API errors
 var (
 	// Auth errors
@@ -158,18 +143,72 @@ func ErrValidationInvalidInput(detail string) APIError {
 	return err
 }
 
+// ErrValidationInvalidFields creates a validation error for multiple invalid fields
+func ErrValidationInvalidFields(fields map[string]string) APIError {
+	err := ErrValidationInvalidInputGeneric
+	
+	if len(fields) == 0 {
+		return err
+	}
+	
+	// Create a formatted detail message
+	var details strings.Builder
+	details.WriteString("Invalid fields: ")
+	
+	i := 0
+	for field, message := range fields {
+		if i > 0 {
+			details.WriteString(", ")
+		}
+		details.WriteString(field)
+		details.WriteString(" (")
+		details.WriteString(message)
+		details.WriteString(")")
+		i++
+	}
+	
+	err.Detail = details.String()
+	return err
+}
+
 func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.HTTPCode)
 
 	response := struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-		Detail  string `json:"detail,omitempty"`
+		Code    string      `json:"code"`
+		Message string      `json:"message"`
+		Detail  string      `json:"detail,omitempty"`
+		Fields  interface{} `json:"fields,omitempty"`
 	}{
 		Code:    err.Code,
 		Message: err.Message,
 		Detail:  err.Detail,
+	}
+
+	// Log error with debug info if available
+	if err.DebugInfo != "" {
+		log.Printf("Error [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// RespondWithStructuredAPIError allows sending field-specific validation errors
+func RespondWithStructuredAPIError(w http.ResponseWriter, err APIError, fields map[string]string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(err.HTTPCode)
+
+	response := struct {
+		Code    string            `json:"code"`
+		Message string            `json:"message"`
+		Detail  string            `json:"detail,omitempty"`
+		Fields  map[string]string `json:"fields,omitempty"`
+	}{
+		Code:    err.Code,
+		Message: err.Message,
+		Detail:  err.Detail,
+		Fields:  fields,
 	}
 
 	// Log error with debug info if available
@@ -272,10 +311,6 @@ var ErrorCatalog = map[string]APIError{
 	ErrDatabaseQuery.Code:      ErrDatabaseQuery,
 	ErrDatabaseConnection.Code: ErrDatabaseConnection,
 	ErrDatabaseForeignKey.Code: ErrDatabaseForeignKey,
-	
-	// External service errors
-	ErrExternalTimeout.Code:     ErrExternalTimeout,
-	ErrExternalUnavailable.Code: ErrExternalUnavailable,
 	
 	// External service errors
 	ErrExternalTimeout.Code:     ErrExternalTimeout,

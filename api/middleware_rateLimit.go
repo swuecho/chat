@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -40,8 +41,19 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				if messageCount >= int64(maxRate) {
 					apiErr := ErrTooManyRequests
 					apiErr.Detail = fmt.Sprintf("Rate limit exceeded: messageCount=%d, maxRate=%d", messageCount, maxRate)
+					
+					// Add rate limit headers to help clients handle rate limiting
+					w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", maxRate))
+					w.Header().Set("X-RateLimit-Remaining", "0")
+					w.Header().Set("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(10*time.Minute).Unix()))
+					
 					RespondWithAPIError(w, apiErr)
 					return
+				} else {
+					// Add rate limit headers even when not exceeding to help clients
+					remaining := maxRate - int32(messageCount)
+					w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", maxRate))
+					w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
 				}
 			}
 			// Call the next handler.

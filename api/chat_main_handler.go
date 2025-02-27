@@ -544,8 +544,27 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+	
+	// Set up a goroutine to detect client disconnection
+	requestCtx := r.Context()
+	go func() {
+		select {
+		case <-requestCtx.Done():
+			// Client disconnected, cancel the completion request
+			log.Println("Client disconnected, canceling completion request")
+			cancel()
+		case <-ctx.Done():
+			// Request completed or timed out normally
+		}
+	}()
+	
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			log.Println("Request was canceled by client disconnection")
+			return nil, err
+		}
+		
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to create completion stream"
 		apiErr.DebugInfo = err.Error()
@@ -711,6 +730,22 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 		
 		RespondWithAPIError(w, apiErr)
 		return nil, err
+	}
+	
+	// Check for rate limit responses from the external API
+	if resp.StatusCode == http.StatusTooManyRequests {
+		retryAfter := resp.Header.Get("Retry-After")
+		apiErr := ErrTooManyRequests
+		apiErr.Message = "External API rate limit exceeded"
+		apiErr.Detail = "The AI model service has reached its rate limit"
+		
+		if retryAfter != "" {
+			apiErr.Detail += ". Retry after " + retryAfter + " seconds"
+			w.Header().Set("Retry-After", retryAfter)
+		}
+		
+		RespondWithAPIError(w, apiErr)
+		return nil, fmt.Errorf("external API rate limit exceeded")
 	}
 
 	ioreader := bufio.NewReader(resp.Body)

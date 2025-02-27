@@ -24,6 +24,29 @@ func NewChatSessionHandler(sqlc_q *sqlc_queries.Queries) *ChatSessionHandler {
 	}
 }
 
+// validateChatSessionParams validates the chat session parameters
+func validateChatSessionParams(params sqlc_queries.CreateChatSessionParams) map[string]string {
+	errors := make(map[string]string)
+	
+	if params.Uuid == "" {
+		errors["uuid"] = "UUID is required"
+	}
+	
+	if params.Model == "" {
+		errors["model"] = "Model is required"
+	}
+	
+	if params.MaxLength <= 0 {
+		errors["maxLength"] = "Max length must be greater than 0"
+	}
+	
+	if params.Temperature < 0 || params.Temperature > 1 {
+		errors["temperature"] = "Temperature must be between 0 and 1"
+	}
+	
+	return errors
+}
+
 func (h *ChatSessionHandler) Register(router *mux.Router) {
 	router.HandleFunc("/chat_sessions/user", h.getSimpleChatSessionsByUserID).Methods(http.MethodGet)
 
@@ -68,6 +91,13 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		apiErr := ErrValidationInvalidInput("Invalid request format")
 		apiErr.DebugInfo = err.Error()
 		RespondWithAPIError(w, apiErr)
+		return
+	}
+	
+	// Validate required fields
+	validationErrors := validateChatSessionParams(sessionParams)
+	if len(validationErrors) > 0 {
+		RespondWithStructuredAPIError(w, ErrValidationInvalidFields(validationErrors), validationErrors)
 		return
 	}
 	ctx := r.Context()
