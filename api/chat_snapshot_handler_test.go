@@ -59,7 +59,7 @@ func TestChatSnapshot(t *testing.T) {
 	reqDelete, _ := http.NewRequest("DELETE", fmt.Sprintf(snapshotPath, snapshot.Uuid), nil)
 	rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, reqDelete)
-	assert.Equal(t, http.StatusForbidden, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
 	// Test DELETE snapshot with auth - should succeed
 	reqDeleteWithAuth, _ := http.NewRequest("DELETE", fmt.Sprintf(snapshotPath, snapshot.Uuid), nil)
