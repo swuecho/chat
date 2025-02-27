@@ -93,6 +93,26 @@ var (
 		Code:     ErrResource + "_004",
 		Message:  "Chat session not found",
 	}
+	ErrChatMessageNotFound = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_007",
+		Message:  "Chat message not found",
+	}
+	ErrChatModelNotFound = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_006",
+		Message:  "Chat model not found",
+	}
+	ErrChatFileNotFound = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_005",
+		Message:  "Chat file not found",
+	}
+	ErrChatStreamFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrInternal + "_004",
+		Message:  "Failed to stream chat response",
+	}
 	ErrChatFileNotFound = APIError{
 		HTTPCode: http.StatusNotFound,
 		Code:     ErrResource + "_005",
@@ -316,6 +336,11 @@ var ErrorCatalog = map[string]APIError{
 	ErrInternalUnexpected.Code: ErrInternalUnexpected,
 	ErrInternal + "_002":       {HTTPCode: http.StatusGatewayTimeout, Code: ErrInternal + "_002", Message: "Request timed out"},
 	ErrInternal + "_003":       {HTTPCode: http.StatusRequestTimeout, Code: ErrInternal + "_003", Message: "Request was canceled"},
+	ErrInternal + "_004":       {HTTPCode: http.StatusInternalServerError, Code: ErrInternal + "_004", Message: "Failed to stream chat response"},
+	ErrResource + "_004":       ErrChatSessionNotFound,
+	ErrResource + "_005":       ErrChatFileNotFound,
+	ErrResource + "_006":       ErrChatModelNotFound,
+	ErrResource + "_007":       ErrChatMessageNotFound,
 }
 
 // WrapError converts a standard error into an APIError

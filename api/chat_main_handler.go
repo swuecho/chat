@@ -206,7 +206,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	fmt.Printf("chatSession: %+v ", chatSession)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat session: "+chatSessionUuid))
+		RespondWithAPIError(w, ErrResourceNotFound("chat session").WithDetail(chatSessionUuid))
 		return
 	}
 

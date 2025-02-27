@@ -42,12 +42,12 @@ func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var userParams sqlc_queries.CreateAuthUserParams
 	err := json.NewDecoder(r.Body).Decode(&userParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 	user, err := h.service.CreateAuthUser(r.Context(), userParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(err, "Failed to create user"))
 		return
 	}
 	json.NewEncoder(w).Encode(user)
@@ -61,7 +61,7 @@ func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := h.service.GetAuthUserByID(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		RespondWithAPIError(w, ErrResourceNotFound("user"))
 		return
 	}
 	json.NewEncoder(w).Encode(user)
