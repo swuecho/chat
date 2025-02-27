@@ -88,6 +88,21 @@ var (
 		Code:     ErrResource + "_002",
 		Message:  "Resource already exists",
 	}
+	ErrChatSessionNotFound = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_004",
+		Message:  "Chat session not found",
+	}
+	ErrChatFileNotFound = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_005",
+		Message:  "Chat file not found",
+	}
+	ErrChatModelNotFound = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_006",
+		Message:  "Chat model not found",
+	}
 	ErrTooManyRequests = APIError{
 		HTTPCode: http.StatusTooManyRequests,
 		Code:     ErrResource + "_003",

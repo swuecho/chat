@@ -114,7 +114,11 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 
 	chatModel, err := h.db.ChatModelByName(r.Context(), input.ChatModelName)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat model "+input.ChatModelName))
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithAPIError(w, ErrChatModelNotFound.WithDetail(fmt.Sprintf("chat model %s not found", input.ChatModelName)))
+		} else {
+			RespondWithAPIError(w, WrapError(err, "failed to get chat model"))
+		}
 		return
 	}
 

@@ -154,7 +154,11 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	file, err := h.service.q.GetChatFileByID(r.Context(), int32(fileIdInt))
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get chat file"))
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithAPIError(w, ErrChatFileNotFound.WithDetail(fmt.Sprintf("file ID %d not found", fileIdInt)))
+		} else {
+			RespondWithAPIError(w, WrapError(err, "failed to get chat file"))
+		}
 		return
 	}
 

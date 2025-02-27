@@ -45,7 +45,11 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 	// Get session from service
 	session, err := h.service.GetUserActiveChatSession(r.Context(), userID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get active chat session"))
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithAPIError(w, ErrChatSessionNotFound.WithDetail(fmt.Sprintf("no active session for user %d", userID)))
+		} else {
+			RespondWithAPIError(w, WrapError(err, "failed to get active chat session"))
+		}
 		return
 	}
 
