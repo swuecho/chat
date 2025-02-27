@@ -56,7 +56,7 @@ func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "unauthorized", err)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
 	user, err := h.service.GetAuthUserByID(r.Context(), userID)
@@ -70,7 +70,7 @@ func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "unauthorized", err)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
 

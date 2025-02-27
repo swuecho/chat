@@ -847,7 +847,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 
 	if err != nil {
 		log.Printf("%+v", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
+		RespondWithAPIError(w, ErrChatStreamFailed.WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -882,14 +882,14 @@ func doGenerateClaude3(w http.ResponseWriter, req *http.Request) (*models.LLMAns
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("%+v", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithAPIError(w, ErrChatStreamFailed.WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
 	// Unmarshal directly from resp.Body
 	var message claude.Response
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to unmarshal response").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 	defer resp.Body.Close()

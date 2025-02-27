@@ -103,6 +103,11 @@ var (
 		Code:     ErrInternal + "_004",
 		Message:  "Failed to stream chat response",
 	}
+	ErrChatRequestFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrInternal + "_005",
+		Message:  "Failed to make chat request",
+	}
 	ErrChatFileNotFound = APIError{
 		HTTPCode: http.StatusNotFound,
 		Code:     ErrResource + "_005",
@@ -326,7 +331,8 @@ var ErrorCatalog = map[string]APIError{
 	ErrInternalUnexpected.Code: ErrInternalUnexpected,
 	ErrInternal + "_002":       {HTTPCode: http.StatusGatewayTimeout, Code: ErrInternal + "_002", Message: "Request timed out"},
 	ErrInternal + "_003":       {HTTPCode: http.StatusRequestTimeout, Code: ErrInternal + "_003", Message: "Request was canceled"},
-	ErrInternal + "_004":       {HTTPCode: http.StatusInternalServerError, Code: ErrInternal + "_004", Message: "Failed to stream chat response"},
+	ErrInternal + "_004":       ErrChatStreamFailed,
+	ErrInternal + "_005":       ErrChatRequestFailed,
 	ErrResource + "_004":       ErrChatSessionNotFound,
 	ErrResource + "_005":       ErrChatFileNotFound,
 	ErrResource + "_006":       ErrChatModelNotFound,
