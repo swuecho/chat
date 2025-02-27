@@ -46,16 +46,16 @@ func (s *ChatFileService) CreateChatUpload(ctx context.Context, params sqlc_quer
 }
 
 // GetChatFile retrieves a chat file by ID
-func (s *ChatFileService) GetChatFile(ctx context.Context, id int32) (sqlc_queries.ChatFile, error) {
+func (s *ChatFileService) GetChatFile(ctx context.Context, id int32) (sqlc_queries.GetChatFileByIDRow, error) {
 	if id <= 0 {
-		return sqlc_queries.ChatFile{}, ErrValidationInvalidInput("invalid file ID")
+		return sqlc_queries.GetChatFileByIDRow{}, ErrValidationInvalidInput("invalid file ID")
 	}
 
 	log.Printf("Retrieving chat file ID %d", id)
 
 	file, err := s.q.GetChatFileByID(ctx, id)
 	if err != nil {
-		return sqlc_queries.ChatFile{}, WrapError(err, "failed to get chat file")
+		return sqlc_queries.GetChatFileByIDRow{}, WrapError(err, "failed to get chat file")
 	}
 
 	return file, nil
