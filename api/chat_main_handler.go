@@ -692,7 +692,24 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		var apiErr APIError
+		
+		// Check for specific HTTP client errors
+		if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline exceeded") {
+			apiErr = ErrExternalTimeout
+			apiErr.Detail = "The AI model service took too long to respond"
+			apiErr.DebugInfo = err.Error()
+		} else if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "no such host") {
+			apiErr = ErrExternalUnavailable
+			apiErr.Detail = "Could not connect to the AI model service"
+			apiErr.DebugInfo = err.Error()
+		} else {
+			apiErr = ErrInternalUnexpected
+			apiErr.Detail = "Failed to create request to AI service"
+			apiErr.DebugInfo = err.Error()
+		}
+		
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 

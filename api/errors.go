@@ -51,6 +51,21 @@ var (
 	}
 )
 
+// Define external service errors
+var (
+	ErrExternalTimeout = APIError{
+		HTTPCode: http.StatusGatewayTimeout,
+		Code:     ErrExternal + "_001",
+		Message:  "External service timed out",
+	}
+	
+	ErrExternalUnavailable = APIError{
+		HTTPCode: http.StatusServiceUnavailable,
+		Code:     ErrExternal + "_002",
+		Message:  "External service unavailable",
+	}
+)
+
 // Define all API errors
 var (
 	// Auth errors
@@ -262,6 +277,10 @@ var ErrorCatalog = map[string]APIError{
 	ErrExternalTimeout.Code:     ErrExternalTimeout,
 	ErrExternalUnavailable.Code: ErrExternalUnavailable,
 	
+	// External service errors
+	ErrExternalTimeout.Code:     ErrExternalTimeout,
+	ErrExternalUnavailable.Code: ErrExternalUnavailable,
+	
 	// Internal errors
 	ErrInternalUnexpected.Code: ErrInternalUnexpected,
 	ErrInternal + "_002":       APIError{HTTPCode: http.StatusGatewayTimeout, Code: ErrInternal + "_002", Message: "Request timed out"},
@@ -270,6 +289,29 @@ var ErrorCatalog = map[string]APIError{
 
 func WrapError(err error, detail string) APIError {
 	var apiErr APIError
+
+	// Check for context errors first
+	if errors.Is(err, context.DeadlineExceeded) {
+		apiErr = APIError{
+			HTTPCode:  http.StatusGatewayTimeout,
+			Code:      ErrInternal + "_002",
+			Message:   "Request timed out",
+			Detail:    detail,
+			DebugInfo: "Context deadline exceeded",
+		}
+		return apiErr
+	}
+	
+	if errors.Is(err, context.Canceled) {
+		apiErr = APIError{
+			HTTPCode:  http.StatusRequestTimeout,
+			Code:      ErrInternal + "_003",
+			Message:   "Request was canceled",
+			Detail:    detail,
+			DebugInfo: "Context was canceled",
+		}
+		return apiErr
+	}
 
 	switch e := err.(type) {
 	case APIError:
