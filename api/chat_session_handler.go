@@ -3,14 +3,12 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/google/uuid"
 
 	"github.com/gorilla/mux"
-	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
