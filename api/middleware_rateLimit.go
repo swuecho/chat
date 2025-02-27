@@ -20,12 +20,18 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				// role := ctx.Value(roleContextKey).(string)
 
 				if err != nil {
-					RespondWithErrorMessage(w, http.StatusUnauthorized, "no user", err)
+					apiErr := ErrAuthInvalidCredentials
+					apiErr.Detail = "User identification required for rate limiting"
+					apiErr.DebugInfo = err.Error()
+					RespondWithAPIError(w, apiErr)
 					return
 				}
 				messageCount, err := q.GetChatMessagesCount(r.Context(), int32(userIDInt))
 				if err != nil {
-					http.Error(w, eris.Wrap(err, "error: Could not get message count. ").Error(), http.StatusInternalServerError)
+					apiErr := ErrInternalUnexpected
+					apiErr.Detail = "Could not get message count for rate limiting"
+					apiErr.DebugInfo = err.Error()
+					RespondWithAPIError(w, apiErr)
 					return
 				}
 				maxRate, err := q.GetRateLimit(r.Context(), int32(userIDInt))
@@ -34,7 +40,9 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 				}
 
 				if messageCount >= int64(maxRate) {
-					RespondWithErrorMessage(w, http.StatusTooManyRequests, "error.rateLimit", eris.New(fmt.Sprintf("rate limit exceeded: messageCount=%d, maxRate=%d", messageCount, maxRate)))
+					apiErr := ErrTooManyRequests
+					apiErr.Detail = fmt.Sprintf("Rate limit exceeded: messageCount=%d, maxRate=%d", messageCount, maxRate)
+					RespondWithAPIError(w, apiErr)
 					return
 				}
 			}
