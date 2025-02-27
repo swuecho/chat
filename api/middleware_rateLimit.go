@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"net/http"
 )
 
 // This function returns a middleware that limits requests from each user by their ID.

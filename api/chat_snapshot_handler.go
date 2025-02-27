@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 

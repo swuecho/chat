@@ -8,7 +8,6 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-
 type TokenResult struct {
 	AccessToken string `json:"accessToken"`
 	ExpiresIn   int    `json:"expiresIn"`

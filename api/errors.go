@@ -43,22 +43,7 @@ var (
 		Code:     ErrExternal + "_001",
 		Message:  "External service timed out",
 	}
-	
-	ErrExternalUnavailable = APIError{
-		HTTPCode: http.StatusServiceUnavailable,
-		Code:     ErrExternal + "_002",
-		Message:  "External service unavailable",
-	}
-)
 
-// Define external service errors
-var (
-	ErrExternalTimeout = APIError{
-		HTTPCode: http.StatusGatewayTimeout,
-		Code:     ErrExternal + "_001",
-		Message:  "External service timed out",
-	}
-	
 	ErrExternalUnavailable = APIError{
 		HTTPCode: http.StatusServiceUnavailable,
 		Code:     ErrExternal + "_002",
@@ -208,9 +193,9 @@ func MapDatabaseError(err error) error {
 	}
 
 	// Check for connection errors
-	if strings.Contains(err.Error(), "connection refused") || 
-	   strings.Contains(err.Error(), "no such host") ||
-	   strings.Contains(err.Error(), "connection reset by peer") {
+	if strings.Contains(err.Error(), "connection refused") ||
+		strings.Contains(err.Error(), "no such host") ||
+		strings.Contains(err.Error(), "connection reset by peer") {
 		dbErr := ErrDatabaseConnection
 		dbErr.DebugInfo = err.Error()
 		return dbErr
@@ -259,32 +244,32 @@ var ErrorCatalog = map[string]APIError{
 	ErrAuthInvalidCredentials.Code: ErrAuthInvalidCredentials,
 	ErrAuthExpiredToken.Code:       ErrAuthExpiredToken,
 	ErrAuthAdminRequired.Code:      ErrAuthAdminRequired,
-	
+
 	// Resource errors
 	ErrResourceNotFoundGeneric.Code:      ErrResourceNotFoundGeneric,
 	ErrResourceAlreadyExistsGeneric.Code: ErrResourceAlreadyExistsGeneric,
 	ErrTooManyRequests.Code:              ErrTooManyRequests,
-	
+
 	// Validation errors
 	ErrValidationInvalidInputGeneric.Code: ErrValidationInvalidInputGeneric,
-	
+
 	// Database errors
 	ErrDatabaseQuery.Code:      ErrDatabaseQuery,
 	ErrDatabaseConnection.Code: ErrDatabaseConnection,
 	ErrDatabaseForeignKey.Code: ErrDatabaseForeignKey,
-	
+
 	// External service errors
 	ErrExternalTimeout.Code:     ErrExternalTimeout,
 	ErrExternalUnavailable.Code: ErrExternalUnavailable,
-	
+
 	// External service errors
 	ErrExternalTimeout.Code:     ErrExternalTimeout,
 	ErrExternalUnavailable.Code: ErrExternalUnavailable,
-	
+
 	// Internal errors
 	ErrInternalUnexpected.Code: ErrInternalUnexpected,
-	ErrInternal + "_002":       APIError{HTTPCode: http.StatusGatewayTimeout, Code: ErrInternal + "_002", Message: "Request timed out"},
-	ErrInternal + "_003":       APIError{HTTPCode: http.StatusRequestTimeout, Code: ErrInternal + "_003", Message: "Request was canceled"},
+	ErrInternal + "_002":       {HTTPCode: http.StatusGatewayTimeout, Code: ErrInternal + "_002", Message: "Request timed out"},
+	ErrInternal + "_003":       {HTTPCode: http.StatusRequestTimeout, Code: ErrInternal + "_003", Message: "Request was canceled"},
 }
 
 func WrapError(err error, detail string) APIError {
@@ -301,7 +286,7 @@ func WrapError(err error, detail string) APIError {
 		}
 		return apiErr
 	}
-	
+
 	if errors.Is(err, context.Canceled) {
 		apiErr = APIError{
 			HTTPCode:  http.StatusRequestTimeout,

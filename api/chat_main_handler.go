@@ -466,7 +466,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 			log.Printf("No rate limit found for user %d and session %s, using default", userID, chatSessionUuid)
 			return false
 		}
-		
+
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get rate limit")
 		RespondWithAPIError(w, apiErr)
 		return true
@@ -693,7 +693,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	resp, err := client.Do(req)
 	if err != nil {
 		var apiErr APIError
-		
+
 		// Check for specific HTTP client errors
 		if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline exceeded") {
 			apiErr = ErrExternalTimeout
@@ -708,7 +708,7 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 			apiErr.Detail = "Failed to create request to AI service"
 			apiErr.DebugInfo = err.Error()
 		}
-		
+
 		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
