@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/rotisserie/eris"
 )
 
 func CheckPermission(userID int, ctx context.Context) bool {
@@ -65,11 +66,11 @@ func AdminOnlyHander(h http.Handler) http.Handler {
 		ctx := r.Context()
 		userRole, ok := ctx.Value(roleContextKey).(string)
 		if !ok {
-			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
 			return
 		}
 		if userRole != "admin" {
-			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
 			return
 		}
 		h.ServeHTTP(w, r)
@@ -81,11 +82,11 @@ func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 		ctx := r.Context()
 		userRole, ok := ctx.Value(roleContextKey).(string)
 		if !ok {
-			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
 			return
 		}
 		if userRole != "admin" {
-			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
 			return
 		}
 		handlerFunc(w, r)
@@ -146,7 +147,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 				ctx = context.WithValue(ctx, roleContextKey, role)
 				// superuser
 				if strings.HasPrefix(r.URL.Path, "/admin") && role != "admin" {
-					RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", "Not Admin")
+					RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
 					return
 				}
 
@@ -161,7 +162,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 			}
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
-			RespondWithErrorMessage(w, http.StatusUnauthorized, "error.NotAuthorized", "Not Authorized")
+			RespondWithErrorMessage(w, http.StatusUnauthorized, "error.NotAuthorized", eris.New("Not Authorized"))
 		}
 	})
 }
