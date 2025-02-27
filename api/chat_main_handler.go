@@ -1108,8 +1108,10 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, r *http.Request, ch
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
-		return nil, err
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Streaming unsupported by the client"
+		RespondWithAPIError(w, apiErr)
+		return nil, fmt.Errorf("streaming unsupported")
 	}
 
 	var answer string
@@ -1399,12 +1401,16 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		apiErr := WrapError(MapDatabaseError(err), "Failed to get chat files")
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages, chatFiles)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to generate Gemini payload"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 
@@ -1417,17 +1423,37 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, r *http.Request, c
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		fmt.Println("Error while creating request: ", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "create request to gemini api").Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create request to Gemini API"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 5 * time.Minute,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error while sending request: ", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
+		var apiErr APIError
+		
+		// Check for specific HTTP client errors
+		if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline exceeded") {
+			apiErr = ErrExternalTimeout
+			apiErr.Detail = "The Gemini API service took too long to respond"
+			apiErr.DebugInfo = err.Error()
+		} else if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "no such host") {
+			apiErr = ErrExternalUnavailable
+			apiErr.Detail = "Could not connect to the Gemini API service"
+			apiErr.DebugInfo = err.Error()
+		} else {
+			apiErr = ErrInternalUnexpected
+			apiErr.Detail = "Failed to send request to Gemini API"
+			apiErr.DebugInfo = err.Error()
+		}
+		
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1441,14 +1467,20 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, r *http.Request, c
 		// Handle non-streaming response
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_read_response", err)
+			apiErr := ErrInternalUnexpected
+			apiErr.Detail = "Failed to read response from Gemini API"
+			apiErr.DebugInfo = err.Error()
+			RespondWithAPIError(w, apiErr)
 			return nil, err
 		}
 		// body to GeminiResponse
 		var geminiResp gemini.ResponseBody
 		err = json.Unmarshal(body, &geminiResp)
 		if err != nil {
-			RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
+			apiErr := ErrInternalUnexpected
+			apiErr.Detail = "Failed to parse response from Gemini API"
+			apiErr.DebugInfo = err.Error()
+			RespondWithAPIError(w, apiErr)
 			return nil, err
 		}
 		answer := geminiResp.Candidates[0].Content.Parts[0].Text
