@@ -126,6 +126,27 @@ func RespondWithAPIError(w http.ResponseWriter, err error) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// NewAPIError creates a new APIError with the given parameters
+func NewAPIError(httpCode int, code, message string) APIError {
+	return APIError{
+		HTTPCode: httpCode,
+		Code:     code,
+		Message:  message,
+	}
+}
+
+// WithDetail adds detail to an APIError
+func (e APIError) WithDetail(detail string) APIError {
+	e.Detail = detail
+	return e
+}
+
+// WithDebugInfo adds debug info to an APIError
+func (e APIError) WithDebugInfo(debugInfo string) APIError {
+	e.DebugInfo = debugInfo
+	return e
+}
+
 func MapDatabaseError(err error) error {
 	// Map common database errors to appropriate application errors
 	if errors.Is(err, sql.ErrNoRows) {
