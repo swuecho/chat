@@ -34,7 +34,7 @@ const (
 	ErrInternal   = "INTN" // Internal application errors
 )
 
-// Define specific error codes
+// Define all API errors
 var (
 	// Auth errors
 	ErrAuthInvalidCredentials = APIError{
@@ -49,29 +49,22 @@ var (
 	}
 
 	// Resource errors
-	ErrResourceNotFound = func(resource string) APIError {
-		return APIError{
-			HTTPCode: http.StatusInternalServerError,
-			Code:     ErrResource + "_001",
-			Message:  resource + " not found",
-		}
+	ErrResourceNotFoundGeneric = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_001",
+		Message:  "Resource not found",
 	}
-	ErrResourceAlreadyExists = func(resource string) APIError {
-		return APIError{
-			HTTPCode: http.StatusConflict,
-			Code:     ErrResource + "_002",
-			Message:  resource + " already exists",
-		}
+	ErrResourceAlreadyExistsGeneric = APIError{
+		HTTPCode: http.StatusConflict,
+		Code:     ErrResource + "_002",
+		Message:  "Resource already exists",
 	}
 
 	// Validation errors
-	ErrValidationInvalidInput = func(detail string) APIError {
-		return APIError{
-			HTTPCode: http.StatusBadRequest,
-			Code:     ErrValidation + "_001",
-			Message:  "Invalid input",
-			Detail:   detail,
-		}
+	ErrValidationInvalidInputGeneric = APIError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrValidation + "_001",
+		Message:  "Invalid input",
 	}
 
 	// Database errors
@@ -80,6 +73,12 @@ var (
 		Code:      ErrDatabase + "_001",
 		Message:   "Database query failed",
 		DebugInfo: "Database operation failed - check logs for details",
+	}
+	ErrDatabaseForeignKey = APIError{
+		HTTPCode:  http.StatusBadRequest,
+		Code:      ErrDatabase + "_003",
+		Message:   "Referenced resource does not exist",
+		DebugInfo: "Foreign key violation",
 	}
 
 	// Internal errors
@@ -90,6 +89,25 @@ var (
 		DebugInfo: "Unexpected internal error - check logs for stack trace",
 	}
 )
+
+// Helper functions to create specific errors with dynamic content
+func ErrResourceNotFound(resource string) APIError {
+	err := ErrResourceNotFoundGeneric
+	err.Message = resource + " not found"
+	return err
+}
+
+func ErrResourceAlreadyExists(resource string) APIError {
+	err := ErrResourceAlreadyExistsGeneric
+	err.Message = resource + " already exists"
+	return err
+}
+
+func ErrValidationInvalidInput(detail string) APIError {
+	err := ErrValidationInvalidInputGeneric
+	err.Detail = detail
+	return err
+}
 
 func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	w.Header().Set("Content-Type", "application/json")
@@ -147,12 +165,9 @@ func MapDatabaseError(err error) error {
 		case "23505": // Unique violation
 			return ErrResourceAlreadyExists("Record")
 		case "23503": // Foreign key violation
-			return APIError{
-				HTTPCode:  http.StatusBadRequest,
-				Code:      ErrDatabase + "_003",
-				Message:   "Referenced resource does not exist",
-				DebugInfo: fmt.Sprintf("Foreign key violation: %s", pgErr.Detail),
-			}
+			dbErr := ErrDatabaseForeignKey
+			dbErr.DebugInfo = fmt.Sprintf("Foreign key violation: %s", pgErr.Detail)
+			return dbErr
 		}
 	}
 
@@ -165,14 +180,25 @@ func MapDatabaseError(err error) error {
 	return dbErr
 }
 
-var errorResourceNotFound = ErrResourceNotFound("resource")
-var errorResourceAlreadyExists = ErrResourceAlreadyExists("resource")
-
 // ErrorCatalog holds all error codes for documentation purposes
 var ErrorCatalog = map[string]APIError{
-	ErrAuthInvalidCredentials.Code:  ErrAuthInvalidCredentials,
-	errorResourceNotFound.Code:      errorResourceNotFound,
-	errorResourceAlreadyExists.Code: errorResourceAlreadyExists,
+	// Auth errors
+	ErrAuthInvalidCredentials.Code: ErrAuthInvalidCredentials,
+	ErrAuthExpiredToken.Code:       ErrAuthExpiredToken,
+	
+	// Resource errors
+	ErrResourceNotFoundGeneric.Code:      ErrResourceNotFoundGeneric,
+	ErrResourceAlreadyExistsGeneric.Code: ErrResourceAlreadyExistsGeneric,
+	
+	// Validation errors
+	ErrValidationInvalidInputGeneric.Code: ErrValidationInvalidInputGeneric,
+	
+	// Database errors
+	ErrDatabaseQuery.Code:    ErrDatabaseQuery,
+	ErrDatabaseForeignKey.Code: ErrDatabaseForeignKey,
+	
+	// Internal errors
+	ErrInternalUnexpected.Code: ErrInternalUnexpected,
 }
 
 func WrapError(err error, detail string) APIError {
