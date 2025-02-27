@@ -2,13 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -43,15 +41,19 @@ func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	ChatModels, err := h.db.ListSystemChatModels(ctx)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error listing chat APIs: %s", err.Error())))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to list chat models"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
 	latestUsageTimeOfModels, err := h.db.GetLatestUsageTimeOfModel(ctx, "30 days")
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error listing chat APIs: %s", err.Error())))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to get model usage data"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	// create a map of model id to usage time
@@ -86,15 +88,17 @@ func (h *ChatModelHandler) ChatModelByID(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid chat API ID"))
+		apiErr := ErrValidationInvalidInput("Invalid chat model ID")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
 	ChatModel, err := h.db.ChatModelByID(ctx, int32(id))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error retrieving chat API: %s", err.Error())))
+		apiErr := ErrResourceNotFound("Chat model")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -105,7 +109,10 @@ func (h *ChatModelHandler) ChatModelByID(w http.ResponseWriter, r *http.Request)
 func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
 	}
 
 	var input struct {
@@ -120,8 +127,9 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Failed to parse request body"))
+		apiErr := ErrValidationInvalidInput("Failed to parse request body")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -137,8 +145,10 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 	})
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error creating chat API: %s", err.Error())))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create chat model"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -150,14 +160,18 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid chat API ID"))
+		apiErr := ErrValidationInvalidInput("Invalid chat model ID")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
 	}
 
 	var input struct {
@@ -176,7 +190,9 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Failed to parse request body").Error(), err)
+		apiErr := ErrValidationInvalidInput("Failed to parse request body")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -198,7 +214,10 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	})
 
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error updating chat API").Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to update chat model"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -210,14 +229,18 @@ func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Reques
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Invalid chat API ID"))
+		apiErr := ErrValidationInvalidInput("Invalid chat model ID")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
 	}
 
 	err = h.db.DeleteChatModel(r.Context(),
@@ -226,8 +249,10 @@ func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Reques
 			UserID: userID,
 		})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error deleting chat API: %s", err.Error())))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to delete chat model"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -237,8 +262,10 @@ func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Reques
 func (h *ChatModelHandler) GetDefaultChatModel(w http.ResponseWriter, r *http.Request) {
 	ChatModel, err := h.db.GetDefaultChatModel(r.Context())
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error retrieving default chat API: %s", err.Error())))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to retrieve default chat model"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

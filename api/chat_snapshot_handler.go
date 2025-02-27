@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -33,12 +32,16 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 	chatSessionUuid := mux.Vars(r)["uuid"]
 	user_id, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	uuid, err := h.service.CreateChatSnapshot(r.Context(), chatSessionUuid, user_id)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := WrapError(MapDatabaseError(err), "Failed to create chat snapshot")
+		RespondWithAPIError(w, apiErr)
+		return
 	}
 	json.NewEncoder(w).Encode(
 		map[string]interface{}{
@@ -51,12 +54,18 @@ func (h *ChatSnapshotHandler) CreateChatBot(w http.ResponseWriter, r *http.Reque
 	chatSessionUuid := mux.Vars(r)["uuid"]
 	user_id, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	uuid, err := h.service.CreateChatBot(r.Context(), chatSessionUuid, user_id)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create chat bot"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
 	}
 	json.NewEncoder(w).Encode(
 		map[string]interface{}{
@@ -69,7 +78,8 @@ func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Req
 	uuidStr := mux.Vars(r)["uuid"]
 	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuidStr)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := WrapError(MapDatabaseError(err), "Failed to get chat snapshot")
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	json.NewEncoder(w).Encode(snapshot)
@@ -79,12 +89,18 @@ func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Req
 func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
 	}
 	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), userID)
 
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to retrieve chat snapshots"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -99,13 +115,16 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 	}
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Failed to parse request body"))
+		apiErr := ErrValidationInvalidInput("Failed to parse request body")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -116,13 +135,18 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		UserID:  userID,
 	})
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to update chat snapshot metadata"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
 	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := ErrResourceNotFound("Chat snapshot")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	json.NewEncoder(w).Encode(snapshot)
@@ -134,7 +158,9 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 	uuid := vars["uuid"]
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusForbidden, err.Error(), err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -143,7 +169,10 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 		UserID: userID,
 	})
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, err.Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to delete chat snapshot"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -159,7 +188,9 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 	}
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -168,7 +199,10 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 		Search: search,
 	})
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "failed to retrieve chat snapshots").Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to search chat snapshots"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 

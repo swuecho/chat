@@ -4,3 +4,4 @@ env.sh
 env.ps
 data
 .python-version
+.aider*

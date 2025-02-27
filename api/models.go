@@ -8,22 +8,6 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-type ErrorResponse struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Details interface{} `json:"details,omitempty"`
-}
-
-func (e ErrorResponse) Error() string {
-	return e.Message
-}
-
-// withDetails
-func (e ErrorResponse) WithDetails(details interface{}) ErrorResponse {
-	e.Details = details
-	return e
-}
-
 type TokenResult struct {
 	AccessToken string `json:"accessToken"`
 	ExpiresIn   int    `json:"expiresIn"`
