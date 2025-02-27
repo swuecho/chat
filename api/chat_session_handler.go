@@ -45,11 +45,13 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 	session_resp := &ChatSessionResponse{}
 	if err != nil {
 		if err == sql.ErrNoRows {
-			session_resp.Uuid = session.Uuid
+			session_resp.Uuid = uuid
 			session_resp.MaxLength = 10
 			json.NewEncoder(w).Encode(session_resp)
 		} else {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			apiErr := ErrResourceNotFound("Chat session")
+			apiErr.DebugInfo = err.Error()
+			RespondWithAPIError(w, apiErr)
 			return
 		}
 	}
@@ -66,13 +68,17 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 	var sessionParams sqlc_queries.CreateChatSessionParams
 	err := json.NewDecoder(r.Body).Decode(&sessionParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apiErr := ErrValidationInvalidInput("Invalid request format")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	ctx := r.Context()
 	userIDInt, err := getUserID(ctx)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -80,7 +86,10 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 	sessionParams.MaxLength = 10
 	session, err := h.service.CreateChatSession(r.Context(), sessionParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create chat session"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	// set active chat session when creating a new chat session
@@ -90,7 +99,10 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 			ChatSessionUuid: session.Uuid,
 		})
 	if err != nil {
-		http.Error(w, eris.Wrap(err, "fail to update or create action user session record, ").Error(), http.StatusInternalServerError)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to update or create active user session record"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	json.NewEncoder(w).Encode(session)
@@ -114,7 +126,9 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	var sessionReq UpdateChatSessionRequest
 	err := json.NewDecoder(r.Body).Decode(&sessionReq)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apiErr := ErrValidationInvalidInput("Invalid request format")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	if sessionReq.MaxLength == 0 {
@@ -124,7 +138,9 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	var sessionParams sqlc_queries.CreateOrUpdateChatSessionByUUIDParams
@@ -142,7 +158,10 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.SummarizeMode = sessionReq.SummarizeMode
 	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), sessionParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create or update chat session"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	json.NewEncoder(w).Encode(session)
@@ -153,7 +172,10 @@ func (h *ChatSessionHandler) deleteChatSessionByUUID(w http.ResponseWriter, r *h
 	uuid := mux.Vars(r)["uuid"]
 	err := h.service.DeleteChatSessionByUUID(r.Context(), uuid)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to delete chat session"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -165,13 +187,17 @@ func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter
 	idStr := ctx.Value(userContextKey).(string)
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "invalid user ID", http.StatusBadRequest)
+		apiErr := ErrValidationInvalidInput("Invalid user ID")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
 	sessions, err := h.service.GetSimpleChatSessionsByUserID(ctx, int32(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		apiErr := ErrResourceNotFound("Chat sessions")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	json.NewEncoder(w).Encode(sessions)
@@ -183,7 +209,9 @@ func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter,
 	var sessionParams sqlc_queries.UpdateChatSessionTopicByUUIDParams
 	err := json.NewDecoder(r.Body).Decode(&sessionParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apiErr := ErrValidationInvalidInput("Invalid request format")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	sessionParams.Uuid = uuid
@@ -191,7 +219,9 @@ func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter,
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -199,7 +229,10 @@ func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter,
 
 	session, err := h.service.UpdateChatSessionTopicByUUID(r.Context(), sessionParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to update chat session topic"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	json.NewEncoder(w).Encode(session)
@@ -211,14 +244,19 @@ func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *ht
 	var sessionParams sqlc_queries.UpdateSessionMaxLengthParams
 	err := json.NewDecoder(r.Body).Decode(&sessionParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apiErr := ErrValidationInvalidInput("Invalid request format")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	sessionParams.Uuid = uuid
 
 	session, err := h.service.UpdateSessionMaxLength(r.Context(), sessionParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to update session max length"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	json.NewEncoder(w).Encode(session)
@@ -236,13 +274,17 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "unauthorized", err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
 	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), snapshot_uuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "Error retrieving chat snapshot", err)
+		apiErr := ErrResourceNotFound("Chat snapshot")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -253,12 +295,16 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	promptMsg := conversionsSimpleMessages[0]
 	chatPrompt, err := h.service.q.GetChatPromptByUUID(r.Context(), promptMsg.Uuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusNotFound, eris.Wrap(err, "can not get prompt").Error(), err)
+		apiErr := ErrResourceNotFound("Chat prompt")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	originSession, err := h.service.q.GetChatSessionByUUIDWithInActive(r.Context(), chatPrompt.ChatSessionUuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusNotFound, eris.Wrap(err, "can not get origin session").Error(), err)
+		apiErr := ErrResourceNotFound("Original chat session")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -277,8 +323,10 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 		N:           1,
 	})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error creating chat session from snapshot: %s", err.Error())))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create chat session from snapshot"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -293,8 +341,10 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	})
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error creating prompt for chat session from snapshot: %s", err.Error())))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create prompt for chat session from snapshot"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -312,7 +362,10 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 		}
 		_, err = h.service.q.CreateChatMessage(r.Context(), messageParam)
 		if err != nil {
-			RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error creating messages for chat session from snapshot").Error(), err)
+			apiErr := ErrInternalUnexpected
+			apiErr.Detail = "Failed to create messages for chat session from snapshot"
+			apiErr.DebugInfo = err.Error()
+			RespondWithAPIError(w, apiErr)
 			return
 		}
 
@@ -325,7 +378,11 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	}
 	_, err = h.service.q.UpdateUserActiveChatSession(r.Context(), sessionParams)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "failed to update active session").Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to update active session"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"SessionUuid": session.Uuid})
