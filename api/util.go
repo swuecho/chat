@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -66,21 +65,6 @@ func setSSEHeader(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-}
-
-// RespondWithErrorMessage sends an error response with status code and message
-func RespondWithErrorMessage(w http.ResponseWriter, statusCode int, message string, err error) {
-	w.WriteHeader(statusCode)
-	response := struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-		Detail  string `json:"detail,omitempty"`
-	}{
-		Code:    strconv.Itoa(statusCode),
-		Message: message,
-		Detail:  err.Error(),
-	}
-	json.NewEncoder(w).Encode(response)
 }
 
 func getPerWordStreamLimit() int {

@@ -356,18 +356,6 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		return
 	}
 
-	// // calc total tokens
-	// totalTokens := totalInputToken(msgs)
-
-	// if totalTokens > chatSession.MaxTokens*2/3 {
-	// 	RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
-	// 		map[string]interface{}{
-	// 			"max_tokens":   chatSession.MaxTokens,
-	// 			"total_tokens": totalTokens,
-	// 		})
-	// 	return
-	// }
-
 	// Determine whether the chat is a test or not
 	model := h.chooseChatModel(chatSession, msgs)
 
@@ -435,12 +423,6 @@ func isTest(msgs []models.Message) bool {
 }
 
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {
-	// userID, err := getUserID(r.Context())
-	// if err != nil {
-	// 	RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
-	// 	return true
-	// }
-	// get chatModel, check the per model rate limit is Enabled
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
