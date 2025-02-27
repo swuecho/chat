@@ -14,27 +14,34 @@ import (
 	"github.com/jackc/pgconn"
 )
 
+// APIError represents a standardized error response for the API
+// It includes both user-facing and internal debugging information
 type APIError struct {
 	HTTPCode  int    `json:"-"`                // HTTP status code (not exposed in response)
-	Code      string `json:"code"`             // Application-specific error code
-	Message   string `json:"message"`          // Human-readable message
-	Detail    string `json:"detail,omitempty"` // Optional error details
-	DebugInfo string `json:"-"`                // Internal debugging info (not exposed)
+	Code      string `json:"code"`             // Application-specific error code following format: DOMAIN_NNN
+	Message   string `json:"message"`          // Human-readable message for end users
+	Detail    string `json:"detail,omitempty"` // Optional error details for debugging
+	DebugInfo string `json:"-"`                // Internal debugging info (not exposed in responses)
 }
 
 func (e APIError) Error() string {
 	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
 }
 
-// Define error code prefixes by domain
+// Error code prefixes by domain
 const (
-	ErrAuth       = "AUTH" // Authentication/Authorization errors
-	ErrValidation = "VALD" // Validation errors
-	ErrResource   = "RES"  // Resource-related errors
-	ErrDatabase   = "DB"   // Database errors
-	ErrExternal   = "EXT"  // External service errors
-	ErrInternal   = "INTN" // Internal application errors
+	ErrAuth       = "AUTH" // Authentication/Authorization errors (100-199)
+	ErrValidation = "VALD" // Validation errors (200-299)
+	ErrResource   = "RES"  // Resource-related errors (300-399)
+	ErrDatabase   = "DB"   // Database errors (400-499)
+	ErrExternal   = "EXT"  // External service errors (500-599)
+	ErrInternal   = "INTN" // Internal application errors (600-699)
 )
+
+// Error code ranges:
+// - Each domain has 100 codes available (000-099)
+// - Codes should be sequential within each domain
+// - New errors should use the next available code in their domain
 
 // Define external service errors
 var (
@@ -80,6 +87,36 @@ var (
 		HTTPCode: http.StatusConflict,
 		Code:     ErrResource + "_002",
 		Message:  "Resource already exists",
+	}
+	ErrChatSessionNotFound = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_004",
+		Message:  "Chat session not found",
+	}
+	ErrChatFileNotFound = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_005",
+		Message:  "Chat file not found",
+	}
+	ErrChatModelNotFound = APIError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrResource + "_006",
+		Message:  "Chat model not found",
+	}
+	ErrChatFileTooLarge = APIError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrValidation + "_002",
+		Message:  "File too large",
+	}
+	ErrChatFileInvalidType = APIError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrValidation + "_003",
+		Message:  "Invalid file type",
+	}
+	ErrChatSessionInvalid = APIError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrValidation + "_004",
+		Message:  "Invalid chat session",
 	}
 	ErrTooManyRequests = APIError{
 		HTTPCode: http.StatusTooManyRequests,
@@ -143,14 +180,20 @@ func ErrValidationInvalidInput(detail string) APIError {
 	return err
 }
 
+// RespondWithAPIError writes an APIError response to the client
+// It:
+// - Sets the appropriate HTTP status code
+// - Returns a JSON response with error details
+// - Logs the error with debug info
 func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.HTTPCode)
 
+	// Error response structure
 	response := struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-		Detail  string `json:"detail,omitempty"`
+		Code    string `json:"code"`              // Application error code
+		Message string `json:"message"`           // Human-readable error message
+		Detail  string `json:"detail,omitempty"`  // Additional error details
 	}{
 		Code:    err.Code,
 		Message: err.Message,
@@ -162,7 +205,10 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 		log.Printf("Error [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
 	}
 
-	json.NewEncoder(w).Encode(response)
+	// Write JSON response
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Failed to write error response: %v", err)
+	}
 }
 
 // NewAPIError creates a new APIError with the given parameters
@@ -272,11 +318,22 @@ var ErrorCatalog = map[string]APIError{
 	ErrInternal + "_003":       {HTTPCode: http.StatusRequestTimeout, Code: ErrInternal + "_003", Message: "Request was canceled"},
 }
 
+// WrapError converts a standard error into an APIError
+// It handles:
+// - Context cancellation/timeout errors
+// - Existing APIErrors (preserves original error details)
+// - Unknown errors (converts to internal server error)
+// Parameters:
+//   - err: The original error to wrap
+//   - detail: Additional context about where the error occurred
+// Returns:
+//   - APIError: A standardized error response
 func WrapError(err error, detail string) APIError {
 	var apiErr APIError
 
-	// Check for context errors first
-	if errors.Is(err, context.DeadlineExceeded) {
+	// Handle context errors
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
 		apiErr = APIError{
 			HTTPCode:  http.StatusGatewayTimeout,
 			Code:      ErrInternal + "_002",
@@ -285,9 +342,7 @@ func WrapError(err error, detail string) APIError {
 			DebugInfo: "Context deadline exceeded",
 		}
 		return apiErr
-	}
-
-	if errors.Is(err, context.Canceled) {
+	case errors.Is(err, context.Canceled):
 		apiErr = APIError{
 			HTTPCode:  http.StatusRequestTimeout,
 			Code:      ErrInternal + "_003",
@@ -298,9 +353,9 @@ func WrapError(err error, detail string) APIError {
 		return apiErr
 	}
 
+	// Handle APIError types
 	switch e := err.(type) {
 	case APIError:
-		// Clone the API error and add detail
 		apiErr = e
 		if detail != "" {
 			if apiErr.Detail != "" {
@@ -310,7 +365,7 @@ func WrapError(err error, detail string) APIError {
 			}
 		}
 	default:
-		// Create a new internal error
+		// Convert unknown errors to internal server error
 		apiErr = ErrInternalUnexpected
 		apiErr.Detail = detail
 		apiErr.DebugInfo = err.Error()
