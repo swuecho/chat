@@ -2,13 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )

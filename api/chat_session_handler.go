@@ -40,9 +40,6 @@ func validateChatSessionParams(params sqlc_queries.CreateChatSessionParams) map[
 		errors["maxLength"] = "Max length must be greater than 0"
 	}
 	
-	if params.Temperature < 0 || params.Temperature > 1 {
-		errors["temperature"] = "Temperature must be between 0 and 1"
-	}
 	
 	return errors
 }
