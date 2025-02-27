@@ -47,8 +47,7 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 			session_resp.MaxLength = 10
 			json.NewEncoder(w).Encode(session_resp)
 		} else {
-			apiErr := ErrResourceNotFound("Chat session")
-			apiErr.DebugInfo = err.Error()
+			apiErr := WrapError(MapDatabaseError(err), "Failed to get chat session")
 			RespondWithAPIError(w, apiErr)
 			return
 		}
@@ -84,9 +83,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 	sessionParams.MaxLength = 10
 	session, err := h.service.CreateChatSession(r.Context(), sessionParams)
 	if err != nil {
-		apiErr := ErrInternalUnexpected
-		apiErr.Detail = "Failed to create chat session"
-		apiErr.DebugInfo = err.Error()
+		apiErr := WrapError(MapDatabaseError(err), "Failed to create chat session")
 		RespondWithAPIError(w, apiErr)
 		return
 	}
@@ -97,9 +94,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 			ChatSessionUuid: session.Uuid,
 		})
 	if err != nil {
-		apiErr := ErrInternalUnexpected
-		apiErr.Detail = "Failed to update or create active user session record"
-		apiErr.DebugInfo = err.Error()
+		apiErr := WrapError(MapDatabaseError(err), "Failed to update or create active user session record")
 		RespondWithAPIError(w, apiErr)
 		return
 	}

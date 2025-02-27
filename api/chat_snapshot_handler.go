@@ -40,9 +40,7 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 	}
 	uuid, err := h.service.CreateChatSnapshot(r.Context(), chatSessionUuid, user_id)
 	if err != nil {
-		apiErr := ErrInternalUnexpected
-		apiErr.Detail = "Failed to create chat snapshot"
-		apiErr.DebugInfo = err.Error()
+		apiErr := WrapError(MapDatabaseError(err), "Failed to create chat snapshot")
 		RespondWithAPIError(w, apiErr)
 		return
 	}
@@ -81,8 +79,7 @@ func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Req
 	uuidStr := mux.Vars(r)["uuid"]
 	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuidStr)
 	if err != nil {
-		apiErr := ErrResourceNotFound("Chat snapshot")
-		apiErr.DebugInfo = err.Error()
+		apiErr := WrapError(MapDatabaseError(err), "Failed to get chat snapshot")
 		RespondWithAPIError(w, apiErr)
 		return
 	}

@@ -461,9 +461,13 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		})
 	log.Printf("%+v", rate)
 	if err != nil {
-		apiErr := ErrInternalUnexpected
-		apiErr.Detail = "Failed to get rate limit"
-		apiErr.DebugInfo = err.Error()
+		if errors.Is(err, sql.ErrNoRows) {
+			// If no rate limit is found, use a default value instead of returning an error
+			log.Printf("No rate limit found for user %d and session %s, using default", userID, chatSessionUuid)
+			return false
+		}
+		
+		apiErr := WrapError(MapDatabaseError(err), "Failed to get rate limit")
 		RespondWithAPIError(w, apiErr)
 		return true
 	}

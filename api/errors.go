@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/jackc/pgconn"
 )
@@ -32,6 +34,21 @@ const (
 	ErrDatabase   = "DB"   // Database errors
 	ErrExternal   = "EXT"  // External service errors
 	ErrInternal   = "INTN" // Internal application errors
+)
+
+// Define external service errors
+var (
+	ErrExternalTimeout = APIError{
+		HTTPCode: http.StatusGatewayTimeout,
+		Code:     ErrExternal + "_001",
+		Message:  "External service timed out",
+	}
+	
+	ErrExternalUnavailable = APIError{
+		HTTPCode: http.StatusServiceUnavailable,
+		Code:     ErrExternal + "_002",
+		Message:  "External service unavailable",
+	}
 )
 
 // Define all API errors
@@ -84,6 +101,12 @@ var (
 		Code:      ErrDatabase + "_001",
 		Message:   "Database query failed",
 		DebugInfo: "Database operation failed - check logs for details",
+	}
+	ErrDatabaseConnection = APIError{
+		HTTPCode:  http.StatusServiceUnavailable,
+		Code:      ErrDatabase + "_002",
+		Message:   "Database connection failed",
+		DebugInfo: "Could not connect to database - check connection settings",
 	}
 	ErrDatabaseForeignKey = APIError{
 		HTTPCode:  http.StatusBadRequest,
@@ -169,6 +192,15 @@ func MapDatabaseError(err error) error {
 		return ErrResourceNotFound("Record")
 	}
 
+	// Check for connection errors
+	if strings.Contains(err.Error(), "connection refused") || 
+	   strings.Contains(err.Error(), "no such host") ||
+	   strings.Contains(err.Error(), "connection reset by peer") {
+		dbErr := ErrDatabaseConnection
+		dbErr.DebugInfo = err.Error()
+		return dbErr
+	}
+
 	// Check for other specific database errors
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
@@ -178,6 +210,21 @@ func MapDatabaseError(err error) error {
 		case "23503": // Foreign key violation
 			dbErr := ErrDatabaseForeignKey
 			dbErr.DebugInfo = fmt.Sprintf("Foreign key violation: %s", pgErr.Detail)
+			return dbErr
+		case "42P01": // Undefined table
+			dbErr := ErrDatabaseQuery
+			dbErr.Message = "Database schema error"
+			dbErr.DebugInfo = fmt.Sprintf("Table does not exist: %s", pgErr.Detail)
+			return dbErr
+		case "42703": // Undefined column
+			dbErr := ErrDatabaseQuery
+			dbErr.Message = "Database schema error"
+			dbErr.DebugInfo = fmt.Sprintf("Column does not exist: %s", pgErr.Detail)
+			return dbErr
+		case "53300": // Too many connections
+			dbErr := ErrDatabaseConnection
+			dbErr.Message = "Database connection limit reached"
+			dbErr.DebugInfo = pgErr.Detail
 			return dbErr
 		}
 	}
@@ -207,11 +254,18 @@ var ErrorCatalog = map[string]APIError{
 	ErrValidationInvalidInputGeneric.Code: ErrValidationInvalidInputGeneric,
 	
 	// Database errors
-	ErrDatabaseQuery.Code:    ErrDatabaseQuery,
+	ErrDatabaseQuery.Code:      ErrDatabaseQuery,
+	ErrDatabaseConnection.Code: ErrDatabaseConnection,
 	ErrDatabaseForeignKey.Code: ErrDatabaseForeignKey,
+	
+	// External service errors
+	ErrExternalTimeout.Code:     ErrExternalTimeout,
+	ErrExternalUnavailable.Code: ErrExternalUnavailable,
 	
 	// Internal errors
 	ErrInternalUnexpected.Code: ErrInternalUnexpected,
+	ErrInternal + "_002":       APIError{HTTPCode: http.StatusGatewayTimeout, Code: ErrInternal + "_002", Message: "Request timed out"},
+	ErrInternal + "_003":       APIError{HTTPCode: http.StatusRequestTimeout, Code: ErrInternal + "_003", Message: "Request was canceled"},
 }
 
 func WrapError(err error, detail string) APIError {
@@ -236,6 +290,14 @@ func WrapError(err error, detail string) APIError {
 	}
 
 	return apiErr
+}
+
+// IsErrorCode checks if an error is an APIError with the specified code
+func IsErrorCode(err error, code string) bool {
+	if apiErr, ok := err.(APIError); ok {
+		return apiErr.Code == code
+	}
+	return false
 }
 
 // Add a handler to serve the error catalog
