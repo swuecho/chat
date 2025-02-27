@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -92,7 +93,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Uploading file: %s (%s, %d bytes)", 
+	log.Printf("Uploading file: %s (%s, %d bytes)",
 		header.Filename, mimeType, header.Size)
 
 	// Validate file size
@@ -159,7 +160,6 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	// Set proper content type from stored mime type
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
-	w.Header().Set("Content-Type", file.MimeType)
 	w.Header().Set("Content-Length", strconv.Itoa(len(file.Data)))
 
 	if _, err := w.Write(file.Data); err != nil {

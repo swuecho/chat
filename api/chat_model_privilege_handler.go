@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -102,7 +103,7 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 		return
 	}
 
-	log.Printf("Creating chat model privilege for user %s with model %s", 
+	log.Printf("Creating chat model privilege for user %s with model %s",
 		input.UserEmail, input.ChatModelName)
 
 	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
