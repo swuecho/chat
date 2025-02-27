@@ -54,7 +54,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages, chatFiles, streamOutput)
 	if len(openai_req.Messages) <= 1 {
 		err := eris.New("system message notice")
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.system_message_notice", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("error.system_message_notice").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 	log.Printf("%+v", openai_req)
@@ -107,7 +107,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 			HTTPCode: http.StatusInternalServerError,
 			Code:     "STREAM_UNSUPPORTED",
 			Message:  "Streaming unsupported by client",
-		}))
+		})
 		return nil, eris.New("Streaming unsupported!")
 	}
 
