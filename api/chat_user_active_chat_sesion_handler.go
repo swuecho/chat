@@ -32,13 +32,13 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
 		return
 	}
 
 	session, err := h.service.GetUserActiveChatSession(r.Context(), userID)
 	if err != nil {
-		http.Error(w, fmt.Errorf("error: %v", err).Error(), http.StatusNotFound)
+		RespondWithAPIError(w, WrapError(err, "failed to get active chat session"))
 		return
 	}
 
@@ -51,20 +51,20 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
 		return
 	}
 
 	var sessionParams sqlc.CreateOrUpdateUserActiveChatSessionParams
 	if err := json.NewDecoder(r.Body).Decode(&sessionParams); err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}
 	// use the user_id from token
 	sessionParams.UserID = userID
 	session, err := h.service.CreateOrUpdateUserActiveChatSession(r.Context(), sessionParams)
 	if err != nil {
-		http.Error(w, eris.Wrap(err, "fail to update or create action user session record, ").Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(err, "failed to create or update active chat session"))
 		return
 	}
 
