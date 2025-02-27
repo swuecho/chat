@@ -47,6 +47,11 @@ var (
 		Code:     ErrAuth + "_002",
 		Message:  "Token has expired",
 	}
+	ErrAuthAdminRequired = APIError{
+		HTTPCode: http.StatusForbidden,
+		Code:     ErrAuth + "_003",
+		Message:  "Admin privileges required",
+	}
 
 	// Resource errors
 	ErrResourceNotFoundGeneric = APIError{
@@ -191,6 +196,7 @@ var ErrorCatalog = map[string]APIError{
 	// Auth errors
 	ErrAuthInvalidCredentials.Code: ErrAuthInvalidCredentials,
 	ErrAuthExpiredToken.Code:       ErrAuthExpiredToken,
+	ErrAuthAdminRequired.Code:      ErrAuthAdminRequired,
 	
 	// Resource errors
 	ErrResourceNotFoundGeneric.Code:      ErrResourceNotFoundGeneric,

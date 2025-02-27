@@ -66,11 +66,15 @@ func AdminOnlyHander(h http.Handler) http.Handler {
 		ctx := r.Context()
 		userRole, ok := ctx.Value(roleContextKey).(string)
 		if !ok {
-			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
+			apiErr := ErrAuthAdminRequired
+			apiErr.Detail = "User role information not found"
+			RespondWithAPIError(w, apiErr)
 			return
 		}
 		if userRole != "admin" {
-			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
+			apiErr := ErrAuthAdminRequired
+			apiErr.Detail = "Current user does not have admin role"
+			RespondWithAPIError(w, apiErr)
 			return
 		}
 		h.ServeHTTP(w, r)
@@ -82,11 +86,15 @@ func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 		ctx := r.Context()
 		userRole, ok := ctx.Value(roleContextKey).(string)
 		if !ok {
-			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
+			apiErr := ErrAuthAdminRequired
+			apiErr.Detail = "User role information not found"
+			RespondWithAPIError(w, apiErr)
 			return
 		}
 		if userRole != "admin" {
-			RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
+			apiErr := ErrAuthAdminRequired
+			apiErr.Detail = "Current user does not have admin role"
+			RespondWithAPIError(w, apiErr)
 			return
 		}
 		handlerFunc(w, r)
@@ -147,7 +155,9 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 				ctx = context.WithValue(ctx, roleContextKey, role)
 				// superuser
 				if strings.HasPrefix(r.URL.Path, "/admin") && role != "admin" {
-					RespondWithErrorMessage(w, http.StatusForbidden, "error.NotAdmin", eris.New("Not Admin"))
+					apiErr := ErrAuthAdminRequired
+					apiErr.Detail = "This endpoint requires admin privileges"
+					RespondWithAPIError(w, apiErr)
 					return
 				}
 
@@ -161,8 +171,9 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 				handler.ServeHTTP(w, r.WithContext(ctx))
 			}
 		} else {
-			w.WriteHeader(http.StatusUnauthorized)
-			RespondWithErrorMessage(w, http.StatusUnauthorized, "error.NotAuthorized", eris.New("Not Authorized"))
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Missing or invalid authentication token"
+			RespondWithAPIError(w, apiErr)
 		}
 	})
 }
