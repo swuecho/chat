@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -56,7 +55,7 @@ func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "unauthorized", err)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
 	user, err := h.service.GetAuthUserByID(r.Context(), userID)
@@ -70,7 +69,7 @@ func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "unauthorized", err)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -119,7 +118,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	hash, err := auth.GeneratePasswordHash(params.Password)
 	if err != nil {
-		http.Error(w, "Failed to generate password hash: internal server error", http.StatusInternalServerError)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate password hash").WithDebugInfo(err.Error()))
 		return
 	}
 	userParams := sqlc_queries.CreateAuthUserParams{
@@ -130,13 +129,13 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.service.CreateAuthUser(r.Context(), userParams)
 	if err != nil {
-		http.Error(w, eris.Wrap(err, "failed to create user ").Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(err, "Failed to create user"))
 		return
 	}
 	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
 	tokenString, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 	if err != nil {
-		http.Error(w, "failed to generate token", http.StatusInternalServerError)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate token").WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -157,19 +156,19 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginParams LoginParams
 	err := json.NewDecoder(r.Body).Decode(&loginParams)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, "error.invalid_request", nil)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 	user, err := h.service.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "error.invalid_email_or_password", err)
+		RespondWithAPIError(w, ErrAuthInvalidEmailOrPassword.WithDebugInfo(err.Error()))
 		return
 	}
 	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
 	token, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_generate_token", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate token").WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -198,7 +197,7 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GenerateToken(userId, userRole, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_generate_token", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate token").WithDebugInfo(err.Error()))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -211,17 +210,20 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("jwt")
 	if err != nil {
-		http.Error(w, "missing token in cookie", http.StatusBadRequest)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("Missing token in cookie"))
+		return
 	}
 
 	tokenString := c.Value
 	if len(tokenString) == 0 {
-		http.Error(w, "empty token string", http.StatusBadRequest)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("Empty token string"))
+		return
 	}
 
 	cookie, err := h.service.Logout(tokenString)
 	if err != nil {
-		http.Error(w, "logout fail", http.StatusBadRequest)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to logout").WithDebugInfo(err.Error()))
+		return
 	}
 	http.SetCookie(w, cookie)
 	w.WriteHeader(http.StatusOK)
@@ -244,14 +246,14 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 	var req ResetPasswordRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 
 	// Retrieve user account from the database by email address
 	user, err := h.service.q.GetUserByEmail(context.Background(), req.Email)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		RespondWithAPIError(w, ErrResourceNotFound("user"))
 		return
 	}
 
@@ -261,7 +263,7 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 	// Hash temporary password
 	hashedPassword, err := auth.GeneratePasswordHash(tempPassword)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to hash password").WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -273,14 +275,14 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 			Password: hashedPassword,
 		})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to update password").WithDebugInfo(err.Error()))
 		return
 	}
 
 	// Send email to the user with temporary password and instructions
 	err = SendPasswordResetEmail(user.Email, tempPassword)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to send password reset email").WithDebugInfo(err.Error()))
 		return
 	}
 

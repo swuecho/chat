@@ -76,7 +76,11 @@ var (
 		Code:     ErrAuth + "_003",
 		Message:  "Admin privileges required",
 	}
-
+	ErrAuthInvalidEmailOrPassword = APIError{
+		HTTPCode: http.StatusForbidden,
+		Code:     ErrAuth + "_004",
+		Message:  "invalid email or password",
+	}
 	// Resource errors
 	ErrResourceNotFoundGeneric = APIError{
 		HTTPCode: http.StatusNotFound,
@@ -98,20 +102,15 @@ var (
 		Code:     ErrResource + "_007",
 		Message:  "Chat message not found",
 	}
-	ErrChatModelNotFound = APIError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrResource + "_006",
-		Message:  "Chat model not found",
-	}
-	ErrChatFileNotFound = APIError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrResource + "_005",
-		Message:  "Chat file not found",
-	}
 	ErrChatStreamFailed = APIError{
 		HTTPCode: http.StatusInternalServerError,
 		Code:     ErrInternal + "_004",
 		Message:  "Failed to stream chat response",
+	}
+	ErrChatRequestFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrInternal + "_005",
+		Message:  "Failed to make chat request",
 	}
 	ErrChatFileNotFound = APIError{
 		HTTPCode: http.StatusNotFound,
@@ -211,9 +210,9 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 
 	// Error response structure
 	response := struct {
-		Code    string `json:"code"`              // Application error code
-		Message string `json:"message"`           // Human-readable error message
-		Detail  string `json:"detail,omitempty"`  // Additional error details
+		Code    string `json:"code"`             // Application error code
+		Message string `json:"message"`          // Human-readable error message
+		Detail  string `json:"detail,omitempty"` // Additional error details
 	}{
 		Code:    err.Code,
 		Message: err.Message,
@@ -336,7 +335,8 @@ var ErrorCatalog = map[string]APIError{
 	ErrInternalUnexpected.Code: ErrInternalUnexpected,
 	ErrInternal + "_002":       {HTTPCode: http.StatusGatewayTimeout, Code: ErrInternal + "_002", Message: "Request timed out"},
 	ErrInternal + "_003":       {HTTPCode: http.StatusRequestTimeout, Code: ErrInternal + "_003", Message: "Request was canceled"},
-	ErrInternal + "_004":       {HTTPCode: http.StatusInternalServerError, Code: ErrInternal + "_004", Message: "Failed to stream chat response"},
+	ErrInternal + "_004":       ErrChatStreamFailed,
+	ErrInternal + "_005":       ErrChatRequestFailed,
 	ErrResource + "_004":       ErrChatSessionNotFound,
 	ErrResource + "_005":       ErrChatFileNotFound,
 	ErrResource + "_006":       ErrChatModelNotFound,
@@ -351,6 +351,7 @@ var ErrorCatalog = map[string]APIError{
 // Parameters:
 //   - err: The original error to wrap
 //   - detail: Additional context about where the error occurred
+//
 // Returns:
 //   - APIError: A standardized error response
 func WrapError(err error, detail string) APIError {

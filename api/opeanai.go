@@ -75,7 +75,7 @@ func doGenerate(w http.ResponseWriter, client *openai.Client, req openai.ChatCom
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		log.Printf("fail to do request: %+v", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.INTN_004", err)
 		return nil, err
 	}
 	log.Printf("completion: %+v", completion)
@@ -94,7 +94,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	if err != nil {
 		log.Printf("fail to do request: %+v", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.INTN_004", err)
 		return nil, err
 	}
 	defer stream.Close()

@@ -319,7 +319,7 @@ async function onRegenerate(index: number) {
 
             if (status >= 400) {
               const error_json: { code: number; message: string; details: any } = JSON.parse(responseText)
-              nui_msg.error(t(error_json.message), {
+              nui_msg.error(`${error_json.code} : ${t(error_json.message)}`, {
                 duration: 5000,
                 closable: true,
                 render: renderMessage
