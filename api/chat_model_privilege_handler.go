@@ -109,7 +109,12 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 
 	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("user with email "+input.UserEmail))
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithAPIError(w, ErrResourceNotFound("user").WithDetail(
+				fmt.Sprintf("user with email %s not found", input.UserEmail)))
+		} else {
+			RespondWithAPIError(w, WrapError(err, "failed to get user by email"))
+		}
 		return
 	}
 
@@ -132,7 +137,11 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 	})
 
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to create user chat model privilege"))
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithAPIError(w, ErrResourceNotFound("chat model privilege"))
+		} else {
+			RespondWithAPIError(w, WrapError(err, "failed to create user chat model privilege"))
+		}
 		return
 	}
 
@@ -183,7 +192,11 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 	})
 
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to update user chat model privilege"))
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithAPIError(w, ErrResourceNotFound("chat model privilege"))
+		} else {
+			RespondWithAPIError(w, WrapError(err, "failed to update user chat model privilege"))
+		}
 		return
 	}
 	output := ChatModelPrivilege{
@@ -206,7 +219,11 @@ func (h *UserChatModelPrivilegeHandler) DeleteUserChatModelPrivilege(w http.Resp
 
 	err = h.db.DeleteUserChatModelPrivilege(r.Context(), int32(id))
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to delete user chat model privilege"))
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithAPIError(w, ErrResourceNotFound("chat model privilege"))
+		} else {
+			RespondWithAPIError(w, WrapError(err, "failed to delete user chat model privilege"))
+		}
 		return
 	}
 
