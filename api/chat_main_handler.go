@@ -653,7 +653,7 @@ type ClaudeResponse struct {
 	Exception  interface{} `json:"exception"`
 }
 
-func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
+func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
@@ -1053,7 +1053,7 @@ type OllamaResponse struct {
 	EvalDuration       int64          `json:"eval_duration"`
 }
 
-func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
+func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// set the api key
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
@@ -1175,7 +1175,7 @@ type CustomModelResponse struct {
 	Exception  interface{} `json:"exception"`
 }
 
-func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
+func (h *ChatHandler) customChatStream(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
 	// set the api key
 	chat_model, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
@@ -1299,7 +1299,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	}, nil
 }
 
-func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
+func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	//message := Message{Role: "assitant", Content:}
 	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
@@ -1396,7 +1396,7 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 //         "parts":[{
 //           "text": "Write a story about a magic backpack."}]}]}' 2> /dev/null
 
-func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
 		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
@@ -1519,8 +1519,8 @@ type ClaudeChatModel struct {
 	h *ChatHandler
 }
 
-func (m *ClaudeChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.h.chatStreamClaude(w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
+func (m *ClaudeChatModel) Stream(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.chatStreamClaude(w, r, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
 
 // Test ChatModel implementation
@@ -1528,8 +1528,8 @@ type TestChatModel struct {
 	h *ChatHandler
 }
 
-func (m *TestChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.h.chatStreamTest(w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
+func (m *TestChatModel) Stream(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.chatStreamTest(w, r, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
 
 // Ollama ChatModel implementation
@@ -1537,8 +1537,8 @@ type OllamaChatModel struct {
 	h *ChatHandler
 }
 
-func (m *OllamaChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.h.chatOllamStream(w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
+func (m *OllamaChatModel) Stream(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.chatOllamStream(w, r, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
 
 // Completion ChatModel implementation
@@ -1546,8 +1546,8 @@ type CompletionChatModel struct {
 	h *ChatHandler
 }
 
-func (m *CompletionChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.h.CompletionStream(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
+func (m *CompletionChatModel) Stream(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.CompletionStream(w, r, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
 }
 
 // Gemini ChatModel implementation
@@ -1555,8 +1555,8 @@ type GeminiChatModel struct {
 	h *ChatHandler
 }
 
-func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.h.chatStreamGemini(w, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
+func (m *GeminiChatModel) Stream(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.chatStreamGemini(w, r, chatSession, chat_compeletion_messages, chatUuid, regenerate, stream)
 }
 
 // Custom ChatModel implementation
@@ -1564,6 +1564,6 @@ type CustomChatModel struct {
 	h *ChatHandler
 }
 
-func (m *CustomChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.h.customChatStream(w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
+func (m *CustomChatModel) Stream(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+	return m.h.customChatStream(w, r, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
