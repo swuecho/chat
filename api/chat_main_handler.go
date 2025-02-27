@@ -1439,7 +1439,11 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	setSSEHeader(w)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithAPIError(w, APIError{
+			HTTPCode: http.StatusInternalServerError,
+			Code:     "STREAM_UNSUPPORTED", 
+			Message:  "Streaming unsupported by client",
+		})
 		return nil, err
 	}
 
