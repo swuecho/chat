@@ -97,7 +97,9 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	var req BotRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Error decoding request: %v", err)
-		RespondWithErrorMessage(w, http.StatusBadRequest, "Invalid request format", eris.Wrap(err, "decode request"))
+		apiErr := ErrValidationInvalidInput("Failed to decode request body")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -112,7 +114,9 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	userID, err := getUserID(ctx)
 	if err != nil {
 		log.Printf("Error getting user ID: %v", err)
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", eris.Wrap(err, "get user ID"))
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -123,7 +127,9 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 		Uuid:   snapshotUuid,
 	})
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, "Failed to get chat snapshot", eris.Wrap(err, "get chat snapshot"))
+		apiErr := ErrResourceNotFound("Chat snapshot")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -132,13 +138,19 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	var session sqlc_queries.ChatSession
 	err = json.Unmarshal(chatSnapshot.Session, &session)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to deserialize chat session", eris.Wrap(err, "deserialize chat session"))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to deserialize chat session"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 	var simpleChatMessages []SimpleChatMessage
 	err = json.Unmarshal(chatSnapshot.Conversation, &simpleChatMessages)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to deserialize conversation", eris.Wrap(err, "deserialize conversation"))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to deserialize conversation"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -151,7 +163,9 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Error decoding request: %v", err)
-		RespondWithErrorMessage(w, http.StatusBadRequest, "Invalid request format", err)
+		apiErr := ErrValidationInvalidInput("Invalid request format")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -168,7 +182,9 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	userID, err := getUserID(ctx)
 	if err != nil {
 		log.Printf("Error getting user ID: %v", err)
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -217,10 +233,11 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		if newQuestion != "" {
 			_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
 			if err != nil {
-				http.Error(w,
-					eris.Wrap(err, "fail to create message: ").Error(),
-					http.StatusInternalServerError,
-				)
+				apiErr := ErrInternalUnexpected
+				apiErr.Detail = "Failed to create message"
+				apiErr.DebugInfo = err.Error()
+				RespondWithAPIError(w, apiErr)
+				return
 			}
 		} else {
 			log.Println("no new question, regenerate answer")
@@ -228,10 +245,10 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	} else {
 		chatPrompt, err := h.service.CreateChatPromptSimple(chatSessionUuid, newQuestion, userID)
 		if err != nil {
-			http.Error(w,
-				eris.Wrap(err, "fail to create prompt: ").Error(),
-				http.StatusInternalServerError,
-			)
+			apiErr := ErrInternalUnexpected
+			apiErr.Detail = "Failed to create prompt"
+			apiErr.DebugInfo = err.Error()
+			RespondWithAPIError(w, apiErr)
 			return
 		}
 		log.Printf("%+v\n", chatPrompt)
@@ -239,11 +256,10 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 
 	msgs, err := h.service.getAskMessages(chatSession, chatUuid, false)
 	if err != nil {
-		RespondWithErrorMessage(w,
-			http.StatusInternalServerError,
-			eris.Wrap(err, "fail to collect messages: ").Error(),
-			err,
-		)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to collect messages"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -259,7 +275,10 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to create message", eris.Wrap(err, "create message"))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create message"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 }
@@ -267,7 +286,9 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, newQuestion string, userID int32, streamOutput bool) {
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), session.Model)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("failed to get chat model: %s", session.Model), err)
+		apiErr := ErrResourceNotFound("Chat model: " + session.Model)
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -292,7 +313,10 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 
 	ctx := context.Background()
 	if _, err := h.service.CreateChatMessageSimple(ctx, session.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, session.Model, userID, baseURL, session.SummarizeMode); err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create message"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 }
@@ -320,13 +344,18 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	ctx := context.Background()
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, "Failed to get chat session", eris.Wrap(err, "get chat session"))
+		apiErr := ErrResourceNotFound("Chat session")
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
 	msgs, err := h.service.getAskMessages(chatSession, chatUuid, true)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to get chat messages", eris.Wrap(err, "get chat messages"))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to get chat messages"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return
 	}
 
@@ -355,7 +384,11 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 
 	// Delete previous message and create new one
 	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, LLMAnswer.Answer); err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to update message", eris.Wrap(err, "update message"))
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to update message"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
 	}
 }
 
@@ -428,7 +461,10 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		})
 	log.Printf("%+v", rate)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "error.fail_to_get_rate_limit", err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to get rate limit"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return true
 	}
 
@@ -440,19 +476,23 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		})
 
 	if err != nil {
-		// no rows
-		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
-			return true
-		}
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_get_rate_limit", err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to get usage data"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return true
 	}
 
 	log.Printf("%+v", usage10Min)
 
 	if int32(usage10Min) > rate.RateLimit {
-		RespondWithErrorMessage(w, http.StatusTooManyRequests, fmt.Sprintf("error.%s_over_limit", rate.ChatModelName), err)
+		apiErr := APIError{
+			HTTPCode: http.StatusTooManyRequests,
+			Code:     ErrResource + "_003",
+			Message:  fmt.Sprintf("Rate limit exceeded for %s", rate.ChatModelName),
+			Detail:   fmt.Sprintf("Usage: %d, Limit: %d", usage10Min, rate.RateLimit),
+		}
+		RespondWithAPIError(w, apiErr)
 		return true
 	}
 	return false
@@ -476,7 +516,10 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	config, err := genOpenAIConfig(chatModel)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to generate OpenAI configuration"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 
@@ -502,7 +545,10 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 	defer cancel()
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create completion stream"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 	defer stream.Close()
@@ -511,7 +557,9 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Streaming unsupported by the client"
+		RespondWithAPIError(w, apiErr)
 		return nil, eris.New("Streaming unsupported!")
 	}
 
@@ -616,7 +664,10 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to create request"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 
@@ -654,7 +705,9 @@ func (h *ChatHandler) chatStreamClaude(w http.ResponseWriter, chatSession sqlc_q
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Streaming unsupported by the client"
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 
@@ -862,7 +915,9 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Streaming unsupported by the client"
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 
@@ -1195,7 +1250,10 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	//message := Message{Role: "assitant", Content:}
 	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to get chat files"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
 		return nil, err
 	}
 
