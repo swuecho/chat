@@ -264,7 +264,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	model := h.chooseChatModel(chatSession, msgs)
-	LLMAnswer, err := model.Stream(w, chatSession, msgs, chatUuid, false, streamOutput)
+	LLMAnswer, err := model.Stream(w, r, chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
 		log.Printf("Error generating answer: %v", err)
 		return
@@ -301,7 +301,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	})
 	model := h.chooseChatModel(session, messages)
 
-	LLMAnswer, err := model.Stream(w, session, messages, "", false, streamOutput)
+	LLMAnswer, err := model.Stream(w, r, session, messages, "", false, streamOutput)
 	if err != nil {
 		log.Printf("Error generating answer: %v", err)
 		return
@@ -374,7 +374,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	// Determine whether the chat is a test or not
 	model := h.chooseChatModel(chatSession, msgs)
 
-	LLMAnswer, err := model.Stream(w, chatSession, msgs, chatUuid, true, stream)
+	LLMAnswer, err := model.Stream(w, r, chatSession, msgs, chatUuid, true, stream)
 	if err != nil {
 		log.Printf("Error regenerating answer: %v", err)
 		return
@@ -499,7 +499,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	return false
 }
 
-func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
+func (h *ChatHandler) CompletionStream(w http.ResponseWriter, r *http.Request, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
 	// check per chat_model limit
 
 	openAIRateLimiter.Wait(context.Background())
