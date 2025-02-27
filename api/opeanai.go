@@ -41,13 +41,13 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	log.Printf("%+v", config.String())
 	// print all config details
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "gen open ai config").Error(), err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate OpenAI config").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
 	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to get chat files").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -75,7 +75,7 @@ func doGenerate(w http.ResponseWriter, client *openai.Client, req openai.ChatCom
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		log.Printf("fail to do request: %+v", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.INTN_004", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to create chat completion").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 	log.Printf("completion: %+v", completion)
@@ -103,7 +103,11 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithAPIError(w, APIError{
+			HTTPCode: http.StatusInternalServerError,
+			Code:     "STREAM_UNSUPPORTED",
+			Message:  "Streaming unsupported by client",
+		}))
 		return nil, eris.New("Streaming unsupported!")
 	}
 
@@ -140,7 +144,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 				return &llmAnswer, nil
 			} else {
 				log.Printf("%v", err)
-				RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
+				RespondWithAPIError(w, ErrChatStreamFailed.WithDetail("Stream error occurred").WithDebugInfo(err.Error()))
 				return nil, err
 			}
 		}
