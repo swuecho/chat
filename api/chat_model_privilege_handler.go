@@ -99,7 +99,8 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 		return
 	}
 	if input.RateLimit <= 0 {
-		RespondWithAPIError(w, ErrValidationInvalidInput("rate limit must be positive"))
+		RespondWithAPIError(w, ErrValidationInvalidInput("rate limit must be positive").WithDetail(
+			fmt.Sprintf("invalid rate limit: %d", input.RateLimit)))
 		return
 	}
 

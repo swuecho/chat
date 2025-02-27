@@ -103,6 +103,21 @@ var (
 		Code:     ErrResource + "_006",
 		Message:  "Chat model not found",
 	}
+	ErrChatFileTooLarge = APIError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrValidation + "_002",
+		Message:  "File too large",
+	}
+	ErrChatFileInvalidType = APIError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrValidation + "_003",
+		Message:  "Invalid file type",
+	}
+	ErrChatSessionInvalid = APIError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrValidation + "_004",
+		Message:  "Invalid chat session",
+	}
 	ErrTooManyRequests = APIError{
 		HTTPCode: http.StatusTooManyRequests,
 		Code:     ErrResource + "_003",

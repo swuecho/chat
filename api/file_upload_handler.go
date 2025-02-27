@@ -90,7 +90,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	// Validate file type and extension
 	mimeType := header.Header.Get("Content-Type")
 	if !isValidFileType(mimeType, header.Filename) {
-		RespondWithAPIError(w, ErrValidationInvalidInput(
+		RespondWithAPIError(w, ErrChatFileInvalidType.WithDetail(
 			fmt.Sprintf("unsupported file type: %s or invalid extension for type", mimeType)))
 		return
 	}

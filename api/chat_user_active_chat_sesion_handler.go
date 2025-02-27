@@ -85,7 +85,8 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 
 	// Validate session UUID format
 	if !uuidRegex.MatchString(sessionParams.ChatSessionUuid) {
-		RespondWithAPIError(w, ErrValidationInvalidInput("invalid session UUID format"))
+		RespondWithAPIError(w, ErrChatSessionInvalid.WithDetail(
+			fmt.Sprintf("invalid session UUID format: %s", sessionParams.ChatSessionUuid)))
 		return
 	}
 
