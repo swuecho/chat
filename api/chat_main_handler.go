@@ -97,7 +97,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	var req BotRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Error decoding request: %v", err)
-		RespondWithErrorMessage(w, http.StatusBadRequest, "Invalid request format", err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, "Invalid request format", eris.Wrap(err, "decode request"))
 		return
 	}
 
@@ -112,7 +112,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	userID, err := getUserID(ctx)
 	if err != nil {
 		log.Printf("Error getting user ID: %v", err)
-		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", err)
+		RespondWithErrorMessage(w, http.StatusUnauthorized, "Unauthorized", eris.Wrap(err, "get user ID"))
 		return
 	}
 
@@ -123,7 +123,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 		Uuid:   snapshotUuid,
 	})
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat snapshot").Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, "Failed to get chat snapshot", eris.Wrap(err, "get chat snapshot"))
 		return
 	}
 
@@ -132,13 +132,13 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	var session sqlc_queries.ChatSession
 	err = json.Unmarshal(chatSnapshot.Session, &session)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "fail to deserialize chat session").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to deserialize chat session", eris.Wrap(err, "deserialize chat session"))
 		return
 	}
 	var simpleChatMessages []SimpleChatMessage
 	err = json.Unmarshal(chatSnapshot.Conversation, &simpleChatMessages)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "fail to deserialize conversation").Error(), err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to deserialize conversation", eris.Wrap(err, "deserialize conversation"))
 		return
 	}
 
@@ -259,7 +259,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 
 	if _, err := h.service.CreateChatMessageSimple(ctx, chatSessionUuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "failed to create message").Error(), nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to create message", eris.Wrap(err, "create message"))
 		return
 	}
 }
@@ -320,13 +320,13 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 	ctx := context.Background()
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, eris.Wrap(err, "fail to get chat session").Error(), err)
+		RespondWithErrorMessage(w, http.StatusBadRequest, "Failed to get chat session", eris.Wrap(err, "get chat session"))
 		return
 	}
 
 	msgs, err := h.service.getAskMessages(chatSession, chatUuid, true)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Get chat message error", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to get chat messages", eris.Wrap(err, "get chat messages"))
 		return
 	}
 
@@ -355,7 +355,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 
 	// Delete previous message and create new one
 	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, LLMAnswer.Answer); err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "fail to update message: ").Error(), nil)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "Failed to update message", eris.Wrap(err, "update message"))
 	}
 }
 
