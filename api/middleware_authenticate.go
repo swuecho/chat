@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-	"github.com/rotisserie/eris"
 )
 
 func CheckPermission(userID int, ctx context.Context) bool {
