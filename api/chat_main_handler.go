@@ -916,7 +916,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("%+v", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.INTN_004", err)
 		return nil, err
 	}
 
@@ -1056,7 +1056,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_do_request", err)
+		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.INTN_004", err)
 		return nil, err
 	}
 

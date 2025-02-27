@@ -76,7 +76,11 @@ var (
 		Code:     ErrAuth + "_003",
 		Message:  "Admin privileges required",
 	}
-
+	ErrAuthInvalidEmailOrPassword = APIError{
+		HTTPCode: http.StatusForbidden,
+		Code:     ErrAuth + "_004",
+		Message:  "invalid email or password",
+	}
 	// Resource errors
 	ErrResourceNotFoundGeneric = APIError{
 		HTTPCode: http.StatusNotFound,
@@ -206,9 +210,9 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 
 	// Error response structure
 	response := struct {
-		Code    string `json:"code"`              // Application error code
-		Message string `json:"message"`           // Human-readable error message
-		Detail  string `json:"detail,omitempty"`  // Additional error details
+		Code    string `json:"code"`             // Application error code
+		Message string `json:"message"`          // Human-readable error message
+		Detail  string `json:"detail,omitempty"` // Additional error details
 	}{
 		Code:    err.Code,
 		Message: err.Message,
@@ -347,6 +351,7 @@ var ErrorCatalog = map[string]APIError{
 // Parameters:
 //   - err: The original error to wrap
 //   - detail: Additional context about where the error occurred
+//
 // Returns:
 //   - APIError: A standardized error response
 func WrapError(err error, detail string) APIError {

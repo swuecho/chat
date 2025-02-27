@@ -161,7 +161,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := h.service.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrAuthInvalidEmailOrPassword.WithDebugInfo(err.Error()))
 		return
 	}
 	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
