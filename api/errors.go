@@ -98,16 +98,6 @@ var (
 		Code:     ErrResource + "_007",
 		Message:  "Chat message not found",
 	}
-	ErrChatModelNotFound = APIError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrResource + "_006",
-		Message:  "Chat model not found",
-	}
-	ErrChatFileNotFound = APIError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrResource + "_005",
-		Message:  "Chat file not found",
-	}
 	ErrChatStreamFailed = APIError{
 		HTTPCode: http.StatusInternalServerError,
 		Code:     ErrInternal + "_004",
