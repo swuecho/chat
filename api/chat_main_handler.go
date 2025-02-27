@@ -590,7 +590,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if err != nil {
-			RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
+			RespondWithAPIError(w, ErrChatStreamFailed.WithDetail("Stream error occurred").WithDebugInfo(err.Error()))
 			return nil, err
 		}
 		textIdx := response.Choices[0].Index
@@ -824,7 +824,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		messages = messagesToOpenAIMesages(claude_messages, chatFiles)
 	} else {
 		// only system message, return and do nothing
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.system_message_notice", err)
+		RespondWithAPIError(w, ErrValidationInvalidInput("System message required but not provided"))
 		return nil, err
 	}
 	// create the json data
@@ -977,7 +977,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 			log.Println(string(line))
-			RespondWithErrorMessage(w, http.StatusInternalServerError, string(line), nil)
+			RespondWithAPIError(w, ErrChatStreamFailed.WithDetail("Error in Claude API response").WithDebugInfo(string(line)))
 			return nil, err
 		}
 		if answer_id == "" {
@@ -1170,7 +1170,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		fmt.Println("Error while creating request: ", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
+		RespondWithAPIError(w, ErrChatRequestFailed.WithDetail("Failed to send Claude API request").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
