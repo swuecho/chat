@@ -94,7 +94,7 @@ var (
 func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.HTTPCode)
-	
+
 	response := struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
@@ -104,12 +104,12 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 		Message: err.Message,
 		Detail:  err.Detail,
 	}
-	
+
 	// Log error with debug info if available
 	if err.DebugInfo != "" {
 		log.Printf("Error [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -170,7 +170,7 @@ var errorResourceAlreadyExists = ErrResourceAlreadyExists("resource")
 
 // ErrorCatalog holds all error codes for documentation purposes
 var ErrorCatalog = map[string]APIError{
-	"AUTH_001":                      ErrAuthInvalidCredentials,
+	ErrAuthInvalidCredentials.Code:  ErrAuthInvalidCredentials,
 	errorResourceNotFound.Code:      errorResourceNotFound,
 	errorResourceAlreadyExists.Code: errorResourceAlreadyExists,
 }
