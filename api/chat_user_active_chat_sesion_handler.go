@@ -1,7 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -32,7 +35,7 @@ func (h *UserActiveChatSessionHandler) Register(router *mux.Router) {
 // GetUserActiveChatSessionHandler handles GET requests to get a session by user_id
 func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	// Get and validate user ID
 	userID, err := getUserID(ctx)
 	if err != nil {
@@ -65,7 +68,7 @@ var uuidRegex = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 // CreateOrUpdateUserActiveChatSessionHandler handles PUT requests to create/update a session
 func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	// Get and validate user ID
 	userID, err := getUserID(ctx)
 	if err != nil {
