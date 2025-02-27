@@ -78,7 +78,7 @@ func (s *ChatFileService) DeleteChatFile(ctx context.Context, id int32) error {
 }
 
 // ListChatFilesBySession retrieves chat files for a session
-func (s *ChatFileService) ListChatFilesBySession(ctx context.Context, sessionUUID string, userID int32) ([]sqlc_queries.ChatFile, error) {
+func (s *ChatFileService) ListChatFilesBySession(ctx context.Context, sessionUUID string, userID int32) ([]sqlc_queries.ListChatFilesBySessionUUIDRow, error) {
 	if sessionUUID == "" {
 		return nil, ErrValidationInvalidInput("missing session UUID")
 	}
