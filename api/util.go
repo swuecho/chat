@@ -68,10 +68,19 @@ func setSSEHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 }
 
-// RespondWithErrorMessage sends an APIError response
-func RespondWithErrorMessage(w http.ResponseWriter, err APIError) {
-	w.WriteHeader(err.HTTPCode)
-	json.NewEncoder(w).Encode(err)
+// RespondWithErrorMessage sends an error response with status code and message
+func RespondWithErrorMessage(w http.ResponseWriter, statusCode int, message string, err error) {
+	w.WriteHeader(statusCode)
+	response := struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Detail  string `json:"detail,omitempty"`
+	}{
+		Code:    strconv.Itoa(statusCode),
+		Message: message,
+		Detail:  err.Error(),
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func getPerWordStreamLimit() int {

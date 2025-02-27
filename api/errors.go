@@ -91,38 +91,25 @@ var (
 	}
 )
 
-func RespondWithAPIError(w http.ResponseWriter, err error) {
+func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	w.Header().Set("Content-Type", "application/json")
-
-	var apiErr APIError
-	switch e := err.(type) {
-	case APIError:
-		apiErr = e
-	default:
-		// Log unexpected errors
-		log.Printf("Unexpected error: %v", err)
-		apiErr = ErrInternalUnexpected
-	}
-
-	// Set status code from the error
-	w.WriteHeader(apiErr.HTTPCode)
-
-	// Create response object (don't expose debug info)
+	w.WriteHeader(err.HTTPCode)
+	
 	response := struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
 		Detail  string `json:"detail,omitempty"`
 	}{
-		Code:    apiErr.Code,
-		Message: apiErr.Message,
-		Detail:  apiErr.Detail,
+		Code:    err.Code,
+		Message: err.Message,
+		Detail:  err.Detail,
 	}
-
+	
 	// Log error with debug info if available
-	if apiErr.DebugInfo != "" {
-		log.Printf("Error [%s]: %s - %s", apiErr.Code, apiErr.Message, apiErr.DebugInfo)
+	if err.DebugInfo != "" {
+		log.Printf("Error [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
 	}
-
+	
 	json.NewEncoder(w).Encode(response)
 }
 
