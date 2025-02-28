@@ -323,6 +323,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	}
 }
 
+
 // Helper function to convert SimpleChatMessage to Message
 func simpleChatMessagesToMessages(simpleChatMessages []SimpleChatMessage) []models.Message {
 	messages := make([]models.Message, len(simpleChatMessages))
@@ -610,9 +611,6 @@ type ClaudeResponse struct {
 	Model      string      `json:"model"`
 	Exception  interface{} `json:"exception"`
 }
-
-
-
 
 type CustomModelResponse struct {
 	Completion string      `json:"completion"`

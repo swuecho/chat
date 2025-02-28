@@ -26,10 +26,21 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 		return "", err
 	}
 	// TODO: fix hardcode
+	// Get chat history
 	simple_msgs, err := s.q.GetChatHistoryBySessionUUID(ctx, chatSessionUuid, int32(1), int32(10000))
+	if err != nil {
+		return "", err
+	}
 	text := lo.Reduce(simple_msgs, func(acc string, curr sqlc_queries.SimpleChatMessage, _ int) string {
 		return acc + curr.Text
 	}, "")
+	model := "gemini-2.0-flash"
+	// Generate title using LLM
+	title, err := GenerateChatTitle(ctx, model, text)
+	if err != nil {
+		// Fallback to first 100 chars of topic if title generation fails
+		title = firstN(chatSession.Topic, 100)
+	}
 	// save all simple_msgs to a jsonb field in chat_snapshot
 	if err != nil {
 		return "", err
@@ -47,7 +58,7 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 	one, err := s.q.CreateChatSnapshot(ctx, sqlc_queries.CreateChatSnapshotParams{
 		Uuid:         snapshot_uuid,
 		Model:        chatSession.Model,
-		Title:        firstN(chatSession.Topic, 100),
+		Title:        title,
 		UserID:       userId,
 		Session:      chatSessionMessage,
 		Tags:         json.RawMessage([]byte("{}")),

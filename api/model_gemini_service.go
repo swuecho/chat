@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/swuecho/chat_backend/llm/gemini"
@@ -68,7 +69,7 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		return nil, ErrInternalUnexpected.WithDetail("Failed to generate Gemini payload").WithDebugInfo(err.Error())
 	}
 
-	url := m.buildAPIURL(chatSession.Model, stream)
+	url := buildAPIURL(chatSession.Model, stream)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return nil, ErrInternalUnexpected.WithDetail("Failed to create Gemini API request").WithDebugInfo(err.Error())
@@ -78,10 +79,15 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	if stream {
 		return m.handleStreamResponse(w, req, answerID)
 	}
-	return m.handleRegularResponse(w, req, answerID)
+
+	llmAnswer, err := handleRegularResponse(*m.client.client, req, answerID)
+	response := constructChatCompletionStreamReponse(answerID, llmAnswer.Answer)
+	data, _ := json.Marshal(response)
+	fmt.Fprint(w, string(data))
+	return llmAnswer, err
 }
 
-func (m *GeminiChatModel) buildAPIURL(model string, stream bool) string {
+func buildAPIURL(model string, stream bool) string {
 	endpoint := "generateContent"
 	if stream {
 		endpoint = "streamGenerateContent?alt=sse"
@@ -90,8 +96,8 @@ func (m *GeminiChatModel) buildAPIURL(model string, stream bool) string {
 	return os.ExpandEnv(url)
 }
 
-func (m *GeminiChatModel) handleRegularResponse(w http.ResponseWriter, req *http.Request, answerID string) (*models.LLMAnswer, error) {
-	resp, err := m.client.client.Do(req)
+func handleRegularResponse(client http.Client, req *http.Request, answerID string) (*models.LLMAnswer, error) {
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, ErrInternalUnexpected.WithDetail("Failed to send Gemini API request").WithDebugInfo(err.Error())
 	}
@@ -108,14 +114,33 @@ func (m *GeminiChatModel) handleRegularResponse(w http.ResponseWriter, req *http
 	}
 
 	answer := geminiResp.Candidates[0].Content.Parts[0].Text
-	response := constructChatCompletionStreamReponse(answerID, answer)
-	data, _ := json.Marshal(response)
-	fmt.Fprint(w, string(data))
 
 	return &models.LLMAnswer{
 		Answer:   answer,
 		AnswerId: answerID,
 	}, nil
+}
+
+func GenerateChatTitle(ctx context.Context, model, chatText string) (string, error) {
+	// Create prompt to generate a concise title
+	prompt := `Generate a concise and descriptive title (max 10 words) for this chat conversation:                                                                                                   
+` + chatText + `                                                                                                                                                                                     
+																																																	 
+Title:`
+	url := buildAPIURL(model, false)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(prompt)))
+	if err != nil {
+		return "", ErrInternalUnexpected.WithDetail("Failed to create Gemini API request").WithDebugInfo(err.Error())
+	}
+	req.Header.Set("Content-Type", "application/json")
+	answer, err := handleRegularResponse(*NewGeminiClient().client, req, "")
+	if err != nil {
+		return "", err
+	}
+	// Clean up and truncate the title
+	title := strings.TrimSpace(answer.Answer)
+	title = strings.Trim(title, `"`)
+	return firstN(title, 100), nil
 }
 
 func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.Request, answerID string) (*models.LLMAnswer, error) {
