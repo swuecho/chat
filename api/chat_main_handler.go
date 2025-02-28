@@ -323,6 +323,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	}
 }
 
+
 // Helper function to convert SimpleChatMessage to Message
 func simpleChatMessagesToMessages(simpleChatMessages []SimpleChatMessage) []models.Message {
 	messages := make([]models.Message, len(simpleChatMessages))
@@ -611,9 +612,6 @@ type ClaudeResponse struct {
 	Exception  interface{} `json:"exception"`
 }
 
-
-
-
 type CustomModelResponse struct {
 	Completion string      `json:"completion"`
 	Stop       string      `json:"stop"`
@@ -864,7 +862,6 @@ type TestChatModel struct {
 func (m *TestChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	return m.h.chatStreamTest(w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
-
 
 // Completion ChatModel implementation
 type CompletionChatModel struct {
