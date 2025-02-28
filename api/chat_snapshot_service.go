@@ -68,7 +68,7 @@ func GenTitle(q *sqlc_queries.Queries, ctx context.Context, chatSession sqlc_que
 	// generate title using
 	model := "gemini-2.0-flash"
 	_, err := q.ChatModelByName(ctx, model)
-	if err != nil {
+	if err == nil {
 		genTitle, err := GenerateChatTitle(ctx, model, text)
 		if err != nil {
 			log.Println(err)
