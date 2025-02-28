@@ -40,7 +40,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	log.Printf("%+v", config.String())
 	// print all config details
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithDetail("Failed to generate OpenAI config").WithDebugInfo(err.Error())
+		return nil, ErrOpenAIConfigFailed.WithDetail("Failed to generate OpenAI config").WithDebugInfo(err.Error())
 	}
 
 	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
@@ -70,8 +70,7 @@ func doGenerate(w http.ResponseWriter, client *openai.Client, req openai.ChatCom
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		log.Printf("fail to do request: %+v", err)
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to create chat completion").WithDebugInfo(err.Error()))
-		return nil, err
+		return nil, ErrOpenAIRequestFailed.WithDetail("Failed to create chat completion").WithDebugInfo(err.Error())
 	}
 	log.Printf("completion: %+v", completion)
 	data, _ := json.Marshal(completion)
@@ -89,7 +88,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	if err != nil {
 		log.Printf("fail to do request: %+v", err)
-		return nil, ErrInternalUnexpected.WithDetail("Failed to create chat completion stream").WithDebugInfo(err.Error())
+		return nil, ErrOpenAIStreamFailed.WithDetail("Failed to create chat completion stream").WithDebugInfo(err.Error())
 	}
 	defer stream.Close()
 
@@ -137,7 +136,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 				return &llmAnswer, nil
 			} else {
 				log.Printf("%v", err)
-				return nil, ErrChatStreamFailed.WithDetail("Stream error occurred").WithDebugInfo(err.Error())
+				return nil, ErrOpenAIStreamFailed.WithDetail("Stream error occurred").WithDebugInfo(err.Error())
 			}
 		}
 		response := llm_openai.ChatCompletionStreamResponse{}

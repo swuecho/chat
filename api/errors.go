@@ -193,6 +193,28 @@ var (
 		Message:  "Invalid response from Claude API",
 	}
 
+	// OpenAI specific errors
+	ErrOpenAIStreamFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_005",
+		Message:  "Failed to stream OpenAI response",
+	}
+	ErrOpenAIRequestFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_006",
+		Message:  "Failed to make OpenAI request",
+	}
+	ErrOpenAIInvalidResponse = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_007",
+		Message:  "Invalid response from OpenAI API",
+	}
+	ErrOpenAIConfigFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_008",
+		Message:  "Failed to configure OpenAI client",
+	}
+
 	// Internal errors
 	ErrInternalUnexpected = APIError{
 		HTTPCode:  http.StatusInternalServerError,
