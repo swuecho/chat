@@ -104,11 +104,13 @@ func (s *ChatSnapshotService) CreateChatBot(ctx context.Context, chatSessionUuid
 	if err != nil {
 		return "", err
 	}
+
+	title := GenTitle(s.q, ctx, chatSession, text)
 	one, err := s.q.CreateChatBot(ctx, sqlc_queries.CreateChatBotParams{
 		Uuid:         snapshot_uuid,
 		Model:        chatSession.Model,
 		Typ:          "chatbot",
-		Title:        firstN(chatSession.Topic, 100),
+		Title:        title,
 		UserID:       userId,
 		Session:      chatSessionMessage,
 		Tags:         json.RawMessage([]byte("{}")),
