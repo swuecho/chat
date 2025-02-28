@@ -32,13 +32,11 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
-		return nil, err
+		return nil, ErrResourceNotFound("chat model: " + chatSession.Model)
 	}
 	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat files "+chatSession.Uuid))
-		return nil, err
+		return nil, ErrInternalUnexpected.WithDetail("Failed to get chat files").WithDebugInfo(err.Error())
 	}
 
 	// create a new strings.Builder
@@ -62,8 +60,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		messages = messagesToOpenAIMesages(claude_messages, chatFiles)
 	} else {
 		// only system message, return and do nothing
-		RespondWithAPIError(w, ErrSystemMessageError)
-		return nil, err
+		return nil, ErrSystemMessageError
 	}
 	// create the json data
 	jsonData := map[string]interface{}{
@@ -84,9 +81,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
-		log.Printf("%+v", err)
-		RespondWithAPIError(w, ErrChatStreamFailed.WithDebugInfo(err.Error()))
-		return nil, err
+		return nil, ErrInternalUnexpected.WithDetail("Failed to create request").WithDebugInfo(err.Error())
 	}
 
 	// add headers to the request
@@ -119,16 +114,13 @@ func doGenerateClaude3(w http.ResponseWriter, req *http.Request) (*models.LLMAns
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("%+v", err)
-		RespondWithAPIError(w, ErrChatStreamFailed.WithDebugInfo(err.Error()))
-		return nil, err
+		return nil, ErrInternalUnexpected.WithDetail("Failed to process request").WithDebugInfo(err.Error())
 	}
 
 	// Unmarshal directly from resp.Body
 	var message claude.Response
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to unmarshal response").WithDebugInfo(err.Error()))
-		return nil, err
+		return nil, ErrInternalUnexpected.WithDetail("Failed to unmarshal response").WithDebugInfo(err.Error())
 	}
 	defer resp.Body.Close()
 	uuid := message.ID
@@ -153,9 +145,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("%+v", err)
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to process request").WithDebugInfo(err.Error()))
-		return nil, err
+		return nil, ErrInternalUnexpected.WithDetail("Failed to process request").WithDebugInfo(err.Error())
 	}
 
 	ioreader := bufio.NewReader(resp.Body)
@@ -168,10 +158,11 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		apiErr := ErrInternalUnexpected
-		apiErr.Detail = "Streaming unsupported by the client"
-		RespondWithAPIError(w, apiErr)
-		return nil, err
+		return nil, APIError{
+			HTTPCode: http.StatusInternalServerError,
+			Code:     "STREAM_UNSUPPORTED",
+			Message:  "Streaming unsupported by client",
+		}
 	}
 
 	var answer string
@@ -215,8 +206,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 			log.Println(string(line))
-			RespondWithAPIError(w, ErrChatStreamFailed.WithDetail("Error in Claude API response").WithDebugInfo(string(line)))
-			return nil, err
+			return nil, ErrChatStreamFailed.WithDetail("Error in Claude API response").WithDebugInfo(string(line))
 		}
 		if answer_id == "" {
 			answer_id = NewUUID()
