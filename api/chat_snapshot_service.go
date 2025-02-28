@@ -63,7 +63,7 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 
 }
 
-func GenTitle(q sqlc_queries.Queries, ctx context.Context, chatSession sqlc_queries.ChatSession, text string) string {
+func GenTitle(q *sqlc_queries.Queries, ctx context.Context, chatSession sqlc_queries.ChatSession, text string) string {
 	title := firstN(chatSession.Topic, 100)
 	// generate title using
 	model := "gemini-2.0-flash"
