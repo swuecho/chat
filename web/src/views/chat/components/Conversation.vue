@@ -24,7 +24,6 @@ import MessageList from '@/views/chat/components/MessageList.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import { getDataFromResponseText } from '@/utils/string'
 import renderMessage from './RenderMessage.vue'
-import { de } from 'date-fns/locale'
 let controller = new AbortController()
 
 const dialog = useDialog()
