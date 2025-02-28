@@ -177,6 +177,43 @@ var (
 		Code:     ErrModel + "_001",
 		Message:  "Usage error, system message input, not user input",
 	}
+	ErrClaudeStreamFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_002",
+		Message:  "Failed to stream Claude response",
+	}
+	ErrClaudeRequestFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_003",
+		Message:  "Failed to make Claude request",
+	}
+	ErrClaudeInvalidResponse = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_004",
+		Message:  "Invalid response from Claude API",
+	}
+
+	// OpenAI specific errors
+	ErrOpenAIStreamFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_005",
+		Message:  "Failed to stream OpenAI response",
+	}
+	ErrOpenAIRequestFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_006",
+		Message:  "Failed to make OpenAI request",
+	}
+	ErrOpenAIInvalidResponse = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_007",
+		Message:  "Invalid response from OpenAI API",
+	}
+	ErrOpenAIConfigFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_008",
+		Message:  "Failed to configure OpenAI client",
+	}
 
 	// Internal errors
 	ErrInternalUnexpected = APIError{
@@ -351,6 +388,13 @@ var ErrorCatalog = map[string]APIError{
 
 	// model related errors
 	ErrModel + "_001": ErrSystemMessageError,
+	ErrModel + "_002": ErrClaudeStreamFailed,
+	ErrModel + "_003": ErrClaudeRequestFailed,
+	ErrModel + "_004": ErrClaudeInvalidResponse,
+	ErrModel + "_005": ErrOpenAIStreamFailed,
+	ErrModel + "_006": ErrOpenAIRequestFailed,
+	ErrModel + "_007": ErrOpenAIInvalidResponse,
+	ErrModel + "_008": ErrOpenAIConfigFailed,
 }
 
 // WrapError converts a standard error into an APIError
