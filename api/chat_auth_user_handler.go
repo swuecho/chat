@@ -118,7 +118,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	hash, err := auth.GeneratePasswordHash(params.Password)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate password hash").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate password hash").WithDebugInfo(err.Error()))
 		return
 	}
 	userParams := sqlc_queries.CreateAuthUserParams{
@@ -135,7 +135,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
 	tokenString, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate token").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate token").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -197,7 +197,7 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GenerateToken(userId, userRole, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate token").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error()))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -210,19 +210,19 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("jwt")
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("Missing token in cookie"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Missing token in cookie"))
 		return
 	}
 
 	tokenString := c.Value
 	if len(tokenString) == 0 {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("Empty token string"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Empty token string"))
 		return
 	}
 
 	cookie, err := h.service.Logout(tokenString)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to logout").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to logout").WithDebugInfo(err.Error()))
 		return
 	}
 	http.SetCookie(w, cookie)
@@ -263,7 +263,7 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 	// Hash temporary password
 	hashedPassword, err := auth.GeneratePasswordHash(tempPassword)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to hash password").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to hash password").WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -275,14 +275,14 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 			Password: hashedPassword,
 		})
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to update password").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to update password").WithDebugInfo(err.Error()))
 		return
 	}
 
 	// Send email to the user with temporary password and instructions
 	err = SendPasswordResetEmail(user.Email, tempPassword)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to send password reset email").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to send password reset email").WithDebugInfo(err.Error()))
 		return
 	}
 

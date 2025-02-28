@@ -202,7 +202,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	fmt.Printf("chatSession: %+v ", chatSession)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat session").WithDetail(chatSessionUuid))
+		RespondWithAPIError(w, ErrResourceNotFound("chat session").WithMessage(chatSessionUuid))
 		return
 	}
 
@@ -268,7 +268,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 	if LLMAnswer == nil {
 		log.Printf("Error generating answer: %v", "LLMAnswer is nil")
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("LLMAnswer is nil"))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("LLMAnswer is nil"))
 		return
 	}
 	if !isTest(msgs) {
@@ -322,7 +322,6 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 		return
 	}
 }
-
 
 // Helper function to convert SimpleChatMessage to Message
 func simpleChatMessagesToMessages(simpleChatMessages []SimpleChatMessage) []models.Message {
@@ -571,7 +570,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if err != nil {
-			RespondWithAPIError(w, ErrChatStreamFailed.WithDetail("Stream error occurred").WithDebugInfo(err.Error()))
+			RespondWithAPIError(w, ErrChatStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error()))
 			return nil, err
 		}
 		textIdx := response.Choices[0].Index
@@ -668,7 +667,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		fmt.Println("Error while creating request: ", err)
-		RespondWithAPIError(w, ErrChatRequestFailed.WithDetail("Failed to send Claude API request").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrChatRequestFailed.WithMessage("Failed to send Claude API request").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -862,7 +861,6 @@ type TestChatModel struct {
 func (m *TestChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	return m.h.chatStreamTest(w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
-
 
 // Completion ChatModel implementation
 type CompletionChatModel struct {

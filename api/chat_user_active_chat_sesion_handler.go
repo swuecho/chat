@@ -39,7 +39,7 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 	// Get and validate user ID
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 	session, err := h.service.GetUserActiveChatSession(r.Context(), userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrChatSessionNotFound.WithDetail(fmt.Sprintf("no active session for user %d", userID)))
+			RespondWithAPIError(w, ErrChatSessionNotFound.WithMessage(fmt.Sprintf("no active session for user %d", userID)))
 		} else {
 			RespondWithAPIError(w, WrapError(err, "failed to get active chat session"))
 		}
@@ -72,7 +72,7 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 	// Get and validate user ID
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 
 	// Validate session UUID format
 	if !uuidRegex.MatchString(sessionParams.ChatSessionUuid) {
-		RespondWithAPIError(w, ErrChatSessionInvalid.WithDetail(
+		RespondWithAPIError(w, ErrChatSessionInvalid.WithMessage(
 			fmt.Sprintf("invalid session UUID format: %s", sessionParams.ChatSessionUuid)))
 		return
 	}
