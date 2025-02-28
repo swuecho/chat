@@ -54,6 +54,7 @@ const loading = ref<boolean>(false)
 const showUploadModal = ref<boolean>(false)
 const showModal = ref<boolean>(false)
 const snapshotLoading = ref<boolean>(false)
+const botLoading = ref<boolean>(false)
 
 
 // 添加PromptStore
@@ -458,9 +459,17 @@ async function handleSnapshot() {
   }
 }
 async function handleCreateBot() {
-  const snapshot = await createChatBot(sessionUuid)
-  const snapshot_uuid = snapshot.uuid
-  window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
+  botLoading.value = true
+  try {
+    const snapshot = await createChatBot(sessionUuid)
+    const snapshot_uuid = snapshot.uuid
+    window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
+    nui_msg.success(t('chat.botSuccess'))
+  } catch (error) {
+    nui_msg.error(t('chat.botFailed'))
+  } finally {
+    botLoading.value = false
+  }
 }
 
 
@@ -589,12 +598,14 @@ const handleUsePrompt = (_: string, value: string): void => {
               <SvgIcon icon="icon-park-outline:clear" />
             </span>
           </HoverButton>
-          <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
-            @click="handleCreateBot">
-            <span class="text-xl text-[#4b9e5f] dark:text-white">
-              <SvgIcon icon="fluent:bot-add-24-regular" />
-            </span>
-          </HoverButton>
+          <NSpin :show="botLoading">
+            <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
+              @click="handleCreateBot">
+              <span class="text-xl text-[#4b9e5f] dark:text-white">
+                <SvgIcon icon="fluent:bot-add-24-regular" />
+              </span>
+            </HoverButton>
+          </NSpin>
 
           <NSpin :show="snapshotLoading">
             <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
