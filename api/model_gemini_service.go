@@ -186,6 +186,7 @@ func GenerateChatTitle(ctx context.Context, model, chatText string) (string, err
 
 	title := strings.TrimSpace(answer.Answer)
 	title = strings.Trim(title, `"`)
+	title = strings.Trim(title, `*`)
 	if title == "" {
 		return "", ErrInternalUnexpected.WithMessage("Invalid title generated")
 	}
