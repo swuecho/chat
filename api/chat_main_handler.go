@@ -863,6 +863,7 @@ func (m *TestChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.C
 	return m.h.chatStreamTest(w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
 
+
 // Completion ChatModel implementation
 type CompletionChatModel struct {
 	h *ChatHandler
