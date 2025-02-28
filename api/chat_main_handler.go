@@ -266,6 +266,11 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 		log.Printf("Error generating answer: %v", err)
 		return
 	}
+	if LLMAnswer == nil {
+		log.Printf("Error generating answer: %v", "LLMAnswer is nil")
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("LLMAnswer is nil"))
+		return
+	}
 	if !isTest(msgs) {
 		log.Printf("LLMAnswer: %+v", LLMAnswer)
 		h.service.logChat(chatSession, msgs, LLMAnswer.ReasoningContent+LLMAnswer.Answer)
@@ -300,7 +305,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 
 	LLMAnswer, err := model.Stream(w, session, messages, "", false, streamOutput)
 	if err != nil {
-		log.Printf("Error generating answer: %v", err)
+		RespondWithAPIError(w, WrapError(err, "Failed to generate answer"))
 		return
 	}
 
@@ -1190,7 +1195,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	if !ok {
 		RespondWithAPIError(w, APIError{
 			HTTPCode: http.StatusInternalServerError,
-			Code:     "STREAM_UNSUPPORTED", 
+			Code:     "STREAM_UNSUPPORTED",
 			Message:  "Streaming unsupported by client",
 		})
 		return nil, err
@@ -1273,7 +1278,7 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	if !ok {
 		RespondWithAPIError(w, APIError{
 			HTTPCode: http.StatusInternalServerError,
-			Code:     "STREAM_UNSUPPORTED", 
+			Code:     "STREAM_UNSUPPORTED",
 			Message:  "Streaming unsupported by client",
 		})
 		return nil, err
@@ -1423,7 +1428,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	if !ok {
 		RespondWithAPIError(w, APIError{
 			HTTPCode: http.StatusInternalServerError,
-			Code:     "STREAM_UNSUPPORTED", 
+			Code:     "STREAM_UNSUPPORTED",
 			Message:  "Streaming unsupported by client",
 		})
 		return nil, err

@@ -33,28 +33,24 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 
 	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
-		return nil, err
+		return nil, ErrResourceNotFound("chat model: " + chatSession.Model)
 	}
 
 	config, err := genOpenAIConfig(chatModel)
 	log.Printf("%+v", config.String())
 	// print all config details
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate OpenAI config").WithDebugInfo(err.Error()))
-		return nil, err
+		return nil, ErrInternalUnexpected.WithDetail("Failed to generate OpenAI config").WithDebugInfo(err.Error())
 	}
 
 	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to get chat files").WithDebugInfo(err.Error()))
-		return nil, err
+		return nil, ErrInternalUnexpected.WithDetail("Failed to get chat files").WithDebugInfo(err.Error())
 	}
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages, chatFiles, streamOutput)
 	if len(openai_req.Messages) <= 1 {
-		RespondWithAPIError(w, ErrSystemMessageError)
-		return nil, err
+		return nil, ErrSystemMessageError
 	}
 	log.Printf("%+v", openai_req)
 	client := openai.NewClientWithConfig(config)
@@ -93,8 +89,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	if err != nil {
 		log.Printf("fail to do request: %+v", err)
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to create chat completion stream").WithDebugInfo(err.Error()))
-		return nil, err
+		return nil, ErrInternalUnexpected.WithDetail("Failed to create chat completion stream").WithDebugInfo(err.Error())
 	}
 	defer stream.Close()
 
@@ -102,12 +97,11 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithAPIError(w, APIError{
+		return nil, APIError{
 			HTTPCode: http.StatusInternalServerError,
 			Code:     "STREAM_UNSUPPORTED",
 			Message:  "Streaming unsupported by client",
-		})
-		return nil, eris.New("Streaming unsupported!")
+		}
 	}
 
 	var answer string
@@ -143,8 +137,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 				return &llmAnswer, nil
 			} else {
 				log.Printf("%v", err)
-				RespondWithAPIError(w, ErrChatStreamFailed.WithDetail("Stream error occurred").WithDebugInfo(err.Error()))
-				return nil, err
+				return nil, ErrChatStreamFailed.WithDetail("Stream error occurred").WithDebugInfo(err.Error())
 			}
 		}
 		response := llm_openai.ChatCompletionStreamResponse{}
