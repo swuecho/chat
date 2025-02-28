@@ -36,13 +36,10 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 	}, "")
 	model := "gemini-2.0-flash"
 	// Generate title using LLM
-	log.Println("Generating title")
 	title, err := GenerateChatTitle(ctx, model, text)
 	if err != nil {
 		log.Println(err)
 	}
-	log.Println(title)
-	log.Println("After Generating title")
 	if err != nil || title == "" {
 		// Fallback to first 100 chars of topic if title generation fails
 		title = firstN(chatSession.Topic, 100)
