@@ -123,27 +123,52 @@ func handleRegularResponse(client http.Client, req *http.Request, answerID strin
 }
 
 func GenerateChatTitle(ctx context.Context, model, chatText string) (string, error) {
-	// Create prompt to generate a concise title
-	prompt := `Generate a concise and descriptive title (max 10 words) for this chat conversation:                                                                                                   
-` + chatText + `                                                                                                                                                                                     
-																																																	 
-Title:`
-	url := buildAPIURL(model, false)
+	// Create properly formatted Gemini messages
+	messages := []models.Message{
+		{
+			Role:    "user",
+			Content: fmt.Sprintf("Generate a concise and descriptive title (max 10 words) for this chat conversation:\n%s\n\nTitle:", chatText),
+		},
+	}
+
+	// Generate proper Gemini payload
+	payloadBytes, err := gemini.GenGemminPayload(messages, nil)
+	if err != nil {
+		return "", ErrInternalUnexpected.WithDetail("Failed to generate Gemini payload").WithDebugInfo(err.Error())
+	}
+
+	// Get API key from environment
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		return "", ErrInternalUnexpected.WithDetail("Missing GEMINI_API_KEY environment variable")
+	}
+
+	// Build URL with proper API key
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
 	log.Printf("Title generation request: %v", url)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(prompt)))
+	
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return "", ErrInternalUnexpected.WithDetail("Failed to create Gemini API request").WithDebugInfo(err.Error())
 	}
 	req.Header.Set("Content-Type", "application/json")
 	answer, err := handleRegularResponse(*NewGeminiClient().client, req, "")
-	log.Printf("Title generation response: %v", answer)
-	log.Printf("Title generation response: %v", err)
 	if err != nil {
 		return "", err
 	}
-	// Clean up and truncate the title
+
+	// Validate and clean up response
+	if answer == nil || answer.Answer == "" {
+		return "", ErrInternalUnexpected.WithDetail("Empty response from Gemini")
+	}
+
 	title := strings.TrimSpace(answer.Answer)
 	title = strings.Trim(title, `"`)
+	if title == "" {
+		return "", ErrInternalUnexpected.WithDetail("Invalid title generated")
+	}
+
+	// Truncate and return
 	return firstN(title, 100), nil
 }
 
