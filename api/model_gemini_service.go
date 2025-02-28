@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -112,7 +113,7 @@ func handleRegularResponse(client http.Client, req *http.Request, answerID strin
 	if err := json.Unmarshal(body, &geminiResp); err != nil {
 		return nil, ErrInternalUnexpected.WithDetail("Failed to parse Gemini response").WithDebugInfo(err.Error())
 	}
-
+	log.Printf("Gemini response: %+v", geminiResp)
 	answer := geminiResp.Candidates[0].Content.Parts[0].Text
 
 	return &models.LLMAnswer{
@@ -128,12 +129,15 @@ func GenerateChatTitle(ctx context.Context, model, chatText string) (string, err
 																																																	 
 Title:`
 	url := buildAPIURL(model, false)
+	log.Printf("Title generation request: %v", url)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(prompt)))
 	if err != nil {
 		return "", ErrInternalUnexpected.WithDetail("Failed to create Gemini API request").WithDebugInfo(err.Error())
 	}
 	req.Header.Set("Content-Type", "application/json")
 	answer, err := handleRegularResponse(*NewGeminiClient().client, req, "")
+	log.Printf("Title generation response: %v", answer)
+	log.Printf("Title generation response: %v", err)
 	if err != nil {
 		return "", err
 	}
