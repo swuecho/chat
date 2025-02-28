@@ -171,7 +171,7 @@
         "VALD_001": "無效請求",
         "rateLimit": "發送消息數量已經達到上限，請聯繫管理員",
         "syncChatSession": "同步失敗，請稍後再試",
-        "system_message_notice": "第一條是系統消息，請繼續輸入信息開始會話",
+        "MODEL_001": "第一條是系統消息，請繼續輸入信息開始會話",
         "token_length_exceed_limit": "總消息長度數量超過上限，請減少上下文數量、減少消息長度或者開啟新的會話"
     },
     "prompt": {

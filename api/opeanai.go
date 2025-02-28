@@ -53,8 +53,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 
 	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages, chatFiles, streamOutput)
 	if len(openai_req.Messages) <= 1 {
-		err := eris.New("system message notice")
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("error.system_message_notice").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrSystemMessageError)
 		return nil, err
 	}
 	log.Printf("%+v", openai_req)

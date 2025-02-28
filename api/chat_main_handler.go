@@ -806,7 +806,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		messages = messagesToOpenAIMesages(claude_messages, chatFiles)
 	} else {
 		// only system message, return and do nothing
-		RespondWithAPIError(w, ErrValidationInvalidInput("System message required but not provided"))
+		RespondWithAPIError(w, ErrSystemMessageError)
 		return nil, err
 	}
 	// create the json data

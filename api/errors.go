@@ -30,12 +30,13 @@ func (e APIError) Error() string {
 
 // Error code prefixes by domain
 const (
-	ErrAuth       = "AUTH" // Authentication/Authorization errors (100-199)
-	ErrValidation = "VALD" // Validation errors (200-299)
-	ErrResource   = "RES"  // Resource-related errors (300-399)
-	ErrDatabase   = "DB"   // Database errors (400-499)
-	ErrExternal   = "EXT"  // External service errors (500-599)
-	ErrInternal   = "INTN" // Internal application errors (600-699)
+	ErrAuth       = "AUTH"  // Authentication/Authorization errors (100-199)
+	ErrValidation = "VALD"  // Validation errors (200-299)
+	ErrResource   = "RES"   // Resource-related errors (300-399)
+	ErrDatabase   = "DB"    // Database errors (400-499)
+	ErrExternal   = "EXT"   // External service errors (500-599)
+	ErrInternal   = "INTN"  // Internal application errors (600-699)
+	ErrModel      = "MODEL" // Model related errors (700-799)
 )
 
 // Error code ranges:
@@ -169,6 +170,12 @@ var (
 		Code:      ErrDatabase + "_003",
 		Message:   "Referenced resource does not exist",
 		DebugInfo: "Foreign key violation",
+	}
+	// model related errors
+	ErrSystemMessageError = APIError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrModel + "_001",
+		Message:  "Usage error",
 	}
 
 	// Internal errors
@@ -341,6 +348,9 @@ var ErrorCatalog = map[string]APIError{
 	ErrResource + "_005":       ErrChatFileNotFound,
 	ErrResource + "_006":       ErrChatModelNotFound,
 	ErrResource + "_007":       ErrChatMessageNotFound,
+
+	// model related errors
+	ErrModel + "_001": ErrSystemMessageError,
 }
 
 // WrapError converts a standard error into an APIError

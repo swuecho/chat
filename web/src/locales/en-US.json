@@ -171,7 +171,7 @@
         "VALD_001": "Invalid Request",
         "rateLimit": "The message sending limit has been reached, please contact the administrator.",
         "syncChatSession": "Sync Failed, Please Try Again Later",
-        "system_message_notice": "the first message is a system message, please continue entering information to start the conversation",
+        "MODEL_001": "the first message is a system message, please continue entering information to start the conversation",
         "token_length_exceed_limit": "Total message length exceeds limit, please reduce context quantity, message length or start a new conversation."
     },
     "prompt": {
