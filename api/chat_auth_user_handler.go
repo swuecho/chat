@@ -421,7 +421,7 @@ func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusBadRequest, err.Error(), err)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
 

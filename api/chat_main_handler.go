@@ -356,18 +356,6 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		return
 	}
 
-	// // calc total tokens
-	// totalTokens := totalInputToken(msgs)
-
-	// if totalTokens > chatSession.MaxTokens*2/3 {
-	// 	RespondWithError(w, http.StatusRequestEntityTooLarge, "error.token_length_exceed_limit",
-	// 		map[string]interface{}{
-	// 			"max_tokens":   chatSession.MaxTokens,
-	// 			"total_tokens": totalTokens,
-	// 		})
-	// 	return
-	// }
-
 	// Determine whether the chat is a test or not
 	model := h.chooseChatModel(chatSession, msgs)
 
@@ -435,12 +423,6 @@ func isTest(msgs []models.Message) bool {
 }
 
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {
-	// userID, err := getUserID(r.Context())
-	// if err != nil {
-	// 	RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
-	// 	return true
-	// }
-	// get chatModel, check the per model rate limit is Enabled
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
 	log.Printf("%+v", chatModel)
 	if err != nil {
@@ -590,7 +572,7 @@ func (h *ChatHandler) CompletionStream(w http.ResponseWriter, chatSession sqlc_q
 			break
 		}
 		if err != nil {
-			RespondWithErrorMessage(w, http.StatusInternalServerError, fmt.Sprintf("Stream error: %v", err), nil)
+			RespondWithAPIError(w, ErrChatStreamFailed.WithDetail("Stream error occurred").WithDebugInfo(err.Error()))
 			return nil, err
 		}
 		textIdx := response.Choices[0].Index
@@ -824,7 +806,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		messages = messagesToOpenAIMesages(claude_messages, chatFiles)
 	} else {
 		// only system message, return and do nothing
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.system_message_notice", err)
+		RespondWithAPIError(w, ErrValidationInvalidInput("System message required but not provided"))
 		return nil, err
 	}
 	// create the json data
@@ -916,7 +898,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("%+v", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.INTN_004", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to process request").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -977,7 +959,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 			log.Println(string(line))
-			RespondWithErrorMessage(w, http.StatusInternalServerError, string(line), nil)
+			RespondWithAPIError(w, ErrChatStreamFailed.WithDetail("Error in Claude API response").WithDebugInfo(string(line)))
 			return nil, err
 		}
 		if answer_id == "" {
@@ -1032,7 +1014,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_make_request", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to make request").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -1056,7 +1038,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "error.INTN_004", err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to create chat completion stream").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -1070,7 +1052,11 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithAPIError(w, APIError{
+			HTTPCode: http.StatusInternalServerError,
+			Code:     "STREAM_UNSUPPORTED",
+			Message:  "Streaming unsupported by client",
+		})
 		return nil, err
 	}
 
@@ -1170,7 +1156,7 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		fmt.Println("Error while creating request: ", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "post to claude api").Error(), err)
+		RespondWithAPIError(w, ErrChatRequestFailed.WithDetail("Failed to send Claude API request").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -1202,7 +1188,11 @@ func (h *ChatHandler) customChatStream(w http.ResponseWriter, chatSession sqlc_q
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithAPIError(w, APIError{
+			HTTPCode: http.StatusInternalServerError,
+			Code:     "STREAM_UNSUPPORTED", 
+			Message:  "Streaming unsupported by client",
+		})
 		return nil, err
 	}
 
@@ -1281,7 +1271,11 @@ func (h *ChatHandler) chatStreamTest(w http.ResponseWriter, chatSession sqlc_que
 	flusher, ok := w.(http.Flusher)
 
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithAPIError(w, APIError{
+			HTTPCode: http.StatusInternalServerError,
+			Code:     "STREAM_UNSUPPORTED", 
+			Message:  "Streaming unsupported by client",
+		})
 		return nil, err
 	}
 	answer := "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."
@@ -1361,12 +1355,12 @@ func constructChatCompletionStreamReponse(answer_id string, answer string) opena
 func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	chatFiles, err := h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error getting chat files").Error(), err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to get chat files").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 	payloadBytes, err := gemini.GenGemminPayload(chat_compeletion_messages, chatFiles)
 	if err != nil {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "Error generating gemmi payload").Error(), err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to generate Gemini payload").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -1380,7 +1374,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		fmt.Println("Error while creating request: ", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "create request to gemini api").Error(), err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to create Gemini API request").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -1389,7 +1383,7 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error while sending request: ", err)
-		RespondWithErrorMessage(w, http.StatusInternalServerError, eris.Wrap(err, "post to gemini api").Error(), err)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to send Gemini API request").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -1403,14 +1397,14 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 		// Handle non-streaming response
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_read_response", err)
+			RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to read Gemini response").WithDebugInfo(err.Error()))
 			return nil, err
 		}
 		// body to GeminiResponse
 		var geminiResp gemini.ResponseBody
 		err = json.Unmarshal(body, &geminiResp)
 		if err != nil {
-			RespondWithErrorMessage(w, http.StatusInternalServerError, "error.fail_to_unmarshal_response", err)
+			RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to parse Gemini response").WithDebugInfo(err.Error()))
 			return nil, err
 		}
 		answer := geminiResp.Candidates[0].Content.Parts[0].Text
@@ -1427,7 +1421,11 @@ func (h *ChatHandler) chatStreamGemini(w http.ResponseWriter, chatSession sqlc_q
 	setSSEHeader(w)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		RespondWithErrorMessage(w, http.StatusInternalServerError, "Streaming unsupported!", nil)
+		RespondWithAPIError(w, APIError{
+			HTTPCode: http.StatusInternalServerError,
+			Code:     "STREAM_UNSUPPORTED", 
+			Message:  "Streaming unsupported by client",
+		})
 		return nil, err
 	}
 
