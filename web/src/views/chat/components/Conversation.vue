@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 // @ts-ignore
 import { v7 as uuidv7 } from 'uuid'
-import { NAutoComplete, NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
+import { NAutoComplete, NButton, NInput, NModal, NSpin, useDialog, useMessage } from 'naive-ui'
 import { storeToRefs } from 'pinia'
 import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
@@ -54,6 +54,7 @@ const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const showUploadModal = ref<boolean>(false)
 const showModal = ref<boolean>(false)
+const snapshotLoading = ref<boolean>(false)
 
 
 // 添加PromptStore
@@ -445,19 +446,17 @@ function handleExport() {
 }
 
 async function handleSnapshot() {
-  // Get title input from user
-  // Call API to create chat snapshot and get UUID
-  const snapshot = await createChatSnapshot(sessionUuid)
-  const snapshot_uuid = snapshot.uuid
-  // Open new tab with snapshot UUID
-  window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
-  nui_msg.success(t('chat.snapshotSuccess'))
-  // ask user to input the a title for the chat
-
-  // then call createChatSnapshot
-
-  // open new link in new tab with the chat snapshot uuid
-  // #/snapshot/<uuid>
+  snapshotLoading.value = true
+  try {
+    const snapshot = await createChatSnapshot(sessionUuid)
+    const snapshot_uuid = snapshot.uuid
+    window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
+    nui_msg.success(t('chat.snapshotSuccess'))
+  } catch (error) {
+    nui_msg.error(t('chat.snapshotFailed'))
+  } finally {
+    snapshotLoading.value = false
+  }
 }
 async function handleCreateBot() {
   const snapshot = await createChatBot(sessionUuid)
@@ -598,12 +597,14 @@ const handleUsePrompt = (_: string, value: string): void => {
             </span>
           </HoverButton>
 
-          <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
-            @click="handleSnapshot">
-            <span class="text-xl text-[#4b9e5f] dark:text-white">
-              <SvgIcon icon="ic:twotone-ios-share" />
-            </span>
-          </HoverButton>
+          <NSpin :show="snapshotLoading">
+            <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
+              @click="handleSnapshot">
+              <span class="text-xl text-[#4b9e5f] dark:text-white">
+                <SvgIcon icon="ic:twotone-ios-share" />
+              </span>
+            </HoverButton>
+          </NSpin>
           <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
             <span class="text-xl text-[#4b9e5f]">
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
