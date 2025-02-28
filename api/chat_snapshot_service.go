@@ -38,12 +38,11 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 	// Generate title using LLM
 	title, err := GenerateChatTitle(ctx, model, text)
 	if err != nil {
+		log.Println(err)
+	}
+	if err != nil || title == "" {
 		// Fallback to first 100 chars of topic if title generation fails
 		title = firstN(chatSession.Topic, 100)
-	}
-	// save all simple_msgs to a jsonb field in chat_snapshot
-	if err != nil {
-		return "", err
 	}
 	// simple_msgs to RawMessage
 	simple_msgs_raw, err := json.Marshal(simple_msgs)

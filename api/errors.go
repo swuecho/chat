@@ -24,8 +24,35 @@ type APIError struct {
 	DebugInfo string `json:"-"`                // Internal debugging info (not exposed in responses)
 }
 
+// NewAPIError creates a new APIError with the given parameters
+func NewAPIError(httpCode int, code, message string) APIError {
+	return APIError{
+		HTTPCode: httpCode,
+		Code:     code,
+		Message:  message,
+	}
+}
+
+// withMessage adds a message to an APIError
+func (e APIError) WithMessage(message string) APIError {
+	e.Message = message
+	return e
+}
+
+// WithMessage adds detail to an APIError
+func (e APIError) WithDetail(detail string) APIError {
+	e.Detail = detail
+	return e
+}
+
+// WithDebugInfo adds debug info to an APIError
+func (e APIError) WithDebugInfo(debugInfo string) APIError {
+	e.DebugInfo = debugInfo
+	return e
+}
+
 func (e APIError) Error() string {
-	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
+	return fmt.Sprintf("[%s] %s %s", e.Code, e.Message, e.Detail)
 }
 
 // Error code prefixes by domain
@@ -272,27 +299,6 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("Failed to write error response: %v", err)
 	}
-}
-
-// NewAPIError creates a new APIError with the given parameters
-func NewAPIError(httpCode int, code, message string) APIError {
-	return APIError{
-		HTTPCode: httpCode,
-		Code:     code,
-		Message:  message,
-	}
-}
-
-// WithDetail adds detail to an APIError
-func (e APIError) WithDetail(detail string) APIError {
-	e.Detail = detail
-	return e
-}
-
-// WithDebugInfo adds debug info to an APIError
-func (e APIError) WithDebugInfo(debugInfo string) APIError {
-	e.DebugInfo = debugInfo
-	return e
 }
 
 func MapDatabaseError(err error) error {

@@ -102,7 +102,7 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 		return
 	}
 	if input.RateLimit <= 0 {
-		RespondWithAPIError(w, ErrValidationInvalidInput("rate limit must be positive").WithDetail(
+		RespondWithAPIError(w, ErrValidationInvalidInput("rate limit must be positive").WithMessage(
 			fmt.Sprintf("invalid rate limit: %d", input.RateLimit)))
 		return
 	}
@@ -113,7 +113,7 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrResourceNotFound("user").WithDetail(
+			RespondWithAPIError(w, ErrResourceNotFound("user").WithMessage(
 				fmt.Sprintf("user with email %s not found", input.UserEmail)))
 		} else {
 			RespondWithAPIError(w, WrapError(err, "failed to get user by email"))
@@ -124,7 +124,7 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 	chatModel, err := h.db.ChatModelByName(r.Context(), input.ChatModelName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrChatModelNotFound.WithDetail(fmt.Sprintf("chat model %s not found", input.ChatModelName)))
+			RespondWithAPIError(w, ErrChatModelNotFound.WithMessage(fmt.Sprintf("chat model %s not found", input.ChatModelName)))
 		} else {
 			RespondWithAPIError(w, WrapError(err, "failed to get chat model"))
 		}
@@ -169,7 +169,7 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
@@ -236,7 +236,7 @@ func (h *UserChatModelPrivilegeHandler) DeleteUserChatModelPrivilege(w http.Resp
 func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByUserAndModelID(w http.ResponseWriter, r *http.Request) {
 	_, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
@@ -268,7 +268,7 @@ func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByUserAndModelID(w
 func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivilegesByUserID(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 

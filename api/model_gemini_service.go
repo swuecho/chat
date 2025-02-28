@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -62,18 +61,18 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 
 	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithDetail("Failed to get chat files").WithDebugInfo(err.Error())
+		return nil, ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())
 	}
 
 	payloadBytes, err := gemini.GenGemminPayload(messages, chatFiles)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithDetail("Failed to generate Gemini payload").WithDebugInfo(err.Error())
+		return nil, ErrInternalUnexpected.WithMessage("Failed to generate Gemini payload").WithDebugInfo(err.Error())
 	}
 
 	url := buildAPIURL(chatSession.Model, stream)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithDetail("Failed to create Gemini API request").WithDebugInfo(err.Error())
+		return nil, ErrInternalUnexpected.WithMessage("Failed to create Gemini API request").WithDebugInfo(err.Error())
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -81,7 +80,10 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		return m.handleStreamResponse(w, req, answerID)
 	}
 
-	llmAnswer, err := handleRegularResponse(*m.client.client, req, answerID)
+	llmAnswer, err := handleRegularResponse(*m.client.client, req)
+	if llmAnswer != nil {
+		llmAnswer.AnswerId = answerID
+	}
 	response := constructChatCompletionStreamReponse(answerID, llmAnswer.Answer)
 	data, _ := json.Marshal(response)
 	fmt.Fprint(w, string(data))
@@ -90,82 +92,102 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 
 func buildAPIURL(model string, stream bool) string {
 	endpoint := "generateContent"
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:%s?key=$GEMINI_API_KEY", model, endpoint)
 	if stream {
 		endpoint = "streamGenerateContent?alt=sse"
+		url = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:%s&key=$GEMINI_API_KEY", model, endpoint)
 	}
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:%s&key=$GEMINI_API_KEY", model, endpoint)
 	return os.ExpandEnv(url)
 }
 
-func handleRegularResponse(client http.Client, req *http.Request, answerID string) (*models.LLMAnswer, error) {
+func handleRegularResponse(client http.Client, req *http.Request) (*models.LLMAnswer, error) {
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithDetail("Failed to send Gemini API request").WithDebugInfo(err.Error())
+		return nil, ErrInternalUnexpected.WithMessage("Failed to send Gemini API request").WithDebugInfo(err.Error())
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, ErrInternalUnexpected.WithMessage(fmt.Sprintf("Gemini API error: %d", resp.StatusCode)).WithDebugInfo(string(body))
+	}
+
+	if resp == nil {
+		return nil, ErrInternalUnexpected.WithMessage("Empty response from Gemini")
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithDetail("Failed to read Gemini response").WithDebugInfo(err.Error())
+		return nil, ErrInternalUnexpected.WithMessage("Failed to read Gemini response").WithDebugInfo(err.Error())
 	}
 
 	var geminiResp gemini.ResponseBody
 	if err := json.Unmarshal(body, &geminiResp); err != nil {
-		return nil, ErrInternalUnexpected.WithDetail("Failed to parse Gemini response").WithDebugInfo(err.Error())
+		return nil, ErrInternalUnexpected.WithMessage("Failed to parse Gemini response").WithDebugInfo(err.Error())
 	}
-	log.Printf("Gemini response: %+v", geminiResp)
 	answer := geminiResp.Candidates[0].Content.Parts[0].Text
+	if answer == "" {
+		return nil, ErrInternalUnexpected.WithMessage("Empty response from Gemini")
+	}
 
 	return &models.LLMAnswer{
 		Answer:   answer,
-		AnswerId: answerID,
+		AnswerId: "",
 	}, nil
 }
 
 func GenerateChatTitle(ctx context.Context, model, chatText string) (string, error) {
+	// Validate API key
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		return "", ErrInternalUnexpected.WithMessage("GEMINI_API_KEY environment variable not set")
+	}
+
+	// Validate input
+	if strings.TrimSpace(chatText) == "" {
+		return "", ErrValidationInvalidInput("chat text cannot be empty")
+	}
+
 	// Create properly formatted Gemini messages
 	messages := []models.Message{
 		{
 			Role:    "user",
-			Content: fmt.Sprintf("Generate a concise and descriptive title (max 10 words) for this chat conversation:\n%s\n\nTitle:", chatText),
+			Content: "Generate a concise and descriptive title (max 10 words) for this chat conversation, no special characters.",
+		},
+		{
+			Role:    "user",
+			Content: chatText,
 		},
 	}
 
 	// Generate proper Gemini payload
 	payloadBytes, err := gemini.GenGemminPayload(messages, nil)
 	if err != nil {
-		return "", ErrInternalUnexpected.WithDetail("Failed to generate Gemini payload").WithDebugInfo(err.Error())
-	}
-
-	// Get API key from environment
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		return "", ErrInternalUnexpected.WithDetail("Missing GEMINI_API_KEY environment variable")
+		return "", ErrInternalUnexpected.WithMessage("Failed to generate Gemini payload").WithDebugInfo(err.Error())
 	}
 
 	// Build URL with proper API key
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
-	log.Printf("Title generation request: %v", url)
-	
+	url := buildAPIURL(model, false)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		return "", ErrInternalUnexpected.WithDetail("Failed to create Gemini API request").WithDebugInfo(err.Error())
+		return "", ErrInternalUnexpected.WithMessage("Failed to create Gemini API request").WithDebugInfo(err.Error())
 	}
 	req.Header.Set("Content-Type", "application/json")
-	answer, err := handleRegularResponse(*NewGeminiClient().client, req, "")
+	answer, err := handleRegularResponse(http.Client{Timeout: 1 * time.Minute}, req)
 	if err != nil {
 		return "", err
 	}
 
 	// Validate and clean up response
 	if answer == nil || answer.Answer == "" {
-		return "", ErrInternalUnexpected.WithDetail("Empty response from Gemini")
+		return "", ErrInternalUnexpected.WithMessage("Empty response from Gemini")
 	}
 
 	title := strings.TrimSpace(answer.Answer)
 	title = strings.Trim(title, `"`)
 	if title == "" {
-		return "", ErrInternalUnexpected.WithDetail("Invalid title generated")
+		return "", ErrInternalUnexpected.WithMessage("Invalid title generated")
 	}
 
 	// Truncate and return
@@ -175,7 +197,7 @@ func GenerateChatTitle(ctx context.Context, model, chatText string) (string, err
 func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.Request, answerID string) (*models.LLMAnswer, error) {
 	resp, err := m.client.client.Do(req)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithDetail("Failed to send Gemini API request").WithDebugInfo(err.Error())
+		return nil, ErrInternalUnexpected.WithMessage("Failed to send Gemini API request").WithDebugInfo(err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -202,7 +224,7 @@ func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.
 					AnswerId: answerID,
 				}, nil
 			}
-			return nil, ErrInternalUnexpected.WithDetail("Error reading stream").WithDebugInfo(err.Error())
+			return nil, ErrInternalUnexpected.WithMessage("Error reading stream").WithDebugInfo(err.Error())
 		}
 
 		if !bytes.HasPrefix(line, headerData) {

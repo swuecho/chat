@@ -75,7 +75,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	// Get user ID
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	// Validate file type and extension
 	mimeType := header.Header.Get("Content-Type")
 	if !isValidFileType(mimeType, header.Filename) {
-		RespondWithAPIError(w, ErrChatFileInvalidType.WithDetail(
+		RespondWithAPIError(w, ErrChatFileInvalidType.WithMessage(
 			fmt.Sprintf("unsupported file type: %s or invalid extension for type", mimeType)))
 		return
 	}
@@ -157,7 +157,7 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	file, err := h.service.q.GetChatFileByID(r.Context(), int32(fileIdInt))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrChatFileNotFound.WithDetail(fmt.Sprintf("file ID %d not found", fileIdInt)))
+			RespondWithAPIError(w, ErrChatFileNotFound.WithMessage(fmt.Sprintf("file ID %d not found", fileIdInt)))
 		} else {
 			RespondWithAPIError(w, WrapError(err, "failed to get chat file"))
 		}
@@ -188,7 +188,7 @@ func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.
 	sessionUUID := mux.Vars(r)["uuid"]
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDetail("missing or invalid user ID"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 	chatFiles, err := h.service.q.ListChatFilesBySessionUUID(r.Context(), sqlc_queries.ListChatFilesBySessionUUIDParams{

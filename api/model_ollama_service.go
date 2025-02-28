@@ -43,7 +43,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to make request").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to make request").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -67,7 +67,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to create chat completion stream").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 

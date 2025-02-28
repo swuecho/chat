@@ -36,7 +36,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	}
 	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithDetail("Failed to get chat files").WithDebugInfo(err.Error())
+		return nil, ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())
 	}
 
 	// create a new strings.Builder
@@ -81,7 +81,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
-		return nil, ErrClaudeRequestFailed.WithDetail("Failed to create Claude request").WithDebugInfo(err.Error())
+		return nil, ErrClaudeRequestFailed.WithMessage("Failed to create Claude request").WithDebugInfo(err.Error())
 	}
 
 	// add headers to the request
@@ -114,13 +114,13 @@ func doGenerateClaude3(w http.ResponseWriter, req *http.Request) (*models.LLMAns
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, ErrClaudeRequestFailed.WithDetail("Failed to process Claude request").WithDebugInfo(err.Error())
+		return nil, ErrClaudeRequestFailed.WithMessage("Failed to process Claude request").WithDebugInfo(err.Error())
 	}
 
 	// Unmarshal directly from resp.Body
 	var message claude.Response
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
-		return nil, ErrClaudeInvalidResponse.WithDetail("Failed to unmarshal Claude response").WithDebugInfo(err.Error())
+		return nil, ErrClaudeInvalidResponse.WithMessage("Failed to unmarshal Claude response").WithDebugInfo(err.Error())
 	}
 	defer resp.Body.Close()
 	uuid := message.ID
@@ -145,7 +145,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, ErrClaudeRequestFailed.WithDetail("Failed to process Claude streaming request").WithDebugInfo(err.Error())
+		return nil, ErrClaudeRequestFailed.WithMessage("Failed to process Claude streaming request").WithDebugInfo(err.Error())
 	}
 
 	ioreader := bufio.NewReader(resp.Body)
@@ -206,7 +206,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 			log.Println(string(line))
-			return nil, ErrClaudeStreamFailed.WithDetail("Error in Claude API response").WithDebugInfo(string(line))
+			return nil, ErrClaudeStreamFailed.WithMessage("Error in Claude API response").WithDebugInfo(string(line))
 		}
 		if answer_id == "" {
 			answer_id = NewUUID()
