@@ -177,6 +177,21 @@ var (
 		Code:     ErrModel + "_001",
 		Message:  "Usage error, system message input, not user input",
 	}
+	ErrClaudeStreamFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_002",
+		Message:  "Failed to stream Claude response",
+	}
+	ErrClaudeRequestFailed = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_003",
+		Message:  "Failed to make Claude request",
+	}
+	ErrClaudeInvalidResponse = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_004",
+		Message:  "Invalid response from Claude API",
+	}
 
 	// Internal errors
 	ErrInternalUnexpected = APIError{
