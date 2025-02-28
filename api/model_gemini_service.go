@@ -105,6 +105,13 @@ func handleRegularResponse(client http.Client, req *http.Request) (*models.LLMAn
 	if err != nil {
 		return nil, ErrInternalUnexpected.WithMessage("Failed to send Gemini API request").WithDebugInfo(err.Error())
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, ErrInternalUnexpected.WithMessage(fmt.Sprintf("Gemini API error: %d", resp.StatusCode)).WithDebugInfo(string(body))
+	}
+
 	if resp == nil {
 		return nil, ErrInternalUnexpected.WithMessage("Empty response from Gemini")
 	}
