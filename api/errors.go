@@ -388,6 +388,13 @@ var ErrorCatalog = map[string]APIError{
 
 	// model related errors
 	ErrModel + "_001": ErrSystemMessageError,
+	ErrModel + "_002": ErrClaudeStreamFailed,
+	ErrModel + "_003": ErrClaudeRequestFailed,
+	ErrModel + "_004": ErrClaudeInvalidResponse,
+	ErrModel + "_005": ErrOpenAIStreamFailed,
+	ErrModel + "_006": ErrOpenAIRequestFailed,
+	ErrModel + "_007": ErrOpenAIInvalidResponse,
+	ErrModel + "_008": ErrOpenAIConfigFailed,
 }
 
 // WrapError converts a standard error into an APIError
