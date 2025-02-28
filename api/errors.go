@@ -175,7 +175,7 @@ var (
 	ErrSystemMessageError = APIError{
 		HTTPCode: http.StatusBadRequest,
 		Code:     ErrModel + "_001",
-		Message:  "Usage error",
+		Message:  "Usage error, system message input, not user input",
 	}
 
 	// Internal errors

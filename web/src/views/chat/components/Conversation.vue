@@ -24,6 +24,7 @@ import MessageList from '@/views/chat/components/MessageList.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import { getDataFromResponseText } from '@/utils/string'
 import renderMessage from './RenderMessage.vue'
+import { de } from 'date-fns/locale'
 let controller = new AbortController()
 
 const dialog = useDialog()
@@ -169,7 +170,7 @@ async function onConversationStream() {
           if (status >= 400) {
             const error_json: { code: number; message: string; details: any } = JSON.parse(responseText)
             console.log(responseText)
-            nui_msg.error(`${error_json.code} : ${t(error_json.message)}`, {
+            nui_msg.error(formatErr(error_json), {
               duration: 5000,
               closable: true,
               render: renderMessage
@@ -319,7 +320,7 @@ async function onRegenerate(index: number) {
 
             if (status >= 400) {
               const error_json: { code: number; message: string; details: any } = JSON.parse(responseText)
-              nui_msg.error(`${error_json.code} : ${t(error_json.message)}`, {
+              nui_msg.error(formatErr(error_json), {
                 duration: 5000,
                 closable: true,
                 render: renderMessage
@@ -400,6 +401,11 @@ async function onRegenerate(index: number) {
   finally {
     loading.value = false
   }
+}
+
+function formatErr(error_json: { code: number; message: string; details: any }) {
+  const message = t(`error.${error_json.code}`) ?? error_json.message
+  return `${error_json.code} : ${message}`
 }
 
 function handleExport() {

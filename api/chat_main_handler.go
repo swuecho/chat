@@ -264,6 +264,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	LLMAnswer, err := model.Stream(w, chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
 		log.Printf("Error generating answer: %v", err)
+		RespondWithAPIError(w, WrapError(err, "Failed to generate answer"))
 		return
 	}
 	if LLMAnswer == nil {
