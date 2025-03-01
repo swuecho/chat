@@ -127,10 +127,6 @@ async function addRow() {
       />
     </NFormItem>
 
-    <NFormItem v-if="jsonInput" label="JSON Preview">
-      <pre class="p-2 bg-gray-100 rounded">{{ JSON.stringify(JSON.parse(jsonInput), null, 2) }}</pre>
-    </NFormItem>
-    
     <div class="flex gap-2 mt-4">
       <NButton 
         type="info" 
