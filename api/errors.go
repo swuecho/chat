@@ -219,6 +219,11 @@ var (
 		Code:     ErrModel + "_004",
 		Message:  "Invalid response from Claude API",
 	}
+	ErrClaudeResponseFaild = APIError{
+		HTTPCode: http.StatusInternalServerError,
+		Code:     ErrModel + "_005",
+		Message:  "Failed to stream Claude response",
+	}
 
 	// OpenAI specific errors
 	ErrOpenAIStreamFailed = APIError{
@@ -397,6 +402,7 @@ var ErrorCatalog = map[string]APIError{
 	ErrModel + "_002": ErrClaudeStreamFailed,
 	ErrModel + "_003": ErrClaudeRequestFailed,
 	ErrModel + "_004": ErrClaudeInvalidResponse,
+	ErrModel + "_005": ErrClaudeResponseFaild,
 	ErrModel + "_005": ErrOpenAIStreamFailed,
 	ErrModel + "_006": ErrOpenAIRequestFailed,
 	ErrModel + "_007": ErrOpenAIInvalidResponse,
