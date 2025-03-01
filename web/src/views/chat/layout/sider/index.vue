@@ -111,7 +111,7 @@ function openAllSnapshot() {
                   @click="openAllSnapshot"
                 >
                   <template #icon>
-                    <SvgIcon icon="ri:file-copy-line" />
+                    <SvgIcon icon="ri:file-list-line" />
                   </template>
                 </NButton>
               </template>
@@ -125,7 +125,7 @@ function openAllSnapshot() {
                   @click="openBotAll"
                 >
                   <template #icon>
-                    <SvgIcon icon="ri:user-robot-line" />
+                    <SvgIcon icon="majesticons:robot-line" />
                   </template>
                 </NButton>
               </template>
@@ -139,7 +139,7 @@ function openAllSnapshot() {
                   @click="show = true"
                 >
                   <template #icon>
-                    <SvgIcon icon="ri:file-list-line" />
+                    <SvgIcon icon="ri:lightbulb-line" />
                   </template>
                 </NButton>
               </template>
