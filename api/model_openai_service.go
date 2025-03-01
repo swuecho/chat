@@ -57,12 +57,12 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	if streamOutput {
 		return doChatStream(w, client, openai_req, chatSession.N, chatUuid, regenerate)
 	} else {
-		return doGenerate(w, client, openai_req)
+		return handleRegularResponse(w, client, openai_req)
 	}
 
 }
 
-func doGenerate(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest) (*models.LLMAnswer, error) {
+func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest) (*models.LLMAnswer, error) {
 	// check per chat_model limit
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
