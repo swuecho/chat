@@ -29,6 +29,12 @@ defineProps({
           fill="currentColor" />
       </svg>
     </template>
+    <template v-else-if="model?.includes('gemini')">
+      <SvgIcon icon="simple-icons:googlebard" color="blue" />
+    </template>
+    <template v-else-if="model?.includes('deepseek')">
+      <SvgIcon icon="material-symbols:rocket-launch-rounded" color="purple" />
+    </template>
     <template v-else>
       <SvgIcon icon="ri:question-answer-line" width="0.8em" />
     </template>
