@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, useMessage } from 'naive-ui'
-import { HoverButton, SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { updateChatModel, deleteChatModel } from '@/api'
@@ -97,6 +96,7 @@ async function copyJson() {
         <NSwitch 
           :value="model.isEnable" 
           @update:value="handleEnableToggle"
+          @click.stop   
         />
       </div>
     </NCard>
