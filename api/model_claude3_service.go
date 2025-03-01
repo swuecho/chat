@@ -96,7 +96,18 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 
 	if !stream {
 		req.Header.Set("Accept", "application/json")
-		return doGenerateClaude3(w, req)
+		// create the http client and send the request
+		client := http.Client{
+			Timeout: 5 * time.Minute,
+		}
+		llmAnswer, err := doGenerateClaude3(client, req)
+		if err != nil {
+			return nil, err
+		}
+		answerResponse := constructChatCompletionStreamReponse(llmAnswer.AnswerId, llmAnswer.Answer)
+		data, _ := json.Marshal(answerResponse)
+		fmt.Fprint(w, string(data))
+		return llmAnswer, err
 	} else {
 		// set the streaming flag
 		req.Header.Set("Accept", "text/event-stream")
@@ -106,17 +117,11 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	}
 }
 
-func doGenerateClaude3(w http.ResponseWriter, req *http.Request) (*models.LLMAnswer, error) {
-
-	// create the http client and send the request
-	client := &http.Client{
-		Timeout: 5 * time.Minute,
-	}
+func doGenerateClaude3(client http.Client, req *http.Request) (*models.LLMAnswer, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, ErrClaudeRequestFailed.WithMessage("Failed to process Claude request").WithDebugInfo(err.Error())
 	}
-
 	// Unmarshal directly from resp.Body
 	var message claude.Response
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
@@ -125,9 +130,7 @@ func doGenerateClaude3(w http.ResponseWriter, req *http.Request) (*models.LLMAns
 	defer resp.Body.Close()
 	uuid := message.ID
 	firstMessage := message.Content[0].Text
-	answer := constructChatCompletionStreamReponse(uuid, firstMessage)
-	data, _ := json.Marshal(answer)
-	fmt.Fprint(w, string(data))
+
 	return &models.LLMAnswer{
 		AnswerId: uuid,
 		Answer:   firstMessage,
