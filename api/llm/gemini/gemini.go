@@ -4,7 +4,9 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
@@ -197,4 +199,41 @@ type ErrorResponse struct {
 		Message string `json:"message"`
 		Status  string `json:"status"`
 	} `json:"error"`
+}
+
+func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAnswer, error) {
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, ErrInternalUnexpected.WithMessage("Failed to send Gemini API request").WithDebugInfo(err.Error())
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, ErrInternalUnexpected.WithMessage(fmt.Sprintf("Gemini API error: %d", resp.StatusCode)).WithDebugInfo(string(body))
+	}
+
+	if resp == nil {
+		return nil, ErrInternalUnexpected.WithMessage("Empty response from Gemini")
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, ErrInternalUnexpected.WithMessage("Failed to read Gemini response").WithDebugInfo(err.Error())
+	}
+
+	var geminiResp ResponseBody
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return nil, ErrInternalUnexpected.WithMessage("Failed to parse Gemini response").WithDebugInfo(err.Error())
+	}
+	answer := geminiResp.Candidates[0].Content.Parts[0].Text
+	if answer == "" {
+		return nil, ErrInternalUnexpected.WithMessage("Empty response from Gemini")
+	}
+
+	return &models.LLMAnswer{
+		Answer:   answer,
+		AnswerId: "",
+	}, nil
 }
