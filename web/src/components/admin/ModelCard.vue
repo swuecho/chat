@@ -92,6 +92,7 @@ async function copyJson() {
         <div>
           <h3 class="font-bold">{{ model.name }}</h3>
           <p class="text-gray-500">{{ model.label }}</p>
+          <p class="text-sm text-gray-400">Order: {{ model.orderNumber }}</p>
         </div>
         <NSwitch 
           :value="model.isEnable" 
