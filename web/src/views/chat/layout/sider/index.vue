@@ -2,7 +2,7 @@
 import type { CSSProperties } from 'vue'
 import { computed, watch, ref } from 'vue'
 
-import { NButton, NLayoutSider, NTooltip } from 'naive-ui'
+import { NButton, NLayoutSider, NTooltip, NButtonGroup } from 'naive-ui'
 import List from './List.vue'
 import Footer from './Footer.vue'
 import { useAppStore, useChatStore } from '@/store'
