@@ -36,7 +36,12 @@ ollama pull mistral
 
 On Linux, the default systemd configuration restricts local access. You need to modify the HOST to allow remote access. If Ollama and Chat are on the same host, this is not an issue.
 
+![image](https://github.com/swuecho/chat/assets/666683/3695c088-4dcd-4ff4-9a75-6b9d44186a4b)
+
+
 2. Configure the model in the Chat Admin page
+
+![image](https://github.com/swuecho/chat/assets/666683/bc1d111f-7bd4-458d-bfed-0a0a5611809f)
 
 The key fields to configure are:
 ```
