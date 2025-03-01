@@ -152,6 +152,7 @@
     "rate_limit": "会话数量(10min)",
     "chat_model_name": "模型ID",
     "chat_model": {
+      "copy": "复制",
       "copy_success": "复制成功",
       "deleteModel": "删除",
       "deleteModelConfirm": "确认删除",
