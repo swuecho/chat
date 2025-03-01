@@ -36,12 +36,11 @@ Key characteristics:
 
 | Feature              | Snapshot                     | ChatBot                     |
 |----------------------|------------------------------|-----------------------------|
-| Interactivity        | Read-only                    | Interactive                 |
 | Purpose              | Record keeping               | AI assistant                |
 | Data                 | Static conversation history  | Dynamic conversation        |
 | Export Options       | Markdown, PNG                | API access                  |
 | Route                | /snapshot/{uuid}             | /bot/{uuid}                 |
-| Use Case             | Documentation, Sharing       | Custom AI, Continued Chat   |
+| Use Case             | Documentation, Sharing       | Custom AI, Use by API       |
 
 ## Creating from Chat History
 
