@@ -111,7 +111,7 @@ async function copyJson() {
       <div class="flex justify-between items-center">
         <div>
           <div class="flex items-center gap-2">
-            <NBadge :value="model.orderNumber.toString()" show-zero type="success">
+            <NBadge :value="model.orderNumber?.toString() || '0'" show-zero type="success">
               <h3 class="font-bold">{{ model.name }}</h3>
             </NBadge>
           </div>
