@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import { SvgIcon } from '@/components/common'
+import ClaudeIcon from '@/assets/claude-color.svg'
+import GeminiIcon from '@/assets/gemini-color.svg'
+import DeepseekIcon from '@/assets/deepseek-color.svg'
 
-// polished version of question:
-// Create a Vue 3 <script setup lang="ts"> single file component with a model prop
 defineProps({
   model: String,
 })
 </script>
 
 <template>
-  <div>
+  <div class="model-avatar">
+    <style scoped>
+    .model-icon {
+      width: 0.8em;
+      height: 0.8em;
+    }
+    </style>
     <template v-if="model?.startsWith('claude')">
+      <ClaudeIcon class="model-icon" />
     </template>
     <template v-else-if="model === 'claude-instant-1'">
       <SvgIcon icon="simple-icons:fastapi" color="brown" />
@@ -29,8 +37,10 @@ defineProps({
       </svg>
     </template>
     <template v-else-if="model?.includes('gemini')">
+      <GeminiIcon class="model-icon" />
     </template>
     <template v-else-if="model?.includes('deepseek')">
+      <DeepseekIcon class="model-icon" />
     </template>
     <template v-else>
       <SvgIcon icon="ri:question-answer-line" width="0.8em" />
