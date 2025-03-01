@@ -103,7 +103,6 @@ OPENAI_RATELIMIT=0
 <img width="750" alt="image" src="https://user-images.githubusercontent.com/666683/232227529-284289a8-1336-49dd-b5c6-8e8226b9e862.png">
 
 
-
 ## 致谢
 
 - web: [ChatGPT-Web](https://github.com/Chanzhaoyu/chatgpt-web) 复制过来的 。
@@ -153,26 +152,6 @@ only adds rate limiting to trusted emails, so even if someone registers, it will
 
 This helps ensure only authorized users can access the deployed system by limiting registration to trusted emails and enabling rate limiting controls.
 
-1. download ollama and pull mistral model.
-   
-```
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull mistral
-```
-![image](https://github.com/swuecho/chat/assets/666683/bc1d111f-7bd4-458d-bfed-0a0a5611809f)
-
-2. config ollama model in chat admin
-
-<img width="1293" alt="image" src="https://github.com/swuecho/chat/assets/666683/65cfca8a-edbf-4fa2-844c-c3b536b32cd0">
-
-```
-id: ollama-{modelName}
-name: does not matter, naming as you like
-baseUrl: http://hostname:11434/api/chat
-other fields is irrelevant.
-```
-
-enjoy!
 
 ## Dev locally
 
