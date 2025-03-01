@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { NButton, NForm, NFormItem, NInput, NSwitch, NTextarea, useMessage } from 'naive-ui'
+import { NButton, NForm, NFormItem, NInput, NSwitch, useMessage } from 'naive-ui'
 import { createChatModel } from '@/api'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 
@@ -90,8 +90,9 @@ async function addRow() {
     </NForm>
 
     <NFormItem :label="$t('admin.chat_model.paste_json')">
-      <NTextarea
+      <NInput
         v-model:value="jsonInput"
+        type="textarea"
         :placeholder="$t('admin.chat_model.paste_json_placeholder')"
         :rows="5"
       />
