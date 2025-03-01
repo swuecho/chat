@@ -228,7 +228,7 @@ var (
 	// OpenAI specific errors
 	ErrOpenAIStreamFailed = APIError{
 		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_005",
+		Code:     ErrModel + "_006",
 		Message:  "Failed to stream OpenAI response",
 	}
 	ErrOpenAIRequestFailed = APIError{
@@ -403,10 +403,10 @@ var ErrorCatalog = map[string]APIError{
 	ErrModel + "_003": ErrClaudeRequestFailed,
 	ErrModel + "_004": ErrClaudeInvalidResponse,
 	ErrModel + "_005": ErrClaudeResponseFaild,
-	ErrModel + "_005": ErrOpenAIStreamFailed,
-	ErrModel + "_006": ErrOpenAIRequestFailed,
-	ErrModel + "_007": ErrOpenAIInvalidResponse,
-	ErrModel + "_008": ErrOpenAIConfigFailed,
+	ErrModel + "_006": ErrOpenAIStreamFailed,
+	ErrModel + "_007": ErrOpenAIRequestFailed,
+	ErrModel + "_008": ErrOpenAIInvalidResponse,
+	ErrModel + "_009": ErrOpenAIConfigFailed,
 }
 
 // WrapError converts a standard error into an APIError
