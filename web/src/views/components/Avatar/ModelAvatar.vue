@@ -10,7 +10,7 @@ defineProps({
 
 <template>
   <div>
-    <template v-if="model === 'claude-2'">
+    <template v-if="model === 'claude'">
       <SvgIcon icon="eos-icons:ai" color="brown" />
     </template>
     <template v-else-if="model === 'claude-instant-1'">
