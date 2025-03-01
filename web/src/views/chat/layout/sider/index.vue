@@ -103,36 +103,42 @@ function openAllSnapshot() {
           <List />
         </div>
         <div class="px-2 pb-2">
-          <NButtonGroup vertical class="w-full">
+          <NButtonGroup vertical class="w-full shadow-sm">
             <NButton 
               block 
               @click="openAllSnapshot"
-              class="!rounded-b-none"
+              class="!rounded-b-none hover:shadow-md transition-all duration-200"
+              secondary
+              type="info"
             >
               <template #icon>
-                <SvgIcon icon="ri:history-line" />
+                <SvgIcon icon="ri:history-line" class="text-blue-500" />
               </template>
-              {{ t('chat_snapshot.title') }}
+              <span class="font-medium">{{ t('chat_snapshot.title') }}</span>
             </NButton>
             <NButton 
               block 
               @click="openBotAll"
-              class="!rounded-none"
+              class="!rounded-none hover:shadow-md transition-all duration-200"
+              secondary
+              type="success"
             >
               <template #icon>
-                <SvgIcon icon="ri:robot-line" />
+                <SvgIcon icon="ri:robot-line" class="text-green-500" />
               </template>
-              {{ t('bot.list') }}
+              <span class="font-medium">{{ t('bot.list') }}</span>
             </NButton>
             <NButton 
               block 
               @click="show = true"
-              class="!rounded-t-none"
+              class="!rounded-t-none hover:shadow-md transition-all duration-200"
+              secondary
+              type="warning"
             >
               <template #icon>
-                <SvgIcon icon="ri:lightbulb-line" />
+                <SvgIcon icon="ri:lightbulb-line" class="text-amber-500" />
               </template>
-              {{ t('prompt.store') }}
+              <span class="font-medium">{{ t('prompt.store') }}</span>
             </NButton>
           </NButtonGroup>
         </div>
