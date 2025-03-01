@@ -38,12 +38,12 @@
 ## 接口配置
 
 参考：
-- [Adding New Models Guide (中文)](https://github.com/swuecho/chat/blob/master/docs/ADD_MODEL_zh.md)
-- [Adding New Models Guide (English)](https://github.com/swuecho/chat/blob/master/docs/ADD_MODEL_en.md)
+- [Adding New Models Guide (中文)](https://github.com/swuecho/chat/blob/master/docs/add_model_zh.md)
+- [Adding New Models Guide (English)](https://github.com/swuecho/chat/blob/master/docs/add_model_en.md)
 - [Snapshots vs ChatBots (中文)](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_zh.md) 
 - [Snapshots vs ChatBots (English)](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_en.md)
-- [Using Local Ollama (中文)](https://github.com/swuecho/chat/blob/master/docs/Ollama_zh.md)
-- [Using Local Ollama (English)](https://github.com/swuecho/chat/blob/master/docs/Ollama_en.md)
+- [Using Local Ollama (中文)](https://github.com/swuecho/chat/blob/master/docs/ollama_zh.md)
+- [Using Local Ollama (English)](https://github.com/swuecho/chat/blob/master/docs/ollama_en.md)
 - [Community Discussions](https://github.com/swuecho/chat/discussions)
 
 ## 参与开发
@@ -129,12 +129,12 @@ OPENAI_RATELIMIT=0
 ## How to Add LLM
 
 For instructions on how to add new models, please refer to:
-- [Adding New Models Guide (English)](https://github.com/swuecho/chat/blob/master/docs/ADD_MODEL_en.md)
-- [Adding New Models Guide (中文)](https://github.com/swuecho/chat/blob/master/docs/ADD_MODEL_zh.md)
+- [Adding New Models Guide (English)](https://github.com/swuecho/chat/blob/master/docs/add_model_en.md)
+- [Adding New Models Guide (中文)](https://github.com/swuecho/chat/blob/master/docs/add_model_zh.md)
 - [Snapshots vs ChatBots (English)](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_en.md)
 - [Snapshots vs ChatBots (中文)](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_zh.md)
-- [Using Local Ollama (English)](https://github.com/swuecho/chat/blob/master/docs/Ollama_en.md)
-- [Using Local Ollama (中文)](https://github.com/swuecho/chat/blob/master/docs/Ollama_zh.md)
+- [Using Local Ollama (English)](https://github.com/swuecho/chat/blob/master/docs/ollama_en.md)
+- [Using Local Ollama (中文)](https://github.com/swuecho/chat/blob/master/docs/ollama_zh.md)
 - [Community Discussions](https://github.com/swuecho/chat/discussions)
 
 ## How to Deploy
