@@ -64,14 +64,32 @@ function handleDelete() {
 
 async function copyJson() {
   try {
-    const text = JSON.stringify(editData.value, null, 2)
+    // Create a clean copy without Vue reactivity
+    const dataToCopy = {
+      name: editData.value.name,
+      label: editData.value.label,
+      url: editData.value.url,
+      apiAuthHeader: editData.value.apiAuthHeader,
+      apiAuthKey: editData.value.apiAuthKey,
+      isDefault: editData.value.isDefault,
+      enablePerModeRatelimit: editData.value.enablePerModeRatelimit,
+      isEnable: editData.value.isEnable,
+      orderNumber: editData.value.orderNumber,
+      defaultToken: editData.value.defaultToken,
+      maxToken: editData.value.maxToken
+    }
     
-    if (navigator.clipboard) {
+    const text = JSON.stringify(dataToCopy, null, 2)
+    
+    // Use modern clipboard API if available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text)
     } else {
+      // Fallback for older browsers
       const textarea = document.createElement('textarea')
       textarea.value = text
       textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
       document.body.appendChild(textarea)
       textarea.select()
       document.execCommand('copy')
