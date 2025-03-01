@@ -60,10 +60,26 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	if streamOutput {
 		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate)
 	}
-	return doGenerate(w, client, openaiReq)
+	
+	llmAnswer, err := doGenerate(client, openaiReq)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Write response
+	data, err := json.Marshal(llmAnswer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal response: %w", err)
+	}
+	
+	if _, err := fmt.Fprint(w, string(data)); err != nil {
+		return nil, fmt.Errorf("failed to write response: %w", err)
+	}
+	
+	return llmAnswer, nil
 }
 
-func doGenerate(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest) (*models.LLMAnswer, error) {
+func doGenerate(client *openai.Client, req openai.ChatCompletionRequest) (*models.LLMAnswer, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
@@ -74,16 +90,6 @@ func doGenerate(w http.ResponseWriter, client *openai.Client, req openai.ChatCom
 
 	if len(completion.Choices) == 0 {
 		return nil, fmt.Errorf("no completion choices returned")
-	}
-
-	// Write response
-	data, err := json.Marshal(completion)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal completion: %w", err)
-	}
-	
-	if _, err := fmt.Fprint(w, string(data)); err != nil {
-		return nil, fmt.Errorf("failed to write response: %w", err)
 	}
 
 	return &models.LLMAnswer{
