@@ -78,6 +78,7 @@ async function copyJson() {
       defaultToken: editData.value.defaultToken,
       maxToken: editData.value.maxToken
     }
+    console.log(dataToCopy)
     
     const text = JSON.stringify(dataToCopy, null, 2)
     
