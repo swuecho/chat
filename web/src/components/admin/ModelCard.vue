@@ -153,17 +153,14 @@ async function copyJson() {
           </div>
           <div class="flex gap-4">
             <NFormItem :label="t('admin.chat_model.defaultToken')" class="flex-1">
-              <NInput v-model:value="editData.defaultToken.toString()" 
-                @update:value="val => editData.defaultToken = parseInt(val || '0')" />
+              <NInput v-model:value="editData.defaultToken" />
             </NFormItem>
             <NFormItem :label="t('admin.chat_model.maxToken')" class="flex-1">
-              <NInput v-model:value="editData.maxToken.toString()" 
-                @update:value="val => editData.maxToken = parseInt(val || '0')" />
+              <NInput v-model:value="editData.maxToken" />
             </NFormItem>
           </div>
             <NFormItem :label="t('admin.chat_model.orderNumber')" class="flex-1">
-              <NInput v-model:value="editData.orderNumber.toString()" 
-                @update:value="val => editData.orderNumber = parseInt(val || '0')" />
+              <NInput v-model:value="editData.orderNumber" />
             </NFormItem>
         </NForm>
 
