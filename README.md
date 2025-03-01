@@ -32,7 +32,6 @@
 - 支持多媒体文件, 需要模型支持
 - 提示词管理, 提示词快捷键 '/'
 
-
 > （可选）对话标题用 `gemini-2.0-flash` 生成， 所以需要配置该模型， 不配置默认用提示词前100个字符
 
 ## 文档
@@ -44,12 +43,10 @@
 
 ## 开发指南
 
-参考：
 - [本地开发指南](https://github.com/swuecho/chat/blob/master/docs/dev_locally_zh.md)
 
 ## 部署指南
 
-参考：
 - [部署指南](https://github.com/swuecho/chat/blob/master/docs/deployment_zh.md)
 
 ## 致谢
@@ -80,12 +77,10 @@ For instructions on how to add new models, please refer to:
 
 ## Deployment
 
-See:
 - [Deployment Guide](https://github.com/swuecho/chat/blob/master/docs/deployment_en.md)
 
 ## Development
 
-See:
 - [Local Development Guide](https://github.com/swuecho/chat/blob/master/docs/dev_locally_en.md)
 
 ## Acknowledgments
