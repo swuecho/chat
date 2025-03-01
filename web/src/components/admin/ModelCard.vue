@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, useMessage } from 'naive-ui'
+import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, useMessage, NBadge } from 'naive-ui'
 import { t } from '@/locales'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { updateChatModel, deleteChatModel } from '@/api'
+import { mode } from 'crypto-js'
 
 const props = defineProps<{
   model: Chat.ChatModel
@@ -91,10 +92,9 @@ async function copyJson() {
       <div class="flex justify-between items-center">
         <div>
           <div class="flex items-center gap-2">
-            <span class="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
-              #{{ model.orderNumber }}
-            </span>
+            <NBadge :value="model.orderNumber" show-zero type="success">
             <h3 class="font-bold">{{ model.name }}</h3>
+        </NBadge>
           </div>
           <p class="text-gray-500">{{ model.label }}</p>
         </div>
