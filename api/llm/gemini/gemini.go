@@ -7,8 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
@@ -221,10 +219,10 @@ func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAn
 	if resp.StatusCode != http.StatusOK {
 		var errResp ErrorResponse
 		if jsonErr := json.Unmarshal(body, &errResp); jsonErr == nil && errResp.Error.Message != "" {
-			return nil, fmt.Errorf("gemini API error: %s (status: %s, code: %d)",
+			return nil, fmt.Errorf("Gemini API error: %s (status: %s, code: %d)", 
 				errResp.Error.Message, errResp.Error.Status, errResp.Error.Code)
 		}
-		return nil, fmt.Errorf("gemini API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("Gemini API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	// Parse successful response
@@ -255,18 +253,17 @@ func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAn
 		return nil, fmt.Errorf("empty response from Gemini")
 	}
 
+	// Check for safety issues
+	if len(geminiResp.PromptFeedback.SafetyRatings) > 0 {
+		for _, rating := range geminiResp.PromptFeedback.SafetyRatings {
+			if rating.Probability == "HIGH" {
+				return nil, fmt.Errorf("content safety violation: %s", rating.Category)
+			}
+		}
+	}
+
 	return &models.LLMAnswer{
 		Answer:   answer.String(),
 		AnswerId: "", // Gemini doesn't provide an ID
 	}, nil
-}
-
-func BuildAPIURL(model string, stream bool) string {
-	endpoint := "generateContent"
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:%s?key=$GEMINI_API_KEY", model, endpoint)
-	if stream {
-		endpoint = "streamGenerateContent?alt=sse"
-		url = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:%s&key=$GEMINI_API_KEY", model, endpoint)
-	}
-	return os.ExpandEnv(url)
 }

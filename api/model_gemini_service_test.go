@@ -1,4 +1,4 @@
-package gemini
+package main
 
 import (
 	"os"
@@ -34,7 +34,7 @@ func TestBuildAPIURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BuildAPIURL(tt.model, tt.stream)
+			got := buildAPIURL(tt.model, tt.stream)
 			if got != tt.expected {
 				t.Errorf("buildAPIURL() = %v, want %v", got, tt.expected)
 			}
