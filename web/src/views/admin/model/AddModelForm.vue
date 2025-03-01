@@ -10,7 +10,7 @@ const emit = defineEmits<Emit>()
 
 const ms_ui = useMessage()
 const jsonInput = ref('')
-const formData = ref<Chat.ChatModel>({
+const defaultFormData = {
   name: '',
   label: '',
   url: '',
@@ -19,26 +19,55 @@ const formData = ref<Chat.ChatModel>({
   apiAuthKey: '',
   enablePerModeRatelimit: false,
   isEnable: true,
-})
+  orderNumber: 0,
+  defaultToken: 0,
+  maxToken: 0
+}
+
+const formData = ref<Chat.ChatModel>({ ...defaultFormData })
+
+function clearForm() {
+  formData.value = { ...defaultFormData }
+  jsonInput.value = ''
+  ms_ui.success('Form cleared successfully')
+}
 
 function populateFromJson() {
   try {
+    if (!jsonInput.value.trim()) {
+      throw new Error('Please paste JSON configuration')
+    }
+
     const jsonData = JSON.parse(jsonInput.value)
     
     // Validate required fields
-    if (!jsonData.name || !jsonData.label || !jsonData.url) {
-      throw new Error('Missing required fields (name, label, url)')
+    const requiredFields = ['name', 'label', 'url']
+    const missingFields = requiredFields.filter(field => !jsonData[field])
+    
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
     }
 
-    // Update form data
+    // Validate number fields
+    const numberFields = ['orderNumber', 'defaultToken', 'maxToken']
+    numberFields.forEach(field => {
+      if (jsonData[field] && isNaN(jsonData[field])) {
+        throw new Error(`${field} must be a number`)
+      }
+    })
+
+    // Update form data with validation
     formData.value = {
-      ...formData.value, // Keep default values
-      ...jsonData       // Override with JSON values
+      ...defaultFormData, // Reset to defaults first
+      ...jsonData,        // Override with JSON values
+      orderNumber: jsonData.orderNumber || 0,
+      defaultToken: jsonData.defaultToken || 0,
+      maxToken: jsonData.maxToken || 0
     }
     
-    ms_ui.success('Form populated successfully')
+    ms_ui.success('Form populated successfully from JSON')
   } catch (error) {
-    ms_ui.error('Invalid JSON or missing required fields')
+    ms_ui.error(`Error: ${error.message}`)
     console.error('JSON parse error:', error)
   }
 }
@@ -97,6 +126,10 @@ async function addRow() {
         :rows="5"
       />
     </NFormItem>
+
+    <NFormItem v-if="jsonInput" label="JSON Preview">
+      <pre class="p-2 bg-gray-100 rounded">{{ JSON.stringify(JSON.parse(jsonInput), null, 2) }}</pre>
+    </NFormItem>
     
     <div class="flex gap-2 mt-4">
       <NButton 
@@ -107,6 +140,15 @@ async function addRow() {
         class="flex-1"
       >
         {{ $t('admin.chat_model.populate_form') }}
+      </NButton>
+      <NButton 
+        type="warning" 
+        secondary 
+        strong 
+        @click="clearForm"
+        class="flex-1"
+      >
+        {{ $t('admin.chat_model.clear_form') }}
       </NButton>
       <NButton 
         type="primary" 
