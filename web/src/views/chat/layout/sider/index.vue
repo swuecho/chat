@@ -2,7 +2,7 @@
 import type { CSSProperties } from 'vue'
 import { computed, watch, ref } from 'vue'
 
-import { NButton, NLayoutSider } from 'naive-ui'
+import { NButton, NLayoutSider, NTooltip } from 'naive-ui'
 import List from './List.vue'
 import Footer from './Footer.vue'
 import { useAppStore, useChatStore } from '@/store'
@@ -104,30 +104,47 @@ function openAllSnapshot() {
         </div>
         <div class="px-2 pb-2">
           <NButtonGroup class="w-full flex">
-            <NButton 
-              class="flex-1 !rounded-r-none"
-              @click="openAllSnapshot"
-            >
-              <template #icon>
-                <SvgIcon icon="ri:history-line" />
+            <NTooltip placement="bottom">
+              <template #trigger>
+                <NButton 
+                  class="flex-1 !rounded-r-none"
+                  @click="openAllSnapshot"
+                >
+                  <template #icon>
+                    <SvgIcon icon="ri:history-line" />
+                  </template>
+                </NButton>
               </template>
-            </NButton>
-            <NButton 
-              class="flex-1 !rounded-none"
-              @click="openBotAll"
-            >
-              <template #icon>
-                <SvgIcon icon="ri:robot-line" />
+              {{ t('chat_snapshot.title') }}
+            </NTooltip>
+            
+            <NTooltip placement="bottom">
+              <template #trigger>
+                <NButton 
+                  class="flex-1 !rounded-none"
+                  @click="openBotAll"
+                >
+                  <template #icon>
+                    <SvgIcon icon="ri:robot-line" />
+                  </template>
+                </NButton>
               </template>
-            </NButton>
-            <NButton 
-              class="flex-1 !rounded-l-none"
-              @click="show = true"
-            >
-              <template #icon>
-                <SvgIcon icon="ri:lightbulb-line" />
+              {{ t('bot.list') }}
+            </NTooltip>
+            
+            <NTooltip placement="bottom">
+              <template #trigger>
+                <NButton 
+                  class="flex-1 !rounded-l-none"
+                  @click="show = true"
+                >
+                  <template #icon>
+                    <SvgIcon icon="ri:lightbulb-line" />
+                  </template>
+                </NButton>
               </template>
-            </NButton>
+              {{ t('prompt.store') }}
+            </NTooltip>
           </NButtonGroup>
         </div>
       </main>
