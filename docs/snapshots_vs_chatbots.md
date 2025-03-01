@@ -66,6 +66,8 @@ const response = await fetch('/api/bot/{uuid}', {
 });
 ```
 
+<img width="924" alt="Image" src="https://github.com/user-attachments/assets/51b221ab-603e-41aa-8b68-b3f32dce5f5c" />
+
 这允许通过编程方式与聊天机器人交互，而快照保持静态记录。
 
 ---
