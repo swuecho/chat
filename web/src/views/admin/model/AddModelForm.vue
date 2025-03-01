@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { NButton, NForm, NFormItem, NInput, NSwitch } from 'naive-ui'
+import { NButton, NForm, NFormItem, NInput, NSwitch, NTextarea, useMessage } from 'naive-ui'
 import { createChatModel } from '@/api'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 
@@ -8,6 +8,8 @@ const queryClient = useQueryClient()
 
 const emit = defineEmits<Emit>()
 
+const ms_ui = useMessage()
+const jsonInput = ref('')
 const formData = ref<Chat.ChatModel>({
   name: '',
   label: '',
@@ -18,6 +20,28 @@ const formData = ref<Chat.ChatModel>({
   enablePerModeRatelimit: false,
   isEnable: true,
 })
+
+function populateFromJson() {
+  try {
+    const jsonData = JSON.parse(jsonInput.value)
+    
+    // Validate required fields
+    if (!jsonData.name || !jsonData.label || !jsonData.url) {
+      throw new Error('Missing required fields (name, label, url)')
+    }
+
+    // Update form data
+    formData.value = {
+      ...formData.value, // Keep default values
+      ...jsonData       // Override with JSON values
+    }
+    
+    ms_ui.success('Form populated successfully')
+  } catch (error) {
+    ms_ui.error('Invalid JSON or missing required fields')
+    console.error('JSON parse error:', error)
+  }
+}
 
 interface Emit {
   (e: 'newRowAdded'): void
@@ -65,8 +89,33 @@ async function addRow() {
       </NFormItem>
     </NForm>
 
-    <NButton type="primary" block secondary strong @click="addRow">
-      {{ $t('common.confirm') }}
-    </NButton>
+    <NFormItem :label="$t('admin.chat_model.paste_json')">
+      <NTextarea
+        v-model:value="jsonInput"
+        :placeholder="$t('admin.chat_model.paste_json_placeholder')"
+        :rows="5"
+      />
+    </NFormItem>
+    
+    <div class="flex gap-2 mt-4">
+      <NButton 
+        type="info" 
+        secondary 
+        strong 
+        @click="populateFromJson"
+        class="flex-1"
+      >
+        {{ $t('admin.chat_model.populate_form') }}
+      </NButton>
+      <NButton 
+        type="primary" 
+        secondary 
+        strong 
+        @click="addRow"
+        class="flex-1"
+      >
+        {{ $t('common.confirm') }}
+      </NButton>
+    </div>
   </div>
 </template>
