@@ -1,10 +1,10 @@
 <template>
         <div>
                 <NModal :show="showUploadModal" >
-                        <NCard style="width: 600px" :title="$t('chat.uploader_title')" :bordered="false" size="huge"
+                        <NCard :style="{ width: ['100vw', '600px'] }" :title="$t('chat.uploader_title')" :bordered="false" size="huge"
                                 role="dialog" aria-modal="true">
                                 <template #header-extra>
-                                        {{ $t('chat.uploader_help_text') }}
+                                        <span class="hidden sm:inline">{{ $t('chat.uploader_help_text') }}</span>
                                 </template>
                                 <Uploader :sessionUuid="sessionUuid" :showUploaderButton="true"></Uploader>
                                 <template #footer>
