@@ -23,59 +23,73 @@ type OpenAIChatModel struct {
 	h *ChatHandler
 }
 
-func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
-	openAIRateLimiter.Wait(context.Background())
-
-	exceedPerModeRateLimitOrError := m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
-	if exceedPerModeRateLimitOrError {
-		return nil, eris.New("exceed per mode rate limit")
+func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chatMessages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
+	ctx := context.Background()
+	
+	// Rate limiting and access control
+	openAIRateLimiter.Wait(ctx)
+	if m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID) {
+		return nil, fmt.Errorf("rate limit exceeded for model %s", chatSession.Model)
 	}
 
-	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
+	// Get chat model configuration
+	chatModel, err := m.h.service.q.ChatModelByName(ctx, chatSession.Model)
 	if err != nil {
-		return nil, ErrResourceNotFound("chat model: " + chatSession.Model)
+		return nil, fmt.Errorf("failed to get chat model %s: %w", chatSession.Model, err)
 	}
 
 	config, err := genOpenAIConfig(chatModel)
-	log.Printf("%+v", config.String())
-	// print all config details
 	if err != nil {
-		return nil, ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
+		return nil, fmt.Errorf("failed to generate OpenAI config: %w", err)
 	}
 
-	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	// Get chat files if any
+	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(ctx, chatSession.Uuid)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())
+		return nil, fmt.Errorf("failed to get chat files: %w", err)
 	}
 
-	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages, chatFiles, streamOutput)
-	if len(openai_req.Messages) <= 1 {
-		return nil, ErrSystemMessageError
+	// Create OpenAI request
+	openaiReq := NewChatCompletionRequest(chatSession, chatMessages, chatFiles, streamOutput)
+	if len(openaiReq.Messages) <= 1 {
+		return nil, fmt.Errorf("insufficient messages for completion")
 	}
-	log.Printf("%+v", openai_req)
+
 	client := openai.NewClientWithConfig(config)
+	
 	if streamOutput {
-		return doChatStream(w, client, openai_req, chatSession.N, chatUuid, regenerate)
-	} else {
-		return doGenerate(w, client, openai_req)
+		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate)
 	}
-
+	return doGenerate(w, client, openaiReq)
 }
 
 func doGenerate(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest) (*models.LLMAnswer, error) {
-	// check per chat_model limit
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		log.Printf("fail to do request: %+v", err)
-		return nil, ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())
+		return nil, fmt.Errorf("failed to create chat completion: %w", err)
 	}
-	log.Printf("completion: %+v", completion)
-	data, _ := json.Marshal(completion)
-	fmt.Fprint(w, string(data))
-	return &models.LLMAnswer{Answer: completion.Choices[0].Message.Content, AnswerId: completion.ID}, nil
+
+	if len(completion.Choices) == 0 {
+		return nil, fmt.Errorf("no completion choices returned")
+	}
+
+	// Write response
+	data, err := json.Marshal(completion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal completion: %w", err)
+	}
+	
+	if _, err := fmt.Fprint(w, string(data)); err != nil {
+		return nil, fmt.Errorf("failed to write response: %w", err)
+	}
+
+	return &models.LLMAnswer{
+		Answer:   completion.Choices[0].Message.Content,
+		AnswerId: completion.ID,
+	}, nil
 }
 
 func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
