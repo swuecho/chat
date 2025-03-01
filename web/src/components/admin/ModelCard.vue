@@ -79,24 +79,28 @@ async function copyJson() {
       maxToken: editData.value.maxToken
     }
     console.log(dataToCopy)
-    
+
     const text = JSON.stringify(dataToCopy, null, 2)
-    
+    console.log(text)
     // Use modern clipboard API if available
     if (navigator.clipboard && navigator.clipboard.writeText) {
+      console.log("nav")
       await navigator.clipboard.writeText(text)
     } else {
+      console.log("no nav")
       // Fallback for older browsers
       const textarea = document.createElement('textarea')
       textarea.value = text
       textarea.style.position = 'fixed'
-      textarea.style.opacity = '0'
       document.body.appendChild(textarea)
+      textarea.focus()
       textarea.select()
-      document.execCommand('copy')
+      const successful = document.execCommand('copy');
+      const msg = successful ? 'successful' : 'unsuccessful';
+      console.log('Fallback: Copying text command was ' + msg);
       document.body.removeChild(textarea)
     }
-    
+
     ms_ui.success(t('admin.chat_model.copy_success'))
   } catch (error) {
     console.error('Copy failed:', error)
@@ -117,11 +121,7 @@ async function copyJson() {
           </div>
           <p class="text-gray-500">{{ model.label }}</p>
         </div>
-        <NSwitch 
-          :value="model.isEnable" 
-          @update:value="handleEnableToggle"
-          @click.stop   
-        />
+        <NSwitch :value="model.isEnable" @update:value="handleEnableToggle" @click.stop />
       </div>
     </NCard>
 
@@ -159,9 +159,9 @@ async function copyJson() {
               <NInput v-model:value="editData.maxToken" />
             </NFormItem>
           </div>
-            <NFormItem :label="t('admin.chat_model.orderNumber')" class="flex-1">
-              <NInput v-model:value="editData.orderNumber" />
-            </NFormItem>
+          <NFormItem :label="t('admin.chat_model.orderNumber')" class="flex-1">
+            <NInput v-model:value="editData.orderNumber" />
+          </NFormItem>
         </NForm>
 
         <div class="flex justify-end gap-2 mt-4">
