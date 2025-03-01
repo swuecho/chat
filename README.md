@@ -35,9 +35,8 @@
 
 > （可选）对话标题用 `gemini-2.0-flash` 生成， 所以需要配置该模型， 不配置默认用提示词前100个字符
 
-## 接口配置
+## 文档
 
-参考：
 - [Adding New Models Guide (中文)](https://github.com/swuecho/chat/blob/master/docs/add_model_zh.md)
 - [Adding New Models Guide (English)](https://github.com/swuecho/chat/blob/master/docs/add_model_en.md)
 - [Snapshots vs ChatBots (中文)](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_zh.md) 
@@ -76,7 +75,7 @@
 - Support Upload File
 - Support MultiMedia File (rely on Model support)
 
-## How to Add LLM
+## User Manual
 
 For instructions on how to add new models, please refer to:
 - [Adding New Models Guide (English)](https://github.com/swuecho/chat/blob/master/docs/add_model_en.md)
