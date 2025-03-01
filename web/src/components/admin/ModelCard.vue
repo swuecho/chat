@@ -4,7 +4,6 @@ import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, useMessage, 
 import { t } from '@/locales'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { updateChatModel, deleteChatModel } from '@/api'
-import { mode } from 'crypto-js'
 
 const props = defineProps<{
   model: Chat.ChatModel
