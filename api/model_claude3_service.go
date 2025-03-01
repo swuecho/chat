@@ -26,7 +26,7 @@ type Claude3ChatModel struct {
 
 func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	ctx := context.Background()
-	
+
 	// Get chat model configuration
 	chatModel, err := m.h.service.q.ChatModelByName(ctx, chatSession.Model)
 	if err != nil {
@@ -86,16 +86,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 
 	// add headers to the request
 	apiKey := os.Getenv(chatModel.ApiAuthKey)
-	authHeaderName := chatModel.ApiAuthHeader
-	if authHeaderName != "" {
-		req.Header.Set(authHeaderName, apiKey)
-	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("anthropic-version", "2023-06-01")
-
-	// Set request headers
-	apiKey := os.Getenv(chatModel.ApiAuthKey)
 	if apiKey == "" {
 		return nil, ErrAuthInvalidCredentials.WithDetail(fmt.Sprintf("missing API key for model %s", chatSession.Model))
 	}
@@ -104,6 +95,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	if authHeaderName != "" {
 		req.Header.Set(authHeaderName, apiKey)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("anthropic-version", "2023-06-01")
 
@@ -112,7 +104,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		client := http.Client{
 			Timeout: 5 * time.Minute,
 		}
-		
+
 		llmAnswer, err := doGenerateClaude3(client, req)
 		if err != nil {
 			return nil, ErrClaudeRequestFailed.WithDetail("failed to generate response").WithDebugInfo(err.Error())
@@ -125,7 +117,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		}
 
 		if _, err := fmt.Fprint(w, string(data)); err != nil {
-			return nil, ErrInternalUnexpected.WithDetail("failed to write response").WithDebugInfo(err.Error())
+			return nil, ErrClaudeResponseFaild.WithDetail("failed to write response").WithDebugInfo(err.Error())
 		}
 
 		return llmAnswer, nil
@@ -135,7 +127,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Connection", "keep-alive")
-	
+
 	llmAnswer, err := m.h.chatStreamClaude3(w, req, chatUuid, regenerate)
 	if err != nil {
 		return nil, ErrClaudeStreamFailed.WithDetail("failed to stream response").WithDebugInfo(err.Error())

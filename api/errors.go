@@ -233,17 +233,17 @@ var (
 	}
 	ErrOpenAIRequestFailed = APIError{
 		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_006",
+		Code:     ErrModel + "_007",
 		Message:  "Failed to make OpenAI request",
 	}
 	ErrOpenAIInvalidResponse = APIError{
 		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_007",
+		Code:     ErrModel + "_008",
 		Message:  "Invalid response from OpenAI API",
 	}
 	ErrOpenAIConfigFailed = APIError{
 		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_008",
+		Code:     ErrModel + "_009",
 		Message:  "Failed to configure OpenAI client",
 	}
 
