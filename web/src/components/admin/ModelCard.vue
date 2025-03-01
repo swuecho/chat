@@ -160,7 +160,7 @@ async function copyJson() {
             </NFormItem>
           </div>
             <NFormItem :label="t('admin.chat_model.orderNumber')" class="flex-1">
-              <NInput v-model:value="editData.orderNumber.toString()" />
+              <NInput v-model:value="editData.orderNumber" />
             </NFormItem>
         </NForm>
 
