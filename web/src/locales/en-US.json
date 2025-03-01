@@ -18,7 +18,10 @@
             "maxToken": "Maximum token number",
             "name": "Model ID",
             "orderNumber": "Order number",
-            "url": "Request full URL"
+            "url": "Request full URL",
+            "paste_json": "Paste JSON Configuration",
+            "paste_json_placeholder": "Paste your model configuration JSON here...",
+            "populate_form": "Populate Form"
         },
         "chat_model_name": "Model ID",
         "firstName": "First Name",
