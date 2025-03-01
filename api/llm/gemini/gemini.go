@@ -202,38 +202,68 @@ type ErrorResponse struct {
 }
 
 func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAnswer, error) {
+	// Make the request
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithMessage("Failed to send Gemini API request").WithDebugInfo(err.Error())
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		return nil, ErrInternalUnexpected.WithMessage(fmt.Sprintf("Gemini API error: %d", resp.StatusCode)).WithDebugInfo(string(body))
-	}
-
-	if resp == nil {
-		return nil, ErrInternalUnexpected.WithMessage("Empty response from Gemini")
+		return nil, fmt.Errorf("failed to send Gemini API request: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithMessage("Failed to read Gemini response").WithDebugInfo(err.Error())
+		return nil, fmt.Errorf("failed to read Gemini response body: %w", err)
 	}
 
+	// Handle non-200 status codes
+	if resp.StatusCode != http.StatusOK {
+		var errResp ErrorResponse
+		if jsonErr := json.Unmarshal(body, &errResp); jsonErr == nil && errResp.Error.Message != "" {
+			return nil, fmt.Errorf("Gemini API error: %s (status: %s, code: %d)", 
+				errResp.Error.Message, errResp.Error.Status, errResp.Error.Code)
+		}
+		return nil, fmt.Errorf("Gemini API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse successful response
 	var geminiResp ResponseBody
 	if err := json.Unmarshal(body, &geminiResp); err != nil {
-		return nil, ErrInternalUnexpected.WithMessage("Failed to parse Gemini response").WithDebugInfo(err.Error())
+		return nil, fmt.Errorf("failed to parse Gemini response: %w", err)
 	}
-	answer := geminiResp.Candidates[0].Content.Parts[0].Text
-	if answer == "" {
-		return nil, ErrInternalUnexpected.WithMessage("Empty response from Gemini")
+
+	// Validate response structure
+	if len(geminiResp.Candidates) == 0 {
+		return nil, fmt.Errorf("no candidates in Gemini response")
+	}
+
+	// Extract answer text
+	var answer strings.Builder
+	for _, candidate := range geminiResp.Candidates {
+		for _, part := range candidate.Content.Parts {
+			if part.Text != "" {
+				if answer.Len() > 0 {
+					answer.WriteString("\n\n")
+				}
+				answer.WriteString(part.Text)
+			}
+		}
+	}
+
+	if answer.Len() == 0 {
+		return nil, fmt.Errorf("empty response from Gemini")
+	}
+
+	// Check for safety issues
+	if len(geminiResp.PromptFeedback.SafetyRatings) > 0 {
+		for _, rating := range geminiResp.PromptFeedback.SafetyRatings {
+			if rating.Probability == "HIGH" {
+				return nil, fmt.Errorf("content safety violation: %s", rating.Category)
+			}
+		}
 	}
 
 	return &models.LLMAnswer{
-		Answer:   answer,
-		AnswerId: "",
+		Answer:   answer.String(),
+		AnswerId: "", // Gemini doesn't provide an ID
 	}, nil
 }
