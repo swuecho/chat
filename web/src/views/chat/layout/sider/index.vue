@@ -103,39 +103,36 @@ function openAllSnapshot() {
           <List />
         </div>
         <div class="px-2 pb-2">
-          <NButtonGroup vertical class="w-full shadow-sm">
+          <NButtonGroup vertical class="w-full">
             <NButton 
               block 
               @click="openAllSnapshot"
-              class="!rounded-b-none hover:shadow-md transition-all duration-200"
-              secondary
+              class="!rounded-b-none"
             >
               <template #icon>
-                <SvgIcon icon="ri:history-line" class="text-blue-500" />
+                <SvgIcon icon="ri:history-line" />
               </template>
-              <span class="font-medium">{{ t('chat_snapshot.title') }}</span>
+              {{ t('chat_snapshot.title') }}
             </NButton>
             <NButton 
               block 
               @click="openBotAll"
-              class="!rounded-none hover:shadow-md transition-all duration-200"
-              secondary
+              class="!rounded-none"
             >
               <template #icon>
-                <SvgIcon icon="ri:robot-line" class="text-green-500" />
+                <SvgIcon icon="ri:robot-line" />
               </template>
-              <span class="font-medium">{{ t('bot.list') }}</span>
+              {{ t('bot.list') }}
             </NButton>
             <NButton 
               block 
               @click="show = true"
-              class="!rounded-t-none hover:shadow-md transition-all duration-200"
-              secondary
+              class="!rounded-t-none"
             >
               <template #icon>
-                <SvgIcon icon="ri:lightbulb-line" class="text-amber-500" />
+                <SvgIcon icon="ri:lightbulb-line" />
               </template>
-              <span class="font-medium">{{ t('prompt.store') }}</span>
+              {{ t('prompt.store') }}
             </NButton>
           </NButtonGroup>
         </div>
