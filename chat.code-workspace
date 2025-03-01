@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "e2e"
+		},
+		{
+			"path": "docs"
 		}
 	],
 	"settings": {}
