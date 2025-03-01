@@ -18,7 +18,12 @@
             "maxToken": "最大token數量",
             "name": "身分識別號",
             "orderNumber": "次序",
-            "url": "完整的URL請求"
+            "url": "完整的URL請求",
+            "copy": "複製",
+            "paste_json": "貼上 JSON 配置",
+            "paste_json_placeholder": "在此處貼上您的模型配置 JSON...",
+            "populate_form": "填充表單",
+            "clear_form": "清空表單"
         },
         "chat_model_name": "模型ID",
         "firstName": "名字",
