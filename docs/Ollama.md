@@ -24,3 +24,27 @@ other fields is irrelevant.
 id 和 baseUrl 这两个地方配置对即可。
 
 enjoy!
+
+## Using Local Ollama Models (English Version)
+
+1. Install Ollama and download a model
+   
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull mistral
+```
+
+On Linux, the default systemd configuration restricts local access. You need to modify the HOST to allow remote access. If Ollama and Chat are on the same host, this is not an issue.
+
+2. Configure the model in the Chat Admin page
+
+The key fields to configure are:
+```
+id: ollama-{modelName}  # modelName must match the Ollama model you pulled, e.g. mistral, ollama3, ollama2
+name: Can be any name you prefer
+baseUrl: http://hostname:11434/api/chat
+```
+
+Only the id and baseUrl fields need to be configured correctly. Other fields can be left as default.
+
+Enjoy!
