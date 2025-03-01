@@ -33,7 +33,7 @@ function handleUpdate() {
       id: editData.value.id,
       data: {
         ...editData.value,
-        orderNumber: parseInt(editData.value.orderNumber || '0'),
+        orderNumber: parseInt(editData.value.orderNumber.toString() || '0'),
         defaultToken: parseInt(editData.value.defaultToken || '0'),
         maxToken: parseInt(editData.value.maxToken || '0'),
       }
@@ -160,7 +160,7 @@ async function copyJson() {
             </NFormItem>
           </div>
             <NFormItem :label="t('admin.chat_model.orderNumber')" class="flex-1">
-              <NInput v-model:value="editData.orderNumber" />
+              <NInput v-model:value="editData.orderNumber.toString()" />
             </NFormItem>
         </NForm>
 
