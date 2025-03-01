@@ -1,54 +1,51 @@
-# Adding a New Chat Model
+# 添加新聊天模型
 
-This guide explains how to add a new chat model to the system.
+本指南介绍如何向系统添加新的聊天模型。
 
-## Prerequisites
-- Admin access to the system
-- API credentials for the model you want to add
-- Model's API endpoint URL
+## 先决条件
+- 系统管理员权限
+- 要添加模型的API凭证
+- 模型的API端点URL
 
-## Steps to Add a Model
+## 添加模型的步骤
 
-### 1. Access the Admin Interface
-1. Log in as an admin user
-2. Navigate to the Admin section
-3. Go to the "Models" tab
+### 1. 访问管理员界面
+1. 以管理员用户登录
+2. 导航到管理员部分
+3. 进入"模型"标签页
 
 <img width="1880" alt="image" src="https://github.com/user-attachments/assets/a9ca268e-9a8c-4ab1-bcc8-d847b905dc6a" />
 
+### 2. 填写模型详情
+在添加模型表单中填写以下字段：
 
-### 2. Fill in the Model Details
-Fill in the following fields in the Add Model form:
-
-- **Name**: Internal name for the model (e.g. "gpt-3.5-turbo")
-- **Label**: Display name for the model (e.g. "GPT-3.5 Turbo")
-- **URL**: API endpoint URL for the model
-- **API Auth Header**: Header name for authentication (e.g. "Authorization", "x-api-key")
-- **API Auth Key**: Environment variable containing the API key
-- **Is Default**: Whether this should be the default model
-- **Enable Per-Mode Rate Limit**: Enable rate limiting for this specific model
-- **Order Number**: Position in the model list (lower numbers appear first)
-- **Default Tokens**: Default token limit for requests
-- **Max Tokens**: Maximum token limit for requests
+- **名称**: 模型的内部名称 (如 "gpt-3.5-turbo")
+- **标签**: 模型的显示名称 (如 "GPT-3.5 Turbo")
+- **URL**: 模型的API端点URL
+- **API认证头**: 认证头名称 (如 "Authorization", "x-api-key")
+- **API认证密钥**: 包含API密钥的环境变量
+- **是否默认**: 是否设为默认模型
+- **启用模式限速**: 为此特定模型启用速率限制
+- **排序号**: 在模型列表中的位置（数字越小越靠前）
+- **默认token数**: 请求的默认token限制
+- **最大token数**: 请求的最大token限制
 
 <img width="665" alt="image" src="https://github.com/user-attachments/assets/d6646e82-487f-4c47-bf4a-075b9437b340" />
 
+### 3. 添加模型
+点击"确认"添加模型。系统将：
+1. 验证输入
+2. 在数据库中创建模型记录
+3. 使模型可供使用
 
+### 4. （可选）设置速率限制
+如果启用了模式限速：
+1. 进入"速率限制"标签页
+2. 为特定用户设置速率限制
 
-### 3. Add the Model
-Click "Confirm" to add the model. The system will:
-1. Validate the input
-2. Create the model record in the database
-3. Make the model available for use
+## 示例配置
 
-### 4. (Optional) Set Rate Limits
-If you enabled per-mode rate limiting:
-1. Go to the "Rate Limits" tab
-2. Set rate limits for specific users 
-
-## Example Configuration
-
-Here's an example JSON configuration you can paste into the form:
+以下是可粘贴到表单中的示例JSON配置：
 
 ```json
 # openai
@@ -66,7 +63,6 @@ Here's an example JSON configuration you can paste into the form:
 }
 
 # claude
-
 {
   "name": "claude-3-7-sonnet-20250219",
   "label": "claude-3-7-sonnet-20250219",
@@ -82,7 +78,6 @@ Here's an example JSON configuration you can paste into the form:
 }
 
 # gemini
-
 {
   "name": "gemini-2.0-flash",
   "label": "gemini-2.0-flash",
@@ -96,8 +91,8 @@ Here's an example JSON configuration you can paste into the form:
   "defaultToken": 4096,
   "maxToken": 4096
 }
-# deepseek
 
+# deepseek
 {
   "name": "deepseek-chat",
   "label": "deepseek-chat",
@@ -111,8 +106,8 @@ Here's an example JSON configuration you can paste into the form:
   "defaultToken": 8192,
   "maxToken": 8192
 }
-## open router
 
+# open router
 {
   "name": "deepseek/deepseek-r1:free",
   "label": "deepseek/deepseek-r1(OR)",
@@ -128,15 +123,14 @@ Here's an example JSON configuration you can paste into the form:
 }
 ```
 
-## Troubleshooting
+## 故障排除
 
-**Model not appearing?**
-- Check if the model was added successfully in the database
-- Verify the API credentials are correct
-- Ensure the API endpoint is accessible
+**模型未出现？**
+- 检查模型是否成功添加到数据库
+- 验证API凭证是否正确
+- 确保API端点可访问
 
-**Rate limiting issues?**
-- Verify rate limits are properly configured
-- Check user permissions
-- Review system logs for errors
-
+**速率限制问题？**
+- 验证速率限制是否正确配置
+- 检查用户权限
+- 查看系统日志中的错误
