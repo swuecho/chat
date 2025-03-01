@@ -49,7 +49,8 @@ VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', false, 'https://api.openai.c
         ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY',  9192, 2048, 6),
         ('text-davinci-003', 'text-davinci-003', false, 'https://api.openai.com/v1/completions', 'Authorization', 'OPENAI_API_KEY', 4096, 2048, 7),
         ('echo','echo',false,'https://bestqa_workerd.bestqa.workers.dev/echo','Authorization','ECHO_API_KEY', 40960, 20480, 8),
-        ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY', 40960, 2048, 9)
+        ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY', 40960, 2048, 9),
+        ('deepseek-reasoner','deepseek-reasoner',false,'https://api.deepseek.com/v1/chat/completions','Authorization','DEEPSEEK API KEY', 8192, 8192, 2),
 ON CONFLICT(name) DO NOTHING;
 
 UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4';
