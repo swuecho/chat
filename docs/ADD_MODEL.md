@@ -37,7 +37,7 @@ Click "Confirm" to add the model. The system will:
 ### 4. (Optional) Set Rate Limits
 If you enabled per-mode rate limiting:
 1. Go to the "Rate Limits" tab
-2. Set rate limits for specific users or groups
+2. Set rate limits for specific users 
 
 ## Example Configuration
 
@@ -70,8 +70,3 @@ Here's an example JSON configuration you can paste into the form:
 - Check user permissions
 - Review system logs for errors
 
-## Best Practices
-- Use descriptive names and labels
-- Set appropriate token limits based on model capabilities
-- Enable rate limiting for expensive models
-- Test the model thoroughly before making it default
