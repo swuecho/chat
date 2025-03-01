@@ -90,9 +90,13 @@ async function copyJson() {
     <NCard hoverable class="mb-4 cursor-pointer" @click="dialogVisible = true">
       <div class="flex justify-between items-center">
         <div>
-          <h3 class="font-bold">{{ model.name }}</h3>
+          <div class="flex items-center gap-2">
+            <span class="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
+              #{{ model.orderNumber }}
+            </span>
+            <h3 class="font-bold">{{ model.name }}</h3>
+          </div>
           <p class="text-gray-500">{{ model.label }}</p>
-          <p class="text-sm text-gray-400">Order: {{ model.orderNumber }}</p>
         </div>
         <NSwitch 
           :value="model.isEnable" 
