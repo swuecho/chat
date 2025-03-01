@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { NButton, NForm, NFormItem, NInput, NSwitch } from 'naive-ui'
+import { NButton, NForm, NFormItem, NInput, NSwitch, useMessage } from 'naive-ui'
 import { createChatModel } from '@/api'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 
@@ -8,7 +8,9 @@ const queryClient = useQueryClient()
 
 const emit = defineEmits<Emit>()
 
-const formData = ref<Chat.ChatModel>({
+const ms_ui = useMessage()
+const jsonInput = ref('')
+const defaultFormData = {
   name: '',
   label: '',
   url: '',
@@ -17,7 +19,58 @@ const formData = ref<Chat.ChatModel>({
   apiAuthKey: '',
   enablePerModeRatelimit: false,
   isEnable: true,
-})
+  orderNumber: 0,
+  defaultToken: 0,
+  maxToken: 0
+}
+
+const formData = ref<Chat.ChatModel>({ ...defaultFormData })
+
+function clearForm() {
+  formData.value = { ...defaultFormData }
+  jsonInput.value = ''
+  ms_ui.success('Form cleared successfully')
+}
+
+function populateFromJson() {
+  try {
+    if (!jsonInput.value.trim()) {
+      throw new Error('Please paste JSON configuration')
+    }
+
+    const jsonData = JSON.parse(jsonInput.value)
+    
+    // Validate required fields
+    const requiredFields = ['name', 'label', 'url']
+    const missingFields = requiredFields.filter(field => !jsonData[field])
+    
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
+    }
+
+    // Validate number fields
+    const numberFields = ['orderNumber', 'defaultToken', 'maxToken']
+    numberFields.forEach(field => {
+      if (jsonData[field] && isNaN(jsonData[field])) {
+        throw new Error(`${field} must be a number`)
+      }
+    })
+
+    // Update form data with validation
+    formData.value = {
+      ...defaultFormData, // Reset to defaults first
+      ...jsonData,        // Override with JSON values
+      orderNumber: jsonData.orderNumber || 0,
+      defaultToken: jsonData.defaultToken || 0,
+      maxToken: jsonData.maxToken || 0
+    }
+    
+    ms_ui.success('Form populated successfully from JSON')
+  } catch (error) {
+    ms_ui.error(`Error: ${error.message}`)
+    console.error('JSON parse error:', error)
+  }
+}
 
 interface Emit {
   (e: 'newRowAdded'): void
@@ -57,16 +110,53 @@ async function addRow() {
       <NFormItem path="apiAuthKey" :label="$t('admin.chat_model.apiAuthKey')">
         <NInput v-model:value="formData.apiAuthKey" />
       </NFormItem>
-      <NFormItem path="isDefault" :label="$t('admin.chat_model.isDefault')">
-        <NSwitch v-model:value="formData.isDefault" />
-      </NFormItem>
-      <NFormItem path="enablePerModeRatelimit" :label="$t('admin.chat_model.enablePerModeRatelimit')">
-        <NSwitch v-model:value="formData.enablePerModeRatelimit" />
-      </NFormItem>
+      <div class="flex gap-4">
+        <NFormItem path="isDefault" :label="$t('admin.chat_model.isDefault')" class="flex-1">
+          <NSwitch v-model:value="formData.isDefault" />
+        </NFormItem>
+        <NFormItem path="enablePerModeRatelimit" :label="$t('admin.chat_model.enablePerModeRatelimit')" class="flex-1">
+          <NSwitch v-model:value="formData.enablePerModeRatelimit" />
+        </NFormItem>
+      </div>
     </NForm>
 
-    <NButton type="primary" block secondary strong @click="addRow">
-      {{ $t('common.confirm') }}
-    </NButton>
+    <NFormItem :label="$t('admin.chat_model.paste_json')">
+      <NInput
+        v-model:value="jsonInput"
+        type="textarea"
+        :placeholder="$t('admin.chat_model.paste_json_placeholder')"
+        :rows="5"
+      />
+    </NFormItem>
+
+    <div class="flex gap-2 mt-4">
+      <NButton 
+        type="info" 
+        secondary 
+        strong 
+        @click="populateFromJson"
+        class="flex-1"
+      >
+        {{ $t('admin.chat_model.populate_form') }}
+      </NButton>
+      <NButton 
+        type="warning" 
+        secondary 
+        strong 
+        @click="clearForm"
+        class="flex-1"
+      >
+        {{ $t('admin.chat_model.clear_form') }}
+      </NButton>
+      <NButton 
+        type="primary" 
+        secondary 
+        strong 
+        @click="addRow"
+        class="flex-1"
+      >
+        {{ $t('common.confirm') }}
+      </NButton>
+    </div>
   </div>
 </template>

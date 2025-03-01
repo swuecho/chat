@@ -320,10 +320,28 @@ async function deleteRow(row: any) {
 }
 
 async function copyRow(row: any) {
-  // copy to clipboard
-  const text = JSON.stringify(row)
-  navigator.clipboard.writeText(text);
-  ms_ui.success(t('admin.chat_model.copy_success'))
+  try {
+    const text = JSON.stringify(row, null, 2)
+    
+    // Modern clipboard API
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed' // Prevent scrolling to bottom
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    
+    ms_ui.success(t('admin.chat_model.copy_success'))
+  } catch (error) {
+    console.error('Copy failed:', error)
+    ms_ui.error(t('admin.chat_model.copy_failed'))
+  }
 }
 
 function checkNoRowIsDefaultTrue(v: boolean) {
