@@ -321,6 +321,7 @@ async function deleteRow(row: any) {
 
 async function copyRow(row: any) {
   // copy to clipboard
+  console.log(row)
   const text = JSON.stringify(row)
   navigator.clipboard.writeText(text);
   ms_ui.success(t('admin.chat_model.copy_success'))
