@@ -103,19 +103,38 @@ function openAllSnapshot() {
           <List />
         </div>
         <div class="px-2 pb-2">
-          <NButton block @click="openAllSnapshot">
-            {{ t('chat_snapshot.title') }}
-          </NButton>
-        </div>
-        <div class="px-2 pb-2">
-          <NButton block @click="openBotAll">
-            {{ t('bot.list') }}
-          </NButton>
-        </div>
-        <div class="px-2 pb-2">
-          <NButton block @click="show = true">
-            {{ t('prompt.store') }}
-          </NButton>
+          <NButtonGroup vertical class="w-full">
+            <NButton 
+              block 
+              @click="openAllSnapshot"
+              class="!rounded-b-none"
+            >
+              <template #icon>
+                <SvgIcon icon="ri:history-line" />
+              </template>
+              {{ t('chat_snapshot.title') }}
+            </NButton>
+            <NButton 
+              block 
+              @click="openBotAll"
+              class="!rounded-none"
+            >
+              <template #icon>
+                <SvgIcon icon="ri:robot-line" />
+              </template>
+              {{ t('bot.list') }}
+            </NButton>
+            <NButton 
+              block 
+              @click="show = true"
+              class="!rounded-t-none"
+            >
+              <template #icon>
+                <SvgIcon icon="ri:lightbulb-line" />
+              </template>
+              {{ t('prompt.store') }}
+            </NButton>
+          </NButtonGroup>
         </div>
       </main>
       <Footer />
