@@ -58,7 +58,7 @@ function handleDelete() {
           <h3 class="font-bold">{{ model.name }}</h3>
           <p class="text-gray-500">{{ model.label }}</p>
         </div>
-        <NSwitch :value="model.isEnable" disabled />
+        <NSwitch :value="model.isEnable" />
       </div>
     </NCard>
 
@@ -89,9 +89,6 @@ function handleDelete() {
             </NFormItem>
           </div>
           <div class="flex gap-4">
-            <NFormItem :label="t('admin.chat_model.orderNumber')" class="flex-1">
-              <NInput v-model:value="editData.orderNumber" />
-            </NFormItem>
             <NFormItem :label="t('admin.chat_model.defaultToken')" class="flex-1">
               <NInput v-model:value="editData.defaultToken" />
             </NFormItem>
@@ -99,6 +96,9 @@ function handleDelete() {
               <NInput v-model:value="editData.maxToken" />
             </NFormItem>
           </div>
+            <NFormItem :label="t('admin.chat_model.orderNumber')" class="flex-1">
+              <NInput v-model:value="editData.orderNumber" />
+            </NFormItem>
         </NForm>
 
         <div class="flex justify-end gap-2 mt-4">
