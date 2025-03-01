@@ -109,7 +109,6 @@ function openAllSnapshot() {
               @click="openAllSnapshot"
               class="!rounded-b-none hover:shadow-md transition-all duration-200"
               secondary
-              type="info"
             >
               <template #icon>
                 <SvgIcon icon="ri:history-line" class="text-blue-500" />
@@ -121,7 +120,6 @@ function openAllSnapshot() {
               @click="openBotAll"
               class="!rounded-none hover:shadow-md transition-all duration-200"
               secondary
-              type="success"
             >
               <template #icon>
                 <SvgIcon icon="ri:robot-line" class="text-green-500" />
@@ -133,7 +131,6 @@ function openAllSnapshot() {
               @click="show = true"
               class="!rounded-t-none hover:shadow-md transition-all duration-200"
               secondary
-              type="warning"
             >
               <template #icon>
                 <SvgIcon icon="ri:lightbulb-line" class="text-amber-500" />
