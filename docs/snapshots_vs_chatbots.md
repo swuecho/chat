@@ -1,4 +1,4 @@
-# 快照(Snapshots) vs 聊天机器人(ChatBots)
+# 快照(Chat Records) vs 聊天机器人(ChatBots)
 
 ## 快照 (聊天记录)
 
@@ -10,7 +10,6 @@
 - 以多种格式导出对话（Markdown、PNG）
 
 主要特点：
-- 创建后只读
 - 包含完整的对话历史
 - 可以导出/分享
 - 适用于文档和记录保存
