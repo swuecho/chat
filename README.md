@@ -38,6 +38,7 @@
 ## 接口配置
 
 参考：
+https://github.com/swuecho/chat/blob/master/docs/ADD_MODEL.md
 https://github.com/swuecho/chat/discussions
 
 ## 参与开发
@@ -151,7 +152,8 @@ enjoy!
 
 ## How to Add LLM
 
-check：https://github.com/swuecho/chat/discussions
+https://github.com/swuecho/chat/blob/master/docs/ADD_MODEL.md
+https://github.com/swuecho/chat/discussions
 
 ## How to Deploy
 
