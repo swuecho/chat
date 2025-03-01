@@ -43,9 +43,45 @@ function handleUpdate() {
   }
 }
 
+function handleEnableToggle(enabled: boolean) {
+  if (editData.value.id) {
+    const updatedData = {
+      id: editData.value.id,
+      data: {
+        ...editData.value,
+        isEnable: enabled
+      }
+    }
+    chatModelMutation.mutate(updatedData)
+  }
+}
+
 function handleDelete() {
   if (editData.value.id) {
     deteteModelMutation.mutate(editData.value.id)
+  }
+}
+
+async function copyJson() {
+  try {
+    const text = JSON.stringify(editData.value, null, 2)
+    
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    
+    ms_ui.success(t('admin.chat_model.copy_success'))
+  } catch (error) {
+    console.error('Copy failed:', error)
+    ms_ui.error(t('admin.chat_model.copy_failed'))
   }
 }
 </script>
@@ -58,7 +94,10 @@ function handleDelete() {
           <h3 class="font-bold">{{ model.name }}</h3>
           <p class="text-gray-500">{{ model.label }}</p>
         </div>
-        <NSwitch :value="model.isEnable" />
+        <NSwitch 
+          :value="model.isEnable" 
+          @update:value="handleEnableToggle"
+        />
       </div>
     </NCard>
 
@@ -102,6 +141,9 @@ function handleDelete() {
         </NForm>
 
         <div class="flex justify-end gap-2 mt-4">
+          <NButton type="info" @click="copyJson">
+            {{ t('admin.chat_model.copy') }}
+          </NButton>
           <NButton type="error" @click="handleDelete">
             {{ t('common.delete') }}
           </NButton>
