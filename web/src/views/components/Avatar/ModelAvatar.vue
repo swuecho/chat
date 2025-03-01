@@ -10,8 +10,7 @@ defineProps({
 
 <template>
   <div>
-    <template v-if="model === 'claude'">
-      <SvgIcon icon="eos-icons:ai" color="brown" />
+    <template v-if="model?.startsWith('claude')">
     </template>
     <template v-else-if="model === 'claude-instant-1'">
       <SvgIcon icon="simple-icons:fastapi" color="brown" />
@@ -30,10 +29,8 @@ defineProps({
       </svg>
     </template>
     <template v-else-if="model?.includes('gemini')">
-      <SvgIcon icon="simple-icons:googlebard" color="blue" />
     </template>
     <template v-else-if="model?.includes('deepseek')">
-      <SvgIcon icon="material-symbols:rocket-launch-rounded" color="purple" />
     </template>
     <template v-else>
       <SvgIcon icon="ri:question-answer-line" width="0.8em" />
