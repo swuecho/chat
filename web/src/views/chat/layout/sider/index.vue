@@ -103,36 +103,30 @@ function openAllSnapshot() {
           <List />
         </div>
         <div class="px-2 pb-2">
-          <NButtonGroup vertical class="w-full">
+          <NButtonGroup class="w-full flex">
             <NButton 
-              block 
+              class="flex-1 !rounded-r-none"
               @click="openAllSnapshot"
-              class="!rounded-b-none"
             >
               <template #icon>
                 <SvgIcon icon="ri:history-line" />
               </template>
-              {{ t('chat_snapshot.title') }}
             </NButton>
             <NButton 
-              block 
+              class="flex-1 !rounded-none"
               @click="openBotAll"
-              class="!rounded-none"
             >
               <template #icon>
                 <SvgIcon icon="ri:robot-line" />
               </template>
-              {{ t('bot.list') }}
             </NButton>
             <NButton 
-              block 
+              class="flex-1 !rounded-l-none"
               @click="show = true"
-              class="!rounded-t-none"
             >
               <template #icon>
                 <SvgIcon icon="ri:lightbulb-line" />
               </template>
-              {{ t('prompt.store') }}
             </NButton>
           </NButtonGroup>
         </div>
