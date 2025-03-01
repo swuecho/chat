@@ -25,18 +25,18 @@ type Claude3ChatModel struct {
 }
 
 func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	// Obtain the API token (buffer 1, send to channel will block if there is a token in the buffer)
-	log.Printf("%+v", chatSession)
-	// Release the API token
-	// set the api key
-	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
-	log.Printf("%+v", chatModel)
+	ctx := context.Background()
+	
+	// Get chat model configuration
+	chatModel, err := m.h.service.q.ChatModelByName(ctx, chatSession.Model)
 	if err != nil {
-		return nil, ErrResourceNotFound("chat model: " + chatSession.Model)
+		return nil, fmt.Errorf("failed to get chat model %s: %w", chatSession.Model, err)
 	}
-	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+
+	// Get chat files if any
+	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(ctx, chatSession.Uuid)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())
+		return nil, fmt.Errorf("failed to get chat files: %w", err)
 	}
 
 	// create a new strings.Builder
@@ -62,7 +62,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		// only system message, return and do nothing
 		return nil, ErrSystemMessageError
 	}
-	// create the json data
+	// Prepare request payload
 	jsonData := map[string]interface{}{
 		"system":      chat_compeletion_messages[0].Content,
 		"model":       chatSession.Model,
@@ -72,16 +72,16 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		"top_p":       chatSession.TopP,
 		"stream":      stream,
 	}
-	log.Printf("%+v", jsonData)
 
-	// convert data to json format
-	jsonValue, _ := json.Marshal(jsonData)
-	log.Printf("%+v", string(jsonValue))
-	// create the request
-	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
-
+	jsonValue, err := json.Marshal(jsonData)
 	if err != nil {
-		return nil, ErrClaudeRequestFailed.WithMessage("Failed to create Claude request").WithDebugInfo(err.Error())
+		return nil, fmt.Errorf("failed to marshal request payload: %w", err)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 
 	// add headers to the request
@@ -94,27 +94,53 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("anthropic-version", "2023-06-01")
 
+	// Set request headers
+	apiKey := os.Getenv(chatModel.ApiAuthKey)
+	if apiKey == "" {
+		return nil, fmt.Errorf("missing API key for model %s", chatSession.Model)
+	}
+
+	authHeaderName := chatModel.ApiAuthHeader
+	if authHeaderName != "" {
+		req.Header.Set(authHeaderName, apiKey)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("anthropic-version", "2023-06-01")
+
 	if !stream {
 		req.Header.Set("Accept", "application/json")
-		// create the http client and send the request
 		client := http.Client{
 			Timeout: 5 * time.Minute,
 		}
+		
 		llmAnswer, err := doGenerateClaude3(client, req)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to generate response: %w", err)
 		}
+
 		answerResponse := constructChatCompletionStreamReponse(llmAnswer.AnswerId, llmAnswer.Answer)
-		data, _ := json.Marshal(answerResponse)
-		fmt.Fprint(w, string(data))
-		return llmAnswer, err
-	} else {
-		// set the streaming flag
-		req.Header.Set("Accept", "text/event-stream")
-		req.Header.Set("Cache-Control", "no-cache")
-		req.Header.Set("Connection", "keep-alive")
-		return m.h.chatStreamClaude3(w, req, chatUuid, regenerate)
+		data, err := json.Marshal(answerResponse)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal response: %w", err)
+		}
+
+		if _, err := fmt.Fprint(w, string(data)); err != nil {
+			return nil, fmt.Errorf("failed to write response: %w", err)
+		}
+
+		return llmAnswer, nil
 	}
+
+	// Handle streaming response
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Connection", "keep-alive")
+	
+	llmAnswer, err := m.h.chatStreamClaude3(w, req, chatUuid, regenerate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stream response: %w", err)
+	}
+	return llmAnswer, nil
 }
 
 func doGenerateClaude3(client http.Client, req *http.Request) (*models.LLMAnswer, error) {
