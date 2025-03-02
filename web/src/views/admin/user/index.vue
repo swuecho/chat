@@ -5,7 +5,7 @@
 // The Rate Limit column should be editable, and the value should be updated in the backend using api 'UpdateRateLimit(user_email, rate_limit)'
 // vue3 code should be in <script lang="ts" setup> style.
 import { h, onMounted, reactive, ref } from 'vue'
-import { NDataTable, NInput, useMessage, NButton, NModal, NForm, NFormItem, useDialog } from 'naive-ui'
+import { NDataTable, NInput, useMessage, NButton, NModal, NForm, NFormItem, useDialog ,} from 'naive-ui'
 import { GetUserData, UpdateRateLimit, updateUserFullName } from '@/api'
 import { t } from '@/locales'
 import HoverButton from '@/components/common/HoverButton/index.vue'
@@ -175,10 +175,10 @@ async function handleSave() {
     <NCard style="width: 600px" :title="t('common.editUser')" :bordered="false" size="huge">
       <NForm label-placement="left" label-width="auto">
         <NFormItem :label="t('admin.firstName')">
-          <NInput v-model:value="editingUser?.firstName" />
+          <NInput v-model:value="editingUser!.firstName" />
         </NFormItem>
         <NFormItem :label="t('admin.lastName')">
-          <NInput v-model:value="editingUser?.lastName" />
+          <NInput v-model:value="editingUser!.lastName" />
         </NFormItem>
         <div class="flex justify-end">
           <NButton class="mr-4" @click="showEditModal = false">
