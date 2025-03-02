@@ -106,8 +106,8 @@ function postUrl(uuid: string): string {
   <div class="flex flex-col w-full h-full dark:text-white">
     <header
       class="flex items-center justify-between h-16 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur">
-      <div class="flex items-center ml-10">
-        <SvgIcon icon="majesticons:robot-line" />
+      <div class="flex items-center ml-10 gap-2">
+        <SvgIcon icon="majesticons:robot-line" class="w-6 h-6" />
         <h1 class="text-xl font-semibold text-gray-900">
           {{ $t('bot.all.title') }}
         </h1>
@@ -137,7 +137,7 @@ function postUrl(uuid: string): string {
                   post.date
                   }}</time>
                   <div class="ml-2 text-sm flex items-center cursor-pointer" @click="handleDelete(post)">
-                  <SvgIcon icon="ic:baseline-delete-forever" />
+                    <SvgIcon icon="ic:baseline-delete-forever" class="w-5 h-5" />
                   </div>
                 </div>
                 <div class="flex items-center">
@@ -145,7 +145,7 @@ function postUrl(uuid: string): string {
                     {{ post.uuid }}
                     </div>
                   <div class="ml-4 cursor-pointer flex items-center" @click="handleShowCode(post)">
-                  <SvgIcon icon="ic:outline-code" />
+                    <SvgIcon icon="ic:outline-code" class="w-5 h-5" />
                   </div>
                 </div>
                 <a :href="postUrl(post.uuid)" :title="post.title"
