@@ -153,10 +153,55 @@ onMounted(() => {
 async function handleRefresh() {
   await fetchData()
 }
+
+function handleSave() {
+  if (!editingUser.value) return
+  
+  dialog.warning({
+    title: t('common.confirm'),
+    content: t('admin.confirmUpdateUser'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+    async onPositiveClick() {
+      try {
+        await updateUserFullName({
+          firstName: editingUser.value!.firstName,
+          lastName: editingUser.value!.lastName,
+          email: editingUser.value!.email
+        })
+        ms_ui.success(t('common.updateSuccess'))
+        showEditModal.value = false
+        await fetchData()
+      } catch (error: any) {
+        ms_ui.error(error.message || t('common.updateFailed'))
+      }
+    }
+  })
+}
 </script>
 
 <template>
-    <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
+  <NModal v-model:show="showEditModal">
+    <NCard style="width: 600px" :title="t('common.editUser')" :bordered="false" size="huge">
+      <NForm label-placement="left" label-width="auto">
+        <NFormItem :label="t('admin.firstName')">
+          <NInput v-model:value="editingUser!.firstName" />
+        </NFormItem>
+        <NFormItem :label="t('admin.lastName')">
+          <NInput v-model:value="editingUser!.lastName" />
+        </NFormItem>
+        <div class="flex justify-end">
+          <NButton class="mr-4" @click="showEditModal = false">
+            {{ t('common.cancel') }}
+          </NButton>
+          <NButton type="primary" @click="handleSave">
+            {{ t('common.save') }}
+          </NButton>
+        </div>
+      </NForm>
+    </NCard>
+  </NModal>
+  <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
       <HoverButton :tooltip="$t('admin.refresh')" @click="handleRefresh" class="mr-10">
         <span class="text-xl text-[#4f555e] dark:text-white">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
