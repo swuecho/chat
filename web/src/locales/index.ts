@@ -17,8 +17,12 @@ const i18n = createI18n({
   },
 })
 
-export function t(key: string) {
-  return i18n.global.t(key)
+export function t(key: string, values?: Record<string, string>) {
+  if (values) {
+  return i18n.global.t(key, values)
+  } else {
+    return i18n.global.t(key)
+  }
 }
 
 export function setLocale(locale: Language) {

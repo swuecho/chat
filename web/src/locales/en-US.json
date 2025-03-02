@@ -9,7 +9,7 @@
             "copy_success": "Copied successfully",
             "defaultToken": "Default token number",
             "deleteModel": "Delete",
-            "deleteModelConfirm": "Confirm deletion",
+            "deleteModelConfirm": "Confirm deletion {name}?",
             "enablePerModeRatelimit": "Enable Rate Limit Per Mode",
             "enablePerModelRateLimit": "Enable per-model rate limit",
             "isDefault": "Default?",

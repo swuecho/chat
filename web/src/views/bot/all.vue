@@ -129,30 +129,40 @@ function postUrl(uuid: string): string {
           <h2 class="flex-none w-28 text-lg font-medium mb-2 md:sticky top-8 self-start">
             {{ yearMonth }}
           </h2>
-          <ul class="w-full">
-            <li v-for="post in postsOfYearMonth" :key="post.uuid" class="flex justify-between">
-              <div>
-                <div class="flex items-center">
-                  <time :datetime="post.date" class="text-sm font-medium text-gray-600">{{
-                  post.date
-                  }}</time>
-                  <div class="ml-2 text-sm flex items-center cursor-pointer" @click="handleDelete(post)">
+          <div class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="post in postsOfYearMonth" :key="post.uuid" 
+              class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+              <div class="flex justify-between items-start">
+                <div>
+                  <time :datetime="post.date" class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ post.date }}
+                  </time>
+                  <a :href="postUrl(post.uuid)" 
+                    class="block text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 mt-1">
+                    {{ post.title }}
+                  </a>
+                </div>
+                <div class="flex space-x-2">
+                  
+                  <button @click.stop="handleDelete(post)" 
+                    class="p-1 text-gray-500 hover:text-red-600 transition-colors"
+                    :title="t('common.delete')">
                     <SvgIcon icon="ic:baseline-delete-forever" class="w-5 h-5" />
-                  </div>
-                </div>
-                <div class="flex items-center">
-                    <div class="text-xs text-gray-500">
-                    {{ post.uuid }}
-                    </div>
-                  <div class="ml-4 cursor-pointer flex items-center" @click="handleShowCode(post)">
+                  </button>
+                  <button @click.stop="handleShowCode(post)" 
+                    class="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                    :title="t('bot.showCode')">
                     <SvgIcon icon="ic:outline-code" class="w-5 h-5" />
-                  </div>
+                  </button>
                 </div>
-                <a :href="postUrl(post.uuid)" :title="post.title"
-                  class="block text-xl font-semibold text-gray-900 hover:text-blue-600 mb-2">{{ post.title }}</a>
               </div>
-            </li>
-          </ul>
+              <div class="mt-2">
+                <div class="text-xs text-gray-400 break-all">
+                  {{ post.uuid }}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

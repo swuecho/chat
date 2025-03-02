@@ -9,7 +9,7 @@
             "copy_success": "複製成功",
             "defaultToken": "默認token數量",
             "deleteModel": "刪除",
-            "deleteModelConfirm": "確認刪除",
+            "deleteModelConfirm": "確認刪除 {name}?",
             "enablePerModeRatelimit": "是否單獨流控",
             "enablePerModelRateLimit": "是否單獨流控",
             "isDefault": "默認?",
