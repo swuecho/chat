@@ -126,7 +126,7 @@ function postUrl(uuid: string): string {
       <div class="max-w-screen-xl px-4 py-8 mx-auto">
         <div v-for="[yearMonth, postsOfYearMonth] in Object.entries(postsByYearMonth)" :key="yearMonth"
           class="flex flex-col md:flex-row mb-4">
-          <h2 class="md:flex-none md:w-28 text-lg font-medium mb-2 md:mb-0">
+          <h2 class="flex-none w-28 text-lg font-medium mb-2 sticky top-16 self-start">
             {{ yearMonth }}
           </h2>
           <ul class="w-full">

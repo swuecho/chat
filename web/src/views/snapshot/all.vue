@@ -82,7 +82,7 @@ function handleDelete(post: Snapshot.PostLink) {
       <div v-if="!needPermission" class="max-w-screen-xl px-4 py-8 mx-auto">
         <div v-for="[yearMonth, postsOfYearMonth] in Object.entries(postsByYearMonth)" :key="yearMonth"
           class="flex flex-col md:flex-row mb-4 relative">
-          <h2 class="md:flex-none md:w-28 text-lg font-medium mb-2 md:mb-0 md:sticky md:top-16 md:self-start">
+          <h2 class="flex-none w-28 text-lg font-medium mb-2 sticky top-16 self-start">
             {{ yearMonth }}
           </h2>
           <ul class="w-full">
