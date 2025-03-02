@@ -41,7 +41,7 @@ const columns = [
     key: 'name',
     width: 100,
     render: (row: UserData) => {
-      return h('span', `${row.firstName} ${row.lastName}`)
+      return h('span', `${row.lastName} ${row.firstName}`)
     }
   },
 
@@ -49,22 +49,6 @@ const columns = [
     title: t('admin.rateLimit10Min'),
     key: 'rateLimit',
     width: 100,
-    render: (row: any, index: number) => {
-      return h(NInput, {
-        value: row.rateLimit.toString(),
-        width: 50,
-        async onUpdateValue(v: string) {
-          try {
-            tableData.value[index].rateLimit = v
-            const new_limit = parseInt(v) ?? 0
-            await UpdateRateLimit(row.email, new_limit)
-          }
-          catch (error: any) {
-            ms_ui.error(error)
-          }
-        },
-      })
-    },
   },
   {
     title: t('common.actions'),
@@ -161,6 +145,7 @@ async function handleSave() {
       lastName: editingUser.value.lastName,
       email: editingUser.value.email
     })
+    await UpdateRateLimit(editingUser.value.email, parseInt(editingUser.value.rateLimit))
     ms_ui.success(t('common.updateSuccess'))
     showEditModal.value = false
     await fetchData()
@@ -179,6 +164,9 @@ async function handleSave() {
         </NFormItem>
         <NFormItem :label="t('admin.lastName')">
           <NInput v-model:value="editingUser!.lastName" />
+        </NFormItem>
+        <NFormItem :label="t('admin.rateLimit10Min')">
+          <NInput v-model:value="editingUser!.rateLimit" />
         </NFormItem>
         <div class="flex justify-end">
           <NButton class="mr-4" @click="showEditModal = false">
