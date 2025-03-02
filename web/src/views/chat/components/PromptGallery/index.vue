@@ -1,9 +1,12 @@
 <script lang="ts" setup>
-import { computed, ref, h } from 'vue'
-import { DataTableColumns, NButton, NDataTable } from 'naive-ui'
-import { useBasicLayout } from '@/hooks/useBasicLayout'
+import { ref, computed } from 'vue'
+import { NCard, NButton, NSpace, NTabs, NTabPane } from 'naive-ui'
 import { usePromptStore } from '@/store/modules'
-import { isASCII } from '@/utils/is'
+import { fetchChatSnapshot, fetchSnapshotAll } from '@/api'
+import { useQuery } from '@tanstack/vue-query'
+import PromptCards from './PromptCards.vue'
+import { SvgIcon } from '@/components/common'
+import { t } from '@/locales'
 
 
 interface Emit {
@@ -11,93 +14,66 @@ interface Emit {
 }
 
 const emit = defineEmits<Emit>()
-
-
-
-// 移动端自适应相关
-const { isMobile } = useBasicLayout()
-
 const promptStore = usePromptStore()
-const promptList = ref<any>(promptStore.promptList)
 
-interface DataProps {
-        renderKey: string
-        renderValue: string
-        key: string
-        value: string
+// Fetch bots data
+const { data: bots } = useQuery({
+        queryKey: ['bots'],
+        queryFn: async () => await fetchSnapshotAll(),
+})
+
+interface Bot {
+        title: string
+        uuid: string
+        typ: string
 }
 
-// 移动端自适应相关
-const renderTemplate = () => {
-  const [keyLimit, valueLimit] = isMobile.value ? [6, 9] : [15, 50]
-  return promptList.value.map((item: { key: string; value: string }) => {
-    let factor = isASCII(item.key) ? 10 : 1
-    return {
-      renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit * factor)}...`,
-      renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit * factor)}...`,
-      key: item.key,
-      value: item.value,
-    }
-  })
-}
+// Get bot prompts
+const botPrompts = computed(() => {
+        return (bots.value || [])
+                .filter((bot: Bot) => bot.typ === 'chatbot')
+                .map((bot: Bot) => ({
+                        key: bot.title,
+                        uuid: bot.uuid,
+                        value: ''
+                }))
+})
 
-const actionUsePrompt = (type: string, row: any) => {
-        console.log(type, row)
-        console.log(row.key, row.value)
-        emit('usePrompt', row.key, row.value)
-}
-
-
-const pagination = computed(() => {
-        const [pageSize, pageSlot] = isMobile.value ? [10, 5] : [20, 15]
-        return {
-                pageSize, pageSlot,
+const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
+        if (uuid) {
+                fetchChatSnapshot(uuid).then((data) => {
+                        emit('usePrompt', key, data.conversation[0].text)
+                })
+        } else {
+                emit('usePrompt', key, prompt)
         }
-})
-
-const maxHeight = computed(() => {
-        return isMobile.value ? 400 : 600
-})
-
-// table相关
-const createColumns = (): DataTableColumns<DataProps> => {
-        return [
-                {
-                        title: '提示词标题',
-                        key: 'renderKey',
-                        minWidth: 100,
-                },
-                {
-                        title: '内容',
-                        key: 'renderValue',
-                },
-
-                {
-                        title: '操作',
-                        key: 'actions',
-                        width: 100,
-                        align: 'center',
-                        render(row) {
-                                return h('div', { class: 'flex items-center flex-col gap-2' }, {
-                                        default: () => [h(
-                                                NButton,
-                                                {
-                                                        tertiary: true,
-                                                        size: 'small',
-                                                        type: 'info',
-                                                        onClick: () => actionUsePrompt('modify', row),
-                                                },
-                                                { default: () => '使用' },
-                                        ),
-                                        ],
-                                })
-                        },
-                },
-        ]
 }
-const columns = createColumns()
+
 </script>
+
 <template>
-        <NDataTable  :max-height="maxHeight" :columns="columns" :data="renderTemplate()" :pagination="pagination"
-                :bordered="false" />
+        <NTabs type="line" animated>
+                <NTabPane v-if="botPrompts.length > 0" name="bots">
+                        <template #tab>
+                                <div class="flex items-center gap-1">
+                                        <SvgIcon icon="majesticons:robot-line" class="w-4 h-4" />
+                                        <span>{{ t('bot.list') }}</span>
+                                </div>
+                        </template>
+                        <div class="mt-4">
+                                <PromptCards :prompts="botPrompts" @usePrompt="handleUsePrompt" />
+                        </div>
+                </NTabPane>
+                <NTabPane name="prompts">
+                        <template #tab>
+                                <div class="flex items-center gap-1">
+                                        <SvgIcon icon="ri:lightbulb-line" class="w-4 h-4" />
+                                        <span> {{ t('prompt.store') }}</span>
+                                </div>
+                        </template>
+                        <div class="mt-4">
+                                <PromptCards :prompts="promptStore.promptList" @usePrompt="handleUsePrompt" />
+                        </div>
+                </NTabPane>
+        </NTabs>
 </template>
