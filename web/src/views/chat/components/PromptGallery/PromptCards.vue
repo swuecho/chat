@@ -25,9 +25,10 @@ const emit = defineEmits<{
       :key="prompt.key"
       hoverable
       embedded
+      class="hover:shadow-lg transition-shadow duration-200 dark:bg-neutral-800"
     >
       <template #header>
-        <div class="line-clamp-1 overflow-hidden text-ellipsis">
+        <div class="line-clamp-1 overflow-hidden text-ellipsis font-medium text-gray-900 dark:text-gray-100">
           {{ prompt.key }}
         </div>
       </template>
@@ -35,12 +36,13 @@ const emit = defineEmits<{
         <NButton
           type="primary"
           size="small"
+          class="!bg-primary-500 hover:!bg-primary-600 dark:!bg-primary-600 dark:hover:!bg-primary-700"
           @click="emit('usePrompt', prompt.key, prompt.value, prompt?.uuid)"
         >
           使用
         </NButton>
       </template>
-      <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis">
+      <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis text-gray-600 dark:text-gray-300">
         {{ prompt.value }}
       </div>
     </NCard>
