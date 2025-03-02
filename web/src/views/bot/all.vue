@@ -143,15 +143,16 @@ function postUrl(uuid: string): string {
                   </a>
                 </div>
                 <div class="flex space-x-2">
-                  <button @click.stop="handleShowCode(post)" 
-                    class="p-1 text-gray-500 hover:text-blue-600 transition-colors"
-                    :title="t('bot.showCode')">
-                    <SvgIcon icon="ic:outline-code" class="w-5 h-5" />
-                  </button>
+                  
                   <button @click.stop="handleDelete(post)" 
                     class="p-1 text-gray-500 hover:text-red-600 transition-colors"
                     :title="t('common.delete')">
                     <SvgIcon icon="ic:baseline-delete-forever" class="w-5 h-5" />
+                  </button>
+                  <button @click.stop="handleShowCode(post)" 
+                    class="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                    :title="t('bot.showCode')">
+                    <SvgIcon icon="ic:outline-code" class="w-5 h-5" />
                   </button>
                 </div>
               </div>
