@@ -59,11 +59,19 @@ function handleShowCode(post: Snapshot.PostLink) {
     title: t('bot.showCode'),
     content: () => h('code', { class: 'whitespace-pre-wrap' }, code),
     positiveText: t('common.copy'),
-    onPositiveClick: () => {
-      // copy to clipboard
-      navigator.clipboard.writeText(code)
-      dialogBox.loading = false
-      message.success(t('common.success'))
+    onPositiveClick: async () => {
+      try {
+        if (!navigator.clipboard) {
+          throw new Error('Clipboard API not available')
+        }
+        await navigator.clipboard.writeText(code)
+        message.success(t('common.success'))
+      } catch (error) {
+        message.error(t('common.copyFailed'))
+        console.error('Failed to copy:', error)
+      } finally {
+        dialogBox.loading = false
+      }
     },
   })
 }
