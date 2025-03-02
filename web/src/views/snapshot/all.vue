@@ -56,8 +56,8 @@ function handleDelete(post: Snapshot.PostLink) {
   <div class="flex flex-col w-full h-full dark:text-white">
     <header
       class="flex items-center justify-between h-16 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur">
-      <div class="flex items-center ml-10">
-        <svg class="w-8 h-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+      <div class="flex items-center ml-10 gap-2">
+        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -92,8 +92,8 @@ function handleDelete(post: Snapshot.PostLink) {
                   <time :datetime="post.date" class="text-sm font-medium text-gray-600">{{
                   post.date
                   }}</time>
-                  <div class="ml-2 text-sm flex items-center" @click="handleDelete(post)">
-                  <SvgIcon icon="ic:baseline-delete-forever" />
+                  <div class="ml-2 text-sm flex items-center cursor-pointer" @click="handleDelete(post)">
+                    <SvgIcon icon="ic:baseline-delete-forever" class="w-5 h-5" />
                   </div>
                 </div>
                 <a :href="postUrl(post.uuid)" :title="post.title"
