@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
-import { NCard, NButton, NSpace } from 'naive-ui'
+import { NCard, NButton, NSpace, NTabs, NTabPane } from 'naive-ui'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { usePromptStore } from '@/store/modules'
 import { fetchChatSnapshot, fetchSnapshotAll } from '@/api'
@@ -20,66 +20,81 @@ const { data: bots } = useQuery({
   queryFn: async () => await fetchSnapshotAll(),
 })
 
-
-// Combine bots and prompts
 interface Bot {
   title: string
   uuid: string
   typ: string
 }
 
-const promptList = computed(() => {
-  const botPrompts = (bots.value || []).filter((bot: Bot) => bot.typ='chatbot').
-  map((bot: Bot) => ({
-    key: bot.title,
-    uuid: bot.uuid,
-    value: ''
-  }))
-  
-  return [...botPrompts, ...promptStore.promptList]
+// Get bot prompts
+const botPrompts = computed(() => {
+  return (bots.value || [])
+    .filter((bot: Bot) => bot.typ === 'chatbot')
+    .map((bot: Bot) => ({
+      key: bot.title,
+      uuid: bot.uuid,
+      value: ''
+    }))
 })
 
 const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
-        if (uuid) {
-          fetchChatSnapshot(uuid).then((data) => {
-            emit('usePrompt', key, data.conversation[0].text)
-          })
-        } else {
-          emit('usePrompt', key, prompt)
-        }
+  if (uuid) {
+    fetchChatSnapshot(uuid).then((data) => {
+      emit('usePrompt', key, data.conversation[0].text)
+    })
+  } else {
+    emit('usePrompt', key, prompt)
+  }
 }
 
-</script>
-
-<template>
-  <NSpace vertical>
-    <NSpace
-      :wrap="true"
-      :wrap-item="true"
-      :size="[16, 16]"
-      :item-style="{ width: isMobile ? '100%' : 'calc(50% - 8px)' }"
-    >
+const renderPromptCards = (prompts: any[]) => (
+  <NSpace
+    :wrap="true"
+    :wrap-item="true"
+    :size="[16, 16]"
+    :item-style="{ width: isMobile ? '100%' : 'calc(50% - 8px)' }"
+  >
+    {prompts.map(prompt => (
       <NCard
-        v-for="prompt in promptList"
-        :key="prompt.key"
-        :title="prompt.key"
+        key={prompt.key}
+        title={prompt.key}
         hoverable
         embedded
       >
-        <template #header-extra>
-          <NButton
-            type="primary"
-            size="small"
-            @click="handleUsePrompt(prompt.key, prompt.value, prompt?.uuid)"
-          >
-            使用
-          </NButton>
-        </template>
-        <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis">
-          {{  prompt.value }}
-        </div>
+        {{
+          headerExtra: () => (
+            <NButton
+              type="primary"
+              size="small"
+              onClick={() => handleUsePrompt(prompt.key, prompt.value, prompt?.uuid)}
+            >
+              使用
+            </NButton>
+          ),
+          default: () => (
+            <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis">
+              {prompt.value}
+            </div>
+          )
+        }}
       </NCard>
-    </NSpace>
+    ))}
   </NSpace>
+)
+</script>
+
+<template>
+  <NTabs type="line" animated>
+    <NTabPane v-if="botPrompts.length > 0" name="bots" tab="Bots">
+      <div class="mt-4">
+        {{ renderPromptCards(botPrompts) }}
+      </div>
+    </NTabPane>
+    <NTabPane name="prompts" tab="Prompts">
+      <div class="mt-4">
+        {{ renderPromptCards(promptStore.promptList) }}
+      </div>
+    </NTabPane>
+  </NTabs>
 </template>
 
