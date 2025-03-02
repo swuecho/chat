@@ -44,7 +44,7 @@ const handleUsePrompt = (key: string, prompt: string) => {
           </NButton>
         </template>
         <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis">
-          {{ prompt.value.length > 100 ? prompt.value.substring(0, 100) + '...' : prompt.value }}
+          {{  prompt.value }}
         </div>
       </NCard>
     </NSpace>
