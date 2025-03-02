@@ -1,8 +1,10 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { NCard, NButton, NSpace } from 'naive-ui'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { usePromptStore } from '@/store/modules'
+import { fetchSnapshotAll } from '@/api'
+import { useQuery } from '@tanstack/vue-query'
 
 interface Emit {
   (ev: 'usePrompt', key: string, prompt: string): void
@@ -11,7 +13,22 @@ interface Emit {
 const emit = defineEmits<Emit>()
 const { isMobile } = useBasicLayout()
 const promptStore = usePromptStore()
-const promptList = ref(promptStore.promptList)
+
+// Fetch bots data
+const { data: bots } = useQuery({
+  queryKey: ['bots'],
+  queryFn: async () => await fetchSnapshotAll(),
+})
+
+// Combine bots and prompts
+const promptList = computed(() => {
+  const botPrompts = (bots.value || []).map(bot => ({
+    key: bot.title,
+    value: bot.conversation[0]?.text || ''
+  }))
+  
+  return [...botPrompts, ...promptStore.promptList]
+})
 
 const handleUsePrompt = (key: string, prompt: string) => {
   emit('usePrompt', key, prompt)
