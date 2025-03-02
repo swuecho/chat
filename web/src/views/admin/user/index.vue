@@ -5,12 +5,15 @@
 // The Rate Limit column should be editable, and the value should be updated in the backend using api 'UpdateRateLimit(user_email, rate_limit)'
 // vue3 code should be in <script lang="ts" setup> style.
 import { h, onMounted, reactive, ref } from 'vue'
-import { NDataTable, NInput, useMessage } from 'naive-ui'
+import { NDataTable, NInput, useMessage, NButton, NModal, NForm, NFormItem, useDialog, NCard } from 'naive-ui'
 import { GetUserData, UpdateRateLimit, updateUserFullName } from '@/api'
 import { t } from '@/locales'
 import HoverButton from '@/components/common/HoverButton/index.vue'
 
 const ms_ui = useMessage()
+
+const showEditModal = ref(false)
+const editingUser = ref<UserData | null>(null)
 
 interface UserData {
   email: string
@@ -30,44 +33,39 @@ const columns = [
   {
     title: t('admin.userEmail'),
     key: 'email',
-    width: 400,
+    width: 200,
 
   },
   {
-    title: t('admin.lastName'),
-    key: 'lastName',
+    title: t('admin.name'),
+    key: 'name',
     width: 100,
-    render: (row: any, index: number) => {
-      return h(NInput, {
-        value: row.lastName,
-        width: 50,
-        async onUpdateValue(v: string) {
-          tableData.value[index].lastName = v
-          // todo: update username
-          await updateUserFullName({ firstName: row.firstName, lastName: row.lastName, email: row.email })
-          console.log(v)
-        },
-      })
-    },
-  },
-  {
-    title: t('admin.firstName'),
-    key: 'firstName',
-    width: 100,
-    render: (row: any, index: number) => {
-      return h(NInput, {
-        value: row.firstName,
-        width: 50,
-        async onUpdateValue(v: string) {
-          tableData.value[index].firstName = v
-          // todo: update username
-          console.log(v)
-          await updateUserFullName({ firstName: row.firstName, lastName: row.lastName, email: row.email })
-        },
-      })
-    },
+    render: (row: UserData) => {
+      return h('span', `${row.lastName} ${row.firstName}`)
+    }
   },
 
+  {
+    title: t('admin.rateLimit10Min'),
+    key: 'rateLimit',
+    width: 100,
+  },
+  {
+    title: t('common.actions'),
+    key: 'actions',
+    width: 100,
+    render: (row: UserData) => {
+      return h(NButton, {
+        size: 'small',
+        onClick: () => {
+          editingUser.value = { ...row }
+          showEditModal.value = true
+        }
+      }, {
+        default: () => t('common.edit')
+      })
+    }
+  },
   {
     title: t('admin.totalChatMessages'),
     key: 'totalChatMessages',
@@ -93,27 +91,7 @@ const columns = [
     key: 'avgChatMessages3DaysTokenCount',
     width: 100,
   },
-  {
-    title: t('admin.rateLimit10Min'),
-    key: 'rateLimit',
-    width: 100,
-    render: (row: any, index: number) => {
-      return h(NInput, {
-        value: row.rateLimit.toString(),
-        width: 50,
-        async onUpdateValue(v: string) {
-          try {
-            tableData.value[index].rateLimit = v
-            const new_limit = parseInt(v) ?? 0
-            await UpdateRateLimit(row.email, new_limit)
-          }
-          catch (error: any) {
-            ms_ui.error(error)
-          }
-        },
-      })
-    },
-  },
+
 ]
 
 const pagination = reactive({
@@ -157,20 +135,61 @@ onMounted(() => {
 async function handleRefresh() {
   await fetchData()
 }
+
+async function handleSave() {
+  if (!editingUser.value) return
+
+  try {
+    await updateUserFullName({
+      firstName: editingUser.value.firstName,
+      lastName: editingUser.value.lastName,
+      email: editingUser.value.email
+    })
+    await UpdateRateLimit(editingUser.value.email, parseInt(editingUser.value.rateLimit))
+    ms_ui.success(t('common.updateSuccess'))
+    showEditModal.value = false
+    await fetchData()
+  } catch (error: any) {
+    ms_ui.error(error.message || t('common.updateFailed'))
+  }
+}
 </script>
 
 <template>
-    <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
-      <HoverButton :tooltip="$t('admin.refresh')" @click="handleRefresh" class="mr-10">
-        <span class="text-xl text-[#4f555e] dark:text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-            <path fill="currentColor"
-              d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
-          </svg>
-        </span>
-      </HoverButton>
-    </div>
-    <div class="m-5">
-      <NDataTable :loading="loading" remote :data="tableData" :columns="columns" :pagination="pagination" />
-    </div>
+  <NModal v-model:show="showEditModal">
+    <NCard style="width: 600px" :title="t('common.editUser')" :bordered="false" size="huge">
+      <NForm label-placement="left" label-width="auto">
+        <NFormItem :label="t('admin.lastName')">
+          <NInput v-model:value="editingUser!.lastName" />
+        </NFormItem>
+        <NFormItem :label="t('admin.firstName')">
+          <NInput v-model:value="editingUser!.firstName" />
+        </NFormItem>
+        <NFormItem :label="t('admin.rateLimit10Min')">
+          <NInput v-model:value="editingUser!.rateLimit" />
+        </NFormItem>
+        <div class="flex justify-end gap-4">
+          <NButton  @click="showEditModal = false">
+            {{ t('common.cancel') }}
+          </NButton>
+          <NButton type="primary" @click="handleSave">
+            {{ t('common.save') }}
+          </NButton>
+        </div>
+      </NForm>
+    </NCard>
+  </NModal>
+  <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
+    <HoverButton :tooltip="$t('admin.refresh')" @click="handleRefresh" class="mr-10">
+      <span class="text-xl text-[#4f555e] dark:text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+          <path fill="currentColor"
+            d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+        </svg>
+      </span>
+    </HoverButton>
+  </div>
+  <div class="m-5">
+    <NDataTable :loading="loading" remote :data="tableData" :columns="columns" :pagination="pagination" />
+  </div>
 </template>

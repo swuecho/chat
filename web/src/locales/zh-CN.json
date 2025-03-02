@@ -4,7 +4,9 @@
     "help": "第一条是主题(prompt, 角色定义), 上下文默认包括10条信息, 参数可以点击按钮进行调节, 请务必注意隐私, 不输入涉密, 敏感信息.",
     "copy": "复制",
     "edit": "编辑",
-    "delete": "删除",
+    "editUser": "编辑用户",
+    "delete": "删除", 
+    "actions": "操作",
     "warning": "警告",
     "save": "保存",
     "reset": "重置",
@@ -182,7 +184,8 @@
       "actions": "操作"
     },
     "model_one_default_only": "只能有一个默认模型, 请先设置其他模型为非默认",
-    "rateLimit10Min": "消息数量上限(10分钟)"
+    "rateLimit10Min": "消息数量上限(10分钟)",
+    "name": "姓名"
   },
   "setting": {
     "setting": "设置",

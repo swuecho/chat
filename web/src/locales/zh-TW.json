@@ -136,6 +136,7 @@
         "copy": "複製",
         "delete": "刪除",
         "edit": "編輯",
+        "editUser": "編輯用戶", 
         "email": "郵箱",
         "email_placeholder": "請輸入電子郵件",
         "export": "匯出",
