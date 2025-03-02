@@ -23,10 +23,14 @@ const emit = defineEmits<{
     <NCard
       v-for="prompt in prompts"
       :key="prompt.key"
-      :title="prompt.key"
       hoverable
       embedded
     >
+      <template #header>
+        <div class="line-clamp-1 overflow-hidden text-ellipsis">
+          {{ prompt.key }}
+        </div>
+      </template>
       <template #header-extra>
         <NButton
           type="primary"
