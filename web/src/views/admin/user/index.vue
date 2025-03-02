@@ -38,14 +38,12 @@ const columns = [
 
   },
   {
-    title: t('admin.lastName'),
-    key: 'lastName',
-    width: 100,
-  },
-  {
-    title: t('admin.firstName'),
-    key: 'firstName',
-    width: 100,
+    title: t('admin.name'),
+    key: 'name',
+    width: 200,
+    render: (row: UserData) => {
+      return h('span', `${row.firstName} ${row.lastName}`)
+    }
   },
   {
     title: t('common.actions'),
