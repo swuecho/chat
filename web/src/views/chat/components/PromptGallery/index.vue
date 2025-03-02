@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { NCard, NButton, NSpace } from 'naive-ui'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { usePromptStore } from '@/store/modules'
-import { fetchSnapshotAll } from '@/api'
+import { fetchChatSnapshot, fetchSnapshotAll } from '@/api'
 import { useQuery } from '@tanstack/vue-query'
 
 interface Emit {
@@ -20,18 +20,33 @@ const { data: bots } = useQuery({
   queryFn: async () => await fetchSnapshotAll(),
 })
 
+
 // Combine bots and prompts
+interface Bot {
+  title: string
+  uuid: string
+  typ: string
+}
+
 const promptList = computed(() => {
-  const botPrompts = (bots.value || []).map(bot => ({
+  const botPrompts = (bots.value || []).filter((bot: Bot) => bot.typ='chatbot').
+  map((bot: Bot) => ({
     key: bot.title,
-    value: bot.conversation[0]?.text || ''
+    uuid: bot.uuid,
+    value: ''
   }))
   
   return [...botPrompts, ...promptStore.promptList]
 })
 
-const handleUsePrompt = (key: string, prompt: string) => {
-  emit('usePrompt', key, prompt)
+const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
+        if (uuid) {
+          fetchChatSnapshot(uuid).then((data) => {
+            emit('usePrompt', key, data.conversation[0].text)
+          })
+        } else {
+          emit('usePrompt', key, prompt)
+        }
 }
 
 </script>
@@ -55,7 +70,7 @@ const handleUsePrompt = (key: string, prompt: string) => {
           <NButton
             type="primary"
             size="small"
-            @click="handleUsePrompt(prompt.key, prompt.value)"
+            @click="handleUsePrompt(prompt.key, prompt.value, prompt?.uuid)"
           >
             使用
           </NButton>
