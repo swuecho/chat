@@ -39,7 +39,7 @@ const emit = defineEmits<{
           class="!bg-primary-500 hover:!bg-primary-600 dark:!bg-primary-600 dark:hover:!bg-primary-700"
           @click="emit('usePrompt', prompt.key, prompt.value, prompt?.uuid)"
         >
-          使用
+        {{ $t('common.use') }}
         </NButton>
       </template>
       <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis text-gray-600 dark:text-gray-300">
