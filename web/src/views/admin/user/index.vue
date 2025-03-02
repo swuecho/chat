@@ -5,12 +5,16 @@
 // The Rate Limit column should be editable, and the value should be updated in the backend using api 'UpdateRateLimit(user_email, rate_limit)'
 // vue3 code should be in <script lang="ts" setup> style.
 import { h, onMounted, reactive, ref } from 'vue'
-import { NDataTable, NInput, useMessage } from 'naive-ui'
+import { NDataTable, NInput, useMessage, NButton, NModal, NForm, NFormItem, useDialog } from 'naive-ui'
 import { GetUserData, UpdateRateLimit, updateUserFullName } from '@/api'
 import { t } from '@/locales'
 import HoverButton from '@/components/common/HoverButton/index.vue'
 
 const ms_ui = useMessage()
+const dialog = useDialog()
+
+const showEditModal = ref(false)
+const editingUser = ref<UserData | null>(null)
 
 interface UserData {
   email: string
@@ -37,35 +41,27 @@ const columns = [
     title: t('admin.lastName'),
     key: 'lastName',
     width: 100,
-    render: (row: any, index: number) => {
-      return h(NInput, {
-        value: row.lastName,
-        width: 50,
-        async onUpdateValue(v: string) {
-          tableData.value[index].lastName = v
-          // todo: update username
-          await updateUserFullName({ firstName: row.firstName, lastName: row.lastName, email: row.email })
-          console.log(v)
-        },
-      })
-    },
   },
   {
     title: t('admin.firstName'),
     key: 'firstName',
     width: 100,
-    render: (row: any, index: number) => {
-      return h(NInput, {
-        value: row.firstName,
-        width: 50,
-        async onUpdateValue(v: string) {
-          tableData.value[index].firstName = v
-          // todo: update username
-          console.log(v)
-          await updateUserFullName({ firstName: row.firstName, lastName: row.lastName, email: row.email })
-        },
+  },
+  {
+    title: t('common.actions'),
+    key: 'actions',
+    width: 100,
+    render: (row: UserData) => {
+      return h(NButton, {
+        size: 'small',
+        onClick: () => {
+          editingUser.value = { ...row }
+          showEditModal.value = true
+        }
+      }, {
+        default: () => t('common.edit')
       })
-    },
+    }
   },
 
   {
