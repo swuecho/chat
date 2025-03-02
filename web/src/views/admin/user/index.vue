@@ -154,29 +154,21 @@ async function handleRefresh() {
   await fetchData()
 }
 
-function handleSave() {
+async function handleSave() {
   if (!editingUser.value) return
   
-  dialog.warning({
-    title: t('common.confirm'),
-    content: t('admin.confirmUpdateUser'),
-    positiveText: t('common.confirm'),
-    negativeText: t('common.cancel'),
-    async onPositiveClick() {
-      try {
-        await updateUserFullName({
-          firstName: editingUser.value!.firstName,
-          lastName: editingUser.value!.lastName,
-          email: editingUser.value!.email
-        })
-        ms_ui.success(t('common.updateSuccess'))
-        showEditModal.value = false
-        await fetchData()
-      } catch (error: any) {
-        ms_ui.error(error.message || t('common.updateFailed'))
-      }
-    }
-  })
+  try {
+    await updateUserFullName({
+      firstName: editingUser.value.firstName,
+      lastName: editingUser.value.lastName,
+      email: editingUser.value.email
+    })
+    ms_ui.success(t('common.updateSuccess'))
+    showEditModal.value = false
+    await fetchData()
+  } catch (error: any) {
+    ms_ui.error(error.message || t('common.updateFailed'))
+  }
 }
 </script>
 
@@ -185,10 +177,10 @@ function handleSave() {
     <NCard style="width: 600px" :title="t('common.editUser')" :bordered="false" size="huge">
       <NForm label-placement="left" label-width="auto">
         <NFormItem :label="t('admin.firstName')">
-          <NInput v-model:value="editingUser!.firstName" />
+          <NInput v-model:value="editingUser.firstName" />
         </NFormItem>
         <NFormItem :label="t('admin.lastName')">
-          <NInput v-model:value="editingUser!.lastName" />
+          <NInput v-model:value="editingUser.lastName" />
         </NFormItem>
         <div class="flex justify-end">
           <NButton class="mr-4" @click="showEditModal = false">
