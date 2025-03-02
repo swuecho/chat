@@ -17,7 +17,8 @@
 
 ![image](https://github.com/user-attachments/assets/5b3751e4-eaa1-4a79-b47a-9b073c63eb04)
 
-<img width="850" alt="bot list" src="https://github.com/user-attachments/assets/4c268945-b1ed-4599-9732-62c19ef461c4" />
+<img width="850" alt="image" src="https://github.com/user-attachments/assets/13b0aff8-93c4-4406-acce-b48389ae0c88" />
+
 <img width="850" alt="chat records" src="https://github.com/swuecho/chat/assets/666683/45dd865e-7f9f-4209-8587-4781e37dd928">
 
 
