@@ -159,17 +159,17 @@ async function handleSave() {
   <NModal v-model:show="showEditModal">
     <NCard style="width: 600px" :title="t('common.editUser')" :bordered="false" size="huge">
       <NForm label-placement="left" label-width="auto">
-        <NFormItem :label="t('admin.firstName')">
-          <NInput v-model:value="editingUser!.firstName" />
-        </NFormItem>
         <NFormItem :label="t('admin.lastName')">
           <NInput v-model:value="editingUser!.lastName" />
+        </NFormItem>
+        <NFormItem :label="t('admin.firstName')">
+          <NInput v-model:value="editingUser!.firstName" />
         </NFormItem>
         <NFormItem :label="t('admin.rateLimit10Min')">
           <NInput v-model:value="editingUser!.rateLimit" />
         </NFormItem>
-        <div class="flex justify-end">
-          <NButton class="mr-4" @click="showEditModal = false">
+        <div class="flex justify-end gap-4">
+          <NButton  @click="showEditModal = false">
             {{ t('common.cancel') }}
           </NButton>
           <NButton type="primary" @click="handleSave">
