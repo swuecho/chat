@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { NCard, NButton, NSpace } from 'naive-ui'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
+import { SvgIcon } from '@/components/common'
 
 const { isMobile } = useBasicLayout()
 
@@ -40,7 +41,6 @@ const emit = defineEmits<{
           @click="emit('usePrompt', prompt.key, prompt.value, prompt?.uuid)"
         >
         <SvgIcon icon="material-symbols:play-arrow" class="w-4 h-4 mr-1" />
-        {{ $t('common.use') }}
         </NButton>
       </template>
       <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis text-gray-600 dark:text-gray-300">
