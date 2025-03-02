@@ -47,52 +47,19 @@ const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
   }
 }
 
-const renderPromptCards = (prompts: any[]) => (
-  <NSpace
-    :wrap="true"
-    :wrap-item="true"
-    :size="[16, 16]"
-    :item-style="{ width: isMobile ? '100%' : 'calc(50% - 8px)' }"
-  >
-    {prompts.map(prompt => (
-      <NCard
-        key={prompt.key}
-        title={prompt.key}
-        hoverable
-        embedded
-      >
-        {{
-          headerExtra: () => (
-            <NButton
-              type="primary"
-              size="small"
-              onClick={() => handleUsePrompt(prompt.key, prompt.value, prompt?.uuid)}
-            >
-              使用
-            </NButton>
-          ),
-          default: () => (
-            <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis">
-              {prompt.value}
-            </div>
-          )
-        }}
-      </NCard>
-    ))}
-  </NSpace>
-)
+import PromptCards from './PromptCards.vue'
 </script>
 
 <template>
   <NTabs type="line" animated>
     <NTabPane v-if="botPrompts.length > 0" name="bots" tab="Bots">
       <div class="mt-4">
-        {{ renderPromptCards(botPrompts) }}
+        <PromptCards :prompts="botPrompts" @usePrompt="handleUsePrompt" />
       </div>
     </NTabPane>
     <NTabPane name="prompts" tab="Prompts">
       <div class="mt-4">
-        {{ renderPromptCards(promptStore.promptList) }}
+        <PromptCards :prompts="promptStore.promptList" @usePrompt="handleUsePrompt" />
       </div>
     </NTabPane>
   </NTabs>
