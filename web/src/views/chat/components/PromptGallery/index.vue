@@ -5,6 +5,9 @@ import { usePromptStore } from '@/store/modules'
 import { fetchChatSnapshot, fetchSnapshotAll } from '@/api'
 import { useQuery } from '@tanstack/vue-query'
 import PromptCards from './PromptCards.vue'
+import { SvgIcon } from '@/components/common'
+import { t } from '@/locales'
+
 
 interface Emit {
         (ev: 'usePrompt', key: string, prompt: string): void
@@ -51,23 +54,23 @@ const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
 <template>
         <NTabs type="line" animated>
                 <NTabPane v-if="botPrompts.length > 0" name="bots">
-                  <template #tab>
-                    <div class="flex items-center gap-1">
-                      <SvgIcon icon="majesticons:robot-line" class="w-4 h-4" />
-                      <span>Bots</span>
-                    </div>
-                  </template>
+                        <template #tab>
+                                <div class="flex items-center gap-1">
+                                        <SvgIcon icon="majesticons:robot-line" class="w-4 h-4" />
+                                        <span>{{ t('bot.list') }}</span>
+                                </div>
+                        </template>
                         <div class="mt-4">
                                 <PromptCards :prompts="botPrompts" @usePrompt="handleUsePrompt" />
                         </div>
                 </NTabPane>
                 <NTabPane name="prompts">
-                  <template #tab>
-                    <div class="flex items-center gap-1">
-                      <SvgIcon icon="ri:lightbulb-line" class="w-4 h-4" />
-                      <span>Prompts</span>
-                    </div>
-                  </template>
+                        <template #tab>
+                                <div class="flex items-center gap-1">
+                                        <SvgIcon icon="ri:lightbulb-line" class="w-4 h-4" />
+                                        <span> {{ t('prompt.store') }}</span>
+                                </div>
+                        </template>
                         <div class="mt-4">
                                 <PromptCards :prompts="promptStore.promptList" @usePrompt="handleUsePrompt" />
                         </div>
