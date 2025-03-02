@@ -43,7 +43,7 @@ const handleUsePrompt = (key: string, prompt: string) => {
             使用
           </NButton>
         </template>
-        <div class="prompt-value">
+        <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis">
           {{ prompt.value.length > 100 ? prompt.value.substring(0, 100) + '...' : prompt.value }}
         </div>
       </NCard>
@@ -51,14 +51,3 @@ const handleUsePrompt = (key: string, prompt: string) => {
   </NSpace>
 </template>
 
-<style scoped>
-.prompt-value {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;  
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.5;
-  max-height: 3em;
-}
-</style>
