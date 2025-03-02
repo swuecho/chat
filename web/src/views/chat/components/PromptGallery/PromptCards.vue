@@ -39,6 +39,7 @@ const emit = defineEmits<{
           class="!bg-primary-500 hover:!bg-primary-600 dark:!bg-primary-600 dark:hover:!bg-primary-700"
           @click="emit('usePrompt', prompt.key, prompt.value, prompt?.uuid)"
         >
+        <SvgIcon icon="material-symbols:play-arrow" class="w-4 h-4 mr-1" />
         {{ $t('common.use') }}
         </NButton>
       </template>
