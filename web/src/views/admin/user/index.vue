@@ -34,16 +34,38 @@ const columns = [
   {
     title: t('admin.userEmail'),
     key: 'email',
-    width: 400,
+    width: 200,
 
   },
   {
     title: t('admin.name'),
     key: 'name',
-    width: 200,
+    width: 100,
     render: (row: UserData) => {
       return h('span', `${row.firstName} ${row.lastName}`)
     }
+  },
+
+  {
+    title: t('admin.rateLimit10Min'),
+    key: 'rateLimit',
+    width: 100,
+    render: (row: any, index: number) => {
+      return h(NInput, {
+        value: row.rateLimit.toString(),
+        width: 50,
+        async onUpdateValue(v: string) {
+          try {
+            tableData.value[index].rateLimit = v
+            const new_limit = parseInt(v) ?? 0
+            await UpdateRateLimit(row.email, new_limit)
+          }
+          catch (error: any) {
+            ms_ui.error(error)
+          }
+        },
+      })
+    },
   },
   {
     title: t('common.actions'),
@@ -87,27 +109,7 @@ const columns = [
     key: 'avgChatMessages3DaysTokenCount',
     width: 100,
   },
-  {
-    title: t('admin.rateLimit10Min'),
-    key: 'rateLimit',
-    width: 100,
-    render: (row: any, index: number) => {
-      return h(NInput, {
-        value: row.rateLimit.toString(),
-        width: 50,
-        async onUpdateValue(v: string) {
-          try {
-            tableData.value[index].rateLimit = v
-            const new_limit = parseInt(v) ?? 0
-            await UpdateRateLimit(row.email, new_limit)
-          }
-          catch (error: any) {
-            ms_ui.error(error)
-          }
-        },
-      })
-    },
-  },
+  
 ]
 
 const pagination = reactive({
