@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, useMessage, NBadge, useDialog } from 'naive-ui'
-import { t } from '@/locales'
+import { t  } from '@/locales'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { updateChatModel, deleteChatModel } from '@/api'
 
@@ -33,7 +33,7 @@ function handleUpdate() {
       id: editData.value.id,
       data: {
         ...editData.value,
-        orderNumber: parseInt(editData.value.orderNumber.toString() || '0'),
+        orderNumber: parseInt(editData.value.orderNumber?.toString() || '0'),
         defaultToken: parseInt(editData.value.defaultToken || '0'),
         maxToken: parseInt(editData.value.maxToken || '0'),
       }
@@ -60,11 +60,11 @@ function handleDelete() {
   if (editData.value.id) {
     dialog.warning({
       title: t('common.warning'),
-      content: t('admin.chat_model.delete_confirm'),
+      content: t('admin.chat_model.deleteModelConfirm', { name: editData.value.name}),
       positiveText: t('common.confirm'),
       negativeText: t('common.cancel'),
       onPositiveClick: () => {
-        deteteModelMutation.mutate(editData.value.id)
+        deteteModelMutation.mutate(editData.value.id ?? 0)
       }
     })
   }
