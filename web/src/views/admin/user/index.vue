@@ -41,7 +41,7 @@ const columns = [
     key: 'name',
     width: 100,
     render: (row: UserData) => {
-      return h('span', `${row.lastName} ${row.firstName}`)
+      return h('span', `${row.lastName}${row.firstName}`)
     }
   },
 
