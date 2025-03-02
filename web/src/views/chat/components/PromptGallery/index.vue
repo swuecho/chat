@@ -1,16 +1,21 @@
 <script lang="ts" setup>
-import { computed, ref, h } from 'vue'
-import { DataTableColumns, NButton, NDataTable } from 'naive-ui'
+import { ref } from 'vue'
+import { NCard, NButton, NSpace } from 'naive-ui'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { usePromptStore } from '@/store/modules'
-import { isASCII } from '@/utils/is'
-
 
 interface Emit {
-        (ev: 'usePrompt', key: string, prompt: string): void
+  (ev: 'usePrompt', key: string, prompt: string): void
 }
 
 const emit = defineEmits<Emit>()
+const { isMobile } = useBasicLayout()
+const promptStore = usePromptStore()
+const promptList = ref(promptStore.promptList)
+
+const handleUsePrompt = (key: string, prompt: string) => {
+  emit('usePrompt', key, prompt)
+}
 
 
 
@@ -27,77 +32,34 @@ interface DataProps {
         value: string
 }
 
-// 移动端自适应相关
-const renderTemplate = () => {
-  const [keyLimit, valueLimit] = isMobile.value ? [6, 9] : [15, 50]
-  return promptList.value.map((item: { key: string; value: string }) => {
-    let factor = isASCII(item.key) ? 10 : 1
-    return {
-      renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit * factor)}...`,
-      renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit * factor)}...`,
-      key: item.key,
-      value: item.value,
-    }
-  })
-}
-
-const actionUsePrompt = (type: string, row: any) => {
-        console.log(type, row)
-        console.log(row.key, row.value)
-        emit('usePrompt', row.key, row.value)
-}
-
-
-const pagination = computed(() => {
-        const [pageSize, pageSlot] = isMobile.value ? [10, 5] : [20, 15]
-        return {
-                pageSize, pageSlot,
-        }
-})
-
-const maxHeight = computed(() => {
-        return isMobile.value ? 400 : 600
-})
-
-// table相关
-const createColumns = (): DataTableColumns<DataProps> => {
-        return [
-                {
-                        title: '提示词标题',
-                        key: 'renderKey',
-                        minWidth: 100,
-                },
-                {
-                        title: '内容',
-                        key: 'renderValue',
-                },
-
-                {
-                        title: '操作',
-                        key: 'actions',
-                        width: 100,
-                        align: 'center',
-                        render(row) {
-                                return h('div', { class: 'flex items-center flex-col gap-2' }, {
-                                        default: () => [h(
-                                                NButton,
-                                                {
-                                                        tertiary: true,
-                                                        size: 'small',
-                                                        type: 'info',
-                                                        onClick: () => actionUsePrompt('modify', row),
-                                                },
-                                                { default: () => '使用' },
-                                        ),
-                                        ],
-                                })
-                        },
-                },
-        ]
-}
-const columns = createColumns()
 </script>
+
 <template>
-        <NDataTable  :max-height="maxHeight" :columns="columns" :data="renderTemplate()" :pagination="pagination"
-                :bordered="false" />
+  <NSpace vertical>
+    <NSpace
+      :wrap="true"
+      :wrap-item="true"
+      :size="[16, 16]"
+      :item-style="{ width: isMobile ? '100%' : 'calc(50% - 8px)' }"
+    >
+      <NCard
+        v-for="prompt in promptList"
+        :key="prompt.key"
+        :title="prompt.key"
+        hoverable
+        embedded
+      >
+        <template #header-extra>
+          <NButton
+            type="primary"
+            size="small"
+            @click="handleUsePrompt(prompt.key, prompt.value)"
+          >
+            使用
+          </NButton>
+        </template>
+        {{ prompt.value }}
+      </NCard>
+    </NSpace>
+  </NSpace>
 </template>
