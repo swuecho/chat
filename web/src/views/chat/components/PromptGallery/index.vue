@@ -17,21 +17,6 @@ const handleUsePrompt = (key: string, prompt: string) => {
   emit('usePrompt', key, prompt)
 }
 
-
-
-// 移动端自适应相关
-const { isMobile } = useBasicLayout()
-
-const promptStore = usePromptStore()
-const promptList = ref<any>(promptStore.promptList)
-
-interface DataProps {
-        renderKey: string
-        renderValue: string
-        key: string
-        value: string
-}
-
 </script>
 
 <template>
