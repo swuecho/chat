@@ -61,11 +61,29 @@ function handleShowCode(post: Snapshot.PostLink) {
     positiveText: t('common.copy'),
     onPositiveClick: async () => {
       try {
-        if (!navigator.clipboard) {
-          throw new Error('Clipboard API not available')
+        // Try modern clipboard API first
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(code)
+          message.success(t('common.success'))
+          return
         }
-        await navigator.clipboard.writeText(code)
-        message.success(t('common.success'))
+        
+        // Fallback to textarea method
+        const textarea = document.createElement('textarea')
+        textarea.value = code
+        textarea.style.position = 'fixed' // Avoid scrolling to bottom
+        document.body.appendChild(textarea)
+        textarea.select()
+        
+        try {
+          const successful = document.execCommand('copy')
+          if (!successful) {
+            throw new Error('Fallback copy failed')
+          }
+          message.success(t('common.success'))
+        } finally {
+          document.body.removeChild(textarea)
+        }
       } catch (error) {
         message.error(t('common.copyFailed'))
         console.error('Failed to copy:', error)
