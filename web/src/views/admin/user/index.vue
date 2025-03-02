@@ -11,7 +11,6 @@ import { t } from '@/locales'
 import HoverButton from '@/components/common/HoverButton/index.vue'
 
 const ms_ui = useMessage()
-const dialog = useDialog()
 
 const showEditModal = ref(false)
 const editingUser = ref<UserData | null>(null)
@@ -83,7 +82,6 @@ const columns = [
       })
     }
   },
-
   {
     title: t('admin.totalChatMessages'),
     key: 'totalChatMessages',
@@ -177,10 +175,10 @@ async function handleSave() {
     <NCard style="width: 600px" :title="t('common.editUser')" :bordered="false" size="huge">
       <NForm label-placement="left" label-width="auto">
         <NFormItem :label="t('admin.firstName')">
-          <NInput v-model:value="editingUser.firstName" />
+          <NInput v-model:value="editingUser?.firstName" />
         </NFormItem>
         <NFormItem :label="t('admin.lastName')">
-          <NInput v-model:value="editingUser.lastName" />
+          <NInput v-model:value="editingUser?.lastName" />
         </NFormItem>
         <div class="flex justify-end">
           <NButton class="mr-4" @click="showEditModal = false">
