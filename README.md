@@ -1,7 +1,8 @@
 ## Demo
 
 
-<img width="850" alt="Snipaste_2024-08-03_18-32-02" src="https://github.com/user-attachments/assets/d9ccb0ef-1409-43e4-94a1-80aed2fd33d6">
+<img width="850" alt="image" src="https://github.com/user-attachments/assets/98940012-a1d9-41c0-b5c7-fc060e74546a" />
+
 
 <img width="850" alt="image" src="https://github.com/user-attachments/assets/65b7286e-9df6-429c-98a4-64bd8ad1518b">
 
