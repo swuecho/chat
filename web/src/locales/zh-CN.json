@@ -38,7 +38,7 @@
     "please_register": "请先注册"
   },
   "prompt": {
-    "store": "提示词库",
+    "store": "提示词",
     "add": "添加",
     "edit": "编辑",
     "delete": "删除",
@@ -59,9 +59,9 @@
     "enterJsonUrl": "请输入正确的JSON地址"
   },
   "bot": {
-    "list": "机器人列表",
+    "list": "机器人",
     "all": {
-      "title": "机器人列表"
+      "title": "机器人"
     },
     "showCode": "生成API调用代码"
   },

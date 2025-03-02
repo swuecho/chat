@@ -59,9 +59,9 @@
     },
     "bot": {
         "all": {
-            "title": "機器人列表"
+            "title": "機器人"
         },
-        "list": "機器人列表",
+        "list": "機器人",
         "showCode": "產生 API 呼叫程式碼"
     },
     "chat": {
@@ -199,7 +199,7 @@
         "enterJsonUrl": "請輸入正確的 JSON 位址",
         "export": "匯出",
         "import": "匯入",
-        "store": "提示词库"
+        "store": "提示词"
     },
     "setting": {
         "admin": "管理",

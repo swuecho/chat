@@ -59,9 +59,9 @@
     },
     "bot": {
         "all": {
-            "title": "Bot List"
+            "title": "Bots"
         },
-        "list": "Bot List",
+        "list": "Bots",
         "showCode": "Generate API call code"
     },
     "chat": {
@@ -199,7 +199,7 @@
         "enterJsonUrl": "Please enter a valid JSON URL",
         "export": "Export",
         "import": "Import",
-        "store": "prompt store"
+        "store": "prompt"
     },
     "setting": {
         "admin": "Admin",
