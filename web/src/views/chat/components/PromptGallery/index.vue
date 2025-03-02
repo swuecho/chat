@@ -50,12 +50,24 @@ const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
 
 <template>
         <NTabs type="line" animated>
-                <NTabPane v-if="botPrompts.length > 0" name="bots" tab="Bots">
+                <NTabPane v-if="botPrompts.length > 0" name="bots">
+                  <template #tab>
+                    <div class="flex items-center gap-1">
+                      <SvgIcon icon="majesticons:robot-line" class="w-4 h-4" />
+                      <span>Bots</span>
+                    </div>
+                  </template>
                         <div class="mt-4">
                                 <PromptCards :prompts="botPrompts" @usePrompt="handleUsePrompt" />
                         </div>
                 </NTabPane>
-                <NTabPane name="prompts" tab="Prompts">
+                <NTabPane name="prompts">
+                  <template #tab>
+                    <div class="flex items-center gap-1">
+                      <SvgIcon icon="ri:lightbulb-line" class="w-4 h-4" />
+                      <span>Prompts</span>
+                    </div>
+                  </template>
                         <div class="mt-4">
                                 <PromptCards :prompts="promptStore.promptList" @usePrompt="handleUsePrompt" />
                         </div>
