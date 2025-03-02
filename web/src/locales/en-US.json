@@ -136,6 +136,7 @@
         "copy": "Copy",
         "delete": "Delete",
         "edit": "Edit",
+        "editUser": "Edit User",
         "email": "Email",
         "email_placeholder": "Please enter your email",
         "export": "Export",
