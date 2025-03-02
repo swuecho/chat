@@ -25,10 +25,10 @@ const userInfo = computed(() => userStore.userInfo)
       <NAvatar size="large" round :src="defaultAvatar" />
     </div>
     <div class="flex-1 min-w-0 ml-2">
-      <h2 class="overflow-hidden font-bold text-md text-ellipsis whitespace-nowrap">
+      <h2 v-if="userInfo.name" class="overflow-hidden font-bold text-md text-ellipsis whitespace-nowrap">
         {{ userInfo.name || $t('setting.defaultName') }}
       </h2>
-      <p class="overflow-hidden text-xs text-gray-500 text-ellipsis whitespace-nowrap">
+      <p v-if="userInfo.description" class="overflow-hidden text-xs text-gray-500 text-ellipsis whitespace-nowrap">
         <span v-if="isString(userInfo.description)" v-html="userInfo.description || t('setting.defaultDesc')" />
       </p>
     </div>
