@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, useMessage, NBadge } from 'naive-ui'
+import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, useMessage, NBadge, useDialog } from 'naive-ui'
 import { t } from '@/locales'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { updateChatModel, deleteChatModel } from '@/api'
@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const queryClient = useQueryClient()
 const ms_ui = useMessage()
+const dialog = useDialog()
 const dialogVisible = ref(false)
 const editData = ref({ ...props.model })
 
@@ -57,7 +58,15 @@ function handleEnableToggle(enabled: boolean) {
 
 function handleDelete() {
   if (editData.value.id) {
-    deteteModelMutation.mutate(editData.value.id)
+    dialog.warning({
+      title: t('common.warning'),
+      content: t('admin.chat_model.delete_confirm'),
+      positiveText: t('common.confirm'),
+      negativeText: t('common.cancel'),
+      onPositiveClick: () => {
+        deteteModelMutation.mutate(editData.value.id)
+      }
+    })
   }
 }
 
