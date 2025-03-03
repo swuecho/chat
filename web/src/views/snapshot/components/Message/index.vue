@@ -88,9 +88,6 @@ const code = computed(() => {
   return props?.model?.includes('davinci') ?? false
 })
 
-const formatCommentDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString()
-}
 
 // fiter comments with uuid using computed
 const filterComments = computed(() => {
@@ -155,7 +152,7 @@ const filterComments = computed(() => {
       <div class="text-xs text-gray-600 dark:text-gray-300">
         <span class="font-medium">{{ comment.authorUsername }}</span>
         <span class="mx-1">•</span>
-        <span>{{ formatCommentDate(comment.createdAt) }}</span>
+        <span>{{ displayLocaleDate(comment.createdAt) }}</span>
       </div>
       <div class="text-sm mt-1 text-gray-800 dark:text-gray-100">
         {{ comment.content }}
