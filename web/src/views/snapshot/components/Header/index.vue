@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router'
 import { nextTick, ref } from 'vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { updateChatSnapshot } from '@/api'
+import {  NMarquee } from 'naive-ui'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 
 const queryClient = useQueryClient()
@@ -72,7 +73,7 @@ async function handleEditTitle() {
         </HoverButton>
       </div>
       <h1 ref="titleRef" class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
-        :class="[isEditing ? 'shadow-green-100' : '']" :contenteditable="isEditing" @blur="handleEdit"
+        :class="[isEditing ? 'shadow-green-100 leading-8' : '']" :contenteditable="isEditing" @blur="handleEdit"
         @dblclick="handleEditTitle">
         {{ title ?? '' }}
       </h1>
@@ -92,7 +93,8 @@ async function handleEditTitle() {
   </header>
 </template>
 
-<style>
+<style lang="css" scoped>
+
 h1[contenteditable] {
   padding: 0.15rem 0.5rem;
   border-radius: 0.15rem;
