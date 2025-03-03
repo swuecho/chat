@@ -1,5 +1,13 @@
 {
+    "common": {
+        "actions": "Actions",
+        "warning": "Warning",
+        "use": "Use",
+        "submit": "Submit",
+        "submitting": "Submitting..."
+    },
     "admin": {
+        "name": "Name",
         "add_model": "Add Model",
         "add_user_model_rate_limit": "Add User Session Count",
         "chat_model": {
