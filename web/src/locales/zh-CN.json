@@ -34,6 +34,8 @@
     "logout_success": "登出成功",
     "signup_success": "注册成功",
     "signup_failed": "注册失败",
+    "submit": "提交",
+    "submitting": "提交中...",
     "login_failed": "登录失败",
     "logout_failed": "登出失败",
     "please_register": "请先注册"
@@ -116,7 +118,11 @@
     "uploader_title": "上传文件",
     "uploader_button": "上传",
     "uploader_close": "关闭",
-    "uploader_help_text": "支持上传文件类型： text, image, audio, video"
+    "uploader_help_text": "支持上传文件类型： text, image, audio, video",
+    "addComment": "添加评论",
+    "commentPlaceholder": "请输入评论...",                                                                                                                                       
+    "commentSuccess": "评论添加成功",                                                                                                                                            
+    "commentFailed": "评论添加失败" 
   },
   "chat_snapshot": {
     "title": "会话集",

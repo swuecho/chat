@@ -181,6 +181,9 @@ func main() {
 	chatFileHandler := NewChatFileHandler(sqlc_q)
 	chatFileHandler.Register(apiRouter)
 
+	chatCommentHandler := NewChatCommentHandler(sqlc_q)
+	chatCommentHandler.Register(apiRouter)
+
 	apiRouter.HandleFunc("/tts", handleTTSRequest)
 	apiRouter.HandleFunc("/errors", ErrorCatalogHandler)
 

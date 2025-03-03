@@ -1,5 +1,6 @@
 {
     "admin": {
+        "name": "Name",
         "add_model": "Add Model",
         "add_user_model_rate_limit": "Add User Session Count",
         "chat_model": {
@@ -114,7 +115,11 @@
         "uploader_close": "Close",
         "uploader_help_text": "Supported file types: text, image, audio, video",
         "uploader_title": "Upload File",
-        "usingContext": "Context Mode"
+        "usingContext": "Context Mode",
+        "addComment": "Add Comment",                                                                                                                                                       
+        "commentPlaceholder": "Enter your comment...",                                                                                                                                     
+        "commentSuccess": "Comment added successfully",                                                                                                                                    
+        "commentFailed": "Failed to add comment"         
     },
     "chat_snapshot": {
         "createChat": "Create chat",
@@ -129,6 +134,11 @@
         "title": "Chat Records"
     },
     "common": {
+        "actions": "Actions",
+        "warning": "Warning",
+        "use": "Use",
+        "submit": "Submit",
+        "submitting": "Submitting...",
         "ask_user_register": "Please register, only registered accounts can continue the conversation",
         "cancel": "Cancel",
         "clear": "Clear",

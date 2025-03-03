@@ -65,6 +65,10 @@
         "showCode": "產生 API 呼叫程式碼"
     },
     "chat": {
+        "addComment": "新增評論",
+        "commentPlaceholder": "請輸入評論...",
+        "commentSuccess": "評論新增成功",
+        "commentFailed": "評論新增失敗",
         "N": "結果數量: {n}",
         "adjustParameters": "調整參數",
         "chatSettings": "對話設定",
@@ -129,6 +133,11 @@
         "title": "會話集"
     },
     "common": {
+        "actions": "操作",
+        "warning": "警告",
+        "use": "使用",
+        "submit": "提交",
+        "submitting": "提交中...",
         "ask_user_register": "請註冊, 只有註冊帳號才能繼續對話",
         "cancel": "取消",
         "clear": "清空",
@@ -136,7 +145,7 @@
         "copy": "複製",
         "delete": "刪除",
         "edit": "編輯",
-        "editUser": "編輯用戶", 
+        "editUser": "編輯用戶",
         "email": "郵箱",
         "email_placeholder": "請輸入電子郵件",
         "export": "匯出",

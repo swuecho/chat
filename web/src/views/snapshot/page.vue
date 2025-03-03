@@ -1,11 +1,11 @@
 <script lang='ts' setup>
-import { computed, nextTick, ref, onMounted, h } from 'vue'
+import { computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { useDialog, useMessage, NSpin, NInput } from 'naive-ui'
+import { useDialog, useMessage, NSpin } from 'naive-ui'
 import html2canvas from 'html2canvas'
-import Message from '../snapshot/components/Message/index.vue'
+import Message from './components/Message/index.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
-import Header from '../snapshot/components/Header/index.vue'
+import Header from './components/Header/index.vue'
 import { CreateSessionFromSnapshot, fetchChatSnapshot } from '@/api/chat_snapshot'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
@@ -14,8 +14,7 @@ import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useChatStore } from '@/store'
 import { useQuery } from '@tanstack/vue-query'
-import { generateAPIHelper } from '@/service/snapshot'
-import { fetchAPIToken } from '@/api/token'
+import { getConversationComments } from '@/api/comment'
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
@@ -35,14 +34,19 @@ const { data: snapshot_data, isLoading } = useQuery({
   queryFn: async () => await fetchChatSnapshot(uuid),
 })
 
-
-const apiToken = ref('')
-
-onMounted(async () => {
-  const data = await fetchAPIToken()
-  apiToken.value = data.accessToken
+const { data: comments } = useQuery({
+  queryKey: ['conversationComments', uuid],
+  queryFn: async () => await getConversationComments(uuid),
 })
 
+
+// fiter comments with uuid
+const filterComments = (comments, uuid) => {
+  console.log(comments, uuid)
+  if (!comments)
+    return []
+  return comments.filter((comment: any) => comment.chatMessageUuid === uuid)
+}
 
 function handleExport() {
 
@@ -158,24 +162,6 @@ const footerClass = computed(() => {
   return classes
 })
 
-
-function handleShowCode() {
-  const postUuid = route.path.split('/')[2]
-  const code = generateAPIHelper(postUuid, apiToken.value, window.location.origin)
-  const dialogBox = dialog.info({
-    title: t('bot.showCode'),
-    content: () => h('code', { class: 'whitespace-pre-wrap' }, code),
-    positiveText: t('common.copy'),
-    onPositiveClick: () => {
-      // copy to clipboard
-      navigator.clipboard.writeText(code)
-      dialogBox.loading = false
-      nui_msg.success(t('common.success'))
-    },
-  })
-}
-
-
 function onScrollToTop() {
   const scrollRef = document.querySelector('#scrollRef')
   if (scrollRef)
@@ -189,19 +175,14 @@ function onScrollToTop() {
       <NSpin size="large" />
     </div>
     <div v-else>
-      <Header :title="snapshot_data.title" typ="chatbot" />
+      <Header :title="snapshot_data.title" typ="snapshot" />
       <main class="flex-1 overflow-hidden">
         <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
-            <div class="flex items-center justify-center mt-4 ">
-              <div class="w-4/5 md:w-1/3 mb-3">
-                <NInput type="text" :value="snapshot_data.model" readonly class="w-1/3" />
-              </div>
-            </div>
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
-              :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
-              :loading="item.loading" :index="index" />
+              :model="item?.model || snapshot_data.model" :text="item.text" :inversion="item.inversion"
+              :error="item.error" :loading="item.loading" :index="index" :uuid="item.uuid" :session-uuid="uuid" :comments="comments"/>
           </div>
         </div>
       </main>
@@ -215,9 +196,9 @@ function onScrollToTop() {
       <footer :class="footerClass">
         <div class="w-full max-w-screen-xl m-auto">
           <div class="flex items-center justify-between space-x-2">
-            <HoverButton :tooltip="$t('chat_snapshot.showCode')" @click="handleShowCode">
+            <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportImage')" @click="handleExport">
               <span class="text-xl text-[#4f555e] dark:text-white">
-                <SvgIcon icon="ic:outline-code" />
+                <SvgIcon icon="ri:download-2-line" />
               </span>
             </HoverButton>
             <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportMarkdown')" @click="handleMarkdown">

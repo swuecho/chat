@@ -89,7 +89,7 @@ function handleDelete(post: Snapshot.PostLink) {
             <li v-for="post in postsOfYearMonth" :key="post.uuid" class="flex justify-between">
               <div>
                 <div class="flex items-center">
-                  <time :datetime="post.date" class="text-sm font-medium text-gray-600">{{
+                  <time :datetime="post.date" class="text-sm font-medium text-gray-600 dark:text-gray-400">{{
                   post.date
                   }}</time>
                   <div class="ml-2 text-sm flex items-center cursor-pointer" @click="handleDelete(post)">
@@ -97,7 +97,7 @@ function handleDelete(post: Snapshot.PostLink) {
                   </div>
                 </div>
                 <a :href="postUrl(post.uuid)" :title="post.title"
-                  class="block text-xl font-semibold text-gray-900 hover:text-blue-600 mb-2">{{ post.title }}</a>
+                  class="block text-xl font-semibold text-gray-900 dark:text-gray-200 hover:text-blue-600 mb-2">{{ post.title }}</a>
               </div>
             </li>
           </ul>
