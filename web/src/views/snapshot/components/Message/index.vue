@@ -160,8 +160,7 @@ const filterComments = computed(() => {
     </div>
   </div>
   <NModal v-model:show="showCommentModal" :mask-closable="false">
-    <div class="p-6 bg-white dark:bg-[#1a1a1a] rounded-lg w-[90vw] max-w-[500px]">
-      <h3 class="mb-4 text-lg font-medium">{{ $t('chat.addComment') }}</h3>
+    <div class="p-5 bg-white dark:bg-[#1a1a1a] rounded-lg w-[90vw] max-w-[500px]">
       <NInput v-model:value="commentContent" type="textarea" :placeholder="$t('chat.commentPlaceholder')"
         :autosize="{ minRows: 3, maxRows: 6 }" />
       <div class="flex justify-end gap-2 mt-4">
