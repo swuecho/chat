@@ -172,7 +172,7 @@ const filterComments = computed(() => {
           @click="showCommentModal = false">
           {{ $t('common.cancel') }}
         </button>
-        <button class="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+        <button class="px-4 py-2 text-sm text-white bg-[#65a665] rounded hover:bg-[#4f8555]"
           :disabled="!commentContent || isCommenting" @click="handleComment">
           {{ isCommenting ? $t('common.submitting') : $t('common.submit') }}
         </button>
