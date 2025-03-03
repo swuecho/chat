@@ -74,10 +74,27 @@ function handleSelect(key: 'copyText') {
 const code = computed(() => {
   return props?.model?.includes('davinci') ?? false
 })
+
+const formatCommentDate = (dateString: string) => {
+  return new Date(dateString).toLocaleString()
+}
 </script>
 
 <template>
   <div class="chat-message">
+    <!-- Comments section -->
+    <div v-if="comments && comments.length > 0" class="mt-4 pl-12">
+      <div v-for="comment in comments" :key="comment.uuid" class="comment-item mb-3 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+        <div class="text-xs text-gray-600 dark:text-gray-300">
+          <span class="font-medium">{{ comment.authorUsername }}</span>
+          <span class="mx-1">•</span>
+          <span>{{ formatCommentDate(comment.createdAt) }}</span>
+        </div>
+        <div class="text-sm mt-1 text-gray-800 dark:text-gray-100">
+          {{ comment.content }}
+        </div>
+      </div>
+    </div>
   <p class="text-xs text-[#b4bbc4] text-center">{{ displayLocaleDate(dateTime) }}</p>
   <div class="flex w-full mb-6 overflow-hidden" :class="[{ 'flex-row-reverse': inversion }]">
     <div
