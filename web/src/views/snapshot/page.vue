@@ -168,7 +168,7 @@ function onScrollToTop() {
             :class="[isMobile ? 'p-2' : 'p-4']">
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
               :model="item?.model || snapshot_data.model" :text="item.text" :inversion="item.inversion"
-              :error="item.error" :loading="item.loading" :index="index" />
+              :error="item.error" :loading="item.loading" :index="index" :uuid="item.uuid" :session-uuid="uuid"/>
           </div>
         </div>
       </main>

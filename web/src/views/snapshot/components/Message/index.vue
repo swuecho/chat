@@ -1,6 +1,6 @@
 <script setup lang='ts'>
 import { computed, ref } from 'vue'
-import { NDropdown, NInput, NModal } from 'naive-ui'
+import { NDropdown, NInput, NModal, useMessage } from 'naive-ui'
 import { createChatComment } from '@/api/comment'
 import TextComponent from '@/views//components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
@@ -12,6 +12,7 @@ import { displayLocaleDate } from '@/utils/date'
 import { useUserStore } from '@/store'
 
 interface Props {
+  sessionUuid: string
   uuid: string
   index: number
   dateTime: string
@@ -46,13 +47,16 @@ const options = [
 ]
 
 async function handleComment() {
+  console.log('commenting')
   try {
     isCommenting.value = true
-    await createChatComment(snapshot_data.value.uuid, props.uuid, commentContent.value)
+    await createChatComment(props.sessionUuid, props.uuid, commentContent.value)
     nui_msg.success(t('chat.commentSuccess'))
     showCommentModal.value = false
     commentContent.value = ''
   } catch (error) {
+    console.log(error)
+    console.log('failed')
     nui_msg.error(t('chat.commentFailed'))
   } finally {
     isCommenting.value = false
@@ -148,9 +152,3 @@ const code = computed(() => {
     </div>
   </NModal>
 </template>
-  chat: {
-    addComment: 'Add Comment',
-    commentPlaceholder: 'Enter your comment...',
-    commentSuccess: 'Comment added successfully',
-    commentFailed: 'Failed to add comment',
-  },
