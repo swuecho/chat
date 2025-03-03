@@ -199,7 +199,7 @@
         "enterJsonUrl": "Please enter a valid JSON URL",
         "export": "Export",
         "import": "Import",
-        "store": "prompt"
+        "store": "Prompt"
     },
     "setting": {
         "admin": "Admin",
