@@ -21,6 +21,9 @@
 
 <img width="850" alt="chat records" src="https://github.com/swuecho/chat/assets/666683/45dd865e-7f9f-4209-8587-4781e37dd928">
 
+<img width="1601" alt="chat record comments" src="https://github.com/user-attachments/assets/9ce940b9-2023-47ba-bcbe-32f4846354b1" />
+
+
 
 
 
