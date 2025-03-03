@@ -21,6 +21,7 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
+  comments?: Array<any>
 }
 
 const props = defineProps<Props>()
