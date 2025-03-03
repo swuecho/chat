@@ -48,7 +48,7 @@
 - [添加新模型指南](https://github.com/swuecho/chat/blob/master/docs/add_model_zh.md)
 - [快照 vs 聊天机器人](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_zh.md)
 - [使用本地Ollama](https://github.com/swuecho/chat/blob/master/docs/ollama_zh.md)
-- [Community Discussions](https://github.com/swuecho/chat/discussions)
+- [论坛](https://github.com/swuecho/chat/discussions)
 
 ## 开发指南
 
