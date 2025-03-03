@@ -1,11 +1,4 @@
 {
-    "common": {
-        "actions": "Actions",
-        "warning": "Warning",
-        "use": "Use",
-        "submit": "Submit",
-        "submitting": "Submitting..."
-    },
     "admin": {
         "name": "Name",
         "add_model": "Add Model",
@@ -141,6 +134,11 @@
         "title": "Chat Records"
     },
     "common": {
+        "actions": "Actions",
+        "warning": "Warning",
+        "use": "Use",
+        "submit": "Submit",
+        "submitting": "Submitting...",
         "ask_user_register": "Please register, only registered accounts can continue the conversation",
         "cancel": "Cancel",
         "clear": "Clear",
