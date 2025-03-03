@@ -11,6 +11,7 @@ import { displayLocaleDate } from '@/utils/date'
 import { useUserStore } from '@/store'
 
 interface Props {
+  uuid: string
   index: number
   dateTime: string
   model: string
@@ -76,12 +77,14 @@ const code = computed(() => {
           :loading="loading" :idex="index"
         />
         <div class="flex flex-col">
+          <!-- 
           <button
             v-if="!inversion"
             class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
           >
             <SvgIcon icon="mingcute:voice-fill" />
           </button>
+          -->
           <button
             class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
           >
