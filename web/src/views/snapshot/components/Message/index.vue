@@ -1,6 +1,7 @@
 <script setup lang='ts'>
 import { computed, ref } from 'vue'
-import { NDropdown } from 'naive-ui'
+import { NDropdown, NInput, NModal } from 'naive-ui'
+import { createChatComment } from '@/api/comment'
 import TextComponent from '@/views//components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
 import { SvgIcon } from '@/components/common'
@@ -31,14 +32,32 @@ const userInfo = computed(() => userStore.userInfo)
 
 const textRef = ref<HTMLElement>()
 
+const showCommentModal = ref(false)
+const commentContent = ref('')
+const isCommenting = ref(false)
+const nui_msg = useMessage()
+
 const options = [
   {
     label: t('chat.copy'),
     key: 'copyText',
     icon: iconRender({ icon: 'ri:file-copy-2-line' }),
   },
-
 ]
+
+async function handleComment() {
+  try {
+    isCommenting.value = true
+    await createChatComment(snapshot_data.value.uuid, props.uuid, commentContent.value)
+    nui_msg.success(t('chat.commentSuccess'))
+    showCommentModal.value = false
+    commentContent.value = ''
+  } catch (error) {
+    nui_msg.error(t('chat.commentFailed'))
+  } finally {
+    isCommenting.value = false
+  }
+}
 
 function handleSelect(key: 'copyText') {
   switch (key) {
@@ -87,6 +106,7 @@ const code = computed(() => {
           -->
           <button
             class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
+            @click="showCommentModal = true"
           >
             <SvgIcon icon="mdi:comment-outline" />
           </button>
@@ -100,4 +120,37 @@ const code = computed(() => {
     </div>
   </div>
   </div>
+
+  <NModal v-model:show="showCommentModal" :mask-closable="false">
+    <div class="p-6 bg-white dark:bg-[#1a1a1a] rounded-lg w-[90vw] max-w-[500px]">
+      <h3 class="mb-4 text-lg font-medium">{{ $t('chat.addComment') }}</h3>
+      <NInput
+        v-model:value="commentContent"
+        type="textarea"
+        :placeholder="$t('chat.commentPlaceholder')"
+        :autosize="{ minRows: 3, maxRows: 6 }"
+      />
+      <div class="flex justify-end gap-2 mt-4">
+        <button
+          class="px-4 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          @click="showCommentModal = false"
+        >
+          {{ $t('common.cancel') }}
+        </button>
+        <button
+          class="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+          :disabled="!commentContent || isCommenting"
+          @click="handleComment"
+        >
+          {{ isCommenting ? $t('common.submitting') : $t('common.submit') }}
+        </button>
+      </div>
+    </div>
+  </NModal>
 </template>
+  chat: {
+    addComment: 'Add Comment',
+    commentPlaceholder: 'Enter your comment...',
+    commentSuccess: 'Comment added successfully',
+    commentFailed: 'Failed to add comment',
+  },
