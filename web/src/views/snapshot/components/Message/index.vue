@@ -150,7 +150,7 @@ const filterComments = computed(() => {
 
   <div v-if="filterComments && filterComments.length > 0" class="mt-4" :class="[inversion ? 'pr-12' : 'pl-12']">
     <div v-for="comment in filterComments" :key="comment.uuid"
-      class="comment-item mb-3 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg w-1/2" 
+      class="comment-item mb-3 p-2 bg-gray-50 dark:bg-gray-600 rounded-lg w-1/2" 
       :class="[inversion ? 'ml-auto' : 'mr-auto']">
       <div class="text-xs text-gray-600 dark:text-gray-300">
         <span class="font-medium">{{ comment.authorUsername }}</span>
