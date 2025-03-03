@@ -35,6 +35,7 @@
     "signup_success": "注册成功",
     "signup_failed": "注册失败",
     "submit": "提交",
+    "submitting": "提交中...",
     "login_failed": "登录失败",
     "logout_failed": "登出失败",
     "please_register": "请先注册"
