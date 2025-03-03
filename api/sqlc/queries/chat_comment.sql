@@ -13,6 +13,7 @@ INSERT INTO chat_comment (
 -- name: GetCommentsBySessionUUID :many
 SELECT 
     cc.uuid,
+    cc.chat_message_uuid,
     cc.content,
     cc.created_at,
     au.username AS author_username,

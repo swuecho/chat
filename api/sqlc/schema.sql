@@ -289,8 +289,8 @@ CREATE TABLE IF NOT EXISTS chat_file (
 CREATE TABLE IF NOT EXISTS chat_comment (
     id SERIAL PRIMARY KEY,
     uuid VARCHAR(255) NOT NULL,
-    chat_session_uuid VARCHAR(255) NOT NULL REFERENCES chat_session(uuid) ON DELETE CASCADE,
-    chat_message_uuid VARCHAR(255) NOT NULL REFERENCES chat_message(uuid) ON DELETE CASCADE,
+    chat_session_uuid VARCHAR(255) NOT NULL,
+    chat_message_uuid VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT now() NOT NULL,
     updated_at TIMESTAMP DEFAULT now() NOT NULL,
@@ -300,5 +300,4 @@ CREATE TABLE IF NOT EXISTS chat_comment (
 
 -- Add indexes for faster lookups
 CREATE INDEX IF NOT EXISTS chat_comment_chat_session_uuid_idx ON chat_comment (chat_session_uuid);
-CREATE INDEX IF NOT EXISTS chat_comment_chat_message_uuid_idx ON chat_comment (chat_message_uuid);
 CREATE INDEX IF NOT EXISTS chat_comment_created_by_idx ON chat_comment (created_by);

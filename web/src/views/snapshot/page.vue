@@ -14,6 +14,7 @@ import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useChatStore } from '@/store'
 import { useQuery } from '@tanstack/vue-query'
+import { getConversationComments } from '@/api/comment'
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
@@ -33,6 +34,19 @@ const { data: snapshot_data, isLoading } = useQuery({
   queryFn: async () => await fetchChatSnapshot(uuid),
 })
 
+const { data: comments } = useQuery({
+  queryKey: ['conversationComments', uuid],
+  queryFn: async () => await getConversationComments(uuid),
+})
+
+
+// fiter comments with uuid
+const filterComments = (comments, uuid) => {
+  console.log(comments, uuid)
+  if (!comments)
+    return []
+  return comments.filter((comment: any) => comment.chatMessageUuid === uuid)
+}
 
 function handleExport() {
 
@@ -168,7 +182,7 @@ function onScrollToTop() {
             :class="[isMobile ? 'p-2' : 'p-4']">
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
               :model="item?.model || snapshot_data.model" :text="item.text" :inversion="item.inversion"
-              :error="item.error" :loading="item.loading" :index="index" :uuid="item.uuid" :session-uuid="uuid"/>
+              :error="item.error" :loading="item.loading" :index="index" :uuid="item.uuid" :session-uuid="uuid" :comments="comments"/>
           </div>
         </div>
       </main>
