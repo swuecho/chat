@@ -36,7 +36,18 @@ export const fetchChatSnapshot = async (uuid: string): Promise<any> => {
 
 export const fetchSnapshotAll = async (): Promise<any> => {
   try {
-    const response = await request.get('/uuid/chat_snapshot/all')
+    const response = await request.get('/uuid/chat_snapshot/all?type=snapshot')
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+export const fetchChatbotAll= async (): Promise<any> => {
+  try {
+    const response = await request.get('/uuid/chat_snapshot/all?type=chatbot')
     return response.data
   }
   catch (error) {
