@@ -12,6 +12,14 @@ import { t } from '@/locales'
 import { displayLocaleDate } from '@/utils/date'
 import { useUserStore } from '@/store'
 
+interface Comment {
+  uuid: string
+  chatMessageUuid: string
+  content: string
+  createdAt: string
+  authorUsername: string
+}
+
 interface Props {
   sessionUuid: string
   uuid: string
@@ -22,7 +30,7 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
-  comments?: Array<any>
+  comments?: Comment[]
 }
 
 const props = defineProps<Props>()
@@ -94,8 +102,8 @@ const filterComments = computed(() => {
   if (!props.comments)
     return []
   return props.comments
-    .filter((comment: any) => comment.chatMessageUuid === props.uuid)
-    .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .filter((comment: Comment) => comment.chatMessageUuid === props.uuid)
+    .sort((a: Comment, b: Comment) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 })
 
 
