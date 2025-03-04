@@ -41,11 +41,11 @@ const { data: comments } = useQuery({
 
 
 // fiter comments with uuid
-const filterComments = (comments, uuid) => {
+const filterComments = (comments: Chat.Comment[], uuid: string) => {
   console.log(comments, uuid)
   if (!comments)
     return []
-  return comments.filter((comment: any) => comment.chatMessageUuid === uuid)
+  return comments.filter((comment: Chat.Comment) => comment.chatMessageUuid === uuid)
 }
 
 function handleExport() {

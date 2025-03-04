@@ -80,7 +80,16 @@ declare namespace Chat {
 		rateLimit: string
 	}
 
-	
+	interface Comment {
+		uuid: string
+		chatMessageUuid: string
+		content: string
+		createdAt: string
+		authorUsername: string
+	}
+
+
+
 }
 
 declare namespace Snapshot {
@@ -92,8 +101,8 @@ declare namespace Snapshot {
 		tags: Record<string, unknown>;
 		createdAt: string;
 		typ: 'chatbot' | 'snapshot';
-	      }
-	      
+	}
+
 	interface PostLink {
 		uuid: string;
 		date: string;

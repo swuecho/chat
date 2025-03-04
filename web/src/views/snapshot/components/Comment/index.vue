@@ -29,8 +29,8 @@ defineProps<Props>()
   </div>
 </template>
 
-<style scoped>
+<!-- <style lang="css" scoped>
 .comment-item {
   max-width: 80%;
 }
-</style>
+</style> -->

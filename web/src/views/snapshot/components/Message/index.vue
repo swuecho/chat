@@ -1,7 +1,7 @@
 <script setup lang='ts'>
 import { computed, ref } from 'vue'
 import { NDropdown, NInput, NModal, useMessage } from 'naive-ui'
-import Comment from './Comment.vue'
+import Comment from '../Comment/index.vue'
 import { createChatComment } from '@/api/comment'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import TextComponent from '@/views//components/Message/Text.vue'
