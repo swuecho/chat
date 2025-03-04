@@ -1,6 +1,7 @@
 <script setup lang='ts'>
 import { computed, ref } from 'vue'
 import { NDropdown, NInput, NModal, useMessage } from 'naive-ui'
+import Comment from '../Comment/index.vue'
 import { createChatComment } from '@/api/comment'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import TextComponent from '@/views//components/Message/Text.vue'
@@ -12,6 +13,7 @@ import { t } from '@/locales'
 import { displayLocaleDate } from '@/utils/date'
 import { useUserStore } from '@/store'
 
+
 interface Props {
   sessionUuid: string
   uuid: string
@@ -22,7 +24,7 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
-  comments?: Array<any>
+  comments?: Chat.Comment[]
 }
 
 const props = defineProps<Props>()
@@ -94,8 +96,8 @@ const filterComments = computed(() => {
   if (!props.comments)
     return []
   return props.comments
-    .filter((comment: any) => comment.chatMessageUuid === props.uuid)
-    .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .filter((comment: Chat.Comment) => comment.chatMessageUuid === props.uuid)
+    .sort((a: Chat.Comment, b: Chat.Comment) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 })
 
 
@@ -144,20 +146,13 @@ const filterComments = computed(() => {
     </div>
   </div>
   <!-- Comments section -->
-
   <div v-if="filterComments && filterComments.length > 0" class="mt-4" :class="[inversion ? 'pr-12' : 'pl-12']">
-    <div v-for="comment in filterComments" :key="comment.uuid"
-      class="comment-item mb-3 p-2 bg-gray-50 dark:bg-gray-600 rounded-lg w-1/2" 
-      :class="[inversion ? 'ml-auto' : 'mr-auto']">
-      <div class="text-xs text-gray-600 dark:text-gray-300">
-        <span class="font-medium">{{ comment.authorUsername }}</span>
-        <span class="mx-1">•</span>
-        <span>{{ displayLocaleDate(comment.createdAt) }}</span>
-      </div>
-      <div class="text-sm mt-1 text-gray-800 dark:text-gray-100">
-        {{ comment.content }}
-      </div>
-    </div>
+    <Comment 
+      v-for="comment in filterComments" 
+      :key="comment.uuid"
+      :comment="comment"
+      :inversion="inversion"
+    />
   </div>
   <NModal v-model:show="showCommentModal" :mask-closable="false">
     <div class="p-5 bg-white dark:bg-[#1a1a1a] rounded-lg w-[90vw] max-w-[500px]">
