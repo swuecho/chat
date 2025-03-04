@@ -96,7 +96,9 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 		RespondWithAPIError(w, apiErr)
 		return
 	}
-	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), userID)
+	// get type from query
+	typ := r.URL.Query().Get("type")
+	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), sqlc_queries.ChatSnapshotMetaByUserIDParams{UserID: userID, Typ: typ})
 
 	if err != nil {
 		apiErr := ErrInternalUnexpected

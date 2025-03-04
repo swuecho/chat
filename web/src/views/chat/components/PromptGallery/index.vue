@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { NCard, NButton, NSpace, NTabs, NTabPane } from 'naive-ui'
 import { usePromptStore } from '@/store/modules'
-import { fetchChatSnapshot, fetchSnapshotAll } from '@/api'
+import { fetchChatbotAll, fetchChatSnapshot } from '@/api'
 import { useQuery } from '@tanstack/vue-query'
 import PromptCards from './PromptCards.vue'
 import { SvgIcon } from '@/components/common'
@@ -19,7 +19,7 @@ const promptStore = usePromptStore()
 // Fetch bots data
 const { data: bots } = useQuery({
         queryKey: ['bots'],
-        queryFn: async () => await fetchSnapshotAll(),
+        queryFn: async () => await fetchChatbotAll(),
 })
 
 interface Bot {

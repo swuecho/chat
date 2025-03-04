@@ -93,9 +93,14 @@ func (q *Queries) ChatSnapshotByUserIdAndUuid(ctx context.Context, arg ChatSnaps
 
 const chatSnapshotMetaByUserID = `-- name: ChatSnapshotMetaByUserID :many
 SELECT uuid, title, summary, tags, created_at, typ 
-FROM chat_snapshot WHERE user_id = $1
+FROM chat_snapshot WHERE user_id = $1 and typ = $2
 order by created_at desc
 `
+
+type ChatSnapshotMetaByUserIDParams struct {
+	UserID int32  `json:"userId"`
+	Typ    string `json:"typ"`
+}
 
 type ChatSnapshotMetaByUserIDRow struct {
 	Uuid      string          `json:"uuid"`
@@ -106,8 +111,8 @@ type ChatSnapshotMetaByUserIDRow struct {
 	Typ       string          `json:"typ"`
 }
 
-func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, userID int32) ([]ChatSnapshotMetaByUserIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, chatSnapshotMetaByUserID, userID)
+func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, arg ChatSnapshotMetaByUserIDParams) ([]ChatSnapshotMetaByUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, chatSnapshotMetaByUserID, arg.UserID, arg.Typ)
 	if err != nil {
 		return nil, err
 	}
