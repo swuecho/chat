@@ -156,5 +156,6 @@ WHERE
     created_at >= NOW() - sqlc.arg(time_interval)::text::INTERVAL
     AND is_deleted = false
     AND model != ''
+    AND role = 'assistant'
 GROUP BY model
 ORDER BY latest_message_time DESC;
