@@ -1,6 +1,6 @@
 <script setup lang='ts'>
 import { computed, ref } from 'vue'
-import { NDropdown, NInput, NModal, useMessage } from 'naive-ui'
+import { NDropdown, NInput, NModal, useMessage, NTooltip } from 'naive-ui'
 import { createChatComment } from '@/api/comment'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import TextComponent from '@/views//components/Message/Text.vue'
@@ -144,16 +144,20 @@ const filterComments = computed(() => {
     </div>
   </div>
   <!-- Comments section -->
-
   <div v-if="filterComments && filterComments.length > 0" class="mt-4" :class="[inversion ? 'pr-12' : 'pl-12']">
     <div v-for="comment in filterComments" :key="comment.uuid"
       class="comment-item mb-3 p-2 bg-gray-50 dark:bg-gray-600 rounded-lg w-1/2" 
       :class="[inversion ? 'ml-auto' : 'mr-auto']">
-      <div class="text-xs text-gray-600 dark:text-gray-300">
+      <NTooltip>
+        <template #trigger>
+          <div class="text-xs text-gray-600 dark:text-gray-300 overflow-hidden whitespace-nowrap overflow-ellipsis">
         <span class="font-medium">{{ comment.authorUsername }}</span>
         <span class="mx-1">•</span>
         <span>{{ displayLocaleDate(comment.createdAt) }}</span>
-      </div>
+          </div>
+        </template>
+        {{ comment.authorUsername }} • {{ displayLocaleDate(comment.createdAt) }}
+      </NTooltip>
       <div class="text-sm mt-1 text-gray-800 dark:text-gray-100">
         {{ comment.content }}
       </div>
