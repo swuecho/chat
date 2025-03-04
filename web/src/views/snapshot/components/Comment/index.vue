@@ -29,8 +29,18 @@ defineProps<Props>()
   </div>
 </template>
 
+<style lang="css" scoped>
+.comment-item {
+  max-width: 80%;
+}
+
+this-is-a-placeholder-and-remove-this-build-will-fail {
+  outline: none;
+}
+</style>
+
 <!-- <style lang="css" scoped>
 .comment-item {
   max-width: 80%;
 }
-</style> -->
+</style>  -->
