@@ -292,7 +292,7 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	}{
 		Code:    err.Code,
 		Message: err.Message,
-		Detail:  err.Detail,
+		Detail:  err.Detail + " " + err.DebugInfo,
 	}
 
 	// Log error with debug info if available
