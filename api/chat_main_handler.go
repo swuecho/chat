@@ -200,11 +200,12 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string, newQuestion string, userID int32, streamOutput bool) {
 	ctx := context.Background()
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
-	fmt.Printf("chatSession: %+v ", chatSession)
 	if err != nil {
+		log.Printf("Invalid session UUID: %s, error: %v", chatSessionUuid, err)
 		RespondWithAPIError(w, ErrResourceNotFound("chat session").WithMessage(chatSessionUuid))
 		return
 	}
+	log.Printf("Processing chat session: %s, user: %d", chatSession.Uuid, userID)
 
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
@@ -213,16 +214,26 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 	baseURL, _ := getModelBaseUrl(chatModel.Url)
 
+	// Validate session exists before checking prompts
+	if chatSession.Uuid == "" {
+		log.Printf("Empty session UUID for chat: %s", chatSessionUuid)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Invalid session UUID"))
+		return
+	}
+
 	existingPrompt := true
-
-	_, err = h.service.q.GetOneChatPromptBySessionUUID(ctx, chatSessionUuid)
-
+	prompt, err := h.service.q.GetOneChatPromptBySessionUUID(ctx, chatSessionUuid)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("No existing prompt found for session: %s", chatSessionUuid)
 			existingPrompt = false
 		} else {
+			log.Printf("Error checking prompt for session %s: %v", chatSessionUuid, err)
 			http.Error(w, eris.Wrap(err, "fail to get prompt: ").Error(), http.StatusInternalServerError)
+			return
 		}
+	} else {
+		log.Printf("Found existing prompt ID %d for session %s", prompt.ID, chatSessionUuid)
 	}
 
 	if existingPrompt {
@@ -252,12 +263,14 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 
 	msgs, err := h.service.getAskMessages(chatSession, chatUuid, false)
 	if err != nil {
+		log.Printf("Error collecting messages for session %s: %v", chatSessionUuid, err)
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to collect messages"
 		apiErr.DebugInfo = err.Error()
 		RespondWithAPIError(w, apiErr)
 		return
 	}
+	log.Printf("Collected %d messages for session %s", len(msgs), chatSessionUuid)
 
 	model := h.chooseChatModel(chatSession, msgs)
 	LLMAnswer, err := model.Stream(w, chatSession, msgs, chatUuid, false, streamOutput)
