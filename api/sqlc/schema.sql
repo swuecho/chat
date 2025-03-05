@@ -288,7 +288,7 @@ CREATE TABLE IF NOT EXISTS chat_file (
 
 CREATE TABLE IF NOT EXISTS bot_answer_history (
     id SERIAL PRIMARY KEY,
-    bot_uuid VARCHAR(255) NOT NULL REFERENCES chat_snapshot(uuid) ON DELETE CASCADE,
+    bot_uuid VARCHAR(255),
     user_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
     prompt TEXT NOT NULL,
     answer TEXT NOT NULL,
