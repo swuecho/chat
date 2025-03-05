@@ -331,7 +331,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 		Prompt:     newQuestion,
 		Answer:     LLMAnswer.Answer,
 		Model:      session.Model,
-		TokensUsed: int32(len(LLMAnswer.Answer) / 4, // Approximate token count
+		TokensUsed: int32(len(LLMAnswer.Answer)) / 4, // Approximate token count
 	}
 	if _, err := h.service.q.CreateBotAnswerHistory(ctx, historyParams); err != nil {
 		log.Printf("Failed to save bot answer history: %v", err)
