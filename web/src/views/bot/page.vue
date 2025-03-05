@@ -209,22 +209,28 @@ function onScrollToTop() {
                 <div v-else>
                   <div v-if="historyData && historyData.length > 0">
                     <div v-for="(item, index) in historyData" :key="index" class="mb-6">
-                      <!-- User Prompt -->
-                      <Message 
-                        :date-time="item.createdAt"
-                        :model="snapshot_data.model"
-                        :text="item.prompt"
-                        :inversion="true"
-                        :index="index"
-                      />
-                      <!-- Bot Answer -->
-                      <Message
-                        :date-time="item.createdAt" 
-                        :model="snapshot_data.model"
-                        :text="item.answer"
-                        :inversion="false"
-                        :index="index"
-                      />
+                      <div class="mb-4 border-l-4 border-neutral-200 dark:border-neutral-700 pl-4">
+                        <div class="text-sm text-neutral-500 dark:text-neutral-400 mb-2">
+                          {{ t('bot.runNumber', { number: index + 1 }) }} • 
+                          {{ new Date(item.createdAt).toLocaleString() }}
+                        </div>
+                        <!-- User Prompt -->
+                        <Message 
+                          :date-time="item.createdAt"
+                          :model="snapshot_data.model"
+                          :text="item.prompt"
+                          :inversion="true"
+                          :index="index"
+                        />
+                        <!-- Bot Answer -->
+                        <Message
+                          :date-time="item.createdAt" 
+                          :model="snapshot_data.model"
+                          :text="item.answer"
+                          :inversion="false"
+                          :index="index"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div v-else class="flex flex-col items-center justify-center h-64 text-neutral-400">
@@ -249,5 +255,6 @@ function onScrollToTop() {
   </div>
 </template>
   bot: {
-    noHistory: 'No conversation history yet'
+    noHistory: 'No conversation history yet',
+    runNumber: 'Run {number}'
   }
