@@ -150,7 +150,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	genBotAnswer(h, w, session, simpleChatMessages, newQuestion, userID, req.Stream)
+	genBotAnswer(h, w, session, simpleChatMessages, snapshotUuid, newQuestion, userID, req.Stream)
 
 }
 
@@ -298,15 +298,14 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	}
 }
 
-func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, newQuestion string, userID int32, streamOutput bool) {
-	_ , err := h.service.q.ChatModelByName(context.Background(), session.Model)
+func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, snapshotUuid, newQuestion string, userID int32, streamOutput bool) {
+	_, err := h.service.q.ChatModelByName(context.Background(), session.Model)
 	if err != nil {
 		apiErr := ErrResourceNotFound("Chat model: " + session.Model)
 		apiErr.DebugInfo = err.Error()
 		RespondWithAPIError(w, apiErr)
 		return
 	}
-
 
 	messages := simpleChatMessagesToMessages(simpleChatMessages)
 	messages = append(messages, models.Message{
@@ -325,7 +324,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 
 	// Save to bot answer history
 	historyParams := sqlc_queries.CreateBotAnswerHistoryParams{
-		BotUuid:    session.Uuid,
+		BotUuid:    snapshotUuid,
 		UserID:     userID,
 		Prompt:     newQuestion,
 		Answer:     LLMAnswer.Answer,
