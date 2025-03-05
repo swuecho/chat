@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
-import { NCard, NButton, NSpace, NTabs, NTabPane } from 'naive-ui'
+import { computed } from 'vue'
+import { NTabs, NTabPane } from 'naive-ui'
 import { usePromptStore } from '@/store/modules'
 import { fetchChatbotAll, fetchChatSnapshot } from '@/api'
 import { useQuery } from '@tanstack/vue-query'

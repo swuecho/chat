@@ -17,6 +17,7 @@ jobs:
       - name: build web
         run: |
           npm install
+          npm run test 
           npm run build
         working-directory: web
       - name: copy to api/static

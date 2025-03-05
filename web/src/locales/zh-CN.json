@@ -64,6 +64,7 @@
   "bot": {
     "list": "机器人",
     "noHistory": "还没有记录",
+    "runNumber": "Run {number}",    
     "all": {
       "title": "机器人"
     },
