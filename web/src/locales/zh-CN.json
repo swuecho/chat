@@ -66,6 +66,10 @@
     "all": {
       "title": "机器人"
     },
+    "tabs": {
+      "conversation": "预设",
+      "history": "回答"
+    },
     "showCode": "生成API调用代码"
   },
   "chat": {
