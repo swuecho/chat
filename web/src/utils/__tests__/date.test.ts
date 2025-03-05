@@ -1,8 +1,13 @@
-import { expect, describe, it } from 'vitest'
+import { expect, describe, it, beforeAll } from 'vitest'
 import { displayLocaleDate } from '../date'
 
 
 describe('displayLocaleDate', () => {
+  beforeAll(() => {
+    // Set a fixed timezone for all tests
+    process.env.TZ = 'Asia/Shanghai'
+  })
+
   it('should format ISO date string to local date and time', () => {
     const isoDate = '2025-03-05T12:48:11.990824Z'
     const result = displayLocaleDate(isoDate)
@@ -20,4 +25,5 @@ describe('displayLocaleDate', () => {
     const result = displayLocaleDate(invalidDate)
     expect(result).toBe('Invalid DateTime')
   })
+
 })
