@@ -7,7 +7,6 @@ package sqlc_queries
 
 import (
 	"context"
-	"database/sql"
 	"time"
 )
 
@@ -26,12 +25,12 @@ INSERT INTO bot_answer_history (
 `
 
 type CreateBotAnswerHistoryParams struct {
-	BotUuid    sql.NullString `json:"botUuid"`
-	UserID     int32          `json:"userId"`
-	Prompt     string         `json:"prompt"`
-	Answer     string         `json:"answer"`
-	Model      string         `json:"model"`
-	TokensUsed int32          `json:"tokensUsed"`
+	BotUuid    string `json:"botUuid"`
+	UserID     int32  `json:"userId"`
+	Prompt     string `json:"prompt"`
+	Answer     string `json:"answer"`
+	Model      string `json:"model"`
+	TokensUsed int32  `json:"tokensUsed"`
 }
 
 // Bot Answer History Queries --
@@ -89,23 +88,23 @@ LIMIT $2 OFFSET $3
 `
 
 type GetBotAnswerHistoryByBotUUIDParams struct {
-	BotUuid sql.NullString `json:"botUuid"`
-	Limit   int32          `json:"limit"`
-	Offset  int32          `json:"offset"`
+	BotUuid string `json:"botUuid"`
+	Limit   int32  `json:"limit"`
+	Offset  int32  `json:"offset"`
 }
 
 type GetBotAnswerHistoryByBotUUIDRow struct {
-	ID           int32          `json:"id"`
-	BotUuid      sql.NullString `json:"botUuid"`
-	UserID       int32          `json:"userId"`
-	Prompt       string         `json:"prompt"`
-	Answer       string         `json:"answer"`
-	Model        string         `json:"model"`
-	TokensUsed   int32          `json:"tokensUsed"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
-	UserUsername string         `json:"userUsername"`
-	UserEmail    string         `json:"userEmail"`
+	ID           int32     `json:"id"`
+	BotUuid      string    `json:"botUuid"`
+	UserID       int32     `json:"userId"`
+	Prompt       string    `json:"prompt"`
+	Answer       string    `json:"answer"`
+	Model        string    `json:"model"`
+	TokensUsed   int32     `json:"tokensUsed"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	UserUsername string    `json:"userUsername"`
+	UserEmail    string    `json:"userEmail"`
 }
 
 func (q *Queries) GetBotAnswerHistoryByBotUUID(ctx context.Context, arg GetBotAnswerHistoryByBotUUIDParams) ([]GetBotAnswerHistoryByBotUUIDRow, error) {
@@ -162,17 +161,17 @@ WHERE bah.id = $1
 `
 
 type GetBotAnswerHistoryByIDRow struct {
-	ID           int32          `json:"id"`
-	BotUuid      sql.NullString `json:"botUuid"`
-	UserID       int32          `json:"userId"`
-	Prompt       string         `json:"prompt"`
-	Answer       string         `json:"answer"`
-	Model        string         `json:"model"`
-	TokensUsed   int32          `json:"tokensUsed"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
-	UserUsername string         `json:"userUsername"`
-	UserEmail    string         `json:"userEmail"`
+	ID           int32     `json:"id"`
+	BotUuid      string    `json:"botUuid"`
+	UserID       int32     `json:"userId"`
+	Prompt       string    `json:"prompt"`
+	Answer       string    `json:"answer"`
+	Model        string    `json:"model"`
+	TokensUsed   int32     `json:"tokensUsed"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	UserUsername string    `json:"userUsername"`
+	UserEmail    string    `json:"userEmail"`
 }
 
 func (q *Queries) GetBotAnswerHistoryByID(ctx context.Context, id int32) (GetBotAnswerHistoryByIDRow, error) {
@@ -221,17 +220,17 @@ type GetBotAnswerHistoryByUserIDParams struct {
 }
 
 type GetBotAnswerHistoryByUserIDRow struct {
-	ID           int32          `json:"id"`
-	BotUuid      sql.NullString `json:"botUuid"`
-	UserID       int32          `json:"userId"`
-	Prompt       string         `json:"prompt"`
-	Answer       string         `json:"answer"`
-	Model        string         `json:"model"`
-	TokensUsed   int32          `json:"tokensUsed"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
-	UserUsername string         `json:"userUsername"`
-	UserEmail    string         `json:"userEmail"`
+	ID           int32     `json:"id"`
+	BotUuid      string    `json:"botUuid"`
+	UserID       int32     `json:"userId"`
+	Prompt       string    `json:"prompt"`
+	Answer       string    `json:"answer"`
+	Model        string    `json:"model"`
+	TokensUsed   int32     `json:"tokensUsed"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	UserUsername string    `json:"userUsername"`
+	UserEmail    string    `json:"userEmail"`
 }
 
 func (q *Queries) GetBotAnswerHistoryByUserID(ctx context.Context, arg GetBotAnswerHistoryByUserIDParams) ([]GetBotAnswerHistoryByUserIDRow, error) {
@@ -273,7 +272,7 @@ const getBotAnswerHistoryCountByBotUUID = `-- name: GetBotAnswerHistoryCountByBo
 SELECT COUNT(*) FROM bot_answer_history WHERE bot_uuid = $1
 `
 
-func (q *Queries) GetBotAnswerHistoryCountByBotUUID(ctx context.Context, botUuid sql.NullString) (int64, error) {
+func (q *Queries) GetBotAnswerHistoryCountByBotUUID(ctx context.Context, botUuid string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getBotAnswerHistoryCountByBotUUID, botUuid)
 	var count int64
 	err := row.Scan(&count)
@@ -312,22 +311,22 @@ LIMIT $2
 `
 
 type GetLatestBotAnswerHistoryByBotUUIDParams struct {
-	BotUuid sql.NullString `json:"botUuid"`
-	Limit   int32          `json:"limit"`
+	BotUuid string `json:"botUuid"`
+	Limit   int32  `json:"limit"`
 }
 
 type GetLatestBotAnswerHistoryByBotUUIDRow struct {
-	ID           int32          `json:"id"`
-	BotUuid      sql.NullString `json:"botUuid"`
-	UserID       int32          `json:"userId"`
-	Prompt       string         `json:"prompt"`
-	Answer       string         `json:"answer"`
-	Model        string         `json:"model"`
-	TokensUsed   int32          `json:"tokensUsed"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
-	UserUsername string         `json:"userUsername"`
-	UserEmail    string         `json:"userEmail"`
+	ID           int32     `json:"id"`
+	BotUuid      string    `json:"botUuid"`
+	UserID       int32     `json:"userId"`
+	Prompt       string    `json:"prompt"`
+	Answer       string    `json:"answer"`
+	Model        string    `json:"model"`
+	TokensUsed   int32     `json:"tokensUsed"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	UserUsername string    `json:"userUsername"`
+	UserEmail    string    `json:"userEmail"`
 }
 
 func (q *Queries) GetLatestBotAnswerHistoryByBotUUID(ctx context.Context, arg GetLatestBotAnswerHistoryByBotUUIDParams) ([]GetLatestBotAnswerHistoryByBotUUIDRow, error) {

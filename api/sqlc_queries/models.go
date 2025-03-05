@@ -5,7 +5,6 @@
 package sqlc_queries
 
 import (
-	"database/sql"
 	"encoding/json"
 	"time"
 )
@@ -33,15 +32,15 @@ type AuthUserManagement struct {
 }
 
 type BotAnswerHistory struct {
-	ID         int32          `json:"id"`
-	BotUuid    sql.NullString `json:"botUuid"`
-	UserID     int32          `json:"userId"`
-	Prompt     string         `json:"prompt"`
-	Answer     string         `json:"answer"`
-	Model      string         `json:"model"`
-	TokensUsed int32          `json:"tokensUsed"`
-	CreatedAt  time.Time      `json:"createdAt"`
-	UpdatedAt  time.Time      `json:"updatedAt"`
+	ID         int32     `json:"id"`
+	BotUuid    string    `json:"botUuid"`
+	UserID     int32     `json:"userId"`
+	Prompt     string    `json:"prompt"`
+	Answer     string    `json:"answer"`
+	Model      string    `json:"model"`
+	TokensUsed int32     `json:"tokensUsed"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 type ChatComment struct {
