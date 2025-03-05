@@ -1,7 +1,7 @@
 <script lang='ts' setup>
 import { computed, nextTick, ref, onMounted, h } from 'vue'
 import { useRoute } from 'vue-router'
-import { useDialog, useMessage, NSpin, NInput } from 'naive-ui'
+import { useDialog, useMessage, NSpin, NInput, NTabs, NTabPane, NDataTable } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
@@ -16,6 +16,7 @@ import { useAuthStore, useChatStore } from '@/store'
 import { useQuery } from '@tanstack/vue-query'
 import { generateAPIHelper } from '@/service/snapshot'
 import { fetchAPIToken } from '@/api/token'
+import { fetchBotAnswerHistory } from '@/api/bot_answer_history'
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
@@ -33,6 +34,14 @@ const { uuid } = route.params as { uuid: string }
 const { data: snapshot_data, isLoading } = useQuery({
   queryKey: ['chatSnapshot', uuid],
   queryFn: async () => await fetchChatSnapshot(uuid),
+})
+
+const activeTab = ref('conversation')
+
+const { data: historyData, isLoading: isHistoryLoading } = useQuery({
+  queryKey: ['botAnswerHistory', uuid],
+  queryFn: async () => await fetchBotAnswerHistory(uuid),
+  enabled: computed(() => activeTab.value === 'history')
 })
 
 
@@ -199,20 +208,13 @@ function onScrollToTop() {
                 <NInput type="text" :value="snapshot_data.model" readonly class="w-1/3" />
               </div>
             </div>
-            <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
-              :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
-              :loading="item.loading" :index="index" />
-          </div>
-        </div>
-      </main>
-      <div class="floating-button">
-        <HoverButton testid="create-chat" :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
-          <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
-            <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
-          </span>
-        </HoverButton>
-      </div>
-      <footer :class="footerClass">
+            
+            <NTabs v-model:value="activeTab" type="line">
+              <NTabPane name="conversation" :tab="t('bot.tabs.conversation')">
+                <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
+                  :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
+                  :loading="item.loading" :index="index" />
+                   <footer :class="footerClass">
         <div class="w-full max-w-screen-xl m-auto">
           <div class="flex items-center justify-between space-x-2">
             <HoverButton :tooltip="$t('chat_snapshot.showCode')" @click="handleShowCode">
@@ -233,6 +235,54 @@ function onScrollToTop() {
           </div>
         </div>
       </footer>
+              </NTabPane>
+              
+              <NTabPane name="history" :tab="t('bot.tabs.history')">
+                <div v-if="isHistoryLoading">
+                  <NSpin size="large" />
+                </div>
+                <div v-else>
+                  <div v-if="historyData && historyData.length > 0">
+                    <div v-for="(item, index) in historyData" :key="index" class="mb-6">
+                      <!-- User Prompt -->
+                      <Message 
+                        :date-time="item.created_at"
+                        :model="snapshot_data.model"
+                        :text="item.prompt"
+                        :inversion="true"
+                        :index="index"
+                      />
+                      <!-- Bot Answer -->
+                      <Message
+                        :date-time="item.created_at" 
+                        :model="snapshot_data.model"
+                        :text="item.answer"
+                        :inversion="false"
+                        :index="index"
+                      />
+                    </div>
+                  </div>
+                  <div v-else class="flex flex-col items-center justify-center h-64 text-neutral-400">
+                    <SvgIcon icon="mdi:history" class="w-12 h-12 mb-4" />
+                    <span>{{ t('bot.noHistory') }}</span>
+                  </div>
+                </div>
+              </NTabPane>
+            </NTabs>
+          </div>
+        </div>
+      </main>
+      <div class="floating-button">
+        <HoverButton testid="create-chat" :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
+          <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
+            <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
+          </span>
+        </HoverButton>
+      </div>
+     
     </div>
   </div>
 </template>
+  bot: {
+    noHistory: 'No conversation history yet'
+  }

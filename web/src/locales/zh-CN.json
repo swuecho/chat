@@ -5,7 +5,7 @@
     "copy": "复制",
     "edit": "编辑",
     "editUser": "编辑用户",
-    "delete": "删除", 
+    "delete": "删除",
     "actions": "操作",
     "warning": "警告",
     "save": "保存",
@@ -52,9 +52,9 @@
     "addFailed": "添加失败",
     "editSuccess": "编辑成功",
     "editFailed": "编辑失败",
-    "import":"导入",
-    "export":"导出",
-    "clear":"清空",
+    "import": "导入",
+    "export": "导出",
+    "clear": "清空",
     "confirmClear": "是否清空?",
     "downloadOnline": "在线导入",
     "downloadOnlineWarning": "注意：请检查下载 JSON 文件来源，恶意的JSON文件可能会破坏您的计算机！",
@@ -63,8 +63,13 @@
   },
   "bot": {
     "list": "机器人",
+    "noHistory": "还没有记录",
     "all": {
       "title": "机器人"
+    },
+    "tabs": {
+      "conversation": "预设",
+      "history": "回答"
     },
     "showCode": "生成API调用代码"
   },
@@ -72,7 +77,7 @@
     "new": "新对话",
     "summarize_mode": "总结模式(可以支持更长的上下文20+)",
     "is_summarize_mode": "开启",
-    "no_summarize_mode":  "关闭",
+    "no_summarize_mode": "关闭",
     "placeholder": "来说点什么吧...（Shift + Enter = 换行, '/' 触发提示词）",
     "placeholderMobile": "来说点什么...",
     "copy": "复制",
@@ -120,9 +125,9 @@
     "uploader_close": "关闭",
     "uploader_help_text": "支持上传文件类型： text, image, audio, video",
     "addComment": "添加评论",
-    "commentPlaceholder": "请输入评论...",                                                                                                                                       
-    "commentSuccess": "评论添加成功",                                                                                                                                            
-    "commentFailed": "评论添加失败" 
+    "commentPlaceholder": "请输入评论...",
+    "commentSuccess": "评论添加成功",
+    "commentFailed": "评论添加失败"
   },
   "chat_snapshot": {
     "title": "会话集",
@@ -158,7 +163,7 @@
     "system_model_tab_title": "模型配置",
     "per_model_rate_limit_title": "模型流控",
     "add_user_model_rate_limit": "添加用户会话数量",
-    "add_model": "添加模型",  
+    "add_model": "添加模型",
     "rate_limit": "会话数量(10min)",
     "chat_model_name": "模型ID",
     "chat_model": {

@@ -34,3 +34,4 @@ FROM chat_comment cc
 JOIN auth_user au ON cc.created_by = au.id
 WHERE cc.chat_message_uuid = $1
 ORDER BY cc.created_at DESC;
+

@@ -33,7 +33,7 @@ func (s *ChatFileService) CreateChatUpload(ctx context.Context, params sqlc_quer
 		return sqlc_queries.ChatFile{}, ErrValidationInvalidInput("empty file data")
 	}
 
-	log.Printf("Creating chat file upload for session %s, user %d", 
+	log.Printf("Creating chat file upload for session %s, user %d",
 		params.ChatSessionUuid, params.UserID)
 
 	upload, err := s.q.CreateChatFile(ctx, params)

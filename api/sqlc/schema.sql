@@ -286,6 +286,23 @@ CREATE TABLE IF NOT EXISTS chat_file (
     mime_type VARCHAR(255) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS bot_answer_history (
+    id SERIAL PRIMARY KEY,
+    bot_uuid VARCHAR(255) NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    prompt TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    model VARCHAR(255) NOT NULL,
+    tokens_used INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP DEFAULT now() NOT NULL
+);
+
+-- Indexes for faster queries
+CREATE INDEX IF NOT EXISTS bot_answer_history_bot_uuid_idx ON bot_answer_history (bot_uuid);
+CREATE INDEX IF NOT EXISTS bot_answer_history_user_id_idx ON bot_answer_history (user_id);
+CREATE INDEX IF NOT EXISTS bot_answer_history_created_at_idx ON bot_answer_history USING BRIN (created_at);
+
 CREATE TABLE IF NOT EXISTS chat_comment (
     id SERIAL PRIMARY KEY,
     uuid VARCHAR(255) NOT NULL,

@@ -1,0 +1,11 @@
+/drop
+/add       api/bot_answer_history_handler.go
+/add       api/bot_answer_history_service.go
+/add       api/chat_main_handler.go
+/add       api/chat_message_service.go
+/add       api/main.go
+/add       api/sqlc/queries/chat_comment.sql
+/add       api/sqlc/schema.sql
+/add       api/sqlc_queries/bot_answer_history.sql.go
+/add       web/src/views/bot/all.vue
+/add       web/src/views/bot/page.vue
