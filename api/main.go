@@ -184,6 +184,9 @@ func main() {
 	chatCommentHandler := NewChatCommentHandler(sqlc_q)
 	chatCommentHandler.Register(apiRouter)
 
+	botAnswerHistoryHandler := NewBotAnswerHistoryHandler(sqlc_q)
+	botAnswerHistoryHandler.Register(apiRouter)
+
 	apiRouter.HandleFunc("/tts", handleTTSRequest)
 	apiRouter.HandleFunc("/errors", ErrorCatalogHandler)
 
