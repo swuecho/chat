@@ -242,23 +242,29 @@ function onScrollToTop() {
                   <NSpin size="large" />
                 </div>
                 <div v-else>
-                  <div v-for="(item, index) in historyData" :key="index" class="mb-6">
-                    <!-- User Prompt -->
-                    <Message 
-                      :date-time="item.created_at"
-                      :model="snapshot_data.model"
-                      :text="item.prompt"
-                      :inversion="true"
-                      :index="index"
-                    />
-                    <!-- Bot Answer -->
-                    <Message
-                      :date-time="item.created_at" 
-                      :model="snapshot_data.model"
-                      :text="item.answer"
-                      :inversion="false"
-                      :index="index"
-                    />
+                  <div v-if="historyData && historyData.length > 0">
+                    <div v-for="(item, index) in historyData" :key="index" class="mb-6">
+                      <!-- User Prompt -->
+                      <Message 
+                        :date-time="item.created_at"
+                        :model="snapshot_data.model"
+                        :text="item.prompt"
+                        :inversion="true"
+                        :index="index"
+                      />
+                      <!-- Bot Answer -->
+                      <Message
+                        :date-time="item.created_at" 
+                        :model="snapshot_data.model"
+                        :text="item.answer"
+                        :inversion="false"
+                        :index="index"
+                      />
+                    </div>
+                  </div>
+                  <div v-else class="flex flex-col items-center justify-center h-64 text-neutral-400">
+                    <SvgIcon icon="mdi:history" class="w-12 h-12 mb-4" />
+                    <span>{{ t('bot.noHistory') }}</span>
                   </div>
                 </div>
               </NTabPane>
@@ -277,3 +283,6 @@ function onScrollToTop() {
     </div>
   </div>
 </template>
+  bot: {
+    noHistory: 'No conversation history yet'
+  }
