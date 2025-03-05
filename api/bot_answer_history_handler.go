@@ -31,13 +31,23 @@ func (h *BotAnswerHistoryHandler) Register(router *mux.Router) {
 }
 
 func (h *BotAnswerHistoryHandler) CreateBotAnswerHistory(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+
 	var params sqlc_queries.CreateBotAnswerHistoryParams
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		RespondWithAPIError(w, ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()))
 		return
 	}
 
-	history, err := h.service.CreateBotAnswerHistory(r.Context(), params)
+	// Set the user ID from context
+	params.UserID = userID
+
+	history, err := h.service.CreateBotAnswerHistory(ctx, params)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "Failed to create bot answer history"))
 		return
@@ -80,14 +90,15 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByBotUUID(w http.ResponseWr
 }
 
 func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByUserID(w http.ResponseWriter, r *http.Request) {
-	userID := mux.Vars(r)["user_id"]
-	if userID == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("User ID is required"))
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
 
 	limit, offset := getPaginationParams(r)
-	history, err := h.service.GetBotAnswerHistoryByUserID(r.Context(), userID, limit, offset)
+	history, err := h.service.GetBotAnswerHistoryByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "Failed to get bot answer history"))
 		return
@@ -150,13 +161,14 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByBotUUID(w http.Respo
 }
 
 func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByUserID(w http.ResponseWriter, r *http.Request) {
-	userID := mux.Vars(r)["user_id"]
-	if userID == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("User ID is required"))
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
 
-	count, err := h.service.GetBotAnswerHistoryCountByUserID(r.Context(), userID)
+	count, err := h.service.GetBotAnswerHistoryCountByUserID(ctx, userID)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "Failed to get bot answer history count"))
 		return
