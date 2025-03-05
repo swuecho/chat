@@ -164,6 +164,18 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByUserID(w http.Respon
 	RespondWithJSON(w, http.StatusOK, map[string]int64{"count": count})
 }
 
+func getLimitParam(r *http.Request, defaultLimit int32) int32 {
+	limitStr := r.URL.Query().Get("limit")
+	if limitStr == "" {
+		return defaultLimit
+	}
+	limit, err := strconv.ParseInt(limitStr, 10, 32)
+	if err != nil {
+		return defaultLimit
+	}
+	return int32(limit)
+}
+
 func (h *BotAnswerHistoryHandler) GetLatestBotAnswerHistoryByBotUUID(w http.ResponseWriter, r *http.Request) {
 	botUUID := mux.Vars(r)["bot_uuid"]
 	if botUUID == "" {
