@@ -10,13 +10,12 @@ export function getCurrentDate() {
   return formattedDate
 }
 
+// 2025-03-05T12:48:11.990824Z 2025-02-26T08:58:48Z
 export function displayLocaleDate(ts: string) {
-  // const timestampFromDb = "2023-04-16 11:10:48.000"; // assume this is the value retrieved from the database
 
   const dateObj = DateTime.fromISO(ts)
 
   const dateString = dateObj.toFormat('D t')
-
 
   return dateString
 }

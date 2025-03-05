@@ -1,8 +1,7 @@
 <script lang='ts' setup>
 import { computed, nextTick, ref, onMounted, h } from 'vue'
 import { useRoute } from 'vue-router'
-import { useDialog, useMessage, NSpin, NInput, NTabs, NTabPane, NDataTable } from 'naive-ui'
-import html2canvas from 'html2canvas'
+import { useDialog, useMessage, NSpin, NInput, NTabs, NTabPane } from 'naive-ui'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
 import Header from '../snapshot/components/Header/index.vue'
@@ -10,7 +9,6 @@ import { CreateSessionFromSnapshot, fetchChatSnapshot } from '@/api/chat_snapsho
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
-import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useChatStore } from '@/store'
 import { useQuery } from '@tanstack/vue-query'
@@ -53,39 +51,6 @@ onMounted(async () => {
 })
 
 
-function handleExport() {
-
-  const dialogBox = dialog.warning({
-    title: t('chat.exportImage'),
-    content: t('chat.exportImageConfirm'),
-    positiveText: t('common.yes'),
-    negativeText: t('common.no'),
-    onPositiveClick: async () => {
-      try {
-        dialogBox.loading = true
-        const ele = document.getElementById('image-wrapper')
-        const canvas = await html2canvas(ele as HTMLDivElement, {
-          useCORS: true,
-        })
-        const imgUrl = canvas.toDataURL('image/png')
-        const tempLink = genTempDownloadLink(imgUrl)
-        document.body.appendChild(tempLink)
-        tempLink.click()
-        document.body.removeChild(tempLink)
-        window.URL.revokeObjectURL(imgUrl)
-        dialogBox.loading = false
-        nui_msg.success(t('chat.exportSuccess'))
-        Promise.resolve()
-      }
-      catch (error: any) {
-        nui_msg.error(t('chat.exportFailed'))
-      }
-      finally {
-        dialogBox.loading = false
-      }
-    },
-  })
-}
 function format_chat_md(chat: Chat.Message): string {
   return `<sup><kbd><var>${chat.dateTime}</var></kbd></sup>:\n ${chat.text}`
 }
@@ -246,7 +211,7 @@ function onScrollToTop() {
                     <div v-for="(item, index) in historyData" :key="index" class="mb-6">
                       <!-- User Prompt -->
                       <Message 
-                        :date-time="item.created_at"
+                        :date-time="item.createdAt"
                         :model="snapshot_data.model"
                         :text="item.prompt"
                         :inversion="true"
@@ -254,7 +219,7 @@ function onScrollToTop() {
                       />
                       <!-- Bot Answer -->
                       <Message
-                        :date-time="item.created_at" 
+                        :date-time="item.createdAt" 
                         :model="snapshot_data.model"
                         :text="item.answer"
                         :inversion="false"

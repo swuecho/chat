@@ -30,8 +30,6 @@ const userInfo = computed(() => userStore.userInfo)
 
 const textRef = ref<HTMLElement>()
 
-const showCommentModal = ref(false)
-
 const options = [
   {
     label: t('chat.copy'),

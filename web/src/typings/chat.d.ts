@@ -113,14 +113,14 @@ declare namespace Snapshot {
 declare namespace Bot {
  interface BotAnswerHistory {                                                                                       
    id: number                                                                                                       
-   bot_uuid: string                                                                                                 
-   user_id: number                                                                                                  
+   botUuid: string                                                                                                 
+   userId: number                                                                                                  
    prompt: string                                                                                                   
    answer: string                                                                                                   
    model: string                                                                                                    
-   tokens_used: number                                                                                              
-   created_at: string                                                                                               
-   updated_at: string                                                                                               
+   tokensUsed: number                                                                                              
+   createdAt: string                                                                                               
+   updatedAt: string                                                                                               
  }                                                                                                                  
                       
 }
