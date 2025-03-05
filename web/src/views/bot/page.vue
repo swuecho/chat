@@ -1,7 +1,7 @@
 <script lang='ts' setup>
 import { computed, nextTick, ref, onMounted, h } from 'vue'
 import { useRoute } from 'vue-router'
-import { useDialog, useMessage, NSpin, NInput } from 'naive-ui'
+import { useDialog, useMessage, NSpin, NInput, NTabs, NTabPane, NDataTable } from 'naive-ui'
 import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
@@ -16,6 +16,7 @@ import { useAuthStore, useChatStore } from '@/store'
 import { useQuery } from '@tanstack/vue-query'
 import { generateAPIHelper } from '@/service/snapshot'
 import { fetchAPIToken } from '@/api/token'
+import { fetchBotAnswerHistory } from '@/api/bot_answer_history'
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
@@ -35,6 +36,31 @@ const { data: snapshot_data, isLoading } = useQuery({
   queryFn: async () => await fetchChatSnapshot(uuid),
 })
 
+const activeTab = ref('conversation')
+
+const { data: historyData, isLoading: isHistoryLoading } = useQuery({
+  queryKey: ['botAnswerHistory', uuid],
+  queryFn: async () => await fetchBotAnswerHistory(uuid),
+  enabled: computed(() => activeTab.value === 'history')
+})
+
+const historyColumns = [
+  {
+    title: 'Prompt',
+    key: 'prompt',
+    render: (row: any) => h('div', { class: 'max-w-[300px] whitespace-pre-wrap' }, row.prompt)
+  },
+  {
+    title: 'Answer', 
+    key: 'answer',
+    render: (row: any) => h('div', { class: 'max-w-[300px] whitespace-pre-wrap' }, row.answer)
+  },
+  {
+    title: 'Date',
+    key: 'created_at',
+    render: (row: any) => new Date(row.created_at).toLocaleString()
+  }
+]
 
 const apiToken = ref('')
 
@@ -199,9 +225,24 @@ function onScrollToTop() {
                 <NInput type="text" :value="snapshot_data.model" readonly class="w-1/3" />
               </div>
             </div>
-            <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
-              :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
-              :loading="item.loading" :index="index" />
+            
+            <NTabs v-model:value="activeTab" type="line">
+              <NTabPane name="conversation" :tab="t('bot.tabs.conversation')">
+                <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
+                  :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
+                  :loading="item.loading" :index="index" />
+              </NTabPane>
+              
+              <NTabPane name="history" :tab="t('bot.tabs.history')">
+                <NDataTable
+                  :columns="historyColumns"
+                  :data="historyData || []"
+                  :loading="isHistoryLoading"
+                  class="mt-4"
+                  :bordered="false"
+                />
+              </NTabPane>
+            </NTabs>
           </div>
         </div>
       </main>
