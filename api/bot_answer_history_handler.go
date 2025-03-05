@@ -108,7 +108,7 @@ func (h *BotAnswerHistoryHandler) UpdateBotAnswerHistory(w http.ResponseWriter, 
 		return
 	}
 
-	history, err := h.service.UpdateBotAnswerHistory(r.Context(), params)
+	history, err := h.service.UpdateBotAnswerHistory(r.Context(), params.ID, params.Answer, params.TokensUsed)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "Failed to update bot answer history"))
 		return
