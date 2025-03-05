@@ -323,15 +323,6 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	}
 
 	ctx := context.Background()
-	
-	// Save to chat message history
-	if _, err := h.service.CreateChatMessageSimple(ctx, session.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, session.Model, userID, baseURL, session.SummarizeMode); err != nil {
-		apiErr := ErrInternalUnexpected
-		apiErr.Detail = "Failed to create message"
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
-		return
-	}
 
 	// Save to bot answer history
 	historyParams := sqlc_queries.CreateBotAnswerHistoryParams{
