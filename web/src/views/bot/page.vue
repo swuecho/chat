@@ -44,23 +44,6 @@ const { data: historyData, isLoading: isHistoryLoading } = useQuery({
   enabled: computed(() => activeTab.value === 'history')
 })
 
-const historyColumns = [
-  {
-    title: 'Prompt',
-    key: 'prompt',
-    render: (row: any) => h('div', { class: 'max-w-[300px] whitespace-pre-wrap' }, row.prompt)
-  },
-  {
-    title: 'Answer', 
-    key: 'answer',
-    render: (row: any) => h('div', { class: 'max-w-[300px] whitespace-pre-wrap' }, row.answer)
-  },
-  {
-    title: 'Date',
-    key: 'created_at',
-    render: (row: any) => new Date(row.created_at).toLocaleString()
-  }
-]
 
 const apiToken = ref('')
 
@@ -231,29 +214,7 @@ function onScrollToTop() {
                 <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
                   :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                   :loading="item.loading" :index="index" />
-              </NTabPane>
-              
-              <NTabPane name="history" :tab="t('bot.tabs.history')">
-                <NDataTable
-                  :columns="historyColumns"
-                  :data="historyData || []"
-                  :loading="isHistoryLoading"
-                  class="mt-4"
-                  :bordered="false"
-                />
-              </NTabPane>
-            </NTabs>
-          </div>
-        </div>
-      </main>
-      <div class="floating-button">
-        <HoverButton testid="create-chat" :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
-          <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
-            <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
-          </span>
-        </HoverButton>
-      </div>
-      <footer :class="footerClass">
+                   <footer :class="footerClass">
         <div class="w-full max-w-screen-xl m-auto">
           <div class="flex items-center justify-between space-x-2">
             <HoverButton :tooltip="$t('chat_snapshot.showCode')" @click="handleShowCode">
@@ -274,6 +235,45 @@ function onScrollToTop() {
           </div>
         </div>
       </footer>
+              </NTabPane>
+              
+              <NTabPane name="history" :tab="t('bot.tabs.history')">
+                <div v-if="isHistoryLoading">
+                  <NSpin size="large" />
+                </div>
+                <div v-else>
+                  <div v-for="(item, index) in historyData" :key="index" class="mb-6">
+                    <!-- User Prompt -->
+                    <Message 
+                      :date-time="item.created_at"
+                      :model="snapshot_data.model"
+                      :text="item.prompt"
+                      :inversion="true"
+                      :index="index"
+                    />
+                    <!-- Bot Answer -->
+                    <Message
+                      :date-time="item.created_at" 
+                      :model="snapshot_data.model"
+                      :text="item.answer"
+                      :inversion="false"
+                      :index="index"
+                    />
+                  </div>
+                </div>
+              </NTabPane>
+            </NTabs>
+          </div>
+        </div>
+      </main>
+      <div class="floating-button">
+        <HoverButton testid="create-chat" :tooltip="$t('chat_snapshot.createChat')" @click="handleChat">
+          <span class="text-xl text-[#4f555e] dark:text-white m-auto mx-10">
+            <SvgIcon icon="mdi:chat-plus" width="32" height="32" />
+          </span>
+        </HoverButton>
+      </div>
+     
     </div>
   </div>
 </template>
