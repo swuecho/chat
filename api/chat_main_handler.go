@@ -299,7 +299,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 }
 
 func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, newQuestion string, userID int32, streamOutput bool) {
-	chatModel, err := h.service.q.ChatModelByName(context.Background(), session.Model)
+	_ , err := h.service.q.ChatModelByName(context.Background(), session.Model)
 	if err != nil {
 		apiErr := ErrResourceNotFound("Chat model: " + session.Model)
 		apiErr.DebugInfo = err.Error()
@@ -307,7 +307,6 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 		return
 	}
 
-	baseURL, _ := getModelBaseUrl(chatModel.Url)
 
 	messages := simpleChatMessagesToMessages(simpleChatMessages)
 	messages = append(messages, models.Message{

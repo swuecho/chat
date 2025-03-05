@@ -63,7 +63,13 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByID(w http.ResponseWriter,
 		return
 	}
 
-	history, err := h.service.GetBotAnswerHistoryByID(r.Context(), id)
+	idInt, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		RespondWithAPIError(w, ErrValidationInvalidInput("Invalid ID format"))
+		return
+	}
+
+	history, err := h.service.GetBotAnswerHistoryByID(r.Context(), int32(idInt))
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "Failed to get bot answer history"))
 		return
@@ -136,7 +142,13 @@ func (h *BotAnswerHistoryHandler) DeleteBotAnswerHistory(w http.ResponseWriter, 
 		return
 	}
 
-	if err := h.service.DeleteBotAnswerHistory(r.Context(), id); err != nil {
+	idInt, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		RespondWithAPIError(w, ErrValidationInvalidInput("Invalid ID format"))
+		return
+	}
+
+	if err := h.service.DeleteBotAnswerHistory(r.Context(), int32(idInt)); err != nil {
 		RespondWithAPIError(w, WrapError(err, "Failed to delete bot answer history"))
 		return
 	}
@@ -176,8 +188,6 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByUserID(w http.Respon
 
 	RespondWithJSON(w, http.StatusOK, map[string]int64{"count": count})
 }
-
-
 
 func (h *BotAnswerHistoryHandler) GetLatestBotAnswerHistoryByBotUUID(w http.ResponseWriter, r *http.Request) {
 	botUUID := mux.Vars(r)["bot_uuid"]

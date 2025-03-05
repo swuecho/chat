@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -81,4 +82,48 @@ func getPerWordStreamLimit() int {
 	}
 
 	return perWordStreamLimit
+}
+
+func RespondWithJSON(w http.ResponseWriter, status int, payload interface{}) {
+	response, err := json.Marshal(payload)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(response)
+}
+
+func getPaginationParams(r *http.Request) (limit int32, offset int32) {
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+	
+	limit = 100 // default limit
+	if limitStr != "" {
+		if l, err := strconv.ParseInt(limitStr, 10, 32); err == nil {
+			limit = int32(l)
+		}
+	}
+	
+	offset = 0 // default offset
+	if offsetStr != "" {
+		if o, err := strconv.ParseInt(offsetStr, 10, 32); err == nil {
+			offset = int32(o)
+		}
+	}
+	
+	return limit, offset
+}
+
+func getLimitParam(r *http.Request, defaultLimit int32) int32 {
+	limitStr := r.URL.Query().Get("limit")
+	if limitStr == "" {
+		return defaultLimit
+	}
+	limit, err := strconv.ParseInt(limitStr, 10, 32)
+	if err != nil {
+		return defaultLimit
+	}
+	return int32(limit)
 }
