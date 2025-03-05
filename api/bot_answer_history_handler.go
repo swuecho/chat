@@ -165,6 +165,27 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByUserID(w http.Respon
 	RespondWithJSON(w, http.StatusOK, map[string]int64{"count": count})
 }
 
+func getPaginationParams(r *http.Request) (limit int32, offset int32) {
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+	
+	limit = 100 // default limit
+	if limitStr != "" {
+		if l, err := strconv.ParseInt(limitStr, 10, 32); err == nil {
+			limit = int32(l)
+		}
+	}
+	
+	offset = 0 // default offset
+	if offsetStr != "" {
+		if o, err := strconv.ParseInt(offsetStr, 10, 32); err == nil {
+			offset = int32(o)
+		}
+	}
+	
+	return limit, offset
+}
+
 func getLimitParam(r *http.Request, defaultLimit int32) int32 {
 	limitStr := r.URL.Query().Get("limit")
 	if limitStr == "" {
