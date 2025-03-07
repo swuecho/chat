@@ -5,7 +5,7 @@ import { NSpin } from 'naive-ui'
 import Message from './Message/index.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { fetchBotAnswerHistory } from '@/api/bot_answer_history'
-import SvgIcon from '@/components/common/SvgIcon.vue'
+import { SvgIcon } from '@/components/common';
 
 const { t } = useI18n()
 const props = defineProps<{
