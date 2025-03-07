@@ -173,35 +173,36 @@ function onScrollToTop() {
                 <NInput type="text" :value="snapshot_data.model" readonly class="w-1/3" />
               </div>
             </div>
-            
+
             <NTabs v-model:value="activeTab" type="line">
               <NTabPane name="conversation" :tab="t('bot.tabs.conversation')">
                 <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
                   :model="snapshot_data.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                   :loading="item.loading" :index="index" />
-                   <footer :class="footerClass">
-        <div class="w-full max-w-screen-xl m-auto">
-          <div class="flex items-center justify-between space-x-2">
-            <HoverButton :tooltip="$t('chat_snapshot.showCode')" @click="handleShowCode">
-              <span class="text-xl text-[#4f555e] dark:text-white">
-                <SvgIcon icon="ic:outline-code" />
-              </span>
-            </HoverButton>
-            <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportMarkdown')" @click="handleMarkdown">
-              <span class="text-xl text-[#4f555e] dark:text-white">
-                <SvgIcon icon="mdi:language-markdown" />
-              </span>
-            </HoverButton>
-            <HoverButton :tooltip="$t('chat_snapshot.scrollTop')" @click="onScrollToTop">
-              <span class="text-xl text-[#4f555e] dark:text-white">
-                <SvgIcon icon="material-symbols:vertical-align-top" />
-              </span>
-            </HoverButton>
-          </div>
-        </div>
-      </footer>
+                <footer :class="footerClass">
+                  <div class="w-full max-w-screen-xl m-auto">
+                    <div class="flex items-center justify-between space-x-2">
+                      <HoverButton :tooltip="$t('chat_snapshot.showCode')" @click="handleShowCode">
+                        <span class="text-xl text-[#4f555e] dark:text-white">
+                          <SvgIcon icon="ic:outline-code" />
+                        </span>
+                      </HoverButton>
+                      <HoverButton v-if="!isMobile" :tooltip="$t('chat_snapshot.exportMarkdown')"
+                        @click="handleMarkdown">
+                        <span class="text-xl text-[#4f555e] dark:text-white">
+                          <SvgIcon icon="mdi:language-markdown" />
+                        </span>
+                      </HoverButton>
+                      <HoverButton :tooltip="$t('chat_snapshot.scrollTop')" @click="onScrollToTop">
+                        <span class="text-xl text-[#4f555e] dark:text-white">
+                          <SvgIcon icon="material-symbols:vertical-align-top" />
+                        </span>
+                      </HoverButton>
+                    </div>
+                  </div>
+                </footer>
               </NTabPane>
-              
+
               <NTabPane name="history" :tab="t('bot.tabs.history')">
                 <div v-if="isHistoryLoading">
                   <NSpin size="large" />
@@ -211,25 +212,15 @@ function onScrollToTop() {
                     <div v-for="(item, index) in historyData" :key="index" class="mb-6">
                       <div class="mb-4 border-l-4 border-neutral-200 dark:border-neutral-700 pl-4">
                         <div class="text-sm text-neutral-500 dark:text-neutral-400 mb-2">
-                          {{ t('bot.runNumber', { number: index + 1 }) }} • 
+                          {{ t('bot.runNumber', { number: index + 1 }) }} •
                           {{ new Date(item.createdAt).toLocaleString() }}
                         </div>
                         <!-- User Prompt -->
-                        <Message 
-                          :date-time="item.createdAt"
-                          :model="snapshot_data.model"
-                          :text="item.prompt"
-                          :inversion="true"
-                          :index="index"
-                        />
+                        <Message :date-time="item.createdAt" :model="snapshot_data.model" :text="item.prompt"
+                          :inversion="true" :index="index" />
                         <!-- Bot Answer -->
-                        <Message
-                          :date-time="item.createdAt" 
-                          :model="snapshot_data.model"
-                          :text="item.answer"
-                          :inversion="false"
-                          :index="index"
-                        />
+                        <Message :date-time="item.createdAt" :model="snapshot_data.model" :text="item.answer"
+                          :inversion="false" :index="index" />
                       </div>
                     </div>
                   </div>
@@ -250,11 +241,11 @@ function onScrollToTop() {
           </span>
         </HoverButton>
       </div>
-     
+
     </div>
   </div>
 </template>
-  bot: {
-    noHistory: 'No conversation history yet',
-    runNumber: 'Run {number}'
-  }
+bot: {
+noHistory: 'No conversation history yet',
+runNumber: 'Run {number}'
+}
