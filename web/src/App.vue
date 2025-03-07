@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { NConfigProvider } from 'naive-ui'
-import { NaiveProvider } from '@/components/common'
-import { useTheme } from '@/hooks/useTheme'
-import { useLanguage } from '@/hooks/useLanguage'
 import { VueQueryDevtools } from '@tanstack/vue-query-devtools'
 
 
@@ -17,9 +14,6 @@ const { language } = useLanguage()
     :theme-overrides="themeOverrides"
     :locale="language"
   >
-    <NaiveProvider>
       <RouterView />
-    </NaiveProvider>
   </NConfigProvider>
-  <VueQueryDevtools />
 </template>
