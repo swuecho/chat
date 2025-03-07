@@ -1,12 +1,13 @@
 {
     "admin": {
-        "name": "Name",
         "add_model": "Add Model",
         "add_user_model_rate_limit": "Add User Session Count",
         "chat_model": {
             "actions": "Actions",
             "apiAuthHeader": "Auth Header key",
             "apiAuthKey": "API KEY corresponding to the environment variable",
+            "clear_form": "Clear Form",
+            "copy": "Copy",
             "copy_success": "Copied successfully",
             "defaultToken": "Default token number",
             "deleteModel": "Delete",
@@ -19,12 +20,10 @@
             "maxToken": "Maximum token number",
             "name": "Model ID",
             "orderNumber": "Order number",
-            "url": "Request full URL",
             "paste_json": "Paste JSON Configuration",
             "paste_json_placeholder": "Paste your model configuration JSON here...",
             "populate_form": "Populate Form",
-            "copy": "Copy",
-            "clear_form": "Clear Form"
+            "url": "Request full URL"
         },
         "chat_model_name": "Model ID",
         "firstName": "First Name",
@@ -32,6 +31,7 @@
         "lastName": "Last Name",
         "model": "Model",
         "model_one_default_only": "There can only be one default model, please set other models as non-default first.",
+        "name": "Name",
         "openPanel": "Open Admin Panel",
         "per_model_rate_limit": {
             "ChatModelName": "Model Name",
@@ -63,16 +63,26 @@
             "title": "Bots"
         },
         "list": "Bots",
-        "showCode": "Generate API call code"
+        "noHistory": "No history yet",
+        "runNumber": "Run {number}",
+        "showCode": "Generate API call code",
+        "tabs": {
+            "conversation": "Preset",
+            "history": "Answer"
+        }
     },
     "chat": {
         "N": "Number of results: {n}",
+        "addComment": "Add Comment",
         "adjustParameters": "Adjust parameters",
         "chatSettings": "Chat Settings",
         "chatSnapshot": "Generate the conversation",
         "clearChat": "Clear chat session",
         "clearChatConfirm": "Do you want to clear the chat session?",
         "clearHistoryConfirm": "Are you sure you want to clear the chat history?",
+        "commentFailed": "Failed to add comment",
+        "commentPlaceholder": "Enter your comment...",
+        "commentSuccess": "Comment added successfully",
         "completionsCount": "Number of results: {contextCount}",
         "contextCount": "Context Length: {contextCount}",
         "contextLength": "Context Length, default 10 (2 at the beginning of the conversation + 8 most recent)",
@@ -115,11 +125,7 @@
         "uploader_close": "Close",
         "uploader_help_text": "Supported file types: text, image, audio, video",
         "uploader_title": "Upload File",
-        "usingContext": "Context Mode",
-        "addComment": "Add Comment",                                                                                                                                                       
-        "commentPlaceholder": "Enter your comment...",                                                                                                                                     
-        "commentSuccess": "Comment added successfully",                                                                                                                                    
-        "commentFailed": "Failed to add comment"         
+        "usingContext": "Context Mode"
     },
     "chat_snapshot": {
         "createChat": "Create chat",
@@ -135,10 +141,6 @@
     },
     "common": {
         "actions": "Actions",
-        "warning": "Warning",
-        "use": "Use",
-        "submit": "Submit",
-        "submitting": "Submitting...",
         "ask_user_register": "Please register, only registered accounts can continue the conversation",
         "cancel": "Cancel",
         "clear": "Clear",
@@ -168,26 +170,31 @@
         "signup": "Sign up",
         "signup_failed": "Registration Failed",
         "signup_success": "Registration Successful",
+        "submit": "Submit",
+        "submitting": "Submitting...",
         "success": "Operation succeeded",
         "unauthorizedTips": "Please sign up or login",
+        "use": "Use",
         "verify": "Verify",
+        "warning": "Warning",
         "wrong": "Something seems to have gone wrong. Please try again later.",
         "yes": "Yes"
     },
     "error": {
+        "INTN_004": "Failed to request the model, please try again later or contact the administrator",
+        "MODEL_001": "the first message is a system message, please continue entering information to start the conversation",
+        "MODEL_006": "Failed to get a response from the model",
         "NotAdmin": "Non-administrators are prohibited from accessing",
         "NotAuthorized": "Please log in first",
-        "INTN_004": "Failed to request the model, please try again later or contact the administrator",
+        "VALD_001": "Invalid Request",
+        "VALD_004": "Invalid email or password",
         "fail_to_get_rate_limit": "Failed to retrieve the quota corresponding to the model, please contact the administrator to enable it",
         "gpt-4_over_limit": "GPT4 message sending limit exceeded, please contact the administrator to enable or increase quota.",
         "invalidEmail": "Invalid email address",
         "invalidPassword": "Password is not valid, it should be length >=6 and include a number, a lowercase letter, an uppercase letter, and a special character",
         "invalidRepwd": "Duplicate passwords are inconsistent",
-        "VALD_004": "Invalid email or password",
-        "VALD_001": "Invalid Request",
         "rateLimit": "The message sending limit has been reached, please contact the administrator.",
         "syncChatSession": "Sync Failed, Please Try Again Later",
-        "MODEL_001": "the first message is a system message, please continue entering information to start the conversation",
         "token_length_exceed_limit": "Total message length exceeds limit, please reduce context quantity, message length or start a new conversation."
     },
     "prompt": {
