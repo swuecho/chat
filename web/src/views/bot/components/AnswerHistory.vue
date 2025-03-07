@@ -55,10 +55,10 @@ const model = computed(() => '') // This should be passed from parent or fetched
           </div>
         </div>
       </div>
-      <div class="flex justify-center my-4" v-if="historyData?.totalPages > 1">
+      <div class="flex justify-center my-4" v-if="historyData?.totalPages && historyData?.totalPages > 1">
         <NPagination
           v-model:page="page"
-          :page-count="historyData.totalPages"
+          :page-count="historyData?.totalPages"
           :page-size="pageSize"
           show-size-picker
           :page-sizes="[10, 20, 50]"
