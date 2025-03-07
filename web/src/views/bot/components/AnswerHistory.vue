@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NSpin, NPagination } from 'naive-ui'
 import Message from './Message/index.vue'
@@ -15,9 +15,14 @@ const props = defineProps<{
 const page = ref(1)
 const pageSize = ref(10)
 
-const { data: historyData, isLoading: isHistoryLoading } = useQuery({
+const { data: historyData, isLoading: isHistoryLoading, refetch } = useQuery({
   queryKey: ['botAnswerHistory', props.botUuid, page.value, pageSize.value],
   queryFn: async () => await fetchBotAnswerHistory(props.botUuid, page.value, pageSize.value),
+})
+
+// Watch page and pageSize changes and refetch
+watch([page, pageSize], () => {
+  refetch()
 })
 
 const model = computed(() => '') // This should be passed from parent or fetched
