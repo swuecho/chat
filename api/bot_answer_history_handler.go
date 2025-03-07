@@ -92,7 +92,25 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByBotUUID(w http.ResponseWr
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, history)
+	// Get total count for pagination
+	totalCount, err := h.service.GetBotAnswerHistoryCountByBotUUID(r.Context(), botUUID)
+	if err != nil {
+		RespondWithAPIError(w, WrapError(err, "Failed to get bot answer history count"))
+		return
+	}
+
+	// Calculate total pages
+	totalPages := totalCount / int64(limit)
+	if totalCount%int64(limit) > 0 {
+		totalPages++
+	}
+
+	// Return paginated response
+	RespondWithJSON(w, http.StatusOK, map[string]interface{}{
+		"items":      history,
+		"totalPages": totalPages,
+		"totalCount": totalCount,
+	})
 }
 
 func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByUserID(w http.ResponseWriter, r *http.Request) {
