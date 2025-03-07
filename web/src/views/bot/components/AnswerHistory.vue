@@ -20,8 +20,13 @@ const { data: historyData, isLoading: isHistoryLoading, refetch } = useQuery({
   queryFn: async () => await fetchBotAnswerHistory(props.botUuid, page.value, pageSize.value),
 })
 
-// Watch page and pageSize changes and refetch
-watch([page, pageSize], () => {
+// Watch pageSize changes and reset to page 1
+watch(pageSize, () => {
+  page.value = 1
+})
+
+// Watch page changes and refetch
+watch(page, () => {
   refetch()
 })
 
