@@ -66,7 +66,7 @@ const model = computed(() => '') // This should be passed from parent or fetched
           @update:page-size="pageSize = $event"
         />
       </div>
-      <div v-if="historyData?.items?.length === 0" class="flex flex-col items-center justify-center h-64 text-neutral-400">
+      <div v-if="historyData?.items == null || historyData?.items?.length === 0" class="flex flex-col items-center justify-center h-64 text-neutral-400">
         <SvgIcon icon="mdi:history" class="w-12 h-12 mb-4" />
         <span>{{ t('bot.noHistory') }}</span>
       </div>
