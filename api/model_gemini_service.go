@@ -81,6 +81,9 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 
 	llmAnswer, err := gemini.HandleRegularResponse(*m.client.client, req)
+	if err != nil {
+		return nil, ErrInternalUnexpected.WithMessage("Failed to generate regular resposne").WithDebugInfo(err.Error())
+	}
 	if llmAnswer != nil {
 		llmAnswer.AnswerId = answerID
 	}
