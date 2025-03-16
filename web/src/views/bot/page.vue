@@ -1,5 +1,6 @@
 <script lang='ts' setup>
 import { computed, nextTick, ref, onMounted, h } from 'vue'
+import copy from 'copy-to-clipboard'
 import { useRoute } from 'vue-router'
 import { useDialog, useMessage, NSpin, NInput, NTabs, NTabPane } from 'naive-ui'
 import Message from './components/Message/index.vue'
@@ -137,10 +138,13 @@ function handleShowCode() {
     content: () => h('code', { class: 'whitespace-pre-wrap' }, code),
     positiveText: t('common.copy'),
     onPositiveClick: () => {
-      // copy to clipboard
-      navigator.clipboard.writeText(code)
+      const success = copy(code)
+      if (success) {
+        nui_msg.success(t('common.success'))
+      } else {
+        nui_msg.error(t('common.copyFailed'))
+      }
       dialogBox.loading = false
-      nui_msg.success(t('common.success'))
     },
   })
 }
