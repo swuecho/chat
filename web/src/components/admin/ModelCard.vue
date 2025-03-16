@@ -70,48 +70,30 @@ function handleDelete() {
   }
 }
 
-async function copyJson() {
-  try {
-    // Create a clean copy without Vue reactivity
-    const dataToCopy = {
-      name: editData.value.name,
-      label: editData.value.label,
-      url: editData.value.url,
-      apiAuthHeader: editData.value.apiAuthHeader,
-      apiAuthKey: editData.value.apiAuthKey,
-      isDefault: editData.value.isDefault,
-      enablePerModeRatelimit: editData.value.enablePerModeRatelimit,
-      isEnable: editData.value.isEnable,
-      orderNumber: editData.value.orderNumber,
-      defaultToken: editData.value.defaultToken,
-      maxToken: editData.value.maxToken
-    }
-    console.log(dataToCopy)
+import copy from 'copy-to-clipboard'
 
-    const text = JSON.stringify(dataToCopy, null, 2)
-    console.log(text)
-    // Use modern clipboard API if available
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      console.log("nav")
-      await navigator.clipboard.writeText(text)
-    } else {
-      console.log("no nav")
-      // Fallback for older browsers
-      const textarea = document.createElement('textarea')
-      textarea.value = text
-      textarea.style.position = 'fixed'
-      document.body.appendChild(textarea)
-      textarea.focus()
-      textarea.select()
-      const successful = document.execCommand('copy');
-      const msg = successful ? 'successful' : 'unsuccessful';
-      console.log('Fallback: Copying text command was ' + msg);
-      document.body.removeChild(textarea)
-    }
-
+function copyJson() {
+  // Create a clean copy without Vue reactivity
+  const dataToCopy = {
+    name: editData.value.name,
+    label: editData.value.label,
+    url: editData.value.url,
+    apiAuthHeader: editData.value.apiAuthHeader,
+    apiAuthKey: editData.value.apiAuthKey,
+    isDefault: editData.value.isDefault,
+    enablePerModeRatelimit: editData.value.enablePerModeRatelimit,
+    isEnable: editData.value.isEnable,
+    orderNumber: editData.value.orderNumber,
+    defaultToken: editData.value.defaultToken,
+    maxToken: editData.value.maxToken
+  }
+  
+  const text = JSON.stringify(dataToCopy, null, 2)
+  const success = copy(text)
+  
+  if (success) {
     ms_ui.success(t('admin.chat_model.copy_success'))
-  } catch (error) {
-    console.error('Copy failed:', error)
+  } else {
     ms_ui.error(t('admin.chat_model.copy_failed'))
   }
 }
