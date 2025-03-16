@@ -4,6 +4,7 @@ import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, useMessage, 
 import { t  } from '@/locales'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { updateChatModel, deleteChatModel } from '@/api'
+import copy from 'copy-to-clipboard'
 
 const props = defineProps<{
   model: Chat.ChatModel
@@ -70,7 +71,6 @@ function handleDelete() {
   }
 }
 
-import copy from 'copy-to-clipboard'
 
 function copyJson() {
   // Create a clean copy without Vue reactivity
