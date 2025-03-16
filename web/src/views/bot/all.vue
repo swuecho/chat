@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, h } from 'vue'
 import { NModal, useDialog, useMessage } from 'naive-ui'
+import copy from 'copy-to-clipboard'
 import Search from '../snapshot/components/Search.vue'
 import { fetchChatbotAll, fetchSnapshotDelete } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
@@ -59,37 +60,14 @@ function handleShowCode(post: Snapshot.PostLink) {
     title: t('bot.showCode'),
     content: () => h('code', { class: 'whitespace-pre-wrap' }, code),
     positiveText: t('common.copy'),
-    onPositiveClick: async () => {
-      try {
-        // Try modern clipboard API first
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(code)
-          message.success(t('common.success'))
-          return
-        }
-        
-        // Fallback to textarea method
-        const textarea = document.createElement('textarea')
-        textarea.value = code
-        textarea.style.position = 'fixed' // Avoid scrolling to bottom
-        document.body.appendChild(textarea)
-        textarea.select()
-        
-        try {
-          const successful = document.execCommand('copy')
-          if (!successful) {
-            throw new Error('Fallback copy failed')
-          }
-          message.success(t('common.success'))
-        } finally {
-          document.body.removeChild(textarea)
-        }
-      } catch (error) {
+    onPositiveClick: () => {
+      const success = copy(code)
+      if (success) {
+        message.success(t('common.success'))
+      } else {
         message.error(t('common.copyFailed'))
-        console.error('Failed to copy:', error)
-      } finally {
-        dialogBox.loading = false
       }
+      dialogBox.loading = false
     },
   })
 }
