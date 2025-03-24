@@ -8,12 +8,12 @@ import html2canvas from 'html2canvas'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
 import { useScroll } from '@/views/chat/hooks/useScroll'
 import { useChat } from '@/views/chat/hooks/useChat'
-import HeaderComponent from '@/views/chat/components/Header/index.vue'
+import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'
 import SessionConfig from '@/views/chat/components/Session/SessionConfig.vue'
-import { createChatBot, createChatSnapshot, deleteChatMessage, fetchChatStream } from '@/api'
+import { createChatBot, createChatSnapshot, deleteChatMessage, fetchChatStream, getChatSessionDefault } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useChatStore, usePromptStore } from '@/store'
+import { useAppStore, useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { nowISO } from '@/utils/date'
@@ -56,6 +56,27 @@ const showModal = ref<boolean>(false)
 const snapshotLoading = ref<boolean>(false)
 const botLoading = ref<boolean>(false)
 
+const appStore = useAppStore()
+
+
+async function handleAdd() {
+  const new_chat_text = t('chat.new')
+  //   //
+  //   // {
+  //   "uuid": "ff511942-43b4-4ebd-9fe8-f2ca405605ac",
+  //   "isEdit": false,
+  //   "title": "try improve code and",
+  //   "maxLength": 10,
+  //   "temperature": 1,
+  //   "topP": 1,
+  //   "maxTokens": 512,
+  //   "debug": false
+  // }//
+  const default_model_parameters = await getChatSessionDefault(new_chat_text)
+  await chatStore.addChatSession(default_model_parameters)
+  if (isMobile.value)
+    appStore.setSiderCollapsed(true)
+}
 
 // 添加PromptStore
 const promptStore = usePromptStore()
@@ -560,7 +581,7 @@ const handleUsePrompt = (_: string, value: string): void => {
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />
     </div>
-    <HeaderComponent v-if="isMobile" @export="handleExport" @snapshot="handleSnapshot" @toggle="showModal = true" />
+    <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
     <main class="flex-1 overflow-hidden">
       <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
         <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
