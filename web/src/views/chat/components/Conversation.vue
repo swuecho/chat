@@ -60,22 +60,13 @@ const appStore = useAppStore()
 
 
 async function handleAdd() {
-  const new_chat_text = t('chat.new')
-  //   //
-  //   // {
-  //   "uuid": "ff511942-43b4-4ebd-9fe8-f2ca405605ac",
-  //   "isEdit": false,
-  //   "title": "try improve code and",
-  //   "maxLength": 10,
-  //   "temperature": 1,
-  //   "topP": 1,
-  //   "maxTokens": 512,
-  //   "debug": false
-  // }//
-  const default_model_parameters = await getChatSessionDefault(new_chat_text)
-  await chatStore.addChatSession(default_model_parameters)
-  if (isMobile.value)
-    appStore.setSiderCollapsed(true)
+  if (dataSources.value.length > 0) {
+    const new_chat_text = t('chat.new')
+    const default_model_parameters = await getChatSessionDefault(new_chat_text)
+    await chatStore.addChatSession(default_model_parameters)
+    if (isMobile.value)
+      appStore.setSiderCollapsed(true)
+  }
 }
 
 // 添加PromptStore
