@@ -41,7 +41,7 @@ const { sessionUuid } = defineProps({
 
 
 const { isMobile } = useBasicLayout()
-const { addChat, deleteChat, updateChat, updateChatPartial } = useChat()
+const { addChat, updateChat, updateChatPartial } = useChat()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
 // session uuid
 chatStore.syncChatMessages(sessionUuid)
