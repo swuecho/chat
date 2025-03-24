@@ -66,6 +66,8 @@ async function handleAdd() {
     await chatStore.addChatSession(default_model_parameters)
     if (isMobile.value)
       appStore.setSiderCollapsed(true)
+  } else {
+    nui_msg.warning(t('chat.alreadyInNewChat'))
   }
 }
 
