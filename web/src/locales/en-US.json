@@ -125,7 +125,8 @@
         "uploader_close": "Close",
         "uploader_help_text": "Supported file types: text, image, audio, video",
         "uploader_title": "Upload File",
-        "usingContext": "Context Mode"
+        "usingContext": "Context Mode",
+        "alreadyInNewChat": "alreay in new chat"
     },
     "chat_snapshot": {
         "createChat": "Create chat",

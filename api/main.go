@@ -255,7 +255,7 @@ func main() {
 
 	}
 
-	err = http.ListenAndServe(":8080", loggedRouter)
+	err = http.ListenAndServe(":8070", loggedRouter)
 	if err != nil {
 		log.Fatal(err)
 	}

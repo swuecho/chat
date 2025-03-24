@@ -75,6 +75,7 @@
     "showCode": "生成API调用代码"
   },
   "chat": {
+    "alreadyInNewChat": "已经在新对话中",
     "new": "新对话",
     "summarize_mode": "总结模式(可以支持更长的上下文20+)",
     "is_summarize_mode": "开启",
