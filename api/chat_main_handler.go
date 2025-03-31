@@ -209,7 +209,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
+		RespondWithAPIError(w, ErrResourceNotFound("chat model: ").WithMessage(chatSession.Model))
 		return
 	}
 	baseURL, _ := getModelBaseUrl(chatModel.Url)
