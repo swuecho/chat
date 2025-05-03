@@ -121,7 +121,24 @@
   "defaultToken": 8192,
   "maxToken": 8192
 }
+
+# silicon flow
+
+{
+  "name": "Qwen/Qwen3-235B-A22B",
+  "label": "Qwen/Qwen3-235B-A22B",
+  "url": "https://api.siliconflow.cn/v1/chat/completions",
+  "apiAuthHeader": "Authorization",
+  "apiAuthKey": "SILICONFLOW_API_KEY",
+  "isDefault": false,
+  "enablePerModeRatelimit": false,
+  "isEnable": true,
+  "orderNumber": 0,
+  "defaultToken": 0,
+  "maxToken": 0
+}
 ```
+
 
 ## 故障排除
 
