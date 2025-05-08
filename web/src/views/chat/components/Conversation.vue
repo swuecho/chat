@@ -24,6 +24,14 @@ import MessageList from '@/views/chat/components/MessageList.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import { getDataFromResponseText } from '@/utils/string'
 import renderMessage from './RenderMessage.vue'
+import { useSlashToFocus } from '../hooks/useSlashToFocus'
+
+// 1. Create a ref for the input element
+const searchInputRef = ref(null);
+
+// 2. Use the composable, passing the ref
+useSlashToFocus(searchInputRef);
+
 let controller = new AbortController()
 
 const dialog = useDialog()
@@ -601,7 +609,7 @@ const handleUsePrompt = (_: string, value: string): void => {
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
             :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
-              <NInput id="message_textarea" v-model:value="prompt" type="textarea" :placeholder="placeholder"
+              <NInput ref="searchInputRef" id="message_textarea" v-model:value="prompt" type="textarea" :placeholder="placeholder"
                 data-testid="message_textarea" :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
                 @input="handleInput" @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
             </template>
