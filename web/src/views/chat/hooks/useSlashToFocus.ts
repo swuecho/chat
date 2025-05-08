@@ -9,10 +9,9 @@ import { onMounted, onBeforeUnmount, type Ref, toRaw } from 'vue';
 export function useSlashToFocus(targetInputRef: Ref<HTMLInputElement | null>): void {
 
         const handleGlobalKeyPress = (event: KeyboardEvent): void => {
-                const currentTargetElement = toRaw(targetInputRef.value); // Get raw element
 
                 // Ensure the ref is pointing to an element
-                if (!currentTargetElement) {
+                if (!targetInputRef.value) {
                         return;
                 }
 
@@ -34,9 +33,7 @@ export function useSlashToFocus(targetInputRef: Ref<HTMLInputElement | null>): v
                         event.preventDefault();
 
                         // Focus the target input (using the original ref.value which is fine for DOM methods)
-                        if (targetInputRef.value) {
-                                targetInputRef.value.focus();
-                        }
+                        targetInputRef.value.focus();
                 }
         };
 
