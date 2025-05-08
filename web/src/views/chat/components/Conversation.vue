@@ -423,42 +423,6 @@ function formatErr(error_json: { code: number; message: string; details: any }) 
   return `${error_json.code} : ${message}`
 }
 
-function handleExport() {
-  if (loading.value)
-    return
-
-  const dialogBox = dialog.warning({
-    title: t('chat.exportImage'),
-    content: t('chat.exportImageConfirm'),
-    positiveText: t('common.yes'),
-    negativeText: t('common.no'),
-    onPositiveClick: async () => {
-      try {
-        dialogBox.loading = true
-        const ele = document.getElementById('image-wrapper')
-        const canvas = await html2canvas(ele as HTMLDivElement, {
-          useCORS: true,
-        })
-        const imgUrl = canvas.toDataURL('image/png')
-        const tempLink = genTempDownloadLink(imgUrl)
-        document.body.appendChild(tempLink)
-        tempLink.click()
-        document.body.removeChild(tempLink)
-        window.URL.revokeObjectURL(imgUrl)
-        dialogBox.loading = false
-        nui_msg.success(t('chat.exportSuccess'))
-        Promise.resolve()
-      }
-      catch (error: any) {
-        nui_msg.error(t('chat.exportFailed'))
-      }
-      finally {
-        dialogBox.loading = false
-      }
-    },
-  })
-}
-
 async function handleSnapshot() {
   snapshotLoading.value = true
   try {
