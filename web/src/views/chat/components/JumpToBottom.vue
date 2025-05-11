@@ -1,13 +1,25 @@
 // src/components/JumpToBottomButton.vue
 <template>
-  <button
-    v-if="isVisible && scrollableElement"
-    @click="scrollToBottom"
-    class="jump-to-bottom-button"
-    aria-label="Scroll to bottom of content"
-  >
-    &darr;
-  </button>
+
+  <div class="jump-buttons">
+    <button
+      v-if="showTopButton && scrollableElement"
+      @click="scrollToTop"
+      class="jump-button jump-top-button"
+      aria-label="Scroll to top of content"
+    >
+      &uarr;
+    </button>
+    <button
+      v-if="showBottomButton && scrollableElement"
+      @click="scrollToBottom"
+      class="jump-button jump-bottom-button"
+      aria-label="Scroll to bottom of content"
+    >
+      &darr;
+    </button>
+  </div>
+
 </template>
 
 <script setup>
@@ -24,8 +36,18 @@ const props = defineProps({
   }
 });
 
-const isVisible = ref(false);
+
+const showTopButton = ref(false);
+const showBottomButton = ref(false);
 const scrollableElement = ref(null);
+
+const scrollToTop = () => {
+  if (!scrollableElement.value) return;
+  scrollableElement.value.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  });
+};
 
 const scrollToBottom = () => {
   if (!scrollableElement.value) return;
@@ -36,23 +58,25 @@ const scrollToBottom = () => {
 };
 
 const handleScroll = () => {
-        console.log("scroll")
+
   if (!scrollableElement.value) return;
 
   const el = scrollableElement.value;
-  // Show button if scrolled more than the threshold
-  let shouldBeVisible = el.scrollTop > props.scrollThresholdShow;
-
-  // Hide button if already at the very bottom (or very close to it)
-  const atBottom = (el.clientHeight + el.scrollTop) >= (el.scrollHeight - 10);
-
-  if (atBottom && el.scrollTop > props.scrollThresholdShow) {
-    shouldBeVisible = false;
-  } else if (el.scrollTop > props.scrollThresholdShow) {
-    shouldBeVisible = true;
+  const scrollHeight = el.scrollHeight;
+  if (scrollHeight < 2000) {
+        return;
   }
-  
-  isVisible.value = shouldBeVisible;
+  const clientHeight = el.clientHeight;
+  const scrollTop = el.scrollTop;
+
+  // Show bottom button if scrolled more than the threshold and not at bottom
+  const nearBottom = (clientHeight + scrollTop) >= (scrollHeight - 10);
+  showBottomButton.value = scrollTop > props.scrollThresholdShow && !nearBottom;
+
+  // Show top button if scrolled more than the threshold and not at top, add not near bottom
+  showTopButton.value = scrollTop > props.scrollThresholdShow && !nearBottom;
+
+
 };
 
 const initializeScrollHandling = () => {
@@ -64,7 +88,10 @@ const initializeScrollHandling = () => {
   } else {
     console.warn(`[JumpToBottomButton] Target element "${props.targetSelector}" not found.`);
     scrollableElement.value = null; // Ensure it's reset if target changes and isn't found
-    isVisible.value = false; // Hide button if target not found
+
+    showTopButton.value = false;
+    showBottomButton.value = false; // Hide buttons if target not found
+
   }
 };
 
@@ -93,14 +120,21 @@ watch(() => props.targetSelector, (newSelector, oldSelector) => {
 </script>
 
 <style scoped>
-.jump-to-bottom-button {
+
+.jump-buttons {
   position: fixed;
   bottom: 75px;
-  left: 50%;
+  right: 1%;
+  transform: translateX(-50%);
   z-index: 1000;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
 
-  padding: 2px 50px;
-  background-color: #75c788;
+.jump-button {
+  padding: 0px 20px;
+
   color: white;
   border: none;
   border-radius: 50px;
@@ -110,7 +144,21 @@ watch(() => props.targetSelector, (newSelector, oldSelector) => {
   transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
-.jump-to-bottom-button:hover {
+
+.jump-top-button {
+  background-color: #75c788;
+}
+
+.jump-top-button:hover {
+  background-color: #178430;
+}
+
+.jump-bottom-button {
+  background-color: #75c788;
+}
+
+.jump-bottom-button:hover {
+
   background-color: #178430;
 }
 </style>

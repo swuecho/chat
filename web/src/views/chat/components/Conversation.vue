@@ -575,7 +575,7 @@ const handleUsePrompt = (_: string, value: string): void => {
             </div>
           </template>
         </div>
-      <JumpToBottom targetSelector="#scrollRef" :scrollThresholdShow="50" /> 
+      <JumpToBottom targetSelector="#scrollRef" :scrollThresholdShow="200" /> 
 
       </div>
     </main>
