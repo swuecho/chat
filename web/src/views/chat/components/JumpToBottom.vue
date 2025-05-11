@@ -1,5 +1,6 @@
 // src/components/JumpToBottomButton.vue
 <template>
+
   <div class="jump-buttons">
     <button
       v-if="showTopButton && scrollableElement"
@@ -18,6 +19,7 @@
       &darr;
     </button>
   </div>
+
 </template>
 
 <script setup>
@@ -33,6 +35,7 @@ const props = defineProps({
     default: 100, // Default to 100px for element scrolling, often less than page
   }
 });
+
 
 const showTopButton = ref(false);
 const showBottomButton = ref(false);
@@ -55,6 +58,7 @@ const scrollToBottom = () => {
 };
 
 const handleScroll = () => {
+
   if (!scrollableElement.value) return;
 
   const el = scrollableElement.value;
@@ -71,6 +75,8 @@ const handleScroll = () => {
 
   // Show top button if scrolled more than the threshold and not at top, add not near bottom
   showTopButton.value = scrollTop > props.scrollThresholdShow && !nearBottom;
+
+
 };
 
 const initializeScrollHandling = () => {
@@ -82,8 +88,10 @@ const initializeScrollHandling = () => {
   } else {
     console.warn(`[JumpToBottomButton] Target element "${props.targetSelector}" not found.`);
     scrollableElement.value = null; // Ensure it's reset if target changes and isn't found
+
     showTopButton.value = false;
     showBottomButton.value = false; // Hide buttons if target not found
+
   }
 };
 
@@ -112,6 +120,7 @@ watch(() => props.targetSelector, (newSelector, oldSelector) => {
 </script>
 
 <style scoped>
+
 .jump-buttons {
   position: fixed;
   bottom: 75px;
@@ -125,6 +134,7 @@ watch(() => props.targetSelector, (newSelector, oldSelector) => {
 
 .jump-button {
   padding: 0px 20px;
+
   color: white;
   border: none;
   border-radius: 50px;
@@ -133,6 +143,7 @@ watch(() => props.targetSelector, (newSelector, oldSelector) => {
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
+
 
 .jump-top-button {
   background-color: #75c788;
@@ -147,6 +158,7 @@ watch(() => props.targetSelector, (newSelector, oldSelector) => {
 }
 
 .jump-bottom-button:hover {
+
   background-color: #178430;
 }
 </style>
