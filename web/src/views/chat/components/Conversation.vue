@@ -25,6 +25,7 @@ import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import { getDataFromResponseText } from '@/utils/string'
 import renderMessage from './RenderMessage.vue'
 import { useSlashToFocus } from '../hooks/useSlashToFocus'
+import JumpToBottom from './JumpToBottom.vue'
 
 // 1. Create a ref for the input element
 const searchInputRef = ref(null);
@@ -574,6 +575,8 @@ const handleUsePrompt = (_: string, value: string): void => {
             </div>
           </template>
         </div>
+      <JumpToBottom targetSelector="#scrollRef" :scrollThresholdShow="50" /> 
+
       </div>
     </main>
     <footer :class="footerClass">
