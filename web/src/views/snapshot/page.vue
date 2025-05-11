@@ -164,8 +164,13 @@ const footerClass = computed(() => {
 
 function onScrollToTop() {
   const scrollRef = document.querySelector('#scrollRef')
-  if (scrollRef)
-    nextTick(() => scrollRef.scrollTop = 0)
+  if (scrollRef) {
+    console.log(scrollRef);
+    scrollRef.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  }
 }
 </script>
 
@@ -182,7 +187,8 @@ function onScrollToTop() {
             :class="[isMobile ? 'p-2' : 'p-4']">
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
               :model="item?.model || snapshot_data.model" :text="item.text" :inversion="item.inversion"
-              :error="item.error" :loading="item.loading" :index="index" :uuid="item.uuid" :session-uuid="uuid" :comments="comments"/>
+              :error="item.error" :loading="item.loading" :index="index" :uuid="item.uuid" :session-uuid="uuid"
+              :comments="comments" />
           </div>
         </div>
       </main>
