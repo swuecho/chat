@@ -56,7 +56,7 @@ function handleDelete(post: Snapshot.PostLink) {
   <div class="flex flex-col w-full h-full dark:text-white">
     <header
       class="flex items-center justify-between h-16 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur">
-      <div class="flex items-center ml-10 gap-2">
+      <div class="flex items-center ml-1 md:ml-10 gap-2">
         <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -66,7 +66,7 @@ function handleDelete(post: Snapshot.PostLink) {
           {{ $t('chat_snapshot.title') }}
         </h1>
       </div>
-      <div class="mr-10">
+      <div class="mr-1 md:mr-10">
         <HoverButton @click="searchVisible = true">
           <SvgIcon icon="ic:round-search" class="text-2xl" />
         </HoverButton>
