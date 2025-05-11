@@ -189,7 +189,7 @@ function onScrollToTop() {
     <div v-else>
       <Header :title="snapshot_data.title" typ="snapshot" />
       <main class="flex-1 overflow-hidden">
-        <div ref="scrollRef" class="h-full overflow-y-auto" style="height: calc(100vh - 200px); scroll-behavior: smooth;">
+        <div ref="scrollRef" class="h-full overflow-y-auto" style="height: calc(100vh - 200px); scroll-behavior: smooth; border: 1px solid red;">
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
