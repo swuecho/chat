@@ -238,7 +238,3 @@ function onScrollToTop() {
     </div>
   </div>
 </template>
-bot: {
-noHistory: 'No conversation history yet',
-runNumber: 'Run {number}'
-}
