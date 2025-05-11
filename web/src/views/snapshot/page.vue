@@ -1,5 +1,5 @@
 <script lang='ts' setup>
-import { computed, nextTick } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDialog, useMessage, NSpin } from 'naive-ui'
 import html2canvas from 'html2canvas'
@@ -38,15 +38,6 @@ const { data: comments } = useQuery({
   queryKey: ['conversationComments', uuid],
   queryFn: async () => await getConversationComments(uuid),
 })
-
-
-// fiter comments with uuid
-const filterComments = (comments: Chat.Comment[], uuid: string) => {
-  console.log(comments, uuid)
-  if (!comments)
-    return []
-  return comments.filter((comment: Chat.Comment) => comment.chatMessageUuid === uuid)
-}
 
 function handleExport() {
 
@@ -162,10 +153,22 @@ const footerClass = computed(() => {
   return classes
 })
 
+const scrollRef = ref<HTMLElement | null>(null)
+
 function onScrollToTop() {
-  const scrollRef = document.querySelector('#scrollRef')
-  if (scrollRef)
-    nextTick(() => scrollRef.scrollTop = 0)
+  const container = scrollRef.value
+  if (!container) return
+
+  console.log('Current scroll position:', container.scrollTop)
+
+  // Try both methods for maximum compatibility
+  container.scrollTo({ top: 0, behavior: 'smooth' })
+  container.scrollTop = 0
+
+  // Add a small timeout to check if it worked
+  setTimeout(() => {
+    console.log('New scroll position:', container.scrollTop)
+  }, 500)
 }
 </script>
 
@@ -177,12 +180,14 @@ function onScrollToTop() {
     <div v-else>
       <Header :title="snapshot_data.title" typ="snapshot" />
       <main class="flex-1 overflow-hidden">
-        <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
+        <div ref="scrollRef" class="h-full overflow-y-auto"
+          style="height: calc(100vh - 100px); scroll-behavior: smooth;">
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
               :model="item?.model || snapshot_data.model" :text="item.text" :inversion="item.inversion"
-              :error="item.error" :loading="item.loading" :index="index" :uuid="item.uuid" :session-uuid="uuid" :comments="comments"/>
+              :error="item.error" :loading="item.loading" :index="index" :uuid="item.uuid" :session-uuid="uuid"
+              :comments="comments" />
           </div>
         </div>
       </main>

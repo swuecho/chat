@@ -150,10 +150,27 @@ function handleShowCode() {
 }
 
 
+const scrollRef = ref<HTMLElement | null>(null)
+const showScrollToTop = ref(false)
+
+function handleScroll() {
+  if (scrollRef.value) {
+    console.log('Scroll position:', scrollRef.value.scrollTop)
+    console.log('Scroll height:', scrollRef.value.scrollHeight)
+    console.log('Client height:', scrollRef.value.clientHeight)
+    showScrollToTop.value = scrollRef.value.scrollTop > 100
+  }
+}
+
 function onScrollToTop() {
-  const scrollRef = document.querySelector('#scrollRef')
-  if (scrollRef)
-    nextTick(() => scrollRef.scrollTop = 0)
+  if (scrollRef.value) {
+    scrollRef.value.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+    // Force scroll in case smooth scrolling is blocked by browser
+    scrollRef.value.scrollTop = 0
+  }
 }
 </script>
 
@@ -165,7 +182,7 @@ function onScrollToTop() {
     <div v-else>
       <Header :title="snapshot_data.title" typ="chatbot" />
       <main class="flex-1 overflow-hidden">
-        <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
+        <div id="scrollRef" ref="scrollRef" class="h-[calc(100vh-16rem)] overflow-y-auto" @scroll="handleScroll">
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
             <div class="flex items-center justify-center mt-4 ">
@@ -221,7 +238,3 @@ function onScrollToTop() {
     </div>
   </div>
 </template>
-bot: {
-noHistory: 'No conversation history yet',
-runNumber: 'Run {number}'
-}
