@@ -1,4 +1,0 @@
-  bot: {
-    noHistory: 'No conversation history yet',
-    runNumber: 'Run {number}'
-  },
