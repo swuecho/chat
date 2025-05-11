@@ -66,19 +66,19 @@ async function handleEditTitle() {
 <template>
   <header
     class="sticky h-16 flex items-center justify-between border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur  overflow-hidden">
-    <div class="flex items-center ml-10">
-      <div>
+    <div class="flex items-center ml-4 md:ml-10 flex-1 min-w-0">
+      <div class="flex-shrink-0">
         <HoverButton :tooltip="$t('common.edit')" @click="handleEditTitle">
           <SvgIcon icon="ic:baseline-edit" />
         </HoverButton>
       </div>
-      <h1 ref="titleRef" class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+      <h1 ref="titleRef" class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap min-w-0 px-2"
         :class="[isEditing ? 'shadow-green-100 leading-8' : '']" :contenteditable="isEditing" @blur="handleEdit"
         @dblclick="handleEditTitle">
         {{ title ?? '' }}
       </h1>
     </div>
-    <div class="flex mr-10 items-center space-x-4">
+    <div class="flex mr-4 md:mr-10 items-center space-x-2 md:space-x-4 flex-shrink-0">
       <HoverButton @click="handleHome">
         <span class="text-2xl text-[#4f555e] dark:text-white">
           <SvgIcon icon="carbon:table-of-contents" />
