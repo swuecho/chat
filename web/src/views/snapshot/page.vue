@@ -165,16 +165,19 @@ const footerClass = computed(() => {
 const scrollRef = ref<HTMLElement | null>(null)
 
 function onScrollToTop() {
-  nextTick(() => {
-    console.log('Scroll ref:', scrollRef.value)
-    if (scrollRef.value) {
-      console.log('Scrolling to top...')
-      scrollRef.value.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      })
-    }
-  })
+  const container = scrollRef.value
+  if (!container) return
+  
+  console.log('Current scroll position:', container.scrollTop)
+  
+  // Try both methods for maximum compatibility
+  container.scrollTo({ top: 0, behavior: 'smooth' })
+  container.scrollTop = 0
+  
+  // Add a small timeout to check if it worked
+  setTimeout(() => {
+    console.log('New scroll position:', container.scrollTop)
+  }, 500)
 }
 </script>
 
@@ -186,7 +189,7 @@ function onScrollToTop() {
     <div v-else>
       <Header :title="snapshot_data.title" typ="snapshot" />
       <main class="flex-1 overflow-hidden">
-        <div ref="scrollRef" class="h-full overflow-y-auto" style="scroll-behavior: smooth;">
+        <div ref="scrollRef" class="h-full overflow-y-auto" style="height: calc(100vh - 200px); scroll-behavior: smooth;">
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
