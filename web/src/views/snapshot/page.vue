@@ -1,5 +1,5 @@
 <script lang='ts' setup>
-import { computed, nextTick } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDialog, useMessage, NSpin } from 'naive-ui'
 import html2canvas from 'html2canvas'
@@ -165,11 +165,13 @@ const footerClass = computed(() => {
 const scrollRef = ref<HTMLElement | null>(null)
 
 function onScrollToTop() {
+  console.log(scrollRef)
   if (scrollRef.value) {
     scrollRef.value.scrollTo({
       top: 0,
       behavior: 'smooth',
     })
+    
   }
 }
 </script>
