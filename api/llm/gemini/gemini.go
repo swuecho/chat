@@ -270,3 +270,20 @@ func BuildAPIURL(model string, stream bool) string {
 	}
 	return os.ExpandEnv(url)
 }
+
+type GoogleApiError struct {
+	Error struct {
+		Code    int             `json:"code"`
+		Message string          `json:"message"`
+		Status  string          `json:"status"`
+		Details string `json:"details,omitempty"`
+	} `json:"error"`
+}
+
+func (gae *GoogleApiError) String() string {
+	if gae.Error.Message == "" {
+		return "Unknown Google API Error"
+	}
+	return fmt.Sprintf("Google API Error: Code=%d, Status=%s, Message=%s, Details=[%s]",
+		gae.Error.Code, gae.Error.Status, gae.Error.Message, gae.Error.Details)
+}

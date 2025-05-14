@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -169,6 +170,22 @@ func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.
 	}
 
 	var answer string
+	log.Println(resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		errorBody, _ := io.ReadAll(resp.Body)
+		log.Println(string(errorBody))
+		var apiError gemini.GoogleApiError
+		if json.Unmarshal(errorBody, &apiError) == nil && apiError.Error.Message != "" {
+			log.Printf("API returned non-200 status: %d %s. Error: %s", resp.StatusCode, http.StatusText(resp.StatusCode), &apiError)
+		} else {
+			log.Printf("API returned non-200 status: %d %s. Body: %s", resp.StatusCode, http.StatusText(resp.StatusCode), string(errorBody))
+		}
+		return nil, APIError{
+			HTTPCode: apiError.Error.Code,
+			Code:     apiError.Error.Status,
+			Message:  apiError.Error.Message,
+		}
+	}
 	ioreader := bufio.NewReader(resp.Body)
 	headerData := []byte("data: ")
 
