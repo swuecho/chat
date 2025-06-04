@@ -186,6 +186,7 @@
         "MODEL_006": "無法從模型取得回覆",
         "NotAdmin": "非管理員禁止訪問",
         "NotAuthorized": "請先登入",
+        "RESOURCE_EXHAUSTED": "資源耗盡",
         "VALD_001": "無效請求",
         "VALD_004": "無效的電子郵件或密碼",
         "fail_to_get_rate_limit": "無法查詢模型對應的配額，請聯繫管理員開通",

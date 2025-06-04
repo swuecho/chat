@@ -185,6 +185,7 @@
         "INTN_004": "Failed to request the model, please try again later or contact the administrator",
         "MODEL_001": "the first message is a system message, please continue entering information to start the conversation",
         "MODEL_006": "Failed to get a response from the model",
+        "RESOURCE_EXHAUSTED": "Resource exhausted",
         "NotAdmin": "Non-administrators are prohibited from accessing",
         "NotAuthorized": "Please log in first",
         "VALD_001": "Invalid Request",
