@@ -1,4 +1,3 @@
-// src/components/JumpToBottomButton.vue
 <template>
 
   <div class="jump-buttons">
