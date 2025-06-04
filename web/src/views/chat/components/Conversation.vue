@@ -575,7 +575,7 @@ const handleUsePrompt = (_: string, value: string): void => {
             </div>
           </template>
         </div>
-      <JumpToBottom targetSelector="#scrollRef" :scrollThresholdShow="200" /> 
+        <JumpToBottom v-if="dataSources.length > 1" targetSelector="#scrollRef" :scrollThresholdShow="200" />
 
       </div>
     </main>
@@ -612,9 +612,10 @@ const handleUsePrompt = (_: string, value: string): void => {
           <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
             :on-select="handleSelectAutoComplete">
             <template #default="{ handleInput, handleBlur, handleFocus }">
-              <NInput ref="searchInputRef" id="message_textarea" v-model:value="prompt" type="textarea" :placeholder="placeholder"
-                data-testid="message_textarea" :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
-                @input="handleInput" @focus="handleFocus" @blur="handleBlur" @keypress="handleEnter" />
+              <NInput ref="searchInputRef" id="message_textarea" v-model:value="prompt" type="textarea"
+                :placeholder="placeholder" data-testid="message_textarea"
+                :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
+                @blur="handleBlur" @keypress="handleEnter" />
             </template>
           </NAutoComplete>
           <button class="!-ml-8 z-10" @click="showUploadModal = true">
