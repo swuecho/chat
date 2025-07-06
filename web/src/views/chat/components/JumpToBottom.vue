@@ -56,26 +56,37 @@ const scrollToBottom = () => {
   });
 };
 
-const handleScroll = () => {
+let scrollTimeoutId = null;
 
+const handleScroll = () => {
   if (!scrollableElement.value) return;
 
-  const el = scrollableElement.value;
-  const scrollHeight = el.scrollHeight;
-  if (scrollHeight < 2000) {
-        return;
-  }
-  const clientHeight = el.clientHeight;
-  const scrollTop = el.scrollTop;
+  // Throttle scroll events for better performance
+  if (scrollTimeoutId) return;
+  
+  scrollTimeoutId = setTimeout(() => {
+    scrollTimeoutId = null;
+    
+    const el = scrollableElement.value;
+    if (!el) return;
+    
+    const scrollHeight = el.scrollHeight;
+    if (scrollHeight < 2000) {
+      showTopButton.value = false;
+      showBottomButton.value = false;
+      return;
+    }
+    
+    const clientHeight = el.clientHeight;
+    const scrollTop = el.scrollTop;
 
-  // Show bottom button if scrolled more than the threshold and not at bottom
-  const nearBottom = (clientHeight + scrollTop) >= (scrollHeight - 10);
-  showBottomButton.value = scrollTop > props.scrollThresholdShow && !nearBottom;
+    // Show bottom button if scrolled more than the threshold and not at bottom
+    const nearBottom = (clientHeight + scrollTop) >= (scrollHeight - 10);
+    showBottomButton.value = scrollTop > props.scrollThresholdShow && !nearBottom;
 
-  // Show top button if scrolled more than the threshold and not at top, add not near bottom
-  showTopButton.value = scrollTop > props.scrollThresholdShow && !nearBottom;
-
-
+    // Show top button if scrolled more than the threshold and not at top, add not near bottom
+    showTopButton.value = scrollTop > props.scrollThresholdShow && !nearBottom;
+  }, 16); // ~60fps throttling
 };
 
 const initializeScrollHandling = () => {
@@ -95,6 +106,10 @@ const initializeScrollHandling = () => {
 };
 
 const cleanupScrollHandling = () => {
+  if (scrollTimeoutId) {
+    clearTimeout(scrollTimeoutId);
+    scrollTimeoutId = null;
+  }
   if (scrollableElement.value) {
     scrollableElement.value.removeEventListener('scroll', handleScroll);
   }
@@ -132,8 +147,7 @@ watch(() => props.targetSelector, (newSelector, oldSelector) => {
 }
 
 .jump-button {
-  padding: 0px 20px;
-
+  padding: 8px 16px;
   color: white;
   border: none;
   border-radius: 50px;
@@ -141,6 +155,12 @@ watch(() => props.targetSelector, (newSelector, oldSelector) => {
   font-size: 1.2em;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  will-change: opacity, transform;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 
