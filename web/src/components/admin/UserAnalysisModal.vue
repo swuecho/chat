@@ -109,7 +109,7 @@ async function fetchSessionHistory() {
 
 // Handle tab change to load session history when needed
 function handleTabChange(value: string) {
-  if (value === 'sessions' && sessionHistoryData.value.length === 0) {
+  if (value === 'sessions') {
     fetchSessionHistory()
   }
 }
