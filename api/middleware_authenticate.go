@@ -100,6 +100,163 @@ func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// AdminRouteMiddleware applies admin-only protection to all routes in a subrouter
+func AdminRouteMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		userRole, ok := ctx.Value(roleContextKey).(string)
+		if !ok {
+			apiErr := ErrAuthAdminRequired
+			apiErr.Detail = "User role information not found"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+		if userRole != "admin" {
+			apiErr := ErrAuthAdminRequired
+			apiErr.Detail = "Admin privileges required for this endpoint"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// AdminAuthMiddleware - Authentication middleware specifically for admin routes
+func AdminAuthMiddleware(handler http.Handler) http.Handler {
+	jwtSigningKey := []byte(jwtSecretAndAud.Secret)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bearerToken := extractBearerToken(r)
+		if bearerToken == "" {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Authorization token required"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		token, err := jwt.Parse(bearerToken, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("invalid JWT signing method")
+			}
+			return jwtSigningKey, nil
+		})
+
+		if err != nil {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Invalid authorization token"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		if !token.Valid {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Token is not valid"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Cannot parse token claims"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		userID, ok := claims["user_id"].(string)
+		if !ok {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "User ID not found in token"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		role, ok := claims["role"].(string)
+		if !ok {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "User role not found in token"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		// Admin-only check
+		if role != "admin" {
+			apiErr := ErrAuthAdminRequired
+			apiErr.Detail = "Admin privileges required"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		// Add user context and proceed
+		ctx := context.WithValue(r.Context(), userContextKey, userID)
+		ctx = context.WithValue(ctx, roleContextKey, role)
+		handler.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// UserAuthMiddleware - Authentication middleware for regular user routes
+func UserAuthMiddleware(handler http.Handler) http.Handler {
+	jwtSigningKey := []byte(jwtSecretAndAud.Secret)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bearerToken := extractBearerToken(r)
+		if bearerToken == "" {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Authorization token required"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		token, err := jwt.Parse(bearerToken, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("invalid JWT signing method")
+			}
+			return jwtSigningKey, nil
+		})
+
+		if err != nil {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Invalid authorization token"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		if !token.Valid {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Token is not valid"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Cannot parse token claims"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		userID, ok := claims["user_id"].(string)
+		if !ok {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "User ID not found in token"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		role, ok := claims["role"].(string)
+		if !ok {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "User role not found in token"
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+
+		// Add user context and proceed (no role restrictions for user middleware)
+		ctx := context.WithValue(r.Context(), userContextKey, userID)
+		ctx = context.WithValue(ctx, roleContextKey, role)
+		handler.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 	noAuthPaths := map[string]bool{
 		"/":            true,

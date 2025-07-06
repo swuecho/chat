@@ -196,6 +196,7 @@ async function handleSave() {
       {{ t('admin.userMessage') }}
     </h1>
     <HoverButton :tooltip="t('admin.refresh')" @click="handleRefresh">
+
       <span class="text-xl text-[#4f555e] dark:text-white">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
           <path fill="currentColor"

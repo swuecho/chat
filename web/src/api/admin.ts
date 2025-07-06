@@ -62,3 +62,14 @@ export const getUserSessionHistory = async (userEmail: string, page: number = 1,
     throw error
   }
 }
+
+export const getSessionMessagesForAdmin = async (sessionUuid: string) => {
+  try {
+    const response = await request.get(`/admin/session_messages/${encodeURIComponent(sessionUuid)}`)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}

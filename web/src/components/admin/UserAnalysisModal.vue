@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import { ref, watch, computed } from 'vue'
-import { NModal, NCard, NTabs, NTabPane, NSpin, NStatistic, NProgress, NDataTable, useMessage } from 'naive-ui'
+import { ref, watch, computed, h } from 'vue'
+import { NModal, NCard, NTabs, NTabPane, NSpin, NStatistic, NProgress, NDataTable, useMessage, NButton } from 'naive-ui'
 import { getUserAnalysis, getUserSessionHistory } from '@/api'
+import SessionSnapshotModal from './SessionSnapshotModal.vue'
 import { t } from '@/locales'
 
 interface Props {
@@ -44,6 +45,9 @@ const loading = ref(false)
 const sessionLoading = ref(false)
 const analysisData = ref<UserAnalysisData | null>(null)
 const sessionHistoryData = ref<any[]>([])
+const showSessionSnapshot = ref(false)
+const selectedSessionId = ref('')
+const selectedSessionModel = ref('')
 const sessionPagination = ref({
   page: 1,
   pageSize: 10,
@@ -110,6 +114,13 @@ function handleTabChange(value: string) {
   }
 }
 
+// Handle session ID click to show snapshot
+function handleSessionClick(sessionId: string, model: string) {
+  selectedSessionId.value = sessionId
+  selectedSessionModel.value = model
+  showSessionSnapshot.value = true
+}
+
 const modelUsageColumns = [
   { title: t('admin.model'), key: 'model', width: 120 },
   { title: t('admin.messages'), key: 'messageCount', width: 100 },
@@ -131,7 +142,21 @@ const activityColumns = [
 ]
 
 const sessionColumns = [
-  { title: t('admin.sessionId'), key: 'sessionId', width: 120 },
+  { 
+    title: t('admin.sessionId'), 
+    key: 'sessionId', 
+    width: 120,
+    render: (row: any) => {
+      return h(NButton, {
+        text: true,
+        type: 'primary',
+        size: 'small',
+        onClick: () => handleSessionClick(row.sessionId, row.model)
+      }, {
+        default: () => row.sessionId.slice(0, 8) + '...'
+      })
+    }
+  },
   { title: t('admin.model'), key: 'model', width: 120 },
   { title: t('admin.messages'), key: 'messageCount', width: 100 },
   { title: t('admin.tokens'), key: 'tokenCount', width: 100 },
@@ -141,6 +166,12 @@ const sessionColumns = [
 </script>
 
 <template>
+  <SessionSnapshotModal 
+    v-model:visible="showSessionSnapshot"
+    :session-id="selectedSessionId"
+    :session-model="selectedSessionModel"
+    :user-email="userEmail"
+  />
   <NModal v-model:show="show" :style="{ width: ['95vw', '1200px'] }">
     <NCard 
       role="dialog" 

@@ -183,6 +183,7 @@
     "sessionId": "会话ID",
     "created": "创建时间",
     "updated": "更新时间",
+    "sessionSnapshot": "会话快照",
     "model": "模型",
     "system_model_tab_title": "模型配置",
     "per_model_rate_limit_title": "模型流控",

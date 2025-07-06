@@ -77,7 +77,8 @@
         "sessions": "Sessions",
         "sessionId": "Session ID",
         "created": "Created",
-        "updated": "Updated"
+        "updated": "Updated",
+        "sessionSnapshot": "Session Snapshot"
     },
     "bot": {
         "all": {

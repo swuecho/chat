@@ -315,6 +315,71 @@ func (q *Queries) GetChatMessagesBySessionUUID(ctx context.Context, arg GetChatM
 	return items, nil
 }
 
+const getChatMessagesBySessionUUIDForAdmin = `-- name: GetChatMessagesBySessionUUIDForAdmin :many
+SELECT 
+    id,
+    uuid,
+    role,
+    content,
+    reasoning_content,
+    model,
+    token_count,
+    user_id,
+    created_at,
+    updated_at
+FROM chat_message
+WHERE chat_session_uuid = $1 
+    AND is_deleted = false
+ORDER BY created_at ASC
+`
+
+type GetChatMessagesBySessionUUIDForAdminRow struct {
+	ID               int32     `json:"id"`
+	Uuid             string    `json:"uuid"`
+	Role             string    `json:"role"`
+	Content          string    `json:"content"`
+	ReasoningContent string    `json:"reasoningContent"`
+	Model            string    `json:"model"`
+	TokenCount       int32     `json:"tokenCount"`
+	UserID           int32     `json:"userID"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+}
+
+func (q *Queries) GetChatMessagesBySessionUUIDForAdmin(ctx context.Context, chatSessionUuid string) ([]GetChatMessagesBySessionUUIDForAdminRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChatMessagesBySessionUUIDForAdmin, chatSessionUuid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetChatMessagesBySessionUUIDForAdminRow
+	for rows.Next() {
+		var i GetChatMessagesBySessionUUIDForAdminRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Uuid,
+			&i.Role,
+			&i.Content,
+			&i.ReasoningContent,
+			&i.Model,
+			&i.TokenCount,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChatMessagesCount = `-- name: GetChatMessagesCount :one
 SELECT COUNT(*)
 FROM chat_message
