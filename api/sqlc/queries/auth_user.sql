@@ -149,7 +149,7 @@ INNER JOIN auth_user au ON cs.user_id = au.id
 LEFT JOIN chat_message cm ON cs.uuid = cm.chat_session_uuid AND cm.is_deleted = false
 WHERE au.email = $1 AND cs.active = true
 GROUP BY cs.uuid, cs.model, cs.created_at, cs.updated_at
-ORDER BY updated_at DESC
+ORDER BY cs.updated_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: GetUserSessionHistoryCountByEmail :one
