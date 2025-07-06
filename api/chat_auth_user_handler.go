@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -34,6 +35,10 @@ func (h *AuthUserHandler) Register(router *mux.Router) {
 	router.HandleFunc("/admin/rate_limit", h.UpdateRateLimit).Methods(http.MethodPost)
 	// user stats handler
 	router.HandleFunc("/admin/user_stats", h.UserStatHandler).Methods(http.MethodPost)
+	// user analysis handler
+	router.HandleFunc("/admin/user_analysis/{email}", h.UserAnalysisHandler).Methods(http.MethodGet)
+	// user session history handler
+	router.HandleFunc("/admin/user_session_history/{email}", h.UserSessionHistoryHandler).Methods(http.MethodGet)
 
 }
 
@@ -434,4 +439,75 @@ func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]int32{
 		"rate": rate,
 	})
+}
+
+func (h *AuthUserHandler) UserAnalysisHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	email := vars["email"]
+	
+	if email == "" {
+		RespondWithAPIError(w, ErrValidationInvalidInput("Email parameter is required"))
+		return
+	}
+
+	analysisData, err := h.service.GetUserAnalysis(r.Context(), email, int32(appConfig.OPENAI.RATELIMIT))
+	if err != nil {
+		RespondWithAPIError(w, WrapError(err, "Failed to get user analysis"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(analysisData)
+}
+
+type SessionHistoryResponse struct {
+	Data  []SessionHistoryInfo `json:"data"`
+	Total int64                `json:"total"`
+	Page  int32                `json:"page"`
+	Size  int32                `json:"size"`
+}
+
+func (h *AuthUserHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	email := vars["email"]
+	
+	if email == "" {
+		RespondWithAPIError(w, ErrValidationInvalidInput("Email parameter is required"))
+		return
+	}
+
+	// Parse pagination parameters
+	pageStr := r.URL.Query().Get("page")
+	sizeStr := r.URL.Query().Get("size")
+	
+	page := int32(1)
+	size := int32(10)
+	
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = int32(p)
+		}
+	}
+	
+	if sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 && s <= 100 {
+			size = int32(s)
+		}
+	}
+
+	sessionHistory, total, err := h.service.GetUserSessionHistory(r.Context(), email, page, size)
+	if err != nil {
+		RespondWithAPIError(w, WrapError(err, "Failed to get user session history"))
+		return
+	}
+
+	response := SessionHistoryResponse{
+		Data:  sessionHistory,
+		Total: total,
+		Page:  page,
+		Size:  size,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

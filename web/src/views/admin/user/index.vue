@@ -9,11 +9,14 @@ import { NDataTable, NInput, useMessage, NButton, NModal, NForm, NFormItem, useD
 import { GetUserData, UpdateRateLimit, updateUserFullName } from '@/api'
 import { t } from '@/locales'
 import HoverButton from '@/components/common/HoverButton/index.vue'
+import UserAnalysisModal from '@/components/admin/UserAnalysisModal.vue'
 
 const ms_ui = useMessage()
 
 const showEditModal = ref(false)
 const editingUser = ref<UserData | null>(null)
+const showAnalysisModal = ref(false)
+const selectedUserEmail = ref('')
 
 interface UserData {
   email: string
@@ -34,7 +37,15 @@ const columns = [
     title: t('admin.userEmail'),
     key: 'email',
     width: 200,
-
+    render: (row: UserData) => {
+      return h('span', {
+        class: 'cursor-pointer text-blue-600 hover:text-blue-800 hover:underline',
+        onClick: () => {
+          selectedUserEmail.value = row.email
+          showAnalysisModal.value = true
+        }
+      }, row.email)
+    }
   },
   {
     title: t('admin.name'),
@@ -156,6 +167,7 @@ async function handleSave() {
 </script>
 
 <template>
+  <UserAnalysisModal v-model:visible="showAnalysisModal" :user-email="selectedUserEmail" />
   <NModal v-model:show="showEditModal">
     <NCard style="width: 600px" :title="t('common.editUser')" :bordered="false" size="huge">
       <NForm label-placement="left" label-width="auto">
@@ -183,7 +195,7 @@ async function handleSave() {
     <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
       {{ t('admin.userMessage') }}
     </h1>
-    <HoverButton :tooltip="$t('admin.refresh')" @click="handleRefresh">
+    <HoverButton :tooltip="t('admin.refresh')" @click="handleRefresh">
       <span class="text-xl text-[#4f555e] dark:text-white">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
           <path fill="currentColor"
