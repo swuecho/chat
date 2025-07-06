@@ -29,21 +29,22 @@ async function newRowEventHandle() {
 </script>
 
 <template>
-  <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
-    <HoverButton @click="dialogVisible = true" class="mr-10">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+      {{ t('admin.model') }}
+    </h1>
+    <HoverButton @click="dialogVisible = true">
       <span class="text-xl">
         <SvgIcon icon="material-symbols:library-add-rounded" />
       </span>
     </HoverButton>
   </div>
-  <div class="m-5" v-if="!isLoading">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <ModelCard 
-        v-for="model in data" 
-        :key="model.id" 
-        :model="model" 
-      />
-    </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" v-if="!isLoading">
+    <ModelCard 
+      v-for="model in data" 
+      :key="model.id" 
+      :model="model" 
+    />
   </div>
   <NModal v-model:show="dialogVisible" :title="$t('admin.add_model')" preset="dialog">
     <AddModelForm @new-row-added="newRowEventHandle" />

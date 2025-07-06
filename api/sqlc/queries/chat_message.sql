@@ -159,3 +159,20 @@ WHERE
     AND role = 'assistant'
 GROUP BY model
 ORDER BY latest_message_time DESC;
+
+-- name: GetChatMessagesBySessionUUIDForAdmin :many
+SELECT 
+    id,
+    uuid,
+    role,
+    content,
+    reasoning_content,
+    model,
+    token_count,
+    user_id,
+    created_at,
+    updated_at
+FROM chat_message
+WHERE chat_session_uuid = $1 
+    AND is_deleted = false
+ORDER BY created_at ASC;

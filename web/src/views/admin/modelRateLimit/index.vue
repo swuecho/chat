@@ -106,16 +106,17 @@ async function newRowAdded() {
 </script>
 
 <template>
-  <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
-    <HoverButton @click="dialogVisible = true" class="mr-10">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+      {{ t('admin.rateLimit') }}
+    </h1>
+    <HoverButton @click="dialogVisible = true">
       <span class="text-xl">
         <SvgIcon icon="material-symbols:library-add-rounded" />
       </span>
     </HoverButton>
   </div>
-  <div class="m-5">
-    <NDataTable :columns="columns" :data="data" :loading="loading" />
-  </div>
+  <NDataTable :columns="columns" :data="data" :loading="loading" />
   <NModal v-model:show="dialogVisible" :title="$t('admin.add_user_model_rate_limit')" preset="dialog">
     <AddChatModelForm @new-row-added="newRowAdded" />
   </NModal>

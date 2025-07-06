@@ -148,44 +148,61 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ChatModelHandler := NewChatModelHandler(sqlc_q)
-	ChatModelHandler.Register(apiRouter)
 
-	// create a new AuthUserHandler instance
+	// Create separate subrouters for admin and user routes
+	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
+	userRouter := apiRouter.NewRoute().Subrouter()
+
+	// Apply different middleware to admin and user routes
+	adminRouter.Use(AdminAuthMiddleware)
+	userRouter.Use(UserAuthMiddleware)
+
+	ChatModelHandler := NewChatModelHandler(sqlc_q)
+	ChatModelHandler.Register(userRouter) // Chat models for regular users
+
+	// create a new AuthUserHandler instance for user routes
 	userHandler := NewAuthUserHandler(sqlc_q)
-	// register the AuthUserHandler with the router
-	userHandler.Register(apiRouter)
+	// register authenticated routes with the user router
+	userHandler.Register(userRouter)
+	// register public routes (login/signup) with the api router (no auth required)
+	userHandler.RegisterPublicRoutes(apiRouter)
+
+	// create a new AdminHandler instance for admin-only routes
+	authUserService := NewAuthUserService(sqlc_q)
+	adminHandler := NewAdminHandler(authUserService)
+	// register the AdminHandler with the admin router (will remove /admin prefix automatically)
+	adminHandler.RegisterRoutes(adminRouter)
 
 	promptHandler := NewChatPromptHandler(sqlc_q)
-	promptHandler.Register(apiRouter)
+	promptHandler.Register(userRouter)
 
 	chatSessionHandler := NewChatSessionHandler(sqlc_q)
-	chatSessionHandler.Register(apiRouter)
+	chatSessionHandler.Register(userRouter)
 
 	chatMessageHandler := NewChatMessageHandler(sqlc_q)
-	chatMessageHandler.Register(apiRouter)
+	chatMessageHandler.Register(userRouter)
 
 	chatSnapshotHandler := NewChatSnapshotHandler(sqlc_q)
-	chatSnapshotHandler.Register(apiRouter)
+	chatSnapshotHandler.Register(userRouter)
 
 	activeSessionHandler := NewUserActiveChatSessionHandler(sqlc_q)
-	activeSessionHandler.Register(apiRouter)
+	activeSessionHandler.Register(userRouter)
 
 	// create a new ChatHandler instance
 	chatHandler := NewChatHandler(sqlc_q)
-	chatHandler.Register(apiRouter)
+	chatHandler.Register(userRouter)
 
 	user_model_privilege_handler := NewUserChatModelPrivilegeHandler(sqlc_q)
-	user_model_privilege_handler.Register(apiRouter)
+	user_model_privilege_handler.Register(userRouter)
 
 	chatFileHandler := NewChatFileHandler(sqlc_q)
-	chatFileHandler.Register(apiRouter)
+	chatFileHandler.Register(userRouter)
 
 	chatCommentHandler := NewChatCommentHandler(sqlc_q)
-	chatCommentHandler.Register(apiRouter)
+	chatCommentHandler.Register(userRouter)
 
 	botAnswerHistoryHandler := NewBotAnswerHistoryHandler(sqlc_q)
-	botAnswerHistoryHandler.Register(apiRouter)
+	botAnswerHistoryHandler.Register(userRouter)
 
 	apiRouter.HandleFunc("/tts", handleTTSRequest)
 	apiRouter.HandleFunc("/errors", ErrorCatalogHandler)
@@ -212,9 +229,13 @@ func main() {
 		router.Use(UpdateLastRequestTime)
 	}
 
-	router.Use(IsAuthorizedMiddleware)
+	// Apply rate limiting to authenticated routes only
 	limitedRouter := RateLimitByUserID(sqlc_q)
-	router.Use(limitedRouter)
+	adminRouter.Use(limitedRouter)
+	userRouter.Use(limitedRouter)
+
+	// Public routes (apiRouter) don't need authentication or rate limiting
+	// TTS and errors endpoints are public
 	// Wrap the router with the logging middleware
 	// 10 min < 100 requests
 	// loggedMux := loggingMiddleware(router, logger)

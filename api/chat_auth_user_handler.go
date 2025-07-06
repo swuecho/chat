@@ -21,20 +21,16 @@ func NewAuthUserHandler(sqlc_q *sqlc_queries.Queries) *AuthUserHandler {
 }
 
 func (h *AuthUserHandler) Register(router *mux.Router) {
+	// Authenticated user routes
 	router.HandleFunc("/users", h.GetUserByID).Methods(http.MethodGet)
 	router.HandleFunc("/users/{id}", h.UpdateSelf).Methods(http.MethodPut)
+	router.HandleFunc("/token_10years", h.ForeverToken).Methods(http.MethodGet)
+}
+
+func (h *AuthUserHandler) RegisterPublicRoutes(router *mux.Router) {
+	// Public routes (no authentication required)
 	router.HandleFunc("/signup", h.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
-	router.HandleFunc("/token_10years", h.ForeverToken).Methods(http.MethodGet)
-	// admin
-	router.HandleFunc("/admin/users", h.CreateUser).Methods(http.MethodPost)
-	// change user first name, last name
-	router.HandleFunc("/admin/users", h.UpdateUser).Methods(http.MethodPut)
-	// rate limit handler
-	router.HandleFunc("/admin/rate_limit", h.UpdateRateLimit).Methods(http.MethodPost)
-	// user stats handler
-	router.HandleFunc("/admin/user_stats", h.UserStatHandler).Methods(http.MethodPost)
-
 }
 
 func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -435,3 +431,4 @@ func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
 		"rate": rate,
 	})
 }
+
