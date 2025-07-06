@@ -169,7 +169,7 @@ async function handleSave() {
           <NInput v-model:value="editingUser!.rateLimit" />
         </NFormItem>
         <div class="flex justify-end gap-4">
-          <NButton  @click="showEditModal = false">
+          <NButton @click="showEditModal = false">
             {{ t('common.cancel') }}
           </NButton>
           <NButton type="primary" @click="handleSave">
@@ -179,8 +179,11 @@ async function handleSave() {
       </NForm>
     </NCard>
   </NModal>
-  <div class="flex items-center justify-end h-14 w-full border-b border-gray-200">
-    <HoverButton :tooltip="$t('admin.refresh')" @click="handleRefresh" class="mr-10">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+      {{ t('admin.userMessage') }}
+    </h1>
+    <HoverButton :tooltip="$t('admin.refresh')" @click="handleRefresh">
       <span class="text-xl text-[#4f555e] dark:text-white">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
           <path fill="currentColor"
@@ -189,7 +192,5 @@ async function handleSave() {
       </span>
     </HoverButton>
   </div>
-  <div class="m-5">
-    <NDataTable :loading="loading" remote :data="tableData" :columns="columns" :pagination="pagination" />
-  </div>
+  <NDataTable :loading="loading" remote :data="tableData" :columns="columns" :pagination="pagination" />
 </template>
