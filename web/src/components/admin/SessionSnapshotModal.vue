@@ -62,7 +62,7 @@ const formattedMessages = computed(() => {
     dateTime: msg.createdAt,
     model: msg.model || props.sessionModel,
     text: msg.content,
-    inversion: msg.role === 'user',
+    inversion: msg.role === 'user' || (msg.role === 'system' && index === 0),
     error: false,
     loading: false,
     tokenCount: msg.tokenCount

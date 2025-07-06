@@ -172,7 +172,41 @@ SELECT
     user_id,
     created_at,
     updated_at
-FROM chat_message
-WHERE chat_session_uuid = $1 
-    AND is_deleted = false
+FROM (
+    -- Include session prompts as the first messages
+    SELECT 
+        cp.id,
+        cp.uuid,
+        cp.role,
+        cp.content,
+        ''::text as reasoning_content,
+        cs.model,
+        cp.token_count,
+        cp.user_id,
+        cp.created_at,
+        cp.updated_at
+    FROM chat_prompt cp
+    INNER JOIN chat_session cs ON cp.chat_session_uuid = cs.uuid
+    WHERE cp.chat_session_uuid = $1 
+        AND cp.is_deleted = false
+        AND cp.role = 'system'
+    
+    UNION ALL
+    
+    -- Include regular chat messages
+    SELECT 
+        id,
+        uuid,
+        role,
+        content,
+        reasoning_content,
+        model,
+        token_count,
+        user_id,
+        created_at,
+        updated_at
+    FROM chat_message
+    WHERE chat_session_uuid = $1 
+        AND is_deleted = false
+) combined_messages
 ORDER BY created_at ASC;
