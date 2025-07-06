@@ -30,6 +30,7 @@ const getMobileClass = computed(() => {
 const getContainerClass = computed(() => {
   return [
     'h-full',
+    'transition-all duration-300 ease-in-out',
     { 'pl-[260px]': !isMobile.value && !collapsed.value },
   ]
 })
