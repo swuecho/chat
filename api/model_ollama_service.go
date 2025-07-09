@@ -91,6 +91,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 
 	var answer string
 	var answer_id string
+	var lastFlushLength int
 
 	if regenerate {
 		answer_id = chatUuid
@@ -129,10 +130,16 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 			answer_id = NewUUID()
 		}
 
-		if len(answer) < 200 || len(answer)%2 == 0 {
+		// Flush on newlines, small answers, or when we've added 100+ characters since last flush
+		shouldFlush := strings.Contains(answer, "\n") ||
+			len(answer) < 200 ||
+			(len(answer)-lastFlushLength) >= 500
+
+		if shouldFlush {
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
+			lastFlushLength = len(answer)
 		}
 	}
 
