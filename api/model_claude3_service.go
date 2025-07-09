@@ -169,7 +169,8 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 		return nil, ErrClaudeRequestFailed.WithMessage("Failed to process Claude streaming request").WithDebugInfo(err.Error())
 	}
 
-	ioreader := bufio.NewReader(resp.Body)
+	// Use smaller buffer for more responsive streaming
+	ioreader := bufio.NewReaderSize(resp.Body, 1024)
 
 	// read the response body
 	defer resp.Body.Close()
@@ -185,6 +186,9 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 			Message:  "Streaming unsupported by client",
 		}
 	}
+
+	// Flush immediately to establish connection
+	flusher.Flush()
 
 	var answer string
 	var answer_id string
@@ -242,6 +246,11 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 			answer += claude.AnswerFromBlockDelta(line)
 			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
+			flusher.Flush()
+		}
+		// Flush after every iteration to ensure immediate delivery
+		// This prevents data from being held in buffers
+		if count%3 == 0 {
 			flusher.Flush()
 		}
 	}
