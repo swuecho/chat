@@ -403,7 +403,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msgs []models.Message) ChatModel {
 	model := chat_session.Model
 	isTestChat := isTest(msgs)
-	isClaude3 := strings.HasPrefix(model, "claude-3")
+	isClaude3 := strings.HasPrefix(model, "claude-3") || strings.HasPrefix(model, "claude-sonnet-4")
 	isOllama := strings.HasPrefix(model, "ollama-")
 	isGemini := strings.HasPrefix(model, "gemini")
 
