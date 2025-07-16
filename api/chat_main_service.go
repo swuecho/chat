@@ -72,15 +72,17 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	// Add artifact instruction to system messages
 	artifactInstruction := `
 
-When creating code, HTML, or SVG content that should be displayed as an interactive artifact, use the following format:
+When creating code, HTML, SVG, diagrams, or data that should be displayed as an interactive artifact, use the following format:
 
 - For HTML: ` + "```" + `html <!-- artifact: Title --> [content] ` + "```" + `  
 - For SVG: ` + "```" + `svg <!-- artifact: Title --> [content] ` + "```" + `
+- For Mermaid diagrams: ` + "```" + `mermaid <!-- artifact: Title --> [content] ` + "```" + `
+- For JSON data: ` + "```" + `json <!-- artifact: Title --> [content] ` + "```" + `
 - For code: ` + "```" + `language <!-- artifact: Title --> [content] ` + "```" + `
 
-for html, use preat and htm for template, try to create a standalone html so it can render without a build step.
+For HTML, use Preact and modern HTML5 APIs to create standalone applications that render without a build step.
 
-This will enable the artifact viewer to display your content interactively in the chat interface.`
+This will enable the artifact viewer to display your content interactively in the chat interface with specialized renderers for each content type.`
 
 	// Append artifact instruction to system messages or add as new system message
 	systemMsgFound := false
@@ -163,6 +165,44 @@ func extractArtifacts(content string) []Artifact {
 		artifacts = append(artifacts, artifact)
 	}
 
+	// Pattern for Mermaid diagrams
+	// Example: ```mermaid <!-- artifact: Flow Chart -->
+	mermaidArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `mermaid\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	mermaidMatches := mermaidArtifactRegex.FindAllStringSubmatch(content, -1)
+
+	for _, match := range mermaidMatches {
+		title := strings.TrimSpace(match[1])
+		artifactContent := strings.TrimSpace(match[2])
+
+		artifact := Artifact{
+			UUID:     NewUUID(),
+			Type:     "mermaid",
+			Title:    title,
+			Content:  artifactContent,
+			Language: "mermaid",
+		}
+		artifacts = append(artifacts, artifact)
+	}
+
+	// Pattern for JSON artifacts
+	// Example: ```json <!-- artifact: API Response -->
+	jsonArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `json\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	jsonMatches := jsonArtifactRegex.FindAllStringSubmatch(content, -1)
+
+	for _, match := range jsonMatches {
+		title := strings.TrimSpace(match[1])
+		artifactContent := strings.TrimSpace(match[2])
+
+		artifact := Artifact{
+			UUID:     NewUUID(),
+			Type:     "json",
+			Title:    title,
+			Content:  artifactContent,
+			Language: "json",
+		}
+		artifacts = append(artifacts, artifact)
+	}
+
 	// Pattern for general code artifacts (exclude html and svg which are handled above)
 	// Example: ```javascript <!-- artifact: React Component -->
 	codeArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `(\w+)?\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
@@ -173,8 +213,8 @@ func extractArtifacts(content string) []Artifact {
 		title := strings.TrimSpace(match[2])
 		artifactContent := strings.TrimSpace(match[3])
 
-		// Skip if already processed as HTML or SVG
-		if language == "html" || language == "svg" {
+		// Skip if already processed as HTML, SVG, Mermaid, or JSON
+		if language == "html" || language == "svg" || language == "mermaid" || language == "json" {
 			continue
 		}
 

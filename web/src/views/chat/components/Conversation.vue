@@ -23,6 +23,7 @@ import ModelSelector from '@/views/chat/components/ModelSelector.vue'
 import MessageList from '@/views/chat/components/MessageList.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import { getDataFromResponseText } from '@/utils/string'
+import { extractArtifacts } from '@/utils/artifacts'
 import renderMessage from './RenderMessage.vue'
 import { useSlashToFocus } from '../hooks/useSlashToFocus'
 import JumpToBottom from './JumpToBottom.vue'
@@ -213,6 +214,10 @@ async function onConversationStream() {
                 const data = JSON.parse(chunk)
                 const answer = data.choices[0].delta.content
                 const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
+                
+                // Extract artifacts from the current content
+                const artifacts = extractArtifacts(answer)
+                
                 updateChat(
                   sessionUuid,
                   dataSources.value.length - 1,
@@ -223,6 +228,7 @@ async function onConversationStream() {
                     inversion: false,
                     error: false,
                     loading: false,
+                    artifacts: artifacts,
                   },
                 )
                 scrollToBottomIfAtBottom()
@@ -362,6 +368,10 @@ async function onRegenerate(index: number) {
                 const data = JSON.parse(chunk)
                 const answer = data.choices[0].delta.content
                 const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
+                
+                // Extract artifacts from the current content
+                const artifacts = extractArtifacts(answer)
+                
                 updateChat(
                   sessionUuid,
                   updateIndex,
@@ -372,6 +382,7 @@ async function onRegenerate(index: number) {
                     inversion: false,
                     error: false,
                     loading: false,
+                    artifacts: artifacts,
                   },
                 )
               }
