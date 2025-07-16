@@ -30,7 +30,7 @@ func TestChatMessageService(t *testing.T) {
 		UpdatedBy:        1,
 		LlmSummary:       "",
 		Raw:              json.RawMessage([]byte("{}")),
-		Artifacts:        json.RawMessage([]byte("{}"))
+		Artifacts:        json.RawMessage([]byte("{}")),
 	}
 	msg, err := service.CreateChatMessage(context.Background(), msg_params)
 	if err != nil {
@@ -80,7 +80,7 @@ func TestGetChatMessagesBySessionID(t *testing.T) {
 		UpdatedBy:        1,
 		LlmSummary:       "",
 		Raw:              json.RawMessage([]byte("{}")),
-		Artifacts:        json.RawMessage([]byte("{}"))
+		Artifacts:        json.RawMessage([]byte("{}")),
 	}
 	msg1, err := service.CreateChatMessage(context.Background(), msg1_params)
 	if err != nil {
@@ -100,7 +100,7 @@ func TestGetChatMessagesBySessionID(t *testing.T) {
 		UpdatedBy:        2,
 		LlmSummary:       "",
 		Raw:              json.RawMessage([]byte("{}")),
-		Artifacts:        json.RawMessage([]byte("{}"))
+		Artifacts:        json.RawMessage([]byte("{}")),
 	}
 	msg2, err := service.CreateChatMessage(context.Background(), msg2_params)
 	if err != nil {
