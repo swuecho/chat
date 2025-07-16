@@ -16,8 +16,22 @@ func TestChatMessageService(t *testing.T) {
 	service := NewChatMessageService(q)
 
 	// Insert a new chat message into the database
-	msg_params := sqlc_queries.CreateChatMessageParams{ChatSessionUuid: "1", Role: "Test Role", Content: "Test Message", Score: 0.5, UserID: 1,
-		Raw: json.RawMessage([]byte("{}"))}
+	msg_params := sqlc_queries.CreateChatMessageParams{
+		ChatSessionUuid:  "1",
+		Uuid:             "test-uuid-1",
+		Role:             "Test Role",
+		Content:          "Test Message",
+		ReasoningContent: "",
+		Model:            "test-model",
+		TokenCount:       100,
+		Score:            0.5,
+		UserID:           1,
+		CreatedBy:        1,
+		UpdatedBy:        1,
+		LlmSummary:       "",
+		Raw:              json.RawMessage([]byte("{}")),
+		Artifacts:        json.RawMessage([]byte("{}")),
+	}
 	msg, err := service.CreateChatMessage(context.Background(), msg_params)
 	if err != nil {
 		t.Fatalf("failed to create chat message: %v", err)
@@ -52,12 +66,42 @@ func TestGetChatMessagesBySessionID(t *testing.T) {
 	service := NewChatMessageService(q)
 
 	// Insert two chat messages into the database with different chat session IDs
-	msg1_params := sqlc_queries.CreateChatMessageParams{ChatSessionUuid: "1", Role: "Test Role 1", Content: "Test Message 1", Score: 0.5, UserID: 1, Raw: json.RawMessage([]byte("{}"))}
+	msg1_params := sqlc_queries.CreateChatMessageParams{
+		ChatSessionUuid:  "1",
+		Uuid:             "test-uuid-1",
+		Role:             "Test Role 1",
+		Content:          "Test Message 1",
+		ReasoningContent: "",
+		Model:            "test-model",
+		TokenCount:       100,
+		Score:            0.5,
+		UserID:           1,
+		CreatedBy:        1,
+		UpdatedBy:        1,
+		LlmSummary:       "",
+		Raw:              json.RawMessage([]byte("{}")),
+		Artifacts:        json.RawMessage([]byte("{}")),
+	}
 	msg1, err := service.CreateChatMessage(context.Background(), msg1_params)
 	if err != nil {
 		t.Fatalf("failed to create chat message: %v", err)
 	}
-	msg2_params := sqlc_queries.CreateChatMessageParams{ChatSessionUuid: "2", Role: "Test Role 2", Content: "Test Message 2", Score: 0.75, UserID: 2, Raw: json.RawMessage([]byte("{}"))}
+	msg2_params := sqlc_queries.CreateChatMessageParams{
+		ChatSessionUuid:  "2",
+		Uuid:             "test-uuid-2",
+		Role:             "Test Role 2",
+		Content:          "Test Message 2",
+		ReasoningContent: "",
+		Model:            "test-model",
+		TokenCount:       100,
+		Score:            0.75,
+		UserID:           2,
+		CreatedBy:        2,
+		UpdatedBy:        2,
+		LlmSummary:       "",
+		Raw:              json.RawMessage([]byte("{}")),
+		Artifacts:        json.RawMessage([]byte("{}")),
+	}
 	msg2, err := service.CreateChatMessage(context.Background(), msg2_params)
 	if err != nil {
 		t.Fatalf("failed to create chat message: %v", err)

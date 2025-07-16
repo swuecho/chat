@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { NModal, NInput, NCard, NButton } from 'naive-ui'
 import TextComponent from '@/views/components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
+import ArtifactViewer from './ArtifactViewer.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { copyText } from '@/utils/format'
 import { useUserStore } from '@/store'
@@ -19,6 +20,7 @@ interface Props {
   isPrompt?: boolean
   isPin?: boolean
   pining?: boolean
+  artifacts?: Chat.Artifact[]
 }
 
 interface Emit {
@@ -81,8 +83,14 @@ function handleDelete() {
           {{ !inversion ? model : userInfo.name || $t('setting.defaultName') }}
         </p>
         <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
-          <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
-            :code="code" :loading="loading" :idex="index" />
+          <div class="flex flex-col flex-1">
+            <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
+              :code="code" :loading="loading" :idex="index" />
+            <ArtifactViewer v-if="artifacts && artifacts.length > 0" 
+              :artifacts="artifacts" 
+              :inversion="inversion" 
+            />
+          </div>
           <div class="flex flex-col">
 
             <button v-if="!isPrompt && inversion"

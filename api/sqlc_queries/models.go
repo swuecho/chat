@@ -92,6 +92,7 @@ type ChatMessage struct {
 	IsPin            bool            `json:"isPin"`
 	TokenCount       int32           `json:"tokenCount"`
 	Raw              json.RawMessage `json:"raw"`
+	Artifacts        json.RawMessage `json:"artifacts"`
 }
 
 type ChatModel struct {
