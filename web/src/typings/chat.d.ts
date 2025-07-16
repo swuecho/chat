@@ -1,5 +1,13 @@
 declare namespace Chat {
 
+	interface Artifact {
+		uuid: string
+		type: string // 'code', 'html', 'svg', 'mermaid', 'json', 'markdown'
+		title: string
+		content: string
+		language?: string // for code artifacts
+	}
+
 	interface Message {
 		uuid: string,
 		dateTime: string
@@ -10,6 +18,7 @@ declare namespace Chat {
 		loading?: boolean
 		isPrompt?: boolean
 		isPin?: boolean
+		artifacts?: Artifact[]
 	}
 
 	interface Session {

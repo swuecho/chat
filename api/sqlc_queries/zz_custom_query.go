@@ -2,6 +2,7 @@ package sqlc_queries
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/rotisserie/eris"
@@ -9,15 +10,24 @@ import (
 )
 
 type SimpleChatMessage struct {
-	Uuid      string `json:"uuid"`
-	DateTime  string `json:"dateTime"`
-	Text      string `json:"text"`
-	Model     string `json:"model"`
-	Inversion bool   `json:"inversion"`
-	Error     bool   `json:"error"`
-	Loading   bool   `json:"loading"`
-	IsPin     bool   `json:"isPin"`
-	IsPrompt  bool   `json:"isPrompt"`
+	Uuid      string     `json:"uuid"`
+	DateTime  string     `json:"dateTime"`
+	Text      string     `json:"text"`
+	Model     string     `json:"model"`
+	Inversion bool       `json:"inversion"`
+	Error     bool       `json:"error"`
+	Loading   bool       `json:"loading"`
+	IsPin     bool       `json:"isPin"`
+	IsPrompt  bool       `json:"isPrompt"`
+	Artifacts []Artifact `json:"artifacts,omitempty"`
+}
+
+type Artifact struct {
+	UUID     string `json:"uuid"`
+	Type     string `json:"type"`
+	Title    string `json:"title"`
+	Content  string `json:"content"`
+	Language string `json:"language,omitempty"`
 }
 
 func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, pageNum, pageSize int32) ([]SimpleChatMessage, error) {
@@ -56,6 +66,17 @@ func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, 
 		if len(message.ReasoningContent) > 0 {
 			text = message.ReasoningContent + message.Content
 		}
+		
+		// Extract artifacts from database
+		var artifacts []Artifact
+		if message.Artifacts != nil {
+			err := json.Unmarshal(message.Artifacts, &artifacts)
+			if err != nil {
+				// Log error but don't fail the request
+				artifacts = []Artifact{}
+			}
+		}
+		
 		return SimpleChatMessage{
 			Uuid:      message.Uuid,
 			DateTime:  message.UpdatedAt.Format(time.RFC3339),
@@ -65,6 +86,7 @@ func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, 
 			Error:     false,
 			Loading:   false,
 			IsPin:     message.IsPin,
+			Artifacts: artifacts,
 		}
 	})
 

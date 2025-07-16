@@ -2,6 +2,7 @@
         <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
                 :model="item?.model || chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :index="index"
+                :artifacts="item.artifacts"
                 @regenerate="onRegenerate(index)" @toggle-pin="handleTogglePin(index)" @delete="handleDelete(index)" @after-edit="handleAfterEdit" />
 </template>
 

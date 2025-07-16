@@ -29,12 +29,12 @@ WHERE is_deleted = false and id = $1;
 
 
 -- name: CreateChatMessage :one
-INSERT INTO chat_message (chat_session_uuid, uuid, role, content, reasoning_content,  model, token_count, score, user_id, created_by, updated_by, llm_summary, raw)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+INSERT INTO chat_message (chat_session_uuid, uuid, role, content, reasoning_content,  model, token_count, score, user_id, created_by, updated_by, llm_summary, raw, artifacts)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 RETURNING *;
 
 -- name: UpdateChatMessage :one
-UPDATE chat_message SET role = $2, content = $3, score = $4, user_id = $5, updated_by = $6, updated_at = now()
+UPDATE chat_message SET role = $2, content = $3, score = $4, user_id = $5, updated_by = $6, artifacts = $7, updated_at = now()
 WHERE id = $1
 RETURNING *;
 
@@ -51,7 +51,7 @@ WHERE is_deleted = false and uuid = $1;
 
 
 -- name: UpdateChatMessageByUUID :one
-UPDATE chat_message SET content = $2, is_pin = $3, token_count = $4,  updated_at = now() 
+UPDATE chat_message SET content = $2, is_pin = $3, token_count = $4, artifacts = $5, updated_at = now() 
 WHERE uuid = $1
 RETURNING *;
 

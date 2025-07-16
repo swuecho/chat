@@ -180,12 +180,23 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 	}
 
 	simple_msgs := lo.Map(messages, func(message sqlc_queries.ChatMessage, _ int) SimpleChatMessage {
+		// Extract artifacts from database
+		var artifacts []Artifact
+		if message.Artifacts != nil {
+			err := json.Unmarshal(message.Artifacts, &artifacts)
+			if err != nil {
+				// Log error but don't fail the request
+				artifacts = []Artifact{}
+			}
+		}
+		
 		return SimpleChatMessage{
 			DateTime:  message.UpdatedAt.Format(time.RFC3339),
 			Text:      message.Content,
 			Inversion: message.Role != "user",
 			Error:     false,
 			Loading:   false,
+			Artifacts: artifacts,
 		}
 	})
 	json.NewEncoder(w).Encode(simple_msgs)

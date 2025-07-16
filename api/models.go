@@ -24,15 +24,24 @@ type RequestOption struct {
 	Options ConversationRequest `json:"options,omitempty"`
 }
 
+type Artifact struct {
+	UUID     string `json:"uuid"`
+	Type     string `json:"type"`     // 'code', 'html', 'svg', 'mermaid', 'json', 'markdown'
+	Title    string `json:"title"`
+	Content  string `json:"content"`
+	Language string `json:"language,omitempty"` // for code artifacts
+}
+
 type SimpleChatMessage struct {
-	Uuid      string `json:"uuid"`
-	DateTime  string `json:"dateTime"`
-	Text      string `json:"text"`
-	Inversion bool   `json:"inversion"`
-	Error     bool   `json:"error"`
-	Loading   bool   `json:"loading"`
-	IsPin     bool   `json:"isPin"`
-	IsPrompt  bool   `json:"isPrompt"`
+	Uuid      string     `json:"uuid"`
+	DateTime  string     `json:"dateTime"`
+	Text      string     `json:"text"`
+	Inversion bool       `json:"inversion"`
+	Error     bool       `json:"error"`
+	Loading   bool       `json:"loading"`
+	IsPin     bool       `json:"isPin"`
+	IsPrompt  bool       `json:"isPrompt"`
+	Artifacts []Artifact `json:"artifacts,omitempty"`
 }
 
 func (msg SimpleChatMessage) GetRole() string {
@@ -61,16 +70,17 @@ type SimpleChatSession struct {
 }
 
 type ChatMessageResponse struct {
-	Uuid            string    `json:"uuid"`
-	ChatSessionUuid string    `json:"chatSessionUuid"`
-	Role            string    `json:"role"`
-	Content         string    `json:"content"`
-	Score           float64   `json:"score"`
-	UserID          int32     `json:"userId"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
-	CreatedBy       int32     `json:"createdBy"`
-	UpdatedBy       int32     `json:"updatedBy"`
+	Uuid            string     `json:"uuid"`
+	ChatSessionUuid string     `json:"chatSessionUuid"`
+	Role            string     `json:"role"`
+	Content         string     `json:"content"`
+	Score           float64    `json:"score"`
+	UserID          int32      `json:"userId"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+	CreatedBy       int32      `json:"createdBy"`
+	UpdatedBy       int32      `json:"updatedBy"`
+	Artifacts       []Artifact `json:"artifacts,omitempty"`
 }
 
 type ChatSessionResponse struct {
