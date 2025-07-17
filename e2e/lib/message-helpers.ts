@@ -151,6 +151,55 @@ export class MessageHelpers {
 }
 
 /**
+ * Authentication helpers for signup/login flows
+ */
+export class AuthHelpers {
+  private page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  /**
+   * Complete signup process and wait for authentication to be ready
+   */
+  async signupAndWaitForAuth(email: string, password: string): Promise<void> {
+    await this.page.getByTitle('signuptab').click();
+    await this.page.getByTestId('signup_email').click();
+    await this.page.getByTestId('signup_email').locator('input').fill(email);
+    await this.page.getByTestId('signup_password').locator('input').click();
+    await this.page.getByTestId('signup_password').locator('input').fill(password);
+    await this.page.getByTestId('repwd').locator('input').click();
+    await this.page.getByTestId('repwd').locator('input').fill(password);
+    await this.page.getByTestId('signup').click();
+    
+    // Wait for the page reload after successful signup
+    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForTimeout(3000);
+    
+    // Wait for the permission modal to disappear before proceeding
+    try {
+      await this.page.waitForSelector('.n-modal-mask', { state: 'detached', timeout: 10000 });
+    } catch (error) {
+      // If modal is not found, it might already be gone, which is fine
+      console.log('Modal mask not found or already disappeared');
+    }
+    
+    // Additional wait to ensure the interface is ready
+    await this.page.waitForTimeout(1000);
+  }
+
+  /**
+   * Wait for the interface to be ready for interaction after authentication
+   */
+  async waitForInterfaceReady(): Promise<void> {
+    // Wait for the message textarea to be available and clickable
+    await this.page.waitForSelector('#message_textarea textarea', { timeout: 10000 });
+    await this.page.waitForTimeout(500);
+  }
+}
+
+/**
  * Input helpers for sending messages
  */
 export class InputHelpers {

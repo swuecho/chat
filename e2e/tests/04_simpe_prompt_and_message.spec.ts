@@ -17,6 +17,8 @@ const pool = new Pool(db_config);
 
 test('test', async ({ page }) => {
   await page.goto('/');
+  
+  // Wait for the page reload after successful signup and permission modal to disappear
   await page.getByTitle('signuptab').click();
   await page.getByTestId('signup_email').click();
   await page.getByTestId('signup_email').locator('input').fill(test_email);
@@ -25,7 +27,18 @@ test('test', async ({ page }) => {
   await page.getByTestId('repwd').locator('input').click();
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
-
+  
+  // Wait for authentication to complete
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(3000);
+  
+  // Wait for the permission modal to disappear
+  try {
+    await page.waitForSelector('.n-modal-mask', { state: 'detached', timeout: 10000 });
+  } catch (error) {
+    // Modal might already be gone
+  }
+  
   await page.waitForTimeout(1000);
   let input_area = await page.$("#message_textarea textarea")
   await input_area?.click();

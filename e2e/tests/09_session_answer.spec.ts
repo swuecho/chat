@@ -13,6 +13,18 @@ test('test', async ({ page }) => {
   await page.getByTestId('repwd').locator('input').click();
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
+  
+  // Wait for authentication to complete
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(3000);
+  
+  // Wait for the permission modal to disappear
+  try {
+    await page.waitForSelector('.n-modal-mask', { state: 'detached', timeout: 10000 });
+  } catch (error) {
+    // Modal might already be gone
+  }
+  
   await page.waitForTimeout(1000);
 
   await page.locator('a').filter({ hasText: 'New Chat' }).click();

@@ -37,7 +37,7 @@ export default defineConfig({
     // video: 'on', // Record videos of all tests to `test-results` folder (check `test-results/`).
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://localhost:3000',
-    baseURL: process.env.CI ? "http://localhost:8080/#/chat" : "http://localhost:1002/#/chat",
+    baseURL: process.env.CI ? "http://localhost:8080" : "http://localhost:9002",
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
@@ -54,10 +54,11 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // Webkit disabled due to missing system dependencies
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
     /* Test against mobile viewports. */
     // {
     //   name: 'Mobile Chrome',
@@ -83,8 +84,10 @@ export default defineConfig({
   // outputDir: 'test-results/',
 
   /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   port: 3000,
-  // },
+  webServer: {
+    command: 'cd ../web && npm run dev',
+    port: 9002,
+    reuseExistingServer: !process.env.CI,
+    timeout: 60 * 1000, // 60 seconds timeout
+  },
 });
