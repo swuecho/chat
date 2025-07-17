@@ -73,17 +73,17 @@ function handleDelete() {
 <template>
   <div class="chat-message">
     <p class="text-xs text-[#b4bbc4] text-center">{{ displayLocaleDate(dateTime) }}</p>
-    <div class="flex w-full mb-6 overflow-hidden" :class="[{ 'flex-row-reverse': inversion }]">
+    <div class="flex w-full mb-6" :class="[{ 'flex-row-reverse': inversion }]">
       <div class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
         :class="[inversion ? 'ml-2' : 'mr-2']">
         <AvatarComponent :inversion="inversion" :model="model" />
       </div>
-      <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
+      <div class="text-sm min-w-0 flex-1" :class="[inversion ? 'items-end' : 'items-start']">
         <p :class="[inversion ? 'text-right' : 'text-left']">
           {{ !inversion ? model : userInfo.name || $t('setting.defaultName') }}
         </p>
         <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
-          <div class="flex flex-col flex-1">
+          <div class="flex flex-col flex-1 min-w-0">
             <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
               :code="code" :loading="loading" :idex="index" />
             <ArtifactViewer v-if="artifacts && artifacts.length > 0" 
@@ -154,3 +154,27 @@ function handleDelete() {
     </NCard>
   </NModal>
 </template>
+
+<style scoped>
+.chat-message {
+  /* Ensure proper responsive behavior */
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Mobile responsive improvements */
+@media (max-width: 639px) {
+  .chat-message {
+    /* Better mobile layout */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .message-text {
+    /* Ensure text content doesn't break layout */
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+}
+</style>
