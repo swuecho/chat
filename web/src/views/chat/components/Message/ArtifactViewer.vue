@@ -306,11 +306,14 @@ const processSvgContent = (content: string) => {
   margin-top: 12px;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   /* Ensure artifact viewer doesn't interfere with message layout */
   contain: layout style;
   /* Prevent z-index issues that could hide buttons */
   position: relative;
   z-index: 1;
+  /* Prevent horizontal overflow */
+  overflow-x: hidden;
 }
 
 .artifact-item {
@@ -321,6 +324,8 @@ const processSvgContent = (content: string) => {
   background: var(--artifact-bg);
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .artifact-header {
@@ -332,6 +337,10 @@ const processSvgContent = (content: string) => {
   border-bottom: 1px solid var(--border-color);
   flex-wrap: wrap;
   gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
@@ -347,8 +356,10 @@ const processSvgContent = (content: string) => {
   gap: 6px;
   font-weight: 500;
   color: var(--text-color);
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 @media (min-width: 640px) {
@@ -414,6 +425,10 @@ const processSvgContent = (content: string) => {
 .artifact-content {
   padding: 12px;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
@@ -430,8 +445,11 @@ const processSvgContent = (content: string) => {
   overflow-x: auto;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   max-width: 100%;
+  width: 100%;
+  min-width: 0;
   white-space: pre;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
@@ -461,6 +479,9 @@ const processSvgContent = (content: string) => {
   border-radius: 6px;
   overflow: hidden;
   max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .html-preview {
@@ -580,9 +601,11 @@ const processSvgContent = (content: string) => {
   align-items: center;
   gap: 8px;
   max-width: 100%;
+  width: 100%;
   max-height: 300px;
   color: var(--text-color);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
@@ -635,6 +658,9 @@ const processSvgContent = (content: string) => {
   border-radius: 6px;
   overflow: hidden;
   max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .mermaid-container {
@@ -646,6 +672,9 @@ const processSvgContent = (content: string) => {
   min-height: 120px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
@@ -741,6 +770,36 @@ const processSvgContent = (content: string) => {
     padding: 16px;
     font-size: 14px;
     line-height: 1.5;
+  }
+}
+
+/* Mobile responsive fixes */
+@media (max-width: 639px) {
+  .artifact-container {
+    /* Ensure artifacts don't break mobile layout */
+    overflow-x: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .artifact-header {
+    /* Force wrap on small screens for better button accessibility */
+    flex-wrap: wrap;
+    min-height: 44px; /* Touch-friendly minimum height */
+  }
+  
+  .artifact-actions {
+    /* Stack actions vertically on very small screens */
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  
+  .code-artifact pre {
+    /* Better code display on mobile */
+    font-size: 11px;
+    line-height: 1.3;
+    word-break: break-all;
+    overflow-wrap: break-word;
   }
 }
 

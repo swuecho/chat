@@ -73,3 +73,31 @@ html.dark {
 		}
 	}
 }
+
+/* Additional responsive improvements for better layout handling */
+@media screen and (max-width: 639px) {
+	.markdown-body {
+		/* Ensure content doesn't break mobile layout */
+		max-width: 100%;
+		overflow-x: hidden;
+		word-wrap: break-word;
+		overflow-wrap: break-word;
+	}
+	
+	.markdown-body pre {
+		/* Better code block handling on mobile */
+		max-width: 100%;
+		overflow-x: auto;
+		white-space: pre;
+		word-wrap: normal;
+		-webkit-overflow-scrolling: touch;
+	}
+	
+	.markdown-body table {
+		/* Ensure tables don't break layout on mobile */
+		max-width: 100%;
+		overflow-x: auto;
+		display: block;
+		white-space: nowrap;
+	}
+}
