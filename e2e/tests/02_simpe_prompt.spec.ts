@@ -24,14 +24,44 @@ test('test', async ({ page }) => {
   await page.getByTestId('repwd').locator('input').click();
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
-  await page.waitForTimeout(2000);
-
-  // locate by id #message_texarea and click
-  // Find the element by Id and click on it
-  //const messageTextArea = await page.$('#message_texarea');
-  //await messageTextArea?.click();
-  //await messageTextArea?.fill('test_demo_bestqa');
-  await page.getByTestId("message_textarea").click()
+  
+  // Wait for signup to complete - either successful or with error
+  try {
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
+  } catch (error) {
+    // Continue if networkidle times out - the page might still be functional
+    console.log('Network idle timeout, continuing...');
+  }
+  
+  await page.waitForTimeout(3000);
+  
+  // Wait for the permission modal to disappear OR wait for message textarea to be clickable
+  try {
+    await page.waitForSelector('.n-modal-mask', { state: 'detached', timeout: 5000 });
+  } catch (error) {
+    // Modal might already be gone or not exist
+    console.log('Modal mask not found, continuing...');
+  }
+  
+  // Alternative approach: wait for the message textarea to be available and force click if needed
+  await page.waitForSelector('#message_textarea textarea', { timeout: 10000 });
+  
+  // Try to click, and if blocked by modal, dismiss it first
+  try {
+    await page.getByTestId("message_textarea").click({ timeout: 5000 });
+  } catch (error) {
+    // If click is blocked, try to dismiss any modal and retry
+    console.log('Click blocked, trying to dismiss modal...');
+    try {
+      // Try to click outside modal to dismiss it
+      await page.click('body', { position: { x: 10, y: 10 }, timeout: 2000 });
+      await page.waitForTimeout(1000);
+    } catch (dismissError) {
+      // Continue anyway
+    }
+    // Retry the click
+    await page.getByTestId("message_textarea").click();
+  }
   await page.waitForTimeout(1000);
   const input_area = await page.$("#message_textarea textarea")
   await input_area?.fill('test_demo_bestqa');

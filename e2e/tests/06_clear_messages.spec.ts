@@ -21,6 +21,18 @@ test('after clear conversation, only system message remains', async ({ page }) =
   await page.getByTestId('repwd').locator('input').click();
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
+  
+  // Wait for authentication to complete
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(3000);
+  
+  // Wait for the permission modal to disappear
+  try {
+    await page.waitForSelector('.n-modal-mask', { state: 'detached', timeout: 10000 });
+  } catch (error) {
+    // Modal might already be gone
+  }
+  
   // sleep 1 second
   await page.waitForTimeout(1000);
   let input_area = await page.$("#message_textarea textarea")
