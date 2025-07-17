@@ -306,6 +306,11 @@ const processSvgContent = (content: string) => {
   margin-top: 12px;
   width: 100%;
   max-width: 100%;
+  /* Ensure artifact viewer doesn't interfere with message layout */
+  contain: layout style;
+  /* Prevent z-index issues that could hide buttons */
+  position: relative;
+  z-index: 1;
 }
 
 .artifact-item {
@@ -513,12 +518,14 @@ const processSvgContent = (content: string) => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1000;
+  z-index: 9999;
   background: white;
   border-radius: 0;
   margin: 0;
   max-width: 100vw;
   max-height: 100vh;
+  /* Ensure fullscreen doesn't interfere with E2E tests */
+  contain: strict;
 }
 
 .html-artifact.fullscreen .html-preview {
@@ -538,7 +545,7 @@ const processSvgContent = (content: string) => {
   right: 0;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  z-index: 1001;
+  z-index: 10000;
   border: 1px solid var(--border-color);
   border-radius: 0 0 0 6px;
   padding: 4px 6px;

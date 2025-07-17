@@ -32,7 +32,9 @@ test('test', async ({ page }) => {
   await input_area?.press('Enter');
   await page.waitForTimeout(1000);
 
-  const first_answer = await page.$eval('#image-wrapper .chat-message:nth-child(2) .message-text', (el: HTMLElement) => el.innerText);
+  // Wait for response and get the text more reliably
+  await page.waitForSelector('.chat-message:nth-of-type(2) .message-text', { timeout: 10000 });
+  const first_answer = await page.$eval('.chat-message:nth-of-type(2) .message-text', (el: HTMLElement) => el.innerText);
   // check the answer return by the server
   expect(first_answer).toContain('test_demo_bestqa');
 
@@ -41,8 +43,8 @@ test('test', async ({ page }) => {
   await input_area?.press('Enter');
   await page.waitForTimeout(1000);
   // check the answer return by the server
-  await page.waitForSelector('#image-wrapper .chat-message:nth-child(4) .message-text');
-  const sec_answer = await page.$eval('#image-wrapper .chat-message:nth-child(4) .message-text', (el: HTMLElement) => el.innerText);
+  await page.waitForSelector('.chat-message:nth-of-type(4) .message-text', { timeout: 10000 });
+  const sec_answer = await page.$eval('.chat-message:nth-of-type(4) .message-text', (el: HTMLElement) => el.innerText);
   // check the sec_answer has the debug message
   expect(sec_answer).toContain('test_debug_1');
 
@@ -52,8 +54,8 @@ test('test', async ({ page }) => {
   await input_area?.press('Enter');
   await page.waitForTimeout(1000);
   // check the answer return by the server
-  await page.waitForSelector('#image-wrapper .chat-message:nth-child(6) .message-text');
-  const third_answer = await page.$eval('#image-wrapper .chat-message:nth-child(6) .message-text', (el: HTMLElement) => el.innerText);
+  await page.waitForSelector('.chat-message:nth-of-type(6) .message-text', { timeout: 10000 });
+  const third_answer = await page.$eval('.chat-message:nth-of-type(6) .message-text', (el: HTMLElement) => el.innerText);
   // check the third_answer has the debug message
   expect(third_answer).toContain('test_debug_2');
 
