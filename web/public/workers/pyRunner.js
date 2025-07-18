@@ -67,6 +67,7 @@ import sys
 import io
 import base64
 import json
+import builtins
 from contextlib import redirect_stdout, redirect_stderr
 
 # Create custom output capture
@@ -87,16 +88,19 @@ class OutputCapture:
 # Global output capture
 _output_capture = OutputCapture()
 
+# Store original print function
+_original_print = builtins.print
+
 # Custom print function
 def custom_print(*args, **kwargs):
     output = io.StringIO()
-    print(*args, file=output, **kwargs)
+    _original_print(*args, file=output, **kwargs)
     result = output.getvalue()
     _output_capture.write(result)
     return result
 
-# Replace built-in print
-__builtins__['print'] = custom_print
+# Replace built-in print safely
+builtins.print = custom_print
 `)
 
         isInitialized = true

@@ -262,37 +262,8 @@ class SafeJSRunner {
 
   // Enhanced execution environment with monitoring
   createSecureFunction(code) {
-    // Wrap user code with monitoring
-    const monitoredCode = `
-      (function() {
-        const _checkLimits = () => {
-          if (typeof checkResourceLimits === 'function') {
-            checkResourceLimits();
-          }
-        };
-        
-        // Monitor loops by injecting checks
-        const originalCode = ${JSON.stringify(code)};
-        let processedCode = originalCode;
-        
-        // Add monitoring to common loop patterns
-        processedCode = processedCode.replace(/for\\s*\\([^)]+\\)\\s*{/g, (match) => {
-          return match.replace('{', '{ _checkLimits();');
-        });
-        
-        processedCode = processedCode.replace(/while\\s*\\([^)]+\\)\\s*{/g, (match) => {
-          return match.replace('{', '{ _checkLimits();');
-        });
-        
-        try {
-          return eval(processedCode);
-        } catch (error) {
-          throw error;
-        }
-      })()
-    `;
-    
-    return monitoredCode
+    // Direct execution without nested eval to preserve console context
+    return code
   }
 
   async execute(code) {
@@ -401,18 +372,35 @@ class SafeJSRunner {
 
       // Execute code in safe context with enhanced monitoring
       const secureCode = this.createSecureFunction(code)
-      const result = new Function(
-        ...Object.keys(safeGlobals), 
-        `
-        "use strict";
+      
+      // Set up periodic resource checking
+      const checkInterval = setInterval(() => {
         try {
-          return ${secureCode};
+          this.checkResourceLimits()
         } catch (error) {
-          console.error('Runtime Error: ' + error.message);
-          throw error;
+          clearInterval(checkInterval)
+          throw error
         }
-        `
-      )(...Object.values(safeGlobals))
+      }, 100)
+      
+      let result
+      try {
+        result = new Function(
+          ...Object.keys(safeGlobals), 
+          `
+          try {
+            return (function() {
+              ${secureCode}
+            })();
+          } catch (error) {
+            console.error('Runtime Error: ' + error.message);
+            throw error;
+          }
+          `
+        )(...Object.values(safeGlobals))
+      } finally {
+        clearInterval(checkInterval)
+      }
 
       // Add return value if it exists and is not undefined
       if (result !== undefined) {
