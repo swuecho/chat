@@ -83,7 +83,7 @@ function handleDelete() {
           {{ !inversion ? model : userInfo.name || $t('setting.defaultName') }}
         </p>
         <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
-          <div class="flex flex-col flex-1 min-w-0">
+          <div class="flex flex-col min-w-0">
             <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
               :code="code" :loading="loading" :idex="index" />
             <ArtifactViewer v-if="artifacts && artifacts.length > 0" 
