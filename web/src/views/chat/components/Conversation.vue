@@ -22,6 +22,7 @@ import UploaderReadOnly from '@/views/chat/components/UploaderReadOnly.vue'
 import ModelSelector from '@/views/chat/components/ModelSelector.vue'
 import MessageList from '@/views/chat/components/MessageList.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
+import ArtifactGallery from '@/views/chat/components/ArtifactGallery.vue'
 import { getDataFromResponseText } from '@/utils/string'
 import { extractArtifacts } from '@/utils/artifacts'
 import renderMessage from './RenderMessage.vue'
@@ -65,6 +66,7 @@ const showUploadModal = ref<boolean>(false)
 const showModal = ref<boolean>(false)
 const snapshotLoading = ref<boolean>(false)
 const botLoading = ref<boolean>(false)
+const showArtifactGallery = ref<boolean>(false)
 
 const appStore = useAppStore()
 
@@ -550,6 +552,10 @@ onUnmounted(() => {
 const handleUsePrompt = (_: string, value: string): void => {
   prompt.value = value
 }
+
+const toggleArtifactGallery = (): void => {
+  showArtifactGallery.value = !showArtifactGallery.value
+}
 </script>
 
 <template>
@@ -571,7 +577,7 @@ const handleUsePrompt = (_: string, value: string): void => {
       <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
       </UploaderReadOnly>
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-        <div id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10"
+        <div v-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10"
           :class="[isMobile ? 'p-2' : 'p-4']">
           <template v-if="!dataSources.length">
             <div class="flex items-center justify-center m-4 text-center text-neutral-300">
@@ -586,7 +592,10 @@ const handleUsePrompt = (_: string, value: string): void => {
             </div>
           </template>
         </div>
-        <JumpToBottom v-if="dataSources.length > 1" targetSelector="#scrollRef" :scrollThresholdShow="200" />
+        <div v-else class="h-full">
+          <ArtifactGallery />
+        </div>
+        <JumpToBottom v-if="dataSources.length > 1 && !showArtifactGallery" targetSelector="#scrollRef" :scrollThresholdShow="200" />
 
       </div>
     </main>
@@ -615,7 +624,14 @@ const handleUsePrompt = (_: string, value: string): void => {
               </span>
             </HoverButton>
           </NSpin>
-          <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
+         
+          <HoverButton v-if="!isMobile" @click="toggleArtifactGallery" :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'">
+            <span class="text-xl text-[#4b9e5f] dark:text-white">
+              <SvgIcon icon="ri:gallery-line" />
+            </span>
+          </HoverButton>
+
+           <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
             <span class="text-xl text-[#4b9e5f]">
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>

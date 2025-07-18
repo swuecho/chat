@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -21,6 +22,15 @@ type ChatService struct {
 // NewChatSessionService creates a new ChatSessionService.
 func NewChatService(q *sqlc_queries.Queries) *ChatService {
 	return &ChatService{q: q}
+}
+
+// loadArtifactInstruction loads the artifact instruction from file
+func loadArtifactInstruction() (string, error) {
+	content, err := os.ReadFile("artifact_instruction.txt")
+	if err != nil {
+		return "", eris.Wrap(err, "failed to read artifact instruction file")
+	}
+	return string(content), nil
 }
 
 func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
@@ -70,63 +80,29 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	msgs := append(chat_prompt_msgs, chat_message_msgs...)
 
 	// Add artifact instruction to system messages
-	artifactInstruction := `
-
-When creating code, HTML, SVG, diagrams, or data that should be displayed as an interactive artifact, use the following format:
-
-- For HTML: ` + "```" + `html <!-- artifact: Title --> [content] ` + "```" + `  
-- For SVG: ` + "```" + `svg <!-- artifact: Title --> [content] ` + "```" + `
-- For Mermaid diagrams: ` + "```" + `mermaid <!-- artifact: Title --> [content] ` + "```" + `
-- For JSON data: ` + "```" + `json <!-- artifact: Title --> [content] ` + "```" + `
-- For executable code: ` + "```" + `javascript <!-- executable: Title --> [content] ` + "```" + ` or ` + "```" + `python <!-- executable: Title --> [content] ` + "```" + `
-
-For HTML, use Preact hooks, HTM(jsx) and modern HTML5 APIs to create standalone applications that render without a build step.
-
-
-For executable code, use JavaScript/TypeScript or Python that can run in a browser environment. The code will be executed in a secure sandbox with console output captured. Supported features:
-
-JavaScript/TypeScript:
-
-- console.log, console.error, console.warn for output
-- All standard JavaScript APIs (Math, Date, Array, Object, etc.)
-- Return values are displayed
-- Execution timeout protection and resource monitoring
-- Canvas graphics support via createCanvas(width, height)
-- Library loading via // @import libraryName (supports: lodash, d3, chart.js, moment, axios, rxjs, p5, three, fabric)
-- Enhanced crypto, encoding, and URL APIs
-- No DOM or network access
-
-
-Python:
-- print() for output with captured stdout/stderr
-- Standard Python libraries and scientific computing stack
-- Matplotlib plots with PNG output
-- Package loading via import (supports: numpy, pandas, matplotlib, scipy, scikit-learn, requests, etc.)
-- Memory and execution time monitoring
-- No file system or network access
-
-
-This will enable the artifact viewer to display your content interactively in the chat interface with specialized renderers for each content type.`
+	artifactInstruction, err := loadArtifactInstruction()
+	if err != nil {
+		log.Printf("Warning: Failed to load artifact instruction: %v", err)
+		artifactInstruction = "" // Use empty string if file can't be loaded
+	}
 
 	// Append artifact instruction to system messages or add as new system message
 	systemMsgFound := false
 	for i, msg := range msgs {
 		if msg.Role == "system" {
-			msgs[i].Content = msg.Content + artifactInstruction
+			msgs[i].Content = msg.Content + "\n" + artifactInstruction
+			msgs[i].SetTokenCount(int32(len(msgs[i].Content) / 4)) // Rough token estimate
 			systemMsgFound = true
 			break
 		}
 	}
 
-	// If no system message found, add one at the beginning
 	if !systemMsgFound {
-		systemMsg := models.Message{
-			Role:    "system",
-			Content: "You are a helpful assistant." + artifactInstruction,
-		}
-		systemMsg.SetTokenCount(int32(len(systemMsg.Content) / 4)) // Rough token estimate
-		msgs = append([]models.Message{systemMsg}, msgs...)
+		// append to the first message
+		msgs[0].Content = msgs[0].Content + "\n" + artifactInstruction
+		msgs[0].SetTokenCount(int32(len(msgs[0].Content) / 4)) // Rough token estimate
 	}
+
 
 	return msgs, nil
 }

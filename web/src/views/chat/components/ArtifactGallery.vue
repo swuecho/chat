@@ -52,6 +52,10 @@
           <NSelect v-model:value="selectedDateRange" :options="dateRangeOptions" clearable />
         </div>
         <div class="filter-group">
+          <label>Session</label>
+          <NSelect v-model:value="selectedSession" :options="sessionOptions" clearable />
+        </div>
+        <div class="filter-group">
           <label>Sort By</label>
           <NSelect v-model:value="sortBy" :options="sortOptions" />
         </div>
@@ -79,19 +83,19 @@
     <div v-if="showStats" class="stats-panel">
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-value">{{ stats.totalArtifacts }}</div>
+          <div class="stat-value">{{ galleryStats.totalArtifacts }}</div>
           <div class="stat-label">Total Artifacts</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ stats.totalExecutions }}</div>
+          <div class="stat-value">{{ galleryStats.totalExecutions }}</div>
           <div class="stat-label">Total Executions</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ Math.round(stats.averageExecutionTime) }}ms</div>
+          <div class="stat-value">{{ Math.round(galleryStats.averageExecutionTime) }}ms</div>
           <div class="stat-label">Avg Execution Time</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ Math.round(stats.successRate * 100) }}%</div>
+          <div class="stat-value">{{ Math.round(galleryStats.successRate * 100) }}%</div>
           <div class="stat-label">Success Rate</div>
         </div>
       </div>
@@ -99,10 +103,10 @@
         <div class="chart-container">
           <h4>Artifacts by Type</h4>
           <div class="type-chart">
-            <div v-for="(count, type) in stats.typeBreakdown" :key="type" class="type-bar">
+            <div v-for="(count, type) in galleryStats.typeBreakdown" :key="type" class="type-bar">
               <div class="type-label">{{ type }}</div>
               <div class="type-progress">
-                <div class="type-fill" :style="{ width: `${(count / stats.totalArtifacts) * 100}%` }"></div>
+                <div class="type-fill" :style="{ width: `${(count / galleryStats.totalArtifacts) * 100}%` }"></div>
               </div>
               <div class="type-count">{{ count }}</div>
             </div>
@@ -111,7 +115,7 @@
         <div class="chart-container">
           <h4>Language Distribution</h4>
           <div class="language-chart">
-            <div v-for="(count, lang) in stats.languageBreakdown" :key="lang" class="language-item">
+            <div v-for="(count, lang) in galleryStats.languageBreakdown" :key="lang" class="language-item">
               <NBadge :value="lang" />
               <span class="language-count">{{ count }}</span>
             </div>
@@ -136,9 +140,19 @@
               <span>{{ artifact.type }}</span>
             </div>
             <div class="card-actions">
-              <NButton size="tiny" @click="previewArtifact(artifact)" circle>
+              <NButton size="tiny" @click="previewArtifactFn(artifact)" circle>
                 <template #icon>
                   <Icon icon="ri:eye-line" />
+                </template>
+              </NButton>
+              <NButton v-if="isExecutableArtifact(artifact)" size="tiny" @click="runArtifact(artifact)" circle type="primary">
+                <template #icon>
+                  <Icon icon="ri:play-line" />
+                </template>
+              </NButton>
+              <NButton v-if="isViewableArtifact(artifact)" size="tiny" @click="viewArtifact(artifact)" circle type="info">
+                <template #icon>
+                  <Icon icon="ri:external-link-line" />
                 </template>
               </NButton>
               <NButton size="tiny" @click="editArtifact(artifact)" circle>
@@ -173,6 +187,10 @@
               <div v-if="artifact.executionCount" class="meta-item">
                 <Icon icon="ri:play-line" />
                 <span>{{ artifact.executionCount }} runs</span>
+              </div>
+              <div v-if="artifact.sessionTitle" class="meta-item">
+                <Icon icon="ri:chat-1-line" />
+                <span>{{ artifact.sessionTitle }}</span>
               </div>
             </div>
             <div class="artifact-preview">
@@ -218,13 +236,29 @@
                 <Icon icon="ri:play-line" />
                 <span>{{ artifact.executionCount }} runs</span>
               </div>
+              <div v-if="artifact.sessionTitle" class="meta-item">
+                <Icon icon="ri:chat-1-line" />
+                <span>{{ artifact.sessionTitle }}</span>
+              </div>
             </div>
             <div class="row-actions">
-              <NButton size="small" @click="previewArtifact(artifact)">
+              <NButton size="small" @click="previewArtifactFn(artifact)">
                 <template #icon>
                   <Icon icon="ri:eye-line" />
                 </template>
                 Preview
+              </NButton>
+              <NButton v-if="isExecutableArtifact(artifact)" size="small" @click="runArtifact(artifact)" type="primary">
+                <template #icon>
+                  <Icon icon="ri:play-line" />
+                </template>
+                Run
+              </NButton>
+              <NButton v-if="isViewableArtifact(artifact)" size="small" @click="viewArtifact(artifact)" type="info">
+                <template #icon>
+                  <Icon icon="ri:external-link-line" />
+                </template>
+                View
               </NButton>
               <NButton size="small" @click="editArtifact(artifact)">
                 <template #icon>
@@ -297,7 +331,7 @@
         <template #footer>
           <div class="modal-actions">
             <NButton @click="showPreviewModal = false">Close</NButton>
-            <NButton type="primary" @click="editArtifact(previewArtifact)">Edit</NButton>
+            <NButton type="primary" @click="previewArtifact && editArtifact(previewArtifact)">Edit</NButton>
           </div>
         </template>
       </NCard>
@@ -322,18 +356,103 @@
         </template>
       </NCard>
     </NModal>
+
+    <!-- Run Modal -->
+    <NModal v-model:show="showRunModal" :mask-closable="false">
+      <NCard style="width: 90vw; max-width: 1000px; max-height: 90vh" :title="runningArtifact?.title || 'Run Artifact'">
+        <div v-if="runningArtifact" class="run-content">
+          <div class="run-header">
+            <div class="run-meta">
+              <NBadge :value="runningArtifact.type" />
+              <NBadge v-if="runningArtifact.language" :value="runningArtifact.language" />
+            </div>
+            <div class="run-actions">
+              <NButton 
+                size="small" 
+                type="primary" 
+                @click="executeArtifact" 
+                :disabled="isRunning" 
+                :loading="isRunning">
+                <template #icon>
+                  <Icon icon="ri:play-line" />
+                </template>
+                {{ isRunning ? 'Running...' : 'Run Code' }}
+              </NButton>
+              <NButton size="small" @click="clearResults" :disabled="!executionResults.length">
+                <template #icon>
+                  <Icon icon="ri:delete-bin-line" />
+                </template>
+                Clear
+              </NButton>
+            </div>
+          </div>
+          <div class="run-body">
+            <div class="code-preview">
+              <pre><code>{{ runningArtifact.content }}</code></pre>
+            </div>
+            <div v-if="executionResults.length" class="execution-results">
+              <h4>Output:</h4>
+              <div class="results-container">
+                <div v-for="result in executionResults" :key="result.id" class="result-item" :class="result.type">
+                  <span class="result-type">{{ result.type }}</span>
+                  <span class="result-content">{{ result.content }}</span>
+                  <span class="result-time">{{ formatTime(result.timestamp) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <template #footer>
+          <div class="modal-actions">
+            <NButton @click="showRunModal = false">Close</NButton>
+          </div>
+        </template>
+      </NCard>
+    </NModal>
+
+    <!-- View Modal -->
+    <NModal v-model:show="showViewModal" :mask-closable="false">
+      <NCard style="width: 90vw; max-width: 1200px; max-height: 90vh" :title="viewingArtifact?.title || 'View Artifact'">
+        <div v-if="viewingArtifact" class="view-content">
+          <div class="view-header">
+            <div class="view-meta">
+              <NBadge :value="viewingArtifact.type" />
+              <NBadge v-if="viewingArtifact.language" :value="viewingArtifact.language" />
+            </div>
+            <div class="view-actions">
+              <NButton size="small" @click="copyArtifactContent(viewingArtifact)">
+                <template #icon>
+                  <Icon icon="ri:file-copy-line" />
+                </template>
+                Copy
+              </NButton>
+            </div>
+          </div>
+          <div class="view-body">
+            <ArtifactViewer :artifacts="[convertToViewerFormat(viewingArtifact)]" />
+          </div>
+        </div>
+        <template #footer>
+          <div class="modal-actions">
+            <NButton @click="showViewModal = false">Close</NButton>
+          </div>
+        </template>
+      </NCard>
+    </NModal>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { NButton, NInput, NSelect, NButtonGroup, NBadge, NPagination, NModal, NCard, useMessage, useDialog } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import ArtifactViewer from './Message/ArtifactViewer.vue'
 import ArtifactEditor from './Message/ArtifactEditor.vue'
-import { useExecutionHistory } from '@/services/executionHistory'
+import { useChatStore } from '@/store'
+import { getCodeRunner, type ExecutionResult } from '@/services/codeRunner'
 
 interface Artifact {
+  uuid: string
   id: string
   title: string
   content: string
@@ -344,11 +463,14 @@ interface Artifact {
   tags?: string[]
   rating?: number
   executionCount?: number
+  sessionUuid?: string
+  messageUuid?: string
+  sessionTitle?: string
 }
 
 const message = useMessage()
 const dialog = useDialog()
-const { stats } = useExecutionHistory()
+const chatStore = useChatStore()
 
 // UI State
 const showFilters = ref(false)
@@ -356,12 +478,15 @@ const showStats = ref(false)
 const viewMode = ref<'grid' | 'list'>('grid')
 const showPreviewModal = ref(false)
 const showEditModal = ref(false)
+const showRunModal = ref(false)
+const showViewModal = ref(false)
 
 // Filter State
 const searchQuery = ref('')
 const selectedType = ref('')
 const selectedLanguage = ref('')
 const selectedDateRange = ref('')
+const selectedSession = ref('')
 const sortBy = ref('createdAt')
 
 // Data State
@@ -369,6 +494,13 @@ const artifacts = ref<Artifact[]>([])
 const previewArtifact = ref<Artifact | null>(null)
 const editingArtifact = ref<Artifact | null>(null)
 const originalArtifact = ref<Artifact | null>(null)
+const runningArtifact = ref<Artifact | null>(null)
+const viewingArtifact = ref<Artifact | null>(null)
+const executionResults = ref<ExecutionResult[]>([])
+const isRunning = ref(false)
+
+// Code runner instance
+const codeRunner = getCodeRunner()
 
 // Pagination State
 const currentPage = ref(1)
@@ -390,6 +522,14 @@ const languageOptions = computed(() => {
   return [
     { label: 'All Languages', value: '' },
     ...languages.map(lang => ({ label: lang, value: lang }))
+  ]
+})
+
+const sessionOptions = computed(() => {
+  const sessions = [...new Set(artifacts.value.map(a => a.sessionTitle).filter(Boolean))]
+  return [
+    { label: 'All Sessions', value: '' },
+    ...sessions.map(session => ({ label: session, value: session }))
   ]
 })
 
@@ -435,6 +575,11 @@ const filteredArtifacts = computed(() => {
   // Language filter
   if (selectedLanguage.value) {
     filtered = filtered.filter(artifact => artifact.language === selectedLanguage.value)
+  }
+
+  // Session filter
+  if (selectedSession.value) {
+    filtered = filtered.filter(artifact => artifact.sessionTitle === selectedSession.value)
   }
 
   // Date range filter
@@ -514,7 +659,7 @@ const galleryStats = computed(() => {
 
 // Methods
 const getTypeIcon = (type: string) => {
-  const icons = {
+  const icons: Record<string, string> = {
     'code': 'ri:code-line',
     'executable-code': 'ri:play-circle-line',
     'html': 'ri:html5-line',
@@ -536,7 +681,7 @@ const truncateCode = (code: string, maxLength: number) => {
   return code.substring(0, maxLength) + '...'
 }
 
-const previewArtifact = (artifact: Artifact) => {
+const previewArtifactFn = (artifact: Artifact) => {
   previewArtifact.value = artifact
   showPreviewModal.value = true
 }
@@ -551,10 +696,14 @@ const editArtifact = (artifact: Artifact) => {
 const duplicateArtifact = (artifact: Artifact) => {
   const duplicate: Artifact = {
     ...artifact,
+    uuid: generateId(),
     id: generateId(),
     title: `${artifact.title} (Copy)`,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    sessionUuid: undefined, // Don't associate with original session
+    messageUuid: undefined,
+    sessionTitle: undefined
   }
   artifacts.value.unshift(duplicate)
   message.success('Artifact duplicated successfully')
@@ -567,6 +716,24 @@ const deleteArtifact = (artifact: Artifact) => {
     positiveText: 'Delete',
     negativeText: 'Cancel',
     onPositiveClick: () => {
+      // Remove from chat store
+      if (artifact.sessionUuid && artifact.messageUuid) {
+        const sessionMessages = chatStore.chat[artifact.sessionUuid]
+        if (sessionMessages) {
+          const messageIndex = sessionMessages.findIndex(msg => msg.uuid === artifact.messageUuid)
+          if (messageIndex !== -1) {
+            const message = sessionMessages[messageIndex]
+            if (message.artifacts) {
+              const artifactIndex = message.artifacts.findIndex(a => a.uuid === artifact.uuid)
+              if (artifactIndex !== -1) {
+                message.artifacts.splice(artifactIndex, 1)
+              }
+            }
+          }
+        }
+      }
+      
+      // Remove from local artifacts
       const index = artifacts.value.findIndex(a => a.id === artifact.id)
       if (index !== -1) {
         artifacts.value.splice(index, 1)
@@ -600,7 +767,7 @@ const downloadArtifact = (artifact: Artifact) => {
 
 const getFileExtension = (type: string, language?: string) => {
   if (language) {
-    const extensions = {
+    const extensions: Record<string, string> = {
       'javascript': 'js',
       'typescript': 'ts',
       'python': 'py',
@@ -611,7 +778,7 @@ const getFileExtension = (type: string, language?: string) => {
     return extensions[language] || 'txt'
   }
   
-  const typeExtensions = {
+  const typeExtensions: Record<string, string> = {
     'html': 'html',
     'svg': 'svg',
     'json': 'json',
@@ -623,6 +790,29 @@ const getFileExtension = (type: string, language?: string) => {
 
 const saveEdit = () => {
   if (editingArtifact.value && originalArtifact.value) {
+    // Update the artifact in the chat store
+    if (editingArtifact.value.sessionUuid && editingArtifact.value.messageUuid) {
+      const sessionMessages = chatStore.chat[editingArtifact.value.sessionUuid]
+      if (sessionMessages) {
+        const messageIndex = sessionMessages.findIndex(msg => msg.uuid === editingArtifact.value!.messageUuid)
+        if (messageIndex !== -1) {
+          const message = sessionMessages[messageIndex]
+          if (message.artifacts) {
+            const artifactIndex = message.artifacts.findIndex(a => a.uuid === editingArtifact.value!.uuid)
+            if (artifactIndex !== -1) {
+              message.artifacts[artifactIndex] = {
+                ...message.artifacts[artifactIndex],
+                title: editingArtifact.value!.title,
+                content: editingArtifact.value!.content,
+                language: editingArtifact.value!.language
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Update local artifact
     Object.assign(originalArtifact.value, {
       ...editingArtifact.value,
       updatedAt: new Date().toISOString()
@@ -636,6 +826,77 @@ const cancelEdit = () => {
   editingArtifact.value = null
   originalArtifact.value = null
   showEditModal.value = false
+}
+
+// New methods for run/view functionality
+const isExecutableArtifact = (artifact: Artifact) => {
+  return artifact.type === 'executable-code' || 
+         (artifact.type === 'code' && artifact.language && 
+          codeRunner.isLanguageSupported(artifact.language))
+}
+
+const isViewableArtifact = (artifact: Artifact) => {
+  return artifact.type === 'html' || artifact.type === 'svg' || 
+         artifact.type === 'mermaid' || artifact.type === 'json'
+}
+
+const runArtifact = (artifact: Artifact) => {
+  runningArtifact.value = artifact
+  executionResults.value = []
+  showRunModal.value = true
+}
+
+const viewArtifact = (artifact: Artifact) => {
+  viewingArtifact.value = artifact
+  showViewModal.value = true
+}
+
+const executeArtifact = async () => {
+  if (!runningArtifact.value || !runningArtifact.value.language) {
+    message.error('No artifact or language specified')
+    return
+  }
+
+  isRunning.value = true
+  try {
+    const results = await codeRunner.execute(
+      runningArtifact.value.language,
+      runningArtifact.value.content,
+      runningArtifact.value.id
+    )
+    executionResults.value = results
+    
+    const hasError = results.some(result => result.type === 'error')
+    if (hasError) {
+      message.error('Code execution completed with errors')
+    } else {
+      message.success('Code executed successfully')
+    }
+  } catch (error) {
+    message.error('Code execution failed: ' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    isRunning.value = false
+  }
+}
+
+const clearResults = () => {
+  executionResults.value = []
+}
+
+const formatTime = (timestamp: string) => {
+  return new Date(timestamp).toLocaleTimeString()
+}
+
+const convertToViewerFormat = (artifact: Artifact): Chat.Artifact => {
+  return {
+    uuid: artifact.uuid,
+    type: artifact.type,
+    title: artifact.title,
+    content: artifact.content,
+    language: artifact.language || undefined,
+    isExecutable: isExecutableArtifact(artifact),
+    executionResults: []
+  }
 }
 
 const exportArtifacts = () => {
@@ -656,43 +917,87 @@ const onPageSizeChange = (newSize: number) => {
 }
 
 const generateId = () => {
-  return `artifact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  return `artifact_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
 }
 
-// Load artifacts (placeholder - integrate with actual data source)
+// Load artifacts from real conversation data
 const loadArtifacts = () => {
-  // This would typically load from a real data source
-  // For now, we'll use mock data
-  artifacts.value = [
-    {
-      id: '1',
-      title: 'Hello World Example',
-      content: 'console.log("Hello, World!")',
-      type: 'executable-code',
-      language: 'javascript',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      tags: ['beginner', 'example'],
-      rating: 5,
-      executionCount: 15
-    },
-    {
-      id: '2',
-      title: 'Data Visualization',
-      content: 'import matplotlib.pyplot as plt\nimport numpy as np\n\nx = np.linspace(0, 10, 100)\ny = np.sin(x)\n\nplt.plot(x, y)\nplt.show()',
-      type: 'executable-code',
-      language: 'python',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      tags: ['visualization', 'matplotlib'],
-      rating: 4.5,
-      executionCount: 8
-    },
-    // Add more mock artifacts as needed
-  ]
+  const allArtifacts: Artifact[] = []
+  
+  // Iterate through all chat sessions
+  chatStore.history.forEach(session => {
+    const messages = chatStore.chat[session.uuid] || []
+    
+    // Extract artifacts from each message
+    messages.forEach(msg => {
+      if (msg.artifacts && msg.artifacts.length > 0) {
+        msg.artifacts.forEach(artifact => {
+          allArtifacts.push({
+            uuid: artifact.uuid,
+            id: artifact.uuid, // Use uuid as id for compatibility
+            title: artifact.title || 'Untitled Artifact',
+            content: artifact.content,
+            type: artifact.type,
+            language: artifact.language,
+            createdAt: msg.dateTime,
+            updatedAt: msg.dateTime,
+            sessionUuid: session.uuid,
+            messageUuid: msg.uuid,
+            sessionTitle: session.title,
+            // Add default values for optional fields
+            tags: extractTagsFromContent(artifact.content, artifact.type),
+            rating: undefined,
+            executionCount: artifact.executionResults?.length || 0
+          })
+        })
+      }
+    })
+  })
+  
+  artifacts.value = allArtifacts
+}
+
+// Helper function to extract tags from content and type
+const extractTagsFromContent = (content: string, type: string): string[] => {
+  const tags: string[] = [type]
+  
+  // Add language-specific tags based on content
+  if (content.includes('import ')) tags.push('imports')
+  if (content.includes('function ')) tags.push('functions')
+  if (content.includes('class ')) tags.push('classes')
+  if (content.includes('async ')) tags.push('async')
+  if (content.includes('await ')) tags.push('await')
+  if (content.includes('export ')) tags.push('exports')
+  if (content.includes('console.log')) tags.push('logging')
+  if (content.includes('useState') || content.includes('useEffect')) tags.push('react')
+  if (content.includes('plt.') || content.includes('matplotlib')) tags.push('visualization')
+  if (content.includes('np.') || content.includes('numpy')) tags.push('numpy')
+  if (content.includes('pd.') || content.includes('pandas')) tags.push('pandas')
+  
+  return tags
 }
 
 onMounted(() => {
   loadArtifacts()
 })
+
+// Watch for changes in chat store and reload artifacts
+watch(
+  () => chatStore.chat,
+  () => {
+    loadArtifacts()
+  },
+  { deep: true }
+)
+
+// Watch for changes in chat history (new sessions)
+watch(
+  () => chatStore.history,
+  () => {
+    loadArtifacts()
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped>
@@ -1159,5 +1464,154 @@ onMounted(() => {
   .row-actions {
     justify-content: center;
   }
+}
+/* Run Modal Styles */
+.run-content, .view-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.run-header, .view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.run-meta, .view-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.run-actions, .view-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.run-body, .view-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.code-preview {
+  background: var(--code-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.code-preview pre {
+  margin: 0;
+  padding: 16px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-color);
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.execution-results {
+  background: var(--artifact-content-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.execution-results h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid var(--border-color);
+}
+
+.result-item.log {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.result-item.error {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.result-item.warn {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+.result-item.info {
+  background: rgba(34, 197, 94, 0.05);
+  border-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.result-item.return {
+  background: rgba(168, 85, 247, 0.05);
+  border-color: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
+
+.result-type {
+  flex-shrink: 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: var(--tag-bg);
+  color: var(--text-color-secondary);
+  min-width: 50px;
+  text-align: center;
+}
+
+.result-content {
+  flex: 1;
+  word-break: break-word;
+  white-space: pre-wrap;
+  color: var(--text-color);
+}
+
+.result-time {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-color-secondary);
+  opacity: 0.7;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 </style>
