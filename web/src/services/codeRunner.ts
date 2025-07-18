@@ -3,6 +3,8 @@
  * Handles execution of JavaScript code in a safe Web Worker environment
  */
 
+import { executionHistory } from './executionHistory'
+
 export interface ExecutionResult {
   id: string
   type: 'log' | 'error' | 'return' | 'stdout' | 'warn' | 'info' | 'debug' | 'canvas' | 'matplotlib'
@@ -181,7 +183,7 @@ export class CodeRunner {
   /**
    * Execute code based on language
    */
-  async execute(language: string, code: string): Promise<ExecutionResult[]> {
+  async execute(language: string, code: string, artifactId?: string): Promise<ExecutionResult[]> {
     const startTime = performance.now()
     
     try {
@@ -208,17 +210,167 @@ export class CodeRunner {
         result.execution_time_ms = executionTime
       })
       
+      // Add to execution history
+      const success = !results.some(result => result.type === 'error')
+      if (artifactId) {
+        executionHistory.addExecution({
+          artifactId,
+          code,
+          language: language.toLowerCase(),
+          results,
+          executionTime,
+          success,
+          tags: this.generateTags(code, language, results)
+        })
+      }
+      
       return results
     } catch (error) {
       const executionTime = Math.round(performance.now() - startTime)
-      return [{
+      const results = [{
         id: Date.now().toString(),
         type: 'error',
         content: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
         execution_time_ms: executionTime
-      }]
+      }] as ExecutionResult[]
+      
+      // Add failed execution to history
+      if (artifactId) {
+        executionHistory.addExecution({
+          artifactId,
+          code,
+          language: language.toLowerCase(),
+          results,
+          executionTime,
+          success: false,
+          tags: this.generateTags(code, language, results)
+        })
+      }
+      
+      return results
     }
+  }
+
+  /**
+   * Execute Python code
+   */
+  async executePython(code: string, timeoutMs = 30000): Promise<ExecutionResult[]> {
+    if (!this.pyWorker) {
+      throw new Error('Python worker not available')
+    }
+
+    const requestId = this.generateRequestId()
+
+    return new Promise<ExecutionResult[]>((resolve, reject) => {
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error(`Python execution timed out after ${timeoutMs}ms`))
+      }, timeoutMs)
+
+      // Store pending request
+      this.pendingRequests.set(requestId, {
+        resolve,
+        reject,
+        timeout
+      })
+
+      // Send code to worker
+      this.pyWorker!.postMessage({
+        type: 'execute',
+        code,
+        timeout: timeoutMs,
+        requestId
+      })
+    })
+  }
+
+  /**
+   * Generate tags for execution based on code analysis
+   */
+  private generateTags(code: string, language: string, results: ExecutionResult[]): string[] {
+    const tags: string[] = []
+    
+    // Language tag
+    tags.push(language.toLowerCase())
+    
+    // Feature detection
+    const lowerCode = code.toLowerCase()
+    
+    // JavaScript/TypeScript specific
+    if (language === 'javascript' || language === 'js' || language === 'typescript' || language === 'ts') {
+      if (lowerCode.includes('async') || lowerCode.includes('await') || lowerCode.includes('promise')) {
+        tags.push('async')
+      }
+      if (lowerCode.includes('canvas') || lowerCode.includes('createcanvas')) {
+        tags.push('graphics')
+      }
+      if (lowerCode.includes('fetch') || lowerCode.includes('axios')) {
+        tags.push('network')
+      }
+      if (lowerCode.includes('class ') || lowerCode.includes('extends')) {
+        tags.push('oop')
+      }
+      if (lowerCode.includes('function') || lowerCode.includes('=>')) {
+        tags.push('functions')
+      }
+      if (lowerCode.includes('for') || lowerCode.includes('while') || lowerCode.includes('map') || lowerCode.includes('filter')) {
+        tags.push('loops')
+      }
+      if (lowerCode.includes('// @import')) {
+        tags.push('libraries')
+      }
+    }
+    
+    // Python specific
+    if (language === 'python' || language === 'py') {
+      if (lowerCode.includes('import numpy') || lowerCode.includes('import pandas')) {
+        tags.push('data-science')
+      }
+      if (lowerCode.includes('matplotlib') || lowerCode.includes('plt.')) {
+        tags.push('visualization')
+      }
+      if (lowerCode.includes('sklearn') || lowerCode.includes('scikit-learn')) {
+        tags.push('machine-learning')
+      }
+      if (lowerCode.includes('def ') || lowerCode.includes('lambda')) {
+        tags.push('functions')
+      }
+      if (lowerCode.includes('class ')) {
+        tags.push('oop')
+      }
+      if (lowerCode.includes('for ') || lowerCode.includes('while ')) {
+        tags.push('loops')
+      }
+      if (lowerCode.includes('requests') || lowerCode.includes('urllib')) {
+        tags.push('network')
+      }
+    }
+    
+    // Result-based tags
+    if (results.some(r => r.type === 'error')) {
+      tags.push('error')
+    }
+    if (results.some(r => r.type === 'canvas')) {
+      tags.push('canvas')
+    }
+    if (results.some(r => r.type === 'matplotlib')) {
+      tags.push('matplotlib')
+    }
+    if (results.length > 5) {
+      tags.push('verbose')
+    }
+    
+    // Performance tags
+    const totalTime = results.reduce((sum, r) => sum + (r.execution_time_ms || 0), 0)
+    if (totalTime > 5000) {
+      tags.push('slow')
+    } else if (totalTime < 100) {
+      tags.push('fast')
+    }
+    
+    return tags
   }
 
   /**

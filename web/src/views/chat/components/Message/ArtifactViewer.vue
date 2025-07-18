@@ -550,7 +550,7 @@ const runCode = async (artifact: Chat.Artifact) => {
   
   try {
     const code = getCodeContent(artifact)
-    const results = await codeRunner.execute(artifact.language, code)
+    const results = await codeRunner.execute(artifact.language, code, uuid)
     
     executionOutputs[uuid] = results
     
