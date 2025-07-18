@@ -23,8 +23,124 @@
       
       <div v-if="isExpanded(artifact.uuid)" class="artifact-content">
         <!-- Code Artifact -->
-        <div v-if="artifact.type === 'code'" class="code-artifact">
-          <pre><code :class="`language-${artifact.language || 'text'}`" v-html="highlightCode(artifact.content, artifact.language)"></code></pre>
+        <div v-if="artifact.type === 'code' || artifact.type === 'executable-code'" class="code-artifact">
+          <!-- Execution controls for executable code -->
+          <div v-if="isExecutable(artifact)" class="execution-controls">
+            <div class="control-bar">
+              <NButton 
+                size="small" 
+                type="primary" 
+                @click="runCode(artifact)" 
+                :disabled="isRunning(artifact.uuid)"
+                :loading="isRunning(artifact.uuid)">
+                <template #icon>
+                  <Icon icon="ri:play-line" />
+                </template>
+                {{ isRunning(artifact.uuid) ? 'Running...' : 'Run Code' }}
+              </NButton>
+              <NButton 
+                size="small" 
+                @click="clearOutput(artifact.uuid)" 
+                :disabled="!hasOutput(artifact.uuid)">
+                <template #icon>
+                  <Icon icon="ri:delete-bin-line" />
+                </template>
+                Clear Output
+              </NButton>
+              <NButton 
+                size="small" 
+                @click="toggleEditor(artifact.uuid)" 
+                type="tertiary">
+                <template #icon>
+                  <Icon :icon="isEditing(artifact.uuid) ? 'ri:eye-line' : 'ri:edit-line'" />
+                </template>
+                {{ isEditing(artifact.uuid) ? 'View' : 'Edit' }}
+              </NButton>
+            </div>
+            
+            <div v-if="getLastExecution(artifact.uuid)" class="execution-info">
+              <span class="execution-time">
+                {{ getLastExecution(artifact.uuid)?.execution_time_ms }}ms
+              </span>
+              <span class="execution-status" :class="getExecutionStatus(artifact.uuid)">
+                {{ getExecutionStatus(artifact.uuid) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Code display/editor -->
+          <div v-if="isEditing(artifact.uuid)" class="code-editor">
+            <textarea 
+              v-model="editableContent[artifact.uuid]"
+              :placeholder="`Enter ${artifact.language || 'JavaScript'} code...`"
+              class="code-textarea"
+              rows="10"
+              @keydown.ctrl.enter="runCode(artifact)"
+              @keydown.meta.enter="runCode(artifact)"
+            ></textarea>
+            <div class="editor-hint">
+              Press <kbd>Ctrl/Cmd + Enter</kbd> to run code
+            </div>
+          </div>
+          <div v-else class="code-display">
+            <pre><code :class="`language-${artifact.language || 'text'}`" v-html="highlightCode(getCodeContent(artifact), artifact.language)"></code></pre>
+          </div>
+
+          <!-- Library management -->
+          <div v-if="isExecutable(artifact)" class="library-management">
+            <div class="library-header">
+              <span class="library-title">
+                <Icon icon="ri:package-line" />
+                Libraries
+              </span>
+              <NButton size="tiny" @click="showLibraries(artifact.uuid)" type="tertiary">
+                <Icon icon="ri:information-line" />
+                Available
+              </NButton>
+            </div>
+            <div v-if="showLibraryList[artifact.uuid]" class="library-list">
+              <div class="library-info">
+                Available libraries: lodash, d3, chart.js, moment, axios, rxjs, p5, three, fabric
+              </div>
+              <div class="library-usage">
+                Use <code>// @import libraryName</code> in your code to auto-load libraries
+              </div>
+            </div>
+          </div>
+
+          <!-- Output area -->
+          <div v-if="hasOutput(artifact.uuid)" class="execution-output">
+            <div class="output-header">
+              <span class="output-title">
+                <Icon icon="ri:terminal-line" />
+                Output
+              </span>
+              <NButton size="tiny" text @click="clearOutput(artifact.uuid)">
+                <Icon icon="ri:close-line" />
+              </NButton>
+            </div>
+            <div class="output-content">
+              <div v-for="result in getExecutionOutput(artifact.uuid)" 
+                   :key="result.id" 
+                   class="output-line"
+                   :class="result.type">
+                <span class="output-type">{{ result.type }}</span>
+                
+                <!-- Canvas output -->
+                <div v-if="result.type === 'canvas'" class="canvas-output">
+                  <canvas 
+                    :ref="(el) => setCanvasRef(result.id, el)"
+                    class="result-canvas"
+                  ></canvas>
+                </div>
+                
+                <!-- Regular text output -->
+                <span v-else class="output-text">{{ result.content }}</span>
+                
+                <span class="output-time">{{ formatTime(result.timestamp) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         <!-- HTML Artifact -->
@@ -91,11 +207,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import { NButton, useMessage } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-dark.css'
+import { getCodeRunner, type ExecutionResult } from '@/services/codeRunner'
 
 interface Props {
   artifacts: Chat.Artifact[]
@@ -109,6 +226,15 @@ const expandedArtifacts = ref<Set<string>>(new Set())
 const fullscreenArtifacts = ref<Set<string>>(new Set())
 const htmlRefreshKey = ref<Record<string, number>>({})
 
+// Code execution state
+const runningArtifacts = ref<Set<string>>(new Set())
+const editingArtifacts = ref<Set<string>>(new Set())
+const editableContent = reactive<Record<string, string>>({})
+const executionOutputs = reactive<Record<string, ExecutionResult[]>>({})
+const showLibraryList = reactive<Record<string, boolean>>({})
+const canvasRefs = reactive<Record<string, HTMLCanvasElement>>({})
+const codeRunner = getCodeRunner()
+
 // Auto-expand SVG artifacts on mount
 const autoExpandSvgArtifacts = () => {
   if (props.artifacts) {
@@ -120,10 +246,7 @@ const autoExpandSvgArtifacts = () => {
   }
 }
 
-// Call auto-expand when component mounts
-onMounted(() => {
-  autoExpandSvgArtifacts()
-})
+// Moved to combined onMounted below
 
 const toggleExpanded = (uuid: string) => {
   if (expandedArtifacts.value.has(uuid)) {
@@ -141,6 +264,8 @@ const getArtifactIcon = (type: string) => {
   switch (type) {
     case 'code':
       return 'ri:code-line'
+    case 'executable-code':
+      return 'ri:play-circle-line'
     case 'html':
       return 'ri:html5-line'
     case 'svg':
@@ -299,6 +424,153 @@ const processSvgContent = (content: string) => {
   
   return processedContent
 }
+
+// Code execution methods
+const isExecutable = (artifact: Chat.Artifact) => {
+  return artifact.type === 'executable-code' || 
+         (artifact.type === 'code' && artifact.language && codeRunner.isLanguageSupported(artifact.language))
+}
+
+const isRunning = (uuid: string) => {
+  return runningArtifacts.value.has(uuid)
+}
+
+const isEditing = (uuid: string) => {
+  return editingArtifacts.value.has(uuid)
+}
+
+const hasOutput = (uuid: string) => {
+  return executionOutputs[uuid] && executionOutputs[uuid].length > 0
+}
+
+const getCodeContent = (artifact: Chat.Artifact) => {
+  return editableContent[artifact.uuid] || artifact.content
+}
+
+const getExecutionOutput = (uuid: string) => {
+  return executionOutputs[uuid] || []
+}
+
+const getLastExecution = (uuid: string) => {
+  const output = executionOutputs[uuid]
+  if (!output || output.length === 0) return null
+  return output[output.length - 1]
+}
+
+const getExecutionStatus = (uuid: string) => {
+  const output = executionOutputs[uuid]
+  if (!output || output.length === 0) return 'ready'
+  
+  const hasError = output.some(result => result.type === 'error')
+  return hasError ? 'error' : 'success'
+}
+
+const formatTime = (timestamp: string) => {
+  return new Date(timestamp).toLocaleTimeString()
+}
+
+const toggleEditor = (uuid: string) => {
+  if (editingArtifacts.value.has(uuid)) {
+    editingArtifacts.value.delete(uuid)
+  } else {
+    editingArtifacts.value.add(uuid)
+    // Initialize editable content if not exists
+    if (!editableContent[uuid]) {
+      const artifact = props.artifacts.find(a => a.uuid === uuid)
+      if (artifact) {
+        editableContent[uuid] = artifact.content
+      }
+    }
+  }
+}
+
+const clearOutput = (uuid: string) => {
+  executionOutputs[uuid] = []
+}
+
+const showLibraries = (uuid: string) => {
+  showLibraryList[uuid] = !showLibraryList[uuid]
+}
+
+const setCanvasRef = (resultId: string, el: HTMLCanvasElement | null) => {
+  if (el) {
+    canvasRefs[resultId] = el
+    // Find the result and render canvas
+    const result = Object.values(executionOutputs).flat().find(r => r.id === resultId)
+    if (result && result.type === 'canvas') {
+      codeRunner.renderCanvasToElement(result.content, el)
+    }
+  }
+}
+
+const runCode = async (artifact: Chat.Artifact) => {
+  if (!artifact.language) {
+    message.error('No language specified for code execution')
+    return
+  }
+
+  if (!codeRunner.isLanguageSupported(artifact.language)) {
+    message.error(`Language ${artifact.language} is not supported for execution`)
+    return
+  }
+
+  const uuid = artifact.uuid
+  runningArtifacts.value.add(uuid)
+  
+  try {
+    const code = getCodeContent(artifact)
+    const results = await codeRunner.execute(artifact.language, code)
+    
+    executionOutputs[uuid] = results
+    
+    // Handle canvas output rendering
+    setTimeout(() => {
+      results.forEach(result => {
+        if (result.type === 'canvas' && canvasRefs[result.id]) {
+          codeRunner.renderCanvasToElement(result.content, canvasRefs[result.id])
+        }
+      })
+    }, 100) // Allow DOM to update first
+    
+    // Show success message
+    const hasError = results.some(result => result.type === 'error')
+    const hasCanvas = results.some(result => result.type === 'canvas')
+    
+    if (hasError) {
+      message.error('Code execution completed with errors')
+    } else if (hasCanvas) {
+      message.success('Code executed successfully with graphics output')
+    } else {
+      message.success('Code executed successfully')
+    }
+  } catch (error) {
+    executionOutputs[uuid] = [{
+      id: Date.now().toString(),
+      type: 'error',
+      content: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    }]
+    message.error('Code execution failed')
+  } finally {
+    runningArtifacts.value.delete(uuid)
+  }
+}
+
+// Initialize editable content for artifacts
+onMounted(() => {
+  autoExpandSvgArtifacts()
+  
+  // Initialize editable content for all artifacts
+  if (props.artifacts) {
+    props.artifacts.forEach(artifact => {
+      if (isExecutable(artifact)) {
+        editableContent[artifact.uuid] = artifact.content
+        // Auto-expand executable artifacts
+        expandedArtifacts.value.add(artifact.uuid)
+      }
+    })
+  }
+})
 </script>
 
 <style scoped>
@@ -826,5 +1098,362 @@ const processSvgContent = (content: string) => {
   --text-color: #cccccc;
   --text-color-secondary: #8c8c8c;
   --primary-color: #58a6ff;
+}
+
+/* Code execution styles */
+.execution-controls {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--artifact-header-bg);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.control-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.execution-info {
+  margin-top: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-color-secondary);
+}
+
+.execution-time {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.execution-status {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.execution-status.success {
+  background: #22c55e;
+  color: white;
+}
+
+.execution-status.error {
+  background: #ef4444;
+  color: white;
+}
+
+.execution-status.ready {
+  background: var(--tag-bg);
+  color: var(--text-color-secondary);
+}
+
+.code-editor {
+  margin-bottom: 12px;
+}
+
+.code-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--text-color);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.code-textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+.editor-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-color-secondary);
+  text-align: right;
+}
+
+.editor-hint kbd {
+  background: var(--tag-bg);
+  color: var(--text-color);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: inherit;
+}
+
+.code-display {
+  /* No additional styles needed, uses existing code-artifact styles */
+}
+
+.execution-output {
+  margin-top: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--artifact-content-bg);
+}
+
+.output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--artifact-header-bg);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.output-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.output-content {
+  max-height: 300px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.output-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.output-line:last-child {
+  border-bottom: none;
+}
+
+.output-line.log {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.output-line.error {
+  background: rgba(239, 68, 68, 0.05);
+  color: #ef4444;
+}
+
+.output-line.warn {
+  background: rgba(245, 158, 11, 0.05);
+  color: #f59e0b;
+}
+
+.output-line.info {
+  background: rgba(34, 197, 94, 0.05);
+  color: #22c55e;
+}
+
+.output-line.return {
+  background: rgba(168, 85, 247, 0.05);
+  color: #a855f7;
+}
+
+.output-line.debug {
+  background: rgba(107, 114, 128, 0.05);
+  color: #6b7280;
+}
+
+.output-type {
+  flex-shrink: 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 9px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: var(--tag-bg);
+  color: var(--text-color-secondary);
+  min-width: 40px;
+  text-align: center;
+}
+
+.output-text {
+  flex: 1;
+  word-break: break-word;
+  white-space: pre-wrap;
+  color: var(--text-color);
+}
+
+.output-time {
+  flex-shrink: 0;
+  font-size: 9px;
+  color: var(--text-color-secondary);
+  opacity: 0.7;
+}
+
+/* Library management styles */
+.library-management {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--artifact-header-bg);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.library-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.library-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.library-list {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.library-info {
+  font-size: 11px;
+  color: var(--text-color-secondary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.library-usage {
+  font-size: 10px;
+  color: var(--text-color-secondary);
+  font-style: italic;
+}
+
+.library-usage code {
+  background: var(--tag-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* Canvas output styles */
+.canvas-output {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  margin: 4px 0;
+}
+
+.result-canvas {
+  max-width: 100%;
+  max-height: 400px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .canvas-output {
+  background: #2d2d2d;
+  border-color: #3c3c3c;
+}
+
+[data-theme='dark'] .result-canvas {
+  background: #ffffff;
+  border-color: #3c3c3c;
+}
+
+/* Enhanced output line styles for canvas */
+.output-line.canvas {
+  background: rgba(99, 102, 241, 0.05);
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.output-line.canvas .output-type {
+  align-self: flex-start;
+  background: #6366f1;
+  color: white;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 639px) {
+  .execution-controls {
+    padding: 8px;
+  }
+  
+  .control-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .control-bar > * {
+    width: 100%;
+  }
+  
+  .execution-info {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  
+  .code-textarea {
+    min-height: 150px;
+    font-size: 12px;
+  }
+  
+  .output-line {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+  }
+  
+  .output-type {
+    align-self: flex-start;
+  }
+  
+  .output-time {
+    align-self: flex-end;
+  }
+  
+  .library-management {
+    padding: 6px 8px;
+  }
+  
+  .library-header {
+    font-size: 11px;
+  }
+  
+  .library-info, .library-usage {
+    font-size: 10px;
+  }
+  
+  .result-canvas {
+    max-height: 250px;
+  }
+  
+  .canvas-output {
+    padding: 8px;
+  }
 }
 </style>

@@ -117,12 +117,10 @@ func extractArtifacts(content string) []Artifact {
 
 #### Artifact Type Components
 
-- `CodeArtifact.vue` - Interactive code editor with syntax highlighting
 - `HtmlArtifact.vue` - Sandboxed HTML preview
 - `SvgArtifact.vue` - SVG viewer with zoom/pan
 - `MermaidArtifact.vue` - Interactive diagrams
 - `JsonArtifact.vue` - Formatted JSON viewer
-- `MarkdownArtifact.vue` - Rendered markdown content
 
 #### Integration with Message Component
 
@@ -144,14 +142,7 @@ func extractArtifacts(content string) []Artifact {
 
 ### 4. Artifact Detection Patterns
 
-#### Code Artifacts
 
-```
-```javascript <!-- artifact: React Component -->
-function MyComponent() {
-  return <div>Hello World</div>;
-}
-```
 
 #### HTML Artifacts
 
@@ -171,11 +162,7 @@ function MyComponent() {
 
 ### 5. Artifact Types to Support
 
-1. **Code Artifacts**
-   - Interactive code editors
-   - Syntax highlighting
-   - Copy/download functionality
-   - Language detection
+tection
 
 2. **HTML Artifacts**
    - Live HTML preview
@@ -197,10 +184,6 @@ function MyComponent() {
    - Collapsible tree structure
    - Search functionality
 
-6. **Markdown Artifacts**
-   - Rendered markdown content
-   - Table of contents
-   - Export options
 
 ### Additional Suggestions for Further Improvements:
 
@@ -209,23 +192,13 @@ function MyComponent() {
   // Interactive code execution
   - **Code Runners**: Execute JavaScript, Python snippets safely
   - **Live Editing**: Edit artifacts inline with syntax highlighting
-  - **Version History**: Track changes to artifacts over time
-  - **Collaborative Editing**: Share and edit artifacts with others
 
   5. Enhanced Visualization
-
-  // Rich content support
-
-  - **Markdown Artifacts**: Rich text rendering with math support
-  - **Chart.js Integration**: Data visualization charts
-  - **D3.js Support**: Complex interactive visualizations
-  - **LaTeX Math**: Mathematical expressions and formulas
 
   6. Workflow Integration
 
   // Developer tools integration
 
-  - **GitHub Gist**: Export artifacts directly to GitHub
   - **CodePen Integration**: Open HTML artifacts in CodePen
   - **Download Options**: Save artifacts as files
   - **Template Library**: Reusable artifact templates
@@ -234,9 +207,7 @@ function MyComponent() {
 
   // Enhanced user experience
   - **Artifact Gallery**: Browse all artifacts in a session
-  - **Search & Filter**: Find artifacts by type, title, or content
-  - **Favorites**: Star important artifacts for quick access
-  - **Tags**: Organize artifacts with custom tags
+
 
   8. Security & Performance
 
@@ -267,13 +238,13 @@ function MyComponent() {
 
 #### Phase 4: Advanced Features
 
-- [x ] Mermaid diagram support
+- [x] Mermaid diagram support
 - [x] JSON/data viewer
 
 #### Phase 5: Polish & Features
 
 - [] Artifact editing capabilities
-- [ ] Sharing and export options
+- [] Sharing and export options
 
 ### 7. Technical Considerations
 

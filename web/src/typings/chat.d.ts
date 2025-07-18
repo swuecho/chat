@@ -2,10 +2,20 @@ declare namespace Chat {
 
 	interface Artifact {
 		uuid: string
-		type: string // 'code', 'html', 'svg', 'mermaid', 'json', 'markdown'
+		type: string // 'code', 'html', 'svg', 'mermaid', 'json', 'markdown', 'executable-code'
 		title: string
 		content: string
 		language?: string // for code artifacts
+		isExecutable?: boolean // for executable code artifacts
+		executionResults?: ExecutionResult[]
+	}
+
+	interface ExecutionResult {
+		id: string
+		type: 'log' | 'error' | 'return' | 'stdout' | 'warn' | 'info' | 'debug'
+		content: string
+		timestamp: string
+		execution_time_ms?: number
 	}
 
 	interface Message {
