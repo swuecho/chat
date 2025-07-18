@@ -1,5 +1,5 @@
 <template>
-  <div v-if="artifacts && artifacts.length > 0" class="artifact-container">
+  <div v-if="artifacts && artifacts.length > 0" class="artifact-container" data-test-role="artifact-viewer">
     <div v-for="artifact in artifacts" :key="artifact.uuid" class="artifact-item">
       <div class="artifact-header">
         <div class="artifact-title">
@@ -28,7 +28,7 @@
         </div>
         
         <!-- HTML Artifact -->
-        <div v-else-if="artifact.type === 'html'" class="html-artifact" :class="{ fullscreen: isFullscreen(artifact.uuid) }">
+        <div v-else-if="artifact.type === 'html'" class="html-artifact" :class="{ fullscreen: isFullscreen(artifact.uuid) }" :data-test-fullscreen="isFullscreen(artifact.uuid)">
           <div class="html-preview">
             <iframe 
               :srcdoc="processHtmlContent(artifact.content)" 
@@ -309,9 +309,8 @@ const processSvgContent = (content: string) => {
   min-width: 0;
   /* Ensure artifact viewer doesn't interfere with message layout */
   contain: layout style;
-  /* Prevent z-index issues that could hide buttons */
-  position: relative;
-  z-index: 1;
+  /* Use isolation to prevent interference with parent elements and tests */
+  isolation: isolate;
   /* Prevent horizontal overflow */
   overflow-x: hidden;
 }
