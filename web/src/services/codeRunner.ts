@@ -3,6 +3,7 @@
  * Handles execution of JavaScript code in a safe Web Worker environment
  */
 
+
 import { executionHistory } from './executionHistory'
 
 export interface ExecutionResult {
@@ -32,7 +33,9 @@ export interface ExecutionResponse {
 
 export class CodeRunner {
   private jsWorker: Worker | null = null
+
   private pyWorker: Worker | null = null
+
   private requestCounter = 0
   private pendingRequests = new Map<string, {
     resolve: (value: ExecutionResult[]) => void
@@ -41,6 +44,7 @@ export class CodeRunner {
   }>()
 
   constructor() {
+
     this.initializeWorkers()
   }
 
@@ -57,6 +61,7 @@ export class CodeRunner {
       this.pyWorker.onerror = this.handleWorkerError.bind(this)
     } catch (error) {
       console.error('Failed to initialize workers:', error)
+
     }
   }
 
@@ -92,7 +97,9 @@ export class CodeRunner {
   }
 
   private handleWorkerError(error: ErrorEvent) {
+
     console.error('Worker error:', error)
+
     
     // Reject all pending requests
     for (const [requestId, request] of this.pendingRequests) {
@@ -103,9 +110,11 @@ export class CodeRunner {
     }
     this.pendingRequests.clear()
 
+
     // Reinitialize workers
     this.dispose()
     this.initializeWorkers()
+
   }
 
   private generateRequestId(): string {
@@ -147,6 +156,7 @@ export class CodeRunner {
   }
 
   /**
+
    * Execute Python code
    */
   async executePython(code: string, timeoutMs = 30000): Promise<ExecutionResult[]> {
@@ -184,6 +194,7 @@ export class CodeRunner {
    * Execute code based on language
    */
   async execute(language: string, code: string, artifactId?: string): Promise<ExecutionResult[]> {
+
     const startTime = performance.now()
     
     try {
@@ -210,6 +221,7 @@ export class CodeRunner {
         result.execution_time_ms = executionTime
       })
       
+
       // Add to execution history
       const success = !results.some(result => result.type === 'error')
       if (artifactId) {
@@ -228,11 +240,13 @@ export class CodeRunner {
     } catch (error) {
       const executionTime = Math.round(performance.now() - startTime)
       const results = [{
+
         id: Date.now().toString(),
         type: 'error',
         content: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
         execution_time_ms: executionTime
+
       }] as ExecutionResult[]
       
       // Add failed execution to history
@@ -371,13 +385,16 @@ export class CodeRunner {
     }
     
     return tags
+
   }
 
   /**
    * Check if a language is supported for execution
    */
   isLanguageSupported(language: string): boolean {
+
     const supportedLanguages = ['javascript', 'js', 'typescript', 'ts', 'python', 'py']
+
     return supportedLanguages.includes(language.toLowerCase())
   }
 
@@ -385,7 +402,9 @@ export class CodeRunner {
    * Check if a code artifact is executable
    */
   isExecutable(artifact: { type: string; language?: string }): boolean {
+
     if (artifact.type !== 'code' && artifact.type !== 'executable-code') return false
+
     if (!artifact.language) return false
     return this.isLanguageSupported(artifact.language)
   }
@@ -538,6 +557,7 @@ export class CodeRunner {
   }
 
   /**
+
    * Check if canvas output is supported
    */
   isCanvasSupported(): boolean {
@@ -620,6 +640,7 @@ export class CodeRunner {
   }
 
   /**
+
    * Render matplotlib plot to image element
    */
   renderMatplotlibToElement(plotData: string, imgElement: HTMLImageElement): boolean {
@@ -657,6 +678,7 @@ export class CodeRunner {
         ]
       },
       python: {
+
         supported: true,
         features: [
           'print output',
@@ -673,6 +695,7 @@ export class CodeRunner {
           'numpy', 'pandas', 'matplotlib', 'scipy', 'scikit-learn', 'requests', 
           'beautifulsoup4', 'pillow', 'sympy', 'networkx', 'seaborn', 'plotly', 'bokeh', 'altair'
         ]
+
       }
     }
   }
@@ -690,15 +713,19 @@ export class CodeRunner {
     }
     this.pendingRequests.clear()
 
+
     // Terminate workers
+
     if (this.jsWorker) {
       this.jsWorker.terminate()
       this.jsWorker = null
     }
+
     if (this.pyWorker) {
       this.pyWorker.terminate()
       this.pyWorker = null
     }
+
   }
 }
 

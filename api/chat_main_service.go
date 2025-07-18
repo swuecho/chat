@@ -82,9 +82,11 @@ When creating code, HTML, SVG, diagrams, or data that should be displayed as an 
 
 For HTML, use Preact hooks, HTM(jsx) and modern HTML5 APIs to create standalone applications that render without a build step.
 
+
 For executable code, use JavaScript/TypeScript or Python that can run in a browser environment. The code will be executed in a secure sandbox with console output captured. Supported features:
 
 JavaScript/TypeScript:
+
 - console.log, console.error, console.warn for output
 - All standard JavaScript APIs (Math, Date, Array, Object, etc.)
 - Return values are displayed
@@ -94,6 +96,7 @@ JavaScript/TypeScript:
 - Enhanced crypto, encoding, and URL APIs
 - No DOM or network access
 
+
 Python:
 - print() for output with captured stdout/stderr
 - Standard Python libraries and scientific computing stack
@@ -101,6 +104,7 @@ Python:
 - Package loading via import (supports: numpy, pandas, matplotlib, scipy, scikit-learn, requests, etc.)
 - Memory and execution time monitoring
 - No file system or network access
+
 
 This will enable the artifact viewer to display your content interactively in the chat interface with specialized renderers for each content type.`
 
@@ -316,6 +320,7 @@ func isExecutableLanguage(language string) bool {
 func containsExecutablePatterns(content string) bool {
 	// Patterns that suggest the code is meant to be executed
 	executablePatterns := []string{
+
 		// JavaScript patterns
 		"console.log",
 		"console.error",
@@ -329,6 +334,7 @@ func containsExecutablePatterns(content string) bool {
 		"for (",
 		"while (",
 		"return ",
+
 		// Python patterns
 		"print(",
 		"import ",
@@ -338,6 +344,7 @@ func containsExecutablePatterns(content string) bool {
 		"class ",
 		"for ",
 		"while ",
+
 	}
 	
 	contentLower := strings.ToLower(content)

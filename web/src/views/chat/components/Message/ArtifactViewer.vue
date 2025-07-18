@@ -1,5 +1,5 @@
 <template>
-  <div v-if="artifacts && artifacts.length > 0" class="artifact-container">
+  <div v-if="artifacts && artifacts.length > 0" class="artifact-container" data-test-role="artifact-viewer">
     <div v-for="artifact in artifacts" :key="artifact.uuid" class="artifact-item">
       <div class="artifact-header">
         <div class="artifact-title">
@@ -99,6 +99,7 @@
               </NButton>
             </div>
             <div v-if="showLibraryList[artifact.uuid]" class="library-list">
+
               <div v-if="artifact.language === 'python' || artifact.language === 'py'" class="library-info">
                 <div class="library-info">
                   Available Python packages: numpy, pandas, matplotlib, scipy, scikit-learn, requests, beautifulsoup4, pillow, sympy, networkx, seaborn, plotly, bokeh, altair
@@ -114,6 +115,7 @@
                 <div class="library-usage">
                   Use <code>// @import libraryName</code> in your code to auto-load libraries
                 </div>
+
               </div>
             </div>
           </div>
@@ -144,6 +146,7 @@
                   ></canvas>
                 </div>
                 
+
                 <!-- Matplotlib plot output -->
                 <div v-else-if="result.type === 'matplotlib'" class="matplotlib-output">
                   <img 
@@ -153,6 +156,7 @@
                   />
                 </div>
                 
+
                 <!-- Regular text output -->
                 <span v-else class="output-text">{{ result.content }}</span>
                 
@@ -163,7 +167,7 @@
         </div>
         
         <!-- HTML Artifact -->
-        <div v-else-if="artifact.type === 'html'" class="html-artifact" :class="{ fullscreen: isFullscreen(artifact.uuid) }">
+        <div v-else-if="artifact.type === 'html'" class="html-artifact" :class="{ fullscreen: isFullscreen(artifact.uuid) }" :data-test-fullscreen="isFullscreen(artifact.uuid)">
           <div class="html-preview">
             <iframe 
               :srcdoc="processHtmlContent(artifact.content)" 
@@ -252,7 +256,9 @@ const editableContent = reactive<Record<string, string>>({})
 const executionOutputs = reactive<Record<string, ExecutionResult[]>>({})
 const showLibraryList = reactive<Record<string, boolean>>({})
 const canvasRefs = reactive<Record<string, HTMLCanvasElement>>({})
+
 const matplotlibRefs = reactive<Record<string, HTMLImageElement>>({})
+
 const codeRunner = getCodeRunner()
 
 // Auto-expand SVG artifacts on mount
@@ -523,6 +529,7 @@ const setCanvasRef = (resultId: string, el: HTMLCanvasElement | null) => {
   }
 }
 
+
 const setMatplotlibRef = (resultId: string, el: HTMLImageElement | null) => {
   if (el) {
     matplotlibRefs[resultId] = el
@@ -533,6 +540,7 @@ const setMatplotlibRef = (resultId: string, el: HTMLImageElement | null) => {
     }
   }
 }
+
 
 const runCode = async (artifact: Chat.Artifact) => {
   if (!artifact.language) {
@@ -550,17 +558,21 @@ const runCode = async (artifact: Chat.Artifact) => {
   
   try {
     const code = getCodeContent(artifact)
+
     const results = await codeRunner.execute(artifact.language, code, uuid)
     
     executionOutputs[uuid] = results
     
     // Handle canvas and matplotlib output rendering
+
     setTimeout(() => {
       results.forEach(result => {
         if (result.type === 'canvas' && canvasRefs[result.id]) {
           codeRunner.renderCanvasToElement(result.content, canvasRefs[result.id])
+
         } else if (result.type === 'matplotlib' && matplotlibRefs[result.id]) {
           codeRunner.renderMatplotlibToElement(result.content, matplotlibRefs[result.id])
+
         }
       })
     }, 100) // Allow DOM to update first
@@ -568,11 +580,13 @@ const runCode = async (artifact: Chat.Artifact) => {
     // Show success message
     const hasError = results.some(result => result.type === 'error')
     const hasCanvas = results.some(result => result.type === 'canvas')
+
     const hasMatplotlib = results.some(result => result.type === 'matplotlib')
     
     if (hasError) {
       message.error('Code execution completed with errors')
     } else if (hasCanvas || hasMatplotlib) {
+
       message.success('Code executed successfully with graphics output')
     } else {
       message.success('Code executed successfully')
@@ -615,9 +629,8 @@ onMounted(() => {
   min-width: 0;
   /* Ensure artifact viewer doesn't interfere with message layout */
   contain: layout style;
-  /* Prevent z-index issues that could hide buttons */
-  position: relative;
-  z-index: 1;
+  /* Use isolation to prevent interference with parent elements and tests */
+  isolation: isolate;
   /* Prevent horizontal overflow */
   overflow-x: hidden;
 }
@@ -1398,6 +1411,7 @@ onMounted(() => {
   margin: 4px 0;
 }
 
+
 /* Matplotlib plot output styles */
 .matplotlib-output {
   flex: 1;
@@ -1417,6 +1431,7 @@ onMounted(() => {
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
 
 .result-canvas {
   max-width: 100%;
