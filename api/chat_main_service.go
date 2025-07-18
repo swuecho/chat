@@ -78,7 +78,7 @@ When creating code, HTML, SVG, diagrams, or data that should be displayed as an 
 - For SVG: ` + "```" + `svg <!-- artifact: Title --> [content] ` + "```" + `
 - For Mermaid diagrams: ` + "```" + `mermaid <!-- artifact: Title --> [content] ` + "```" + `
 - For JSON data: ` + "```" + `json <!-- artifact: Title --> [content] ` + "```" + `
-- For executable code: ` + "```" + `javascript <!-- executable: Title --> [content] ` + "```" + `
+- For executable code: ` + "```" + `javascript <!-- executable: Title --> [content] ` + "```" + ` or ` + "```" + `python <!-- executable: Title --> [content] ` + "```" + `
 
 For HTML, use Preact hooks, HTM(jsx) and modern HTML5 APIs to create standalone applications that render without a build step.
 

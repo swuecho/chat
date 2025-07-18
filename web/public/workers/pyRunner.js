@@ -296,32 +296,42 @@ _output_capture.output = []
       }
 
       // Execute the code and capture result
-      const result = await pyodide.runPython(`
-import sys
-import traceback
-
-try:
-    # Execute user code
-    exec(${JSON.stringify(code)})
-    
-    # Get captured output
-    captured_output = _output_capture.getvalue()
-    
-    # Clear output buffer
-    _output_capture.output = []
-    
-    # Return captured output
-    captured_output
-except Exception as e:
-    error_msg = f"{type(e).__name__}: {str(e)}"
-    traceback.print_exc()
-    raise Exception(error_msg)
+      let result = null
+      try {
+        result = await pyodide.runPython(code)
+        
+        // Get captured output
+        const capturedOutput = await pyodide.runPython(`
+_output_capture.getvalue()
 `)
-
-      // Add any captured output
-      if (result && result.trim()) {
-        this.addOutput('stdout', result)
+        
+        if (capturedOutput && capturedOutput.trim()) {
+          this.addOutput('stdout', capturedOutput)
+        }
+        
+        // Clear output buffer
+        await pyodide.runPython(`
+_output_capture.output = []
+`)
+        
+        // Add result if it exists
+        if (result !== undefined && result !== null) {
+          this.addOutput('return', String(result))
+        }
+      } catch (error) {
+        // Get any remaining output before error
+        try {
+          const capturedOutput = await pyodide.runPython(`_output_capture.getvalue()`)
+          if (capturedOutput && capturedOutput.trim()) {
+            this.addOutput('stdout', capturedOutput)
+          }
+        } catch (e) {
+          // Ignore output capture errors
+        }
+        
+        throw error
       }
+
 
       // Add execution statistics
       const executionTime = Math.round(performance.now() - this.executionStats.startTime)

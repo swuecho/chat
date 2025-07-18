@@ -38,7 +38,7 @@ export class CodeRunner {
 
   private requestCounter = 0
   private pendingRequests = new Map<string, {
-    resolve: (value: ExecutionResult[]) => void
+    resolve: (value: any) => void
     reject: (error: Error) => void
     timeout?: NodeJS.Timeout
   }>()
@@ -266,39 +266,6 @@ export class CodeRunner {
     }
   }
 
-  /**
-   * Execute Python code
-   */
-  async executePython(code: string, timeoutMs = 30000): Promise<ExecutionResult[]> {
-    if (!this.pyWorker) {
-      throw new Error('Python worker not available')
-    }
-
-    const requestId = this.generateRequestId()
-
-    return new Promise<ExecutionResult[]>((resolve, reject) => {
-      // Set up timeout
-      const timeout = setTimeout(() => {
-        this.pendingRequests.delete(requestId)
-        reject(new Error(`Python execution timed out after ${timeoutMs}ms`))
-      }, timeoutMs)
-
-      // Store pending request
-      this.pendingRequests.set(requestId, {
-        resolve,
-        reject,
-        timeout
-      })
-
-      // Send code to worker
-      this.pyWorker!.postMessage({
-        type: 'execute',
-        code,
-        timeout: timeoutMs,
-        requestId
-      })
-    })
-  }
 
   /**
    * Generate tags for execution based on code analysis

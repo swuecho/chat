@@ -156,7 +156,7 @@ class SafeJSRunner {
             strokeStyle: '#000000',
             lineWidth: 1,
             
-            fillRect: (x, y, w, h) => {
+            fillRect: function(x, y, w, h) {
               canvas.data.push({ 
                 type: 'fillRect', 
                 x, y, width: w, height: h, 
@@ -164,7 +164,7 @@ class SafeJSRunner {
               })
             },
             
-            strokeRect: (x, y, w, h) => {
+            strokeRect: function(x, y, w, h) {
               canvas.data.push({ 
                 type: 'strokeRect', 
                 x, y, width: w, height: h, 
@@ -183,14 +183,14 @@ class SafeJSRunner {
               canvas.data.push({ type: 'arc', x, y, radius, startAngle, endAngle })
             },
             
-            fill: () => canvas.data.push({ type: 'fill', style: this.fillStyle }),
-            stroke: () => canvas.data.push({ type: 'stroke', style: this.strokeStyle, lineWidth: this.lineWidth }),
+            fill: function() { canvas.data.push({ type: 'fill', style: this.fillStyle }) },
+            stroke: function() { canvas.data.push({ type: 'stroke', style: this.strokeStyle, lineWidth: this.lineWidth }) },
             
             clearRect: (x, y, w, h) => canvas.data.push({ type: 'clearRect', x, y, width: w, height: h }),
             
             // Text methods
-            fillText: (text, x, y) => canvas.data.push({ type: 'fillText', text, x, y, style: this.fillStyle }),
-            strokeText: (text, x, y) => canvas.data.push({ type: 'strokeText', text, x, y, style: this.strokeStyle })
+            fillText: function(text, x, y) { canvas.data.push({ type: 'fillText', text, x, y, style: this.fillStyle }) },
+            strokeText: function(text, x, y) { canvas.data.push({ type: 'strokeText', text, x, y, style: this.strokeStyle }) }
           }
         }
         return null
