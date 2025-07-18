@@ -82,7 +82,9 @@ When creating code, HTML, SVG, diagrams, or data that should be displayed as an 
 
 For HTML, use Preact hooks, HTM(jsx) and modern HTML5 APIs to create standalone applications that render without a build step.
 
-For executable code, use JavaScript/TypeScript that can run in a browser environment. The code will be executed in a secure sandbox with console output captured. Supported features:
+For executable code, use JavaScript/TypeScript or Python that can run in a browser environment. The code will be executed in a secure sandbox with console output captured. Supported features:
+
+JavaScript/TypeScript:
 - console.log, console.error, console.warn for output
 - All standard JavaScript APIs (Math, Date, Array, Object, etc.)
 - Return values are displayed
@@ -91,6 +93,14 @@ For executable code, use JavaScript/TypeScript that can run in a browser environ
 - Library loading via // @import libraryName (supports: lodash, d3, chart.js, moment, axios, rxjs, p5, three, fabric)
 - Enhanced crypto, encoding, and URL APIs
 - No DOM or network access
+
+Python:
+- print() for output with captured stdout/stderr
+- Standard Python libraries and scientific computing stack
+- Matplotlib plots with PNG output
+- Package loading via import (supports: numpy, pandas, matplotlib, scipy, scikit-learn, requests, etc.)
+- Memory and execution time monitoring
+- No file system or network access
 
 This will enable the artifact viewer to display your content interactively in the chat interface with specialized renderers for each content type.`
 
@@ -290,7 +300,7 @@ func extractArtifacts(content string) []Artifact {
 func isExecutableLanguage(language string) bool {
 	executableLanguages := []string{
 		"javascript", "js", "typescript", "ts",
-		// Future: "python", "py"
+		"python", "py",
 	}
 	
 	language = strings.ToLower(strings.TrimSpace(language))
@@ -306,6 +316,7 @@ func isExecutableLanguage(language string) bool {
 func containsExecutablePatterns(content string) bool {
 	// Patterns that suggest the code is meant to be executed
 	executablePatterns := []string{
+		// JavaScript patterns
 		"console.log",
 		"console.error",
 		"console.warn",
@@ -318,6 +329,15 @@ func containsExecutablePatterns(content string) bool {
 		"for (",
 		"while (",
 		"return ",
+		// Python patterns
+		"print(",
+		"import ",
+		"from ",
+		"def ",
+		"if __name__",
+		"class ",
+		"for ",
+		"while ",
 	}
 	
 	contentLower := strings.ToLower(content)

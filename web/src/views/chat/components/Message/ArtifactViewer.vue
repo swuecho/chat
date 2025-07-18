@@ -99,11 +99,21 @@
               </NButton>
             </div>
             <div v-if="showLibraryList[artifact.uuid]" class="library-list">
-              <div class="library-info">
-                Available libraries: lodash, d3, chart.js, moment, axios, rxjs, p5, three, fabric
+              <div v-if="artifact.language === 'python' || artifact.language === 'py'" class="library-info">
+                <div class="library-info">
+                  Available Python packages: numpy, pandas, matplotlib, scipy, scikit-learn, requests, beautifulsoup4, pillow, sympy, networkx, seaborn, plotly, bokeh, altair
+                </div>
+                <div class="library-usage">
+                  Use <code>import packageName</code> or <code>from packageName import ...</code> in your code
+                </div>
               </div>
-              <div class="library-usage">
-                Use <code>// @import libraryName</code> in your code to auto-load libraries
+              <div v-else class="library-info">
+                <div class="library-info">
+                  Available libraries: lodash, d3, chart.js, moment, axios, rxjs, p5, three, fabric
+                </div>
+                <div class="library-usage">
+                  Use <code>// @import libraryName</code> in your code to auto-load libraries
+                </div>
               </div>
             </div>
           </div>
@@ -132,6 +142,15 @@
                     :ref="(el) => setCanvasRef(result.id, el)"
                     class="result-canvas"
                   ></canvas>
+                </div>
+                
+                <!-- Matplotlib plot output -->
+                <div v-else-if="result.type === 'matplotlib'" class="matplotlib-output">
+                  <img 
+                    :ref="(el) => setMatplotlibRef(result.id, el)"
+                    class="result-plot"
+                    alt="Matplotlib plot"
+                  />
                 </div>
                 
                 <!-- Regular text output -->
@@ -233,6 +252,7 @@ const editableContent = reactive<Record<string, string>>({})
 const executionOutputs = reactive<Record<string, ExecutionResult[]>>({})
 const showLibraryList = reactive<Record<string, boolean>>({})
 const canvasRefs = reactive<Record<string, HTMLCanvasElement>>({})
+const matplotlibRefs = reactive<Record<string, HTMLImageElement>>({})
 const codeRunner = getCodeRunner()
 
 // Auto-expand SVG artifacts on mount
@@ -503,6 +523,17 @@ const setCanvasRef = (resultId: string, el: HTMLCanvasElement | null) => {
   }
 }
 
+const setMatplotlibRef = (resultId: string, el: HTMLImageElement | null) => {
+  if (el) {
+    matplotlibRefs[resultId] = el
+    // Find the result and render matplotlib plot
+    const result = Object.values(executionOutputs).flat().find(r => r.id === resultId)
+    if (result && result.type === 'matplotlib') {
+      codeRunner.renderMatplotlibToElement(result.content, el)
+    }
+  }
+}
+
 const runCode = async (artifact: Chat.Artifact) => {
   if (!artifact.language) {
     message.error('No language specified for code execution')
@@ -523,11 +554,13 @@ const runCode = async (artifact: Chat.Artifact) => {
     
     executionOutputs[uuid] = results
     
-    // Handle canvas output rendering
+    // Handle canvas and matplotlib output rendering
     setTimeout(() => {
       results.forEach(result => {
         if (result.type === 'canvas' && canvasRefs[result.id]) {
           codeRunner.renderCanvasToElement(result.content, canvasRefs[result.id])
+        } else if (result.type === 'matplotlib' && matplotlibRefs[result.id]) {
+          codeRunner.renderMatplotlibToElement(result.content, matplotlibRefs[result.id])
         }
       })
     }, 100) // Allow DOM to update first
@@ -535,10 +568,11 @@ const runCode = async (artifact: Chat.Artifact) => {
     // Show success message
     const hasError = results.some(result => result.type === 'error')
     const hasCanvas = results.some(result => result.type === 'canvas')
+    const hasMatplotlib = results.some(result => result.type === 'matplotlib')
     
     if (hasError) {
       message.error('Code execution completed with errors')
-    } else if (hasCanvas) {
+    } else if (hasCanvas || hasMatplotlib) {
       message.success('Code executed successfully with graphics output')
     } else {
       message.success('Code executed successfully')
@@ -1362,6 +1396,26 @@ onMounted(() => {
   border-radius: 6px;
   border: 1px solid #e9ecef;
   margin: 4px 0;
+}
+
+/* Matplotlib plot output styles */
+.matplotlib-output {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  margin: 4px 0;
+}
+
+.result-plot {
+  max-width: 100%;
+  max-height: 500px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .result-canvas {

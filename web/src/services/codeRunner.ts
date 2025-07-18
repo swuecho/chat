@@ -5,7 +5,7 @@
 
 export interface ExecutionResult {
   id: string
-  type: 'log' | 'error' | 'return' | 'stdout' | 'warn' | 'info' | 'debug' | 'canvas'
+  type: 'log' | 'error' | 'return' | 'stdout' | 'warn' | 'info' | 'debug' | 'canvas' | 'matplotlib'
   content: string
   timestamp: string
   execution_time_ms?: number
@@ -30,6 +30,7 @@ export interface ExecutionResponse {
 
 export class CodeRunner {
   private jsWorker: Worker | null = null
+  private pyWorker: Worker | null = null
   private requestCounter = 0
   private pendingRequests = new Map<string, {
     resolve: (value: ExecutionResult[]) => void
@@ -38,16 +39,22 @@ export class CodeRunner {
   }>()
 
   constructor() {
-    this.initializeWorker()
+    this.initializeWorkers()
   }
 
-  private initializeWorker() {
+  private initializeWorkers() {
     try {
+      // Initialize JavaScript worker
       this.jsWorker = new Worker('/workers/jsRunner.js')
       this.jsWorker.onmessage = this.handleWorkerMessage.bind(this)
       this.jsWorker.onerror = this.handleWorkerError.bind(this)
+      
+      // Initialize Python worker
+      this.pyWorker = new Worker('/workers/pyRunner.js')
+      this.pyWorker.onmessage = this.handleWorkerMessage.bind(this)
+      this.pyWorker.onerror = this.handleWorkerError.bind(this)
     } catch (error) {
-      console.error('Failed to initialize JavaScript worker:', error)
+      console.error('Failed to initialize workers:', error)
     }
   }
 
@@ -71,13 +78,19 @@ export class CodeRunner {
       pendingRequest.resolve(data)
     } else if (type === 'availableLibraries') {
       pendingRequest.resolve(data)
+    } else if (type === 'packageLoaded') {
+      pendingRequest.resolve(data)
+    } else if (type === 'availablePackages') {
+      pendingRequest.resolve(data)
+    } else if (type === 'initialized') {
+      pendingRequest.resolve(data)
     } else if (type === 'error') {
       pendingRequest.reject(new Error(data.message || 'Unknown execution error'))
     }
   }
 
   private handleWorkerError(error: ErrorEvent) {
-    console.error('JavaScript worker error:', error)
+    console.error('Worker error:', error)
     
     // Reject all pending requests
     for (const [requestId, request] of this.pendingRequests) {
@@ -88,9 +101,9 @@ export class CodeRunner {
     }
     this.pendingRequests.clear()
 
-    // Reinitialize worker
+    // Reinitialize workers
     this.dispose()
-    this.initializeWorker()
+    this.initializeWorkers()
   }
 
   private generateRequestId(): string {
@@ -132,6 +145,40 @@ export class CodeRunner {
   }
 
   /**
+   * Execute Python code
+   */
+  async executePython(code: string, timeoutMs = 30000): Promise<ExecutionResult[]> {
+    if (!this.pyWorker) {
+      throw new Error('Python worker not available')
+    }
+
+    const requestId = this.generateRequestId()
+
+    return new Promise<ExecutionResult[]>((resolve, reject) => {
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error(`Python execution timed out after ${timeoutMs}ms`))
+      }, timeoutMs)
+
+      // Store pending request
+      this.pendingRequests.set(requestId, {
+        resolve,
+        reject,
+        timeout
+      })
+
+      // Send code to worker
+      this.pyWorker!.postMessage({
+        type: 'execute',
+        code,
+        timeout: timeoutMs,
+        requestId
+      })
+    })
+  }
+
+  /**
    * Execute code based on language
    */
   async execute(language: string, code: string): Promise<ExecutionResult[]> {
@@ -149,7 +196,8 @@ export class CodeRunner {
           break
         case 'python':
         case 'py':
-          throw new Error('Python execution not yet implemented. Coming in Phase 3!')
+          results = await this.executePython(code)
+          break
         default:
           throw new Error(`Unsupported language: ${language}`)
       }
@@ -177,7 +225,7 @@ export class CodeRunner {
    * Check if a language is supported for execution
    */
   isLanguageSupported(language: string): boolean {
-    const supportedLanguages = ['javascript', 'js', 'typescript', 'ts']
+    const supportedLanguages = ['javascript', 'js', 'typescript', 'ts', 'python', 'py']
     return supportedLanguages.includes(language.toLowerCase())
   }
 
@@ -185,7 +233,7 @@ export class CodeRunner {
    * Check if a code artifact is executable
    */
   isExecutable(artifact: { type: string; language?: string }): boolean {
-    if (artifact.type !== 'code') return false
+    if (artifact.type !== 'code' && artifact.type !== 'executable-code') return false
     if (!artifact.language) return false
     return this.isLanguageSupported(artifact.language)
   }
@@ -244,6 +292,94 @@ export class CodeRunner {
 
       this.jsWorker!.postMessage({
         type: 'getAvailableLibraries',
+        requestId
+      })
+    })
+  }
+
+  /**
+   * Load a Python package
+   */
+  async loadPythonPackage(packageName: string): Promise<boolean> {
+    if (!this.pyWorker) {
+      throw new Error('Python worker not available')
+    }
+
+    const requestId = this.generateRequestId()
+
+    return new Promise<boolean>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error('Package loading timed out'))
+      }, 60000) // 60 second timeout for Python package loading
+
+      this.pendingRequests.set(requestId, {
+        resolve: (data: any) => resolve(data.success),
+        reject,
+        timeout
+      })
+
+      this.pyWorker!.postMessage({
+        type: 'loadPackage',
+        packageName,
+        requestId
+      })
+    })
+  }
+
+  /**
+   * Get available Python packages
+   */
+  async getAvailablePythonPackages(): Promise<LibraryInfo> {
+    if (!this.pyWorker) {
+      throw new Error('Python worker not available')
+    }
+
+    const requestId = this.generateRequestId()
+
+    return new Promise<LibraryInfo>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error('Getting packages timed out'))
+      }, 5000)
+
+      this.pendingRequests.set(requestId, {
+        resolve,
+        reject,
+        timeout
+      })
+
+      this.pyWorker!.postMessage({
+        type: 'getAvailablePackages',
+        requestId
+      })
+    })
+  }
+
+  /**
+   * Initialize Python environment
+   */
+  async initializePython(): Promise<boolean> {
+    if (!this.pyWorker) {
+      throw new Error('Python worker not available')
+    }
+
+    const requestId = this.generateRequestId()
+
+    return new Promise<boolean>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error('Python initialization timed out'))
+      }, 30000) // 30 second timeout for initialization
+
+      this.pendingRequests.set(requestId, {
+        resolve: (data: any) => resolve(data.success),
+        reject,
+        timeout
+      })
+
+      this.pyWorker!.postMessage({
+        type: 'initialize',
         requestId
       })
     })
@@ -332,6 +468,22 @@ export class CodeRunner {
   }
 
   /**
+   * Render matplotlib plot to image element
+   */
+  renderMatplotlibToElement(plotData: string, imgElement: HTMLImageElement): boolean {
+    try {
+      const data = JSON.parse(plotData)
+      if (data.type !== 'matplotlib') return false
+
+      imgElement.src = `data:image/png;base64,${data.data}`
+      return true
+    } catch (error) {
+      console.error('Failed to render matplotlib plot:', error)
+      return false
+    }
+  }
+
+  /**
    * Get execution capabilities info
    */
   getCapabilities() {
@@ -353,9 +505,22 @@ export class CodeRunner {
         ]
       },
       python: {
-        supported: false,
-        features: ['Coming in Phase 3'],
-        limitations: ['Not yet implemented']
+        supported: true,
+        features: [
+          'print output',
+          'matplotlib plots',
+          'scientific computing',
+          'data analysis',
+          'package loading',
+          'error handling',
+          'timeouts',
+          'memory monitoring'
+        ],
+        limitations: ['no file system', 'no direct network requests', 'limited to Pyodide packages'],
+        packages: [
+          'numpy', 'pandas', 'matplotlib', 'scipy', 'scikit-learn', 'requests', 
+          'beautifulsoup4', 'pillow', 'sympy', 'networkx', 'seaborn', 'plotly', 'bokeh', 'altair'
+        ]
       }
     }
   }
@@ -373,10 +538,14 @@ export class CodeRunner {
     }
     this.pendingRequests.clear()
 
-    // Terminate worker
+    // Terminate workers
     if (this.jsWorker) {
       this.jsWorker.terminate()
       this.jsWorker = null
+    }
+    if (this.pyWorker) {
+      this.pyWorker.terminate()
+      this.pyWorker = null
     }
   }
 }
