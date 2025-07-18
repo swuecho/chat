@@ -88,7 +88,8 @@ function handleDelete() {
               :code="code" :loading="loading" :idex="index" />
             <ArtifactViewer v-if="artifacts && artifacts.length > 0" 
               :artifacts="artifacts" 
-              :inversion="inversion" 
+              :inversion="inversion"
+              data-testid="artifact-viewer"
             />
           </div>
           <div class="flex flex-col">
