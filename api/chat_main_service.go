@@ -78,8 +78,19 @@ When creating code, HTML, SVG, diagrams, or data that should be displayed as an 
 - For SVG: ` + "```" + `svg <!-- artifact: Title --> [content] ` + "```" + `
 - For Mermaid diagrams: ` + "```" + `mermaid <!-- artifact: Title --> [content] ` + "```" + `
 - For JSON data: ` + "```" + `json <!-- artifact: Title --> [content] ` + "```" + `
+- For executable code: ` + "```" + `javascript <!-- executable: Title --> [content] ` + "```" + `
 
 For HTML, use Preact hooks, HTM(jsx) and modern HTML5 APIs to create standalone applications that render without a build step.
+
+For executable code, use JavaScript/TypeScript that can run in a browser environment. The code will be executed in a secure sandbox with console output captured. Supported features:
+- console.log, console.error, console.warn for output
+- All standard JavaScript APIs (Math, Date, Array, Object, etc.)
+- Return values are displayed
+- Execution timeout protection and resource monitoring
+- Canvas graphics support via createCanvas(width, height)
+- Library loading via // @import libraryName (supports: lodash, d3, chart.js, moment, axios, rxjs, p5, three, fabric)
+- Enhanced crypto, encoding, and URL APIs
+- No DOM or network access
 
 This will enable the artifact viewer to display your content interactively in the chat interface with specialized renderers for each content type.`
 
@@ -202,12 +213,12 @@ func extractArtifacts(content string) []Artifact {
 		artifacts = append(artifacts, artifact)
 	}
 
-	// Pattern for general code artifacts (exclude html and svg which are handled above)
-	// Example: ```javascript <!-- artifact: React Component -->
-	codeArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `(\w+)?\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
-	matches := codeArtifactRegex.FindAllStringSubmatch(content, -1)
+	// Pattern for executable code artifacts
+	// Example: ```javascript <!-- executable: Calculator -->
+	executableArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `(\w+)?\s*<!--\s*executable:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	executableMatches := executableArtifactRegex.FindAllStringSubmatch(content, -1)
 
-	for _, match := range matches {
+	for _, match := range executableMatches {
 		language := match[1]
 		title := strings.TrimSpace(match[2])
 		artifactContent := strings.TrimSpace(match[3])
@@ -218,12 +229,53 @@ func extractArtifacts(content string) []Artifact {
 		}
 
 		if language == "" {
+			language = "javascript" // Default to JavaScript for executable code
+		}
+
+		// Only create executable artifacts for supported languages
+		if isExecutableLanguage(language) {
+			artifact := Artifact{
+				UUID:     NewUUID(),
+				Type:     "executable-code",
+				Title:    title,
+				Content:  artifactContent,
+				Language: language,
+			}
+			artifacts = append(artifacts, artifact)
+		}
+	}
+
+	// Pattern for general code artifacts (exclude html and svg which are handled above)
+	// Example: ```javascript <!-- artifact: React Component -->
+	codeArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `(\w+)?\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	matches := codeArtifactRegex.FindAllStringSubmatch(content, -1)
+
+	for _, match := range matches {
+		language := match[1]
+		title := strings.TrimSpace(match[2])
+		artifactContent := strings.TrimSpace(match[3])
+
+		// Skip if already processed as HTML, SVG, Mermaid, JSON, or executable
+		if language == "html" || language == "svg" || language == "mermaid" || language == "json" {
+			continue
+		}
+
+		if language == "" {
 			language = "text"
+		}
+
+		// Check if this should be an executable artifact for supported languages
+		artifactType := "code"
+		if isExecutableLanguage(language) {
+			// For supported languages, make them executable by default if they contain certain patterns
+			if containsExecutablePatterns(artifactContent) {
+				artifactType = "executable-code"
+			}
 		}
 
 		artifact := Artifact{
 			UUID:     NewUUID(),
-			Type:     "code",
+			Type:     artifactType,
 			Title:    title,
 			Content:  artifactContent,
 			Language: language,
@@ -232,6 +284,49 @@ func extractArtifacts(content string) []Artifact {
 	}
 
 	return artifacts
+}
+
+// isExecutableLanguage checks if a language is supported for code execution
+func isExecutableLanguage(language string) bool {
+	executableLanguages := []string{
+		"javascript", "js", "typescript", "ts",
+		// Future: "python", "py"
+	}
+	
+	language = strings.ToLower(strings.TrimSpace(language))
+	for _, execLang := range executableLanguages {
+		if language == execLang {
+			return true
+		}
+	}
+	return false
+}
+
+// containsExecutablePatterns checks if code contains patterns that suggest it should be executable
+func containsExecutablePatterns(content string) bool {
+	// Patterns that suggest the code is meant to be executed
+	executablePatterns := []string{
+		"console.log",
+		"console.error",
+		"console.warn",
+		"function",
+		"const ",
+		"let ",
+		"var ",
+		"=>",
+		"if (",
+		"for (",
+		"while (",
+		"return ",
+	}
+	
+	contentLower := strings.ToLower(content)
+	for _, pattern := range executablePatterns {
+		if strings.Contains(contentLower, pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 // CreateChatMessage creates a new chat message.
