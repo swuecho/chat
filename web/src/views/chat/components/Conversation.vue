@@ -300,183 +300,133 @@ function handleStreamingError(error: any, responseIndex: number): void {
 }
 
 async function onRegenerate(index: number) {
-  if (loading.value)
-    return
-
-  controller = new AbortController()
+  if (!validateRegenerateInput()) return
 
   const chat = dataSources.value[index]
+  const { updateIndex, isRegenerate } = await prepareRegenerateContext(index, chat)
 
-  const chatUuid = chat.uuid
-  // from user
-  const inversion = chat.inversion
-
-  loading.value = true
-
-  let updateIndex = index;
-  let isRegenerate = true;
-
-  if (inversion) {
-    // trigger from user message
-    const chatNext = dataSources.value[index + 1]
-    if (chatNext) {
-      updateIndex = index + 1
-      isRegenerate = false
-      // if there are answer below. then clear
-      await deleteChatMessage(chatNext.uuid)
-      updateChat(
-        sessionUuid,
-        updateIndex,
-        {
-          uuid: chatNext.uuid,
-          dateTime: nowISO(),
-          text: '',
-          inversion: false,
-          error: false,
-          loading: true,
-        },
-      )
-
-    } else {
-      // add a blank response
-      updateIndex = index + 1
-      isRegenerate = false
-      addChat(
-        sessionUuid,
-        {
-          uuid: '',
-          dateTime: nowISO(),
-          text: '',
-          loading: true,
-          inversion: false,
-          error: false,
-        },
-      )
-    }
-    // if there are answer below. then clear
-    // if not, add answer
-
-  } else {
-    // clear the old answer for regenerating
-    updateChat(
-      sessionUuid,
-      index,
-      {
-        uuid: chatUuid,
-        dateTime: nowISO(),
-        text: '',
-        inversion: false,
-        error: false,
-        loading: true,
-      },
-    )
-
-  }
   try {
-    const subscribleStrem = async () => {
-      try {
-        // Send the request with axios
-        const response = fetchChatStream(
-          sessionUuid,
-          chatUuid,
-          isRegenerate,
-          "",
-          (progress: any) => {
-            const xhr = progress.event.target
-            const {
-              responseText,
-              status
-            } = xhr
-
-
-            if (status >= 400) {
-              const error_json: { code: number; message: string; details: any } = JSON.parse(responseText)
-              nui_msg.error(formatErr(error_json), {
-                duration: 5000,
-                closable: true,
-                render: renderMessage
-              })
-
-              loading.value = false
-            }
-            else {
-              // Extract the JSON data chunk from the responseText
-              const chunk = getDataFromResponseText(responseText)
-
-              // Check if the chunk is not empty
-              if (chunk) {
-                // Parse the JSON data chunk
-                const data = JSON.parse(chunk)
-                const answer = data.choices[0].delta.content
-                const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
-
-                // Extract artifacts from the current content
-                const artifacts = extractArtifacts(answer)
-
-                updateChat(
-                  sessionUuid,
-                  updateIndex,
-                  {
-                    uuid: answer_uuid,
-                    dateTime: nowISO(),
-                    text: answer,
-                    inversion: false,
-                    error: false,
-                    loading: false,
-                    artifacts: artifacts,
-                  },
-                )
-              }
-
-            }
-          },
-        )
-        return response
-      }
-      catch (error) {
-        console.error('Error:', error)
-        throw error
-      }
-      finally {
-        console.log(loading.value)
-        loading.value = false
-        console.log(loading.value)
-      }
-    }
-
-    await subscribleStrem()
-  }
-  catch (error: any) {
-    // TODO: fix  error
-    if (error.message === 'canceled') {
-      updateChatPartial(
-        sessionUuid,
-        index,
-        {
-          loading: false,
-        },
-      )
-      return
-    }
-
-    const errorMessage = error?.message ?? t('common.wrong')
-
-    updateChat(
-      sessionUuid,
-      index,
-      {
-        uuid: chatUuid,
-        dateTime: nowISO(),
-        text: errorMessage,
-        inversion: false,
-        error: true,
-        loading: false,
-      },
-    )
-  }
-  finally {
+    await streamRegenerateResponse(chat.uuid, updateIndex, isRegenerate)
+  } catch (error) {
+    handleRegenerateError(error, chat.uuid, index)
+  } finally {
     loading.value = false
   }
+}
+
+function validateRegenerateInput(): boolean {
+  return !loading.value
+}
+
+async function prepareRegenerateContext(index: number, chat: any): Promise<{ updateIndex: number; isRegenerate: boolean }> {
+  controller = new AbortController()
+  loading.value = true
+
+  let updateIndex = index
+  let isRegenerate = true
+
+  if (chat.inversion) {
+    // Triggered from user message
+    const result = await handleUserMessageRegenerate(index)
+    updateIndex = result.updateIndex
+    isRegenerate = result.isRegenerate
+  } else {
+    // Clear the old answer for regenerating
+    updateChat(sessionUuid, index, {
+      uuid: chat.uuid,
+      dateTime: nowISO(),
+      text: '',
+      inversion: false,
+      error: false,
+      loading: true,
+    })
+  }
+
+  return { updateIndex, isRegenerate }
+}
+
+async function handleUserMessageRegenerate(index: number): Promise<{ updateIndex: number; isRegenerate: boolean }> {
+  const chatNext = dataSources.value[index + 1]
+  let updateIndex = index + 1
+  const isRegenerate = false
+
+  if (chatNext) {
+    // If there's an answer below, clear it
+    await deleteChatMessage(chatNext.uuid)
+    updateChat(sessionUuid, updateIndex, {
+      uuid: chatNext.uuid,
+      dateTime: nowISO(),
+      text: '',
+      inversion: false,
+      error: false,
+      loading: true,
+    })
+  } else {
+    // Add a blank response
+    addChat(sessionUuid, {
+      uuid: '',
+      dateTime: nowISO(),
+      text: '',
+      loading: true,
+      inversion: false,
+      error: false,
+    })
+  }
+
+  return { updateIndex, isRegenerate }
+}
+
+async function streamRegenerateResponse(chatUuid: string, updateIndex: number, isRegenerate: boolean): Promise<void> {
+  return new Promise((resolve, reject) => {
+    fetchChatStream(
+      sessionUuid,
+      chatUuid,
+      isRegenerate,
+      "",
+      (progress: any) => {
+        try {
+          handleRegenerateStreamProgress(progress, updateIndex)
+          resolve()
+        } catch (error) {
+          reject(error)
+        }
+      },
+    ).catch(reject)
+  })
+}
+
+function handleRegenerateStreamProgress(progress: any, updateIndex: number): void {
+  const xhr = progress.event.target
+  const { responseText, status } = xhr
+
+  if (status >= 400) {
+    handleStreamError(responseText, updateIndex)
+    return
+  }
+
+  processStreamChunk(responseText, updateIndex)
+}
+
+function handleRegenerateError(error: any, chatUuid: string, index: number): void {
+  console.error('Regenerate error:', error)
+
+  if (error.message === 'canceled') {
+    updateChatPartial(sessionUuid, index, {
+      loading: false,
+    })
+    return
+  }
+
+  const errorMessage = error?.message ?? t('common.wrong')
+
+  updateChat(sessionUuid, index, {
+    uuid: chatUuid,
+    dateTime: nowISO(),
+    text: errorMessage,
+    inversion: false,
+    error: true,
+    loading: false,
+  })
 }
 
 function formatErr(error_json: { code: number; message: string; details: any }) {
