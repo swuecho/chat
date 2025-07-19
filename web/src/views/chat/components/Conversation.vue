@@ -28,6 +28,8 @@ import { extractArtifacts } from '@/utils/artifacts'
 import renderMessage from './RenderMessage.vue'
 import { useSlashToFocus } from '../hooks/useSlashToFocus'
 import JumpToBottom from './JumpToBottom.vue'
+import ChatVFSUploader from '@/components/ChatVFSUploader.vue'
+import VFSProvider from '@/components/VFSProvider.vue'
 
 // 1. Create a ref for the input element
 const searchInputRef = ref(null);
@@ -142,122 +144,159 @@ function handleSubmit() {
 }
 
 async function onConversationStream() {
+  if (!validateConversationInput()) return
+
   const message = prompt.value
-
-  if (loading.value)
-    return
-
-  if (!message || message.trim() === '')
-    return
-
   const chatUuid = uuidv7()
 
-  addChat(
-    sessionUuid,
-    {
-      uuid: chatUuid,
-      dateTime: nowISO(),
-      text: message,
-      inversion: true,
-      error: false,
-    },
-  )
+  addUserMessage(chatUuid, message)
+  const responseIndex = initializeChatResponse()
+
+  try {
+    await streamChatResponse(chatUuid, message, responseIndex)
+  } catch (error) {
+    handleStreamingError(error, responseIndex)
+  } finally {
+    loading.value = false
+  }
+}
+
+function validateConversationInput(): boolean {
+  if (loading.value) return false
+
+  const message = prompt.value
+  if (!message || message.trim() === '') return false
+
+  return true
+}
+
+function addUserMessage(chatUuid: string, message: string): void {
+  addChat(sessionUuid, {
+    uuid: chatUuid,
+    dateTime: nowISO(),
+    text: message,
+    inversion: true,
+    error: false,
+  })
   scrollToBottom()
 
   loading.value = true
   prompt.value = ''
+}
 
-  // add a blank response
-  addChat(
-    sessionUuid,
-    {
-      uuid: '',
-      dateTime: nowISO(),
-      text: '',
-      loading: true,
-      inversion: false,
-      error: false,
-    },
-  )
+function initializeChatResponse(): number {
+  addChat(sessionUuid, {
+    uuid: '',
+    dateTime: nowISO(),
+    text: '',
+    loading: true,
+    inversion: false,
+    error: false,
+  })
   scrollToBottomIfAtBottom()
-  const subscribleStrem = async () => {
-    try {
-      // Send the request with axios
-      const response = fetchChatStream(
-        sessionUuid,
-        chatUuid,
-        false,
-        message,
-        (progress: any) => {
-          const xhr = progress.event.target
-          const {
-            responseText,
-            status,
-          } = xhr
-          if (status >= 400) {
-            const error_json: { code: number; message: string; details: any } = JSON.parse(responseText)
-            console.log(responseText)
-            nui_msg.error(formatErr(error_json), {
-              duration: 5000,
-              closable: true,
-              render: renderMessage
-            })
 
-            chatStore.deleteChatByUuid(sessionUuid, dataSources.value.length - 1)
-            // remove last input box
-            loading.value = false
-          }
-          else {
-            const chunk = getDataFromResponseText(responseText)
-            // Check if the chunk is not empty
-            if (chunk) {
-              // Parse the JSON data chunk
-              try {
-                const data = JSON.parse(chunk)
-                const answer = data.choices[0].delta.content
-                const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
-                
-                // Extract artifacts from the current content
-                const artifacts = extractArtifacts(answer)
-                
-                updateChat(
-                  sessionUuid,
-                  dataSources.value.length - 1,
-                  {
-                    uuid: answer_uuid,
-                    dateTime: nowISO(),
-                    text: answer,
-                    inversion: false,
-                    error: false,
-                    loading: false,
-                    artifacts: artifacts,
-                  },
-                )
-                scrollToBottomIfAtBottom()
-              }
-              catch (error) {
-                // eslint-disable-next-line no-console
-                console.log("xxx", error)
-              }
-            }
-          }
-        },
-      )
-      return response
-    }
-    catch (error: any) {
-      // eslint-disable-next-line no-console
-      console.log(error)
-      const response = error.response
-      if (response.status >= 400) {
-        nui_msg.error(response.data.message)
-        loading.value = false
-      }
-    }
+  return dataSources.value.length - 1
+}
+
+async function streamChatResponse(chatUuid: string, message: string, responseIndex: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    fetchChatStream(
+      sessionUuid,
+      chatUuid,
+      false,
+      message,
+      (progress: any) => {
+        try {
+          handleStreamProgress(progress, responseIndex)
+          resolve()
+        } catch (error) {
+          reject(error)
+        }
+      },
+    ).catch(reject)
+  })
+}
+
+function handleStreamProgress(progress: any, responseIndex: number): void {
+  const xhr = progress.event.target
+  const { responseText, status } = xhr
+
+  if (status >= 400) {
+    handleStreamError(responseText, responseIndex)
+    return
   }
 
-  await subscribleStrem()
-  loading.value = false
+  processStreamChunk(responseText, responseIndex)
+}
+
+function handleStreamError(responseText: string, responseIndex: number): void {
+  try {
+    const errorJson: { code: number; message: string; details: any } = JSON.parse(responseText)
+    console.error('Stream error:', responseText)
+
+    nui_msg.error(formatErr(errorJson), {
+      duration: 5000,
+      closable: true,
+      render: renderMessage
+    })
+
+    chatStore.deleteChatByUuid(sessionUuid, responseIndex)
+    loading.value = false
+  } catch (parseError) {
+    console.error('Failed to parse error response:', parseError)
+    nui_msg.error('An unexpected error occurred')
+    loading.value = false
+  }
+}
+
+function processStreamChunk(responseText: string, responseIndex: number): void {
+  const chunk = getDataFromResponseText(responseText)
+
+  if (!chunk) return
+
+  try {
+    const data = JSON.parse(chunk)
+    const answer = data.choices[0].delta.content
+    const answerUuid = data.id.replace('chatcmpl-', '')
+    const artifacts = extractArtifacts(answer)
+
+    updateChat(sessionUuid, responseIndex, {
+      uuid: answerUuid,
+      dateTime: nowISO(),
+      text: answer,
+      inversion: false,
+      error: false,
+      loading: false,
+      artifacts: artifacts,
+    })
+
+    scrollToBottomIfAtBottom()
+  } catch (error) {
+    console.error('Failed to parse stream chunk:', error)
+  }
+}
+
+function handleStreamingError(error: any, responseIndex: number): void {
+  console.error('Streaming error:', error)
+
+  if (error?.response?.status >= 400) {
+    nui_msg.error(error.response.data.message)
+  } else {
+    nui_msg.error('Failed to send message. Please try again.')
+  }
+
+  // Update the response to show error state
+  const lastMessage = dataSources.value[responseIndex]
+  if (lastMessage) {
+    updateChat(sessionUuid, responseIndex, {
+      uuid: lastMessage.uuid || uuidv7(),
+      dateTime: nowISO(),
+      text: 'Failed to get response. Please try again.',
+      inversion: false,
+      error: true,
+      loading: false,
+    })
+  }
 }
 
 async function onRegenerate(index: number) {
@@ -370,10 +409,10 @@ async function onRegenerate(index: number) {
                 const data = JSON.parse(chunk)
                 const answer = data.choices[0].delta.content
                 const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
-                
+
                 // Extract artifacts from the current content
                 const artifacts = extractArtifacts(answer)
-                
+
                 updateChat(
                   sessionUuid,
                   updateIndex,
@@ -556,110 +595,196 @@ const handleUsePrompt = (_: string, value: string): void => {
 const toggleArtifactGallery = (): void => {
   showArtifactGallery.value = !showArtifactGallery.value
 }
+
+// VFS event handlers
+const handleVFSFileUploaded = (fileInfo: any) => {
+  nui_msg.success(`📁 File uploaded: ${fileInfo.filename}`)
+}
+
+const handleCodeExampleAdded = async (codeInfo: any) => {
+  // Add code examples as a system message
+  const exampleMessage = `📁 **Files uploaded successfully!**
+
+**Python example:**
+\`\`\`python
+${codeInfo.python}
+\`\`\`
+
+**JavaScript example:**
+\`\`\`javascript
+${codeInfo.javascript}
+\`\`\`
+
+Your files are now available in the Virtual File System! 🚀`
+
+  // Add system message to chat
+  const chatUuid = uuidv7();
+  addChat(
+    sessionUuid,
+    {
+      uuid: chatUuid,
+      dateTime: nowISO(),
+      text: exampleMessage,
+      inversion: true,
+      error: false,
+      loading: false,
+      artifacts: extractArtifacts(exampleMessage),
+    },
+  )
+
+  const responseIndex = initializeChatResponse()
+
+  try {
+    await streamChatResponse(chatUuid, exampleMessage, responseIndex)
+  } catch (error) {
+    handleStreamingError(error, responseIndex)
+  }
+
+  nui_msg.success('Files uploaded! Code examples added to chat.')
+}
 </script>
 
 <template>
-  <div class="flex flex-col w-full h-full">
-    <div>
-      <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
-        @update:showUploadModal="showUploadModal = $event" />
+  <VFSProvider>
+    <div class="flex flex-col w-full h-full">
+      <div>
+        <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
+          @update:showUploadModal="showUploadModal = $event" />
+      </div>
+      <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
+      <main class="flex-1 overflow-hidden">
+        <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
+          <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
+        </NModal>
+        <div class="flex items-center justify-center mt-2 mb-2">
+          <div class="w-4/5 md:w-1/3">
+            <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
+          </div>
+        </div>
+        <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
+        </UploaderReadOnly>
+        <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
+          <div v-if="!showArtifactGallery" id="image-wrapper"
+            class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10" :class="[isMobile ? 'p-2' : 'p-4']">
+            <template v-if="!dataSources.length">
+              <div class="flex items-center justify-center m-4 text-center text-neutral-300">
+                <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
+                <span>{{ $t('common.help') }}</span>
+              </div>
+              <PromptGallery @usePrompt="handleUsePrompt"></PromptGallery>
+            </template>
+            <template v-else>
+              <div>
+                <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate" />
+              </div>
+            </template>
+          </div>
+          <div v-else class="h-full">
+            <ArtifactGallery />
+          </div>
+          <JumpToBottom v-if="dataSources.length > 1 && !showArtifactGallery" targetSelector="#scrollRef"
+            :scrollThresholdShow="200" />
+
+        </div>
+      </main>
+      <footer :class="footerClass">
+        <div class="w-full max-w-screen-xl m-auto">
+          <!-- VFS Upload Section -->
+          <div class="vfs-upload-section mb-2">
+            <ChatVFSUploader :session-uuid="sessionUuid" @file-uploaded="handleVFSFileUploaded"
+              @code-example-added="handleCodeExampleAdded" />
+          </div>
+
+          <div class="flex items-center justify-between space-x-1">
+            <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
+              <span class="text-xl text-[#4b9e5f] dark:text-white">
+                <SvgIcon icon="icon-park-outline:clear" />
+              </span>
+            </HoverButton>
+            <NSpin :show="botLoading">
+              <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
+                @click="handleCreateBot">
+                <span class="text-xl text-[#4b9e5f] dark:text-white">
+                  <SvgIcon icon="fluent:bot-add-24-regular" />
+                </span>
+              </HoverButton>
+            </NSpin>
+
+            <NSpin :show="snapshotLoading">
+              <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
+                @click="handleSnapshot">
+                <span class="text-xl text-[#4b9e5f] dark:text-white">
+                  <SvgIcon icon="ic:twotone-ios-share" />
+                </span>
+              </HoverButton>
+            </NSpin>
+
+            <HoverButton v-if="!isMobile" @click="toggleArtifactGallery"
+              :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'">
+              <span class="text-xl text-[#4b9e5f] dark:text-white">
+                <SvgIcon icon="ri:gallery-line" />
+              </span>
+            </HoverButton>
+
+            <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
+              <span class="text-xl text-[#4b9e5f]">
+                <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
+              </span>
+            </HoverButton>
+            <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
+              :on-select="handleSelectAutoComplete">
+              <template #default="{ handleInput, handleBlur, handleFocus }">
+                <NInput ref="searchInputRef" id="message_textarea" v-model:value="prompt" type="textarea"
+                  :placeholder="placeholder" data-testid="message_textarea"
+                  :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
+                  @blur="handleBlur" @keypress="handleEnter" />
+              </template>
+            </NAutoComplete>
+            <button class="!-ml-8 z-10" @click="showUploadModal = true">
+              <span class="text-xl text-[#4b9e5f]">
+                <SvgIcon icon="clarity:attachment-line" />
+              </span>
+            </button>
+            <NButton id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
+              :disabled="sendButtonDisabled" @click="handleSubmit">
+              <template #icon>
+                <span class="dark:text-black">
+                  <SvgIcon icon="ri:send-plane-fill" />
+                </span>
+              </template>
+            </NButton>
+          </div>
+        </div>
+      </footer>
     </div>
-    <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
-    <main class="flex-1 overflow-hidden">
-      <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
-        <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
-      </NModal>
-      <div class="flex items-center justify-center mt-2 mb-2">
-        <div class="w-4/5 md:w-1/3">
-          <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
-        </div>
-      </div>
-      <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
-      </UploaderReadOnly>
-      <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-        <div v-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10"
-          :class="[isMobile ? 'p-2' : 'p-4']">
-          <template v-if="!dataSources.length">
-            <div class="flex items-center justify-center m-4 text-center text-neutral-300">
-              <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
-              <span>{{ $t('common.help') }}</span>
-            </div>
-            <PromptGallery @usePrompt="handleUsePrompt"></PromptGallery>
-          </template>
-          <template v-else>
-            <div>
-              <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate" />
-            </div>
-          </template>
-        </div>
-        <div v-else class="h-full">
-          <ArtifactGallery />
-        </div>
-        <JumpToBottom v-if="dataSources.length > 1 && !showArtifactGallery" targetSelector="#scrollRef" :scrollThresholdShow="200" />
-
-      </div>
-    </main>
-    <footer :class="footerClass">
-      <div class="w-full max-w-screen-xl m-auto">
-        <div class="flex items-center justify-between space-x-1">
-          <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
-            <span class="text-xl text-[#4b9e5f] dark:text-white">
-              <SvgIcon icon="icon-park-outline:clear" />
-            </span>
-          </HoverButton>
-          <NSpin :show="botLoading">
-            <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
-              @click="handleCreateBot">
-              <span class="text-xl text-[#4b9e5f] dark:text-white">
-                <SvgIcon icon="fluent:bot-add-24-regular" />
-              </span>
-            </HoverButton>
-          </NSpin>
-
-          <NSpin :show="snapshotLoading">
-            <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
-              @click="handleSnapshot">
-              <span class="text-xl text-[#4b9e5f] dark:text-white">
-                <SvgIcon icon="ic:twotone-ios-share" />
-              </span>
-            </HoverButton>
-          </NSpin>
-         
-          <HoverButton v-if="!isMobile" @click="toggleArtifactGallery" :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'">
-            <span class="text-xl text-[#4b9e5f] dark:text-white">
-              <SvgIcon icon="ri:gallery-line" />
-            </span>
-          </HoverButton>
-
-           <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
-            <span class="text-xl text-[#4b9e5f]">
-              <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
-            </span>
-          </HoverButton>
-          <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
-            :on-select="handleSelectAutoComplete">
-            <template #default="{ handleInput, handleBlur, handleFocus }">
-              <NInput ref="searchInputRef" id="message_textarea" v-model:value="prompt" type="textarea"
-                :placeholder="placeholder" data-testid="message_textarea"
-                :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
-                @blur="handleBlur" @keypress="handleEnter" />
-            </template>
-          </NAutoComplete>
-          <button class="!-ml-8 z-10" @click="showUploadModal = true">
-            <span class="text-xl text-[#4b9e5f]">
-              <SvgIcon icon="clarity:attachment-line" />
-            </span>
-          </button>
-          <NButton id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
-            :disabled="sendButtonDisabled" @click="handleSubmit">
-            <template #icon>
-              <span class="dark:text-black">
-                <SvgIcon icon="ri:send-plane-fill" />
-              </span>
-            </template>
-          </NButton>
-        </div>
-      </div>
-    </footer>
-  </div>
+  </VFSProvider>
 </template>
+
+<style scoped>
+.vfs-upload-section {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.vfs-upload-section::before {
+  content: "📁 Upload files for code runners:";
+  font-size: 12px;
+  color: var(--text-color-3);
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .vfs-upload-section {
+    justify-content: center;
+  }
+
+  .vfs-upload-section::before {
+    display: none;
+  }
+}
+</style>
