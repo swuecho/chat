@@ -40,14 +40,20 @@ test('test', async ({ page }) => {
         expect(session_1.topic).toBe('test_session_topic');
 
         await page.getByRole('button', { name: 'New Chat' }).click();
+        // Wait for session selection throttling to complete
+        await page.waitForTimeout(600);
         await page.getByTestId('edit_session_topic').click();
         await page.getByTestId('edit_session_topic_input').locator('input').click();
         await page.getByTestId('edit_session_topic_input').locator('input').fill('test_session_topic_2');
         await page.getByTestId('save_session_topic').click();
 
         await page.getByRole('button', { name: 'New Chat' }).click();
+        // Wait for session selection throttling to complete
+        await page.waitForTimeout(600);
         await page.getByTestId('edit_session_topic').click();
         await page.getByTestId('edit_session_topic_input').locator('input').fill('test_session_topic_3');
+        // Wait for element to be stable before clicking
+        await page.waitForTimeout(100);
         await page.getByTestId('save_session_topic').click();
         // sleep 500ms
         await page.waitForTimeout(1000);;
