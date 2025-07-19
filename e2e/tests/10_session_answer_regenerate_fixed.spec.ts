@@ -39,7 +39,7 @@ test('session answer regenerate - robust version', async ({ page }) => {
   await page.locator('a').filter({ hasText: 'New Chat' }).click();
 
   // Set debug mode
-  await page.getByRole('contentinfo').getByRole('button').nth(3).click();
+  await page.getByRole('contentinfo').getByRole('button').nth(4).click();
   await page.getByTestId('debug_mode').click();
   await page.click('body', { position: { x: 0, y: 0 } });
 
