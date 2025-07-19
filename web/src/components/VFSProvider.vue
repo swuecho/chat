@@ -15,13 +15,18 @@ const vfs = ref(null)
 const importExport = ref(null)
 const isVFSReady = ref(false)
 
+// Provide reactive instances to child components (provide needs to be at setup level)
+provide('vfsInstance', vfs)
+provide('importExportInstance', importExport)
+provide('isVFSReady', isVFSReady)
+
 // Initialize VFS when component mounts
 onMounted(async () => {
   try {
     // Dynamic import to avoid loading VFS on every page
     const [VirtualFileSystem, VFSImportExport] = await Promise.all([
-      import('@/utils/virtualFileSystem.js').then(m => m.default || m.VirtualFileSystem),
-      import('@/utils/vfsImportExport.js').then(m => m.default || m.VFSImportExport)
+      import('@/utils/virtualFileSystem.js').then(m => m.default),
+      import('@/utils/vfsImportExport.js').then(m => m.default)
     ])
 
     // Initialize VFS
@@ -43,11 +48,11 @@ onMounted(async () => {
     // Set VFS as ready
     isVFSReady.value = true
 
-    // Provide instances to child components
-    provide('vfsInstance', vfs.value)
-    provide('importExportInstance', importExport.value)
-
-    console.log('VFS initialized successfully')
+    console.log('VFS initialized successfully', {
+      vfs: vfs.value,
+      importExport: importExport.value,
+      isReady: isVFSReady.value
+    })
   } catch (error) {
     console.error('Failed to initialize VFS:', error)
     message.error('Failed to initialize Virtual File System')

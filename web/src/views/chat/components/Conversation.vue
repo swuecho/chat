@@ -28,6 +28,8 @@ import { extractArtifacts } from '@/utils/artifacts'
 import renderMessage from './RenderMessage.vue'
 import { useSlashToFocus } from '../hooks/useSlashToFocus'
 import JumpToBottom from './JumpToBottom.vue'
+import ChatVFSUploader from '@/components/ChatVFSUploader.vue'
+import VFSProvider from '@/components/VFSProvider.vue'
 
 // 1. Create a ref for the input element
 const searchInputRef = ref(null);
@@ -556,10 +558,48 @@ const handleUsePrompt = (_: string, value: string): void => {
 const toggleArtifactGallery = (): void => {
   showArtifactGallery.value = !showArtifactGallery.value
 }
+
+// VFS event handlers
+const handleVFSFileUploaded = (fileInfo: any) => {
+  nui_msg.success(`📁 File uploaded: ${fileInfo.filename}`)
+}
+
+const handleCodeExampleAdded = (codeInfo: any) => {
+  // Add code examples as a system message
+  const exampleMessage = `📁 **Files uploaded successfully!**
+
+**Python example:**
+\`\`\`python
+${codeInfo.python}
+\`\`\`
+
+**JavaScript example:**
+\`\`\`javascript
+${codeInfo.javascript}
+\`\`\`
+
+Your files are now available in the Virtual File System! 🚀`
+
+  // Add system message to chat
+  addChat(
+    sessionUuid,
+    {
+      uuid: uuidv7(),
+      dateTime: nowISO(),
+      text: exampleMessage,
+      inversion: false,
+      error: false,
+      loading: false,
+    },
+  )
+  
+  nui_msg.success('Files uploaded! Code examples added to chat.')
+}
 </script>
 
 <template>
-  <div class="flex flex-col w-full h-full">
+  <VFSProvider>
+    <div class="flex flex-col w-full h-full">
     <div>
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />
@@ -601,6 +641,15 @@ const toggleArtifactGallery = (): void => {
     </main>
     <footer :class="footerClass">
       <div class="w-full max-w-screen-xl m-auto">
+        <!-- VFS Upload Section -->
+        <div class="vfs-upload-section mb-2">
+          <ChatVFSUploader 
+            :session-uuid="sessionUuid"
+            @file-uploaded="handleVFSFileUploaded"
+            @code-example-added="handleCodeExampleAdded"
+          />
+        </div>
+        
         <div class="flex items-center justify-between space-x-1">
           <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
             <span class="text-xl text-[#4b9e5f] dark:text-white">
@@ -661,5 +710,35 @@ const toggleArtifactGallery = (): void => {
         </div>
       </div>
     </footer>
-  </div>
+    </div>
+  </VFSProvider>
 </template>
+
+<style scoped>
+.vfs-upload-section {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.vfs-upload-section::before {
+  content: "📁 Upload files for code runners:";
+  font-size: 12px;
+  color: var(--text-color-3);
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .vfs-upload-section {
+    justify-content: center;
+  }
+  
+  .vfs-upload-section::before {
+    display: none;
+  }
+}
+</style>

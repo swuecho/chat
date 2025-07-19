@@ -18,27 +18,27 @@
       <div class="toolbar">
         <n-button-group>
           <n-button @click="showUploadDialog = true" type="primary" size="small">
-            <template #icon><n-icon><CloudUpload /></n-icon></template>
+            <template #icon><n-icon size="16"><CloudUpload /></n-icon></template>
             Upload
           </n-button>
           
           <n-button @click="createNewFolder" size="small">
-            <template #icon><n-icon><FolderAdd /></n-icon></template>
+            <template #icon><n-icon size="16"><Add /></n-icon></template>
             New Folder
           </n-button>
           
           <n-button @click="refreshCurrentPath" size="small">
-            <template #icon><n-icon><Refresh /></n-icon></template>
+            <template #icon><n-icon size="16"><Refresh /></n-icon></template>
             Refresh
           </n-button>
           
           <n-button @click="downloadSelected" :disabled="selectedItems.length === 0" size="small">
-            <template #icon><n-icon><CloudDownload /></n-icon></template>
+            <template #icon><n-icon size="16"><CloudDownload /></n-icon></template>
             Download
           </n-button>
           
           <n-button @click="deleteSelected" :disabled="selectedItems.length === 0" type="error" size="small">
-            <template #icon><n-icon><Delete /></n-icon></template>
+            <template #icon><n-icon size="16"><Trash /></n-icon></template>
             Delete
           </n-button>
         </n-button-group>
@@ -103,8 +103,8 @@
           <n-divider>Upload Results</n-divider>
           <div v-for="result in uploadResults" :key="result.filename" class="upload-result">
             <n-icon :color="result.success ? '#18a058' : '#d03050'">
-              <CheckCircle v-if="result.success" />
-              <CloseCircle v-else />
+              <CheckmarkCircle v-if="result.success" />
+              <Close v-else />
             </n-icon>
             <span>{{ result.filename }}</span>
             <span class="result-message">{{ result.message }}</span>
@@ -186,11 +186,11 @@ import { useMessage } from 'naive-ui'
 import { 
   CloudUpload, 
   CloudDownload, 
-  FolderAdd, 
+  Add, 
   Refresh, 
-  Delete,
-  CheckCircle,
-  CloseCircle,
+  Trash,
+  CheckmarkCircle,
+  Close,
   Folder,
   Document
 } from '@vicons/ionicons5'

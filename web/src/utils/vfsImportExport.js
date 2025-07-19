@@ -632,8 +632,5 @@ class VFSImportExport {
 }
 
 // Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = VFSImportExport
-} else {
-  window.VFSImportExport = VFSImportExport
-}
+export default VFSImportExport
+export { VFSImportExport }

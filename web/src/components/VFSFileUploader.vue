@@ -67,8 +67,8 @@
           <div class="results-list">
             <div v-for="result in uploadResults" :key="result.filename" class="upload-result">
               <n-icon :color="result.success ? '#18a058' : '#d03050'">
-                <CheckCircle v-if="result.success" />
-                <CloseCircle v-else />
+                <CheckmarkCircle v-if="result.success" />
+                <Close v-else />
               </n-icon>
               <div class="result-details">
                 <div class="filename">{{ result.filename }}</div>
@@ -155,8 +155,8 @@ import { ref, computed, onMounted, inject } from 'vue'
 import { useMessage } from 'naive-ui'
 import { 
   CloudUpload, 
-  CheckCircle,
-  CloseCircle,
+  CheckmarkCircle,
+  Close,
   Folder,
   Trash,
   Download

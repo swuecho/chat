@@ -803,8 +803,5 @@ class VFSPersistence {
 }
 
 // Export the VFS class
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = VirtualFileSystem
-} else {
-  window.VirtualFileSystem = VirtualFileSystem
-}
+export default VirtualFileSystem
+export { VirtualFileSystem }
