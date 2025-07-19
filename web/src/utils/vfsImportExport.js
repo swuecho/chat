@@ -18,6 +18,11 @@ class VFSImportExport {
 
   async uploadFile(file, targetPath = null) {
     try {
+      // Validate file object
+      if (!file || !(file instanceof File) && !(file instanceof Blob)) {
+        throw new Error(`Invalid file object: expected File or Blob, got ${typeof file}`)
+      }
+
       // Generate target path if not provided
       if (!targetPath) {
         targetPath = `/data/${this.sanitizeFilename(file.name)}`
@@ -26,7 +31,7 @@ class VFSImportExport {
       // Detect file type and handle appropriately
       const fileExtension = this.getFileExtension(file.name)
       const isTextFile = this.isTextFile(fileExtension)
-      
+
       let fileData
       if (isTextFile) {
         fileData = await this.readFileAsText(file)
@@ -35,7 +40,7 @@ class VFSImportExport {
       }
 
       // Store in VFS
-      await this.vfs.writeFile(targetPath, fileData, { 
+      await this.vfs.writeFile(targetPath, fileData, {
         binary: !isTextFile,
         originalName: file.name,
         size: file.size,
@@ -61,10 +66,10 @@ class VFSImportExport {
 
   async uploadMultipleFiles(files, targetDirectory = '/data') {
     const results = []
-    
+
     // Ensure target directory exists
     await this.vfs.mkdir(targetDirectory, { recursive: true })
-    
+
     for (const file of files) {
       const targetPath = `${targetDirectory}/${this.sanitizeFilename(file.name)}`
       const result = await this.uploadFile(file, targetPath)
@@ -73,7 +78,7 @@ class VFSImportExport {
         ...result
       })
     }
-    
+
     return results
   }
 
@@ -92,9 +97,9 @@ class VFSImportExport {
 
       const fileData = await this.vfs.readFile(vfsPath, 'binary')
       const filename = downloadName || this.vfs.pathResolver.basename(vfsPath)
-      
+
       this.triggerDownload(fileData, filename, this.getMimeType(filename))
-      
+
       return {
         success: true,
         filename: filename,
@@ -124,11 +129,11 @@ class VFSImportExport {
       // Collect all files in directory recursively
       const files = await this.collectDirectoryFiles(vfsPath)
       const zipFilename = zipName || `${this.vfs.pathResolver.basename(vfsPath)}.zip`
-      
+
       // Create ZIP file
       const zipBlob = await this.createZipFromFiles(files, vfsPath)
       this.triggerDownload(zipBlob, zipFilename, 'application/zip')
-      
+
       return {
         success: true,
         filename: zipFilename,
@@ -150,7 +155,7 @@ class VFSImportExport {
     try {
       const sourceData = await this.vfs.readFile(vfsPath, 'utf8')
       const sourceExtension = this.getFileExtension(vfsPath)
-      
+
       if (!outputPath) {
         const baseName = this.vfs.pathResolver.basename(vfsPath).replace(/\.[^.]+$/, '')
         outputPath = `${this.vfs.pathResolver.dirname(vfsPath)}/${baseName}.${targetFormat}`
@@ -175,7 +180,7 @@ class VFSImportExport {
       }
 
       await this.vfs.writeFile(outputPath, convertedData)
-      
+
       return {
         success: true,
         inputPath: vfsPath,
@@ -203,7 +208,7 @@ class VFSImportExport {
 
       const filename = targetPath || this.extractFilenameFromURL(url)
       const contentType = response.headers.get('content-type') || ''
-      
+
       let data
       if (contentType.includes('text') || contentType.includes('json') || contentType.includes('xml')) {
         data = await response.text()
@@ -250,7 +255,7 @@ class VFSImportExport {
         try {
           const data = await this.vfs.readFile(path, 'binary')
           const metadata = this.vfs.metadata.get(path)
-          
+
           sessionData.files[path] = {
             data: this.arrayBufferToBase64(data),
             metadata: metadata,
@@ -263,9 +268,9 @@ class VFSImportExport {
 
       const sessionJSON = JSON.stringify(sessionData, null, 2)
       const filename = `${sessionName}-${new Date().toISOString().slice(0, 10)}.vfs.json`
-      
+
       this.triggerDownload(sessionJSON, filename, 'application/json')
-      
+
       return {
         success: true,
         filename: filename,
@@ -285,14 +290,14 @@ class VFSImportExport {
     try {
       const sessionText = await this.readFileAsText(file)
       const sessionData = JSON.parse(sessionText)
-      
+
       if (!sessionData.metadata || !sessionData.files) {
         throw new Error('Invalid VFS session file format')
       }
 
       // Clear existing VFS (optional - could ask user)
       this.vfs.clear()
-      
+
       // Restore directories
       if (sessionData.directories) {
         for (const dir of sessionData.directories) {
@@ -341,6 +346,12 @@ class VFSImportExport {
 
   async readFileAsText(file) {
     return new Promise((resolve, reject) => {
+      // Validate that file is a Blob/File object
+      if (!(file instanceof Blob) && !(file instanceof File)) {
+        reject(new Error(`Expected File or Blob, but received: ${typeof file} - ${file?.constructor?.name || 'unknown'}`))
+        return
+      }
+
       const reader = new FileReader()
       reader.onload = e => resolve(e.target.result)
       reader.onerror = e => reject(new Error('Failed to read file as text'))
@@ -350,6 +361,12 @@ class VFSImportExport {
 
   async readFileAsBinary(file) {
     return new Promise((resolve, reject) => {
+      // Validate that file is a Blob/File object
+      if (!(file instanceof Blob) && !(file instanceof File)) {
+        reject(new Error(`Expected File or Blob, but received: ${typeof file} - ${file?.constructor?.name || 'unknown'}`))
+        return
+      }
+
       const reader = new FileReader()
       reader.onload = e => resolve(e.target.result)
       reader.onerror = e => reject(new Error('Failed to read file as binary'))
@@ -372,11 +389,11 @@ class VFSImportExport {
     a.href = url
     a.download = filename
     a.style.display = 'none'
-    
+
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    
+
     // Clean up the URL object
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
@@ -387,8 +404,8 @@ class VFSImportExport {
   }
 
   isTextFile(extension) {
-    return this.supportedFormats.text.includes(extension) || 
-           this.supportedFormats.code.includes(extension)
+    return this.supportedFormats.text.includes(extension) ||
+      this.supportedFormats.code.includes(extension)
   }
 
   sanitizeFilename(filename) {
@@ -430,14 +447,14 @@ class VFSImportExport {
 
   async collectDirectoryFiles(dirPath) {
     const files = []
-    
+
     const collectRecursive = async (currentPath) => {
       const items = await this.vfs.readdir(currentPath)
-      
+
       for (const item of items) {
         const itemPath = this.vfs.pathResolver.join(currentPath, item)
         const stat = await this.vfs.stat(itemPath)
-        
+
         if (stat.isFile) {
           files.push(itemPath)
         } else if (stat.isDirectory) {
@@ -445,7 +462,7 @@ class VFSImportExport {
         }
       }
     }
-    
+
     await collectRecursive(dirPath)
     return files
   }
@@ -453,16 +470,16 @@ class VFSImportExport {
   async createZipFromFiles(filePaths, basePath) {
     // Simple ZIP creation - in a real implementation, you'd use a ZIP library
     const files = {}
-    
+
     for (const filePath of filePaths) {
-      const relativePath = filePath.startsWith(basePath) 
-        ? filePath.slice(basePath.length + 1) 
+      const relativePath = filePath.startsWith(basePath)
+        ? filePath.slice(basePath.length + 1)
         : filePath
-      
+
       const data = await this.vfs.readFile(filePath, 'binary')
       files[relativePath] = data
     }
-    
+
     // For now, return a simple archive format
     // In production, use a proper ZIP library like JSZip
     const archiveData = JSON.stringify(files, null, 2)
@@ -497,21 +514,21 @@ class VFSImportExport {
   csvToJSON(csvData, delimiter = ',') {
     const lines = csvData.split('\n').filter(line => line.trim())
     if (lines.length === 0) return '[]'
-    
+
     const headers = lines[0].split(delimiter).map(h => h.trim())
     const records = []
-    
+
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(delimiter)
       const record = {}
-      
+
       headers.forEach((header, index) => {
         record[header] = values[index]?.trim() || ''
       })
-      
+
       records.push(record)
     }
-    
+
     return JSON.stringify(records, null, 2)
   }
 
@@ -520,10 +537,10 @@ class VFSImportExport {
     if (!Array.isArray(data) || data.length === 0) {
       throw new Error('JSON must be an array of objects')
     }
-    
+
     const headers = Object.keys(data[0])
     const csvLines = [headers.join(',')]
-    
+
     for (const record of data) {
       const values = headers.map(header => {
         const value = record[header] || ''
@@ -532,7 +549,7 @@ class VFSImportExport {
       })
       csvLines.push(values.join(','))
     }
-    
+
     return csvLines.join('\n')
   }
 
@@ -551,7 +568,7 @@ class VFSImportExport {
 
   xmlNodeToObject(node) {
     const result = {}
-    
+
     // Handle attributes
     if (node.attributes && node.attributes.length > 0) {
       result['@attributes'] = {}
@@ -559,7 +576,7 @@ class VFSImportExport {
         result['@attributes'][attr.name] = attr.value
       }
     }
-    
+
     // Handle child nodes
     const children = Array.from(node.childNodes)
     const textContent = children
@@ -567,16 +584,16 @@ class VFSImportExport {
       .map(child => child.textContent.trim())
       .filter(text => text)
       .join(' ')
-    
+
     if (textContent) {
       result['#text'] = textContent
     }
-    
+
     const elementChildren = children.filter(child => child.nodeType === Node.ELEMENT_NODE)
     for (const child of elementChildren) {
       const childName = child.nodeName
       const childValue = this.xmlNodeToObject(child)
-      
+
       if (result[childName]) {
         if (!Array.isArray(result[childName])) {
           result[childName] = [result[childName]]
@@ -586,7 +603,7 @@ class VFSImportExport {
         result[childName] = childValue
       }
     }
-    
+
     return result
   }
 

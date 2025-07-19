@@ -6,62 +6,82 @@
         <span class="path-segment" @click="navigateTo('/')">/</span>
         <template v-for="(segment, index) in pathSegments" :key="index">
           <span class="separator">/</span>
-          <span 
-            class="path-segment clickable" 
-            @click="navigateTo(getPathUpTo(index))"
-          >
+          <span class="path-segment clickable" @click="navigateTo(getPathUpTo(index))">
             {{ segment }}
           </span>
         </template>
       </div>
-      
+
       <div class="toolbar">
         <n-button-group>
           <n-button @click="showUploadDialog = true" type="primary" size="small">
-            <template #icon><n-icon size="16"><CloudUpload /></n-icon></template>
+            <template #icon><n-icon size="16">
+                <CloudUpload />
+              </n-icon></template>
             Upload
           </n-button>
-          
+
           <n-button @click="createNewFolder" size="small">
-            <template #icon><n-icon size="16"><Add /></n-icon></template>
+            <template #icon><n-icon size="16">
+                <Add />
+              </n-icon></template>
             New Folder
           </n-button>
-          
+
           <n-button @click="refreshCurrentPath" size="small">
-            <template #icon><n-icon size="16"><Refresh /></n-icon></template>
+            <template #icon><n-icon size="16">
+                <Refresh />
+              </n-icon></template>
             Refresh
           </n-button>
-          
+
           <n-button @click="downloadSelected" :disabled="selectedItems.length === 0" size="small">
-            <template #icon><n-icon size="16"><CloudDownload /></n-icon></template>
+            <template #icon><n-icon size="16">
+                <CloudDownload />
+              </n-icon></template>
             Download
           </n-button>
-          
+
           <n-button @click="deleteSelected" :disabled="selectedItems.length === 0" type="error" size="small">
-            <template #icon><n-icon size="16"><Trash /></n-icon></template>
+            <template #icon><n-icon size="16">
+                <Trash />
+              </n-icon></template>
             Delete
           </n-button>
+
+          <n-tooltip placement="bottom">
+            <template #trigger>
+              <n-button size="small" quaternary>
+                <template #icon><n-icon size="16">
+                    <HelpCircle />
+                  </n-icon></template>
+              </n-button>
+            </template>
+            <div>
+              <strong>Keyboard Shortcuts:</strong><br />
+              Delete: Remove selected items<br />
+              F5: Refresh<br />
+              Ctrl+A: Select all
+            </div>
+          </n-tooltip>
         </n-button-group>
       </div>
     </div>
 
     <!-- File listing -->
-    <div class="file-list-container">
-      <n-data-table
-        :columns="fileColumns"
-        :data="fileItems"
-        :row-key="row => row.path"
-        v-model:checked-row-keys="selectedItems"
-        :pagination="false"
-        size="small"
-        :max-height="400"
-        virtual-scroll
-      />
+    <div class="file-list-container" @dragover.prevent @drop.prevent="handleDrop">
+      <n-data-table :columns="fileColumns" :data="fileItems" :row-key="row => row.path"
+        v-model:checked-row-keys="selectedItems" :pagination="false" size="small" :max-height="400" virtual-scroll />
     </div>
 
     <!-- Status bar -->
     <div class="status-bar">
-      <span class="item-count">{{ fileItems.length }} items</span>
+      <span class="item-count">
+        {{ fileItems.length }} items
+        <span v-if="selectedItems.length > 0" class="selection-count">
+          ({{ selectedItems.length }} selected)
+        </span>
+      </span>
       <span class="storage-info">{{ storageInfo }}</span>
     </div>
 
@@ -69,26 +89,22 @@
     <n-modal v-model:show="showUploadDialog" preset="dialog" title="Upload Files">
       <template #header>
         <div class="upload-header">
-          <n-icon size="20"><CloudUpload /></n-icon>
+          <n-icon size="20">
+            <CloudUpload />
+          </n-icon>
           <span>Upload Files to {{ currentPath }}</span>
         </div>
       </template>
-      
+
       <div class="upload-area">
-        <n-upload
-          ref="uploadRef"
-          multiple
-          directory-dnd
-          :show-file-list="true"
-          :max="50"
-          :on-before-upload="handleFileUpload"
-          :show-cancel-button="false"
-          :show-download-button="false"
-          :show-retry-button="false"
-        >
+        <n-upload ref="uploadRef" multiple directory-dnd :show-file-list="true" :max="50"
+          :on-before-upload="handleFileUpload" :show-cancel-button="false" :show-download-button="false"
+          :show-retry-button="false">
           <n-upload-dragger>
             <div class="upload-content">
-              <n-icon size="48" depth="3"><CloudUpload /></n-icon>
+              <n-icon size="48" depth="3">
+                <CloudUpload />
+              </n-icon>
               <n-text depth="3">
                 Click or drag files here to upload
               </n-text>
@@ -98,7 +114,7 @@
             </div>
           </n-upload-dragger>
         </n-upload>
-        
+
         <div v-if="uploadResults.length > 0" class="upload-results">
           <n-divider>Upload Results</n-divider>
           <div v-for="result in uploadResults" :key="result.filename" class="upload-result">
@@ -133,23 +149,19 @@
                   <n-button @click="importFromURL" :loading="importing">Import</n-button>
                 </n-input-group>
               </div>
-              
+
               <n-divider>OR</n-divider>
-              
+
               <div>
                 <n-text>Import VFS Session:</n-text>
-                <n-upload
-                  :show-file-list="false"
-                  accept=".vfs.json,.json"
-                  :on-before-upload="importVFSSession"
-                >
+                <n-upload :show-file-list="false" accept=".vfs.json,.json" :on-before-upload="importVFSSession">
                   <n-button>Select VFS Session File</n-button>
                 </n-upload>
               </div>
             </n-space>
           </div>
         </n-tab-pane>
-        
+
         <n-tab-pane name="export" tab="Export">
           <div class="export-section">
             <n-space vertical>
@@ -160,9 +172,9 @@
                   <n-button @click="exportVFSSession" :loading="exporting">Export Session</n-button>
                 </n-input-group>
               </div>
-              
+
               <n-divider>Statistics</n-divider>
-              
+
               <div class="export-stats">
                 <div>Files: {{ vfsStats.totalFiles }}</div>
                 <div>Directories: {{ vfsStats.totalDirectories }}</div>
@@ -182,11 +194,7 @@
     <n-modal v-model:show="showCreateFolderDialog" preset="dialog" title="Create New Folder">
       <n-space vertical>
         <n-text>Enter the name for the new folder:</n-text>
-        <n-input 
-          v-model:value="newFolderName" 
-          placeholder="Folder name"
-          @keydown.enter="confirmCreateFolder"
-        />
+        <n-input v-model:value="newFolderName" placeholder="Folder name" @keydown.enter="confirmCreateFolder" />
       </n-space>
       <template #action>
         <n-space>
@@ -211,34 +219,36 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, h } from 'vue'
-import { 
-  useMessage, 
-  NModal, 
-  NButton, 
-  NButtonGroup, 
-  NIcon, 
-  NDataTable, 
-  NDivider, 
-  NUpload, 
-  NUploadDragger, 
-  NText, 
-  NP, 
-  NSpace, 
-  NTabs, 
-  NTabPane, 
-  NInput, 
-  NInputGroup 
+import {
+  useMessage,
+  NModal,
+  NButton,
+  NButtonGroup,
+  NIcon,
+  NDataTable,
+  NDivider,
+  NUpload,
+  NUploadDragger,
+  NText,
+  NP,
+  NSpace,
+  NTabs,
+  NTabPane,
+  NInput,
+  NInputGroup,
+  NTooltip
 } from 'naive-ui'
-import { 
-  CloudUpload, 
-  CloudDownload, 
-  Add, 
-  Refresh, 
+import {
+  CloudUpload,
+  CloudDownload,
+  Add,
+  Refresh,
   Trash,
   CheckmarkCircle,
   Close,
   Folder,
-  Document
+  Document,
+  HelpCircle
 } from '@vicons/ionicons5'
 
 // Props
@@ -294,13 +304,13 @@ const fileColumns = [
     key: 'name',
     render: (row) => {
       return h('div', { class: 'file-name' }, [
-        h(NIcon, { 
-          size: 16, 
-          style: { marginRight: '8px' } 
-        }, { 
-          default: () => row.isDirectory ? h(Folder) : h(Document) 
+        h(NIcon, {
+          size: 16,
+          style: { marginRight: '8px' }
+        }, {
+          default: () => row.isDirectory ? h(Folder) : h(Document)
         }),
-        h('span', { 
+        h('span', {
           class: row.isDirectory ? 'directory-name clickable' : 'file-name',
           onClick: row.isDirectory ? () => navigateTo(row.path) : undefined
         }, row.name)
@@ -310,11 +320,13 @@ const fileColumns = [
   {
     title: 'Size',
     key: 'size',
+    sorter: (a, b) => (a.size || 0) - (b.size || 0),
     render: (row) => row.isDirectory ? '—' : formatSize(row.size || 0)
   },
   {
     title: 'Modified',
     key: 'modified',
+    sorter: (a, b) => (new Date(a.mtime || 0)) - (new Date(b.mtime || 0)),
     render: (row) => row.mtime ? new Date(row.mtime).toLocaleString() : '—'
   },
   {
@@ -342,11 +354,11 @@ const refreshCurrentPath = async () => {
   try {
     const items = await props.vfsInstance.readdir(currentPath.value)
     fileItems.value = []
-    
+
     for (const item of items) {
       const itemPath = props.vfsInstance.pathResolver.join(currentPath.value, item)
       const stat = await props.vfsInstance.stat(itemPath)
-      
+
       fileItems.value.push({
         name: item,
         path: itemPath,
@@ -356,14 +368,14 @@ const refreshCurrentPath = async () => {
         mtime: stat.mtime
       })
     }
-    
+
     // Sort: directories first, then files
     fileItems.value.sort((a, b) => {
       if (a.isDirectory && !b.isDirectory) return -1
       if (!a.isDirectory && b.isDirectory) return 1
       return a.name.localeCompare(b.name)
     })
-    
+
     // Update VFS stats
     updateVFSStats()
   } catch (error) {
@@ -392,7 +404,7 @@ const confirmCreateFolder = async () => {
     message.error('Please enter a folder name')
     return
   }
-  
+
   try {
     const folderPath = props.vfsInstance.pathResolver.join(currentPath.value, newFolderName.value.trim())
     await props.vfsInstance.mkdir(folderPath)
@@ -404,37 +416,56 @@ const confirmCreateFolder = async () => {
   }
 }
 
+const handleDrop = async (event) => {
+  const files = Array.from(event.dataTransfer.files)
+  if (files.length === 0) return
+
+  for (const file of files) {
+    // Create the same structure that naive-ui upload provides
+    await handleFileUpload({ file: file })
+  }
+}
+
 const handleFileUpload = async (file) => {
   try {
-    const result = await props.importExport.uploadFile(file.file, 
-      `${currentPath.value}/${file.file.name}`)
-    
+    // Extract the actual File object from Naive UI's structure
+    // Based on ChatVFSUploader debug: file.file.file contains the actual File object
+    const actualFile = file.file.file
+
+    if (!actualFile || !(actualFile instanceof File)) {
+      throw new Error(`Invalid file structure: expected file.file.file to be a File object, got ${typeof actualFile}`)
+    }
+
+    const result = await props.importExport.uploadFile(actualFile,
+      `${currentPath.value}/${actualFile.name}`)
+
     uploadResults.value.push({
-      filename: file.file.name,
+      filename: actualFile.name,
       ...result
     })
-    
+
     if (result.success) {
-      message.success(`Uploaded ${file.file.name}`)
+      message.success(`Uploaded ${actualFile.name}`)
       refreshCurrentPath()
     } else {
       message.error(result.message)
     }
   } catch (error) {
+    const filename = file?.file?.file?.name || 'unknown'
     uploadResults.value.push({
-      filename: file.file.name,
+      filename: filename,
       success: false,
       message: error.message
     })
-    message.error(`Upload failed: ${error.message}`)
+    message.error(`Failed to upload ${filename}: ${error.message}`)
   }
-  
+
   return false // Prevent default upload behavior
 }
 
 const downloadSelected = async () => {
   if (selectedItems.value.length === 0) return
-  
+
   for (const itemPath of selectedItems.value) {
     try {
       const stat = await props.vfsInstance.stat(itemPath)
@@ -474,7 +505,7 @@ const downloadItem = async (itemPath) => {
 
 const deleteSelected = () => {
   if (selectedItems.value.length === 0) return
-  
+
   itemsToDelete.value = [...selectedItems.value]
   showDeleteConfirmDialog.value = true
 }
@@ -483,7 +514,7 @@ const confirmDelete = async () => {
   for (const itemPath of itemsToDelete.value) {
     await deleteItem(itemPath, false)
   }
-  
+
   selectedItems.value = []
   showDeleteConfirmDialog.value = false
   refreshCurrentPath()
@@ -497,7 +528,7 @@ const deleteItem = async (itemPath, refresh = true) => {
     } else {
       await props.vfsInstance.unlink(itemPath)
     }
-    
+
     message.success(`Deleted ${props.vfsInstance.pathResolver.basename(itemPath)}`)
     if (refresh) refreshCurrentPath()
   } catch (error) {
@@ -514,14 +545,14 @@ const importFromURL = async () => {
     message.warning('Please enter a URL')
     return
   }
-  
+
   importing.value = true
   try {
     const filename = props.importExport.extractFilenameFromURL(importUrl.value)
     const targetPath = `${currentPath.value}/${filename}`
-    
+
     const result = await props.importExport.importFromURL(importUrl.value, targetPath)
-    
+
     if (result.success) {
       message.success(result.message)
       refreshCurrentPath()
@@ -538,8 +569,15 @@ const importFromURL = async () => {
 
 const importVFSSession = async (file) => {
   try {
-    const result = await props.importExport.importVFSSession(file.file)
-    
+    // Extract the actual File object from Naive UI's structure
+    const actualFile = file.file.file
+
+    if (!actualFile || !(actualFile instanceof File)) {
+      throw new Error(`Invalid file structure: expected file.file.file to be a File object, got ${typeof actualFile}`)
+    }
+
+    const result = await props.importExport.importVFSSession(actualFile)
+
     if (result.success) {
       message.success(result.message)
       refreshCurrentPath()
@@ -550,7 +588,7 @@ const importVFSSession = async (file) => {
   } catch (error) {
     message.error(`Import failed: ${error.message}`)
   }
-  
+
   return false // Prevent default upload behavior
 }
 
@@ -559,11 +597,11 @@ const exportVFSSession = async () => {
     message.warning('Please enter a session name')
     return
   }
-  
+
   exporting.value = true
   try {
     const result = await props.importExport.exportVFSSession(exportSessionName.value)
-    
+
     if (result.success) {
       message.success(result.message)
     } else {
@@ -588,9 +626,27 @@ const formatSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
+// Keyboard shortcuts  
+const handleKeyDown = (event) => {
+  if (event.key === 'Delete' && selectedItems.value.length > 0) {
+    deleteSelected()
+  } else if (event.key === 'F5') {
+    event.preventDefault()
+    refreshCurrentPath()
+  } else if (event.ctrlKey && event.key === 'a') {
+    event.preventDefault()
+    selectedItems.value = fileItems.value.map(item => item.path)
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   refreshCurrentPath()
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
 })
 
 // Watch for VFS changes
@@ -684,6 +740,11 @@ defineExpose({
   color: var(--text-color-3);
 }
 
+.selection-count {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
 .upload-area {
   min-height: 200px;
 }
@@ -710,7 +771,8 @@ defineExpose({
   font-size: 12px;
 }
 
-.import-section, .export-section {
+.import-section,
+.export-section {
   padding: 16px 0;
 }
 
