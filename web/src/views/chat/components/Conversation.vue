@@ -606,12 +606,12 @@ const handleCodeExampleAdded = async (codeInfo: any) => {
   const exampleMessage = `📁 **Files uploaded successfully!**
 
 **Python example:**
-\`\`\`python
+\`\`\`python <!-- executable: Python code to use the uploaded files -->
 ${codeInfo.python}
 \`\`\`
 
 **JavaScript example:**
-\`\`\`javascript
+\`\`\`javascript <!-- executable: JavaScript code to use the uploaded files -->
 ${codeInfo.javascript}
 \`\`\`
 
