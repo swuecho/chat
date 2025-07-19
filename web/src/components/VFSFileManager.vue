@@ -177,12 +177,58 @@
         <n-button @click="showImportExportDialog = false">Close</n-button>
       </template>
     </n-modal>
+
+    <!-- Create Folder Dialog -->
+    <n-modal v-model:show="showCreateFolderDialog" preset="dialog" title="Create New Folder">
+      <n-space vertical>
+        <n-text>Enter the name for the new folder:</n-text>
+        <n-input 
+          v-model:value="newFolderName" 
+          placeholder="Folder name"
+          @keydown.enter="confirmCreateFolder"
+        />
+      </n-space>
+      <template #action>
+        <n-space>
+          <n-button @click="showCreateFolderDialog = false">Cancel</n-button>
+          <n-button @click="confirmCreateFolder" type="primary">Create</n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
+    <!-- Delete Confirmation Dialog -->
+    <n-modal v-model:show="showDeleteConfirmDialog" preset="dialog" title="Confirm Delete">
+      <n-text>Are you sure you want to delete {{ itemsToDelete.length }} item(s)?</n-text>
+      <template #action>
+        <n-space>
+          <n-button @click="showDeleteConfirmDialog = false">Cancel</n-button>
+          <n-button @click="confirmDelete" type="error">Delete</n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useMessage } from 'naive-ui'
+import { ref, computed, onMounted, onUnmounted, watch, h } from 'vue'
+import { 
+  useMessage, 
+  NModal, 
+  NButton, 
+  NButtonGroup, 
+  NIcon, 
+  NDataTable, 
+  NDivider, 
+  NUpload, 
+  NUploadDragger, 
+  NText, 
+  NP, 
+  NSpace, 
+  NTabs, 
+  NTabPane, 
+  NInput, 
+  NInputGroup 
+} from 'naive-ui'
 import { 
   CloudUpload, 
   CloudDownload, 
@@ -214,11 +260,15 @@ const fileItems = ref([])
 const selectedItems = ref([])
 const showUploadDialog = ref(false)
 const showImportExportDialog = ref(false)
+const showCreateFolderDialog = ref(false)
+const showDeleteConfirmDialog = ref(false)
 const uploadResults = ref([])
 const importing = ref(false)
 const exporting = ref(false)
 const importUrl = ref('')
 const exportSessionName = ref('my-session')
+const newFolderName = ref('')
+const itemsToDelete = ref([])
 const vfsStats = ref({
   totalFiles: 0,
   totalDirectories: 0,
@@ -332,17 +382,25 @@ const getPathUpTo = (index) => {
   return '/' + segments.join('/')
 }
 
-const createNewFolder = async () => {
-  const folderName = prompt('Enter folder name:')
-  if (folderName) {
-    try {
-      const folderPath = props.vfsInstance.pathResolver.join(currentPath.value, folderName)
-      await props.vfsInstance.mkdir(folderPath)
-      message.success(`Created folder: ${folderName}`)
-      refreshCurrentPath()
-    } catch (error) {
-      message.error(`Failed to create folder: ${error.message}`)
-    }
+const createNewFolder = () => {
+  newFolderName.value = ''
+  showCreateFolderDialog.value = true
+}
+
+const confirmCreateFolder = async () => {
+  if (!newFolderName.value.trim()) {
+    message.error('Please enter a folder name')
+    return
+  }
+  
+  try {
+    const folderPath = props.vfsInstance.pathResolver.join(currentPath.value, newFolderName.value.trim())
+    await props.vfsInstance.mkdir(folderPath)
+    message.success(`Created folder: ${newFolderName.value}`)
+    showCreateFolderDialog.value = false
+    refreshCurrentPath()
+  } catch (error) {
+    message.error(`Failed to create folder: ${error.message}`)
   }
 }
 
@@ -414,17 +472,20 @@ const downloadItem = async (itemPath) => {
   }
 }
 
-const deleteSelected = async () => {
+const deleteSelected = () => {
   if (selectedItems.value.length === 0) return
   
-  const confirmed = confirm(`Delete ${selectedItems.value.length} item(s)?`)
-  if (!confirmed) return
-  
-  for (const itemPath of selectedItems.value) {
+  itemsToDelete.value = [...selectedItems.value]
+  showDeleteConfirmDialog.value = true
+}
+
+const confirmDelete = async () => {
+  for (const itemPath of itemsToDelete.value) {
     await deleteItem(itemPath, false)
   }
   
   selectedItems.value = []
+  showDeleteConfirmDialog.value = false
   refreshCurrentPath()
 }
 

@@ -63,7 +63,7 @@
           :show-cancel-button="false"
           :show-download-button="false"
           :show-retry-button="false"
-          accept=".txt,.csv,.json,.xlsx,.py,.js,.md,.xml,.yaml,.yml,.log,.html,.css,.sql,.png,.jpg,.pdf"
+          accept=".txt,.csv,.json,.xlsx,.xls,.py,.js,.ts,.jsx,.tsx,.md,.xml,.yaml,.yml,.log,.html,.css,.sql,.png,.jpg,.jpeg,.gif,.svg,.pdf,.zip,.tar,.gz"
         >
           <n-upload-dragger>
             <div class="upload-dragger-content">
@@ -74,7 +74,7 @@
                 Click or drag files here to upload
               </n-text>
               <n-p depth="3" style="margin: 8px 0 0 0">
-                Supports: CSV, JSON, Excel, text files, code files, images
+                Supports: Data files (CSV, JSON, Excel), Code files (Python, JavaScript, TypeScript), Documents (Markdown, Text), Images (PNG, JPG, SVG), Archives (ZIP, TAR)
               </n-p>
             </div>
           </n-upload-dragger>
@@ -208,6 +208,7 @@ const isVFSReady = inject('isVFSReady', ref(false))
 const showUploadModal = ref(false)
 const showFileManager = ref(false)
 const uploading = ref(false)
+const uploadProgress = ref(0)
 const selectedDirectory = ref('/data')
 const uploadResults = ref([])
 const uploadRef = ref()
@@ -227,10 +228,6 @@ watch([vfsInstance, importExportInstance], () => {
 
 // Methods
 const handleButtonClick = () => {
-  console.log('VFS Upload button clicked!')
-  console.log('VFS Instance:', vfsInstance.value)
-  console.log('Import Export Instance:', importExportInstance.value)
-  console.log('Is VFS Ready:', isVFSReady.value)
   showUploadModal.value = true
 }
 
