@@ -150,7 +150,7 @@ async function onConversationStream() {
   const chatUuid = uuidv7()
 
   addUserMessage(chatUuid, message)
-  const responseIndex = initializeResponse()
+  const responseIndex = initializeChatResponse()
 
   try {
     await streamChatResponse(chatUuid, message, responseIndex)
@@ -184,7 +184,7 @@ function addUserMessage(chatUuid: string, message: string): void {
   prompt.value = ''
 }
 
-function initializeResponse(): number {
+function initializeChatResponse(): number {
   addChat(sessionUuid, {
     uuid: '',
     dateTime: nowISO(),
@@ -601,7 +601,7 @@ const handleVFSFileUploaded = (fileInfo: any) => {
   nui_msg.success(`📁 File uploaded: ${fileInfo.filename}`)
 }
 
-const handleCodeExampleAdded = (codeInfo: any) => {
+const handleCodeExampleAdded = async (codeInfo: any) => {
   // Add code examples as a system message
   const exampleMessage = `📁 **Files uploaded successfully!**
 
@@ -618,10 +618,11 @@ ${codeInfo.javascript}
 Your files are now available in the Virtual File System! 🚀`
 
   // Add system message to chat
+  const chatUuid = uuidv7();
   addChat(
     sessionUuid,
     {
-      uuid: uuidv7(),
+      uuid: chatUuid,
       dateTime: nowISO(),
       text: exampleMessage,
       inversion: true,
@@ -631,6 +632,13 @@ Your files are now available in the Virtual File System! 🚀`
     },
   )
 
+  const responseIndex = initializeChatResponse()
+
+  try {
+    await streamChatResponse(chatUuid, exampleMessage, responseIndex)
+  } catch (error) {
+    handleStreamingError(error, responseIndex)
+  }
 
   nui_msg.success('Files uploaded! Code examples added to chat.')
 }
