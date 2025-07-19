@@ -144,122 +144,159 @@ function handleSubmit() {
 }
 
 async function onConversationStream() {
+  if (!validateConversationInput()) return
+
   const message = prompt.value
-
-  if (loading.value)
-    return
-
-  if (!message || message.trim() === '')
-    return
-
   const chatUuid = uuidv7()
 
-  addChat(
-    sessionUuid,
-    {
-      uuid: chatUuid,
-      dateTime: nowISO(),
-      text: message,
-      inversion: true,
-      error: false,
-    },
-  )
+  addUserMessage(chatUuid, message)
+  const responseIndex = initializeResponse()
+
+  try {
+    await streamChatResponse(chatUuid, message, responseIndex)
+  } catch (error) {
+    handleStreamingError(error, responseIndex)
+  } finally {
+    loading.value = false
+  }
+}
+
+function validateConversationInput(): boolean {
+  if (loading.value) return false
+
+  const message = prompt.value
+  if (!message || message.trim() === '') return false
+
+  return true
+}
+
+function addUserMessage(chatUuid: string, message: string): void {
+  addChat(sessionUuid, {
+    uuid: chatUuid,
+    dateTime: nowISO(),
+    text: message,
+    inversion: true,
+    error: false,
+  })
   scrollToBottom()
 
   loading.value = true
   prompt.value = ''
+}
 
-  // add a blank response
-  addChat(
-    sessionUuid,
-    {
-      uuid: '',
-      dateTime: nowISO(),
-      text: '',
-      loading: true,
-      inversion: false,
-      error: false,
-    },
-  )
+function initializeResponse(): number {
+  addChat(sessionUuid, {
+    uuid: '',
+    dateTime: nowISO(),
+    text: '',
+    loading: true,
+    inversion: false,
+    error: false,
+  })
   scrollToBottomIfAtBottom()
-  const subscribleStrem = async () => {
-    try {
-      // Send the request with axios
-      const response = fetchChatStream(
-        sessionUuid,
-        chatUuid,
-        false,
-        message,
-        (progress: any) => {
-          const xhr = progress.event.target
-          const {
-            responseText,
-            status,
-          } = xhr
-          if (status >= 400) {
-            const error_json: { code: number; message: string; details: any } = JSON.parse(responseText)
-            console.log(responseText)
-            nui_msg.error(formatErr(error_json), {
-              duration: 5000,
-              closable: true,
-              render: renderMessage
-            })
 
-            chatStore.deleteChatByUuid(sessionUuid, dataSources.value.length - 1)
-            // remove last input box
-            loading.value = false
-          }
-          else {
-            const chunk = getDataFromResponseText(responseText)
-            // Check if the chunk is not empty
-            if (chunk) {
-              // Parse the JSON data chunk
-              try {
-                const data = JSON.parse(chunk)
-                const answer = data.choices[0].delta.content
-                const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
+  return dataSources.value.length - 1
+}
 
-                // Extract artifacts from the current content
-                const artifacts = extractArtifacts(answer)
+async function streamChatResponse(chatUuid: string, message: string, responseIndex: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    fetchChatStream(
+      sessionUuid,
+      chatUuid,
+      false,
+      message,
+      (progress: any) => {
+        try {
+          handleStreamProgress(progress, responseIndex)
+          resolve()
+        } catch (error) {
+          reject(error)
+        }
+      },
+    ).catch(reject)
+  })
+}
 
-                updateChat(
-                  sessionUuid,
-                  dataSources.value.length - 1,
-                  {
-                    uuid: answer_uuid,
-                    dateTime: nowISO(),
-                    text: answer,
-                    inversion: false,
-                    error: false,
-                    loading: false,
-                    artifacts: artifacts,
-                  },
-                )
-                scrollToBottomIfAtBottom()
-              }
-              catch (error) {
-                // eslint-disable-next-line no-console
-                console.log("xxx", error)
-              }
-            }
-          }
-        },
-      )
-      return response
-    }
-    catch (error: any) {
-      // eslint-disable-next-line no-console
-      console.log(error)
-      const response = error.response
-      if (response.status >= 400) {
-        nui_msg.error(response.data.message)
-        loading.value = false
-      }
-    }
+function handleStreamProgress(progress: any, responseIndex: number): void {
+  const xhr = progress.event.target
+  const { responseText, status } = xhr
+
+  if (status >= 400) {
+    handleStreamError(responseText, responseIndex)
+    return
   }
 
-  await subscribleStrem()
-  loading.value = false
+  processStreamChunk(responseText, responseIndex)
+}
+
+function handleStreamError(responseText: string, responseIndex: number): void {
+  try {
+    const errorJson: { code: number; message: string; details: any } = JSON.parse(responseText)
+    console.error('Stream error:', responseText)
+
+    nui_msg.error(formatErr(errorJson), {
+      duration: 5000,
+      closable: true,
+      render: renderMessage
+    })
+
+    chatStore.deleteChatByUuid(sessionUuid, responseIndex)
+    loading.value = false
+  } catch (parseError) {
+    console.error('Failed to parse error response:', parseError)
+    nui_msg.error('An unexpected error occurred')
+    loading.value = false
+  }
+}
+
+function processStreamChunk(responseText: string, responseIndex: number): void {
+  const chunk = getDataFromResponseText(responseText)
+
+  if (!chunk) return
+
+  try {
+    const data = JSON.parse(chunk)
+    const answer = data.choices[0].delta.content
+    const answerUuid = data.id.replace('chatcmpl-', '')
+    const artifacts = extractArtifacts(answer)
+
+    updateChat(sessionUuid, responseIndex, {
+      uuid: answerUuid,
+      dateTime: nowISO(),
+      text: answer,
+      inversion: false,
+      error: false,
+      loading: false,
+      artifacts: artifacts,
+    })
+
+    scrollToBottomIfAtBottom()
+  } catch (error) {
+    console.error('Failed to parse stream chunk:', error)
+  }
+}
+
+function handleStreamingError(error: any, responseIndex: number): void {
+  console.error('Streaming error:', error)
+
+  if (error?.response?.status >= 400) {
+    nui_msg.error(error.response.data.message)
+  } else {
+    nui_msg.error('Failed to send message. Please try again.')
+  }
+
+  // Update the response to show error state
+  const lastMessage = dataSources.value[responseIndex]
+  if (lastMessage) {
+    updateChat(sessionUuid, responseIndex, {
+      uuid: lastMessage.uuid || uuidv7(),
+      dateTime: nowISO(),
+      text: 'Failed to get response. Please try again.',
+      inversion: false,
+      error: true,
+      loading: false,
+    })
+  }
 }
 
 async function onRegenerate(index: number) {
