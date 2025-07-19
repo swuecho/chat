@@ -351,13 +351,157 @@ try {
 - Use appropriate file encodings for your data
 - Close files promptly (automatic with `with` statements in Python)
 
+## Data Import/Export System
+
+The VFS includes a comprehensive import/export system for working with external data and managing your files.
+
+### File Upload
+
+Upload files from your computer directly into the VFS:
+
+```javascript
+// Files uploaded through the UI are automatically available
+const fs = require('fs');
+
+// Check if uploaded file exists
+if (fs.existsSync('/data/uploaded-data.csv')) {
+    const content = fs.readFileSync('/data/uploaded-data.csv', 'utf8');
+    console.log('Uploaded file content:', content);
+}
+```
+
+```python
+# Uploaded files are immediately accessible in Python
+import pandas as pd
+import os
+
+if os.path.exists('/data/uploaded-data.csv'):
+    df = pd.read_csv('/data/uploaded-data.csv')
+    print('Uploaded data shape:', df.shape)
+    print(df.head())
+```
+
+### File Download
+
+Download any file from the VFS to your computer:
+
+```javascript
+// Download individual files or entire directories
+// This is typically done through the file manager UI
+// Files are downloaded as-is or as ZIP archives for directories
+```
+
+### Import from URL
+
+Fetch data directly from web URLs:
+
+```javascript
+// Import data from external URLs (when supported)
+const fs = require('fs');
+
+// Note: URL imports work when the code runner has network access
+// Example of processing imported data:
+if (fs.existsSync('/data/imported-dataset.csv')) {
+    const data = fs.readFileSync('/data/imported-dataset.csv', 'utf8');
+    console.log('Imported dataset:', data.split('\n').length, 'lines');
+}
+```
+
+### Data Format Conversion
+
+Convert between different file formats:
+
+```javascript
+const fs = require('fs');
+
+// Create CSV data
+const csvData = `name,age,city
+John,30,New York
+Jane,25,San Francisco`;
+
+fs.writeFileSync('/data/people.csv', csvData);
+
+// Convert to JSON (using file manager conversion tools)
+// Result: /data/people.json with structured data
+```
+
+```python
+import json
+import pandas as pd
+
+# Read converted JSON data
+with open('/data/people.json', 'r') as f:
+    people = json.load(f)
+
+print('People data:', people)
+
+# Further processing with pandas
+df = pd.DataFrame(people)
+print('DataFrame shape:', df.shape)
+```
+
+### Session Management
+
+Save and restore entire VFS sessions:
+
+```javascript
+// Session export/import is handled through the UI
+// Sessions are saved as .vfs.json files containing:
+// - All files and their content
+// - Directory structure
+// - Metadata and timestamps
+
+// After importing a session, all files are available:
+const fs = require('fs');
+const files = fs.readdirSync('/data');
+console.log('Available files after session import:', files);
+```
+
+### Bulk Operations
+
+Handle multiple files efficiently:
+
+```javascript
+const fs = require('fs');
+
+// Process multiple uploaded files
+const dataFiles = fs.readdirSync('/data').filter(f => f.endsWith('.csv'));
+
+dataFiles.forEach(file => {
+    const content = fs.readFileSync(`/data/${file}`, 'utf8');
+    const lines = content.split('\n').length - 1; // Subtract header
+    console.log(`${file}: ${lines} data rows`);
+});
+```
+
+```python
+import os
+import pandas as pd
+
+# Batch process multiple CSV files
+data_dir = '/data'
+csv_files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
+
+combined_data = []
+for csv_file in csv_files:
+    file_path = os.path.join(data_dir, csv_file)
+    df = pd.read_csv(file_path)
+    df['source_file'] = csv_file
+    combined_data.append(df)
+
+if combined_data:
+    master_df = pd.concat(combined_data, ignore_index=True)
+    master_df.to_csv('/data/combined_dataset.csv', index=False)
+    print(f'Combined {len(csv_files)} files into master dataset')
+```
+
 ## Limitations
 
 - **Memory-based**: Files exist only in memory during the session
 - **Size limits**: Individual files are limited to 10MB, total storage to 50-100MB
-- **No persistence**: Files are lost when the session ends (future versions will add persistence)
-- **No network access**: Cannot read from URLs or external sources directly
-- **Limited binary support**: Basic binary file support (images, etc.)
+- **Session persistence**: Files are lost when the session ends (use export/import for persistence)
+- **Network access**: URL imports depend on the execution environment
+- **Binary support**: Basic binary file support (images, documents)
 
 ## Common Use Cases
 

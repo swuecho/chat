@@ -22,6 +22,9 @@ class VirtualFileSystem {
     this.utils = new FileSystemUtils(this)
     this.persistence = new VFSPersistence(this)
     
+    // Import/Export will be initialized externally
+    this.importExport = null
+    
     // Initialize root directory
     this.directories.add('/')
     this._updateDirectoryMetadata('/')
