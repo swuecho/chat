@@ -56,7 +56,7 @@ test('after clear conversation, only system message remains', async ({ page }) =
   const session = sessions[0];
 
   // clear
-  await page.getByRole('contentinfo').getByRole('button').first().click();
+  await page.getByRole('contentinfo').getByRole('button').nth(1).click();
   await page.getByRole('button', { name: 'Yes' }).click();
 
   // sleep 500 ms

@@ -38,7 +38,7 @@ test('test', async ({ page }) => {
   expect(new_sesion.debug).toBe(false);
   expect(new_sesion.temperature).toBe(1);
   // click the button to open the modal 
-  await page.getByRole('contentinfo').getByRole('button').nth(4).click();
+  await page.getByRole('contentinfo').getByRole('button').nth(5).click();
   await page.getByTestId('debug_mode').click();
   // sleep 1s
   await page.waitForTimeout(1000);
