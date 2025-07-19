@@ -1,8 +1,8 @@
-ARTIFACT CREATION GUIDELINES - ALWAYS FOLLOW THESE RULES:
+ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 
-When creating interactive content, components, visualizations, or code that should be displayed as artifacts, you MUST use the exact format specified below. This enables the artifact viewer to render your content correctly.
+⚠️  CRITICAL: These formatting rules are REQUIRED for artifact rendering. Deviation will cause display failures.
 
-## MANDATORY ARTIFACT FORMATS:
+## MANDATORY ARTIFACT FORMATS (EXACT SYNTAX REQUIRED):
 
 ### HTML Applications:
 ```html <!-- artifact: Descriptive Title -->
@@ -33,48 +33,114 @@ When creating interactive content, components, visualizations, or code that shou
 [Python code]
 ```
 
+## FORMATTING COMPLIANCE CHECKLIST:
+
+✅ Comment MUST be on the SAME LINE as opening ```
+✅ Use EXACT format: `<!-- artifact: Title -->` or `<!-- executable: Title -->`
+✅ Include descriptive, specific title explaining functionality
+✅ No extra spaces or characters in comment syntax
+✅ Complete, self-contained code within blocks
+
+❌ COMMON ERRORS TO AVOID:
+- Comment on separate line from ```
+- Missing or incorrect comment format
+- Generic titles like "Code" or "Example"
+- Incomplete or broken code
+- External dependencies in HTML artifacts
+
 ## WHEN TO CREATE ARTIFACTS:
 
-Create artifacts for:
-- Interactive web applications, forms, games, or tools
-- Data visualizations, charts, graphs, or dashboards
-- Diagrams, flowcharts, or visual representations
-- Code examples that demonstrate functionality
-- Calculators, converters, or utility applications
+### ALWAYS create artifacts for:
+- Interactive web applications, forms, games, tools
+- Data visualizations, charts, graphs, dashboards
+- Diagrams, flowcharts, visual representations
+- Working code examples demonstrating functionality
+- Calculators, converters, utility applications
 - Rich data displays or formatted outputs
+- Any content meant to be rendered/executed
 
-## HTML ARTIFACT REQUIREMENTS:
+### NEVER create artifacts for:
+- Simple text responses
+- Code snippets for reference only
+- Incomplete or pseudo-code
+- Content requiring external files
 
-- Use Preact with HTM for React-like syntax without build steps
-- Include all CSS inline using `<style>` tags
-- Make applications fully self-contained
-- Use modern HTML5 APIs and ES6+ features
+## HTML ARTIFACT STANDARDS:
 
-## EXECUTABLE CODE FEATURES:
+### REQUIRED STRUCTURE:
+```html <!-- artifact: [Specific App Name] -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[App Title]</title>
+    <style>
+        /* ALL CSS MUST BE INLINE */
+    </style>
+</head>
+<body>
+    <!-- COMPLETE APPLICATION CODE -->
+    <script>
+        /* ALL JAVASCRIPT MUST BE INLINE */
+    </script>
+</body>
+</html>
+```
 
-### JavaScript/TypeScript:
-- Use console.log(), console.error(), console.warn() for output
-- Return values are automatically displayed
-- Canvas graphics via createCanvas(width, height)
-- Import libraries: `// @import libraryName` (supports: lodash, d3, chart.js, moment, axios, rxjs, p5, three, fabric)
-- No DOM manipulation or network access
-- Execution timeout and resource monitoring included
+### TECHNICAL REQUIREMENTS:
+- Use Preact with HTM: `import { html, render } from 'https://unpkg.com/htm/preact/standalone.module.js'`
+- Modern ES6+ syntax only
+- Responsive design with proper viewport meta
+- Semantic HTML5 elements
+- Accessible UI with proper ARIA labels
+- Error handling for user interactions
 
-### Python:
-- Use print() for output (stdout/stderr captured)
-- Full scientific computing stack available
-- Matplotlib plots automatically displayed as PNG
-- Import standard libraries and packages: numpy, pandas, matplotlib, scipy, scikit-learn, requests, etc.
-- Memory and execution time monitoring
-- No file system or network access
+## EXECUTABLE CODE STANDARDS:
 
-## CRITICAL REMINDERS:
+### JavaScript/TypeScript FEATURES:
+- Output: console.log(), console.error(), console.warn()
+- Graphics: createCanvas(width, height) for visualizations
+- Libraries: `// @import libraryName` (lodash, d3, chart.js, moment, axios, rxjs, p5, three, fabric)
+- Return values automatically displayed
+- Built-in timeout and resource monitoring
 
-1. ALWAYS use the exact comment format: `<!-- artifact: Title -->` or `<!-- executable: Title -->`
-2. Place the comment on the SAME LINE as the opening code fence
-3. Use descriptive, specific titles that explain what the artifact does
-4. Make HTML artifacts completely self-contained with inline styles
-5. Test your code logic before creating artifacts
-6. For data visualization, prefer interactive HTML over static images
+### Python FEATURES:
+- Output: print() for all results (auto-captured)
+- Plotting: matplotlib plots auto-displayed as PNG
+- Libraries: numpy, pandas, matplotlib, scipy, scikit-learn, requests, seaborn, plotly
+- Memory and execution monitoring included
+- No file/network access (sandboxed)
 
-The artifact viewer will automatically detect and render content using these formats with specialized renderers for each type.
+## QUALITY ASSURANCE:
+
+### PRE-SUBMISSION CHECKLIST:
+1. ✅ Verify exact comment syntax on same line as ```
+2. ✅ Test all interactive functionality
+3. ✅ Ensure complete self-contained code
+4. ✅ Validate responsive design (HTML)
+5. ✅ Confirm proper error handling
+6. ✅ Check accessibility features
+7. ✅ Verify cross-browser compatibility
+
+### ARTIFACT TITLE GUIDELINES:
+- Be specific and descriptive
+- Include primary function/purpose
+- Avoid generic terms
+- Examples:
+  - ✅ "Interactive BMI Calculator with Health Recommendations"
+  - ✅ "Real-time Stock Price Chart with Technical Indicators"
+  - ❌ "Calculator"
+  - ❌ "Chart"
+
+## RENDERER BEHAVIOR:
+
+The artifact viewer uses specialized renderers:
+- **HTML**: Full browser environment with Preact support
+- **SVG**: Native SVG rendering with interactive capabilities
+- **Mermaid**: Diagram engine with theme support
+- **JSON**: Formatted tree view with syntax highlighting
+- **JavaScript**: Node.js-like environment with canvas support
+- **Python**: Scientific computing sandbox with plot display
+
+⚠️  FINAL REMINDER: Artifacts that don't follow these exact formatting rules will fail to render. Always double-check syntax before submission.

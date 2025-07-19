@@ -3,6 +3,162 @@
  * Executes JavaScript code in a safe, isolated environment with library support
  */
 
+// Simplified VFS implementation for JavaScript Runner
+class SimpleVFS {
+  constructor() {
+    this.files = new Map()
+    this.directories = new Set(['/'])
+    this.currentDirectory = '/workspace'
+    
+    // Create default directories
+    this.directories.add('/data')
+    this.directories.add('/tmp') 
+    this.directories.add('/workspace')
+  }
+  
+  writeFile(path, data, options = {}) {
+    const normalizedPath = this.normalize(path)
+    this.ensureDirectoryExists(this.dirname(normalizedPath))
+    this.files.set(normalizedPath, data)
+    return normalizedPath
+  }
+  
+  readFile(path, encoding = 'utf8') {
+    const normalizedPath = this.normalize(path)
+    if (!this.files.has(normalizedPath)) {
+      throw new Error(`File not found: ${path}`)
+    }
+    return this.files.get(normalizedPath)
+  }
+  
+  exists(path) {
+    const normalizedPath = this.normalize(path)
+    return this.files.has(normalizedPath) || this.directories.has(normalizedPath)
+  }
+  
+  mkdir(path, options = {}) {
+    const normalizedPath = this.normalize(path)
+    if (options.recursive) {
+      const parts = normalizedPath.split('/').filter(Boolean)
+      let currentPath = '/'
+      for (const part of parts) {
+        currentPath = currentPath === '/' ? '/' + part : currentPath + '/' + part
+        this.directories.add(currentPath)
+      }
+    } else {
+      this.directories.add(normalizedPath)
+    }
+    return normalizedPath
+  }
+  
+  readdir(path) {
+    const normalizedPath = this.normalize(path)
+    if (!this.directories.has(normalizedPath)) {
+      throw new Error(`Directory not found: ${path}`)
+    }
+    
+    const items = []
+    const prefix = normalizedPath === '/' ? '/' : normalizedPath + '/'
+    
+    // Find immediate children
+    for (const dir of this.directories) {
+      if (dir !== normalizedPath && dir.startsWith(prefix)) {
+        const relative = dir.slice(prefix.length)
+        if (!relative.includes('/')) {
+          items.push(relative)
+        }
+      }
+    }
+    
+    for (const file of this.files.keys()) {
+      if (file.startsWith(prefix)) {
+        const relative = file.slice(prefix.length)
+        if (!relative.includes('/')) {
+          items.push(relative)
+        }
+      }
+    }
+    
+    return items.sort()
+  }
+  
+  stat(path) {
+    const normalizedPath = this.normalize(path)
+    if (this.directories.has(normalizedPath)) {
+      return { isDirectory: true, isFile: false }
+    }
+    if (this.files.has(normalizedPath)) {
+      return { isDirectory: false, isFile: true }
+    }
+    throw new Error(`Path not found: ${path}`)
+  }
+  
+  unlink(path) {
+    const normalizedPath = this.normalize(path)
+    if (!this.files.has(normalizedPath)) {
+      throw new Error(`File not found: ${path}`)
+    }
+    this.files.delete(normalizedPath)
+  }
+  
+  rmdir(path) {
+    const normalizedPath = this.normalize(path)
+    if (!this.directories.has(normalizedPath)) {
+      throw new Error(`Directory not found: ${path}`)
+    }
+    this.directories.delete(normalizedPath)
+  }
+  
+  chdir(path) {
+    const normalizedPath = this.normalize(path)
+    if (!this.directories.has(normalizedPath)) {
+      throw new Error(`Directory not found: ${path}`)
+    }
+    this.currentDirectory = normalizedPath
+  }
+  
+  getcwd() {
+    return this.currentDirectory
+  }
+  
+  normalize(path) {
+    if (!path || path === '.') return this.currentDirectory
+    if (!path.startsWith('/')) {
+      path = this.currentDirectory + '/' + path
+    }
+    
+    const parts = path.split('/').filter(Boolean)
+    const resolved = []
+    
+    for (const part of parts) {
+      if (part === '.') continue
+      if (part === '..') {
+        resolved.pop()
+      } else {
+        resolved.push(part)
+      }
+    }
+    
+    return '/' + resolved.join('/')
+  }
+  
+  dirname(path) {
+    const normalized = this.normalize(path)
+    if (normalized === '/') return '/'
+    const lastSlash = normalized.lastIndexOf('/')
+    return lastSlash === 0 ? '/' : normalized.slice(0, lastSlash)
+  }
+  
+  ensureDirectoryExists(path) {
+    if (!this.directories.has(path)) {
+      this.mkdir(path, { recursive: true })
+    }
+  }
+}
+
+// Global VFS instance
+let vfs = null
+
 class SafeJSRunner {
   constructor() {
     this.output = []
@@ -16,6 +172,170 @@ class SafeJSRunner {
       maxMemory: 50 * 1024 * 1024 // 50MB limit (approximate)
     }
     this.setupConsole()
+    this.setupVFS()
+    this.setupFS()
+  }
+
+  setupVFS() {
+    // Initialize Virtual File System
+    if (!vfs) {
+      vfs = new SimpleVFS()
+      this.addOutput('info', 'Virtual file system initialized')
+    }
+  }
+
+  setupFS() {
+    // Create Node.js-style fs module
+    this.fs = {
+      // Synchronous versions
+      readFileSync: (path, options = {}) => {
+        const encoding = options.encoding || options
+        return vfs.readFile(path, encoding)
+      },
+      
+      writeFileSync: (path, data, options = {}) => {
+        return vfs.writeFile(path, data, options)
+      },
+      
+      existsSync: (path) => {
+        return vfs.exists(path)
+      },
+      
+      mkdirSync: (path, options = {}) => {
+        return vfs.mkdir(path, options)
+      },
+      
+      readdirSync: (path, options = {}) => {
+        return vfs.readdir(path)
+      },
+      
+      statSync: (path) => {
+        return vfs.stat(path)
+      },
+      
+      unlinkSync: (path) => {
+        return vfs.unlink(path)
+      },
+      
+      rmdirSync: (path, options = {}) => {
+        return vfs.rmdir(path)
+      },
+      
+      // Async versions (Promise-based)
+      readFile: async (path, options = {}) => {
+        const encoding = options.encoding || options
+        return vfs.readFile(path, encoding)
+      },
+      
+      writeFile: async (path, data, options = {}) => {
+        return vfs.writeFile(path, data, options)
+      },
+      
+      mkdir: async (path, options = {}) => {
+        return vfs.mkdir(path, options)
+      },
+      
+      readdir: async (path, options = {}) => {
+        return vfs.readdir(path)
+      },
+      
+      stat: async (path) => {
+        return vfs.stat(path)
+      },
+      
+      unlink: async (path) => {
+        return vfs.unlink(path)
+      },
+      
+      rmdir: async (path, options = {}) => {
+        return vfs.rmdir(path)
+      },
+      
+      // Additional utilities
+      promises: {
+        readFile: async (path, options = {}) => {
+          const encoding = options.encoding || options
+          return vfs.readFile(path, encoding)
+        },
+        
+        writeFile: async (path, data, options = {}) => {
+          return vfs.writeFile(path, data, options)
+        },
+        
+        mkdir: async (path, options = {}) => {
+          return vfs.mkdir(path, options)
+        },
+        
+        readdir: async (path, options = {}) => {
+          return vfs.readdir(path)
+        },
+        
+        stat: async (path) => {
+          return vfs.stat(path)
+        },
+        
+        unlink: async (path) => {
+          return vfs.unlink(path)
+        },
+        
+        rmdir: async (path, options = {}) => {
+          return vfs.rmdir(path)
+        }
+      }
+    }
+    
+    // Path utilities
+    this.path = {
+      join: (...parts) => {
+        const joined = parts.join('/')
+        return vfs.normalize(joined)
+      },
+      
+      dirname: (path) => {
+        return vfs.dirname(path)
+      },
+      
+      basename: (path) => {
+        const normalized = vfs.normalize(path)
+        const lastSlash = normalized.lastIndexOf('/')
+        return normalized.slice(lastSlash + 1)
+      },
+      
+      extname: (path) => {
+        const base = this.path.basename(path)
+        const lastDot = base.lastIndexOf('.')
+        if (lastDot === -1 || lastDot === 0) return ''
+        return base.slice(lastDot)
+      },
+      
+      resolve: (...paths) => {
+        return vfs.normalize(paths.join('/'))
+      },
+      
+      relative: (from, to) => {
+        // Simple relative path implementation
+        const fromParts = vfs.normalize(from).split('/').filter(Boolean)
+        const toParts = vfs.normalize(to).split('/').filter(Boolean)
+        
+        let commonLength = 0
+        for (let i = 0; i < Math.min(fromParts.length, toParts.length); i++) {
+          if (fromParts[i] === toParts[i]) {
+            commonLength++
+          } else {
+            break
+          }
+        }
+        
+        const upLevels = fromParts.length - commonLength
+        const relativeParts = Array(upLevels).fill('..').concat(toParts.slice(commonLength))
+        
+        return relativeParts.join('/') || '.'
+      },
+      
+      isAbsolute: (path) => {
+        return path.startsWith('/')
+      }
+    }
   }
 
   setupConsole() {
@@ -326,6 +646,24 @@ class SafeJSRunner {
         loadLibrary: this.loadLibrary.bind(this),
         getAvailableLibraries: this.getAvailableLibraries.bind(this),
         
+        // File system support
+        fs: this.fs,
+        require: (module) => {
+          if (module === 'fs') return this.fs
+          if (module === 'path') return this.path
+          throw new Error(`Module '${module}' not found`)
+        },
+        
+        // Process simulation
+        process: {
+          cwd: () => vfs.getcwd(),
+          chdir: (path) => vfs.chdir(path),
+          env: {},
+          argv: ['node'],
+          version: 'v18.0.0',
+          platform: 'browser'
+        },
+        
         // Resource monitoring (internal use)
         checkResourceLimits: this.checkResourceLimits.bind(this),
         
@@ -462,7 +800,7 @@ const runner = new SafeJSRunner()
 
 // Handle messages from main thread
 self.onmessage = async (e) => {
-  const { type, code, timeout = 10000, requestId, libraryName } = e.data
+  const { type, code, timeout = 10000, requestId, libraryName, path, data, options } = e.data
   
   try {
     if (type === 'execute') {
@@ -504,6 +842,59 @@ self.onmessage = async (e) => {
         data: libraries,
         requestId: requestId
       })
+    } else if (type === 'vfs') {
+      // Handle VFS operations
+      const { operation } = e.data
+      let result
+      
+      try {
+        switch (operation) {
+          case 'writeFile':
+            result = vfs.writeFile(path, data, options)
+            break
+          case 'readFile':
+            result = vfs.readFile(path, options?.encoding)
+            break
+          case 'exists':
+            result = vfs.exists(path)
+            break
+          case 'mkdir':
+            result = vfs.mkdir(path, options)
+            break
+          case 'readdir':
+            result = vfs.readdir(path)
+            break
+          case 'stat':
+            result = vfs.stat(path)
+            break
+          case 'unlink':
+            result = vfs.unlink(path)
+            break
+          case 'rmdir':
+            result = vfs.rmdir(path)
+            break
+          case 'chdir':
+            result = vfs.chdir(path)
+            break
+          case 'getcwd':
+            result = vfs.getcwd()
+            break
+          default:
+            throw new Error(`Unknown VFS operation: ${operation}`)
+        }
+        
+        self.postMessage({
+          type: 'vfsResult',
+          data: result,
+          requestId: requestId
+        })
+      } catch (error) {
+        self.postMessage({
+          type: 'vfsError',
+          data: { message: error.message },
+          requestId: requestId
+        })
+      }
     } else {
       // Backward compatibility - treat as execute
       const executionPromise = runner.execute(code)
