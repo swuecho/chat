@@ -208,12 +208,11 @@ async function streamChatResponse(chatUuid: string, message: string, responseInd
       (progress: any) => {
         try {
           handleStreamProgress(progress, responseIndex)
-          resolve()
         } catch (error) {
           reject(error)
         }
       },
-    ).catch(reject)
+    ).then(resolve).catch(reject)
   })
 }
 
@@ -386,12 +385,11 @@ async function streamRegenerateResponse(chatUuid: string, updateIndex: number, i
       (progress: any) => {
         try {
           handleRegenerateStreamProgress(progress, updateIndex)
-          resolve()
         } catch (error) {
           reject(error)
         }
       },
-    ).catch(reject)
+    ).then(resolve).catch(reject)
   })
 }
 
