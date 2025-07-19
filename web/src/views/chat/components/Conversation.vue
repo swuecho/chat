@@ -218,10 +218,10 @@ async function onConversationStream() {
                 const data = JSON.parse(chunk)
                 const answer = data.choices[0].delta.content
                 const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
-                
+
                 // Extract artifacts from the current content
                 const artifacts = extractArtifacts(answer)
-                
+
                 updateChat(
                   sessionUuid,
                   dataSources.value.length - 1,
@@ -372,10 +372,10 @@ async function onRegenerate(index: number) {
                 const data = JSON.parse(chunk)
                 const answer = data.choices[0].delta.content
                 const answer_uuid = data.id.replace('chatcmpl-', '') // use answer id as uuid
-                
+
                 // Extract artifacts from the current content
                 const artifacts = extractArtifacts(answer)
-                
+
                 updateChat(
                   sessionUuid,
                   updateIndex,
@@ -587,12 +587,14 @@ Your files are now available in the Virtual File System! 🚀`
       uuid: uuidv7(),
       dateTime: nowISO(),
       text: exampleMessage,
-      inversion: false,
+      inversion: true,
       error: false,
       loading: false,
+      artifacts: extractArtifacts(exampleMessage),
     },
   )
-  
+
+
   nui_msg.success('Files uploaded! Code examples added to chat.')
 }
 </script>
@@ -600,116 +602,115 @@ Your files are now available in the Virtual File System! 🚀`
 <template>
   <VFSProvider>
     <div class="flex flex-col w-full h-full">
-    <div>
-      <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
-        @update:showUploadModal="showUploadModal = $event" />
-    </div>
-    <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
-    <main class="flex-1 overflow-hidden">
-      <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
-        <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
-      </NModal>
-      <div class="flex items-center justify-center mt-2 mb-2">
-        <div class="w-4/5 md:w-1/3">
-          <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
-        </div>
+      <div>
+        <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
+          @update:showUploadModal="showUploadModal = $event" />
       </div>
-      <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
-      </UploaderReadOnly>
-      <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
-        <div v-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10"
-          :class="[isMobile ? 'p-2' : 'p-4']">
-          <template v-if="!dataSources.length">
-            <div class="flex items-center justify-center m-4 text-center text-neutral-300">
-              <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
-              <span>{{ $t('common.help') }}</span>
-            </div>
-            <PromptGallery @usePrompt="handleUsePrompt"></PromptGallery>
-          </template>
-          <template v-else>
-            <div>
-              <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate" />
-            </div>
-          </template>
+      <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
+      <main class="flex-1 overflow-hidden">
+        <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
+          <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
+        </NModal>
+        <div class="flex items-center justify-center mt-2 mb-2">
+          <div class="w-4/5 md:w-1/3">
+            <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
+          </div>
         </div>
-        <div v-else class="h-full">
-          <ArtifactGallery />
-        </div>
-        <JumpToBottom v-if="dataSources.length > 1 && !showArtifactGallery" targetSelector="#scrollRef" :scrollThresholdShow="200" />
+        <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
+        </UploaderReadOnly>
+        <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
+          <div v-if="!showArtifactGallery" id="image-wrapper"
+            class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10" :class="[isMobile ? 'p-2' : 'p-4']">
+            <template v-if="!dataSources.length">
+              <div class="flex items-center justify-center m-4 text-center text-neutral-300">
+                <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
+                <span>{{ $t('common.help') }}</span>
+              </div>
+              <PromptGallery @usePrompt="handleUsePrompt"></PromptGallery>
+            </template>
+            <template v-else>
+              <div>
+                <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate" />
+              </div>
+            </template>
+          </div>
+          <div v-else class="h-full">
+            <ArtifactGallery />
+          </div>
+          <JumpToBottom v-if="dataSources.length > 1 && !showArtifactGallery" targetSelector="#scrollRef"
+            :scrollThresholdShow="200" />
 
-      </div>
-    </main>
-    <footer :class="footerClass">
-      <div class="w-full max-w-screen-xl m-auto">
-        <!-- VFS Upload Section -->
-        <div class="vfs-upload-section mb-2">
-          <ChatVFSUploader 
-            :session-uuid="sessionUuid"
-            @file-uploaded="handleVFSFileUploaded"
-            @code-example-added="handleCodeExampleAdded"
-          />
         </div>
-        
-        <div class="flex items-center justify-between space-x-1">
-          <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
-            <span class="text-xl text-[#4b9e5f] dark:text-white">
-              <SvgIcon icon="icon-park-outline:clear" />
-            </span>
-          </HoverButton>
-          <NSpin :show="botLoading">
-            <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
-              @click="handleCreateBot">
+      </main>
+      <footer :class="footerClass">
+        <div class="w-full max-w-screen-xl m-auto">
+          <!-- VFS Upload Section -->
+          <div class="vfs-upload-section mb-2">
+            <ChatVFSUploader :session-uuid="sessionUuid" @file-uploaded="handleVFSFileUploaded"
+              @code-example-added="handleCodeExampleAdded" />
+          </div>
+
+          <div class="flex items-center justify-between space-x-1">
+            <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
               <span class="text-xl text-[#4b9e5f] dark:text-white">
-                <SvgIcon icon="fluent:bot-add-24-regular" />
+                <SvgIcon icon="icon-park-outline:clear" />
               </span>
             </HoverButton>
-          </NSpin>
+            <NSpin :show="botLoading">
+              <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
+                @click="handleCreateBot">
+                <span class="text-xl text-[#4b9e5f] dark:text-white">
+                  <SvgIcon icon="fluent:bot-add-24-regular" />
+                </span>
+              </HoverButton>
+            </NSpin>
 
-          <NSpin :show="snapshotLoading">
-            <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
-              @click="handleSnapshot">
+            <NSpin :show="snapshotLoading">
+              <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
+                @click="handleSnapshot">
+                <span class="text-xl text-[#4b9e5f] dark:text-white">
+                  <SvgIcon icon="ic:twotone-ios-share" />
+                </span>
+              </HoverButton>
+            </NSpin>
+
+            <HoverButton v-if="!isMobile" @click="toggleArtifactGallery"
+              :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'">
               <span class="text-xl text-[#4b9e5f] dark:text-white">
-                <SvgIcon icon="ic:twotone-ios-share" />
+                <SvgIcon icon="ri:gallery-line" />
               </span>
             </HoverButton>
-          </NSpin>
-         
-          <HoverButton v-if="!isMobile" @click="toggleArtifactGallery" :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'">
-            <span class="text-xl text-[#4b9e5f] dark:text-white">
-              <SvgIcon icon="ri:gallery-line" />
-            </span>
-          </HoverButton>
 
-           <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
-            <span class="text-xl text-[#4b9e5f]">
-              <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
-            </span>
-          </HoverButton>
-          <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
-            :on-select="handleSelectAutoComplete">
-            <template #default="{ handleInput, handleBlur, handleFocus }">
-              <NInput ref="searchInputRef" id="message_textarea" v-model:value="prompt" type="textarea"
-                :placeholder="placeholder" data-testid="message_textarea"
-                :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
-                @blur="handleBlur" @keypress="handleEnter" />
-            </template>
-          </NAutoComplete>
-          <button class="!-ml-8 z-10" @click="showUploadModal = true">
-            <span class="text-xl text-[#4b9e5f]">
-              <SvgIcon icon="clarity:attachment-line" />
-            </span>
-          </button>
-          <NButton id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
-            :disabled="sendButtonDisabled" @click="handleSubmit">
-            <template #icon>
-              <span class="dark:text-black">
-                <SvgIcon icon="ri:send-plane-fill" />
+            <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
+              <span class="text-xl text-[#4b9e5f]">
+                <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
               </span>
-            </template>
-          </NButton>
+            </HoverButton>
+            <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
+              :on-select="handleSelectAutoComplete">
+              <template #default="{ handleInput, handleBlur, handleFocus }">
+                <NInput ref="searchInputRef" id="message_textarea" v-model:value="prompt" type="textarea"
+                  :placeholder="placeholder" data-testid="message_textarea"
+                  :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
+                  @blur="handleBlur" @keypress="handleEnter" />
+              </template>
+            </NAutoComplete>
+            <button class="!-ml-8 z-10" @click="showUploadModal = true">
+              <span class="text-xl text-[#4b9e5f]">
+                <SvgIcon icon="clarity:attachment-line" />
+              </span>
+            </button>
+            <NButton id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
+              :disabled="sendButtonDisabled" @click="handleSubmit">
+              <template #icon>
+                <span class="dark:text-black">
+                  <SvgIcon icon="ri:send-plane-fill" />
+                </span>
+              </template>
+            </NButton>
+          </div>
         </div>
-      </div>
-    </footer>
+      </footer>
     </div>
   </VFSProvider>
 </template>
@@ -736,7 +737,7 @@ Your files are now available in the Virtual File System! 🚀`
   .vfs-upload-section {
     justify-content: center;
   }
-  
+
   .vfs-upload-section::before {
     display: none;
   }
