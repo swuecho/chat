@@ -414,10 +414,10 @@ func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msg
 	isCustom := strings.HasPrefix(model, "custom-")
 
 	var chatModel ChatModel
-	if isClaude3 {
-		chatModel = &Claude3ChatModel{h: h}
-	} else if isTestChat {
+	if isTestChat {
 		chatModel = &TestChatModel{h: h}
+	} else if isClaude3 {
+		chatModel = &Claude3ChatModel{h: h}
 	} else if isOllama {
 		chatModel = &OllamaChatModel{h: h}
 	} else if isCompletion {
@@ -435,7 +435,11 @@ func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msg
 func isTest(msgs []models.Message) bool {
 	lastMsgs := msgs[len(msgs)-1]
 	promptMsg := msgs[0]
-	return promptMsg.Content == "test_demo_bestqa" || lastMsgs.Content == "test_demo_bestqa"
+	// prefix with test_demo_bestqa
+	if strings.HasPrefix(promptMsg.Content, "test_demo_bestqa") || strings.HasPrefix(lastMsgs.Content, "test_demo_bestqa") {
+		return true
+	}
+	return false
 }
 
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {
