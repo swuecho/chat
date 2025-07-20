@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import { v7 as uuidv7 } from 'uuid'
 import { nowISO } from '@/utils/date'
 import { useChat } from '@/views/chat/hooks/useChat'
-import { useScroll } from '@/views/chat/hooks/useScroll'
 import { useStreamHandling } from './useStreamHandling'
 import { useErrorHandling } from './useErrorHandling'
 import { useValidation } from './useValidation'
@@ -18,10 +17,13 @@ interface ChatMessage {
   artifacts?: any[]
 }
 
-export function useConversationFlow(sessionUuid: string) {
+export function useConversationFlow(
+  sessionUuid: string,
+  scrollToBottom: () => Promise<void>,
+  scrollToBottomIfAtBottom: () => Promise<void>
+) {
   const loading = ref<boolean>(false)
   const { addChat, updateChat } = useChat()
-  const { scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
   const { streamChatResponse, processStreamChunk } = useStreamHandling()
   const { handleApiError, showErrorNotification } = useErrorHandling()
   const { validateChatMessage } = useValidation()
@@ -42,7 +44,7 @@ export function useConversationFlow(sessionUuid: string) {
     return true
   }
 
-  function addUserMessage(chatUuid: string, message: string): void {
+  async function addUserMessage(chatUuid: string, message: string): Promise<void> {
     const chatMessage: ChatMessage = {
       uuid: chatUuid,
       dateTime: nowISO(),
@@ -52,11 +54,11 @@ export function useConversationFlow(sessionUuid: string) {
     }
     
     addChat(sessionUuid, chatMessage)
-    scrollToBottom()
+    await scrollToBottom()
     loading.value = true
   }
 
-  function initializeChatResponse(dataSources: any[]): number {
+  async function initializeChatResponse(dataSources: any[]): Promise<number> {
     addChat(sessionUuid, {
       uuid: '',
       dateTime: nowISO(),
@@ -65,7 +67,7 @@ export function useConversationFlow(sessionUuid: string) {
       inversion: false,
       error: false,
     })
-    scrollToBottomIfAtBottom()
+    await scrollToBottomIfAtBottom()
     return dataSources.length - 1
   }
 
@@ -94,8 +96,8 @@ export function useConversationFlow(sessionUuid: string) {
     if (!validateConversationInput(message)) return
 
     const chatUuid = uuidv7()
-    addUserMessage(chatUuid, message)
-    const responseIndex = initializeChatResponse(dataSources)
+    await addUserMessage(chatUuid, message)
+    const responseIndex = await initializeChatResponse(dataSources)
 
     try {
       await streamChatResponse(
@@ -103,9 +105,9 @@ export function useConversationFlow(sessionUuid: string) {
         chatUuid,
         message,
         responseIndex,
-        (chunk: string, index: number) => {
+        async (chunk: string, index: number) => {
           processStreamChunk(chunk, index, sessionUuid)
-          scrollToBottomIfAtBottom()
+          await scrollToBottomIfAtBottom()
         }
       )
     } catch (error) {
