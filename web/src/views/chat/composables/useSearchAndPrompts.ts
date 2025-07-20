@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
 import { useChatStore, usePromptStore } from '@/store'
-import { useDebounce, useMemoized } from './usePerformanceOptimizations'
+import { useDebounce } from './usePerformanceOptimizations'
 
 interface PromptItem {
   key: string
@@ -31,49 +31,48 @@ export function useSearchAndPrompts() {
   // Debounce search input for better performance
   const debouncedPrompt = useDebounce(prompt, 300)
 
-  // Memoized search options for better performance
-  const searchOptions = useMemoized(
-    (searchData: { prompt: string; history: any[]; templates: any[] }): SearchOption[] => {
-      const { prompt: searchPrompt, history, templates } = searchData
-      
-      const filterItemsByPrompt = (item: PromptItem): boolean => {
-        const lowerCaseKey = item.key.toLowerCase()
-        const lowerCasePrompt = searchPrompt.substring(1).toLowerCase()
-        return lowerCaseKey.includes(lowerCasePrompt)
-      }
-      
-      const filterItemsByTitle = (item: ChatItem): boolean => {
-        const lowerCaseTitle = item.title.toLowerCase()
-        const lowerCasePrompt = searchPrompt.substring(1).toLowerCase()
-        return lowerCaseTitle.includes(lowerCasePrompt)
-      }
-      
-      if (!searchPrompt.startsWith('/')) {
-        return []
-      }
+  // Search options computed directly - much simpler!
+  const searchOptions = computed((): SearchOption[] => {
+    let searchPrompt = debouncedPrompt.value
+    
+    // Ensure searchPrompt is a string
+    if (typeof searchPrompt !== 'string') {
+      console.warn('debouncedPrompt.value is not a string:', typeof searchPrompt, searchPrompt)
+      searchPrompt = String(searchPrompt || '')
+    }
+    
+    if (!searchPrompt.startsWith('/')) {
+      return []
+    }
+    
+    const filterItemsByPrompt = (item: PromptItem): boolean => {
+      const lowerCaseKey = item.key.toLowerCase()
+      const lowerCasePrompt = searchPrompt.substring(1).toLowerCase()
+      return lowerCaseKey.includes(lowerCasePrompt)
+    }
+    
+    const filterItemsByTitle = (item: ChatItem): boolean => {
+      const lowerCaseTitle = item.title.toLowerCase()
+      const lowerCasePrompt = searchPrompt.substring(1).toLowerCase()
+      return lowerCaseTitle.includes(lowerCasePrompt)
+    }
 
-      const sessionOptions: SearchOption[] = history
-        .filter(filterItemsByTitle)
-        .map((session: ChatItem) => ({
-          label: `UUID|$|${session.uuid}`,
-          value: `UUID|$|${session.uuid}`,
-        }))
+    const sessionOptions: SearchOption[] = chatStore.history
+      .filter(filterItemsByTitle)
+      .map((session: ChatItem) => ({
+        label: `UUID|$|${session.uuid}`,
+        value: `UUID|$|${session.uuid}`,
+      }))
 
-      const promptOptions: SearchOption[] = templates
-        .filter(filterItemsByPrompt)
-        .map((item: PromptItem) => ({
-          label: item.value,
-          value: item.value,
-        }))
-      
-      return [...sessionOptions, ...promptOptions]
-    },
-    () => ({
-      prompt: debouncedPrompt.value,
-      history: chatStore.history,
-      templates: promptTemplate.value
-    })
-  )
+    const promptOptions: SearchOption[] = promptTemplate.value
+      .filter(filterItemsByPrompt)
+      .map((item: PromptItem) => ({
+        label: item.value,
+        value: item.value,
+      }))
+    
+    return [...sessionOptions, ...promptOptions]
+  })
 
   const renderOption = (option: { label: string }): string[] => {
     // Check if it's a prompt template

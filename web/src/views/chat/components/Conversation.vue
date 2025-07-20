@@ -117,7 +117,7 @@ const placeholder = computed(() => {
 })
 
 const sendButtonDisabled = computed(() => {
-  return loading.value || !prompt.value || prompt.value.trim() === ''
+  return loading.value || !prompt.value || (typeof prompt.value === 'string' ? prompt.value.trim() === '' : true)
 })
 
 const footerClass = computed(() => {
@@ -236,7 +236,7 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
             <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
               :on-select="handleSelectAutoComplete">
               <template #default="{ handleInput, handleBlur, handleFocus }">
-                <NInput ref="searchInputRef" id="message_textarea" v-model:value="prompt" type="textarea"
+                <NInput ref="searchInputRef" id="message_textarea" :value="prompt" type="textarea"
                   :placeholder="placeholder" data-testid="message_textarea"
                   :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
                   @blur="handleBlur" @keypress="handleEnter" />

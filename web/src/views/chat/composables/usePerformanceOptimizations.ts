@@ -1,62 +1,35 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
 
 /**
  * Debounce utility for search input
  */
-export function useDebounce<T>(value: T, delay: number) {
-  const debouncedValue = ref<T>(value)
+export function useDebounce<T>(value: Ref<T> | T, delay: number) {
+  // Handle both refs and raw values
+  const isRef = value && typeof value === 'object' && '__v_isRef' in value
+  const initialValue = isRef ? (value as Ref<T>).value : value as T
+  const debouncedValue = ref<T>(initialValue)
   
   let timeoutId: NodeJS.Timeout
   
-  watch(() => value, (newValue) => {
-    clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => {
-      debouncedValue.value = newValue
-    }, delay)
-  }, { immediate: true })
+  if (isRef) {
+    // If it's a ref, watch the ref directly
+    watch(value as Ref<T>, (newValue) => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        debouncedValue.value = newValue
+      }, delay)
+    }, { immediate: true })
+  } else {
+    // If it's a raw value, watch it as a getter
+    watch(() => value, (newValue) => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        debouncedValue.value = newValue as T
+      }, delay)
+    }, { immediate: true })
+  }
   
   return debouncedValue
-}
-
-/**
- * Memoization for expensive computations
- */
-export function useMemoized<T, R>(
-  fn: (arg: T) => R,
-  dependency: () => T
-) {
-  const cache = new Map<string, R>()
-  
-  return computed(() => {
-    const dep = dependency()
-    let key: string
-    
-    try {
-      key = JSON.stringify(dep)
-    } catch (error) {
-      // For circular references, disable caching and compute every time
-      // This is safer than trying to create complex fallback keys
-      console.warn('Memoization disabled due to circular reference in dependency')
-      return fn(dep)
-    }
-    
-    if (cache.has(key)) {
-      return cache.get(key)!
-    }
-    
-    const result = fn(dep)
-    cache.set(key, result)
-    
-    // Limit cache size to prevent memory leaks
-    if (cache.size > 100) {
-      const firstKey = cache.keys().next().value
-      if (firstKey !== undefined) {
-        cache.delete(firstKey)
-      }
-    }
-    
-    return result
-  })
 }
 
 /**
