@@ -40,27 +40,30 @@ func (h *ChatSessionHandler) Register(router *mux.Router) {
 func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
 	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
-	session_resp := &ChatSessionResponse{}
 	if err != nil {
 		if err == sql.ErrNoRows {
-			session_resp.Uuid = uuid
-			session_resp.MaxLength = 10
-			json.NewEncoder(w).Encode(session_resp)
+			apiErr := ErrResourceNotFound("Chat session")
+			apiErr.Message = "Session not found with UUID: " + uuid
+			RespondWithAPIError(w, apiErr)
+			return
 		} else {
 			apiErr := WrapError(MapDatabaseError(err), "Failed to get chat session")
 			RespondWithAPIError(w, apiErr)
 			return
 		}
 	}
-	session_resp.Uuid = session.Uuid
-	session_resp.Topic = session.Topic
-	session_resp.MaxLength = session.MaxLength
-	session_resp.CreatedAt = session.CreatedAt
-	session_resp.UpdatedAt = session.UpdatedAt
+
+	session_resp := &ChatSessionResponse{
+		Uuid:      session.Uuid,
+		Topic:     session.Topic,
+		MaxLength: session.MaxLength,
+		CreatedAt: session.CreatedAt,
+		UpdatedAt: session.UpdatedAt,
+	}
 	json.NewEncoder(w).Encode(session_resp)
 }
 
-// createChatSessionByUUID creates a chat session by its UUID
+// createChatSessionByUUID creates a chat session by its UUID (idempotent)
 func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	var sessionParams sqlc_queries.CreateChatSessionParams
 	err := json.NewDecoder(r.Body).Decode(&sessionParams)
@@ -79,11 +82,24 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
-	sessionParams.UserID = userIDInt
-	sessionParams.MaxLength = 10
-	session, err := h.service.CreateChatSession(r.Context(), sessionParams)
+	// Use CreateOrUpdateChatSessionByUUID for idempotent session creation
+	createOrUpdateParams := sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
+		Uuid:          sessionParams.Uuid,
+		UserID:        userIDInt,
+		Topic:         sessionParams.Topic,
+		MaxLength:     10,
+		Temperature:   0.7, // Default values
+		Model:         sessionParams.Model,
+		MaxTokens:     4096, // Default values
+		TopP:          1.0,  // Default values
+		N:             1,    // Default values
+		Debug:         false,
+		SummarizeMode: false,
+	}
+
+	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), createOrUpdateParams)
 	if err != nil {
-		apiErr := WrapError(MapDatabaseError(err), "Failed to create chat session")
+		apiErr := WrapError(MapDatabaseError(err), "Failed to create or update chat session")
 		RespondWithAPIError(w, apiErr)
 		return
 	}
