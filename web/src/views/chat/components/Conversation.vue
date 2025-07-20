@@ -58,11 +58,11 @@ const chatSession = computed(() => chatStore.getChatSessionByUuid(sessionUuid))
 
 // Destructure from composables
 const { prompt, searchOptions, renderOption, handleSelectAutoComplete, handleUsePrompt } = searchAndPrompts
-const { 
-  snapshotLoading, 
-  botLoading, 
-  showUploadModal, 
-  showModal, 
+const {
+  snapshotLoading,
+  botLoading,
+  showUploadModal,
+  showModal,
   showArtifactGallery,
   toggleArtifactGallery,
   handleVFSFileUploaded
@@ -72,7 +72,11 @@ const {
 const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
 
 function handleSubmit() {
-  conversationFlow.onConversationStream(prompt.value, dataSources.value)
+  const message = prompt.value
+  if (conversationFlow.validateConversationInput(message)) {
+    prompt.value = '' // Clear the input after validation passes
+    conversationFlow.onConversationStream(message, dataSources.value)
+  }
 }
 
 async function onRegenerate(index: number) {
