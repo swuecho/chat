@@ -7,6 +7,7 @@ import { useChatStore } from '@/store'
 import { useChat } from '@/views/chat/hooks/useChat'
 import renderMessage from '../components/RenderMessage.vue'
 import { t } from '@/locales'
+import { getStreamingUrl } from '@/config/api'
 
 interface ErrorResponse {
   code: number
@@ -27,6 +28,7 @@ export function useStreamHandling() {
   const nui_msg = useMessage()
   const chatStore = useChatStore()
   const { updateChat } = useChat()
+  
 
   function handleStreamChunk(chunk: string, responseIndex: number, sessionUuid: string): void {
     processStreamChunk(chunk, responseIndex, sessionUuid)
@@ -94,7 +96,7 @@ export function useStreamHandling() {
     const token = authStore.getToken()
     
     try {
-      const response = await fetch('/api/chat_stream', {
+      const response = await fetch(getStreamingUrl('/chat_stream'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +163,7 @@ export function useStreamHandling() {
     const token = authStore.getToken()
     
     try {
-      const response = await fetch('/api/chat_stream', {
+      const response = await fetch(getStreamingUrl('/chat_stream'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

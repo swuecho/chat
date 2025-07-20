@@ -236,10 +236,26 @@ func main() {
 
 	// Public routes (apiRouter) don't need authentication or rate limiting
 	// TTS and errors endpoints are public
-	// Wrap the router with the logging middleware
-	// 10 min < 100 requests
-	// loggedMux := loggingMiddleware(router, logger)
-	loggedRouter := handlers.LoggingHandler(logger.Out, router)
+	// Add CORS middleware to handle cross-origin requests
+	allowedOrigins := []string{"http://localhost:9002", "http://localhost:3000"}
+	if corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); corsOrigins != "" {
+		allowedOrigins = strings.Split(corsOrigins, ",")
+		// Trim whitespace from each origin
+		for i, origin := range allowedOrigins {
+			allowedOrigins[i] = strings.TrimSpace(origin)
+		}
+	}
+	
+	corsOptions := handlers.CORS(
+		handlers.AllowedOrigins(allowedOrigins),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cache-Control", "Connection"}),
+		handlers.AllowCredentials(),
+	)
+
+	// Wrap the router with CORS and logging middleware
+	corsRouter := corsOptions(router)
+	loggedRouter := handlers.LoggingHandler(logger.Out, corsRouter)
 
 	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		tpl, err1 := route.GetPathTemplate()
