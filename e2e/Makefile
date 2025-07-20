@@ -12,7 +12,7 @@ test:
 	@echo "Starting server..."
 	echo $(OPENAI_API_KEY)
 	echo $(PG_HOST)
-	npx playwright test
+	npx playwright test --ui
        
 
 

@@ -1,48 +1,38 @@
 <script lang='ts' setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-// @ts-ignore
-import { v7 as uuidv7 } from 'uuid'
-import { NAutoComplete, NButton, NInput, NModal, NSpin, useDialog, useMessage } from 'naive-ui'
-import { storeToRefs } from 'pinia'
-import html2canvas from 'html2canvas'
-import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
+import { NAutoComplete, NButton, NInput, NModal, NSpin } from 'naive-ui'
 import { useScroll } from '@/views/chat/hooks/useScroll'
-import { useChat } from '@/views/chat/hooks/useChat'
 import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'
 import SessionConfig from '@/views/chat/components/Session/SessionConfig.vue'
-import { createChatBot, createChatSnapshot, deleteChatMessage, fetchChatStream, getChatSessionDefault } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useAppStore, useChatStore, usePromptStore } from '@/store'
+import { useChatStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
-import { genTempDownloadLink } from '@/utils/download'
-import { nowISO } from '@/utils/date'
 import UploadModal from '@/views/chat/components/UploadModal.vue'
 import UploaderReadOnly from '@/views/chat/components/UploaderReadOnly.vue'
 import ModelSelector from '@/views/chat/components/ModelSelector.vue'
 import MessageList from '@/views/chat/components/MessageList.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import ArtifactGallery from '@/views/chat/components/ArtifactGallery.vue'
-import { getDataFromResponseText } from '@/utils/string'
-import { extractArtifacts } from '@/utils/artifacts'
-import renderMessage from './RenderMessage.vue'
 import { useSlashToFocus } from '../hooks/useSlashToFocus'
 import JumpToBottom from './JumpToBottom.vue'
 import ChatVFSUploader from '@/components/ChatVFSUploader.vue'
 import VFSProvider from '@/components/VFSProvider.vue'
 
-// 1. Create a ref for the input element
-const searchInputRef = ref(null);
+// Import extracted composables
+import { useConversationFlow } from '../composables/useConversationFlow'
+import { useRegenerate } from '../composables/useRegenerate'
+import { useSearchAndPrompts } from '../composables/useSearchAndPrompts'
+import { useChatActions } from '../composables/useChatActions'
 
-// 2. Use the composable, passing the ref
+// Create a ref for the input element
+const searchInputRef = ref(null);
 useSlashToFocus(searchInputRef);
 
 let controller = new AbortController()
 
-const dialog = useDialog()
-const nui_msg = useMessage()
-
 const chatStore = useChatStore()
+const promptStore = usePromptStore()
 
 const { sessionUuid } = defineProps({
   sessionUuid: {
@@ -51,432 +41,58 @@ const { sessionUuid } = defineProps({
   },
 });
 
-
-
 const { isMobile } = useBasicLayout()
-const { addChat, updateChat, updateChatPartial } = useChat()
-const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
-// session uuid
+const { scrollRef, scrollToBottom } = useScroll()
+
+// Initialize composables
+const conversationFlow = useConversationFlow(sessionUuid)
+const regenerate = useRegenerate(sessionUuid)
+const searchAndPrompts = useSearchAndPrompts()
+const chatActions = useChatActions(sessionUuid)
+
+// Sync chat messages
 chatStore.syncChatMessages(sessionUuid)
 
 const dataSources = computed(() => chatStore.getChatSessionDataByUuid(sessionUuid))
 const chatSession = computed(() => chatStore.getChatSessionByUuid(sessionUuid))
 
-const prompt = ref<string>('')
-const loading = ref<boolean>(false)
-const showUploadModal = ref<boolean>(false)
-const showModal = ref<boolean>(false)
-const snapshotLoading = ref<boolean>(false)
-const botLoading = ref<boolean>(false)
-const showArtifactGallery = ref<boolean>(false)
+// Destructure from composables
+const { prompt, searchOptions, renderOption, handleSelectAutoComplete, handleUsePrompt } = searchAndPrompts
+const { 
+  snapshotLoading, 
+  botLoading, 
+  showUploadModal, 
+  showModal, 
+  showArtifactGallery,
+  toggleArtifactGallery,
+  handleVFSFileUploaded
+} = chatActions
 
-const appStore = useAppStore()
-
-
-async function handleAdd() {
-  if (dataSources.value.length > 0) {
-    const new_chat_text = t('chat.new')
-    const default_model_parameters = await getChatSessionDefault(new_chat_text)
-    await chatStore.addChatSession(default_model_parameters)
-    if (isMobile.value)
-      appStore.setSiderCollapsed(true)
-  } else {
-    nui_msg.warning(t('chat.alreadyInNewChat'))
-  }
-}
-
-// 添加PromptStore
-const promptStore = usePromptStore()
-
-// 使用storeToRefs，保证store修改后，联想部分能够重新渲染
-const { promptList: promptTemplate } = storeToRefs<any>(promptStore)
-
-// 可优化部分
-// 搜索选项计算，这里使用value作为索引项，所以当出现重复value时渲染异常(多项同时出现选中效果)
-// 理想状态下其实应该是key作为索引项,但官方的renderOption会出现问题，所以就需要value反renderLabel实现
-const searchOptions = computed(() => {
-  function filterItemsByPrompt(item: { key: string }): boolean {
-    const lowerCaseKey = item.key.toLowerCase()
-    const lowerCasePrompt = prompt.value.substring(1).toLowerCase()
-    return lowerCaseKey.includes(lowerCasePrompt)
-  }
-  function filterItemsByTitle(item: { title: string }): boolean {
-    const lowerCaseKey = item.title.toLowerCase()
-    const lowerCasePrompt = prompt.value.substring(1).toLowerCase()
-    return lowerCaseKey.includes(lowerCasePrompt)
-  }
-  if (prompt.value.startsWith('/')) {
-    const filterStores = chatStore.history.filter(filterItemsByTitle).map((obj: { uuid: any }) => {
-      return {
-        label: `UUID|$|${obj.uuid}`,
-        value: `UUID|$|${obj.uuid}`,
-      }
-    })
-
-    const filterPrompts = promptTemplate.value.filter(filterItemsByPrompt).map((obj: { value: any }) => {
-      return {
-        label: obj.value,
-        value: obj.value,
-      }
-    })
-    const all = filterStores.concat(filterPrompts)
-    return all
-  }
-  else {
-    return []
-  }
-})
-// value反渲染key
-const renderOption = (option: { label: string }) => {
-  for (const i of promptTemplate.value) {
-    if (i.value === option.label)
-      return [i.key]
-  }
-  for (const chat of chatStore.history) {
-    if (`UUID|$|${chat.uuid}` === option.label)
-      return [chat.title]
-  }
-  return []
-}
+// Use loading state from composables
+const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
 
 function handleSubmit() {
-  onConversationStream()
-}
-
-async function onConversationStream() {
-  if (!validateConversationInput()) return
-
-  const message = prompt.value
-  const chatUuid = uuidv7()
-
-  addUserMessage(chatUuid, message)
-  const responseIndex = initializeChatResponse()
-
-  try {
-    await streamChatResponse(chatUuid, message, responseIndex)
-  } catch (error) {
-    handleStreamingError(error, responseIndex)
-  } finally {
-    loading.value = false
-  }
-}
-
-function validateConversationInput(): boolean {
-  if (loading.value) return false
-
-  const message = prompt.value
-  if (!message || message.trim() === '') return false
-
-  return true
-}
-
-function addUserMessage(chatUuid: string, message: string): void {
-  addChat(sessionUuid, {
-    uuid: chatUuid,
-    dateTime: nowISO(),
-    text: message,
-    inversion: true,
-    error: false,
-  })
-  scrollToBottom()
-
-  loading.value = true
-  prompt.value = ''
-}
-
-function initializeChatResponse(): number {
-  addChat(sessionUuid, {
-    uuid: '',
-    dateTime: nowISO(),
-    text: '',
-    loading: true,
-    inversion: false,
-    error: false,
-  })
-  scrollToBottomIfAtBottom()
-
-  return dataSources.value.length - 1
-}
-
-async function streamChatResponse(chatUuid: string, message: string, responseIndex: number): Promise<void> {
-  return new Promise((resolve, reject) => {
-    fetchChatStream(
-      sessionUuid,
-      chatUuid,
-      false,
-      message,
-      (progress: any) => {
-        try {
-          handleStreamProgress(progress, responseIndex)
-        } catch (error) {
-          reject(error)
-        }
-      },
-    ).then(resolve).catch(reject)
-  })
-}
-
-function handleStreamProgress(progress: any, responseIndex: number): void {
-  const xhr = progress.event.target
-  const { responseText, status } = xhr
-
-  if (status >= 400) {
-    handleStreamError(responseText, responseIndex)
-    return
-  }
-
-  processStreamChunk(responseText, responseIndex)
-}
-
-function handleStreamError(responseText: string, responseIndex: number): void {
-  try {
-    const errorJson: { code: number; message: string; details: any } = JSON.parse(responseText)
-    console.error('Stream error:', responseText)
-
-    nui_msg.error(formatErr(errorJson), {
-      duration: 5000,
-      closable: true,
-      render: renderMessage
-    })
-
-    chatStore.deleteChatByUuid(sessionUuid, responseIndex)
-    loading.value = false
-  } catch (parseError) {
-    console.error('Failed to parse error response:', parseError)
-    nui_msg.error('An unexpected error occurred')
-    loading.value = false
-  }
-}
-
-function processStreamChunk(responseText: string, responseIndex: number): void {
-  const chunk = getDataFromResponseText(responseText)
-
-  if (!chunk) return
-
-  try {
-    const data = JSON.parse(chunk)
-    const answer = data.choices[0].delta.content
-    const answerUuid = data.id.replace('chatcmpl-', '')
-    const artifacts = extractArtifacts(answer)
-
-    updateChat(sessionUuid, responseIndex, {
-      uuid: answerUuid,
-      dateTime: nowISO(),
-      text: answer,
-      inversion: false,
-      error: false,
-      loading: false,
-      artifacts: artifacts,
-    })
-
-    scrollToBottomIfAtBottom()
-  } catch (error) {
-    console.error('Failed to parse stream chunk:', error)
-  }
-}
-
-function handleStreamingError(error: any, responseIndex: number): void {
-  console.error('Streaming error:', error)
-
-  if (error?.response?.status >= 400) {
-    nui_msg.error(error.response.data.message)
-  } else {
-    nui_msg.error('Failed to send message. Please try again.')
-  }
-
-  // Update the response to show error state
-  const lastMessage = dataSources.value[responseIndex]
-  if (lastMessage) {
-    updateChat(sessionUuid, responseIndex, {
-      uuid: lastMessage.uuid || uuidv7(),
-      dateTime: nowISO(),
-      text: 'Failed to get response. Please try again.',
-      inversion: false,
-      error: true,
-      loading: false,
-    })
-  }
+  conversationFlow.onConversationStream(prompt.value, dataSources.value)
 }
 
 async function onRegenerate(index: number) {
-  if (!validateRegenerateInput()) return
-
-  const chat = dataSources.value[index]
-  const { updateIndex, isRegenerate } = await prepareRegenerateContext(index, chat)
-
-  try {
-    await streamRegenerateResponse(chat.uuid, updateIndex, isRegenerate)
-  } catch (error) {
-    handleRegenerateError(error, chat.uuid, index)
-  } finally {
-    loading.value = false
-  }
+  await regenerate.onRegenerate(index, dataSources.value)
 }
 
-function validateRegenerateInput(): boolean {
-  return !loading.value
-}
-
-async function prepareRegenerateContext(index: number, chat: any): Promise<{ updateIndex: number; isRegenerate: boolean }> {
-  controller = new AbortController()
-  loading.value = true
-
-  let updateIndex = index
-  let isRegenerate = true
-
-  if (chat.inversion) {
-    // Triggered from user message
-    const result = await handleUserMessageRegenerate(index)
-    updateIndex = result.updateIndex
-    isRegenerate = result.isRegenerate
-  } else {
-    // Clear the old answer for regenerating
-    updateChat(sessionUuid, index, {
-      uuid: chat.uuid,
-      dateTime: nowISO(),
-      text: '',
-      inversion: false,
-      error: false,
-      loading: true,
-    })
-  }
-
-  return { updateIndex, isRegenerate }
-}
-
-async function handleUserMessageRegenerate(index: number): Promise<{ updateIndex: number; isRegenerate: boolean }> {
-  const chatNext = dataSources.value[index + 1]
-  let updateIndex = index + 1
-  const isRegenerate = false
-
-  if (chatNext) {
-    // If there's an answer below, clear it
-    await deleteChatMessage(chatNext.uuid)
-    updateChat(sessionUuid, updateIndex, {
-      uuid: chatNext.uuid,
-      dateTime: nowISO(),
-      text: '',
-      inversion: false,
-      error: false,
-      loading: true,
-    })
-  } else {
-    // Add a blank response
-    addChat(sessionUuid, {
-      uuid: '',
-      dateTime: nowISO(),
-      text: '',
-      loading: true,
-      inversion: false,
-      error: false,
-    })
-  }
-
-  return { updateIndex, isRegenerate }
-}
-
-async function streamRegenerateResponse(chatUuid: string, updateIndex: number, isRegenerate: boolean): Promise<void> {
-  return new Promise((resolve, reject) => {
-    fetchChatStream(
-      sessionUuid,
-      chatUuid,
-      isRegenerate,
-      "",
-      (progress: any) => {
-        try {
-          handleRegenerateStreamProgress(progress, updateIndex)
-        } catch (error) {
-          reject(error)
-        }
-      },
-    ).then(resolve).catch(reject)
-  })
-}
-
-function handleRegenerateStreamProgress(progress: any, updateIndex: number): void {
-  const xhr = progress.event.target
-  const { responseText, status } = xhr
-
-  if (status >= 400) {
-    handleStreamError(responseText, updateIndex)
-    return
-  }
-
-  processStreamChunk(responseText, updateIndex)
-}
-
-function handleRegenerateError(error: any, chatUuid: string, index: number): void {
-  console.error('Regenerate error:', error)
-
-  if (error.message === 'canceled') {
-    updateChatPartial(sessionUuid, index, {
-      loading: false,
-    })
-    return
-  }
-
-  const errorMessage = error?.message ?? t('common.wrong')
-
-  updateChat(sessionUuid, index, {
-    uuid: chatUuid,
-    dateTime: nowISO(),
-    text: errorMessage,
-    inversion: false,
-    error: true,
-    loading: false,
-  })
-}
-
-function formatErr(error_json: { code: number; message: string; details: any }) {
-  const message = t(`error.${error_json.code}`) ?? error_json.message
-  return `${error_json.code} : ${message}`
+async function handleAdd() {
+  await chatActions.handleAdd(dataSources.value)
 }
 
 async function handleSnapshot() {
-  snapshotLoading.value = true
-  try {
-    const snapshot = await createChatSnapshot(sessionUuid)
-    const snapshot_uuid = snapshot.uuid
-    window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
-    nui_msg.success(t('chat.snapshotSuccess'))
-  } catch (error) {
-    nui_msg.error(t('chat.snapshotFailed'))
-  } finally {
-    snapshotLoading.value = false
-  }
+  await chatActions.handleSnapshot()
 }
+
 async function handleCreateBot() {
-  botLoading.value = true
-  try {
-    const snapshot = await createChatBot(sessionUuid)
-    const snapshot_uuid = snapshot.uuid
-    window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
-    nui_msg.success(t('chat.botSuccess'))
-  } catch (error) {
-    nui_msg.error(t('chat.botFailed'))
-  } finally {
-    botLoading.value = false
-  }
+  await chatActions.handleCreateBot()
 }
-
-
-
-
-
 
 function handleClear() {
-  if (loading.value)
-    return
-
-  dialog.warning({
-    title: t('chat.clearChat'),
-    content: t('chat.clearChatConfirm'),
-    positiveText: t('common.yes'),
-    negativeText: t('common.no'),
-    onPositiveClick: () => {
-      chatStore.clearChatByUuid(sessionUuid)
-    },
-  })
+  chatActions.handleClear(loading)
 }
 
 function handleEnter(event: KeyboardEvent) {
@@ -491,20 +107,6 @@ function handleEnter(event: KeyboardEvent) {
       event.preventDefault()
       handleSubmit()
     }
-  }
-}
-
-// function handleStop() {
-//   if (loading.value) {
-//     controller.abort()
-//     loading.value = false
-//   }
-// }
-
-const handleSelectAutoComplete: OnSelect = function (v: string | number) {
-  if (typeof v === 'string' && v.startsWith('UUID|$|')) {
-    // set active session to the selected uuid
-    chatStore.setActive(v.split('|$|')[1])
   }
 }
 
@@ -536,59 +138,11 @@ onUnmounted(() => {
     controller.abort()
 })
 
-const handleUsePrompt = (_: string, value: string): void => {
-  prompt.value = value
-}
-
-const toggleArtifactGallery = (): void => {
-  showArtifactGallery.value = !showArtifactGallery.value
-}
-
-// VFS event handlers
-const handleVFSFileUploaded = (fileInfo: any) => {
-  nui_msg.success(`📁 File uploaded: ${fileInfo.filename}`)
-}
-
-const handleCodeExampleAdded = async (codeInfo: any) => {
-  // Add code examples as a system message
-  const exampleMessage = `📁 **Files uploaded successfully!**
-
-**Python example:**
-\`\`\`python <!-- executable: Python code to use the uploaded files -->
-${codeInfo.python}
-\`\`\`
-
-**JavaScript example:**
-\`\`\`javascript <!-- executable: JavaScript code to use the uploaded files -->
-${codeInfo.javascript}
-\`\`\`
-
-Your files are now available in the Virtual File System! 🚀`
-
-  // Add system message to chat
-  const chatUuid = uuidv7();
-  addChat(
-    sessionUuid,
-    {
-      uuid: chatUuid,
-      dateTime: nowISO(),
-      text: exampleMessage,
-      inversion: true,
-      error: false,
-      loading: false,
-      artifacts: extractArtifacts(exampleMessage),
-    },
-  )
-
-  const responseIndex = initializeChatResponse()
-
-  try {
-    await streamChatResponse(chatUuid, exampleMessage, responseIndex)
-  } catch (error) {
-    handleStreamingError(error, responseIndex)
-  }
-
-  nui_msg.success('Files uploaded! Code examples added to chat.')
+// VFS event handlers with stream response functionality
+const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
+  await chatActions.handleCodeExampleAdded(codeInfo, (message: string) => {
+    return conversationFlow.onConversationStream(message, dataSources.value)
+  })
 }
 </script>
 
@@ -640,7 +194,7 @@ Your files are now available in the Virtual File System! 🚀`
           <!-- VFS Upload Section -->
           <div class="vfs-upload-section mb-2">
             <ChatVFSUploader :session-uuid="sessionUuid" @file-uploaded="handleVFSFileUploaded"
-              @code-example-added="handleCodeExampleAdded" />
+              @code-example-added="handleCodeExampleAddedWithStream" />
           </div>
 
           <div class="flex items-center justify-between space-x-1">
