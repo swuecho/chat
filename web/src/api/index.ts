@@ -1,6 +1,5 @@
 export * from './admin'
 export * from './chat_user_model_privilege'
-export * from './chat_main'
 export * from './chat_message'
 export * from './chat_model'
 export * from './chat_session'

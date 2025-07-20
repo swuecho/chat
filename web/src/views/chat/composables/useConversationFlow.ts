@@ -103,23 +103,8 @@ export function useConversationFlow(sessionUuid: string) {
         chatUuid,
         message,
         responseIndex,
-        (progress: any, index: number) => {
-          const xhr = progress.event.target
-          const { responseText, status } = xhr
-
-          if (status >= 400) {
-            // Handle error
-            try {
-              const errorJson = JSON.parse(responseText)
-              console.error('Stream error:', responseText)
-              showErrorNotification(`${errorJson.code} : ${errorJson.message}`)
-            } catch (parseError) {
-              showErrorNotification('An unexpected error occurred')
-            }
-            return
-          }
-
-          processStreamChunk(responseText, index, sessionUuid)
+        (chunk: string, index: number) => {
+          processStreamChunk(chunk, index, sessionUuid)
           scrollToBottomIfAtBottom()
         }
       )

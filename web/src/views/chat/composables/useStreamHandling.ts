@@ -1,5 +1,5 @@
 import { useMessage } from 'naive-ui'
-import { fetchChatStream } from '@/api'
+import { useAuthStore } from '@/store'
 import { getDataFromResponseText } from '@/utils/string'
 import { extractArtifacts } from '@/utils/artifacts'
 import { nowISO } from '@/utils/date'
@@ -7,15 +7,6 @@ import { useChatStore } from '@/store'
 import { useChat } from '@/views/chat/hooks/useChat'
 import renderMessage from '../components/RenderMessage.vue'
 import { t } from '@/locales'
-
-interface StreamProgress {
-  event: {
-    target: {
-      responseText: string
-      status: number
-    }
-  }
-}
 
 interface ErrorResponse {
   code: number
@@ -37,16 +28,8 @@ export function useStreamHandling() {
   const chatStore = useChatStore()
   const { updateChat } = useChat()
 
-  function handleStreamProgress(progress: StreamProgress, responseIndex: number, sessionUuid: string): void {
-    const xhr = progress.event.target
-    const { responseText, status } = xhr
-
-    if (status >= 400) {
-      handleStreamError(responseText, responseIndex, sessionUuid)
-      return
-    }
-
-    processStreamChunk(responseText, responseIndex, sessionUuid)
+  function handleStreamChunk(chunk: string, responseIndex: number, sessionUuid: string): void {
+    processStreamChunk(chunk, responseIndex, sessionUuid)
   }
 
   function handleStreamError(responseText: string, responseIndex: number, sessionUuid: string): void {
@@ -68,22 +51,22 @@ export function useStreamHandling() {
     }
   }
 
-  function processStreamChunk(responseText: string, responseIndex: number, sessionUuid: string): void {
-    const chunk = getDataFromResponseText(responseText)
+  function processStreamChunk(chunk: string, responseIndex: number, sessionUuid: string): void {
+    const data = getDataFromResponseText(chunk)
 
-    if (!chunk) return
+    if (!data) return
 
     try {
-      const data: StreamChunkData = JSON.parse(chunk)
+      const parsedData: StreamChunkData = JSON.parse(data)
       
       // Validate data structure
-      if (!data.choices?.[0]?.delta?.content || !data.id) {
-        console.warn('Invalid stream chunk structure:', data)
+      if (!parsedData.choices?.[0]?.delta?.content || !parsedData.id) {
+        console.warn('Invalid stream chunk structure:', parsedData)
         return
       }
 
-      const answer = data.choices[0].delta.content
-      const answerUuid = data.id.replace('chatcmpl-', '')
+      const answer = parsedData.choices[0].delta.content
+      const answerUuid = parsedData.id.replace('chatcmpl-', '')
       const artifacts = extractArtifacts(answer)
 
       updateChat(sessionUuid, responseIndex, {
@@ -105,27 +88,66 @@ export function useStreamHandling() {
     chatUuid: string,
     message: string,
     responseIndex: number,
-    onProgress?: (responseText: string, responseIndex: number) => void
+    onProgress?: (chunk: string, responseIndex: number) => void
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      fetchChatStream(
-        sessionUuid,
-        chatUuid,
-        false,
-        message,
-        (progress: any) => {
-          try {
-            if (onProgress) {
-              onProgress(progress, responseIndex)
-            } else {
-              handleStreamProgress(progress, responseIndex, sessionUuid)
-            }
-          } catch (error) {
-            reject(error)
-          }
+    const authStore = useAuthStore()
+    const token = authStore.getToken()
+    
+    try {
+      const response = await fetch('/api/chat_stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
-      ).then(resolve).catch(reject)
-    })
+        body: JSON.stringify({
+          regenerate: false,
+          prompt: message,
+          sessionUuid,
+          chatUuid,
+          stream: true,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is null')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ''
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (done) {
+            break
+          }
+
+          const chunk = decoder.decode(value, { stream: true })
+          accumulated += chunk
+          
+          if (onProgress) {
+            onProgress(accumulated, responseIndex)
+          } else {
+            handleStreamChunk(accumulated, responseIndex, sessionUuid)
+          }
+        }
+      } finally {
+        reader.releaseLock()
+      }
+    } catch (error) {
+      console.error('Stream error:', error)
+      handleStreamError(error instanceof Error ? error.message : 'Unknown error', responseIndex, sessionUuid)
+      throw error
+    }
   }
 
   async function streamRegenerateResponse(
@@ -133,27 +155,66 @@ export function useStreamHandling() {
     chatUuid: string,
     updateIndex: number,
     isRegenerate: boolean,
-    onProgress?: (progress: any, updateIndex: number) => void
+    onProgress?: (chunk: string, updateIndex: number) => void
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      fetchChatStream(
-        sessionUuid,
-        chatUuid,
-        isRegenerate,
-        "",
-        (progress: any) => {
-          try {
-            if (onProgress) {
-              onProgress(progress, updateIndex)
-            } else {
-              handleStreamProgress(progress, updateIndex, sessionUuid)
-            }
-          } catch (error) {
-            reject(error)
-          }
+    const authStore = useAuthStore()
+    const token = authStore.getToken()
+    
+    try {
+      const response = await fetch('/api/chat_stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
-      ).then(resolve).catch(reject)
-    })
+        body: JSON.stringify({
+          regenerate: isRegenerate,
+          prompt: "",
+          sessionUuid,
+          chatUuid,
+          stream: true,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is null')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ''
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (done) {
+            break
+          }
+
+          const chunk = decoder.decode(value, { stream: true })
+          accumulated += chunk
+          
+          if (onProgress) {
+            onProgress(accumulated, updateIndex)
+          } else {
+            handleStreamChunk(accumulated, updateIndex, sessionUuid)
+          }
+        }
+      } finally {
+        reader.releaseLock()
+      }
+    } catch (error) {
+      console.error('Stream error:', error)
+      handleStreamError(error instanceof Error ? error.message : 'Unknown error', updateIndex, sessionUuid)
+      throw error
+    }
   }
 
   function formatErr(error_json: ErrorResponse): string {
@@ -162,7 +223,7 @@ export function useStreamHandling() {
   }
 
   return {
-    handleStreamProgress,
+    handleStreamChunk,
     handleStreamError,
     processStreamChunk,
     streamChatResponse,

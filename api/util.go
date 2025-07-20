@@ -63,9 +63,14 @@ func getContextWithUser(userID int) context.Context {
 
 func setSSEHeader(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("X-Accel-Buffering", "no")
+	// Remove any content-length to enable streaming
+	w.Header().Del("Content-Length")
+	// Prevent compression
+	w.Header().Del("Content-Encoding")
 }
 
 func getPerWordStreamLimit() int {
