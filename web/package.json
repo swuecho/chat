@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "dev": "rsbuild dev",
+    "dev:direct": "rsbuild dev",
     "test": "vitest",
     "preview": "rsbuild preview",
     "build": "rsbuild build",

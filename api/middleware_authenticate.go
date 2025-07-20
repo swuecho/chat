@@ -30,12 +30,12 @@ func CheckPermission(userID int, ctx context.Context) bool {
 }
 
 type AuthTokenResult struct {
-	Token    *jwt.Token
-	Claims   jwt.MapClaims
-	UserID   string
-	Role     string
-	Valid    bool
-	Error    *APIError
+	Token  *jwt.Token
+	Claims jwt.MapClaims
+	UserID string
+	Role   string
+	Valid  bool
+	Error  *APIError
 }
 
 func extractBearerToken(r *http.Request) string {
@@ -55,7 +55,7 @@ func createUserContext(r *http.Request, userID, role string) *http.Request {
 
 func parseAndValidateJWT(bearerToken string) *AuthTokenResult {
 	result := &AuthTokenResult{}
-	
+
 	if bearerToken == "" {
 		err := ErrAuthInvalidCredentials
 		err.Detail = "Authorization token required"
@@ -202,9 +202,15 @@ func AdminRouteMiddleware(next http.Handler) http.Handler {
 // AdminAuthMiddleware - Authentication middleware specifically for admin routes
 func AdminAuthMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow OPTIONS requests to pass through without authentication (CORS preflight)
+		if r.Method == "OPTIONS" {
+			handler.ServeHTTP(w, r)
+			return
+		}
+
 		bearerToken := extractBearerToken(r)
 		result := parseAndValidateJWT(bearerToken)
-		
+
 		if result.Error != nil {
 			RespondWithAPIError(w, *result.Error)
 			return
@@ -226,9 +232,15 @@ func AdminAuthMiddleware(handler http.Handler) http.Handler {
 // UserAuthMiddleware - Authentication middleware for regular user routes
 func UserAuthMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow OPTIONS requests to pass through without authentication (CORS preflight)
+		if r.Method == "OPTIONS" {
+			handler.ServeHTTP(w, r)
+			return
+		}
+
 		bearerToken := extractBearerToken(r)
 		result := parseAndValidateJWT(bearerToken)
-		
+
 		if result.Error != nil {
 			RespondWithAPIError(w, *result.Error)
 			return
@@ -256,7 +268,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 
 		bearerToken := extractBearerToken(r)
 		result := parseAndValidateJWT(bearerToken)
-		
+
 		if result.Error != nil {
 			RespondWithAPIError(w, *result.Error)
 			return

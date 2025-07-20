@@ -140,6 +140,9 @@ func main() {
 	// Create a new router
 	router := mux.NewRouter()
 
+	// Apply CORS middleware at the top level to catch all OPTIONS requests
+	router.Use(CORSMiddleware)
+
 	apiRouter := router.PathPrefix("/api").Subrouter()
 
 	sqlc_q := sqlc_queries.New(pgdb)

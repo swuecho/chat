@@ -1,8 +1,13 @@
 import axios, { type AxiosResponse } from 'axios'
 import { useAuthStore } from '@/store'
 
+// For local development: set to true to bypass proxy and connect directly to backend
+const USE_DIRECT_API_IN_DEV = true
+
 const service = axios.create({
-  baseURL: "/api"
+  baseURL: USE_DIRECT_API_IN_DEV && window.location.hostname === 'localhost'
+    ? "http://localhost:8080/api"
+    : "/api"
 })
 
 service.interceptors.request.use(

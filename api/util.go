@@ -66,6 +66,8 @@ func setSSEHeader(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	// Debug logging for SSE setup
+	log.Printf("SSE headers set for streaming response")
 }
 
 func getPerWordStreamLimit() int {
@@ -98,21 +100,21 @@ func RespondWithJSON(w http.ResponseWriter, status int, payload interface{}) {
 func getPaginationParams(r *http.Request) (limit int32, offset int32) {
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
-	
+
 	limit = 100 // default limit
 	if limitStr != "" {
 		if l, err := strconv.ParseInt(limitStr, 10, 32); err == nil {
 			limit = int32(l)
 		}
 	}
-	
+
 	offset = 0 // default offset
 	if offsetStr != "" {
 		if o, err := strconv.ParseInt(offsetStr, 10, 32); err == nil {
 			offset = int32(o)
 		}
 	}
-	
+
 	return limit, offset
 }
 
