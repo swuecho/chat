@@ -29,7 +29,19 @@ export function useMemoized<T, R>(
   
   return computed(() => {
     const dep = dependency()
-    const key = JSON.stringify(dep)
+    let key: string
+    
+    try {
+      key = JSON.stringify(dep)
+    } catch (error) {
+      // Handle circular references by using a simpler key strategy
+      if (error instanceof TypeError && error.message.includes('circular')) {
+        // Create a simple hash based on object properties to avoid circular refs
+        key = createSimpleKey(dep)
+      } else {
+        throw error
+      }
+    }
     
     if (cache.has(key)) {
       return cache.get(key)!
@@ -48,6 +60,35 @@ export function useMemoized<T, R>(
     
     return result
   })
+}
+
+/**
+ * Creates a simple key for objects that may contain circular references
+ */
+function createSimpleKey(obj: any): string {
+  if (obj === null || obj === undefined) return 'null'
+  if (typeof obj !== 'object') return String(obj)
+  
+  const keys: string[] = []
+  const visited = new WeakSet()
+  
+  function serialize(value: any, depth = 0): string {
+    if (depth > 5) return '[max-depth]' // Prevent infinite recursion
+    if (value === null || value === undefined) return 'null'
+    if (typeof value !== 'object') return String(value)
+    if (visited.has(value)) return '[circular]'
+    
+    visited.add(value)
+    
+    if (Array.isArray(value)) {
+      return `[${value.length}]`
+    }
+    
+    const sortedKeys = Object.keys(value).sort()
+    return sortedKeys.slice(0, 10).map(key => `${key}:${serialize(value[key], depth + 1)}`).join(',')
+  }
+  
+  return serialize(obj)
 }
 
 /**
