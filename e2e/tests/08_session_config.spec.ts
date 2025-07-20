@@ -36,7 +36,7 @@ test('test', async ({ page }) => {
   expect(sessions.length).toBe(1);
   const new_sesion = sessions[0]
   expect(new_sesion.debug).toBe(false);
-  expect(new_sesion.temperature).toBe(1);
+  expect(new_sesion.temperature).toBe(0.7);
   // click the button to open the modal 
   await page.getByRole('contentinfo').getByRole('button').nth(5).click();
   await page.getByTestId('debug_mode').click();
@@ -44,7 +44,7 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(1000);
   const sessions_2 = await selectChatSessionsByUserId(pool, user.id);
   const new_sesion_2 = sessions_2[0]
-  expect(new_sesion_2.temperature).toBe(1);
+  expect(new_sesion_2.temperature).toBe(0.7);
   expect(new_sesion_2.n).toBe(1);
   expect(new_sesion_2.debug).toBe(true);
 });
