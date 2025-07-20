@@ -24,18 +24,11 @@ export function useConversationFlow(sessionUuid: string) {
   const { scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
   const { streamChatResponse, processStreamChunk } = useStreamHandling()
   const { handleApiError, showErrorNotification } = useErrorHandling()
-  const { validateChatMessage, validateSessionUuid } = useValidation()
+  const { validateChatMessage } = useValidation()
 
   function validateConversationInput(message: string): boolean {
     if (loading.value) {
       showErrorNotification('Please wait for the current message to complete')
-      return false
-    }
-
-    // Validate session UUID
-    const sessionValidation = validateSessionUuid(sessionUuid)
-    if (!sessionValidation.isValid) {
-      showErrorNotification('Invalid session')
       return false
     }
 
