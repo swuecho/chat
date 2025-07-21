@@ -63,6 +63,12 @@ for (const line of lines) {
     processMessage(line)
   }
 }
+
+// because each delta is acutally a full message
+// process last one in enough
+if (lines.length > 0) {
+            onStreamChunk(lines[lines.length - 1], updateIndex)
+}
 ```
 
 ### 4. Data Extraction
