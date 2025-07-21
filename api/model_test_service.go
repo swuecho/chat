@@ -65,18 +65,3 @@ func (m *TestChatModel) chatStreamTest(w http.ResponseWriter, chatSession sqlc_q
 	}, nil
 }
 
-// isTest determines if the chat messages indicate this is a test scenario
-func isTest(msgs []models.Message) bool {
-	if len(msgs) == 0 {
-		return false
-	}
-	
-	lastMsgs := msgs[len(msgs)-1]
-	promptMsg := msgs[0]
-	
-	// Check if prefix contains test_demo_bestqa
-	return len(promptMsg.Content) > 0 && 
-		   len(lastMsgs.Content) > 0 && 
-		   (len(promptMsg.Content) >= 15 && promptMsg.Content[:15] == "test_demo_bestqa" ||
-		    len(lastMsgs.Content) >= 15 && lastMsgs.Content[:15] == "test_demo_bestqa")
-}

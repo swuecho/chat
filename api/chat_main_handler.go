@@ -432,6 +432,22 @@ func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msg
 	return chatModel
 }
 
+// isTest determines if the chat messages indicate this is a test scenario
+func isTest(msgs []models.Message) bool {
+	if len(msgs) == 0 {
+		return false
+	}
+	
+	lastMsgs := msgs[len(msgs)-1]
+	promptMsg := msgs[0]
+	
+	// Check if prefix contains test_demo_bestqa
+	return len(promptMsg.Content) > 0 && 
+		   len(lastMsgs.Content) > 0 && 
+		   (len(promptMsg.Content) >= 15 && promptMsg.Content[:15] == "test_demo_bestqa" ||
+		    len(lastMsgs.Content) >= 15 && lastMsgs.Content[:15] == "test_demo_bestqa")
+}
+
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
 	log.Printf("%+v", chatModel)
