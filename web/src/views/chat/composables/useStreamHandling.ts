@@ -123,7 +123,7 @@ export function useStreamHandling() {
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
-      let accumulated = ''
+      let buffer = ''
 
       try {
         while (true) {
@@ -134,12 +134,30 @@ export function useStreamHandling() {
           }
 
           const chunk = decoder.decode(value, { stream: true })
-          accumulated += chunk
+          buffer += chunk
           
+          // Process complete SSE messages
+          const lines = buffer.split('\n\n')
+          // Keep the last potentially incomplete message in buffer
+          buffer = lines.pop() || ''
+          
+          for (const line of lines) {
+            if (line.trim()) {
+              if (onProgress) {
+                onProgress(line, responseIndex)
+              } else {
+                handleStreamChunk(line, responseIndex, sessionUuid)
+              }
+            }
+          }
+        }
+        
+        // Process any remaining data in buffer
+        if (buffer.trim()) {
           if (onProgress) {
-            onProgress(accumulated, responseIndex)
+            onProgress(buffer, responseIndex)
           } else {
-            handleStreamChunk(accumulated, responseIndex, sessionUuid)
+            handleStreamChunk(buffer, responseIndex, sessionUuid)
           }
         }
       } finally {
@@ -190,7 +208,7 @@ export function useStreamHandling() {
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
-      let accumulated = ''
+      let buffer = ''
 
       try {
         while (true) {
@@ -201,12 +219,30 @@ export function useStreamHandling() {
           }
 
           const chunk = decoder.decode(value, { stream: true })
-          accumulated += chunk
+          buffer += chunk
           
+          // Process complete SSE messages
+          const lines = buffer.split('\n\n')
+          // Keep the last potentially incomplete message in buffer
+          buffer = lines.pop() || ''
+          
+          for (const line of lines) {
+            if (line.trim()) {
+              if (onProgress) {
+                onProgress(line, updateIndex)
+              } else {
+                handleStreamChunk(line, updateIndex, sessionUuid)
+              }
+            }
+          }
+        }
+        
+        // Process any remaining data in buffer
+        if (buffer.trim()) {
           if (onProgress) {
-            onProgress(accumulated, updateIndex)
+            onProgress(buffer, updateIndex)
           } else {
-            handleStreamChunk(accumulated, updateIndex, sessionUuid)
+            handleStreamChunk(buffer, updateIndex, sessionUuid)
           }
         }
       } finally {
