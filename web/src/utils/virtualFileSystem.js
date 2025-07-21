@@ -456,6 +456,57 @@ class VirtualFileSystem {
     
     return new RegExp(`^${regex}$`)
   }
+
+  // ============ EXPORT/IMPORT METHODS ============
+
+  /**
+   * Export VFS state for synchronization with workers
+   */
+  export() {
+    return {
+      files: new Map(this.files),
+      directories: new Set(this.directories),
+      metadata: new Map(this.metadata),
+      currentDirectory: this.currentDirectory
+    }
+  }
+
+  /**
+   * Import VFS state (for synchronization from main thread)
+   */
+  import(state) {
+    if (state && state.files && state.directories) {
+      this.files.clear()
+      this.directories.clear()
+      this.metadata.clear()
+      
+      // Import files
+      if (state.files instanceof Map) {
+        for (const [path, data] of state.files) {
+          this.files.set(path, data)
+        }
+      }
+      
+      // Import directories
+      if (state.directories instanceof Set) {
+        for (const dir of state.directories) {
+          this.directories.add(dir)
+        }
+      }
+      
+      // Import metadata
+      if (state.metadata instanceof Map) {
+        for (const [path, meta] of state.metadata) {
+          this.metadata.set(path, meta)
+        }
+      }
+      
+      // Import current directory
+      if (state.currentDirectory) {
+        this.currentDirectory = state.currentDirectory
+      }
+    }
+  }
 }
 
 // ============ PATH RESOLVER ============
