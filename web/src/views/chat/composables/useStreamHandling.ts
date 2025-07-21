@@ -214,7 +214,6 @@ export function useStreamHandling() {
           }
 
           const chunk = decoder.decode(value, { stream: true })
-          console.log('chunk', chunk)
           buffer += chunk
           
           // Process complete SSE messages
