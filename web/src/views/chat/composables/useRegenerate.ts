@@ -81,23 +81,10 @@ export function useRegenerate(sessionUuid: string) {
     return { updateIndex, isRegenerate }
   }
 
-  function handleRegenerateStreamProgress(progress: any, updateIndex: number): void {
-    const xhr = progress.event.target
-    const { responseText, status } = xhr
-
-    if (status >= 400) {
-      // Handle error - reuse stream error handling
-      try {
-        const errorJson = JSON.parse(responseText)
-        console.error('Stream error:', responseText)
-        nui_msg.error(`${errorJson.code} : ${errorJson.message}`)
-      } catch (parseError) {
-        nui_msg.error('An unexpected error occurred')
-      }
-      return
-    }
-
-    processStreamChunk(responseText, updateIndex, sessionUuid)
+  function handleRegenerateStreamProgress(chunk: string, updateIndex: number): void {
+    // Process the stream chunk directly - no need for XMLHttpRequest handling
+    // since we're using the modern Fetch API streaming
+    processStreamChunk(chunk, updateIndex, sessionUuid)
   }
 
   function handleRegenerateError(error: any, chatUuid: string, index: number): void {
@@ -134,8 +121,8 @@ export function useRegenerate(sessionUuid: string) {
         chat.uuid,
         updateIndex,
         isRegenerate,
-        (progress: any, updateIdx: number) => {
-          handleRegenerateStreamProgress(progress, updateIdx)
+        (chunk: string, updateIdx: number) => {
+          handleRegenerateStreamProgress(chunk, updateIdx)
         }
       )
     } catch (error) {

@@ -167,6 +167,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 			if len(answer) == 0 {
 				log.Printf("%s", "no content in answer")
 			} else {
+				log.Printf("answer: %s", answer)
 				constructedResponse := constructChatCompletionStreamReponse(answer_id, answer)
 				data, _ := json.Marshal(constructedResponse)
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
