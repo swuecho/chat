@@ -103,7 +103,6 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		}
 	}
 
-	var answer string
 	var answer_id string
 	var hasReason bool
 	if bufferLen == 0 {
@@ -120,13 +119,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		if err != nil {
 			log.Printf("stream error: %+v", err)
 			if errors.Is(err, io.EOF) {
-				// send the last message
-				if len(answer) > 0 {
-					final_resp := constructChatCompletionStreamReponse(answer_id, answer)
-					data, _ := json.Marshal(final_resp)
-					fmt.Fprintf(w, "data: %v\n\n", string(data))
-					flusher.Flush()
-				}
+				// send the last message - but we don't need this anymore since we send deltas directly
 
 				// no reason in the answer (so do not disrupt the context)
 				llmAnswer := models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id}
@@ -153,22 +146,22 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 			reasonBuffer.appendByIndex(textIdx, delta.ReasoningContent)
 		}
 
-		if hasReason {
-			answer = reasonBuffer.String("\n") + textBuffer.String("\n")
-		} else {
-			answer = textBuffer.String("\n")
-		}
 		if answer_id == "" {
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
-		perWordStreamLimit := getPerWordStreamLimit()
 
-		if strings.HasSuffix(answer, "\n") || len(answer) < perWordStreamLimit {
-			if len(answer) == 0 {
-				log.Printf("%s", "no content in answer")
+		// Send the delta content directly instead of accumulated content
+		if len(delta.Content) > 0 || len(delta.ReasoningContent) > 0 {
+			var deltaToSend string
+			if hasReason && len(delta.ReasoningContent) > 0 {
+				deltaToSend = delta.ReasoningContent
 			} else {
-				log.Printf("answer: %s", answer)
-				constructedResponse := constructChatCompletionStreamReponse(answer_id, answer)
+				deltaToSend = delta.Content
+			}
+			
+			if len(deltaToSend) > 0 {
+				log.Printf("delta: %s", deltaToSend)
+				constructedResponse := constructChatCompletionStreamReponse(answer_id, deltaToSend)
 				data, _ := json.Marshal(constructedResponse)
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
 				flusher.Flush()

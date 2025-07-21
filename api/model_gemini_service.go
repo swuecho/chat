@@ -207,10 +207,14 @@ func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.
 
 		line = bytes.TrimPrefix(line, headerData)
 		if len(line) > 0 {
-			answer = gemini.ParseRespLine(line, answer)
-			data, _ := json.Marshal(constructChatCompletionStreamReponse(answerID, answer))
-			fmt.Fprintf(w, "data: %v\n\n", string(data))
-			flusher.Flush()
+			delta := gemini.ParseRespLineDelta(line)
+			answer += delta // Accumulate delta for final answer storage
+			// Send only the delta content
+			if len(delta) > 0 {
+				data, _ := json.Marshal(constructChatCompletionStreamReponse(answerID, delta))
+				fmt.Fprintf(w, "data: %v\n\n", string(data))
+				flusher.Flush()
+			}
 		}
 	}
 
