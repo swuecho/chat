@@ -7,6 +7,7 @@
 <script setup>
 import { ref, provide, onMounted, onUnmounted } from 'vue'
 import { useMessage } from 'naive-ui'
+import { getCodeRunner } from '@/services/codeRunner'
 
 const message = useMessage()
 
@@ -45,13 +46,18 @@ onMounted(async () => {
     await vfs.value.mkdir('/tmp', { recursive: true })
     await vfs.value.mkdir('/uploads', { recursive: true })
 
+    // Connect VFS to code runner
+    const codeRunner = getCodeRunner()
+    codeRunner.setVFSInstance(vfs.value)
+
     // Set VFS as ready
     isVFSReady.value = true
 
     console.log('VFS initialized successfully', {
       vfs: vfs.value,
       importExport: importExport.value,
-      isReady: isVFSReady.value
+      isReady: isVFSReady.value,
+      codeRunnerConnected: true
     })
   } catch (error) {
     console.error('Failed to initialize VFS:', error)

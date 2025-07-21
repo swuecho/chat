@@ -179,6 +179,7 @@ import {
   Folder
 } from '@vicons/ionicons5'
 import VFSFileManager from './VFSFileManager.vue'
+import { getCodeRunner } from '@/services/codeRunner'
 
 // Props
 const props = defineProps({
@@ -272,6 +273,15 @@ const handleFileUpload = async (file) => {
     if (result.success) {
       message.success(`Uploaded ${actualFile.name} to VFS`)
       updateVFSStats()
+
+      // Sync VFS to code runners after successful upload
+      try {
+        const codeRunner = getCodeRunner()
+        await codeRunner.syncVFSToWorkers()
+        console.log('VFS synchronized to code runners after file upload')
+      } catch (error) {
+        console.warn('Failed to sync VFS to code runners:', error)
+      }
 
       // Emit event for parent component
       emit('fileUploaded', {

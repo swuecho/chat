@@ -42,10 +42,56 @@ export class CodeRunner {
     reject: (error: Error) => void
     timeout?: NodeJS.Timeout
   }>()
+  
+  private vfsInstance: any = null
 
   constructor() {
 
     this.initializeWorkers()
+  }
+  
+  /**
+   * Set the VFS instance to synchronize with workers
+   */
+  setVFSInstance(vfs: any) {
+    this.vfsInstance = vfs
+  }
+  
+  /**
+   * Synchronize VFS state with workers
+   */
+  async syncVFSToWorkers() {
+    if (!this.vfsInstance) return
+    
+    try {
+      // Get all files from VFS
+      const vfsState = this.vfsInstance.export()
+      
+      // Convert Map/Set to plain objects for worker transfer
+      const serializedState = {
+        files: Array.from(vfsState.files.entries()),
+        directories: Array.from(vfsState.directories),
+        metadata: Array.from(vfsState.metadata.entries()),
+        currentDirectory: vfsState.currentDirectory
+      }
+      
+      // Send VFS state to both workers
+      if (this.jsWorker) {
+        this.jsWorker.postMessage({
+          type: 'syncVFS',
+          vfsState: serializedState
+        })
+      }
+      
+      if (this.pyWorker) {
+        this.pyWorker.postMessage({
+          type: 'syncVFS', 
+          vfsState: serializedState
+        })
+      }
+    } catch (error) {
+      console.error('Failed to sync VFS to workers:', error)
+    }
   }
 
   private initializeWorkers() {
@@ -91,6 +137,10 @@ export class CodeRunner {
       pendingRequest.resolve(data)
     } else if (type === 'initialized') {
       pendingRequest.resolve(data)
+    } else if (type === 'vfsResult') {
+      pendingRequest.resolve(data)
+    } else if (type === 'vfsError') {
+      pendingRequest.reject(new Error(data.message || 'VFS operation failed'))
     } else if (type === 'error') {
       pendingRequest.reject(new Error(data.message || 'Unknown execution error'))
     }
@@ -196,6 +246,9 @@ export class CodeRunner {
   async execute(language: string, code: string, artifactId?: string): Promise<ExecutionResult[]> {
 
     const startTime = performance.now()
+    
+    // Sync VFS to workers before execution
+    await this.syncVFSToWorkers()
     
     try {
       let results: ExecutionResult[]

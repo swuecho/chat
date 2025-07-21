@@ -895,6 +895,39 @@ self.onmessage = async (e) => {
           requestId: requestId
         })
       }
+    } else if (type === 'syncVFS') {
+      // Handle VFS synchronization from main thread
+      try {
+        const { vfsState } = e.data
+        if (vfsState && vfsState.files && vfsState.directories) {
+          // Clear current VFS state
+          vfs.files.clear()
+          vfs.directories.clear()
+          
+          // Import files from serialized state (array of [path, content] pairs)
+          if (Array.isArray(vfsState.files)) {
+            vfsState.files.forEach(([path, content]) => {
+              vfs.files.set(path, content)
+            })
+          }
+          
+          // Import directories from serialized state (array of paths)
+          if (Array.isArray(vfsState.directories)) {
+            vfsState.directories.forEach(dir => {
+              vfs.directories.add(dir)
+            })
+          }
+          
+          // Update current directory
+          if (vfsState.currentDirectory) {
+            vfs.currentDirectory = vfsState.currentDirectory
+          }
+          
+          runner.addOutput('info', `VFS synchronized: ${vfs.files.size} files, ${vfs.directories.size} directories`)
+        }
+      } catch (error) {
+        runner.addOutput('error', `VFS sync failed: ${error.message}`)
+      }
     } else {
       // Backward compatibility - treat as execute
       const executionPromise = runner.execute(code)
