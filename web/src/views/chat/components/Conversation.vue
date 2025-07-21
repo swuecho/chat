@@ -145,6 +145,9 @@ onUnmounted(() => {
 // VFS event handlers with stream response functionality
 const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
   await chatActions.handleCodeExampleAdded(codeInfo, (message: string) => {
+    // TODO:  user message already added in handleCodeExampleAdded
+    // should refactor onConversationStream to remove extra addUserMessage call
+    // onConversationStream, should also rename, to (startConversationStream)
     return conversationFlow.onConversationStream(message, dataSources.value)
   })
 }

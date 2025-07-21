@@ -117,7 +117,7 @@ Your files are now available in the Virtual File System! 🚀`
     )
 
     try {
-      await streamResponse(chatUuid, exampleMessage)
+      await streamResponse(exampleMessage)
       nui_msg.success('Files uploaded! Code examples added to chat.')
     } catch (error) {
       console.error('Failed to stream code example response:', error)
