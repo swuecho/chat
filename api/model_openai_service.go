@@ -169,3 +169,45 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		}
 	}
 }
+
+// NewUserMessage creates a new OpenAI user message
+func NewUserMessage(content string) openai.ChatCompletionMessage {
+	return openai.ChatCompletionMessage{Role: "user", Content: content}
+}
+
+// NewChatCompletionRequest creates an OpenAI chat completion request from session and messages
+func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatFiles []sqlc_queries.ChatFile, streamOutput bool) openai.ChatCompletionRequest {
+	openai_message := messagesToOpenAIMesages(chat_completion_messages, chatFiles)
+	
+	for _, m := range openai_message {
+		b, _ := m.MarshalJSON()
+		log.Printf("messages: %+v\n", string(b))
+	}
+
+	log.Printf("messages: %+v\n", openai_message)
+	openai_req := openai.ChatCompletionRequest{
+		Model:       chatSession.Model,
+		Messages:    openai_message,
+		Temperature: float32(chatSession.Temperature),
+		TopP:        float32(chatSession.TopP) - 0.01,
+		N:           int(chatSession.N),
+		Stream:      streamOutput,
+	}
+	return openai_req
+}
+
+// constructChatCompletionStreamReponse creates an OpenAI chat completion stream response
+func constructChatCompletionStreamReponse(answer_id string, answer string) openai.ChatCompletionStreamResponse {
+	resp := openai.ChatCompletionStreamResponse{
+		ID: answer_id,
+		Choices: []openai.ChatCompletionStreamChoice{
+			{
+				Index: 0,
+				Delta: openai.ChatCompletionStreamChoiceDelta{
+					Content: answer,
+				},
+			},
+		},
+	}
+	return resp
+}

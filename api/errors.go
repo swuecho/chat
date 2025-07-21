@@ -500,3 +500,16 @@ func ErrorCatalogHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(docs)
 }
+
+
+// createAPIError creates a consistent API error with optional debug info
+func createAPIError(baseErr APIError, detail string, debugInfo string) APIError {
+	apiErr := baseErr
+	if detail != "" {
+		apiErr.Detail = detail
+	}
+	if debugInfo != "" {
+		apiErr.DebugInfo = debugInfo
+	}
+	return apiErr
+}

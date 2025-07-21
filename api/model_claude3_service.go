@@ -19,6 +19,17 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
+// ClaudeResponse represents the response structure from Claude API
+type ClaudeResponse struct {
+	Completion string `json:"completion"`
+	Stop       string `json:"stop"`
+	StopReason string `json:"stop_reason"`
+	Truncated  bool   `json:"truncated"`
+	LogID      string `json:"log_id"`
+	Model      string `json:"model"`
+	Exception  any    `json:"exception"`
+}
+
 // Claude3 ChatModel implementation
 type Claude3ChatModel struct {
 	h *ChatHandler
