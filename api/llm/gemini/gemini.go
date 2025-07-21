@@ -128,6 +128,30 @@ func ParseRespLine(line []byte, answer string) string {
 	return answer
 }
 
+// ParseRespLineDelta extracts only the delta content from a response line without accumulating
+func ParseRespLineDelta(line []byte) string {
+	var resp ResponseBody
+	if err := json.Unmarshal(line, &resp); err != nil {
+		fmt.Println("Failed to parse request body:", err)
+		return ""
+	}
+
+	var delta string
+	for _, candidate := range resp.Candidates {
+		for idx, part := range candidate.Content.Parts {
+			if idx > 0 {
+				delta += "\n\n"
+			}
+			if part.Thought {
+				delta += ("<think>" + part.Text + "<think>")
+			} else {
+				delta += part.Text
+			}
+		}
+	}
+	return delta
+}
+
 func SupportedMimeTypes() mapset.Set[string] {
 	return mapset.NewSet(
 		"image/png",

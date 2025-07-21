@@ -224,9 +224,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 
 		if bytes.HasPrefix(line, []byte("event: message_stop")) {
 			// stream.isFinished = true
-			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
-			fmt.Fprintf(w, "data: %v\n\n", string(data))
-			flusher.Flush()
+			// No need to send full content at the end since we're sending deltas
 			break
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
@@ -243,8 +241,10 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 			flusher.Flush()
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
-			answer += claude.AnswerFromBlockDelta(line)
-			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			delta := claude.AnswerFromBlockDelta(line)
+			answer += delta // Still accumulate for final answer storage
+			// Send only the delta content
+			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, delta))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
 		}

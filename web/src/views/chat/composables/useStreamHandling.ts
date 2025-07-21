@@ -18,7 +18,7 @@ interface ErrorResponse {
 interface StreamChunkData {
   choices: Array<{
     delta: {
-      content: string // Contains the full message content, not incremental
+      content: string 
     }
   }>
   id: string
@@ -64,14 +64,20 @@ export function useStreamHandling() {
         return
       }
 
-      const answer = parsedData.choices[0].delta.content
+      const deltaContent = parsedData.choices[0].delta.content
       const answerUuid = parsedData.id.replace('chatcmpl-', '')
-      const artifacts = extractArtifacts(answer)
+      
+      // Get current message to append delta content
+      const currentMessage = chatStore.getChatByUuidAndIndex(sessionUuid, responseIndex)
+      const currentText = currentMessage?.text || ''
+      const newText = currentText + deltaContent
+      
+      const artifacts = extractArtifacts(newText)
 
       updateChat(sessionUuid, responseIndex, {
         uuid: answerUuid,
         dateTime: nowISO(),
-        text: answer,
+        text: newText,
         inversion: false,
         error: false,
         loading: false,
@@ -139,15 +145,11 @@ export function useStreamHandling() {
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
           
-          // for (const line of lines) {
-          //   if (line.trim()) {
-          //     onStreamChunk(line, responseIndex)
-          //   }
-          // }
-          if (lines.length > 0) {
-            onStreamChunk(lines[lines.length - 1], responseIndex)
+          for (const line of lines) {
+            if (line.trim()) {
+              onStreamChunk(line, responseIndex)
+            }
           }
-
 
         }
         
@@ -221,14 +223,12 @@ export function useStreamHandling() {
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
           
-          // for (const line of lines) {
-          //   if (line.trim()) {
-          //     onStreamChunk(line, updateIndex)
-          //   }
-          // }
-          if (lines.length > 0) {
-            onStreamChunk(lines[lines.length - 1], updateIndex)
+          for (const line of lines) {
+            if (line.trim()) {
+              onStreamChunk(line, updateIndex)
+            }
           }
+         
         }
         
         // Process any remaining data in buffer
