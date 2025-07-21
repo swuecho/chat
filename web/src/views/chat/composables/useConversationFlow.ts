@@ -55,7 +55,6 @@ export function useConversationFlow(
     
     addChat(sessionUuid, chatMessage)
     await scrollToBottom()
-    loading.value = true
   }
 
   async function initializeChatResponse(dataSources: any[]): Promise<number> {
@@ -89,14 +88,14 @@ export function useConversationFlow(
     }
   }
 
-  async function onConversationStream(
+  async function startStream(
     message: string,
-    dataSources: any[]
+    dataSources: any[],
+    chatUuid: string
   ): Promise<void> {
     if (!validateConversationInput(message)) return
 
-    const chatUuid = uuidv7()
-    await addUserMessage(chatUuid, message)
+    loading.value = true
     const responseIndex = await initializeChatResponse(dataSources)
 
     try {
@@ -123,6 +122,6 @@ export function useConversationFlow(
     addUserMessage,
     initializeChatResponse,
     handleStreamingError,
-    onConversationStream
+    startStream
   }
 }

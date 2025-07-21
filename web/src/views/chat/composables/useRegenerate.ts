@@ -1,7 +1,4 @@
 import { ref } from 'vue'
-import { useMessage } from 'naive-ui'
-// @ts-ignore
-import { v7 as uuidv7 } from 'uuid'
 import { deleteChatMessage } from '@/api'
 import { nowISO } from '@/utils/date'
 import { useChat } from '@/views/chat/hooks/useChat'
@@ -9,12 +6,10 @@ import { useStreamHandling } from './useStreamHandling'
 import { t } from '@/locales'
 
 export function useRegenerate(sessionUuid: string) {
-  const nui_msg = useMessage()
   const loading = ref<boolean>(false)
   const { addChat, updateChat, updateChatPartial } = useChat()
   const { streamRegenerateResponse, processStreamChunk } = useStreamHandling()
 
-  let controller = new AbortController()
 
   function validateRegenerateInput(): boolean {
     return !loading.value
@@ -25,7 +20,6 @@ export function useRegenerate(sessionUuid: string) {
     chat: any,
     dataSources: any[]
   ): Promise<{ updateIndex: number; isRegenerate: boolean }> {
-    controller = new AbortController()
     loading.value = true
 
     let updateIndex = index
@@ -81,12 +75,6 @@ export function useRegenerate(sessionUuid: string) {
     return { updateIndex, isRegenerate }
   }
 
-  function handleRegenerateStreamProgress(chunk: string, updateIndex: number): void {
-    // Process the stream chunk directly - no need for XMLHttpRequest handling
-    // since we're using the modern Fetch API streaming
-    processStreamChunk(chunk, updateIndex, sessionUuid)
-  }
-
   function handleRegenerateError(error: any, chatUuid: string, index: number): void {
     console.error('Regenerate error:', error)
 
@@ -122,7 +110,7 @@ export function useRegenerate(sessionUuid: string) {
         updateIndex,
         isRegenerate,
         (chunk: string, updateIdx: number) => {
-          handleRegenerateStreamProgress(chunk, updateIdx)
+          processStreamChunk(chunk, updateIdx, sessionUuid)
         }
       )
     } catch (error) {
@@ -137,7 +125,6 @@ export function useRegenerate(sessionUuid: string) {
     validateRegenerateInput,
     prepareRegenerateContext,
     handleUserMessageRegenerate,
-    handleRegenerateStreamProgress,
     handleRegenerateError,
     onRegenerate
   }
