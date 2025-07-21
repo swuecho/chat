@@ -139,11 +139,16 @@ export function useStreamHandling() {
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
           
-          for (const line of lines) {
-            if (line.trim()) {
-              onStreamChunk(line, responseIndex)
-            }
+          // for (const line of lines) {
+          //   if (line.trim()) {
+          //     onStreamChunk(line, responseIndex)
+          //   }
+          // }
+          if (lines.length > 0) {
+            onStreamChunk(lines[lines.length - 1], responseIndex)
           }
+
+
         }
         
         // Process any remaining data in buffer
@@ -217,10 +222,13 @@ export function useStreamHandling() {
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
           
-          for (const line of lines) {
-            if (line.trim()) {
-              onStreamChunk(line, updateIndex)
-            }
+          // for (const line of lines) {
+          //   if (line.trim()) {
+          //     onStreamChunk(line, updateIndex)
+          //   }
+          // }
+          if (lines.length > 0) {
+            onStreamChunk(lines[lines.length - 1], updateIndex)
           }
         }
         
