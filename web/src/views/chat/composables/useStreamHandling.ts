@@ -1,6 +1,6 @@
 import { useMessage } from 'naive-ui'
 import { useAuthStore } from '@/store'
-import { getDataFromResponseText } from '@/utils/string'
+import { extractStreamingData } from '@/utils/string'
 import { extractArtifacts } from '@/utils/artifacts'
 import { nowISO } from '@/utils/date'
 import { useChatStore } from '@/store'
@@ -18,7 +18,7 @@ interface ErrorResponse {
 interface StreamChunkData {
   choices: Array<{
     delta: {
-      content: string
+      content: string // Contains the full message content, not incremental
     }
   }>
   id: string
@@ -30,9 +30,6 @@ export function useStreamHandling() {
   const { updateChat } = useChat()
   
 
-  function handleStreamChunk(chunk: string, responseIndex: number, sessionUuid: string): void {
-    processStreamChunk(chunk, responseIndex, sessionUuid)
-  }
 
   function handleStreamError(responseText: string, responseIndex: number, sessionUuid: string): void {
     try {
@@ -54,7 +51,7 @@ export function useStreamHandling() {
   }
 
   function processStreamChunk(chunk: string, responseIndex: number, sessionUuid: string): void {
-    const data = getDataFromResponseText(chunk)
+    const data = extractStreamingData(chunk)
 
     if (!data) return
 
@@ -90,7 +87,7 @@ export function useStreamHandling() {
     chatUuid: string,
     message: string,
     responseIndex: number,
-    onProgress?: (chunk: string, responseIndex: number) => void
+    onStreamChunk: (chunk: string, responseIndex: number) => void
   ): Promise<void> {
     const authStore = useAuthStore()
     const token = authStore.getToken()
@@ -134,6 +131,7 @@ export function useStreamHandling() {
           }
 
           const chunk = decoder.decode(value, { stream: true })
+          console.log('chunk', chunk)
           buffer += chunk
           
           // Process complete SSE messages
@@ -141,24 +139,21 @@ export function useStreamHandling() {
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
           
-          for (const line of lines) {
-            if (line.trim()) {
-              if (onProgress) {
-                onProgress(line, responseIndex)
-              } else {
-                handleStreamChunk(line, responseIndex, sessionUuid)
-              }
-            }
+          // for (const line of lines) {
+          //   if (line.trim()) {
+          //     onStreamChunk(line, responseIndex)
+          //   }
+          // }
+          if (lines.length > 0) {
+            onStreamChunk(lines[lines.length - 1], responseIndex)
           }
+
+
         }
         
         // Process any remaining data in buffer
         if (buffer.trim()) {
-          if (onProgress) {
-            onProgress(buffer, responseIndex)
-          } else {
-            handleStreamChunk(buffer, responseIndex, sessionUuid)
-          }
+          onStreamChunk(buffer, responseIndex)
         }
       } finally {
         reader.releaseLock()
@@ -175,7 +170,7 @@ export function useStreamHandling() {
     chatUuid: string,
     updateIndex: number,
     isRegenerate: boolean,
-    onProgress?: (chunk: string, updateIndex: number) => void
+    onStreamChunk: (chunk: string, updateIndex: number) => void
   ): Promise<void> {
     const authStore = useAuthStore()
     const token = authStore.getToken()
@@ -226,24 +221,19 @@ export function useStreamHandling() {
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
           
-          for (const line of lines) {
-            if (line.trim()) {
-              if (onProgress) {
-                onProgress(line, updateIndex)
-              } else {
-                handleStreamChunk(line, updateIndex, sessionUuid)
-              }
-            }
+          // for (const line of lines) {
+          //   if (line.trim()) {
+          //     onStreamChunk(line, updateIndex)
+          //   }
+          // }
+          if (lines.length > 0) {
+            onStreamChunk(lines[lines.length - 1], updateIndex)
           }
         }
         
         // Process any remaining data in buffer
         if (buffer.trim()) {
-          if (onProgress) {
-            onProgress(buffer, updateIndex)
-          } else {
-            handleStreamChunk(buffer, updateIndex, sessionUuid)
-          }
+          onStreamChunk(buffer, updateIndex)
         }
       } finally {
         reader.releaseLock()
@@ -261,7 +251,6 @@ export function useStreamHandling() {
   }
 
   return {
-    handleStreamChunk,
     handleStreamError,
     processStreamChunk,
     streamChatResponse,

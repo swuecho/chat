@@ -1,6 +1,8 @@
 <script lang='ts' setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { NAutoComplete, NButton, NInput, NModal, NSpin } from 'naive-ui'
+// @ts-ignore
+import { v7 as uuidv7 } from 'uuid'
 import { useScroll } from '@/views/chat/hooks/useScroll'
 import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'
 import SessionConfig from '@/views/chat/components/Session/SessionConfig.vue'
@@ -71,11 +73,13 @@ const {
 // Use loading state from composables
 const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
 
-function handleSubmit() {
+async function handleSubmit() {
   const message = prompt.value
   if (conversationFlow.validateConversationInput(message)) {
     prompt.value = '' // Clear the input after validation passes
-    conversationFlow.onConversationStream(message, dataSources.value)
+    const chatUuid = uuidv7()
+    await conversationFlow.addUserMessage(chatUuid, message)
+    conversationFlow.startStream(message, dataSources.value, chatUuid)
   }
 }
 
@@ -144,8 +148,8 @@ onUnmounted(() => {
 
 // VFS event handlers with stream response functionality
 const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
-  await chatActions.handleCodeExampleAdded(codeInfo, (message: string) => {
-    return conversationFlow.onConversationStream(message, dataSources.value)
+  await chatActions.handleCodeExampleAdded(codeInfo, (chatUuid: string, message: string) => {
+    return conversationFlow.startStream(message, dataSources.value, chatUuid)
   })
 }
 </script>

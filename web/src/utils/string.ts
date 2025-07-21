@@ -1,12 +1,21 @@
-export function getDataFromResponseText(responseText: string): string {
-        // first data segment
-        if (responseText.lastIndexOf('data:') === 0)
-                return responseText.slice(5)
-        // Find the last occurrence of the data segment
-        const lastIndex = responseText.lastIndexOf('\n\ndata:')
-        // Extract the JSON data chunk from the responseText
-        const chunk = responseText.slice(lastIndex + 8)
-        return chunk
+export function extractStreamingData(streamResponse: string): string {
+  const DATA_MARKER = 'data:'
+  const SSE_DATA_MARKER = '\n\ndata:'
+  
+  // Handle single data segment at response start (most common after buffer split)
+  if (streamResponse.startsWith(DATA_MARKER)) {
+    return streamResponse.slice(DATA_MARKER.length).trim()
+  }
+
+  // Handle Server-Sent Events with multiple data segments - extract the last one
+  const lastSSEDataPosition = streamResponse.lastIndexOf(SSE_DATA_MARKER)
+  if (lastSSEDataPosition === -1) {
+    return streamResponse.trim() // No SSE format detected, return original
+  }
+
+  // Extract data after the last SSE marker
+  const dataStartPosition = lastSSEDataPosition + SSE_DATA_MARKER.length
+  return streamResponse.slice(dataStartPosition).trim()
 }
 
 export function escapeDollarNumber(text: string) {
