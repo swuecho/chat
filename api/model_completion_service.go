@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/rotisserie/eris"
 	openai "github.com/sashabaranov/go-openai"
@@ -69,7 +68,7 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 	}
 
 	// Create completion stream with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
 	defer cancel()
 	
 	stream, err := client.CreateCompletionStream(ctx, req)
@@ -100,7 +99,7 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 		if errors.Is(err, io.EOF) {
 			// Send the final message
 			if len(answer) > 0 {
-				final_resp := constructChatCompletionStreamReponse(answer_id, answer)
+				final_resp := constructChatCompletionStreamResponse(answer_id, answer)
 				data, _ := json.Marshal(final_resp)
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
 				flusher.Flush()
@@ -111,7 +110,7 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 				req_j, _ := json.Marshal(req)
 				log.Println(string(req_j))
 				answer = answer + "\n" + string(req_j)
-				req_as_resp := constructChatCompletionStreamReponse(answer_id, answer)
+				req_as_resp := constructChatCompletionStreamResponse(answer_id, answer)
 				data, _ := json.Marshal(req_as_resp)
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
 				flusher.Flush()
@@ -144,9 +143,9 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 		perWordStreamLimit := getPerWordStreamLimit()
 		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
 			if len(answer) == 0 {
-				log.Printf("no content in answer")
+				log.Printf(ErrorNoContent)
 			} else {
-				response := constructChatCompletionStreamReponse(answer_id, answer)
+				response := constructChatCompletionStreamResponse(answer_id, answer)
 				data, _ := json.Marshal(response)
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
 				flusher.Flush()

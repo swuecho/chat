@@ -23,7 +23,7 @@ type OpenAIChatModel struct {
 	h *ChatHandler
 }
 
-func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
+func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
 	openAIRateLimiter.Wait(context.Background())
 
 	exceedPerModeRateLimitOrError := m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
@@ -48,16 +48,17 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		return nil, ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())
 	}
 
-	openai_req := NewChatCompletionRequest(chatSession, chat_compeletion_messages, chatFiles, streamOutput)
-	if len(openai_req.Messages) <= 1 {
+	openaiReq := NewChatCompletionRequest(chatSession, chatCompletionMessages, chatFiles, streamOutput)
+	if len(openaiReq.Messages) <= 1 {
 		return nil, ErrSystemMessageError
 	}
-	log.Printf("%+v", openai_req)
+	log.Printf("OpenAI request prepared - Model: %s, MessageCount: %d, Temperature: %.2f", 
+		openaiReq.Model, len(openaiReq.Messages), openaiReq.Temperature)
 	client := openai.NewClientWithConfig(config)
 	if streamOutput {
-		return doChatStream(w, client, openai_req, chatSession.N, chatUuid, regenerate)
+		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate)
 	} else {
-		return handleRegularResponse(w, client, openai_req)
+		return handleRegularResponse(w, client, openaiReq)
 	}
 
 }
@@ -161,7 +162,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 			
 			if len(deltaToSend) > 0 {
 				log.Printf("delta: %s", deltaToSend)
-				constructedResponse := constructChatCompletionStreamReponse(answer_id, deltaToSend)
+				constructedResponse := constructChatCompletionStreamResponse(answer_id, deltaToSend)
 				data, _ := json.Marshal(constructedResponse)
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
 				flusher.Flush()
@@ -176,35 +177,35 @@ func NewUserMessage(content string) openai.ChatCompletionMessage {
 }
 
 // NewChatCompletionRequest creates an OpenAI chat completion request from session and messages
-func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatFiles []sqlc_queries.ChatFile, streamOutput bool) openai.ChatCompletionRequest {
-	openai_message := messagesToOpenAIMesages(chat_completion_messages, chatFiles)
+func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatFiles []sqlc_queries.ChatFile, streamOutput bool) openai.ChatCompletionRequest {
+	openaiMessages := messagesToOpenAIMesages(chatCompletionMessages, chatFiles)
 	
-	for _, m := range openai_message {
+	for _, m := range openaiMessages {
 		b, _ := m.MarshalJSON()
 		log.Printf("messages: %+v\n", string(b))
 	}
 
-	log.Printf("messages: %+v\n", openai_message)
-	openai_req := openai.ChatCompletionRequest{
+	log.Printf("messages: %+v\n", openaiMessages)
+	openaiReq := openai.ChatCompletionRequest{
 		Model:       chatSession.Model,
-		Messages:    openai_message,
+		Messages:    openaiMessages,
 		Temperature: float32(chatSession.Temperature),
 		TopP:        float32(chatSession.TopP) - 0.01,
 		N:           int(chatSession.N),
 		Stream:      streamOutput,
 	}
-	return openai_req
+	return openaiReq
 }
 
-// constructChatCompletionStreamReponse creates an OpenAI chat completion stream response
-func constructChatCompletionStreamReponse(answer_id string, answer string) openai.ChatCompletionStreamResponse {
+// constructChatCompletionStreamResponse creates an OpenAI chat completion stream response
+func constructChatCompletionStreamResponse(answerID string, content string) openai.ChatCompletionStreamResponse {
 	resp := openai.ChatCompletionStreamResponse{
-		ID: answer_id,
+		ID: answerID,
 		Choices: []openai.ChatCompletionStreamChoice{
 			{
 				Index: 0,
 				Delta: openai.ChatCompletionStreamChoiceDelta{
-					Content: answer,
+					Content: content,
 				},
 			},
 		},

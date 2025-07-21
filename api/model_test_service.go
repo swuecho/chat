@@ -44,7 +44,7 @@ func (m *TestChatModel) chatStreamTest(w http.ResponseWriter, chatSession sqlc_q
 	}
 	
 	answer := "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."
-	resp := constructChatCompletionStreamReponse(answer_id, answer)
+	resp := constructChatCompletionStreamResponse(answer_id, answer)
 	data, _ := json.Marshal(resp)
 	fmt.Fprintf(w, "data: %v\n\n", string(data))
 	flusher.Flush()
@@ -53,7 +53,7 @@ func (m *TestChatModel) chatStreamTest(w http.ResponseWriter, chatSession sqlc_q
 		openai_req := NewChatCompletionRequest(chatSession, chat_completion_messages, chatFiles, false)
 		req_j, _ := json.Marshal(openai_req)
 		answer = answer + "\n" + string(req_j)
-		req_as_resp := constructChatCompletionStreamReponse(answer_id, answer)
+		req_as_resp := constructChatCompletionStreamResponse(answer_id, answer)
 		data, _ := json.Marshal(req_as_resp)
 		fmt.Fprintf(w, "data: %s\n\n", string(data))
 		flusher.Flush()

@@ -81,10 +81,10 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 	}
 
 	// Set request headers
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "text/event-stream")
-	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Content-Type", ContentTypeJSON)
+	req.Header.Set("Accept", AcceptEventStream)
+	req.Header.Set("Cache-Control", CacheControlNoCache)
+	req.Header.Set("Connection", ConnectionKeepAlive)
 
 	// Send HTTP request
 	client := &http.Client{}
@@ -122,14 +122,14 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 	for {
 		count++
 		// Prevent infinite loop
-		if count > 10000 {
+		if count > MaxStreamingLoopIterations {
 			break
 		}
 		
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				fmt.Println("End of stream reached")
+				fmt.Println(ErrorEndOfStream)
 				break
 			}
 			return nil, err
@@ -141,8 +141,8 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 		line = bytes.TrimPrefix(line, headerData)
 
 		if bytes.HasPrefix(line, []byte("[DONE]")) {
-			fmt.Println("DONE break")
-			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			fmt.Println(ErrorDoneBreak)
+			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
 			break
@@ -158,11 +158,11 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 
 		// Determine when to flush the response
 		shouldFlush := strings.Contains(answer, "\n") ||
-			len(answer) < 200 ||
-			(len(answer)-lastFlushLength) >= 500
+			len(answer) < SmallAnswerThreshold ||
+			(len(answer)-lastFlushLength) >= FlushCharacterThreshold
 
 		if shouldFlush {
-			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
 			lastFlushLength = len(answer)

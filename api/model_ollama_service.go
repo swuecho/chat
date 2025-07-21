@@ -146,7 +146,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 
 		// Send delta content immediately when available
 		if len(delta) > 0 {
-			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, delta))
+			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, delta))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
 		}

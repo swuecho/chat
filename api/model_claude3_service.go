@@ -74,7 +74,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		return nil, ErrSystemMessageError
 	}
 	// Prepare request payload
-	jsonData := map[string]interface{}{
+	jsonData := map[string]any{
 		"system":      chat_compeletion_messages[0].Content,
 		"model":       chatSession.Model,
 		"messages":    messages,
@@ -121,7 +121,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 			return nil, ErrClaudeRequestFailed.WithDetail("failed to generate response").WithDebugInfo(err.Error())
 		}
 
-		answerResponse := constructChatCompletionStreamReponse(llmAnswer.AnswerId, llmAnswer.Answer)
+		answerResponse := constructChatCompletionStreamResponse(llmAnswer.AnswerId, llmAnswer.Answer)
 		data, err := json.Marshal(answerResponse)
 		if err != nil {
 			return nil, ErrInternalUnexpected.WithDetail("failed to marshal response").WithDebugInfo(err.Error())
@@ -222,7 +222,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 					log.Println(string(line))
-					data, _ := json.Marshal(constructChatCompletionStreamReponse(NewUUID(), string(line)))
+					data, _ := json.Marshal(constructChatCompletionStreamResponse(NewUUID(), string(line)))
 					fmt.Fprintf(w, "data: %v\n\n", string(data))
 					flusher.Flush()
 				}
@@ -247,7 +247,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
 			answer = claude.AnswerFromBlockStart(line)
-			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, answer))
+			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, answer))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
 		}
@@ -255,7 +255,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 			delta := claude.AnswerFromBlockDelta(line)
 			answer += delta // Still accumulate for final answer storage
 			// Send only the delta content
-			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, delta))
+			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, delta))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
 		}

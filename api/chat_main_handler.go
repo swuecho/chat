@@ -181,7 +181,13 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 
 }
 
-// validateChatSession validates the chat session and returns the session and model info
+// validateChatSession validates the chat session and returns the session and model info.
+// It performs comprehensive validation including:
+// - Session existence check
+// - Model availability verification  
+// - Base URL extraction
+// - UUID validation
+// Returns: session, model, baseURL, success
 func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string) (*sqlc_queries.ChatSession, *sqlc_queries.ChatModel, string, bool) {
 	chatSession, err := h.service.q.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
@@ -207,7 +213,12 @@ func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWr
 	return &chatSession, &chatModel, baseURL, true
 }
 
-// handlePromptCreation handles creating new prompt or adding user message to existing conversation
+// handlePromptCreation handles creating new prompt or adding user message to existing conversation.
+// This function manages the logic for:
+// - Detecting existing prompts in the session
+// - Creating new prompts for fresh conversations
+// - Adding user messages to ongoing conversations
+// - Handling empty questions for regeneration scenarios
 func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseWriter, chatSession *sqlc_queries.ChatSession, chatUuid, newQuestion string, userID int32, baseURL string) bool {
 	existingPrompt := true
 	prompt, err := h.service.q.GetOneChatPromptBySessionUUID(ctx, chatSession.Uuid)
@@ -253,7 +264,7 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to collect messages", err.Error()))
 		return false
 	}
-	log.Printf("Collected %d messages for session %s", len(msgs), chatSession.Uuid)
+	log.Printf("Collected messages for processing - SessionUUID: %s, MessageCount: %d, Model: %s", chatSession.Uuid, len(msgs), chatSession.Model)
 
 	model := h.chooseChatModel(*chatSession, msgs)
 	LLMAnswer, err := model.Stream(w, *chatSession, msgs, chatUuid, false, streamOutput)
@@ -291,7 +302,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, ch
 	if !ok {
 		return
 	}
-	log.Printf("Processing chat session: %s, user: %d", chatSession.Uuid, userID)
+	log.Printf("Processing chat session - SessionUUID: %s, UserID: %d, Model: %s", chatSession.Uuid, userID, chatSession.Model)
 
 	// Handle prompt creation or user message addition
 	if !h.handlePromptCreation(ctx, w, chatSession, chatUuid, newQuestion, userID, baseURL) {
@@ -441,11 +452,9 @@ func isTest(msgs []models.Message) bool {
 	lastMsgs := msgs[len(msgs)-1]
 	promptMsg := msgs[0]
 	
-	// Check if prefix contains test_demo_bestqa
-	return len(promptMsg.Content) > 0 && 
-		   len(lastMsgs.Content) > 0 && 
-		   (len(promptMsg.Content) >= 15 && promptMsg.Content[:15] == "test_demo_bestqa" ||
-		    len(lastMsgs.Content) >= 15 && lastMsgs.Content[:15] == "test_demo_bestqa")
+	// Check if either first or last message contains test demo marker
+	return (len(promptMsg.Content) >= TestPrefixLength && promptMsg.Content[:TestPrefixLength] == TestDemoPrefix) ||
+		   (len(lastMsgs.Content) >= TestPrefixLength && lastMsgs.Content[:TestPrefixLength] == TestDemoPrefix)
 }
 
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {
