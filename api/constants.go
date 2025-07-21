@@ -27,6 +27,12 @@ const (
 	
 	// Test constants
 	TestDemoPrefix = "test_demo_bestqa"
+	
+	// Service constants
+	DefaultMaxLength = 10
+	RequestTimeoutSeconds = 10
+	TokenEstimateRatio = 4
+	SummarizeThreshold = 300
 )
 
 // Error message constants

@@ -246,7 +246,7 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 			log.Println("no new question, regenerate answer")
 		}
 	} else {
-		chatPrompt, err := h.service.CreateChatPromptSimple(chatSession.Uuid, newQuestion, userID)
+		chatPrompt, err := h.service.CreateChatPromptSimple(ctx, chatSession.Uuid, newQuestion, userID)
 		if err != nil {
 			RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to create prompt", err.Error()))
 			return false
