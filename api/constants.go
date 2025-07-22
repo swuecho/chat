@@ -16,7 +16,7 @@ const (
 	// Content buffering and flushing
 	SmallAnswerThreshold     = 200
 	FlushCharacterThreshold  = 500
-	TestPrefixLength         = 15
+	TestPrefixLength         = 16
 	
 	// Pagination
 	DefaultPageSize = 200
