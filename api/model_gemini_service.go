@@ -88,7 +88,7 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	if llmAnswer != nil {
 		llmAnswer.AnswerId = answerID
 	}
-	response := constructChatCompletionStreamReponse(answerID, llmAnswer.Answer)
+	response := constructChatCompletionStreamResponse(answerID, llmAnswer.Answer)
 	data, _ := json.Marshal(response)
 	fmt.Fprint(w, string(data))
 	return llmAnswer, err
@@ -211,7 +211,7 @@ func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.
 			answer += delta // Accumulate delta for final answer storage
 			// Send only the delta content
 			if len(delta) > 0 {
-				data, _ := json.Marshal(constructChatCompletionStreamReponse(answerID, delta))
+				data, _ := json.Marshal(constructChatCompletionStreamResponse(answerID, delta))
 				fmt.Fprintf(w, "data: %v\n\n", string(data))
 				flusher.Flush()
 			}

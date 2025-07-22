@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -72,6 +73,17 @@ func setSSEHeader(w http.ResponseWriter) {
 	// Prevent compression
 	w.Header().Del("Content-Encoding")
 }
+
+// setupSSEStream configures the response writer for Server-Sent Events and returns the flusher
+func setupSSEStream(w http.ResponseWriter) (http.Flusher, error) {
+	setSSEHeader(w)
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		return nil, errors.New("streaming unsupported by client")
+	}
+	return flusher, nil
+}
+
 
 func getPerWordStreamLimit() int {
 	perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")

@@ -17,6 +17,20 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
+// OllamaResponse represents the response structure from Ollama API
+type OllamaResponse struct {
+	Model              string         `json:"model"`
+	CreatedAt          time.Time      `json:"created_at"`
+	Done               bool           `json:"done"`
+	Message            models.Message `json:"message"`
+	TotalDuration      int64          `json:"total_duration"`
+	LoadDuration       int64          `json:"load_duration"`
+	PromptEvalCount    int            `json:"prompt_eval_count"`
+	PromptEvalDuration int64          `json:"prompt_eval_duration"`
+	EvalCount          int            `json:"eval_count"`
+	EvalDuration       int64          `json:"eval_duration"`
+}
+
 // Ollama ChatModel implementation
 type OllamaChatModel struct {
 	h *ChatHandler
@@ -33,7 +47,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
 		return nil, err
 	}
-	jsonData := map[string]interface{}{
+	jsonData := map[string]any{
 		"model":    strings.Replace(chatSession.Model, "ollama-", "", 1),
 		"messages": chat_compeletion_messages,
 	}
@@ -132,7 +146,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 
 		// Send delta content immediately when available
 		if len(delta) > 0 {
-			data, _ := json.Marshal(constructChatCompletionStreamReponse(answer_id, delta))
+			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, delta))
 			fmt.Fprintf(w, "data: %v\n\n", string(data))
 			flusher.Flush()
 		}
