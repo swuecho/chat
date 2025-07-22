@@ -55,14 +55,11 @@ func NewGeminiChatModel(h *ChatHandler) *GeminiChatModel {
 }
 
 func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	answerID := chatUuid
-	if !regenerate {
-		answerID = NewUUID()
-	}
+	answerID := GenerateAnswerID(chatUuid, regenerate)
 
-	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	chatFiles, err := GetChatFiles(m.h.chatfileService.q, chatSession.Uuid)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())
+		return nil, err
 	}
 
 	payloadBytes, err := gemini.GenGemminPayload(messages, chatFiles)
@@ -159,9 +156,8 @@ func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.
 	}
 	defer resp.Body.Close()
 
-	setSSEHeader(w)
-	flusher, ok := w.(http.Flusher)
-	if !ok {
+	flusher, err := setupSSEStream(w)
+	if err != nil {
 		return nil, APIError{
 			HTTPCode: http.StatusInternalServerError,
 			Code:     "STREAM_UNSUPPORTED",
@@ -211,9 +207,14 @@ func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.
 			answer += delta // Accumulate delta for final answer storage
 			// Send only the delta content
 			if len(delta) > 0 {
-				data, _ := json.Marshal(constructChatCompletionStreamResponse(answerID, delta))
-				fmt.Fprintf(w, "data: %v\n\n", string(data))
-				flusher.Flush()
+				err := FlushResponse(w, flusher, StreamingResponse{
+					AnswerID: answerID,
+					Content:  delta,
+					IsFinal:  false,
+				})
+				if err != nil {
+					log.Printf("Failed to flush response: %v", err)
+				}
 			}
 		}
 	}

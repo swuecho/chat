@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -41,9 +41,9 @@ func (m *CustomChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 // customChatStream handles streaming for custom model providers
 func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// Get chat model configuration
-	chat_model, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
+	chat_model, err := GetChatModel(m.h.service.q, chatSession.Model)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
+		RespondWithAPIError(w, createAPIError(ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
 		return nil, err
 	}
 
@@ -53,7 +53,7 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 
 	// Format messages for the custom model
 	prompt := claude.FormatClaudePrompt(chat_completion_messages)
-	
+
 	// Create request payload
 	jsonData := map[string]any{
 		"prompt":               prompt,
@@ -66,7 +66,7 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 
 	// Marshal request data
 	jsonValue, _ := json.Marshal(jsonData)
-	
+
 	// Create HTTP request
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
@@ -81,10 +81,7 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 	}
 
 	// Set request headers
-	req.Header.Set("Content-Type", ContentTypeJSON)
-	req.Header.Set("Accept", AcceptEventStream)
-	req.Header.Set("Cache-Control", CacheControlNoCache)
-	req.Header.Set("Connection", ConnectionKeepAlive)
+	SetStreamingHeaders(req)
 
 	// Send HTTP request
 	client := &http.Client{}
@@ -110,14 +107,11 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 	var answer string
 	var answer_id string
 	var lastFlushLength int
-
-	if regenerate {
-		answer_id = chatUuid
-	}
+	answer_id = GenerateAnswerID(chatUuid, regenerate)
 
 	headerData := []byte("data: ")
 	count := 0
-	
+
 	// Process streaming response
 	for {
 		count++
@@ -125,7 +119,7 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 		if count > MaxStreamingLoopIterations {
 			break
 		}
-		
+
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -134,7 +128,7 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 			}
 			return nil, err
 		}
-		
+
 		if !bytes.HasPrefix(line, headerData) {
 			continue
 		}
@@ -142,16 +136,21 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 
 		if bytes.HasPrefix(line, []byte("[DONE]")) {
 			fmt.Println(ErrorDoneBreak)
-			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, answer))
-			fmt.Fprintf(w, "data: %v\n\n", string(data))
-			flusher.Flush()
+			err := FlushResponse(w, flusher, StreamingResponse{
+				AnswerID: answer_id,
+				Content:  answer,
+				IsFinal:  true,
+			})
+			if err != nil {
+				log.Printf("Failed to flush final response: %v", err)
+			}
 			break
 		}
-		
+
 		if answer_id == "" {
 			answer_id = NewUUID()
 		}
-		
+
 		var response CustomModelResponse
 		_ = json.Unmarshal(line, &response)
 		answer = response.Completion
@@ -162,9 +161,14 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 			(len(answer)-lastFlushLength) >= FlushCharacterThreshold
 
 		if shouldFlush {
-			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, answer))
-			fmt.Fprintf(w, "data: %v\n\n", string(data))
-			flusher.Flush()
+			err := FlushResponse(w, flusher, StreamingResponse{
+				AnswerID: answer_id,
+				Content:  answer,
+				IsFinal:  false,
+			})
+			if err != nil {
+				log.Printf("Failed to flush response: %v", err)
+			}
 			lastFlushLength = len(answer)
 		}
 	}

@@ -31,21 +31,21 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		return nil, eris.New("exceed per mode rate limit")
 	}
 
-	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
+	chatModel, err := GetChatModel(m.h.service.q, chatSession.Model)
 	if err != nil {
-		return nil, ErrResourceNotFound("chat model: " + chatSession.Model)
+		return nil, err
 	}
 
-	config, err := genOpenAIConfig(chatModel)
+	config, err := genOpenAIConfig(*chatModel)
 	log.Printf("%+v", config.String())
 	// print all config details
 	if err != nil {
 		return nil, ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
 	}
 
-	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	chatFiles, err := GetChatFiles(m.h.chatfileService.q, chatSession.Uuid)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())
+		return nil, err
 	}
 
 	openaiReq := NewChatCompletionRequest(chatSession, chatCompletionMessages, chatFiles, streamOutput)
@@ -93,10 +93,8 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 	}
 	defer stream.Close()
 
-	setSSEHeader(w)
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
+	flusher, err := setupSSEStream(w)
+	if err != nil {
 		return nil, APIError{
 			HTTPCode: http.StatusInternalServerError,
 			Code:     "STREAM_UNSUPPORTED",
@@ -112,9 +110,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 	}
 	textBuffer := newTextBuffer(bufferLen, "", "")
 	reasonBuffer := newTextBuffer(bufferLen, "<think>\n\n", "\n\n</think>\n\n")
-	if regenerate {
-		answer_id = chatUuid
-	}
+	answer_id = GenerateAnswerID(chatUuid, regenerate)
 	for {
 		rawLine, err := stream.RecvRaw()
 		if err != nil {
@@ -162,10 +158,14 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 			
 			if len(deltaToSend) > 0 {
 				log.Printf("delta: %s", deltaToSend)
-				constructedResponse := constructChatCompletionStreamResponse(answer_id, deltaToSend)
-				data, _ := json.Marshal(constructedResponse)
-				fmt.Fprintf(w, "data: %v\n\n", string(data))
-				flusher.Flush()
+				err := FlushResponse(w, flusher, StreamingResponse{
+					AnswerID: answer_id,
+					Content:  deltaToSend,
+					IsFinal:  false,
+				})
+				if err != nil {
+					log.Printf("Failed to flush response: %v", err)
+				}
 			}
 		}
 	}
@@ -197,18 +197,4 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chatCompleti
 	return openaiReq
 }
 
-// constructChatCompletionStreamResponse creates an OpenAI chat completion stream response
-func constructChatCompletionStreamResponse(answerID string, content string) openai.ChatCompletionStreamResponse {
-	resp := openai.ChatCompletionStreamResponse{
-		ID: answerID,
-		Choices: []openai.ChatCompletionStreamChoice{
-			{
-				Index: 0,
-				Delta: openai.ChatCompletionStreamChoiceDelta{
-					Content: content,
-				},
-			},
-		},
-	}
-	return resp
-}
+

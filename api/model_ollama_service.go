@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -42,9 +42,9 @@ func (m *OllamaChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 
 func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// set the api key
-	chatModel, err := h.service.q.ChatModelByName(context.Background(), chatSession.Model)
+	chatModel, err := GetChatModel(h.service.q, chatSession.Model)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+chatSession.Model))
+		RespondWithAPIError(w, createAPIError(ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
 		return nil, err
 	}
 	jsonData := map[string]any{
@@ -92,10 +92,8 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	defer resp.Body.Close()
 	// loop over the response body and print data
 
-	setSSEHeader(w)
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
+	flusher, err := setupSSEStream(w)
+	if err != nil {
 		RespondWithAPIError(w, APIError{
 			HTTPCode: http.StatusInternalServerError,
 			Code:     "STREAM_UNSUPPORTED",
@@ -105,11 +103,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	}
 
 	var answer string
-	var answer_id string
-
-	if regenerate {
-		answer_id = chatUuid
-	}
+	answer_id := GenerateAnswerID(chatUuid, regenerate)
 
 	count := 0
 	for {
@@ -146,9 +140,14 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 
 		// Send delta content immediately when available
 		if len(delta) > 0 {
-			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, delta))
-			fmt.Fprintf(w, "data: %v\n\n", string(data))
-			flusher.Flush()
+			err := FlushResponse(w, flusher, StreamingResponse{
+				AnswerID: answer_id,
+				Content:  delta,
+				IsFinal:  false,
+			})
+			if err != nil {
+				log.Printf("Failed to flush response: %v", err)
+			}
 		}
 	}
 

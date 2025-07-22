@@ -1,9 +1,8 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/swuecho/chat_backend/models"
@@ -22,16 +21,13 @@ func (m *TestChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.C
 
 // chatStreamTest handles test chat streaming with mock responses
 func (m *TestChatModel) chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
-	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(context.Background(), chatSession.Uuid)
+	chatFiles, err := GetChatFiles(m.h.chatfileService.q, chatSession.Uuid)
 	if err != nil {
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to get chat files", err.Error()))
 		return nil, err
 	}
 
-	answer_id := chatUuid
-	if !regenerate {
-		answer_id = NewUUID()
-	}
+	answer_id := GenerateAnswerID(chatUuid, regenerate)
 	
 	flusher, err := setupSSEStream(w)
 	if err != nil {
@@ -44,19 +40,27 @@ func (m *TestChatModel) chatStreamTest(w http.ResponseWriter, chatSession sqlc_q
 	}
 	
 	answer := "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."
-	resp := constructChatCompletionStreamResponse(answer_id, answer)
-	data, _ := json.Marshal(resp)
-	fmt.Fprintf(w, "data: %v\n\n", string(data))
-	flusher.Flush()
+	err = FlushResponse(w, flusher, StreamingResponse{
+		AnswerID: answer_id,
+		Content:  answer,
+		IsFinal:  false,
+	})
+	if err != nil {
+		log.Printf("Failed to flush response: %v", err)
+	}
 
 	if chatSession.Debug {
 		openai_req := NewChatCompletionRequest(chatSession, chat_completion_messages, chatFiles, false)
 		req_j, _ := json.Marshal(openai_req)
 		answer = answer + "\n" + string(req_j)
-		req_as_resp := constructChatCompletionStreamResponse(answer_id, answer)
-		data, _ := json.Marshal(req_as_resp)
-		fmt.Fprintf(w, "data: %s\n\n", string(data))
-		flusher.Flush()
+		err := FlushResponse(w, flusher, StreamingResponse{
+			AnswerID: answer_id,
+			Content:  answer,
+			IsFinal:  true,
+		})
+		if err != nil {
+			log.Printf("Failed to flush debug response: %v", err)
+		}
 	}
 	
 	return &models.LLMAnswer{

@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,18 +35,16 @@ type Claude3ChatModel struct {
 }
 
 func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	ctx := context.Background()
-
 	// Get chat model configuration
-	chatModel, err := m.h.service.q.ChatModelByName(ctx, chatSession.Model)
+	chatModel, err := GetChatModel(m.h.service.q, chatSession.Model)
 	if err != nil {
-		return nil, ErrChatModelNotFound.WithDetail(err.Error())
+		return nil, err
 	}
 
 	// Get chat files if any
-	chatFiles, err := m.h.chatfileService.q.ListChatFilesWithContentBySessionUUID(ctx, chatSession.Uuid)
+	chatFiles, err := GetChatFiles(m.h.chatfileService.q, chatSession.Uuid)
 	if err != nil {
-		return nil, ErrDatabaseQuery.WithDetail(err.Error())
+		return nil, err
 	}
 
 	// create a new strings.Builder
@@ -187,10 +184,8 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 	defer resp.Body.Close()
 	// loop over the response body and print data
 
-	setSSEHeader(w)
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
+	flusher, err := setupSSEStream(w)
+	if err != nil {
 		return nil, APIError{
 			HTTPCode: http.StatusInternalServerError,
 			Code:     "STREAM_UNSUPPORTED",
@@ -202,11 +197,7 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 	flusher.Flush()
 
 	var answer string
-	var answer_id string
-
-	if regenerate {
-		answer_id = chatUuid
-	}
+	answer_id := GenerateAnswerID(chatUuid, regenerate)
 
 	var headerData = []byte("data: ")
 	count := 0
@@ -222,9 +213,14 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 					log.Println(string(line))
-					data, _ := json.Marshal(constructChatCompletionStreamResponse(NewUUID(), string(line)))
-					fmt.Fprintf(w, "data: %v\n\n", string(data))
-					flusher.Flush()
+					err := FlushResponse(w, flusher, StreamingResponse{
+						AnswerID: NewUUID(),
+						Content:  string(line),
+						IsFinal:  true,
+					})
+					if err != nil {
+						log.Printf("Failed to flush error response: %v", err)
+					}
 				}
 				fmt.Println("End of stream reached")
 				return nil, err
@@ -247,17 +243,27 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
 			answer = claude.AnswerFromBlockStart(line)
-			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, answer))
-			fmt.Fprintf(w, "data: %v\n\n", string(data))
-			flusher.Flush()
+			err := FlushResponse(w, flusher, StreamingResponse{
+				AnswerID: answer_id,
+				Content:  answer,
+				IsFinal:  false,
+			})
+			if err != nil {
+				log.Printf("Failed to flush content block start: %v", err)
+			}
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
 			delta := claude.AnswerFromBlockDelta(line)
 			answer += delta // Still accumulate for final answer storage
 			// Send only the delta content
-			data, _ := json.Marshal(constructChatCompletionStreamResponse(answer_id, delta))
-			fmt.Fprintf(w, "data: %v\n\n", string(data))
-			flusher.Flush()
+			err := FlushResponse(w, flusher, StreamingResponse{
+				AnswerID: answer_id,
+				Content:  delta,
+				IsFinal:  false,
+			})
+			if err != nil {
+				log.Printf("Failed to flush content block delta: %v", err)
+			}
 		}
 		// Flush after every iteration to ensure immediate delivery
 		// This prevents data from being held in buffers
