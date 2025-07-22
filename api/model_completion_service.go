@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -38,14 +37,14 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 	}
 
 	// Get chat model configuration
-	chatModel, err := m.h.service.q.ChatModelByName(context.Background(), chatSession.Model)
+	chatModel, err := GetChatModel(m.h.service.q, chatSession.Model)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat model "+chatSession.Model))
+		RespondWithAPIError(w, createAPIError(ErrResourceNotFound(""), "chat model "+chatSession.Model, ""))
 		return nil, err
 	}
 
 	// Generate OpenAI client configuration
-	config, err := genOpenAIConfig(chatModel)
+	config, err := genOpenAIConfig(*chatModel)
 	if err != nil {
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to generate OpenAI configuration", err.Error()))
 		return nil, err
@@ -86,12 +85,8 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 	}
 
 	var answer string
-	var answer_id string
+	answer_id := GenerateAnswerID(chatUuid, regenerate)
 	textBuffer := newTextBuffer(N, "```\n"+prompt, "\n```\n")
-	
-	if regenerate {
-		answer_id = chatUuid
-	}
 
 	// Process streaming response
 	for {
@@ -99,10 +94,14 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 		if errors.Is(err, io.EOF) {
 			// Send the final message
 			if len(answer) > 0 {
-				final_resp := constructChatCompletionStreamResponse(answer_id, answer)
-				data, _ := json.Marshal(final_resp)
-				fmt.Fprintf(w, "data: %v\n\n", string(data))
-				flusher.Flush()
+				err := FlushResponse(w, flusher, StreamingResponse{
+					AnswerID: answer_id,
+					Content:  answer,
+					IsFinal:  true,
+				})
+				if err != nil {
+					log.Printf("Failed to flush final response: %v", err)
+				}
 			}
 			
 			// Include debug information if enabled
@@ -110,10 +109,14 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 				req_j, _ := json.Marshal(req)
 				log.Println(string(req_j))
 				answer = answer + "\n" + string(req_j)
-				req_as_resp := constructChatCompletionStreamResponse(answer_id, answer)
-				data, _ := json.Marshal(req_as_resp)
-				fmt.Fprintf(w, "data: %v\n\n", string(data))
-				flusher.Flush()
+				err := FlushResponse(w, flusher, StreamingResponse{
+					AnswerID: answer_id,
+					Content:  answer,
+					IsFinal:  true,
+				})
+				if err != nil {
+					log.Printf("Failed to flush debug response: %v", err)
+				}
 			}
 			break
 		}
@@ -143,12 +146,16 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 		perWordStreamLimit := getPerWordStreamLimit()
 		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
 			if len(answer) == 0 {
-				log.Printf(ErrorNoContent)
+				log.Print(ErrorNoContent)
 			} else {
-				response := constructChatCompletionStreamResponse(answer_id, answer)
-				data, _ := json.Marshal(response)
-				fmt.Fprintf(w, "data: %v\n\n", string(data))
-				flusher.Flush()
+				err := FlushResponse(w, flusher, StreamingResponse{
+					AnswerID: answer_id,
+					Content:  answer,
+					IsFinal:  false,
+				})
+				if err != nil {
+					log.Printf("Failed to flush response: %v", err)
+				}
 			}
 		}
 	}
