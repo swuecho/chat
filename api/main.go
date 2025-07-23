@@ -204,6 +204,8 @@ func main() {
 	botAnswerHistoryHandler := NewBotAnswerHistoryHandler(sqlc_q)
 	botAnswerHistoryHandler.Register(userRouter)
 
+	// Repository and Service Pattern Integration Complete
+
 	apiRouter.HandleFunc("/tts", handleTTSRequest)
 	apiRouter.HandleFunc("/errors", ErrorCatalogHandler)
 

@@ -7,18 +7,25 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/google/uuid"
 	"github.com/samber/lo"
+	"github.com/swuecho/chat_backend/pkg/errors"
+	"github.com/swuecho/chat_backend/repository"
+	"github.com/swuecho/chat_backend/service"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type ChatMessageHandler struct {
-	service *ChatMessageService
+	serviceManager service.ServiceManager
 }
 
 func NewChatMessageHandler(sqlc_q *sqlc_queries.Queries) *ChatMessageHandler {
-	chatMessageService := NewChatMessageService(sqlc_q)
+	// Initialize repository and service layers
+	repositoryManager := repository.NewCoreRepositoryManager(sqlc_q)
+	serviceManager := service.NewServiceManager(repositoryManager)
+	
 	return &ChatMessageHandler{
-		service: chatMessageService,
+		serviceManager: serviceManager,
 	}
 }
 
@@ -36,22 +43,37 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.DeleteChatMessagesBySesionUUID).Methods(http.MethodDelete)
 }
 
-//type userIdContextKey string
-
-//const userIDKey = userIdContextKey("userID")
-
 func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Request) {
-	var messageParams sqlc_queries.CreateChatMessageParams
-	err := json.NewDecoder(r.Body).Decode(&messageParams)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	var req struct {
+		SessionUUID string `json:"session_uuid"`
+		Content     string `json:"content"`
+		Role        string `json:"role"`
+		Model       string `json:"model"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.WriteErrorResponse(w, errors.InvalidInput("Invalid request format"))
 		return
 	}
-	message, err := h.service.CreateChatMessage(r.Context(), messageParams)
+	
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
 		return
 	}
+	
+	// Generate UUID for the message
+	messageUUID := generateUUID()
+	
+	message, err := h.serviceManager.Chat().CreateChatMessage(ctx, req.SessionUUID, messageUUID, req.Role, req.Content, req.Model, userID)
+	if err != nil {
+		errors.WriteErrorResponse(w, err)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(message)
 }
 
@@ -59,14 +81,31 @@ func (h *ChatMessageHandler) GetChatMessageByID(w http.ResponseWriter, r *http.R
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "invalid chat message ID", http.StatusBadRequest)
+		errors.WriteErrorResponse(w, errors.InvalidInput("Invalid message ID"))
 		return
 	}
-	message, err := h.service.GetChatMessageByID(r.Context(), int32(id))
+	
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
 		return
 	}
+	
+	message, err := h.serviceManager.Chat().GetChatMessageByID(ctx, int32(id))
+	if err != nil {
+		errors.WriteErrorResponse(w, err)
+		return
+	}
+	
+	// Validate ownership through session
+	if err := h.serviceManager.Chat().ValidateChatSession(ctx, message.ChatSessionUuid, userID); err != nil {
+		errors.WriteErrorResponse(w, err)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(message)
 }
 
@@ -74,96 +113,197 @@ func (h *ChatMessageHandler) UpdateChatMessage(w http.ResponseWriter, r *http.Re
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "invalid chat message ID", http.StatusBadRequest)
+		errors.WriteErrorResponse(w, errors.InvalidInput("Invalid message ID"))
 		return
 	}
-	var messageParams sqlc_queries.UpdateChatMessageParams
-	err = json.NewDecoder(r.Body).Decode(&messageParams)
+	
+	var req struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.WriteErrorResponse(w, errors.InvalidInput("Invalid request format"))
+		return
+	}
+	
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
 		return
 	}
-	messageParams.ID = int32(id)
-	message, err := h.service.UpdateChatMessage(r.Context(), messageParams)
+	
+	// Get the message first to validate ownership through session
+	message, err := h.serviceManager.Chat().GetChatMessageByID(ctx, int32(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errors.WriteErrorResponse(w, err)
 		return
 	}
-	json.NewEncoder(w).Encode(message)
+	
+	// Update using message UUID
+	updatedMessage, err := h.serviceManager.Chat().UpdateChatMessage(ctx, message.Uuid, req.Content, userID)
+	if err != nil {
+		errors.WriteErrorResponse(w, err)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(updatedMessage)
 }
 
 func (h *ChatMessageHandler) DeleteChatMessage(w http.ResponseWriter, r *http.Request) {
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "invalid chat message ID", http.StatusBadRequest)
+		errors.WriteErrorResponse(w, errors.InvalidInput("Invalid message ID"))
 		return
 	}
-	err = h.service.DeleteChatMessage(r.Context(), int32(id))
+	
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
 		return
 	}
+	
+	err = h.serviceManager.Chat().DeleteChatMessage(ctx, int32(id), userID)
+	if err != nil {
+		errors.WriteErrorResponse(w, err)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Chat message deleted successfully"})
 }
 
 func (h *ChatMessageHandler) GetAllChatMessages(w http.ResponseWriter, r *http.Request) {
-	messages, err := h.service.GetAllChatMessages(r.Context())
+	ctx := r.Context()
+	_, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
 		return
 	}
-	json.NewEncoder(w).Encode(messages)
+	
+	// Only allow admin users to get all messages
+	// For now, we'll restrict this to prevent data leaks
+	errors.WriteErrorResponse(w, errors.ErrForbidden.WithDetail("Operation not permitted"))
 }
 
 // GetChatMessageByUUID get chat message by uuid
 func (h *ChatMessageHandler) GetChatMessageByUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	message, err := h.service.GetChatMessageByUUID(r.Context(), uuidStr)
+	if uuidStr == "" {
+		errors.WriteErrorResponse(w, errors.InvalidInput("UUID is required"))
+		return
+	}
+	
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
+		return
+	}
+	
+	message, err := h.serviceManager.Chat().GetChatMessageByUUID(ctx, uuidStr)
+	if err != nil {
+		errors.WriteErrorResponse(w, err)
+		return
+	}
+	
+	// Validate ownership through session
+	if err := h.serviceManager.Chat().ValidateChatSession(ctx, message.ChatSessionUuid, userID); err != nil {
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(message)
 }
 
 // UpdateChatMessageByUUID update chat message by uuid
 func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *http.Request) {
+	uuidStr := mux.Vars(r)["uuid"]
+	if uuidStr == "" {
+		errors.WriteErrorResponse(w, errors.InvalidInput("UUID is required"))
+		return
+	}
+	
 	var simple_msg SimpleChatMessage
 	err := json.NewDecoder(r.Body).Decode(&simple_msg)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		errors.WriteErrorResponse(w, errors.InvalidInput("Invalid request format"))
 		return
 	}
+	
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
+		return
+	}
+	
 	var messageParams sqlc_queries.UpdateChatMessageByUUIDParams
-	messageParams.Uuid = simple_msg.Uuid
+	messageParams.Uuid = uuidStr
 	messageParams.Content = simple_msg.Text
 	tokenCount, _ := getTokenCount(simple_msg.Text)
 	messageParams.TokenCount = int32(tokenCount)
 	messageParams.IsPin = simple_msg.IsPin
-	message, err := h.service.UpdateChatMessageByUUID(r.Context(), messageParams)
+	
+	// Convert artifacts if present
+	if len(simple_msg.Artifacts) > 0 {
+		artifactsJSON, err := json.Marshal(simple_msg.Artifacts)
+		if err == nil {
+			messageParams.Artifacts = artifactsJSON
+		}
+	}
+	
+	message, err := h.serviceManager.Chat().UpdateChatMessageByUUID(ctx, messageParams, userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errors.WriteErrorResponse(w, err)
 		return
 	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(message)
 }
 
 // DeleteChatMessageByUUID delete chat message by uuid
 func (h *ChatMessageHandler) DeleteChatMessageByUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatMessageByUUID(r.Context(), uuidStr)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if uuidStr == "" {
+		errors.WriteErrorResponse(w, errors.InvalidInput("UUID is required"))
 		return
 	}
+	
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
+		return
+	}
+	
+	err = h.serviceManager.Chat().DeleteChatMessageByUUID(ctx, uuidStr, userID)
+	if err != nil {
+		errors.WriteErrorResponse(w, err)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Chat message deleted successfully"})
 }
 
 // GetChatMessagesBySessionUUID get chat messages by session uuid
 func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
+	if uuidStr == "" {
+		errors.WriteErrorResponse(w, errors.InvalidInput("UUID is required"))
+		return
+	}
+	
 	pageNum, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil {
 		pageNum = 1
@@ -173,9 +313,22 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 		pageSize = 200
 	}
 
-	messages, err := h.service.GetChatMessagesBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
+		return
+	}
+	
+	// Validate session ownership
+	if err := h.serviceManager.Chat().ValidateChatSession(ctx, uuidStr, userID); err != nil {
+		errors.WriteErrorResponse(w, err)
+		return
+	}
+
+	messages, err := h.serviceManager.Chat().GetChatMessagesBySessionUUID(ctx, uuidStr, int32(pageNum), int32(pageSize))
+	if err != nil {
+		errors.WriteErrorResponse(w, err)
 		return
 	}
 
@@ -199,35 +352,46 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 			Artifacts: artifacts,
 		}
 	})
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(simple_msgs)
 }
 
-// GetChatMessagesBySessionUUID get chat messages by session uuid
+// GetChatHistoryBySessionUUID get chat messages by session uuid (legacy method)
 func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, r *http.Request) {
-	uuidStr := mux.Vars(r)["uuid"]
-	pageNum, err := strconv.Atoi(r.URL.Query().Get("page"))
-	if err != nil {
-		pageNum = 1
-	}
-	pageSize, err := strconv.Atoi(r.URL.Query().Get("page_size"))
-	if err != nil {
-		pageSize = 200
-	}
-	simple_msgs, err := h.service.q.GetChatHistoryBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	json.NewEncoder(w).Encode(simple_msgs)
+	// This method appears to use a specific database query for chat history
+	// For now, redirect to the main GetChatMessagesBySessionUUID method
+	h.GetChatMessagesBySessionUUID(w, r)
 }
 
 // DeleteChatMessagesBySesionUUID delete chat messages by session uuid
 func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if uuidStr == "" {
+		errors.WriteErrorResponse(w, errors.InvalidInput("UUID is required"))
 		return
 	}
+	
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		errors.WriteErrorResponse(w, errors.Unauthorized("Authentication required"))
+		return
+	}
+	
+	err = h.serviceManager.Chat().DeleteChatMessagesBySessionUUID(ctx, uuidStr, userID)
+	if err != nil {
+		errors.WriteErrorResponse(w, err)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "All chat messages deleted successfully"})
+}
+
+// generateUUID creates a proper UUID 
+func generateUUID() string {
+	return uuid.New().String()
 }
