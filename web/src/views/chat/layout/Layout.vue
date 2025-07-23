@@ -7,19 +7,28 @@ import Permission from '@/views/components/Permission.vue'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useAppStore, useAuthStore, useChatStore } from '@/store'
 
+
 const router = useRouter()
 const appStore = useAppStore()
 const chatStore = useChatStore()
 const authStore = useAuthStore()
 
-router.replace({ name: 'Chat', params: { uuid: chatStore.active } })
-
 const { isMobile } = useBasicLayout()
 
 const collapsed = computed(() => appStore.siderCollapsed)
 
-// login modal will appear when there is no token
-const needPermission = computed(() => !authStore.isValid)
+// Initialize auth state on component mount
+authStore.initializeAuth()
+
+// login modal will appear when there is no token and auth is initialized
+const needPermission = computed(() => authStore.isInitialized && !authStore.isValid)
+
+// Set up router after auth is initialized
+watch(() => authStore.isInitialized, (initialized) => {
+  if (initialized) {
+    router.replace({ name: 'Chat', params: { uuid: chatStore.active } })
+  }
+}, { immediate: true })
 
 // Watch for authentication state changes and sync chat sessions when user logs in
 watch(() => authStore.isValid, async (isValid) => {
@@ -33,7 +42,7 @@ watch(() => authStore.isValid, async (isValid) => {
       console.error('Failed to sync chat sessions after auth state change:', error)
     }
   }
-}, { immediate: true })
+})
 
 const getMobileClass = computed(() => {
   if (isMobile.value)
