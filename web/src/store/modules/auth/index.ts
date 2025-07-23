@@ -3,19 +3,26 @@ import { getExpiresIn, getToken, removeExpiresIn, removeToken, setExpiresIn, set
 import { store } from '@/store'
 
 export interface AuthState {
-  token: string | undefined
-  expiresIn: number | undefined
+  token: string | null  // Access token stored in memory
+  expiresIn: number | null
+  isRefreshing: boolean // Track if token refresh is in progress
 }
 
 export const useAuthStore = defineStore('auth-store', {
   state: (): AuthState => ({
-    token: getToken(),
+    token: getToken(), // Access token from memory
     expiresIn: getExpiresIn(),
+    isRefreshing: false,
   }),
 
   getters: {
     isValid(): boolean {
       return !!(this.token && this.expiresIn && this.expiresIn > Date.now() / 1000)
+    },
+    needsRefresh(): boolean {
+      // Check if token expires within next 5 minutes
+      const fiveMinutesFromNow = Date.now() / 1000 + 300
+      return !!(this.expiresIn && this.expiresIn < fiveMinutesFromNow)
     },
   },
 
@@ -28,8 +35,36 @@ export const useAuthStore = defineStore('auth-store', {
       setToken(token)
     },
     removeToken() {
-      this.token = undefined
+      this.token = null
       removeToken()
+    },
+    async refreshToken() {
+      if (this.isRefreshing) {
+        return // Prevent multiple simultaneous refresh attempts
+      }
+      
+      this.isRefreshing = true
+      try {
+        // Call refresh endpoint - refresh token is sent automatically via httpOnly cookie
+        const response = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include', // Include httpOnly cookies
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          this.setToken(data.accessToken)
+          this.setExpiresIn(data.expiresIn)
+          return data.accessToken
+        } else {
+          // Refresh failed - user needs to login again
+          this.removeToken()
+          this.removeExpiresIn()
+          throw new Error('Token refresh failed')
+        }
+      } finally {
+        this.isRefreshing = false
+      }
     },
     getExpiresIn() {
       return this.expiresIn
@@ -39,7 +74,7 @@ export const useAuthStore = defineStore('auth-store', {
       setExpiresIn(expiresIn)
     },
     removeExpiresIn() {
-      this.expiresIn = undefined
+      this.expiresIn = null
       removeExpiresIn()
     },
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -13,6 +15,34 @@ import (
 
 type AuthUserHandler struct {
 	service *AuthUserService
+}
+
+// isHTTPS checks if the request is using HTTPS or if we're in production
+func isHTTPS(r *http.Request) bool {
+	// Check if request is HTTPS
+	if r.TLS != nil {
+		return true
+	}
+	
+	// Check common proxy headers
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		return true
+	}
+	
+	if r.Header.Get("X-Forwarded-Ssl") == "on" {
+		return true
+	}
+	
+	// Check if environment indicates production
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = os.Getenv("ENVIRONMENT")
+	}
+	if env == "" {
+		env = os.Getenv("NODE_ENV")
+	}
+	
+	return env == "production" || env == "prod"
 }
 
 func NewAuthUserHandler(sqlc_q *sqlc_queries.Queries) *AuthUserHandler {
@@ -31,6 +61,8 @@ func (h *AuthUserHandler) RegisterPublicRoutes(router *mux.Router) {
 	// Public routes (no authentication required)
 	router.HandleFunc("/signup", h.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
+	router.HandleFunc("/auth/refresh", h.RefreshToken).Methods(http.MethodPost)
+	router.HandleFunc("/logout", h.Logout).Methods(http.MethodPost)
 }
 
 func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -135,15 +167,29 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "jwt",
-		Value:    tokenString,
-		HttpOnly: false, // TODO: change to true when https
-		Path:     "/",
+	// Set refresh token as httpOnly cookie (long-lived)
+	refreshTokenLifetime := time.Duration(24*7) * time.Hour // 7 days
+	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, refreshTokenLifetime)
+	if err != nil {
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate refresh token").WithDebugInfo(err.Error()))
+		return
 	}
-	http.SetCookie(w, cookie)
+
+	refreshCookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		HttpOnly: true,  // Secure from XSS
+		Secure:   isHTTPS(r), // Set to true when using HTTPS
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+		MaxAge:   int(refreshTokenLifetime.Seconds()),
+	}
+	http.SetCookie(w, refreshCookie)
+
 	w.Header().Set("Content-Type", "application/json")
-	expiresIn := time.Now().Add(time.Hour * 8).Unix()
+	// Access token expires in 30 minutes (short-lived)
+	accessTokenLifetime := time.Duration(30) * time.Minute
+	expiresIn := time.Now().Add(accessTokenLifetime).Unix()
 	json.NewEncoder(w).Encode(TokenResult{AccessToken: tokenString, ExpiresIn: int(expiresIn)})
 	w.WriteHeader(http.StatusOK)
 }
@@ -160,27 +206,37 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		RespondWithAPIError(w, ErrAuthInvalidEmailOrPassword.WithDebugInfo(err.Error()))
 		return
 	}
-	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
-	token, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
-
+	// Generate short-lived access token (30 minutes)
+	accessTokenLifetime := time.Duration(30) * time.Minute
+	accessToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, accessTokenLifetime)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error()))
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate access token").WithDebugInfo(err.Error()))
 		return
 	}
 
-	cookie := http.Cookie{
-		Name:     "jwt",
-		Value:    token,
-		Path:     "/",
-		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
+	// Generate long-lived refresh token (7 days)
+	refreshTokenLifetime := time.Duration(24*7) * time.Hour
+	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, refreshTokenLifetime)
+	if err != nil {
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate refresh token").WithDebugInfo(err.Error()))
+		return
 	}
 
-	http.SetCookie(w, &cookie)
+	// Set refresh token as httpOnly cookie
+	refreshCookie := http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,  // Secure from XSS
+		Secure:   isHTTPS(r), // Set to true when using HTTPS
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   int(refreshTokenLifetime.Seconds()),
+	}
+	http.SetCookie(w, &refreshCookie)
 
 	w.Header().Set("Content-Type", "application/json")
-	expiresIn := time.Now().Add(lifetime).Unix()
-	json.NewEncoder(w).Encode(TokenResult{AccessToken: token, ExpiresIn: int(expiresIn)})
+	expiresIn := time.Now().Add(accessTokenLifetime).Unix()
+	json.NewEncoder(w).Encode(TokenResult{AccessToken: accessToken, ExpiresIn: int(expiresIn)})
 	w.WriteHeader(http.StatusOK)
 
 }
@@ -203,25 +259,52 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	// Get refresh token from httpOnly cookie
+	refreshCookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Missing refresh token"))
+		return
+	}
+
+	// Validate refresh token
+	result := parseAndValidateJWT(refreshCookie.Value)
+	if result.Error != nil {
+		RespondWithAPIError(w, *result.Error)
+		return
+	}
+
+	// Convert UserID string back to int32
+	userIDInt, err := strconv.ParseInt(result.UserID, 10, 32)
+	if err != nil {
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Invalid user ID in token"))
+		return
+	}
+
+	// Generate new short-lived access token
+	accessTokenLifetime := time.Duration(30) * time.Minute
+	accessToken, err := auth.GenerateToken(int32(userIDInt), result.Role, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, accessTokenLifetime)
+	if err != nil {
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate access token").WithDebugInfo(err.Error()))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	expiresIn := time.Now().Add(accessTokenLifetime).Unix()
+	json.NewEncoder(w).Encode(TokenResult{AccessToken: accessToken, ExpiresIn: int(expiresIn)})
+}
+
 func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("jwt")
-	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Missing token in cookie"))
-		return
+	// Clear refresh token cookie
+	refreshCookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1, // Delete cookie
 	}
-
-	tokenString := c.Value
-	if len(tokenString) == 0 {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Empty token string"))
-		return
-	}
-
-	cookie, err := h.service.Logout(tokenString)
-	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to logout").WithDebugInfo(err.Error()))
-		return
-	}
-	http.SetCookie(w, cookie)
+	http.SetCookie(w, refreshCookie)
+	
 	w.WriteHeader(http.StatusOK)
 }
 

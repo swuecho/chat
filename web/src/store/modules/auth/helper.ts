@@ -1,29 +1,33 @@
-import { ss } from '@/utils/storage'
+// Hybrid token approach:
+// - Access tokens: In-memory (short-lived, secure from XSS)
+// - Refresh tokens: httpOnly cookies (long-lived, persistent)
 
-const LOCAL_NAME = 'SECRET_TOKEN'
+let accessToken: string | null = null
 
-export function getToken() {
-  return ss.get(LOCAL_NAME)
+export function getToken(): string | null {
+  return accessToken
 }
 
-export function setToken(token: string) {
-  return ss.set(LOCAL_NAME, token)
+export function setToken(token: string): void {
+  accessToken = token
 }
 
-export function removeToken() {
-  return ss.remove(LOCAL_NAME)
+export function removeToken(): void {
+  accessToken = null
 }
 
+// Expiration tracking can still be useful for UI state
 const EXPIRE_LOCAL_NAME = 'expiresIn'
 
-export function getExpiresIn() {
-  return ss.get(EXPIRE_LOCAL_NAME)
+export function getExpiresIn(): number | null {
+  const stored = window.localStorage.getItem(EXPIRE_LOCAL_NAME)
+  return stored ? parseInt(stored, 10) : null
 }
 
-export function setExpiresIn(expiresIn: number) {
-  return ss.set(EXPIRE_LOCAL_NAME, expiresIn)
+export function setExpiresIn(expiresIn: number): void {
+  window.localStorage.setItem(EXPIRE_LOCAL_NAME, expiresIn.toString())
 }
 
-export function removeExpiresIn() {
-  return ss.remove(EXPIRE_LOCAL_NAME)
+export function removeExpiresIn(): void {
+  window.localStorage.removeItem(EXPIRE_LOCAL_NAME)
 }
