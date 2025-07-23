@@ -1,13 +1,11 @@
+import { v7 as uuid } from 'uuid'
 // Use the Chat namespace type
+
 export type Artifact = Chat.Artifact
 
 // Generate a simple UUID for frontend use
 function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0
-    const v = c === 'x' ? r : (r & 0x3 | 0x8)
-    return v.toString(16)
-  })
+  return uuid()
 }
 
 // Check if a language is supported for code execution
@@ -16,7 +14,7 @@ function isExecutableLanguage(language: string): boolean {
     'javascript', 'js', 'typescript', 'ts',
     'python', 'py'
   ]
-  
+
   const normalizedLanguage = language.toLowerCase().trim()
   return executableLanguages.includes(normalizedLanguage)
 }
@@ -38,7 +36,7 @@ function containsExecutablePatterns(content: string): boolean {
     'for (',
     'while (',
     'return ',
-    
+
     // Python patterns
     'print(',
     'import ',
@@ -49,7 +47,7 @@ function containsExecutablePatterns(content: string): boolean {
     'for ',
     'while '
   ]
-  
+
   const contentLower = content.toLowerCase()
   return executablePatterns.some(pattern => contentLower.includes(pattern))
 }

@@ -86,7 +86,12 @@ npm install
 npm run dev
 ```
 
+### server reload
+
+both frontend and backend will be auto-reload whe code change.
+
 ### Database Setup
+
 1. Create a PostgreSQL database
 2. Run the schema from `api/sqlc/schema.sql`
 3. Configure database connection in environment variables
@@ -150,7 +155,7 @@ go test ./...
 
 ### Frontend Tests
 ```bash
-cd web
+cd e2e
 npm test
 ```
 
@@ -160,27 +165,10 @@ cd e2e
 npm test
 ```
 
-## Deployment
-
-### Docker
-```bash
-docker-compose up -d
-```
-
-### Manual Deployment
-1. Build frontend: `cd web && npm run build`
-2. Build backend: `cd api && go build -o chat_backend`
-3. Set up PostgreSQL database
-4. Configure environment variables
-5. Run the backend binary
-
-## Rate Limiting
-
-Default rate limit is 100 ChatGPT calls per 10 minutes per user. This can be configured via the `OPENAI_RATELIMIT` environment variable.
 
 ## Model Support
 
 - **OpenAI**: GPT-3.5, GPT-4 models
-- **Claude**: Claude 3 Opus, Sonnet, Haiku
-- **Gemini**: Gemini Pro, Gemini Vision
+- **Claude**: Claude 3 Opus, Sonnet, Haiku, Claude 4
+- **Gemini**: Gemini Pro
 - **Ollama**: Local model hosting support
