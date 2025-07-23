@@ -245,7 +245,7 @@ func main() {
 			allowedOrigins[i] = strings.TrimSpace(origin)
 		}
 	}
-	
+
 	corsOptions := handlers.CORS(
 		handlers.AllowedOrigins(allowedOrigins),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
