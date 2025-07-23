@@ -3,23 +3,53 @@ import { getExpiresIn, getToken, removeExpiresIn, removeToken, setExpiresIn, set
 import { store } from '@/store'
 
 export interface AuthState {
-  token: string | undefined
-  expiresIn: number | undefined
+  token: string | null  // Access token stored in memory
+  expiresIn: number | null
+  isRefreshing: boolean // Track if token refresh is in progress
+  isInitialized: boolean // Track if auth state has been initialized
 }
 
 export const useAuthStore = defineStore('auth-store', {
   state: (): AuthState => ({
-    token: getToken(),
+    token: getToken(), // Load token normally
     expiresIn: getExpiresIn(),
+    isRefreshing: false,
+    isInitialized: false,
   }),
 
   getters: {
     isValid(): boolean {
       return !!(this.token && this.expiresIn && this.expiresIn > Date.now() / 1000)
     },
+    needsRefresh(): boolean {
+      // Check if token expires within next 5 minutes
+      const fiveMinutesFromNow = Date.now() / 1000 + 300
+      return !!(this.expiresIn && this.expiresIn < fiveMinutesFromNow)
+    },
   },
 
   actions: {
+    async initializeAuth() {
+      if (this.isInitialized) return
+
+      try {
+        // Try to refresh token if we have valid expiration
+        if (this.expiresIn && this.expiresIn > Date.now() / 1000) {
+          await this.refreshToken()
+        } else if (this.token) {
+          // Clear expired token
+          this.removeToken()
+          this.removeExpiresIn()
+        }
+      } catch (error) {
+        // Clear invalid state on error
+        this.removeToken()
+        this.removeExpiresIn()
+      }
+
+      this.isInitialized = true
+    },
+
     getToken() {
       return this.token
     },
@@ -28,8 +58,47 @@ export const useAuthStore = defineStore('auth-store', {
       setToken(token)
     },
     removeToken() {
-      this.token = undefined
+      this.token = null
       removeToken()
+    },
+    async refreshToken() {
+      if (this.isRefreshing) {
+        console.log('Token refresh already in progress, skipping...')
+        return // Prevent multiple simultaneous refresh attempts
+      }
+
+      console.log('Starting token refresh...')
+      this.isRefreshing = true
+      try {
+        // Call refresh endpoint - refresh token is sent automatically via httpOnly cookie
+        const response = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include', // Include httpOnly cookies
+        })
+
+        console.log('Refresh response status:', response.status)
+
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Token refresh successful, setting new token')
+          this.setToken(data.accessToken)
+          this.setExpiresIn(data.expiresIn)
+          return data.accessToken
+        } else {
+          // Refresh failed - user needs to login again
+          console.log('Token refresh failed, removing tokens')
+          this.removeToken()
+          this.removeExpiresIn()
+          throw new Error('Token refresh failed')
+        }
+      } catch (error) {
+        console.error('Token refresh error:', error)
+        this.removeToken()
+        this.removeExpiresIn()
+        throw error
+      } finally {
+        this.isRefreshing = false
+      }
     },
     getExpiresIn() {
       return this.expiresIn
@@ -39,7 +108,7 @@ export const useAuthStore = defineStore('auth-store', {
       setExpiresIn(expiresIn)
     },
     removeExpiresIn() {
-      this.expiresIn = undefined
+      this.expiresIn = null
       removeExpiresIn()
     },
 

@@ -4,15 +4,92 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
+// Constants for token management
+const (
+	AccessTokenLifetime  = 30 * time.Minute
+	RefreshTokenLifetime = 7 * 24 * time.Hour // 7 days
+	RefreshTokenName     = "refresh_token"
+)
+
 type AuthUserHandler struct {
 	service *AuthUserService
+}
+
+// isHTTPS checks if the request is using HTTPS or if we're in production
+func isHTTPS(r *http.Request) bool {
+	// Check if request is HTTPS
+	if r.TLS != nil {
+		return true
+	}
+
+	// Check common proxy headers
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		return true
+	}
+
+	if r.Header.Get("X-Forwarded-Ssl") == "on" {
+		return true
+	}
+
+	// Check if environment indicates production
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = os.Getenv("ENVIRONMENT")
+	}
+	if env == "" {
+		env = os.Getenv("NODE_ENV")
+	}
+
+	return env == "production" || env == "prod"
+}
+
+// createSecureRefreshCookie creates a secure httpOnly cookie for refresh tokens
+func createSecureRefreshCookie(name, value string, maxAge int, r *http.Request) *http.Cookie {
+	// Determine the appropriate SameSite setting based on environment
+	sameSite := http.SameSiteLaxMode // More permissive for development
+	if isHTTPS(r) {
+		sameSite = http.SameSiteStrictMode // Strict for HTTPS
+	}
+
+	// Determine domain based on environment
+	var domain string
+	host := r.Host
+	if host != "" && !strings.HasPrefix(host, "localhost") && !strings.HasPrefix(host, "127.0.0.1") {
+		// For production, set domain without port
+		if strings.Contains(host, ":") {
+			domain = strings.Split(host, ":")[0]
+		} else {
+			domain = host
+		}
+	}
+
+	cookie := &http.Cookie{
+		Name:     name,
+		Value:    value,
+		HttpOnly: true,
+		Secure:   isHTTPS(r),
+		SameSite: sameSite,
+		Path:     "/",
+		MaxAge:   maxAge,
+	}
+
+	// Only set domain if it's not localhost
+	if domain != "" && domain != "localhost" && domain != "127.0.0.1" {
+		cookie.Domain = domain
+	}
+
+	return cookie
 }
 
 func NewAuthUserHandler(sqlc_q *sqlc_queries.Queries) *AuthUserHandler {
@@ -31,6 +108,8 @@ func (h *AuthUserHandler) RegisterPublicRoutes(router *mux.Router) {
 	// Public routes (no authentication required)
 	router.HandleFunc("/signup", h.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
+	router.HandleFunc("/auth/refresh", h.RefreshToken).Methods(http.MethodPost)
+	router.HandleFunc("/logout", h.Logout).Methods(http.MethodPost)
 }
 
 func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -109,14 +188,31 @@ type LoginParams struct {
 func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var params LoginParams
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		log.WithFields(log.Fields{
+			"error":  err.Error(),
+			"ip":     r.RemoteAddr,
+			"action": "signup_decode_error",
+		}).Warn("Failed to decode signup request")
 		http.Error(w, "Invalid request: unable to decode JSON body", http.StatusBadRequest)
 		return
 	}
+
+	log.WithFields(log.Fields{
+		"email":  params.Email,
+		"ip":     r.RemoteAddr,
+		"action": "signup_attempt",
+	}).Info("User signup attempt")
+
 	hash, err := auth.GeneratePasswordHash(params.Password)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"email": params.Email,
+			"error": err.Error(),
+		}).Error("Failed to generate password hash")
 		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate password hash").WithDebugInfo(err.Error()))
 		return
 	}
+
 	userParams := sqlc_queries.CreateAuthUserParams{
 		Password: hash,
 		Email:    params.Email,
@@ -125,25 +221,48 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.service.CreateAuthUser(r.Context(), userParams)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"email": params.Email,
+			"error": err.Error(),
+		}).Error("Failed to create user")
 		RespondWithAPIError(w, WrapError(err, "Failed to create user"))
 		return
 	}
-	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
-	tokenString, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
+
+	// Generate access token using constant
+	tokenString, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, AccessTokenLifetime)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"user_id": user.ID,
+			"error":   err.Error(),
+		}).Error("Failed to generate access token")
 		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error()))
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "jwt",
-		Value:    tokenString,
-		HttpOnly: false, // TODO: change to true when https
-		Path:     "/",
+	// Generate refresh token using constant
+	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, RefreshTokenLifetime)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"user_id": user.ID,
+			"error":   err.Error(),
+		}).Error("Failed to generate refresh token")
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate refresh token").WithDebugInfo(err.Error()))
+		return
 	}
-	http.SetCookie(w, cookie)
+
+	// Use helper function to create refresh token cookie
+	refreshCookie := createSecureRefreshCookie(RefreshTokenName, refreshToken, int(RefreshTokenLifetime.Seconds()), r)
+	http.SetCookie(w, refreshCookie)
+
+	log.WithFields(log.Fields{
+		"user_id": user.ID,
+		"email":   user.Email,
+		"action":  "signup_success",
+	}).Info("User signup successful")
+
 	w.Header().Set("Content-Type", "application/json")
-	expiresIn := time.Now().Add(time.Hour * 8).Unix()
+	expiresIn := time.Now().Add(AccessTokenLifetime).Unix()
 	json.NewEncoder(w).Encode(TokenResult{AccessToken: tokenString, ExpiresIn: int(expiresIn)})
 	w.WriteHeader(http.StatusOK)
 }
@@ -152,37 +271,80 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginParams LoginParams
 	err := json.NewDecoder(r.Body).Decode(&loginParams)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"error":  err.Error(),
+			"ip":     r.RemoteAddr,
+			"action": "login_decode_error",
+		}).Warn("Failed to decode login request")
 		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
+
+	log.WithFields(log.Fields{
+		"email":  loginParams.Email,
+		"ip":     r.RemoteAddr,
+		"action": "login_attempt",
+	}).Info("User login attempt")
+
 	user, err := h.service.Authenticate(r.Context(), loginParams.Email, loginParams.Password)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"email":  loginParams.Email,
+			"ip":     r.RemoteAddr,
+			"error":  err.Error(),
+			"action": "login_failed",
+		}).Warn("User login failed")
 		RespondWithAPIError(w, ErrAuthInvalidEmailOrPassword.WithDebugInfo(err.Error()))
 		return
 	}
-	lifetime := time.Duration(jwtSecretAndAud.Lifetime) * time.Hour
-	token, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
 
+	// Generate access token using constant
+	accessToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, AccessTokenLifetime)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error()))
+		log.WithFields(log.Fields{
+			"user_id": user.ID,
+			"error":   err.Error(),
+		}).Error("Failed to generate access token")
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate access token").WithDebugInfo(err.Error()))
 		return
 	}
 
-	cookie := http.Cookie{
-		Name:     "jwt",
-		Value:    token,
-		Path:     "/",
-		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
+	// Generate refresh token using constant
+	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, RefreshTokenLifetime)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"user_id": user.ID,
+			"error":   err.Error(),
+		}).Error("Failed to generate refresh token")
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate refresh token").WithDebugInfo(err.Error()))
+		return
 	}
 
-	http.SetCookie(w, &cookie)
+	// Use helper function to create refresh token cookie
+	refreshCookie := createSecureRefreshCookie(RefreshTokenName, refreshToken, int(RefreshTokenLifetime.Seconds()), r)
+	http.SetCookie(w, refreshCookie)
+
+	// Debug: Log cookie details
+	log.WithFields(log.Fields{
+		"user_id":  user.ID,
+		"name":     refreshCookie.Name,
+		"domain":   refreshCookie.Domain,
+		"path":     refreshCookie.Path,
+		"secure":   refreshCookie.Secure,
+		"sameSite": refreshCookie.SameSite,
+		"action":   "login_cookie_set",
+	}).Info("Refresh token cookie set")
+
+	log.WithFields(log.Fields{
+		"user_id": user.ID,
+		"email":   user.Email,
+		"action":  "login_success",
+	}).Info("User login successful")
 
 	w.Header().Set("Content-Type", "application/json")
-	expiresIn := time.Now().Add(lifetime).Unix()
-	json.NewEncoder(w).Encode(TokenResult{AccessToken: token, ExpiresIn: int(expiresIn)})
+	expiresIn := time.Now().Add(AccessTokenLifetime).Unix()
+	json.NewEncoder(w).Encode(TokenResult{AccessToken: accessToken, ExpiresIn: int(expiresIn)})
 	w.WriteHeader(http.StatusOK)
-
 }
 
 func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
@@ -203,25 +365,102 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	log.WithFields(log.Fields{
+		"ip":     r.RemoteAddr,
+		"action": "refresh_attempt",
+	}).Info("Token refresh attempt")
+
+	// Debug: Log all cookies to help diagnose the issue
+	allCookies := r.Cookies()
+	log.WithFields(log.Fields{
+		"ip":      r.RemoteAddr,
+		"cookies": len(allCookies),
+		"action":  "refresh_debug_cookies",
+	}).Info("All cookies received")
+
+	for _, cookie := range allCookies {
+		log.WithFields(log.Fields{
+			"ip":     r.RemoteAddr,
+			"name":   cookie.Name,
+			"domain": cookie.Domain,
+			"path":   cookie.Path,
+			"action": "refresh_debug_cookie",
+		}).Info("Cookie details")
+	}
+
+	// Get refresh token from httpOnly cookie
+	refreshCookie, err := r.Cookie(RefreshTokenName)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"ip":     r.RemoteAddr,
+			"error":  err.Error(),
+			"action": "refresh_missing_cookie",
+		}).Warn("Missing refresh token cookie")
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Missing refresh token"))
+		return
+	}
+
+	// Validate refresh token
+	result := parseAndValidateJWT(refreshCookie.Value)
+	if result.Error != nil {
+		log.WithFields(log.Fields{
+			"ip":     r.RemoteAddr,
+			"error":  result.Error.Detail,
+			"action": "refresh_invalid_token",
+		}).Warn("Invalid refresh token")
+		RespondWithAPIError(w, *result.Error)
+		return
+	}
+
+	// Convert UserID string back to int32
+	userIDInt, err := strconv.ParseInt(result.UserID, 10, 32)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"user_id": result.UserID,
+			"error":   err.Error(),
+			"action":  "refresh_invalid_user_id",
+		}).Error("Invalid user ID in refresh token")
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Invalid user ID in token"))
+		return
+	}
+
+	// Generate new access token using constant
+	accessToken, err := auth.GenerateToken(int32(userIDInt), result.Role, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, AccessTokenLifetime)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"user_id": userIDInt,
+			"error":   err.Error(),
+		}).Error("Failed to generate access token during refresh")
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate access token").WithDebugInfo(err.Error()))
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"user_id": userIDInt,
+		"action":  "refresh_success",
+	}).Info("Token refresh successful")
+
+	w.Header().Set("Content-Type", "application/json")
+	expiresIn := time.Now().Add(AccessTokenLifetime).Unix()
+	json.NewEncoder(w).Encode(TokenResult{AccessToken: accessToken, ExpiresIn: int(expiresIn)})
+}
+
 func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("jwt")
-	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Missing token in cookie"))
-		return
-	}
+	log.WithFields(log.Fields{
+		"ip":     r.RemoteAddr,
+		"action": "logout_attempt",
+	}).Info("User logout attempt")
 
-	tokenString := c.Value
-	if len(tokenString) == 0 {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("Empty token string"))
-		return
-	}
+	// Clear refresh token cookie using the same domain logic as creation
+	refreshCookie := createSecureRefreshCookie(RefreshTokenName, "", -1, r)
+	http.SetCookie(w, refreshCookie)
 
-	cookie, err := h.service.Logout(tokenString)
-	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to logout").WithDebugInfo(err.Error()))
-		return
-	}
-	http.SetCookie(w, cookie)
+	log.WithFields(log.Fields{
+		"ip":     r.RemoteAddr,
+		"action": "logout_success",
+	}).Info("User logout successful")
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -431,4 +670,3 @@ func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
 		"rate": rate,
 	})
 }
-

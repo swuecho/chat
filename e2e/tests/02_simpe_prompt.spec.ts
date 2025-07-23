@@ -24,7 +24,7 @@ test('test', async ({ page }) => {
   await page.getByTestId('repwd').locator('input').click();
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
-  
+
   // Wait for signup to complete - either successful or with error
   try {
     await page.waitForLoadState('networkidle', { timeout: 15000 });
@@ -32,9 +32,9 @@ test('test', async ({ page }) => {
     // Continue if networkidle times out - the page might still be functional
     console.log('Network idle timeout, continuing...');
   }
-  
+
   await page.waitForTimeout(3000);
-  
+
   // Wait for the permission modal to disappear OR wait for message textarea to be clickable
   try {
     await page.waitForSelector('.n-modal-mask', { state: 'detached', timeout: 5000 });
@@ -42,10 +42,10 @@ test('test', async ({ page }) => {
     // Modal might already be gone or not exist
     console.log('Modal mask not found, continuing...');
   }
-  
+
   // Alternative approach: wait for the message textarea to be available and force click if needed
   await page.waitForSelector('#message_textarea textarea', { timeout: 10000 });
-  
+
   // Try to click, and if blocked by modal, dismiss it first
   try {
     await page.getByTestId("message_textarea").click({ timeout: 5000 });
@@ -69,7 +69,7 @@ test('test', async ({ page }) => {
   //await page.getByPlaceholder('来说点什么吧...（Shift + Enter = 换行）').press('Enter');
   await input_area?.press('Enter');
   // sleep 500ms
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(5000); // Increased from 1000ms to 5000ms
   // get by id
 
   const user = await selectUserByEmail(pool, test_email);
@@ -84,6 +84,7 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(1000);;
   const messages = await selectChatMessagesBySessionUUID(pool, session.uuid)
   expect(messages.length).toBe(1);
+  expect(messages[0].role).toBe('assistant');
 
 
 });

@@ -184,7 +184,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 // validateChatSession validates the chat session and returns the session and model info.
 // It performs comprehensive validation including:
 // - Session existence check
-// - Model availability verification  
+// - Model availability verification
 // - Base URL extraction
 // - UUID validation
 // Returns: session, model, baseURL, success
@@ -448,13 +448,13 @@ func isTest(msgs []models.Message) bool {
 	if len(msgs) == 0 {
 		return false
 	}
-	
+
 	lastMsgs := msgs[len(msgs)-1]
 	promptMsg := msgs[0]
-	
+
 	// Check if either first or last message contains test demo marker
 	return (len(promptMsg.Content) >= TestPrefixLength && promptMsg.Content[:TestPrefixLength] == TestDemoPrefix) ||
-		   (len(lastMsgs.Content) >= TestPrefixLength && lastMsgs.Content[:TestPrefixLength] == TestDemoPrefix)
+		(len(lastMsgs.Content) >= TestPrefixLength && lastMsgs.Content[:TestPrefixLength] == TestDemoPrefix)
 }
 
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {

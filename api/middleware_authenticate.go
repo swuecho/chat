@@ -39,6 +39,7 @@ type AuthTokenResult struct {
 }
 
 func extractBearerToken(r *http.Request) string {
+	// Extract from Authorization header for access tokens
 	bearerToken := r.Header.Get("Authorization")
 	tokenParts := strings.Split(bearerToken, " ")
 	if len(tokenParts) == 2 {

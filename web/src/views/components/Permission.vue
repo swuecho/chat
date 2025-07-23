@@ -59,7 +59,14 @@ async function handleLogin() {
     authStore.setToken(accessToken)
     authStore.setExpiresIn(expiresIn)
     ms.success(t('common.loginSuccess'))
-    window.location.reload()
+
+    // Clear login form inputs after successful login
+    LoginData.email = ''
+    LoginData.password = ''
+
+    // Don't sync chat sessions immediately after login
+    // The Layout component will handle this when auth state changes
+    console.log('Login successful, chat sessions will be synced by Layout component')
   }
   catch (error: any) {
     console.log(error)
@@ -103,7 +110,15 @@ async function handleSignup() {
     authStore.setToken(accessToken)
     authStore.setExpiresIn(expiresIn)
     ms.success('success')
-    window.location.reload()
+
+    // Clear signup form inputs after successful signup
+    RegisterData.email = ''
+    RegisterData.password = ''
+    RegisterData.repwd = ''
+
+    // Don't sync chat sessions immediately after signup
+    // Let the user navigate to chat when they're ready
+    console.log('Signup successful, chat sessions will be synced when user navigates to chat')
   }
   catch (error: any) {
     ms.error(error.message ?? 'error')
@@ -135,29 +150,21 @@ async function handleSignup() {
           </p>
           <Icon403 class="w-[200px] m-auto" />
         </header>
-        <NTabs
-          class="card-tabs" default-value="signin" size="large" animated
-        >
+        <NTabs class="card-tabs" default-value="signin" size="large" animated>
           <NTabPane name="signin" :tab="t('common.login')" :tab-props="{ title: 'signintab' }">
             <NForm :show-label="false">
               <NFormItemRow label="邮箱">
-                <NInput
-                  v-model:value="LoginData.email" data-testid="email" type="text" :minlength="6"
-                  :placeholder="$t('common.email_placeholder')"
-                />
+                <NInput v-model:value="LoginData.email" data-testid="email" type="text" :minlength="6"
+                  :placeholder="$t('common.email_placeholder')" />
               </NFormItemRow>
               <NFormItemRow label="密码">
-                <NInput
-                  v-model:value="LoginData.password" data-testid="password" type="password" :minlength="6" show-password-on="click"
-                  :placeholder="$t('common.password_placeholder')"
-                />
+                <NInput v-model:value="LoginData.password" data-testid="password" type="password" :minlength="6"
+                  show-password-on="click" :placeholder="$t('common.password_placeholder')" />
               </NFormItemRow>
             </NForm>
             <div class="flex justify-between">
-              <NButton
-                type="primary" block secondary strong data-testid="login" :disabled="login_not_filled"
-                :loading="loading" @click="handleLogin"
-              >
+              <NButton type="primary" block secondary strong data-testid="login" :disabled="login_not_filled"
+                :loading="loading" @click="handleLogin">
                 {{ $t('common.login') }}
               </NButton>
             </div>
@@ -165,29 +172,21 @@ async function handleSignup() {
           <NTabPane name="signup" :tab="t('common.signup')" :tab-props="{ title: 'signuptab' }">
             <NForm :show-label="false">
               <NFormItemRow label="邮箱">
-                <NInput
-                  v-model:value="RegisterData.email" data-testid="signup_email" type="text" :minlength="6"
-                  :placeholder="$t('common.email_placeholder')"
-                />
+                <NInput v-model:value="RegisterData.email" data-testid="signup_email" type="text" :minlength="6"
+                  :placeholder="$t('common.email_placeholder')" />
               </NFormItemRow>
               <NFormItemRow label="密码">
-                <NInput
-                  v-model:value="RegisterData.password" data-testid="signup_password" type="password" :minlength="6" show-password-on="click"
-                  :placeholder="$t('common.password_placeholder')"
-                />
+                <NInput v-model:value="RegisterData.password" data-testid="signup_password" type="password"
+                  :minlength="6" show-password-on="click" :placeholder="$t('common.password_placeholder')" />
               </NFormItemRow>
               <NFormItemRow label="确认密码">
-                <NInput
-                  v-model:value="RegisterData.repwd" data-testid="repwd" type="password" :minlength="6" show-password-on="click"
-                  :placeholder="$t('common.password_placeholder')"
-                />
+                <NInput v-model:value="RegisterData.repwd" data-testid="repwd" type="password" :minlength="6"
+                  show-password-on="click" :placeholder="$t('common.password_placeholder')" />
               </NFormItemRow>
             </NForm>
             <div class="flex justify-between">
-              <NButton
-                type="primary" block secondary strong data-testid="signup" :disabled="register_not_filled"
-                :loading="loading" @click="handleSignup"
-              >
+              <NButton type="primary" block secondary strong data-testid="signup" :disabled="register_not_filled"
+                :loading="loading" @click="handleSignup">
                 {{ $t('common.signup') }}
               </NButton>
             </div>

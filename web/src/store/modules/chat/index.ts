@@ -17,6 +17,9 @@ import {
 
 import { t } from '@/locales'
 
+// Session creation lock to prevent race conditions
+let isCreatingSession = false
+
 export const useChatStore = defineStore('chat-store', {
   state: (): Chat.ChatState => getLocalState(),
 
@@ -57,22 +60,34 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     async syncChatSessions() {
-      this.history = await getChatSessionsByUser()
+      try {
+        this.history = await getChatSessionsByUser()
+        console.log('📋 Synced sessions from DB:', this.history.length)
 
-      if (this.history.length === 0) {
-        const new_chat_text = t('chat.new')
-        await this.addChatSession(await getChatSessionDefault(new_chat_text))
-      }
+        if (this.history.length === 0) {
+          const new_chat_text = t('chat.new')
+          await this.addChatSession(await getChatSessionDefault(new_chat_text))
+        }
 
-      let active_session_uuid = this.history[0].uuid
+        let active_session_uuid = this.history[0].uuid
 
-      const active_session = await getUserActiveChatSession()
-      if (active_session)
-        active_session_uuid = active_session.chatSessionUuid
+        try {
+          const active_session = await getUserActiveChatSession()
+          if (active_session) {
+            active_session_uuid = active_session.chatSessionUuid
+          }
+        } catch (activeError) {
+          // No active session found, using default
+        }
 
-      this.active = active_session_uuid
-      if (router.currentRoute.value.params.uuid !== this.active) {
-        await this.reloadRoute(this.active)
+        this.active = active_session_uuid
+
+        if (router.currentRoute.value.params.uuid !== this.active) {
+          await this.reloadRoute(this.active)
+        }
+      } catch (error) {
+        console.error('❌ Error in syncChatSessions:', error)
+        throw error
       }
     },
 
@@ -167,14 +182,31 @@ export const useChatStore = defineStore('chat-store', {
     async addChatByUuid(uuid: string, chat: Chat.Message) {
       const new_chat_text = t('chat.new')
       const [keys] = getChatKeys(this.chat, false)
+
       if (!uuid) {
         if (this.history.length === 0) {
-          const default_model_parameters = await getChatSessionDefault(new_chat_text)
-          const uuid = default_model_parameters.uuid;
-          await createChatSession(uuid, chat.text, default_model_parameters.model)
-          this.history.push({ uuid, title: chat.text, isEdit: false })
-          this.chat[uuid] = [{ ...chat, isPrompt: true, isPin: false }]
-          this.active = uuid
+          if (isCreatingSession) {
+            console.log('🚨 RACE CONDITION BLOCKED: Session creation in progress, skipping')
+            return
+          }
+
+          console.log('🔒 Creating new session, acquiring lock')
+          isCreatingSession = true
+
+          try {
+            const default_model_parameters = await getChatSessionDefault(new_chat_text)
+            const uuid = default_model_parameters.uuid;
+            await createChatSession(uuid, chat.text, default_model_parameters.model)
+            this.history.push({ uuid, title: chat.text, isEdit: false })
+            this.chat[uuid] = [{ ...chat, isPrompt: true, isPin: false }]
+            this.active = uuid
+            console.log('✅ Session created successfully:', uuid)
+          } catch (error) {
+            console.error('❌ Session creation failed:', error)
+            throw error
+          } finally {
+            isCreatingSession = false
+          }
         }
         else {
           this.chat[keys[0]].push(chat)
