@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -31,16 +32,16 @@ func isHTTPS(r *http.Request) bool {
 	if r.TLS != nil {
 		return true
 	}
-	
+
 	// Check common proxy headers
 	if r.Header.Get("X-Forwarded-Proto") == "https" {
 		return true
 	}
-	
+
 	if r.Header.Get("X-Forwarded-Ssl") == "on" {
 		return true
 	}
-	
+
 	// Check if environment indicates production
 	env := os.Getenv("ENV")
 	if env == "" {
@@ -49,21 +50,46 @@ func isHTTPS(r *http.Request) bool {
 	if env == "" {
 		env = os.Getenv("NODE_ENV")
 	}
-	
+
 	return env == "production" || env == "prod"
 }
 
 // createSecureRefreshCookie creates a secure httpOnly cookie for refresh tokens
 func createSecureRefreshCookie(name, value string, maxAge int, r *http.Request) *http.Cookie {
-	return &http.Cookie{
+	// Determine the appropriate SameSite setting based on environment
+	sameSite := http.SameSiteLaxMode // More permissive for development
+	if isHTTPS(r) {
+		sameSite = http.SameSiteStrictMode // Strict for HTTPS
+	}
+
+	// Determine domain based on environment
+	var domain string
+	host := r.Host
+	if host != "" && !strings.HasPrefix(host, "localhost") && !strings.HasPrefix(host, "127.0.0.1") {
+		// For production, set domain without port
+		if strings.Contains(host, ":") {
+			domain = strings.Split(host, ":")[0]
+		} else {
+			domain = host
+		}
+	}
+
+	cookie := &http.Cookie{
 		Name:     name,
 		Value:    value,
 		HttpOnly: true,
 		Secure:   isHTTPS(r),
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 		Path:     "/",
 		MaxAge:   maxAge,
 	}
+
+	// Only set domain if it's not localhost
+	if domain != "" && domain != "localhost" && domain != "127.0.0.1" {
+		cookie.Domain = domain
+	}
+
+	return cookie
 }
 
 func NewAuthUserHandler(sqlc_q *sqlc_queries.Queries) *AuthUserHandler {
@@ -298,6 +324,17 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	refreshCookie := createSecureRefreshCookie(RefreshTokenName, refreshToken, int(RefreshTokenLifetime.Seconds()), r)
 	http.SetCookie(w, refreshCookie)
 
+	// Debug: Log cookie details
+	log.WithFields(log.Fields{
+		"user_id":  user.ID,
+		"name":     refreshCookie.Name,
+		"domain":   refreshCookie.Domain,
+		"path":     refreshCookie.Path,
+		"secure":   refreshCookie.Secure,
+		"sameSite": refreshCookie.SameSite,
+		"action":   "login_cookie_set",
+	}).Info("Refresh token cookie set")
+
 	log.WithFields(log.Fields{
 		"user_id": user.ID,
 		"email":   user.Email,
@@ -333,6 +370,24 @@ func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		"ip":     r.RemoteAddr,
 		"action": "refresh_attempt",
 	}).Info("Token refresh attempt")
+
+	// Debug: Log all cookies to help diagnose the issue
+	allCookies := r.Cookies()
+	log.WithFields(log.Fields{
+		"ip":      r.RemoteAddr,
+		"cookies": len(allCookies),
+		"action":  "refresh_debug_cookies",
+	}).Info("All cookies received")
+
+	for _, cookie := range allCookies {
+		log.WithFields(log.Fields{
+			"ip":     r.RemoteAddr,
+			"name":   cookie.Name,
+			"domain": cookie.Domain,
+			"path":   cookie.Path,
+			"action": "refresh_debug_cookie",
+		}).Info("Cookie details")
+	}
 
 	// Get refresh token from httpOnly cookie
 	refreshCookie, err := r.Cookie(RefreshTokenName)
@@ -397,22 +452,15 @@ func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		"action": "logout_attempt",
 	}).Info("User logout attempt")
 
-	// Clear refresh token cookie using helper (with empty value and negative MaxAge)
-	refreshCookie := &http.Cookie{
-		Name:     RefreshTokenName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   isHTTPS(r),
-		MaxAge:   -1, // Delete cookie
-	}
+	// Clear refresh token cookie using the same domain logic as creation
+	refreshCookie := createSecureRefreshCookie(RefreshTokenName, "", -1, r)
 	http.SetCookie(w, refreshCookie)
 
 	log.WithFields(log.Fields{
 		"ip":     r.RemoteAddr,
 		"action": "logout_success",
 	}).Info("User logout successful")
-	
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -622,4 +670,3 @@ func (h *AuthUserHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
 		"rate": rate,
 	})
 }
-

@@ -20,16 +20,25 @@ const dataSources = computed(() => chatStore.history)
 const isLogined = computed(() => Boolean(authStore.token))
 
 onMounted(async () => {
-  if (isLogined.value)
+  console.log('Sider List component mounted, isLogined:', isLogined.value)
+  if (isLogined.value) {
+    console.log('User is logged in, syncing chat sessions...')
     await handleSyncChat()
+  } else {
+    console.log('User is not logged in, skipping chat session sync')
+  }
 })
 async function handleSyncChat() {
+  console.log('handleSyncChat called, current history length:', chatStore.history.length)
   // if (chatStore.history.length == 1 && chatStore.history[0].title == 'New Chat'
   //   && chatStore.chat[0].data.length <= 0)
   try {
+    console.log('Calling chatStore.syncChatSessions()...')
     await chatStore.syncChatSessions()
+    console.log('Chat sessions synced successfully, new history length:', chatStore.history.length)
   }
   catch (error: any) {
+    console.error('Error syncing chat sessions:', error)
     if (error.response?.status === 500)
       nui_msg.error(t('error.syncChatSession'))
     // eslint-disable-next-line no-console
@@ -37,7 +46,7 @@ async function handleSyncChat() {
   }
 }
 
-async function handleSelect( uuid: string ) {
+async function handleSelect(uuid: string) {
   if (isActive(uuid))
     return
 
@@ -55,9 +64,9 @@ async function handleSelect( uuid: string ) {
 //   throttle(async ({ uuid }: Chat.Session) => await handleSelect(uuid), 500)
 // } 
 
- // Create a wrapper to debounce the handleSelect function
+// Create a wrapper to debounce the handleSelect function
 const throttledHandleSelect = throttle((uuid) => {
-      handleSelect(uuid);
+  handleSelect(uuid);
 }, 500); // 300ms debounce time
 
 function handleEdit({ uuid }: Chat.Session, isEdit: boolean, event?: MouseEvent) {
@@ -122,15 +131,15 @@ function isActive(uuid: string) {
                   <SvgIcon icon="ri:edit-line" @click="handleEdit(item, true, $event)" />
                 </button>
                 <div v-if="dataSources.length > 1">
-                <NPopconfirm placement="bottom" data-testid="confirm_delete_session"
-                  @positive-click="handleDelete(index, $event)">
-                  <template #trigger>
-                    <button class="p-1">
-                      <SvgIcon icon="ri:delete-bin-line" />
-                    </button>
-                  </template>
-                  {{ $t('chat.deleteChatSessionsConfirm') }}
-                </NPopconfirm>
+                  <NPopconfirm placement="bottom" data-testid="confirm_delete_session"
+                    @positive-click="handleDelete(index, $event)">
+                    <template #trigger>
+                      <button class="p-1">
+                        <SvgIcon icon="ri:delete-bin-line" />
+                      </button>
+                    </template>
+                    {{ $t('chat.deleteChatSessionsConfirm') }}
+                  </NPopconfirm>
                 </div>
               </template>
             </div>

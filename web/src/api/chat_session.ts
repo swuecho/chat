@@ -21,12 +21,15 @@ export const getChatSessionDefault = async (title: string): Promise<Chat.Session
 }
 
 export const getChatSessionsByUser = async () => {
+  console.log('getChatSessionsByUser called')
   try {
+    console.log('Making API request to /chat_sessions/user')
     const response = await request.get('/chat_sessions/user')
+    console.log('API response received:', response.data)
     return response.data
   }
   catch (error) {
-    console.error(error)
+    console.error('Error in getChatSessionsByUser:', error)
     throw error
   }
 }

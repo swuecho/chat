@@ -40,9 +40,11 @@ export const useAuthStore = defineStore('auth-store', {
     },
     async refreshToken() {
       if (this.isRefreshing) {
+        console.log('Token refresh already in progress, skipping...')
         return // Prevent multiple simultaneous refresh attempts
       }
-      
+
+      console.log('Starting token refresh...')
       this.isRefreshing = true
       try {
         // Call refresh endpoint - refresh token is sent automatically via httpOnly cookie
@@ -50,18 +52,27 @@ export const useAuthStore = defineStore('auth-store', {
           method: 'POST',
           credentials: 'include', // Include httpOnly cookies
         })
-        
+
+        console.log('Refresh response status:', response.status)
+
         if (response.ok) {
           const data = await response.json()
+          console.log('Token refresh successful, setting new token')
           this.setToken(data.accessToken)
           this.setExpiresIn(data.expiresIn)
           return data.accessToken
         } else {
           // Refresh failed - user needs to login again
+          console.log('Token refresh failed, removing tokens')
           this.removeToken()
           this.removeExpiresIn()
           throw new Error('Token refresh failed')
         }
+      } catch (error) {
+        console.error('Token refresh error:', error)
+        this.removeToken()
+        this.removeExpiresIn()
+        throw error
       } finally {
         this.isRefreshing = false
       }

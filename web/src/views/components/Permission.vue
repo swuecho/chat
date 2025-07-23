@@ -59,7 +59,20 @@ async function handleLogin() {
     authStore.setToken(accessToken)
     authStore.setExpiresIn(expiresIn)
     ms.success(t('common.loginSuccess'))
-    window.location.reload()
+    
+    // Clear login form inputs after successful login
+    LoginData.email = ''
+    LoginData.password = ''
+    
+    // Instead of reloading, trigger chat session sync directly
+    const { useChatStore } = await import('@/store')
+    const chatStore = useChatStore()
+    try {
+      await chatStore.syncChatSessions()
+      console.log('Chat sessions synced after login')
+    } catch (syncError) {
+      console.error('Failed to sync chat sessions after login:', syncError)
+    }
   }
   catch (error: any) {
     console.log(error)
@@ -103,7 +116,21 @@ async function handleSignup() {
     authStore.setToken(accessToken)
     authStore.setExpiresIn(expiresIn)
     ms.success('success')
-    window.location.reload()
+    
+    // Clear signup form inputs after successful signup
+    RegisterData.email = ''
+    RegisterData.password = ''
+    RegisterData.repwd = ''
+    
+    // Instead of reloading, trigger chat session sync directly
+    const { useChatStore } = await import('@/store')
+    const chatStore = useChatStore()
+    try {
+      await chatStore.syncChatSessions()
+      console.log('Chat sessions synced after signup')
+    } catch (syncError) {
+      console.error('Failed to sync chat sessions after signup:', syncError)
+    }
   }
   catch (error: any) {
     ms.error(error.message ?? 'error')

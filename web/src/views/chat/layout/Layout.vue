@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { NLayout, NLayoutContent } from 'naive-ui'
 import { useRouter } from 'vue-router'
 import Sider from './sider/index.vue'
@@ -20,6 +20,20 @@ const collapsed = computed(() => appStore.siderCollapsed)
 
 // login modal will appear when there is no token
 const needPermission = computed(() => !authStore.isValid)
+
+// Watch for authentication state changes and sync chat sessions when user logs in
+watch(() => authStore.isValid, async (isValid) => {
+  console.log('Auth state changed, isValid:', isValid)
+  if (isValid && chatStore.history.length === 0) {
+    console.log('User is now authenticated and no chat sessions loaded, syncing...')
+    try {
+      await chatStore.syncChatSessions()
+      console.log('Chat sessions synced after auth state change')
+    } catch (error) {
+      console.error('Failed to sync chat sessions after auth state change:', error)
+    }
+  }
+}, { immediate: true })
 
 const getMobileClass = computed(() => {
   if (isMobile.value)

@@ -57,22 +57,41 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     async syncChatSessions() {
-      this.history = await getChatSessionsByUser()
+      console.log('syncChatSessions called')
+      try {
+        console.log('Fetching chat sessions from API...')
+        this.history = await getChatSessionsByUser()
+        console.log('Chat sessions fetched:', this.history.length, 'sessions')
 
-      if (this.history.length === 0) {
-        const new_chat_text = t('chat.new')
-        await this.addChatSession(await getChatSessionDefault(new_chat_text))
-      }
+        if (this.history.length === 0) {
+          console.log('No chat sessions found, creating default session...')
+          const new_chat_text = t('chat.new')
+          await this.addChatSession(await getChatSessionDefault(new_chat_text))
+        }
 
-      let active_session_uuid = this.history[0].uuid
+        let active_session_uuid = this.history[0].uuid
+        console.log('Default active session UUID:', active_session_uuid)
 
-      const active_session = await getUserActiveChatSession()
-      if (active_session)
-        active_session_uuid = active_session.chatSessionUuid
+        try {
+          const active_session = await getUserActiveChatSession()
+          if (active_session) {
+            active_session_uuid = active_session.chatSessionUuid
+            console.log('Active session from API:', active_session_uuid)
+          }
+        } catch (activeError) {
+          console.log('No active session found, using default:', activeError)
+        }
 
-      this.active = active_session_uuid
-      if (router.currentRoute.value.params.uuid !== this.active) {
-        await this.reloadRoute(this.active)
+        this.active = active_session_uuid
+        console.log('Setting active session to:', this.active)
+
+        if (router.currentRoute.value.params.uuid !== this.active) {
+          console.log('Route UUID differs from active, reloading route...')
+          await this.reloadRoute(this.active)
+        }
+      } catch (error) {
+        console.error('Error in syncChatSessions:', error)
+        throw error
       }
     },
 
