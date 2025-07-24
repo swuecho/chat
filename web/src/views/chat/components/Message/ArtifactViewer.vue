@@ -399,6 +399,40 @@ const processHtmlContent = (content: string) => {
   <style>
     body { margin: 0; padding: 16px; font-family: system-ui, -apple-system, sans-serif; }
     * { box-sizing: border-box; }
+    
+    /* Custom scrollbar styling for iframe content */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+    }
+
+    *::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 3px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: rgba(155, 155, 155, 0.5);
+      border-radius: 3px;
+      transition: background 0.2s ease;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background: rgba(155, 155, 155, 0.8);
+    }
+
+    *::-webkit-scrollbar-thumb:active {
+      background: rgba(155, 155, 155, 1);
+    }
+
+    *::-webkit-scrollbar-corner {
+      background: transparent;
+    }
   </style>
 </head>
 <body>
@@ -1523,6 +1557,85 @@ onMounted(() => {
   
   .canvas-output {
     padding: 8px;
+  }
+}
+
+/* Custom scrollbar styling for all scrollable elements */
+.output-content,
+.json-preview,
+.mermaid-container,
+.code-artifact pre {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+.output-content::-webkit-scrollbar,
+.json-preview::-webkit-scrollbar,
+.mermaid-container::-webkit-scrollbar,
+.code-artifact pre::-webkit-scrollbar {
+  width: 8px;
+}
+
+.output-content::-webkit-scrollbar-track,
+.json-preview::-webkit-scrollbar-track,
+.mermaid-container::-webkit-scrollbar-track,
+.code-artifact pre::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.output-content::-webkit-scrollbar-thumb,
+.json-preview::-webkit-scrollbar-thumb,
+.mermaid-container::-webkit-scrollbar-thumb,
+.code-artifact pre::-webkit-scrollbar-thumb {
+  background: rgba(155, 155, 155, 0.5);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.output-content::-webkit-scrollbar-thumb:hover,
+.json-preview::-webkit-scrollbar-thumb:hover,
+.mermaid-container::-webkit-scrollbar-thumb:hover,
+.code-artifact pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(155, 155, 155, 0.8);
+}
+
+.output-content::-webkit-scrollbar-thumb:active,
+.json-preview::-webkit-scrollbar-thumb:active,
+.mermaid-container::-webkit-scrollbar-thumb:active,
+.code-artifact pre::-webkit-scrollbar-thumb:active {
+  background: rgba(155, 155, 155, 1);
+}
+
+/* Dark mode scrollbar for artifact viewer */
+[data-theme='dark'] .output-content::-webkit-scrollbar-thumb,
+[data-theme='dark'] .json-preview::-webkit-scrollbar-thumb,
+[data-theme='dark'] .mermaid-container::-webkit-scrollbar-thumb,
+[data-theme='dark'] .code-artifact pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme='dark'] .output-content::-webkit-scrollbar-thumb:hover,
+[data-theme='dark'] .json-preview::-webkit-scrollbar-thumb:hover,
+[data-theme='dark'] .mermaid-container::-webkit-scrollbar-thumb:hover,
+[data-theme='dark'] .code-artifact pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme='dark'] .output-content::-webkit-scrollbar-thumb:active,
+[data-theme='dark'] .json-preview::-webkit-scrollbar-thumb:active,
+[data-theme='dark'] .mermaid-container::-webkit-scrollbar-thumb:active,
+[data-theme='dark'] .code-artifact pre::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 768px) {
+  /* Thinner scrollbar on mobile */
+  .output-content::-webkit-scrollbar,
+  .json-preview::-webkit-scrollbar,
+  .mermaid-container::-webkit-scrollbar,
+  .code-artifact pre::-webkit-scrollbar {
+    width: 4px;
   }
 }
 </style>

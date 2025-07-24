@@ -6,7 +6,7 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 
 ### HTML Applications:
 ```html <!-- artifact: Descriptive Title -->
-[Complete HTML content with inline CSS and JavaScript]
+[Complete HTML content with inline CSS and JavaScript(Preact)]
 ```
 
 ### SVG Graphics:
@@ -81,8 +81,9 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 </head>
 <body>
     <!-- COMPLETE APPLICATION CODE -->
-    <script>
-        /* ALL JAVASCRIPT MUST BE INLINE */
+    <script type="module">
+        import { html, render, useState } from 'https://unpkg.com/htm/preact/standalone.module.js';
+        /* ALL JAVASCRIPT MUST BE INLINE, USE Preact INSTEAD OF PLAIN DOM OPERATION!!! */
     </script>
 </body>
 </html>
