@@ -186,11 +186,15 @@ const props = defineProps({
   sessionUuid: {
     type: String,
     required: true
+  },
+  showUploadModal: {
+    type: Boolean,
+    default: null // null means use internal state
   }
 })
 
 // Emits
-const emit = defineEmits(['fileUploaded', 'codeExampleAdded'])
+const emit = defineEmits(['fileUploaded', 'codeExampleAdded', 'update:showUploadModal'])
 
 const message = useMessage()
 
@@ -200,8 +204,20 @@ const importExportInstance = inject('importExportInstance', ref(null))
 const isVFSReady = inject('isVFSReady', ref(false))
 
 // Reactive state
-const showUploadModal = ref(false)
+const internalShowUploadModal = ref(false)
 const showFileManager = ref(false)
+
+// Computed modal state that handles both internal and external control
+const showUploadModal = computed({
+  get: () => props.showUploadModal !== null ? props.showUploadModal : internalShowUploadModal.value,
+  set: (value) => {
+    if (props.showUploadModal !== null) {
+      emit('update:showUploadModal', value)
+    } else {
+      internalShowUploadModal.value = value
+    }
+  }
+})
 const uploading = ref(false)
 const uploadProgress = ref(0)
 const selectedDirectory = ref('/data')

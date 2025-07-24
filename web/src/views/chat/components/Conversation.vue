@@ -152,6 +152,13 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
     return conversationFlow.startStream(message, dataSources.value, chatUuid)
   })
 }
+
+// VFS Upload Modal state and handler
+const showVFSUploadModal = ref(false)
+
+function handleUpload() {
+  showVFSUploadModal.value = true
+}
 </script>
 
 <template>
@@ -160,6 +167,9 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
       <div>
         <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
           @update:showUploadModal="showUploadModal = $event" />
+        <ChatVFSUploader :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"
+          @update:showUploadModal="showVFSUploadModal = $event" @file-uploaded="handleVFSFileUploaded"
+          @code-example-added="handleCodeExampleAddedWithStream" />
       </div>
       <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
       <main class="flex-1 overflow-hidden flex flex-col">
@@ -199,18 +209,14 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
       </main>
       <footer :class="footerClass">
         <div class="w-full max-w-screen-xl m-auto">
-          <!-- VFS Upload Section -->
-          <div class="vfs-upload-section mb-2">
-            <ChatVFSUploader :session-uuid="sessionUuid" @file-uploaded="handleVFSFileUploaded"
-              @code-example-added="handleCodeExampleAddedWithStream" />
-          </div>
-
           <div class="flex items-center justify-between space-x-1">
             <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
               <span class="text-xl text-[#4b9e5f] dark:text-white">
                 <SvgIcon icon="icon-park-outline:clear" />
               </span>
             </HoverButton>
+
+
             <NSpin :show="botLoading">
               <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
                 @click="handleCreateBot">
@@ -228,6 +234,12 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
                 </span>
               </HoverButton>
             </NSpin>
+
+            <HoverButton tooltip="Upload files to VFS for code runners" @click="handleUpload">
+              <span class="text-xl text-[#4b9e5f] dark:text-white">
+                <SvgIcon icon="mdi:folder-open" />
+              </span>
+            </HoverButton>
 
             <HoverButton v-if="!isMobile" @click="toggleArtifactGallery"
               :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'">
@@ -271,23 +283,6 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
 </template>
 
 <style scoped>
-.vfs-upload-section {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 4px 0;
-  margin-bottom: 4px;
-}
-
-.vfs-upload-section::before {
-  content: "📁 Upload files for code runners:";
-  font-size: 12px;
-  color: var(--text-color-3);
-  margin-right: auto;
-  display: flex;
-  align-items: center;
-}
-
 /* Custom scrollbar styling */
 #scrollRef {
   scrollbar-width: thin;
@@ -331,16 +326,7 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
 }
 
 @media (max-width: 768px) {
-  .vfs-upload-section {
-    justify-content: center;
-    padding: 3px 0;
-    margin-bottom: 3px;
-  }
 
-  .vfs-upload-section::before {
-    display: none;
-  }
-  
   /* Thinner scrollbar on mobile */
   #scrollRef::-webkit-scrollbar {
     width: 4px;
