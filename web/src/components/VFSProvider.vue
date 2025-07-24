@@ -211,7 +211,7 @@ Try running the sample scripts to see how Python and JavaScript can work with th
 })
 </script>
 
-<style scoped>
+<style>
 .vfs-provider {
   height: 100%;
   width: 100%;
