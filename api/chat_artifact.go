@@ -17,7 +17,6 @@ func extractArtifacts(content string) []Artifact {
 	for _, match := range htmlMatches {
 		title := strings.TrimSpace(match[1])
 		artifactContent := strings.TrimSpace(match[2])
-
 		artifact := Artifact{
 			UUID:     NewUUID(),
 			Type:     "html",
@@ -27,6 +26,7 @@ func extractArtifacts(content string) []Artifact {
 		}
 		artifacts = append(artifacts, artifact)
 	}
+
 
 	// Pattern for SVG artifacts
 	// Example: ```svg <!-- artifact: Logo Design -->

@@ -131,7 +131,7 @@ const sendButtonDisabled = computed(() => {
 const footerClass = computed(() => {
   let classes = ['m-2', 'p-2']
   if (isMobile.value)
-    classes = ['sticky', 'left-0', 'bottom-0', 'right-0', 'p-2', 'pr-3', 'overflow-hidden']
+    classes = ['p-2', 'pr-3', 'overflow-hidden']
   return classes
 })
 
@@ -162,7 +162,7 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
           @update:showUploadModal="showUploadModal = $event" />
       </div>
       <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
-      <main class="flex-1 overflow-hidden">
+      <main class="flex-1 overflow-hidden flex flex-col">
         <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
           <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
         </NModal>
@@ -173,7 +173,7 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
         </div>
         <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
         </UploaderReadOnly>
-        <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
+        <div id="scrollRef" ref="scrollRef" class="flex-1 overflow-hidden overflow-y-auto">
           <div v-if="!showArtifactGallery" id="image-wrapper"
             class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10" :class="[isMobile ? 'p-2' : 'p-4']">
             <template v-if="!dataSources.length">
@@ -275,8 +275,8 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: 8px 0;
-  border-top: 1px solid var(--border-color);
+  padding: 4px 0;
+  margin-bottom: 4px;
 }
 
 .vfs-upload-section::before {
@@ -288,13 +288,62 @@ const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
   align-items: center;
 }
 
+/* Custom scrollbar styling */
+#scrollRef {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+#scrollRef::-webkit-scrollbar {
+  width: 8px;
+}
+
+#scrollRef::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+#scrollRef::-webkit-scrollbar-thumb {
+  background: rgba(155, 155, 155, 0.5);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+#scrollRef::-webkit-scrollbar-thumb:hover {
+  background: rgba(155, 155, 155, 0.8);
+}
+
+#scrollRef::-webkit-scrollbar-thumb:active {
+  background: rgba(155, 155, 155, 1);
+}
+
+/* Dark mode scrollbar */
+.dark #scrollRef::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dark #scrollRef::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.dark #scrollRef::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.7);
+}
+
 @media (max-width: 768px) {
   .vfs-upload-section {
     justify-content: center;
+    padding: 3px 0;
+    margin-bottom: 3px;
   }
 
   .vfs-upload-section::before {
     display: none;
+  }
+  
+  /* Thinner scrollbar on mobile */
+  #scrollRef::-webkit-scrollbar {
+    width: 4px;
   }
 }
 </style>

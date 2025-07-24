@@ -117,7 +117,9 @@ export function useStreamHandling() {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        handleStreamError(errorText, responseIndex, sessionUuid)
+        return
       }
 
       if (!response.body) {
@@ -196,7 +198,9 @@ export function useStreamHandling() {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        handleStreamError(errorText, updateIndex, sessionUuid)
+        return
       }
 
       if (!response.body) {
