@@ -20,7 +20,7 @@ interface ChatMessage {
 export function useConversationFlow(
   sessionUuid: string,
   scrollToBottom: () => Promise<void>,
-  scrollToBottomIfAtBottom: () => Promise<void>
+  smoothScrollToBottomIfAtBottom: () => Promise<void>
 ) {
   const loading = ref<boolean>(false)
   const { addChat, updateChat } = useChat()
@@ -66,7 +66,7 @@ export function useConversationFlow(
       inversion: false,
       error: false,
     })
-    await scrollToBottomIfAtBottom()
+    await smoothScrollToBottomIfAtBottom()
     return dataSources.length - 1
   }
 
@@ -106,7 +106,7 @@ export function useConversationFlow(
         responseIndex,
         async (chunk: string, index: number) => {
           processStreamChunk(chunk, index, sessionUuid)
-          await scrollToBottomIfAtBottom()
+          await smoothScrollToBottomIfAtBottom()
         }
       )
     } catch (error) {

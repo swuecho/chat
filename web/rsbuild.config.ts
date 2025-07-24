@@ -15,6 +15,11 @@ export default defineConfig({
     pluginVue(),
     pluginLess(),
   ],
+  output: {
+    sourceMap: {
+      css: false,
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 9002,
