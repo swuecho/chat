@@ -35,7 +35,7 @@ test('test', async ({ page }) => {
   await page.locator('a').filter({ hasText: 'New Chat' }).click();
 
   // set debug mode
-  await page.getByRole('contentinfo').getByRole('button').nth(5).click();
+  await page.getByTestId('config-button').click();
   await page.getByTestId('debug_mode').click();
 
   // click bottom of page to close the modal

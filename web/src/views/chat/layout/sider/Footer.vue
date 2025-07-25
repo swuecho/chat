@@ -107,7 +107,7 @@ watch(appStore, () => {
       </span>
     </HoverButton>
     <NDropdown :options="options" @select="handleSelect">
-      <HoverButton>
+      <HoverButton data-testid="config-button">
         <SvgIcon icon="lucide:more-vertical" />
       </HoverButton>
     </NDropdown>
