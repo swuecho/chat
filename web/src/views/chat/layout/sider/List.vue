@@ -22,8 +22,9 @@ const dataSources = computed(() => {
     return chatStore.history
   }
   
-  // Filter sessions by active workspace
-  return chatStore.getSessionsByWorkspace(chatStore.activeWorkspace)
+  // Filter sessions by active workspace, but fall back to all sessions if filtered result is empty
+  const workspaceSessions = chatStore.getSessionsByWorkspace(chatStore.activeWorkspace)
+  return workspaceSessions.length > 0 ? workspaceSessions : chatStore.history
 })
 const isLogined = computed(() => Boolean(authStore.token))
 
