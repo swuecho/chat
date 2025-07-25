@@ -20,12 +20,22 @@ const editingWorkspace = ref<Chat.Workspace | null>(null)
 const activeWorkspace = computed(() => chatStore.getWorkspaceByUuid(chatStore.activeWorkspace))
 const workspaces = computed(() => chatStore.workspaces)
 
+// Icon mapping - convert icon value to full icon string
+const getWorkspaceIconString = (iconValue: string) => {
+  // If already has prefix, return as is
+  if (iconValue.includes(':')) {
+    return iconValue
+  }
+  // Otherwise add material-symbols prefix
+  return `material-symbols:${iconValue}`
+}
+
 const dropdownOptions = computed((): DropdownOption[] => [
   ...workspaces.value.map(workspace => ({
     key: workspace.uuid,
     label: workspace.name,
     icon: () => h(SvgIcon, { 
-      icon: workspace.icon, 
+      icon: getWorkspaceIconString(workspace.icon), 
       style: { color: workspace.color } 
     }),
   })),
@@ -95,7 +105,7 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
       >
         <template #icon>
           <NIcon v-if="activeWorkspace" :style="{ color: activeWorkspace.color }">
-            <SvgIcon :icon="activeWorkspace.icon" />
+            <SvgIcon :icon="getWorkspaceIconString(activeWorkspace.icon)" />
           </NIcon>
         </template>
         <div class="flex-1 text-left truncate">

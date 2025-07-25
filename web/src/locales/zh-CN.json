@@ -265,5 +265,25 @@
     "syncChatSession": "同步失败, 请稍后再试",
     "NotAuthorized": "请先登录",
     "NotAdmin": "非管理员禁止访问"
+  },
+  "workspace": {
+    "create": "创建工作区",
+    "edit": "编辑工作区",
+    "manage": "管理工作区",
+    "loading": "加载工作区中...",
+    "name": "名称",
+    "namePlaceholder": "输入工作区名称",
+    "nameRequired": "工作区名称为必填项",
+    "description": "描述",
+    "descriptionPlaceholder": "为此工作区添加可选描述",
+    "icon": "图标",
+    "color": "颜色",
+    "saveError": "保存工作区失败",
+    "deleteConfirm": "确定要删除此工作区吗？",
+    "cannotDeleteDefault": "无法删除默认工作区",
+    "switchedTo": "已切换到 {name}",
+    "created": "工作区创建成功",
+    "updated": "工作区更新成功",
+    "deleted": "工作区删除成功"
   }
 }

@@ -207,7 +207,7 @@ func (h *ChatWorkspaceHandler) getWorkspacesByUserID(w http.ResponseWriter, r *h
 		return
 	}
 
-	var responses []WorkspaceResponse
+	responses := make([]WorkspaceResponse, 0)
 	for _, workspace := range workspaces {
 		response := WorkspaceResponse{
 			Uuid:         workspace.Uuid,
