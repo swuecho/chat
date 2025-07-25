@@ -53,6 +53,7 @@ declare namespace Chat {
 		color: string
 		icon: string
 		isDefault: boolean
+		orderPosition?: number
 		sessionCount?: number
 		createdAt: string
 		updatedAt: string

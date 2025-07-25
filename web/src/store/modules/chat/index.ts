@@ -20,6 +20,7 @@ import {
   deleteWorkspace,
   ensureDefaultWorkspace,
   setDefaultWorkspace,
+  updateWorkspaceOrder,
   createSessionInWorkspace,
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
@@ -458,6 +459,20 @@ export const useChatStore = defineStore('chat-store', {
         return workspace
       } catch (error) {
         console.error('❌ Error setting default workspace:', error)
+        throw error
+      }
+    },
+
+    async updateWorkspaceOrder(uuid: string, orderPosition: number) {
+      try {
+        const workspace = await updateWorkspaceOrder(uuid, orderPosition)
+        const index = this.workspaces.findIndex(w => w.uuid === uuid)
+        if (index !== -1) {
+          this.workspaces[index] = workspace
+        }
+        return workspace
+      } catch (error) {
+        console.error('❌ Error updating workspace order:', error)
         throw error
       }
     },

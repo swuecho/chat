@@ -163,13 +163,72 @@ watch([() => props.visible, () => props.mode, () => props.workspace], () => {
   }
 })
 
+// Watch color changes and normalize automatically (debounced)
+watch(() => formData.value.color, (newColor, oldColor) => {
+  // Skip if color hasn't actually changed or is empty
+  if (!newColor || newColor === oldColor || newColor.length < 6) {
+    return
+  }
+  
+  try {
+    const normalized = normalizeColor(newColor)
+    if (normalized !== newColor) {
+      // Update the color silently to normalized format
+      formData.value.color = normalized
+    }
+  } catch (error) {
+    // Invalid color format, let the validation handle it in submit
+    console.warn('Invalid color format:', newColor, error)
+  }
+}, { 
+  // Debounce to avoid excessive updates during typing
+  flush: 'post' 
+})
+
 function handleClose() {
   isVisible.value = false
+}
+
+// Helper function to ensure color is 7-character hex format
+function normalizeColor(color: string): string {
+  if (!color) {
+    throw new Error('Color is required')
+  }
+  
+  // Remove any whitespace and convert to lowercase for consistency
+  color = color.trim().toLowerCase()
+  
+  // If it doesn't start with #, add it
+  if (!color.startsWith('#')) {
+    color = '#' + color
+  }
+  
+  // If it's a 3-character hex, expand to 6 characters
+  if (color.length === 4) {
+    color = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3]
+  }
+  
+  // Validate hex color format (case-insensitive)
+  const hexColorRegex = /^#[0-9a-f]{6}$/
+  if (!hexColorRegex.test(color)) {
+    throw new Error(`Invalid color format: ${color}. Expected format: #RRGGBB`)
+  }
+  
+  return color
 }
 
 async function handleSubmit() {
   if (!formData.value.name.trim()) {
     message.error(t('workspace.nameRequired'))
+    return
+  }
+
+  // Validate and normalize color
+  let normalizedColor: string
+  try {
+    normalizedColor = normalizeColor(formData.value.color)
+  } catch (error) {
+    message.error(t('workspace.invalidColor'))
     return
   }
 
@@ -180,7 +239,7 @@ async function handleSubmit() {
       const createData: CreateWorkspaceRequest = {
         name: formData.value.name.trim(),
         description: formData.value.description.trim(),
-        color: formData.value.color,
+        color: normalizedColor,
         icon: formData.value.icon
       }
 
@@ -190,7 +249,7 @@ async function handleSubmit() {
       const updateData: UpdateWorkspaceRequest = {
         name: formData.value.name.trim(),
         description: formData.value.description.trim(),
-        color: formData.value.color,
+        color: normalizedColor,
         icon: formData.value.icon
       }
 
@@ -207,17 +266,13 @@ async function handleSubmit() {
   }
 }
 
-function renderIconOption({ node, option }: any) {
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h(SvgIcon, {
-      icon: option.icon,
-      style: { fontSize: '18px', color: formData.value.color }
-    }),
-    node
-  ])
+interface IconOption {
+  label: string
+  value: string
+  icon: string
 }
 
-function renderIconLabel(option: any) {
+function renderIconLabel(option: IconOption) {
   return h('div', { class: 'flex items-center gap-2' }, [
     h(SvgIcon, {
       icon: option.icon,
@@ -246,28 +301,36 @@ function renderIconLabel(option: any) {
             show-count />
         </NFormItem>
 
+       
+        
+
+        <NFormItem :label="t('workspace.color')">
+          <NColorPicker 
+            v-model:value="formData.color" 
+            :modes="['hex']" 
+            :show-alpha="false"
+            :show-preview="true"
+            :swatches="[
+              '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
+              '#f43f5e', '#ef4444', '#f97316', '#f59e0b', '#eab308',
+              '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4',
+              '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7'
+            ]" 
+          />
+        </NFormItem>
+        <NFormItem :label="t('workspace.icon')">
+          <NSelect 
+            v-model:value="formData.icon" 
+            :options="iconOptions" 
+            :render-label="renderIconLabel"
+          />
+        </NFormItem>
+
         <NFormItem :label="t('workspace.description')">
           <NInput v-model:value="formData.description" type="textarea"
             :placeholder="t('workspace.descriptionPlaceholder')" maxlength="200" show-count :rows="2" />
         </NFormItem>
 
-        <NFormItem :label="t('workspace.icon')">
-          <NSelect 
-            v-model:value="formData.icon" 
-            :options="iconOptions" 
-            :render-option="renderIconOption"
-            :render-label="renderIconLabel"
-          />
-        </NFormItem>
-
-        <NFormItem :label="t('workspace.color')">
-          <NColorPicker v-model:value="formData.color" :modes="['hex']" :swatches="[
-            '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
-            '#f43f5e', '#ef4444', '#f97316', '#f59e0b', '#eab308',
-            '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4',
-            '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7'
-          ]" />
-        </NFormItem>
       </NForm>
 
       <template #footer>

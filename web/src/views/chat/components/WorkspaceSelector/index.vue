@@ -7,6 +7,7 @@ import { SvgIcon } from '@/components/common'
 import { useChatStore } from '@/store'
 import { t } from '@/locales'
 import WorkspaceModal from './WorkspaceModal.vue'
+import WorkspaceManagementModal from './WorkspaceManagementModal.vue'
 
 const router = useRouter()
 
@@ -15,6 +16,7 @@ const message = useMessage()
 
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
+const showManagementModal = ref(false)
 const editingWorkspace = ref<Chat.Workspace | null>(null)
 
 const activeWorkspace = computed(() => chatStore.getWorkspaceByUuid(chatStore.activeWorkspace))
@@ -62,8 +64,7 @@ async function handleDropdownSelect(key: string) {
   }
   
   if (key === 'manage-workspaces') {
-    // TODO: Open workspace management modal
-    message.info('Workspace management coming soon!')
+    showManagementModal.value = true
     return
   }
   
@@ -95,33 +96,29 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
       placement="bottom-start"
       @select="handleDropdownSelect"
     >
-      <NButton
-        :disabled="!activeWorkspace"
-        class="w-full justify-start"
-        :style="{ 
-          borderColor: activeWorkspace?.color, 
-          color: activeWorkspace?.color 
-        }"
-      >
-        <template #icon>
-          <NIcon v-if="activeWorkspace" :style="{ color: activeWorkspace.color }">
-            <SvgIcon :icon="getWorkspaceIconString(activeWorkspace.icon)" />
-          </NIcon>
-        </template>
-        <div class="flex-1 text-left truncate">
-          <NText v-if="activeWorkspace" :style="{ color: activeWorkspace.color }">
-            {{ activeWorkspace.name }}
-          </NText>
-          <NText v-else depth="3">
-            {{ t('workspace.loading') }}
-          </NText>
+      <div class="workspace-button">
+        <div class="workspace-icon" :style="{ color: activeWorkspace?.color || '#6366f1' }">
+          <SvgIcon 
+            v-if="activeWorkspace" 
+            :icon="getWorkspaceIconString(activeWorkspace.icon)"
+          />
+          <SvgIcon 
+            v-else
+            icon="material-symbols:folder"
+          />
         </div>
-        <template #suffix>
-          <NIcon class="ml-2">
-            <SvgIcon icon="material-symbols:expand-more" />
-          </NIcon>
-        </template>
-      </NButton>
+        <div class="workspace-content">
+          <span v-if="activeWorkspace" class="workspace-name">
+            {{ activeWorkspace.name }}
+          </span>
+          <span v-else class="workspace-loading">
+            {{ t('workspace.loading') }}
+          </span>
+        </div>
+        <div class="workspace-arrow">
+          <SvgIcon icon="material-symbols:expand-more" />
+        </div>
+      </div>
     </NDropdown>
 
     <!-- Create Workspace Modal -->
@@ -138,11 +135,79 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
       :workspace="editingWorkspace"
       @workspace-updated="handleWorkspaceUpdated"
     />
+
+    <!-- Workspace Management Modal -->
+    <WorkspaceManagementModal
+      v-model:visible="showManagementModal"
+    />
   </div>
 </template>
 
 <style scoped>
 .workspace-selector {
   width: 100%;
+}
+
+.workspace-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.workspace-button:hover {
+  background-color: rgb(245 245 245);
+}
+
+.workspace-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.workspace-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.workspace-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-loading {
+  color: #a3a3a3;
+  font-style: italic;
+}
+
+.workspace-arrow {
+  font-size: 16px;
+  color: #a3a3a3;
+  flex-shrink: 0;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .workspace-button {
+    border-color: #404040;
+  }
+  
+  .workspace-button:hover {
+    background-color: #24272e;
+  }
+  
+  .workspace-loading {
+    color: #737373;
+  }
+  
+  .workspace-arrow {
+    color: #737373;
+  }
 }
 </style>

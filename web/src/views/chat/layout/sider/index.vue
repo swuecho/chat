@@ -100,10 +100,10 @@ function openAllSnapshot() {
     <div class="flex flex-col h-full" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
         <div class="p-2 space-y-2">
-          <WorkspaceSelector />
           <NButton dashed block @click="handleAdd">
             <SvgIcon icon="material-symbols:add-circle-outline" /> {{ $t('chat.new') }}
           </NButton>
+          <WorkspaceSelector />
         </div>
         <div class="flex-1 min-h-0 pb-4 overflow-hidden">
           <List />

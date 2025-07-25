@@ -56,15 +56,16 @@ type UpdateWorkspaceOrderRequest struct {
 }
 
 type WorkspaceResponse struct {
-	Uuid         string `json:"uuid"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	Color        string `json:"color"`
-	Icon         string `json:"icon"`
-	IsDefault    bool   `json:"isDefault"`
-	SessionCount int64  `json:"sessionCount,omitempty"`
-	CreatedAt    string `json:"createdAt"`
-	UpdatedAt    string `json:"updatedAt"`
+	Uuid          string `json:"uuid"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	Color         string `json:"color"`
+	Icon          string `json:"icon"`
+	IsDefault     bool   `json:"isDefault"`
+	OrderPosition int32  `json:"orderPosition"`
+	SessionCount  int64  `json:"sessionCount,omitempty"`
+	CreatedAt     string `json:"createdAt"`
+	UpdatedAt     string `json:"updatedAt"`
 }
 
 // createWorkspace creates a new workspace
@@ -122,14 +123,15 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 	}
 
 	response := WorkspaceResponse{
-		Uuid:        workspace.Uuid,
-		Name:        workspace.Name,
-		Description: workspace.Description,
-		Color:       workspace.Color,
-		Icon:        workspace.Icon,
-		IsDefault:   workspace.IsDefault,
-		CreatedAt:   workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:   workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		Uuid:          workspace.Uuid,
+		Name:          workspace.Name,
+		Description:   workspace.Description,
+		Color:         workspace.Color,
+		Icon:          workspace.Icon,
+		IsDefault:     workspace.IsDefault,
+		OrderPosition: workspace.OrderPosition,
+		CreatedAt:     workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -176,14 +178,15 @@ func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http
 	}
 
 	response := WorkspaceResponse{
-		Uuid:        workspace.Uuid,
-		Name:        workspace.Name,
-		Description: workspace.Description,
-		Color:       workspace.Color,
-		Icon:        workspace.Icon,
-		IsDefault:   workspace.IsDefault,
-		CreatedAt:   workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:   workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		Uuid:          workspace.Uuid,
+		Name:          workspace.Name,
+		Description:   workspace.Description,
+		Color:         workspace.Color,
+		Icon:          workspace.Icon,
+		IsDefault:     workspace.IsDefault,
+		OrderPosition: workspace.OrderPosition,
+		CreatedAt:     workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -210,15 +213,16 @@ func (h *ChatWorkspaceHandler) getWorkspacesByUserID(w http.ResponseWriter, r *h
 	responses := make([]WorkspaceResponse, 0)
 	for _, workspace := range workspaces {
 		response := WorkspaceResponse{
-			Uuid:         workspace.Uuid,
-			Name:         workspace.Name,
-			Description:  workspace.Description,
-			Color:        workspace.Color,
-			Icon:         workspace.Icon,
-			IsDefault:    workspace.IsDefault,
-			SessionCount: workspace.SessionCount,
-			CreatedAt:    workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			UpdatedAt:    workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+			Uuid:          workspace.Uuid,
+			Name:          workspace.Name,
+			Description:   workspace.Description,
+			Color:         workspace.Color,
+			Icon:          workspace.Icon,
+			IsDefault:     workspace.IsDefault,
+			OrderPosition: workspace.OrderPosition,
+			SessionCount:  workspace.SessionCount,
+			CreatedAt:     workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 		}
 		responses = append(responses, response)
 	}
@@ -278,14 +282,15 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 	}
 
 	response := WorkspaceResponse{
-		Uuid:        workspace.Uuid,
-		Name:        workspace.Name,
-		Description: workspace.Description,
-		Color:       workspace.Color,
-		Icon:        workspace.Icon,
-		IsDefault:   workspace.IsDefault,
-		CreatedAt:   workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:   workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		Uuid:          workspace.Uuid,
+		Name:          workspace.Name,
+		Description:   workspace.Description,
+		Color:         workspace.Color,
+		Icon:          workspace.Icon,
+		IsDefault:     workspace.IsDefault,
+		OrderPosition: workspace.OrderPosition,
+		CreatedAt:     workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -340,14 +345,15 @@ func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *ht
 	}
 
 	response := WorkspaceResponse{
-		Uuid:        workspace.Uuid,
-		Name:        workspace.Name,
-		Description: workspace.Description,
-		Color:       workspace.Color,
-		Icon:        workspace.Icon,
-		IsDefault:   workspace.IsDefault,
-		CreatedAt:   workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:   workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		Uuid:          workspace.Uuid,
+		Name:          workspace.Name,
+		Description:   workspace.Description,
+		Color:         workspace.Color,
+		Icon:          workspace.Icon,
+		IsDefault:     workspace.IsDefault,
+		OrderPosition: workspace.OrderPosition,
+		CreatedAt:     workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -467,14 +473,15 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 	}
 
 	response := WorkspaceResponse{
-		Uuid:        workspace.Uuid,
-		Name:        workspace.Name,
-		Description: workspace.Description,
-		Color:       workspace.Color,
-		Icon:        workspace.Icon,
-		IsDefault:   workspace.IsDefault,
-		CreatedAt:   workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:   workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		Uuid:          workspace.Uuid,
+		Name:          workspace.Name,
+		Description:   workspace.Description,
+		Color:         workspace.Color,
+		Icon:          workspace.Icon,
+		IsDefault:     workspace.IsDefault,
+		OrderPosition: workspace.OrderPosition,
+		CreatedAt:     workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -499,14 +506,15 @@ func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *
 	}
 
 	response := WorkspaceResponse{
-		Uuid:        workspace.Uuid,
-		Name:        workspace.Name,
-		Description: workspace.Description,
-		Color:       workspace.Color,
-		Icon:        workspace.Icon,
-		IsDefault:   workspace.IsDefault,
-		CreatedAt:   workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:   workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		Uuid:          workspace.Uuid,
+		Name:          workspace.Name,
+		Description:   workspace.Description,
+		Color:         workspace.Color,
+		Icon:          workspace.Icon,
+		IsDefault:     workspace.IsDefault,
+		OrderPosition: workspace.OrderPosition,
+		CreatedAt:     workspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	json.NewEncoder(w).Encode(response)

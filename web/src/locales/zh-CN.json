@@ -28,6 +28,8 @@
     "email": "邮箱",
     "confirm": "确认",
     "cancel": "取消",
+    "create": "创建",
+    "update": "更新",
     "email_placeholder": "请输入邮箱",
     "password_placeholder": "请输入密码",
     "unauthorizedTips": "请注册或者登录",
@@ -284,6 +286,23 @@
     "switchedTo": "已切换到 {name}",
     "created": "工作区创建成功",
     "updated": "工作区更新成功",
-    "deleted": "工作区删除成功"
+    "deleted": "工作区删除成功",
+    "searchPlaceholder": "搜索工作区...",
+    "totalCount": "共 {count} 个工作区",
+    "filteredResults": "/ {total}",
+    "noWorkspaces": "未找到工作区",
+    "createFirst": "创建您的第一个工作区",
+    "duplicate": "复制",
+    "setAsDefault": "设为默认",
+    "active": "当前",
+    "default": "默认",
+    "sessionCount": "{count} 个会话",
+    "lastUpdated": "更新于",
+    "switchError": "切换工作区失败",
+    "reorderMode": "排序模式",
+    "dragToReorder": "拖拽排序",
+    "reorderSuccess": "工作区排序成功",
+    "reorderError": "工作区排序失败",
+    "invalidColor": "颜色格式无效。请使用有效的十六进制颜色。"
   }
 }

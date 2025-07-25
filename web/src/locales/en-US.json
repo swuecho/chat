@@ -168,6 +168,8 @@
         "cancel": "Cancel",
         "clear": "Clear",
         "confirm": "Confirm",
+        "create": "Create",
+        "update": "Update",
         "copy": "Copy",
         "delete": "Delete",
         "edit": "Edit",
@@ -285,6 +287,23 @@
         "switchedTo": "Switched to {name}",
         "created": "Workspace created successfully",
         "updated": "Workspace updated successfully",
-        "deleted": "Workspace deleted successfully"
+        "deleted": "Workspace deleted successfully",
+        "searchPlaceholder": "Search workspaces...",
+        "totalCount": "Total: {count} workspaces",
+        "filteredResults": "of {total}",
+        "noWorkspaces": "No workspaces found",
+        "createFirst": "Create your first workspace",
+        "duplicate": "Duplicate",
+        "setAsDefault": "Set as Default",
+        "active": "Active",
+        "default": "Default",
+        "sessionCount": "{count} sessions",
+        "lastUpdated": "Updated",
+        "switchError": "Failed to switch workspace",
+        "reorderMode": "Reorder Mode",
+        "dragToReorder": "Drag to reorder",
+        "reorderSuccess": "Workspaces reordered successfully",
+        "reorderError": "Failed to reorder workspaces",
+        "invalidColor": "Invalid color format. Please use a valid hex color."
     }
 }
