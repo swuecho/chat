@@ -210,7 +210,7 @@ function handleUpload() {
       <footer :class="footerClass">
         <div class="w-full max-w-screen-xl m-auto">
           <div class="flex items-center justify-between space-x-1">
-            <HoverButton :tooltip="$t('chat.clearChat')" @click="handleClear">
+            <HoverButton data-testid="clear-conversation-button" :tooltip="$t('chat.clearChat')" @click="handleClear">
               <span class="text-xl text-[#4b9e5f] dark:text-white">
                 <SvgIcon icon="icon-park-outline:clear" />
               </span>
@@ -235,7 +235,7 @@ function handleUpload() {
               </HoverButton>
             </NSpin>
 
-            <HoverButton tooltip="Upload files to VFS for code runners" @click="handleUpload">
+            <HoverButton v-if="!isMobile" tooltip="Upload files to VFS for code runners" @click="handleUpload">
               <span class="text-xl text-[#4b9e5f] dark:text-white">
                 <SvgIcon icon="mdi:folder-open" />
               </span>

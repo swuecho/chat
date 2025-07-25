@@ -6,6 +6,7 @@ import { selectChatPromptsBySessionUUID } from '../lib/db/chat_prompt';
 import { selectChatMessagesBySessionUUID } from '../lib/db/chat_message';
 import { randomEmail } from '../lib/sample';
 import { db_config } from '../lib/db/config';
+import { getClearConversationButton } from '../lib/button-helpers';
 
 const pool = new Pool(db_config);
 
@@ -56,7 +57,8 @@ test('after clear conversation, only system message remains', async ({ page }) =
   const session = sessions[0];
 
   // clear
-  await page.getByRole('contentinfo').getByRole('button').nth(1).click();
+  const clearButton = await getClearConversationButton(page);
+  await clearButton.click();
   await page.getByRole('button', { name: 'Yes' }).click();
 
   // sleep 500 ms
