@@ -133,7 +133,7 @@ func (h *AdminHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) UserAnalysisHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	email := vars["email"]
-	
+
 	if email == "" {
 		RespondWithAPIError(w, ErrValidationInvalidInput("Email parameter is required"))
 		return
@@ -159,7 +159,7 @@ type SessionHistoryResponse struct {
 func (h *AdminHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	email := vars["email"]
-	
+
 	if email == "" {
 		RespondWithAPIError(w, ErrValidationInvalidInput("Email parameter is required"))
 		return
@@ -168,16 +168,16 @@ func (h *AdminHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.
 	// Parse pagination parameters
 	pageStr := r.URL.Query().Get("page")
 	sizeStr := r.URL.Query().Get("size")
-	
+
 	page := int32(1)
 	size := int32(10)
-	
+
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
 			page = int32(p)
 		}
 	}
-	
+
 	if sizeStr != "" {
 		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 && s <= 100 {
 			size = int32(s)
@@ -204,7 +204,7 @@ func (h *AdminHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.
 func (h *AdminHandler) SessionMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sessionUuid := vars["sessionUuid"]
-	
+
 	if sessionUuid == "" {
 		RespondWithAPIError(w, ErrValidationInvalidInput("Session UUID parameter is required"))
 		return

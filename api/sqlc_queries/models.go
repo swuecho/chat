@@ -165,17 +165,17 @@ type ChatSnapshot struct {
 }
 
 type ChatWorkspace struct {
-	ID            int32          `json:"id"`
-	Uuid          string         `json:"uuid"`
-	UserID        int32          `json:"userId"`
-	Name          string         `json:"name"`
-	Description   sql.NullString `json:"description"`
-	Color         sql.NullString `json:"color"`
-	Icon          sql.NullString `json:"icon"`
-	CreatedAt     time.Time      `json:"createdAt"`
-	UpdatedAt     time.Time      `json:"updatedAt"`
-	IsDefault     bool           `json:"isDefault"`
-	OrderPosition int32          `json:"orderPosition"`
+	ID            int32     `json:"id"`
+	Uuid          string    `json:"uuid"`
+	UserID        int32     `json:"userId"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	Color         string    `json:"color"`
+	Icon          string    `json:"icon"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	IsDefault     bool      `json:"isDefault"`
+	OrderPosition int32     `json:"orderPosition"`
 }
 
 type JwtSecret struct {

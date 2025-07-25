@@ -66,7 +66,7 @@ func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, 
 		if len(message.ReasoningContent) > 0 {
 			text = message.ReasoningContent + message.Content
 		}
-		
+
 		// Extract artifacts from database
 		var artifacts []Artifact
 		if message.Artifacts != nil {
@@ -76,7 +76,7 @@ func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, 
 				artifacts = []Artifact{}
 			}
 		}
-		
+
 		return SimpleChatMessage{
 			Uuid:      message.Uuid,
 			DateTime:  message.UpdatedAt.Format(time.RFC3339),

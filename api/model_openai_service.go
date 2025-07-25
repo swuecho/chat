@@ -52,7 +52,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	if len(openaiReq.Messages) <= 1 {
 		return nil, ErrSystemMessageError
 	}
-	log.Printf("OpenAI request prepared - Model: %s, MessageCount: %d, Temperature: %.2f", 
+	log.Printf("OpenAI request prepared - Model: %s, MessageCount: %d, Temperature: %.2f",
 		openaiReq.Model, len(openaiReq.Messages), openaiReq.Temperature)
 	client := openai.NewClientWithConfig(config)
 	if streamOutput {
@@ -155,7 +155,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 			} else {
 				deltaToSend = delta.Content
 			}
-			
+
 			if len(deltaToSend) > 0 {
 				log.Printf("delta: %s", deltaToSend)
 				err := FlushResponse(w, flusher, StreamingResponse{
@@ -179,7 +179,7 @@ func NewUserMessage(content string) openai.ChatCompletionMessage {
 // NewChatCompletionRequest creates an OpenAI chat completion request from session and messages
 func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatFiles []sqlc_queries.ChatFile, streamOutput bool) openai.ChatCompletionRequest {
 	openaiMessages := messagesToOpenAIMesages(chatCompletionMessages, chatFiles)
-	
+
 	for _, m := range openaiMessages {
 		b, _ := m.MarshalJSON()
 		log.Printf("messages: %+v\n", string(b))
@@ -196,5 +196,3 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chatCompleti
 	}
 	return openaiReq
 }
-
-

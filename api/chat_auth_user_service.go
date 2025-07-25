@@ -125,19 +125,19 @@ func (s *AuthUserService) GetRateLimit(ctx context.Context, user_id int32) (int3
 
 // UserAnalysisData represents the complete user analysis response
 type UserAnalysisData struct {
-	UserInfo       UserAnalysisInfo      `json:"userInfo"`
-	ModelUsage     []ModelUsageInfo      `json:"modelUsage"`
-	RecentActivity []ActivityInfo        `json:"recentActivity"`
+	UserInfo       UserAnalysisInfo `json:"userInfo"`
+	ModelUsage     []ModelUsageInfo `json:"modelUsage"`
+	RecentActivity []ActivityInfo   `json:"recentActivity"`
 }
 
 type UserAnalysisInfo struct {
-	Email          string `json:"email"`
-	TotalMessages  int64  `json:"totalMessages"`
-	TotalTokens    int64  `json:"totalTokens"`
-	TotalSessions  int64  `json:"totalSessions"`
-	Messages3Days  int64  `json:"messages3Days"`
-	Tokens3Days    int64  `json:"tokens3Days"`
-	RateLimit      int32  `json:"rateLimit"`
+	Email         string `json:"email"`
+	TotalMessages int64  `json:"totalMessages"`
+	TotalTokens   int64  `json:"totalTokens"`
+	TotalSessions int64  `json:"totalSessions"`
+	Messages3Days int64  `json:"messages3Days"`
+	Tokens3Days   int64  `json:"tokens3Days"`
+	RateLimit     int32  `json:"rateLimit"`
 }
 
 type ModelUsageInfo struct {
@@ -200,7 +200,7 @@ func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string, def
 				tokenCount = tc
 			}
 		}
-		
+
 		percentage := float64(0)
 		if totalTokens > 0 {
 			percentage = float64(tokenCount) / float64(totalTokens) * 100
@@ -229,7 +229,7 @@ func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string, def
 				tokens = t
 			}
 		}
-		
+
 		recentActivity[i] = ActivityInfo{
 			Date:     row.ActivityDate,
 			Messages: row.Messages,
@@ -258,7 +258,7 @@ func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string, def
 // GetUserSessionHistory retrieves paginated session history for a user
 func (s *AuthUserService) GetUserSessionHistory(ctx context.Context, email string, page, pageSize int32) ([]SessionHistoryInfo, int64, error) {
 	offset := (page - 1) * pageSize
-	
+
 	// Get session history with pagination
 	sessionRows, err := s.q.GetUserSessionHistoryByEmail(ctx, sqlc_queries.GetUserSessionHistoryByEmailParams{
 		Email:  email,
@@ -284,14 +284,14 @@ func (s *AuthUserService) GetUserSessionHistory(ctx context.Context, email strin
 				messageCount = mc
 			}
 		}
-		
+
 		tokenCount := int64(0)
 		if row.TokenCount != nil {
 			if tc, ok := row.TokenCount.(int64); ok {
 				tokenCount = tc
 			}
 		}
-		
+
 		sessionHistory[i] = SessionHistoryInfo{
 			SessionID:    row.SessionID,
 			Model:        row.Model,

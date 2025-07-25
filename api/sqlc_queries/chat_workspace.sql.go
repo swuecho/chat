@@ -7,7 +7,6 @@ package sqlc_queries
 
 import (
 	"context"
-	"database/sql"
 	"time"
 )
 
@@ -48,14 +47,14 @@ RETURNING id, uuid, user_id, name, description, color, icon, created_at, updated
 `
 
 type CreateWorkspaceParams struct {
-	Uuid          string         `json:"uuid"`
-	UserID        int32          `json:"userId"`
-	Name          string         `json:"name"`
-	Description   sql.NullString `json:"description"`
-	Color         sql.NullString `json:"color"`
-	Icon          sql.NullString `json:"icon"`
-	IsDefault     bool           `json:"isDefault"`
-	OrderPosition int32          `json:"orderPosition"`
+	Uuid          string `json:"uuid"`
+	UserID        int32  `json:"userId"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	Color         string `json:"color"`
+	Icon          string `json:"icon"`
+	IsDefault     bool   `json:"isDefault"`
+	OrderPosition int32  `json:"orderPosition"`
 }
 
 func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (ChatWorkspace, error) {
@@ -157,18 +156,18 @@ ORDER BY w.order_position ASC, w.created_at ASC
 `
 
 type GetWorkspaceWithSessionCountRow struct {
-	ID            int32          `json:"id"`
-	Uuid          string         `json:"uuid"`
-	UserID        int32          `json:"userId"`
-	Name          string         `json:"name"`
-	Description   sql.NullString `json:"description"`
-	Color         sql.NullString `json:"color"`
-	Icon          sql.NullString `json:"icon"`
-	CreatedAt     time.Time      `json:"createdAt"`
-	UpdatedAt     time.Time      `json:"updatedAt"`
-	IsDefault     bool           `json:"isDefault"`
-	OrderPosition int32          `json:"orderPosition"`
-	SessionCount  int64          `json:"sessionCount"`
+	ID            int32     `json:"id"`
+	Uuid          string    `json:"uuid"`
+	UserID        int32     `json:"userId"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	Color         string    `json:"color"`
+	Icon          string    `json:"icon"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	IsDefault     bool      `json:"isDefault"`
+	OrderPosition int32     `json:"orderPosition"`
+	SessionCount  int64     `json:"sessionCount"`
 }
 
 func (q *Queries) GetWorkspaceWithSessionCount(ctx context.Context, userID int32) ([]GetWorkspaceWithSessionCountRow, error) {
@@ -306,11 +305,11 @@ RETURNING id, uuid, user_id, name, description, color, icon, created_at, updated
 `
 
 type UpdateWorkspaceParams struct {
-	Uuid        string         `json:"uuid"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Color       sql.NullString `json:"color"`
-	Icon        sql.NullString `json:"icon"`
+	Uuid        string `json:"uuid"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Color       string `json:"color"`
+	Icon        string `json:"icon"`
 }
 
 func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams) (ChatWorkspace, error) {

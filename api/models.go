@@ -26,7 +26,7 @@ type RequestOption struct {
 
 type Artifact struct {
 	UUID     string `json:"uuid"`
-	Type     string `json:"type"`     // 'code', 'html', 'svg', 'mermaid', 'json', 'markdown'
+	Type     string `json:"type"` // 'code', 'html', 'svg', 'mermaid', 'json', 'markdown'
 	Title    string `json:"title"`
 	Content  string `json:"content"`
 	Language string `json:"language,omitempty"` // for code artifacts

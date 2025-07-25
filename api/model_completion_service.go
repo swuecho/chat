@@ -26,7 +26,7 @@ func (m *CompletionChatModel) Stream(w http.ResponseWriter, chatSession sqlc_que
 	return m.completionStream(w, chatSession, chat_completion_messages, chatUuid, regenerate, stream)
 }
 
-// completionStream handles streaming for OpenAI completion models  
+// completionStream handles streaming for OpenAI completion models
 func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, _ bool) (*models.LLMAnswer, error) {
 	// Check per chat_model rate limit
 	openAIRateLimiter.Wait(context.Background())
@@ -51,7 +51,7 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 	}
 
 	client := openai.NewClientWithConfig(config)
-	
+
 	// Get the latest message content as prompt
 	prompt := chat_completion_messages[len(chat_completion_messages)-1].Content
 
@@ -69,7 +69,7 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 	// Create completion stream with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultRequestTimeout)
 	defer cancel()
-	
+
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to create completion stream", err.Error()))
@@ -103,7 +103,7 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 					log.Printf("Failed to flush final response: %v", err)
 				}
 			}
-			
+
 			// Include debug information if enabled
 			if chatSession.Debug {
 				req_j, _ := json.Marshal(req)
@@ -120,25 +120,25 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 			}
 			break
 		}
-		
+
 		if err != nil {
 			RespondWithAPIError(w, ErrChatStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error()))
 			return nil, err
 		}
-		
+
 		// Process response chunk
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Text
 		textBuffer.appendByIndex(textIdx, delta)
-		
+
 		if chatSession.Debug {
 			log.Printf("%d: %s", textIdx, delta)
 		}
-		
+
 		if answer_id == "" {
 			answer_id = response.ID
 		}
-		
+
 		// Concatenate all string builders into a single string
 		answer = textBuffer.String("\n\n")
 
@@ -159,6 +159,6 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 			}
 		}
 	}
-	
+
 	return &models.LLMAnswer{AnswerId: answer_id, Answer: answer}, nil
 }

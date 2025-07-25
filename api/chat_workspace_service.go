@@ -137,7 +137,7 @@ func (s *ChatWorkspaceService) HasWorkspacePermission(ctx context.Context, works
 	if err != nil {
 		return false, eris.Wrap(err, "failed to check workspace permission")
 	}
-	return result.HasPermission, nil
+	return result, nil
 }
 
 // MigrateSessionsToDefaultWorkspace migrates all sessions without workspace to default workspace.

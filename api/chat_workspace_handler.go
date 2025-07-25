@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,6 +34,7 @@ func (h *ChatWorkspaceHandler) Register(router *mux.Router) {
 	router.HandleFunc("/workspaces/{uuid}/sessions", h.getSessionsByWorkspace).Methods(http.MethodGet)
 	router.HandleFunc("/workspaces/default", h.ensureDefaultWorkspace).Methods(http.MethodPost)
 }
+
 
 type CreateWorkspaceRequest struct {
 	Name        string `json:"name"`
@@ -523,7 +523,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 
 	var req CreateSessionInWorkspaceRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
-	if err \!= nil {
+	if err != nil {
 		apiErr := ErrValidationInvalidInput("Invalid request format")
 		apiErr.DebugInfo = err.Error()
 		RespondWithAPIError(w, apiErr)
@@ -532,7 +532,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
-	if err \!= nil {
+	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
 		RespondWithAPIError(w, apiErr)
@@ -541,12 +541,12 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 
 	// Check workspace permission
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
-	if err \!= nil {
+	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to check workspace permission")
 		RespondWithAPIError(w, apiErr)
 		return
 	}
-	if \!hasPermission {
+	if !hasPermission {
 		apiErr := ErrAuthAccessDenied
 		apiErr.Message = "Access denied to workspace"
 		RespondWithAPIError(w, apiErr)
@@ -555,7 +555,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 
 	// Get workspace
 	workspace, err := h.service.GetWorkspaceByUUID(ctx, workspaceUUID)
-	if err \!= nil {
+	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get workspace")
 		RespondWithAPIError(w, apiErr)
 		return
@@ -582,7 +582,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 	}
 
 	session, err := sessionService.q.CreateChatSessionInWorkspace(ctx, sessionParams)
-	if err \!= nil {
+	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to create session in workspace")
 		RespondWithAPIError(w, apiErr)
 		return
@@ -593,7 +593,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 		UserID:          userID,
 		ChatSessionUuid: sessionUUID,
 	})
-	if err \!= nil {
+	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to set active session")
 		RespondWithAPIError(w, apiErr)
 		return
@@ -614,7 +614,7 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
-	if err \!= nil {
+	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
 		RespondWithAPIError(w, apiErr)
@@ -623,12 +623,12 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 
 	// Check workspace permission
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
-	if err \!= nil {
+	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to check workspace permission")
 		RespondWithAPIError(w, apiErr)
 		return
 	}
-	if \!hasPermission {
+	if !hasPermission {
 		apiErr := ErrAuthAccessDenied
 		apiErr.Message = "Access denied to workspace"
 		RespondWithAPIError(w, apiErr)
@@ -637,7 +637,7 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 
 	// Get workspace
 	workspace, err := h.service.GetWorkspaceByUUID(ctx, workspaceUUID)
-	if err \!= nil {
+	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get workspace")
 		RespondWithAPIError(w, apiErr)
 		return
@@ -646,7 +646,7 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 	// Get sessions in workspace
 	sessionService := NewChatSessionService(h.service.q)
 	sessions, err := sessionService.q.GetSessionsByWorkspaceID(ctx, sql.NullInt32{Int32: workspace.ID, Valid: true})
-	if err \!= nil {
+	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get sessions")
 		RespondWithAPIError(w, apiErr)
 		return
