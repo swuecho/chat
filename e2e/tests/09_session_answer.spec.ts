@@ -30,7 +30,7 @@ test('test', async ({ page }) => {
   await page.locator('a').filter({ hasText: 'New Chat' }).click();
 
   // set debug mode
-  await page.getByTestId('config-button').click();
+  await page.getByTestId('chat-settings-button').click();
   await page.getByTestId('debug_mode').click();
 
 

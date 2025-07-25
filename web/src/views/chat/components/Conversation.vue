@@ -248,7 +248,7 @@ function handleUpload() {
               </span>
             </HoverButton>
 
-            <HoverButton v-if="!isMobile" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
+            <HoverButton v-if="!isMobile" data-testid="chat-settings-button" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
               <span class="text-xl text-[#4b9e5f]">
                 <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
               </span>

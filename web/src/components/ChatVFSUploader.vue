@@ -1,19 +1,5 @@
 <template>
   <div class="chat-vfs-uploader">
-    <!-- Upload Button for Chat -->
-    <n-tooltip placement="top">
-      <template #trigger>
-        <n-button @click="handleButtonClick" size="small" circle quaternary type="primary" :loading="uploading">
-          <template #icon>
-            <n-icon>
-              <FolderOpen />
-            </n-icon>
-          </template>
-        </n-button>
-      </template>
-      Upload files to VFS for code runners
-    </n-tooltip>
-
     <!-- Upload Modal -->
     <n-modal v-model:show="showUploadModal" preset="dialog" title="Upload Files for Code Runners"
       style="width: 90vw; max-width: 800px;">
