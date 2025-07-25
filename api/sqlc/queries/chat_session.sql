@@ -41,8 +41,8 @@ WHERE uuid = $1
 RETURNING *;
 
 -- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, debug, summarize_mode)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, debug, summarize_mode, workspace_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 ON CONFLICT (uuid) 
 DO UPDATE SET
 max_length = EXCLUDED.max_length, 
@@ -53,6 +53,7 @@ top_p = EXCLUDED.top_p,
 n= EXCLUDED.n,
 model = EXCLUDED.model,
 summarize_mode = EXCLUDED.summarize_mode,
+workspace_id = CASE WHEN EXCLUDED.workspace_id IS NOT NULL THEN EXCLUDED.workspace_id ELSE chat_session.workspace_id END,
 topic = CASE WHEN chat_session.topic IS NULL THEN EXCLUDED.topic ELSE chat_session.topic END,
 updated_at = now()
 returning *;
@@ -103,3 +104,52 @@ SET max_length = $2,
     updated_at = now()
 WHERE uuid = $1
 RETURNING *;
+
+-- name: CreateChatSessionInWorkspace :one
+INSERT INTO chat_session (user_id, uuid, topic, created_at, active, max_length, model, workspace_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING *;
+
+-- name: UpdateSessionWorkspace :one
+UPDATE chat_session 
+SET workspace_id = $2, updated_at = now()
+WHERE uuid = $1
+RETURNING *;
+
+-- name: GetSessionsByWorkspaceID :many
+SELECT cs.*
+FROM chat_session cs
+LEFT JOIN (
+    SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
+    FROM chat_message
+    GROUP BY chat_session_uuid
+) cm ON cs.uuid = cm.chat_session_uuid
+WHERE cs.workspace_id = $1 AND cs.active = true
+ORDER BY 
+    cm.latest_message_time DESC,
+    cs.id DESC;
+
+-- name: GetSessionsGroupedByWorkspace :many
+SELECT 
+    cs.*,
+    w.uuid as workspace_uuid,
+    w.name as workspace_name,
+    w.color as workspace_color,
+    w.icon as workspace_icon
+FROM chat_session cs
+LEFT JOIN chat_workspace w ON cs.workspace_id = w.id
+LEFT JOIN (
+    SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
+    FROM chat_message
+    GROUP BY chat_session_uuid
+) cm ON cs.uuid = cm.chat_session_uuid
+WHERE cs.user_id = $1 AND cs.active = true
+ORDER BY 
+    w.order_position ASC,
+    cm.latest_message_time DESC,
+    cs.id DESC;
+
+-- name: MigrateSessionsToDefaultWorkspace :exec
+UPDATE chat_session 
+SET workspace_id = $2
+WHERE user_id = $1 AND workspace_id IS NULL;

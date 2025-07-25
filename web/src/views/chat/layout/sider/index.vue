@@ -5,6 +5,7 @@ import { computed, watch, ref } from 'vue'
 import { NButton, NLayoutSider, NTooltip, NButtonGroup } from 'naive-ui'
 import List from './List.vue'
 import Footer from './Footer.vue'
+import WorkspaceSelector from '../../components/WorkspaceSelector/index.vue'
 import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
@@ -22,17 +23,21 @@ const collapsed = computed(() => appStore.siderCollapsed)
 
 async function handleAdd() {
   const new_chat_text = t('chat.new')
-  //   //
-  //   // {
-  //   "uuid": "ff511942-43b4-4ebd-9fe8-f2ca405605ac",
-  //   "isEdit": false,
-  //   "title": "try improve code and",
-  //   "maxLength": 10,
-  //   "temperature": 1,
-  //   "topP": 1,
-  //   "maxTokens": 512,
-  //   "debug": false
-  // }//
+  
+  // Try to create session in active workspace if available
+  if (chatStore.activeWorkspace) {
+    try {
+      await chatStore.createSessionInActiveWorkspace(new_chat_text)
+      if (isMobile.value)
+        appStore.setSiderCollapsed(true)
+      return
+    } catch (error) {
+      console.error('Failed to create session in workspace:', error)
+      // Fall back to traditional method
+    }
+  }
+  
+  // Fallback to traditional session creation
   const default_model_parameters = await getChatSessionDefault(new_chat_text)
   await chatStore.addChatSession(default_model_parameters)
   if (isMobile.value)
@@ -94,7 +99,8 @@ function openAllSnapshot() {
   >
     <div class="flex flex-col h-full" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
-        <div class="p-2">
+        <div class="p-2 space-y-2">
+          <WorkspaceSelector />
           <NButton dashed block @click="handleAdd">
             <SvgIcon icon="material-symbols:add-circle-outline" /> {{ $t('chat.new') }}
           </NButton>

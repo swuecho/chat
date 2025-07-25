@@ -43,10 +43,25 @@ declare namespace Chat {
 		maxTokens?: number
 		debug?: boolean
 		summarizeMode?: boolean
+		workspaceUuid?: string
+	}
+
+	interface Workspace {
+		uuid: string
+		name: string
+		description?: string
+		color: string
+		icon: string
+		isDefault: boolean
+		sessionCount?: number
+		createdAt: string
+		updatedAt: string
 	}
 
 	interface ChatState {
 		active: string | null
+		activeWorkspace: string | null
+		workspaces: Workspace[]
 		history: Session[]
 		chat: { [uuid: string]: Message[] }
 	}

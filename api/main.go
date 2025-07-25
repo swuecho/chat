@@ -179,6 +179,9 @@ func main() {
 	chatSessionHandler := NewChatSessionHandler(sqlc_q)
 	chatSessionHandler.Register(userRouter)
 
+	chatWorkspaceHandler := NewChatWorkspaceHandler(sqlc_q)
+	chatWorkspaceHandler.Register(userRouter)
+
 	chatMessageHandler := NewChatMessageHandler(sqlc_q)
 	chatMessageHandler.Register(userRouter)
 

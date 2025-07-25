@@ -16,7 +16,15 @@ const appStore = useAppStore()
 const chatStore = useChatStore()
 const authStore = useAuthStore()
 
-const dataSources = computed(() => chatStore.history)
+const dataSources = computed(() => {
+  // If no active workspace, show all sessions
+  if (!chatStore.activeWorkspace) {
+    return chatStore.history
+  }
+  
+  // Filter sessions by active workspace
+  return chatStore.getSessionsByWorkspace(chatStore.activeWorkspace)
+})
 const isLogined = computed(() => Boolean(authStore.token))
 
 onMounted(async () => {
@@ -53,6 +61,7 @@ async function handleSelect(uuid: string) {
   if (chatStore.active)
     await chatStore.updateChatSessionIfEdited(chatStore.active, { isEdit: false })
 
+  // Use the store's setActive method which now handles workspace-aware routing
   await chatStore.setActive(uuid)
 
   if (isMobile.value)

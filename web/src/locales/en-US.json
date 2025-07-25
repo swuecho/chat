@@ -266,5 +266,25 @@
         "switchLanguage": "English(切换语言) ",
         "theme": "Theme",
         "timeout": "Timeout"
+    },
+    "workspace": {
+        "create": "Create Workspace",
+        "edit": "Edit Workspace",
+        "manage": "Manage Workspaces", 
+        "loading": "Loading workspaces...",
+        "name": "Name",
+        "namePlaceholder": "Enter workspace name",
+        "nameRequired": "Workspace name is required",
+        "description": "Description",
+        "descriptionPlaceholder": "Optional description for this workspace",
+        "icon": "Icon",
+        "color": "Color",
+        "saveError": "Failed to save workspace",
+        "deleteConfirm": "Are you sure you want to delete this workspace?",
+        "cannotDeleteDefault": "Cannot delete the default workspace",
+        "switchedTo": "Switched to {name}",
+        "created": "Workspace created successfully",
+        "updated": "Workspace updated successfully",
+        "deleted": "Workspace deleted successfully"
     }
 }

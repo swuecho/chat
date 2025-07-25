@@ -82,6 +82,15 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
+	// Get or create default workspace for the user
+	workspaceService := NewChatWorkspaceService(h.service.q)
+	defaultWorkspace, err := workspaceService.EnsureDefaultWorkspaceExists(ctx, userIDInt)
+	if err != nil {
+		apiErr := WrapError(MapDatabaseError(err), "Failed to ensure default workspace exists")
+		RespondWithAPIError(w, apiErr)
+		return
+	}
+
 	// Use CreateOrUpdateChatSessionByUUID for idempotent session creation
 	createOrUpdateParams := sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
 		Uuid:          sessionParams.Uuid,
@@ -95,6 +104,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		N:             1,    // Default values
 		Debug:         false,
 		SummarizeMode: false,
+		WorkspaceID:   sql.NullInt32{Int32: defaultWorkspace.ID, Valid: true},
 	}
 
 	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), createOrUpdateParams)
@@ -129,6 +139,7 @@ type UpdateChatSessionRequest struct {
 	MaxTokens     int32   `json:"maxTokens"`
 	Debug         bool    `json:"debug"`
 	SummarizeMode bool    `json:"summarizeMode"`
+	WorkspaceUUID string  `json:"workspaceUuid,omitempty"`
 }
 
 // UpdateChatSessionByUUID updates a chat session by its UUID
@@ -166,6 +177,28 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.MaxTokens = sessionReq.MaxTokens
 	sessionParams.Debug = sessionReq.Debug
 	sessionParams.SummarizeMode = sessionReq.SummarizeMode
+
+	// Handle workspace
+	if sessionReq.WorkspaceUUID != "" {
+		workspaceService := NewChatWorkspaceService(h.service.q)
+		workspace, err := workspaceService.GetWorkspaceByUUID(ctx, sessionReq.WorkspaceUUID)
+		if err != nil {
+			apiErr := WrapError(MapDatabaseError(err), "Invalid workspace UUID")
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+		sessionParams.WorkspaceID = sql.NullInt32{Int32: workspace.ID, Valid: true}
+	} else {
+		// Ensure default workspace exists
+		workspaceService := NewChatWorkspaceService(h.service.q)
+		defaultWorkspace, err := workspaceService.EnsureDefaultWorkspaceExists(ctx, userID)
+		if err != nil {
+			apiErr := WrapError(MapDatabaseError(err), "Failed to ensure default workspace exists")
+			RespondWithAPIError(w, apiErr)
+			return
+		}
+		sessionParams.WorkspaceID = sql.NullInt32{Int32: defaultWorkspace.ID, Valid: true}
+	}
 	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), sessionParams)
 	if err != nil {
 		apiErr := ErrInternalUnexpected
