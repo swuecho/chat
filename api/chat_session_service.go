@@ -73,12 +73,17 @@ func (s *ChatSessionService) GetChatSessionsByUserID(ctx context.Context, userID
 }
 
 func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, userID int32) ([]SimpleChatSession, error) {
-	sessions, err := s.q.GetChatSessionsByUserID(ctx, userID)
+	sessions, err := s.q.GetSessionsGroupedByWorkspace(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	simple_sessions := lo.Map(sessions, func(session sqlc_queries.ChatSession, _idx int) SimpleChatSession {
+	simple_sessions := lo.Map(sessions, func(session sqlc_queries.GetSessionsGroupedByWorkspaceRow, _idx int) SimpleChatSession {
+		workspaceUuid := ""
+		if session.WorkspaceUuid.Valid {
+			workspaceUuid = session.WorkspaceUuid.String
+		}
+		
 		return SimpleChatSession{
 			Uuid:          session.Uuid,
 			IsEdit:        false,
@@ -91,6 +96,7 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 			Debug:         session.Debug,
 			Model:         session.Model,
 			SummarizeMode: session.SummarizeMode,
+			WorkspaceUuid: workspaceUuid,
 		}
 	})
 	return simple_sessions, nil

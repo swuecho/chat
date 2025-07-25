@@ -67,6 +67,7 @@ type SimpleChatSession struct {
 	Debug         bool    `json:"debug"`
 	Model         string  `json:"model"`
 	SummarizeMode bool    `json:"summarizeMode"`
+	WorkspaceUuid string  `json:"workspaceUuid"`
 }
 
 type ChatMessageResponse struct {
