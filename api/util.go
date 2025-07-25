@@ -84,7 +84,6 @@ func setupSSEStream(w http.ResponseWriter) (http.Flusher, error) {
 	return flusher, nil
 }
 
-
 func getPerWordStreamLimit() int {
 	perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")
 
@@ -115,21 +114,21 @@ func RespondWithJSON(w http.ResponseWriter, status int, payload interface{}) {
 func getPaginationParams(r *http.Request) (limit int32, offset int32) {
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
-	
+
 	limit = 100 // default limit
 	if limitStr != "" {
 		if l, err := strconv.ParseInt(limitStr, 10, 32); err == nil {
 			limit = int32(l)
 		}
 	}
-	
+
 	offset = 0 // default offset
 	if offsetStr != "" {
 		if o, err := strconv.ParseInt(offsetStr, 10, 32); err == nil {
 			offset = int32(o)
 		}
 	}
-	
+
 	return limit, offset
 }
 

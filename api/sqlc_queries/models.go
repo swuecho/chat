@@ -5,6 +5,7 @@
 package sqlc_queries
 
 import (
+	"database/sql"
 	"encoding/json"
 	"time"
 )
@@ -129,21 +130,22 @@ type ChatPrompt struct {
 }
 
 type ChatSession struct {
-	ID            int32     `json:"id"`
-	UserID        int32     `json:"userId"`
-	Uuid          string    `json:"uuid"`
-	Topic         string    `json:"topic"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
-	Active        bool      `json:"active"`
-	Model         string    `json:"model"`
-	MaxLength     int32     `json:"maxLength"`
-	Temperature   float64   `json:"temperature"`
-	TopP          float64   `json:"topP"`
-	MaxTokens     int32     `json:"maxTokens"`
-	N             int32     `json:"n"`
-	SummarizeMode bool      `json:"summarizeMode"`
-	Debug         bool      `json:"debug"`
+	ID            int32         `json:"id"`
+	UserID        int32         `json:"userId"`
+	Uuid          string        `json:"uuid"`
+	Topic         string        `json:"topic"`
+	CreatedAt     time.Time     `json:"createdAt"`
+	UpdatedAt     time.Time     `json:"updatedAt"`
+	Active        bool          `json:"active"`
+	Model         string        `json:"model"`
+	MaxLength     int32         `json:"maxLength"`
+	Temperature   float64       `json:"temperature"`
+	TopP          float64       `json:"topP"`
+	MaxTokens     int32         `json:"maxTokens"`
+	N             int32         `json:"n"`
+	SummarizeMode bool          `json:"summarizeMode"`
+	WorkspaceID   sql.NullInt32 `json:"workspaceId"`
+	Debug         bool          `json:"debug"`
 }
 
 type ChatSnapshot struct {
@@ -160,6 +162,20 @@ type ChatSnapshot struct {
 	CreatedAt    time.Time       `json:"createdAt"`
 	Text         string          `json:"text"`
 	SearchVector interface{}     `json:"searchVector"`
+}
+
+type ChatWorkspace struct {
+	ID            int32     `json:"id"`
+	Uuid          string    `json:"uuid"`
+	UserID        int32     `json:"userId"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	Color         string    `json:"color"`
+	Icon          string    `json:"icon"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	IsDefault     bool      `json:"isDefault"`
+	OrderPosition int32     `json:"orderPosition"`
 }
 
 type JwtSecret struct {

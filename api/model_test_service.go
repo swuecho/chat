@@ -28,7 +28,7 @@ func (m *TestChatModel) chatStreamTest(w http.ResponseWriter, chatSession sqlc_q
 	}
 
 	answer_id := GenerateAnswerID(chatUuid, regenerate)
-	
+
 	flusher, err := setupSSEStream(w)
 	if err != nil {
 		RespondWithAPIError(w, createAPIError(APIError{
@@ -38,7 +38,7 @@ func (m *TestChatModel) chatStreamTest(w http.ResponseWriter, chatSession sqlc_q
 		}, "", err.Error()))
 		return nil, err
 	}
-	
+
 	answer := "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."
 	err = FlushResponse(w, flusher, StreamingResponse{
 		AnswerID: answer_id,
@@ -62,10 +62,9 @@ func (m *TestChatModel) chatStreamTest(w http.ResponseWriter, chatSession sqlc_q
 			log.Printf("Failed to flush debug response: %v", err)
 		}
 	}
-	
+
 	return &models.LLMAnswer{
 		Answer:   answer,
 		AnswerId: answer_id,
 	}, nil
 }
-

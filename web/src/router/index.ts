@@ -73,9 +73,23 @@ const routes: RouteRecordRaw[] = [
     redirect: '/chat',
     children: [
       {
+        path: '/workspace/:workspaceUuid/chat/:uuid?',
+        name: 'WorkspaceChat',
+        component: () => import('@/views/chat/index.vue'),
+        props: true,
+      },
+      {
+        path: '/workspace/:workspaceUuid',
+        redirect: to => {
+          // Redirect workspace-only URLs to include /chat
+          return `/workspace/${to.params.workspaceUuid}/chat`
+        }
+      },
+      {
         path: '/chat/:uuid?',
         name: 'Chat',
         component: () => import('@/views/chat/index.vue'),
+        props: true,
       },
     ],
   },

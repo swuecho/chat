@@ -297,9 +297,9 @@ func BuildAPIURL(model string, stream bool) string {
 
 type GoogleApiError struct {
 	Error struct {
-		Code    int             `json:"code"`
-		Message string          `json:"message"`
-		Status  string          `json:"status"`
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Status  string `json:"status"`
 		Details string `json:"details,omitempty"`
 	} `json:"error"`
 }

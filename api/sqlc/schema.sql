@@ -107,6 +107,26 @@ CREATE TABLE IF NOT EXISTS user_chat_model_privilege(
     CONSTRAINT chat_usage_user_model_unique UNIQUE (user_id, chat_model_id)
 );
 
+CREATE TABLE IF NOT EXISTS chat_workspace (
+    id SERIAL PRIMARY KEY,
+    uuid VARCHAR(255) UNIQUE NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    color VARCHAR(7) NOT NULL DEFAULT '#6366f1',
+    icon VARCHAR(50) NOT NULL DEFAULT 'folder',
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP DEFAULT now() NOT NULL,
+    is_default BOOLEAN DEFAULT false NOT NULL,
+    order_position INTEGER DEFAULT 0 NOT NULL
+);
+
+-- add index on user_id for workspace
+CREATE INDEX IF NOT EXISTS chat_workspace_user_id_idx ON chat_workspace (user_id);
+
+-- add index on uuid for workspace
+CREATE INDEX IF NOT EXISTS chat_workspace_uuid_idx ON chat_workspace using hash (uuid);
+
 CREATE TABLE IF NOT EXISTS chat_session (
     id SERIAL PRIMARY KEY,
     user_id integer NOT NULL,
@@ -122,7 +142,8 @@ CREATE TABLE IF NOT EXISTS chat_session (
     top_p float DEFAULT 1.0 NOT NUll,
     max_tokens int DEFAULT 4096 NOT NULL,
     n  integer DEFAULT 1 NOT NULL,
-    summarize_mode boolean DEFAULT false NOT NULL
+    summarize_mode boolean DEFAULT false NOT NULL,
+    workspace_id INTEGER REFERENCES chat_workspace(id) ON DELETE SET NULL
 );
 
 
@@ -134,6 +155,7 @@ ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NO
 ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS n INTEGER DEFAULT 1 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS summarize_mode boolean DEFAULT false NOT NULL;
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS workspace_id INTEGER REFERENCES chat_workspace(id) ON DELETE SET NULL;
 
 
 -- add hash index on uuid
@@ -141,6 +163,9 @@ CREATE INDEX IF NOT EXISTS chat_session_uuid_idx ON chat_session using hash (uui
 
 -- add index on user_id
 CREATE INDEX IF NOT EXISTS chat_session_user_id_idx ON chat_session (user_id);
+
+-- add index on workspace_id
+CREATE INDEX IF NOT EXISTS chat_session_workspace_id_idx ON chat_session (workspace_id);
 
 CREATE TABLE IF NOT EXISTS chat_message (
     id SERIAL PRIMARY KEY,

@@ -27,7 +27,6 @@ func extractArtifacts(content string) []Artifact {
 		artifacts = append(artifacts, artifact)
 	}
 
-
 	// Pattern for SVG artifacts
 	// Example: ```svg <!-- artifact: Logo Design -->
 	svgArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `svg\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
@@ -164,7 +163,7 @@ func isExecutableLanguage(language string) bool {
 		"javascript", "js", "typescript", "ts",
 		"python", "py",
 	}
-	
+
 	language = strings.ToLower(strings.TrimSpace(language))
 	for _, execLang := range executableLanguages {
 		if language == execLang {
@@ -202,9 +201,8 @@ func containsExecutablePatterns(content string) bool {
 		"class ",
 		"for ",
 		"while ",
-
 	}
-	
+
 	contentLower := strings.ToLower(content)
 	for _, pattern := range executablePatterns {
 		if strings.Contains(contentLower, pattern) {

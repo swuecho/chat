@@ -44,7 +44,7 @@ const { sessionUuid } = defineProps({
 });
 
 const { isMobile } = useBasicLayout()
-const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom, smoothScrollToBottomIfAtBottom } = useScroll()
+const { scrollRef, scrollToBottom, smoothScrollToBottomIfAtBottom } = useScroll()
 
 // Initialize composables
 const conversationFlow = useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom)
@@ -164,13 +164,11 @@ function handleUpload() {
 <template>
   <VFSProvider>
     <div class="flex flex-col w-full h-full">
-      <div>
-        <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
-          @update:showUploadModal="showUploadModal = $event" />
-        <ChatVFSUploader :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"
-          @update:showUploadModal="showVFSUploadModal = $event" @file-uploaded="handleVFSFileUploaded"
-          @code-example-added="handleCodeExampleAddedWithStream" />
-      </div>
+      <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
+        @update:showUploadModal="showUploadModal = $event" />
+      <ChatVFSUploader :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"
+        @update:showUploadModal="showVFSUploadModal = $event" @file-uploaded="handleVFSFileUploaded"
+        @code-example-added="handleCodeExampleAddedWithStream" />
       <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
       <main class="flex-1 overflow-hidden flex flex-col">
         <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
@@ -185,7 +183,7 @@ function handleUpload() {
         </UploaderReadOnly>
         <div id="scrollRef" ref="scrollRef" class="flex-1 overflow-hidden overflow-y-auto">
           <div v-if="!showArtifactGallery" id="image-wrapper"
-            class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] mb-10" :class="[isMobile ? 'p-2' : 'p-4']">
+            class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] " :class="[isMobile ? 'p-2' : 'p-4']">
             <template v-if="!dataSources.length">
               <div class="flex items-center justify-center m-4 text-center text-neutral-300">
                 <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
@@ -248,7 +246,8 @@ function handleUpload() {
               </span>
             </HoverButton>
 
-            <HoverButton v-if="!isMobile" data-testid="chat-settings-button" @click="showModal = true" :tooltip="$t('chat.chatSettings')">
+            <HoverButton v-if="!isMobile" data-testid="chat-settings-button" @click="showModal = true"
+              :tooltip="$t('chat.chatSettings')">
               <span class="text-xl text-[#4b9e5f]">
                 <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
               </span>

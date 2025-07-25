@@ -109,6 +109,11 @@ var (
 		Code:     ErrAuth + "_004",
 		Message:  "invalid email or password",
 	}
+	ErrAuthAccessDenied = APIError{
+		HTTPCode: http.StatusForbidden,
+		Code:     ErrAuth + "_005",
+		Message:  "Access denied",
+	}
 	// Resource errors
 	ErrResourceNotFoundGeneric = APIError{
 		HTTPCode: http.StatusNotFound,
@@ -500,7 +505,6 @@ func ErrorCatalogHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(docs)
 }
-
 
 // createAPIError creates a consistent API error with optional debug info
 func createAPIError(baseErr APIError, detail string, debugInfo string) APIError {

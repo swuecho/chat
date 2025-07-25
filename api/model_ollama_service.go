@@ -127,7 +127,7 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 		}
 		delta := strings.ReplaceAll(streamResp.Message.Content, "<0x0A>", "\n")
 		answer += delta // Still accumulate for final answer storage
-		
+
 		if streamResp.Done {
 			// stream.isFinished = true
 			fmt.Println("DONE break")

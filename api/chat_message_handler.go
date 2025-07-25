@@ -189,7 +189,7 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 				artifacts = []Artifact{}
 			}
 		}
-		
+
 		return SimpleChatMessage{
 			DateTime:  message.UpdatedAt.Format(time.RFC3339),
 			Text:      message.Content,

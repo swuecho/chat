@@ -38,6 +38,7 @@ func loadArtifactInstruction() (string, error) {
 //   - chatSession: The chat session containing configuration
 //   - chatUuid: UUID for message identification (used in regenerate mode)
 //   - regenerate: If true, excludes the target message from history
+//
 // Returns combined message array or error.
 func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*RequestTimeoutSeconds)
@@ -109,7 +110,6 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 		msgs[0].SetTokenCount(int32(len(msgs[0].Content) / TokenEstimateRatio)) // Rough token estimate
 	}
 
-
 	return msgs, nil
 }
 
@@ -135,7 +135,6 @@ func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUui
 	return chatPrompt, err
 }
 
-
 // CreateChatMessageSimple creates a new chat message with optional summarization and artifact extraction.
 // Handles token counting, content summarization for long messages, and artifact parsing.
 // Parameters:
@@ -147,6 +146,7 @@ func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUui
 //   - userId: User ID for ownership
 //   - baseURL: API base URL for summarization
 //   - is_summarize_mode: Whether to enable automatic summarization
+//
 // Returns created message or error.
 func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode bool) (sqlc_queries.ChatMessage, error) {
 	numTokens, err := getTokenCount(content)
