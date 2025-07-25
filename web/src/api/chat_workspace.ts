@@ -24,7 +24,8 @@ export interface CreateSessionInWorkspaceRequest {
 export const getWorkspaces = async (): Promise<Chat.Workspace[]> => {
   try {
     const response = await request.get('/workspaces')
-    return response.data
+    // Handle null response from API
+    return response.data || []
   }
   catch (error) {
     console.error('Error fetching workspaces:', error)
@@ -109,8 +110,27 @@ export const ensureDefaultWorkspace = async (): Promise<Chat.Workspace> => {
     const response = await request.post('/workspaces/default')
     return response.data
   }
-  catch (error) {
+  catch (error: any) {
     console.error('Error ensuring default workspace:', error)
+    
+    // If backend fails to ensure default workspace, try creating one manually
+    if (error.response?.data?.code === 'RES_001') {
+      console.warn('Backend failed to ensure default workspace, creating manually...')
+      try {
+        return await createWorkspace({
+          name: 'General',
+          description: 'Default workspace',
+          color: '#6366f1',
+          icon: 'folder',
+          isDefault: true
+        })
+      }
+      catch (createError) {
+        console.error('Failed to create fallback default workspace:', createError)
+        throw createError
+      }
+    }
+    
     throw error
   }
 }

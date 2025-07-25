@@ -376,8 +376,15 @@ export const useChatStore = defineStore('chat-store', {
         
         // Ensure user has a default workspace
         if (this.workspaces.length === 0) {
-          const defaultWorkspace = await ensureDefaultWorkspace()
-          this.workspaces.push(defaultWorkspace)
+          try {
+            const defaultWorkspace = await ensureDefaultWorkspace()
+            this.workspaces.push(defaultWorkspace)
+            console.log('✅ Default workspace ensured:', defaultWorkspace.name)
+          } catch (ensureError: any) {
+            console.warn('⚠️ Failed to ensure default workspace, continuing with empty workspace list')
+            // Don't throw here - allow app to continue functioning
+            // User can manually create workspaces via UI
+          }
         }
 
         // Set active workspace to default if none selected
@@ -389,7 +396,10 @@ export const useChatStore = defineStore('chat-store', {
         }
       } catch (error) {
         console.error('❌ Error in syncWorkspaces:', error)
-        throw error
+        // Set fallback state to prevent app breakage
+        this.workspaces = []
+        this.activeWorkspace = null
+        // Don't throw - allow app to continue with empty workspace state
       }
     },
 

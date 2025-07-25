@@ -44,7 +44,7 @@ const { sessionUuid } = defineProps({
 });
 
 const { isMobile } = useBasicLayout()
-const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom, smoothScrollToBottomIfAtBottom } = useScroll()
+const { scrollRef, scrollToBottom, smoothScrollToBottomIfAtBottom } = useScroll()
 
 // Initialize composables
 const conversationFlow = useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom)
