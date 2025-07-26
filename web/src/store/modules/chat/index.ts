@@ -82,6 +82,21 @@ export const useChatStore = defineStore('chat-store', {
         return null
       }
     },
+
+    // Get active workspace UUID
+    activeWorkspace(state: Chat.ChatState) {
+      return state.activeSession.workspaceUuid
+    },
+
+    // Get active session UUID (legacy compatibility)
+    active(state: Chat.ChatState) {
+      return state.activeSession.sessionUuid
+    },
+
+    // Get current active chat session
+    getChatSessionByCurrentActive(state: Chat.ChatState) {
+      return state.activeSession.sessionUuid ? state.history.find(item => item.uuid === state.activeSession.sessionUuid) : null
+    },
   },
 
   actions: {
@@ -89,12 +104,12 @@ export const useChatStore = defineStore('chat-store', {
       if (uuid) {
         const session = this.getChatSessionByUuid(uuid)
         if (session && session.workspaceUuid) {
-          await router.push({ 
-            name: 'WorkspaceChat', 
-            params: { 
+          await router.push({
+            name: 'WorkspaceChat',
+            params: {
               workspaceUuid: session.workspaceUuid,
-              uuid 
-            } 
+              uuid
+            }
           })
           return
         }
@@ -126,13 +141,13 @@ export const useChatStore = defineStore('chat-store', {
           console.warn('⚠️ Legacy session migration failed:', migrationError)
           // Continue with normal sync - don't block the app
         }
-        
+
         // First sync workspaces
         await this.syncWorkspaces()
-        
+
         // Sync workspace active sessions from backend
         await this.syncWorkspaceActiveSessions()
-        
+
         this.history = await getChatSessionsByUser()
         console.log('📋 Synced sessions from DB:', this.history.length)
 
@@ -223,7 +238,7 @@ export const useChatStore = defineStore('chat-store', {
 
     async setActiveSession(workspaceUuid: string | null, sessionUuid: string) {
       this.activeSession = { workspaceUuid, sessionUuid }
-      
+
       // Persist to backend only if we have a workspace
       if (workspaceUuid) {
         try {
@@ -233,12 +248,27 @@ export const useChatStore = defineStore('chat-store', {
           console.warn('⚠️ Failed to persist active session:', error)
         }
       }
-      
+
       await this.reloadRoute(sessionUuid)
     },
 
     setActiveSessionLocal(workspaceUuid: string | null, sessionUuid: string) {
       this.activeSession = { workspaceUuid, sessionUuid }
+    },
+
+    setActiveWorkspace(workspaceUuid: string) {
+      this.activeSession.workspaceUuid = workspaceUuid
+    },
+
+    setActiveLocal(sessionUuid: string) {
+      this.activeSession.sessionUuid = sessionUuid
+    },
+
+    async setActive(sessionUuid: string) {
+      const session = this.getChatSessionByUuid(sessionUuid)
+      if (session) {
+        await this.setActiveSession(session.workspaceUuid || null, sessionUuid)
+      }
     },
 
     getChatByUuidAndIndex(uuid: string, index: number) {
@@ -385,7 +415,7 @@ export const useChatStore = defineStore('chat-store', {
       try {
         this.workspaces = await getWorkspaces()
         console.log('📁 Synced workspaces from DB:', this.workspaces.length)
-        
+
         // Ensure user has a default workspace
         if (this.workspaces.length === 0) {
           try {
@@ -447,7 +477,7 @@ export const useChatStore = defineStore('chat-store', {
         if (index !== -1) {
           this.workspaces.splice(index, 1)
         }
-        
+
         // If deleted workspace was active, clear active session
         if (this.activeSession.workspaceUuid === uuid) {
           this.activeSession = { sessionUuid: null, workspaceUuid: null }
@@ -513,13 +543,13 @@ export const useChatStore = defineStore('chat-store', {
       // Check if this workspace has a previously active session
       const previousActiveSession = this.getActiveSessionForWorkspace(workspaceUuid)
       const workspaceSessions = this.getSessionsByWorkspace(workspaceUuid)
-      
+
       // If there was a previous active session and it still exists, restore it
       if (previousActiveSession && workspaceSessions.some(s => s.uuid === previousActiveSession)) {
         await this.setActiveSession(workspaceUuid, previousActiveSession)
         return
       }
-      
+
       if (workspaceSessions.length > 0) {
         // Navigate to the first session in the workspace and save it as active
         const firstSession = workspaceSessions[0]
@@ -533,9 +563,9 @@ export const useChatStore = defineStore('chat-store', {
         } catch (error) {
           console.error('❌ Failed to create default session in workspace:', error)
           // Fallback to navigation without session
-          await router.push({ 
-            name: 'WorkspaceChat', 
-            params: { workspaceUuid } 
+          await router.push({
+            name: 'WorkspaceChat',
+            params: { workspaceUuid }
           })
           this.activeSession = { sessionUuid: null, workspaceUuid }
         }
@@ -546,7 +576,7 @@ export const useChatStore = defineStore('chat-store', {
       try {
         // Find sessions without workspace assignment
         const sessionsWithoutWorkspace = this.history.filter(session => !session.workspaceUuid)
-        
+
         if (sessionsWithoutWorkspace.length === 0) {
           console.log('📁 No sessions need workspace migration')
           return
@@ -559,11 +589,11 @@ export const useChatStore = defineStore('chat-store', {
         }
 
         console.log(`📁 Migrating ${sessionsWithoutWorkspace.length} sessions to default workspace`)
-        
+
         // Call backend migration API to persist changes to database
         await migrateSessionsToDefaultWorkspace()
         console.log('✅ Backend migration completed')
-        
+
         // Update frontend state to reflect migration
         for (const session of sessionsWithoutWorkspace) {
           const index = this.history.findIndex(s => s.uuid === session.uuid)
@@ -574,7 +604,7 @@ export const useChatStore = defineStore('chat-store', {
             }
           }
         }
-        
+
         console.log('✅ Session workspace migration completed')
       } catch (error) {
         console.error('❌ Error migrating sessions to default workspace:', error)
@@ -586,9 +616,9 @@ export const useChatStore = defineStore('chat-store', {
         if (!this.activeSession.workspaceUuid) {
           throw new Error('No active workspace selected')
         }
-        
+
         const sessionData = await createSessionInWorkspace(this.activeSession.workspaceUuid, { topic, model })
-        
+
         // Add to history with workspace context
         const session: Chat.Session = {
           uuid: sessionData.uuid,
@@ -597,13 +627,13 @@ export const useChatStore = defineStore('chat-store', {
           model: sessionData.model,
           workspaceUuid: this.activeSession.workspaceUuid
         }
-        
+
         this.history.unshift(session)
         this.chat[sessionData.uuid] = []
-        
+
         // Set as active session for the workspace
         await this.setActiveSession(this.activeSession.workspaceUuid, sessionData.uuid)
-        
+
         await this.reloadRoute(sessionData.uuid)
         return sessionData
       } catch (error) {

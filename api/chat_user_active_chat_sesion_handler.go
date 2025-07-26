@@ -30,11 +30,12 @@ func NewUserActiveChatSessionHandler(sqlc_q *sqlc.Queries) *UserActiveChatSessio
 func (h *UserActiveChatSessionHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/user_active_chat_session", h.GetUserActiveChatSessionHandler).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/user_active_chat_session", h.CreateOrUpdateUserActiveChatSessionHandler).Methods(http.MethodPut)
-	
+
 	// Per-workspace active session endpoints
+	// Note: More specific routes must come before parameterized routes to avoid shadowing
+	router.HandleFunc("/workspaces/active-sessions", h.GetAllWorkspaceActiveSessionsHandler).Methods(http.MethodGet)
 	router.HandleFunc("/workspaces/{workspaceUuid}/active-session", h.GetWorkspaceActiveSessionHandler).Methods(http.MethodGet)
 	router.HandleFunc("/workspaces/{workspaceUuid}/active-session", h.SetWorkspaceActiveSessionHandler).Methods(http.MethodPut)
-	router.HandleFunc("/workspaces/active-sessions", h.GetAllWorkspaceActiveSessionsHandler).Methods(http.MethodGet)
 }
 
 // GetUserActiveChatSessionHandler handles GET requests to get a session by user_id

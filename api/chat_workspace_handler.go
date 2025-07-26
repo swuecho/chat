@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -142,6 +143,7 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 // getWorkspaceByUUID returns a workspace by its UUID
 func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http.Request) {
 	workspaceUUID := mux.Vars(r)["uuid"]
+	log.Printf("🔍 DEBUG: getWorkspaceByUUID called with UUID=%s", workspaceUUID)
 
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
@@ -151,6 +153,8 @@ func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http
 		RespondWithAPIError(w, apiErr)
 		return
 	}
+
+	log.Printf("🔍 DEBUG: getWorkspaceByUUID userID=%d", userID)
 
 	// Check permission
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
