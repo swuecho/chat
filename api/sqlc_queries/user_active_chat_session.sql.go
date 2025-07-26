@@ -10,35 +10,6 @@ import (
 	"database/sql"
 )
 
-const createOrUpdateUserActiveChatSession = `-- name: CreateOrUpdateUserActiveChatSession :one
-INSERT INTO user_active_chat_session (user_id, workspace_id, chat_session_uuid)
-VALUES ($1, NULL, $2)
-ON CONFLICT (user_id, COALESCE(workspace_id, -1))
-DO UPDATE SET 
-    chat_session_uuid = EXCLUDED.chat_session_uuid,
-    updated_at = now()
-RETURNING id, user_id, chat_session_uuid, created_at, updated_at, workspace_id
-`
-
-type CreateOrUpdateUserActiveChatSessionParams struct {
-	UserID          int32  `json:"userId"`
-	ChatSessionUuid string `json:"chatSessionUuid"`
-}
-
-func (q *Queries) CreateOrUpdateUserActiveChatSession(ctx context.Context, arg CreateOrUpdateUserActiveChatSessionParams) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, createOrUpdateUserActiveChatSession, arg.UserID, arg.ChatSessionUuid)
-	var i UserActiveChatSession
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.ChatSessionUuid,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.WorkspaceID,
-	)
-	return i, err
-}
-
 const deleteUserActiveSession = `-- name: DeleteUserActiveSession :exec
 DELETE FROM user_active_chat_session
 WHERE user_id = $1 AND (
@@ -106,26 +77,6 @@ func (q *Queries) GetAllUserActiveSessions(ctx context.Context, userID int32) ([
 		return nil, err
 	}
 	return items, nil
-}
-
-const getUserActiveChatSession = `-- name: GetUserActiveChatSession :one
-
-SELECT id, user_id, chat_session_uuid, created_at, updated_at, workspace_id FROM user_active_chat_session WHERE user_id = $1 AND workspace_id IS NULL
-`
-
-// Legacy compatibility queries - simplified to use the unified approach
-func (q *Queries) GetUserActiveChatSession(ctx context.Context, userID int32) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, getUserActiveChatSession, userID)
-	var i UserActiveChatSession
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.ChatSessionUuid,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.WorkspaceID,
-	)
-	return i, err
 }
 
 const getUserActiveSession = `-- name: GetUserActiveSession :one

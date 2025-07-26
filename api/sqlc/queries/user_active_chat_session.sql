@@ -32,16 +32,3 @@ WHERE user_id = $1 AND (
 DELETE FROM user_active_chat_session
 WHERE user_id = $1 AND chat_session_uuid = $2;
 
--- Legacy compatibility queries - simplified to use the unified approach
-
--- name: GetUserActiveChatSession :one
-SELECT * FROM user_active_chat_session WHERE user_id = $1 AND workspace_id IS NULL;
-
--- name: CreateOrUpdateUserActiveChatSession :one
-INSERT INTO user_active_chat_session (user_id, workspace_id, chat_session_uuid)
-VALUES ($1, NULL, $2)
-ON CONFLICT (user_id, COALESCE(workspace_id, -1))
-DO UPDATE SET 
-    chat_session_uuid = EXCLUDED.chat_session_uuid,
-    updated_at = now()
-RETURNING *;

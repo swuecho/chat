@@ -69,11 +69,6 @@ declare namespace Chat {
 		workspaces: Workspace[]
 		history: Session[]
 		chat: { [uuid: string]: Message[] }
-
-		// Legacy compatibility - kept for now while auto-migration handles the transition
-		active: string | null
-		activeWorkspace: string | null
-		workspaceActiveSessions: { [workspaceUuid: string]: string | null }
 	}
 
 	interface ConversationRequest {

@@ -579,6 +579,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 	// Create session
 	sessionUUID := uuid.New().String()
 	sessionService := NewChatSessionService(h.service.q)
+	activeSessionService := NewUserActiveChatSessionService(h.service.q)
 	
 	sessionParams := sqlc_queries.CreateChatSessionInWorkspaceParams{
 		UserID:      userID,
@@ -598,11 +599,8 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 		return
 	}
 
-	// Set as active session
-	_, err = sessionService.q.CreateOrUpdateUserActiveChatSession(ctx, sqlc_queries.CreateOrUpdateUserActiveChatSessionParams{
-		UserID:          userID,
-		ChatSessionUuid: sessionUUID,
-	})
+	// Set as active session (use unified approach)
+	_, err = activeSessionService.UpsertActiveSession(ctx, userID, &workspace.ID, sessionUUID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to set active session")
 		RespondWithAPIError(w, apiErr)

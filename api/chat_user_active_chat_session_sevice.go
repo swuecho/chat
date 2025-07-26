@@ -78,15 +78,3 @@ func (s *UserActiveChatSessionService) DeleteActiveSession(ctx context.Context, 
 	return nil
 }
 
-// Legacy compatibility methods - now just delegate to unified methods
-// These are kept for any remaining API calls but use the simplified implementation
-
-// CreateOrUpdateUserActiveChatSession updates or creates a global active session (workspace_id = NULL)
-func (s *UserActiveChatSessionService) CreateOrUpdateUserActiveChatSession(ctx context.Context, params sqlc.CreateOrUpdateUserActiveChatSessionParams) (sqlc.UserActiveChatSession, error) {
-	return s.UpsertActiveSession(ctx, params.UserID, nil, params.ChatSessionUuid)
-}
-
-// GetUserActiveChatSession retrieves the global active session (workspace_id = NULL)  
-func (s *UserActiveChatSessionService) GetUserActiveChatSession(ctx context.Context, userID int32) (sqlc.UserActiveChatSession, error) {
-	return s.GetActiveSession(ctx, userID, nil)
-}

@@ -6,11 +6,6 @@ const default_chat_data: Chat.ChatState = {
   workspaces: [], // Chat.Workspace[]
   history: [], // Chat.Session[]
   chat: {}, // { [key: string]: Chat.ChatMessage[] }
-
-  // Legacy compatibility - kept for now while auto-migration handles the transition
-  active: null, // uuid | null
-  activeWorkspace: null, // workspace uuid | null
-  workspaceActiveSessions: {}, // { [workspaceUuid: string]: string | null }
 }
 
 export function getLocalState(): Chat.ChatState {

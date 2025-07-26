@@ -114,10 +114,11 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
-	// set active chat session when creating a new chat session
-	_, err = h.service.q.CreateOrUpdateUserActiveChatSession(r.Context(),
-		sqlc_queries.CreateOrUpdateUserActiveChatSessionParams{
+	// set active chat session when creating a new chat session (use unified approach)
+	_, err = h.service.q.UpsertUserActiveSession(r.Context(),
+		sqlc_queries.UpsertUserActiveSessionParams{
 			UserID:          session.UserID,
+			WorkspaceID:     sql.NullInt32{Valid: false},
 			ChatSessionUuid: session.Uuid,
 		})
 	if err != nil {

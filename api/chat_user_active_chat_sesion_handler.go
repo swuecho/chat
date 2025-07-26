@@ -50,8 +50,8 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 
 	log.Printf("Getting active chat session for user %d", userID)
 
-	// Get session from service
-	session, err := h.service.GetUserActiveChatSession(r.Context(), userID)
+	// Get session from service (use unified approach for global session)
+	session, err := h.service.GetActiveSession(r.Context(), userID, nil)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithAPIError(w, ErrChatSessionNotFound.WithMessage(fmt.Sprintf("no active session for user %d", userID)))
@@ -82,26 +82,25 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 	}
 
 	// Parse request body
-	var sessionParams sqlc.CreateOrUpdateUserActiveChatSessionParams
-	if err := json.NewDecoder(r.Body).Decode(&sessionParams); err != nil {
+	var reqBody struct {
+		ChatSessionUuid string `json:"chatSessionUuid"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}
 
 	// Validate session UUID format
-	if !uuidRegex.MatchString(sessionParams.ChatSessionUuid) {
+	if !uuidRegex.MatchString(reqBody.ChatSessionUuid) {
 		RespondWithAPIError(w, ErrChatSessionInvalid.WithMessage(
-			fmt.Sprintf("invalid session UUID format: %s", sessionParams.ChatSessionUuid)))
+			fmt.Sprintf("invalid session UUID format: %s", reqBody.ChatSessionUuid)))
 		return
 	}
 
-	// Use the user_id from token
-	sessionParams.UserID = userID
-
 	log.Printf("Creating/updating active chat session for user %d", userID)
 
-	// Create/update session
-	session, err := h.service.CreateOrUpdateUserActiveChatSession(r.Context(), sessionParams)
+	// Create/update session (use unified approach for global session)
+	session, err := h.service.UpsertActiveSession(r.Context(), userID, nil, reqBody.ChatSessionUuid)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to create or update active chat session"))
 		return
