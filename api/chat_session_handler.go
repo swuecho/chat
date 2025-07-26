@@ -414,12 +414,9 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 
 	}
 
-	// set active session
-	sessionParams := sqlc_queries.UpdateUserActiveChatSessionParams{
-		UserID:          userID,
-		ChatSessionUuid: session.Uuid,
-	}
-	_, err = h.service.q.UpdateUserActiveChatSession(r.Context(), sessionParams)
+	// set active session using simplified service
+	activeSessionService := NewUserActiveChatSessionService(h.service.q)
+	_, err = activeSessionService.UpsertActiveSession(r.Context(), userID, nil, session.Uuid)
 	if err != nil {
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to update active session"

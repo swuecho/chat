@@ -187,11 +187,12 @@ type JwtSecret struct {
 }
 
 type UserActiveChatSession struct {
-	ID              int32     `json:"id"`
-	UserID          int32     `json:"userId"`
-	ChatSessionUuid string    `json:"chatSessionUuid"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	ID              int32         `json:"id"`
+	UserID          int32         `json:"userId"`
+	ChatSessionUuid string        `json:"chatSessionUuid"`
+	CreatedAt       time.Time     `json:"createdAt"`
+	UpdatedAt       time.Time     `json:"updatedAt"`
+	WorkspaceID     sql.NullInt32 `json:"workspaceId"`
 }
 
 type UserChatModelPrivilege struct {

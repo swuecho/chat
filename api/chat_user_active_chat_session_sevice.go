@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"errors"
+	"database/sql"
 	"github.com/rotisserie/eris"
 	sqlc "github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -15,51 +15,78 @@ func NewUserActiveChatSessionService(q *sqlc.Queries) *UserActiveChatSessionServ
 	return &UserActiveChatSessionService{q: q}
 }
 
-// CreateUserActiveChatSession inserts a new user active session and returns the newly-created session.
-func (s *UserActiveChatSessionService) CreateUserActiveChatSession(ctx context.Context, sessionParams sqlc.CreateUserActiveChatSessionParams) (sqlc.UserActiveChatSession, error) {
-	session, err := s.q.CreateUserActiveChatSession(ctx, sessionParams)
+// Simplified unified methods
+
+// UpsertActiveSession creates or updates an active session for a user in a specific workspace (or global if workspaceID is nil)
+func (s *UserActiveChatSessionService) UpsertActiveSession(ctx context.Context, userID int32, workspaceID *int32, sessionUUID string) (sqlc.UserActiveChatSession, error) {
+	var nullWorkspaceID sql.NullInt32
+	if workspaceID != nil {
+		nullWorkspaceID = sql.NullInt32{Int32: *workspaceID, Valid: true}
+	}
+	
+	session, err := s.q.UpsertUserActiveSession(ctx, sqlc.UpsertUserActiveSessionParams{
+		UserID:          userID,
+		WorkspaceID:     nullWorkspaceID,
+		ChatSessionUuid: sessionUUID,
+	})
 	if err != nil {
-		return sqlc.UserActiveChatSession{}, errors.New("failed to create active session")
+		return sqlc.UserActiveChatSession{}, eris.Wrap(err, "failed to upsert active session")
 	}
 	return session, nil
 }
 
-// UpdateOrCreateUserActiveChatSession updates an existing user active session or creates a new one if it doesn't exist.
-func (s *UserActiveChatSessionService) CreateOrUpdateUserActiveChatSession(ctx context.Context, params sqlc.CreateOrUpdateUserActiveChatSessionParams) (sqlc.UserActiveChatSession, error) {
-	session, err := s.q.CreateOrUpdateUserActiveChatSession(ctx, params)
+// GetActiveSession retrieves the active session for a user in a specific workspace (or global if workspaceID is nil)
+func (s *UserActiveChatSessionService) GetActiveSession(ctx context.Context, userID int32, workspaceID *int32) (sqlc.UserActiveChatSession, error) {
+	var workspaceParam int32
+	if workspaceID != nil {
+		workspaceParam = *workspaceID
+	}
+	
+	session, err := s.q.GetUserActiveSession(ctx, sqlc.GetUserActiveSessionParams{
+		UserID:  userID,
+		Column2: workspaceParam, // SQLC generated this awkward name due to the complex WHERE clause
+	})
 	if err != nil {
-		return sqlc.UserActiveChatSession{}, eris.Wrap(err, "failed to update or create active session ")
+		return sqlc.UserActiveChatSession{}, eris.Wrap(err, "failed to get active session")
 	}
 	return session, nil
 }
 
-// GetUserActiveChatSessionByID retrieves a user active session given an ID.
-func (s *UserActiveChatSessionService) GetUserActiveChatSession(ctx context.Context, user_id int32) (sqlc.UserActiveChatSession, error) {
-	session, err := s.q.GetUserActiveChatSession(ctx, user_id)
+// GetAllActiveSessions retrieves all active sessions for a user (both global and workspace-specific)
+func (s *UserActiveChatSessionService) GetAllActiveSessions(ctx context.Context, userID int32) ([]sqlc.UserActiveChatSession, error) {
+	sessions, err := s.q.GetAllUserActiveSessions(ctx, userID)
 	if err != nil {
-		return sqlc.UserActiveChatSession{}, err
+		return nil, eris.Wrap(err, "failed to get all active sessions")
 	}
-	return session, nil
+	return sessions, nil
 }
 
-// UpdateUserActiveChatSession updates an existing user active session.
-func (s *UserActiveChatSessionService) UpdateUserActiveChatSession(ctx context.Context, userId int32, chatSessionUuid string) (sqlc.UserActiveChatSession, error) {
-	sessionParams := sqlc.UpdateUserActiveChatSessionParams{
-		UserID:          userId,
-		ChatSessionUuid: chatSessionUuid,
+// DeleteActiveSession deletes the active session for a user in a specific workspace (or global if workspaceID is nil)
+func (s *UserActiveChatSessionService) DeleteActiveSession(ctx context.Context, userID int32, workspaceID *int32) error {
+	var workspaceParam int32
+	if workspaceID != nil {
+		workspaceParam = *workspaceID
 	}
-	session, err := s.q.UpdateUserActiveChatSession(ctx, sessionParams)
+	
+	err := s.q.DeleteUserActiveSession(ctx, sqlc.DeleteUserActiveSessionParams{
+		UserID:  userID,
+		Column2: workspaceParam, // SQLC generated this awkward name
+	})
 	if err != nil {
-		return sqlc.UserActiveChatSession{}, errors.New("failed to update active session")
-	}
-	return session, nil
-}
-
-// DeleteUserActiveChatSession deletes a user active session given an ID.
-func (s *UserActiveChatSessionService) DeleteUserActiveChatSession(ctx context.Context, id int32) error {
-	err := s.q.DeleteUserActiveChatSession(ctx, id)
-	if err != nil {
-		return errors.New("failed to delete active session")
+		return eris.Wrap(err, "failed to delete active session")
 	}
 	return nil
+}
+
+// Legacy compatibility methods - now just delegate to unified methods
+// These are kept for any remaining API calls but use the simplified implementation
+
+// CreateOrUpdateUserActiveChatSession updates or creates a global active session (workspace_id = NULL)
+func (s *UserActiveChatSessionService) CreateOrUpdateUserActiveChatSession(ctx context.Context, params sqlc.CreateOrUpdateUserActiveChatSessionParams) (sqlc.UserActiveChatSession, error) {
+	return s.UpsertActiveSession(ctx, params.UserID, nil, params.ChatSessionUuid)
+}
+
+// GetUserActiveChatSession retrieves the global active session (workspace_id = NULL)  
+func (s *UserActiveChatSessionService) GetUserActiveChatSession(ctx context.Context, userID int32) (sqlc.UserActiveChatSession, error) {
+	return s.GetActiveSession(ctx, userID, nil)
 }

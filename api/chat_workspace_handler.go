@@ -33,6 +33,8 @@ func (h *ChatWorkspaceHandler) Register(router *mux.Router) {
 	router.HandleFunc("/workspaces/{uuid}/sessions", h.createSessionInWorkspace).Methods(http.MethodPost)
 	router.HandleFunc("/workspaces/{uuid}/sessions", h.getSessionsByWorkspace).Methods(http.MethodGet)
 	router.HandleFunc("/workspaces/default", h.ensureDefaultWorkspace).Methods(http.MethodPost)
+	router.HandleFunc("/workspaces/migrate-sessions", h.migrateSessionsToDefaultWorkspace).Methods(http.MethodPost)
+	router.HandleFunc("/workspaces/auto-migrate", h.autoMigrateLegacySessions).Methods(http.MethodPost)
 }
 
 
@@ -673,4 +675,121 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 	}
 
 	json.NewEncoder(w).Encode(sessionResponses)
+}
+
+// migrateSessionsToDefaultWorkspace migrates all orphaned sessions to the user's default workspace
+func (h *ChatWorkspaceHandler) migrateSessionsToDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
+	}
+
+	// Ensure default workspace exists
+	defaultWorkspace, err := h.service.EnsureDefaultWorkspaceExists(ctx, userID)
+	if err != nil {
+		apiErr := WrapError(MapDatabaseError(err), "Failed to ensure default workspace")
+		RespondWithAPIError(w, apiErr)
+		return
+	}
+
+	// Migrate sessions to default workspace
+	err = h.service.MigrateSessionsToDefaultWorkspace(ctx, userID, defaultWorkspace.ID)
+	if err != nil {
+		apiErr := WrapError(MapDatabaseError(err), "Failed to migrate sessions to default workspace")
+		RespondWithAPIError(w, apiErr)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Sessions migrated to default workspace successfully",
+		"defaultWorkspace": WorkspaceResponse{
+			Uuid:          defaultWorkspace.Uuid,
+			Name:          defaultWorkspace.Name,
+			Description:   defaultWorkspace.Description,
+			Color:         defaultWorkspace.Color,
+			Icon:          defaultWorkspace.Icon,
+			IsDefault:     defaultWorkspace.IsDefault,
+			OrderPosition: defaultWorkspace.OrderPosition,
+			CreatedAt:     defaultWorkspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			UpdatedAt:     defaultWorkspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		},
+	})
+}
+
+// autoMigrateLegacySessions automatically detects and migrates legacy sessions without workspace_id
+func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := getUserID(ctx)
+	if err != nil {
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+
+	// Check if user has any legacy sessions (sessions without workspace_id)
+	sessionService := NewChatSessionService(h.service.q)
+	legacySessions, err := sessionService.q.GetSessionsWithoutWorkspace(ctx, userID)
+	if err != nil {
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to check for legacy sessions"))
+		return
+	}
+
+	response := map[string]interface{}{
+		"hasLegacySessions": len(legacySessions) > 0,
+		"migratedSessions": 0,
+	}
+
+	// If no legacy sessions, return early
+	if len(legacySessions) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Ensure default workspace exists
+	defaultWorkspace, err := h.service.EnsureDefaultWorkspaceExists(ctx, userID)
+	if err != nil {
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to ensure default workspace"))
+		return
+	}
+
+	// Migrate all legacy sessions to default workspace
+	err = h.service.MigrateSessionsToDefaultWorkspace(ctx, userID, defaultWorkspace.ID)
+	if err != nil {
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to migrate legacy sessions"))
+		return
+	}
+
+	// Also migrate any legacy active sessions
+	activeSessionService := NewUserActiveChatSessionService(h.service.q)
+	legacyActiveSessions, err := activeSessionService.q.GetAllUserActiveSessions(ctx, userID)
+	if err == nil {
+		for _, activeSession := range legacyActiveSessions {
+			if !activeSession.WorkspaceID.Valid {
+				// This is a legacy global active session, migrate it to default workspace
+				_, _ = activeSessionService.UpsertActiveSession(ctx, userID, &defaultWorkspace.ID, activeSession.ChatSessionUuid)
+				// Delete the old global active session by setting workspace to NULL and deleting
+				_ = activeSessionService.DeleteActiveSession(ctx, userID, nil)
+			}
+		}
+	}
+
+	response["migratedSessions"] = len(legacySessions)
+	response["defaultWorkspace"] = WorkspaceResponse{
+		Uuid:          defaultWorkspace.Uuid,
+		Name:          defaultWorkspace.Name,
+		Description:   defaultWorkspace.Description,
+		Color:         defaultWorkspace.Color,
+		Icon:          defaultWorkspace.Icon,
+		IsDefault:     defaultWorkspace.IsDefault,
+		OrderPosition: defaultWorkspace.OrderPosition,
+		CreatedAt:     defaultWorkspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:     defaultWorkspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

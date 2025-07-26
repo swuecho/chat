@@ -264,6 +264,34 @@ CREATE TABLE IF NOT EXISTS user_active_chat_session (
 -- add index on user_id
 CREATE INDEX IF NOT EXISTS user_active_chat_session_user_id_idx ON user_active_chat_session using hash (user_id) ;
 
+-- Extend user_active_chat_session to support per-workspace active sessions
+ALTER TABLE user_active_chat_session ADD COLUMN IF NOT EXISTS workspace_id INTEGER REFERENCES chat_workspace(id) ON DELETE CASCADE;
+
+-- Clean up old constraints
+ALTER TABLE user_active_chat_session DROP CONSTRAINT IF EXISTS user_active_chat_session_user_id_key;
+ALTER TABLE user_active_chat_session DROP CONSTRAINT IF EXISTS unique_user_id;
+
+-- Clean up duplicate records first
+-- Keep only the most recent record per user/workspace combination
+DELETE FROM user_active_chat_session 
+WHERE id NOT IN (
+    SELECT DISTINCT ON (user_id, COALESCE(workspace_id, -1)) id 
+    FROM user_active_chat_session 
+    ORDER BY user_id, COALESCE(workspace_id, -1), updated_at DESC
+);
+
+-- Create a single unique constraint using COALESCE to handle NULLs
+-- This treats NULL workspace_id as -1 for uniqueness purposes
+DROP INDEX IF EXISTS unique_user_global_active_session_idx;
+DROP INDEX IF EXISTS unique_user_workspace_active_session_idx;
+DROP INDEX IF EXISTS unique_user_workspace_active_session_coalesce_idx;
+
+CREATE UNIQUE INDEX unique_user_workspace_active_session_coalesce_idx 
+    ON user_active_chat_session (user_id, COALESCE(workspace_id, -1));
+
+-- Add index on workspace_id for efficient queries
+CREATE INDEX IF NOT EXISTS user_active_chat_session_workspace_id_idx ON user_active_chat_session (workspace_id);
+
 
 -- for share chat feature
 CREATE TABLE IF NOT EXISTS chat_snapshot (

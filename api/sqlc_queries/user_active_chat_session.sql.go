@@ -7,16 +7,17 @@ package sqlc_queries
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createOrUpdateUserActiveChatSession = `-- name: CreateOrUpdateUserActiveChatSession :one
-INSERT INTO user_active_chat_session(user_id, chat_session_uuid)
-VALUES ($1, $2)
-ON CONFLICT (user_id) 
-DO UPDATE SET
-chat_session_uuid = EXCLUDED.chat_session_uuid,
-updated_at = now()
-returning id, user_id, chat_session_uuid, created_at, updated_at
+INSERT INTO user_active_chat_session (user_id, workspace_id, chat_session_uuid)
+VALUES ($1, NULL, $2)
+ON CONFLICT (user_id, COALESCE(workspace_id, -1))
+DO UPDATE SET 
+    chat_session_uuid = EXCLUDED.chat_session_uuid,
+    updated_at = now()
+RETURNING id, user_id, chat_session_uuid, created_at, updated_at, workspace_id
 `
 
 type CreateOrUpdateUserActiveChatSessionParams struct {
@@ -33,66 +34,52 @@ func (q *Queries) CreateOrUpdateUserActiveChatSession(ctx context.Context, arg C
 		&i.ChatSessionUuid,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WorkspaceID,
 	)
 	return i, err
 }
 
-const createUserActiveChatSession = `-- name: CreateUserActiveChatSession :one
-INSERT INTO user_active_chat_session (user_id, chat_session_uuid)
-VALUES ($1, $2)
-RETURNING id, user_id, chat_session_uuid, created_at, updated_at
+const deleteUserActiveSession = `-- name: DeleteUserActiveSession :exec
+DELETE FROM user_active_chat_session
+WHERE user_id = $1 AND (
+    (workspace_id IS NULL AND $2::int IS NULL) OR 
+    (workspace_id = $2)
+)
 `
 
-type CreateUserActiveChatSessionParams struct {
+type DeleteUserActiveSessionParams struct {
+	UserID  int32 `json:"userId"`
+	Column2 int32 `json:"column2"`
+}
+
+func (q *Queries) DeleteUserActiveSession(ctx context.Context, arg DeleteUserActiveSessionParams) error {
+	_, err := q.db.ExecContext(ctx, deleteUserActiveSession, arg.UserID, arg.Column2)
+	return err
+}
+
+const deleteUserActiveSessionBySession = `-- name: DeleteUserActiveSessionBySession :exec
+DELETE FROM user_active_chat_session
+WHERE user_id = $1 AND chat_session_uuid = $2
+`
+
+type DeleteUserActiveSessionBySessionParams struct {
 	UserID          int32  `json:"userId"`
 	ChatSessionUuid string `json:"chatSessionUuid"`
 }
 
-func (q *Queries) CreateUserActiveChatSession(ctx context.Context, arg CreateUserActiveChatSessionParams) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, createUserActiveChatSession, arg.UserID, arg.ChatSessionUuid)
-	var i UserActiveChatSession
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.ChatSessionUuid,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const deleteUserActiveChatSession = `-- name: DeleteUserActiveChatSession :exec
-DELETE FROM user_active_chat_session WHERE user_id = $1
-`
-
-func (q *Queries) DeleteUserActiveChatSession(ctx context.Context, userID int32) error {
-	_, err := q.db.ExecContext(ctx, deleteUserActiveChatSession, userID)
+func (q *Queries) DeleteUserActiveSessionBySession(ctx context.Context, arg DeleteUserActiveSessionBySessionParams) error {
+	_, err := q.db.ExecContext(ctx, deleteUserActiveSessionBySession, arg.UserID, arg.ChatSessionUuid)
 	return err
 }
 
-const getUserActiveChatSession = `-- name: GetUserActiveChatSession :one
-SELECT id, user_id, chat_session_uuid, created_at, updated_at FROM user_active_chat_session WHERE user_id = $1
+const getAllUserActiveSessions = `-- name: GetAllUserActiveSessions :many
+SELECT id, user_id, chat_session_uuid, created_at, updated_at, workspace_id FROM user_active_chat_session
+WHERE user_id = $1
+ORDER BY workspace_id NULLS FIRST, updated_at DESC
 `
 
-func (q *Queries) GetUserActiveChatSession(ctx context.Context, userID int32) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, getUserActiveChatSession, userID)
-	var i UserActiveChatSession
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.ChatSessionUuid,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const listUserActiveChatSessions = `-- name: ListUserActiveChatSessions :many
-SELECT id, user_id, chat_session_uuid, created_at, updated_at FROM user_active_chat_session ORDER BY id
-`
-
-func (q *Queries) ListUserActiveChatSessions(ctx context.Context) ([]UserActiveChatSession, error) {
-	rows, err := q.db.QueryContext(ctx, listUserActiveChatSessions)
+func (q *Queries) GetAllUserActiveSessions(ctx context.Context, userID int32) ([]UserActiveChatSession, error) {
+	rows, err := q.db.QueryContext(ctx, getAllUserActiveSessions, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +93,7 @@ func (q *Queries) ListUserActiveChatSessions(ctx context.Context) ([]UserActiveC
 			&i.ChatSessionUuid,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.WorkspaceID,
 		); err != nil {
 			return nil, err
 		}
@@ -120,19 +108,14 @@ func (q *Queries) ListUserActiveChatSessions(ctx context.Context) ([]UserActiveC
 	return items, nil
 }
 
-const updateUserActiveChatSession = `-- name: UpdateUserActiveChatSession :one
-UPDATE user_active_chat_session SET chat_session_uuid = $1, updated_at = now()
-WHERE user_id = $2
-RETURNING id, user_id, chat_session_uuid, created_at, updated_at
+const getUserActiveChatSession = `-- name: GetUserActiveChatSession :one
+
+SELECT id, user_id, chat_session_uuid, created_at, updated_at, workspace_id FROM user_active_chat_session WHERE user_id = $1 AND workspace_id IS NULL
 `
 
-type UpdateUserActiveChatSessionParams struct {
-	ChatSessionUuid string `json:"chatSessionUuid"`
-	UserID          int32  `json:"userId"`
-}
-
-func (q *Queries) UpdateUserActiveChatSession(ctx context.Context, arg UpdateUserActiveChatSessionParams) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, updateUserActiveChatSession, arg.ChatSessionUuid, arg.UserID)
+// Legacy compatibility queries - simplified to use the unified approach
+func (q *Queries) GetUserActiveChatSession(ctx context.Context, userID int32) (UserActiveChatSession, error) {
+	row := q.db.QueryRowContext(ctx, getUserActiveChatSession, userID)
 	var i UserActiveChatSession
 	err := row.Scan(
 		&i.ID,
@@ -140,6 +123,66 @@ func (q *Queries) UpdateUserActiveChatSession(ctx context.Context, arg UpdateUse
 		&i.ChatSessionUuid,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WorkspaceID,
+	)
+	return i, err
+}
+
+const getUserActiveSession = `-- name: GetUserActiveSession :one
+SELECT id, user_id, chat_session_uuid, created_at, updated_at, workspace_id FROM user_active_chat_session 
+WHERE user_id = $1 AND (
+    (workspace_id IS NULL AND $2::int IS NULL) OR 
+    (workspace_id = $2)
+)
+`
+
+type GetUserActiveSessionParams struct {
+	UserID  int32 `json:"userId"`
+	Column2 int32 `json:"column2"`
+}
+
+func (q *Queries) GetUserActiveSession(ctx context.Context, arg GetUserActiveSessionParams) (UserActiveChatSession, error) {
+	row := q.db.QueryRowContext(ctx, getUserActiveSession, arg.UserID, arg.Column2)
+	var i UserActiveChatSession
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ChatSessionUuid,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.WorkspaceID,
+	)
+	return i, err
+}
+
+const upsertUserActiveSession = `-- name: UpsertUserActiveSession :one
+
+INSERT INTO user_active_chat_session (user_id, workspace_id, chat_session_uuid)
+VALUES ($1, $2, $3)
+ON CONFLICT (user_id, COALESCE(workspace_id, -1))
+DO UPDATE SET 
+    chat_session_uuid = EXCLUDED.chat_session_uuid,
+    updated_at = now()
+RETURNING id, user_id, chat_session_uuid, created_at, updated_at, workspace_id
+`
+
+type UpsertUserActiveSessionParams struct {
+	UserID          int32         `json:"userId"`
+	WorkspaceID     sql.NullInt32 `json:"workspaceId"`
+	ChatSessionUuid string        `json:"chatSessionUuid"`
+}
+
+// Simplified unified queries for active sessions
+func (q *Queries) UpsertUserActiveSession(ctx context.Context, arg UpsertUserActiveSessionParams) (UserActiveChatSession, error) {
+	row := q.db.QueryRowContext(ctx, upsertUserActiveSession, arg.UserID, arg.WorkspaceID, arg.ChatSessionUuid)
+	var i UserActiveChatSession
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ChatSessionUuid,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.WorkspaceID,
 	)
 	return i, err
 }

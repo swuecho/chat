@@ -158,3 +158,67 @@ export const getSessionsByWorkspace = async (workspaceUuid: string) => {
     throw error
   }
 }
+
+// Migrate orphaned sessions to default workspace
+export const migrateSessionsToDefaultWorkspace = async () => {
+  try {
+    const response = await request.post('/workspaces/migrate-sessions')
+    return response.data
+  }
+  catch (error) {
+    console.error('Error migrating sessions to default workspace:', error)
+    throw error
+  }
+}
+
+// Per-workspace active session APIs
+
+// Get active session for a specific workspace
+export const getWorkspaceActiveSession = async (workspaceUuid: string) => {
+  try {
+    const response = await request.get(`/workspaces/${workspaceUuid}/active-session`)
+    return response.data
+  }
+  catch (error) {
+    console.error(`Error getting active session for workspace ${workspaceUuid}:`, error)
+    throw error
+  }
+}
+
+// Set active session for a specific workspace
+export const setWorkspaceActiveSession = async (workspaceUuid: string, chatSessionUuid: string) => {
+  try {
+    const response = await request.put(`/workspaces/${workspaceUuid}/active-session`, {
+      chatSessionUuid
+    })
+    return response.data
+  }
+  catch (error) {
+    console.error(`Error setting active session for workspace ${workspaceUuid}:`, error)
+    throw error
+  }
+}
+
+// Get all workspace active sessions for the current user
+export const getAllWorkspaceActiveSessions = async () => {
+  try {
+    const response = await request.get('/workspaces/active-sessions')
+    return response.data
+  }
+  catch (error) {
+    console.error('Error getting all workspace active sessions:', error)
+    throw error
+  }
+}
+
+// Auto-migrate legacy sessions to default workspace
+export const autoMigrateLegacySessions = async () => {
+  try {
+    const response = await request.post('/workspaces/auto-migrate')
+    return response.data
+  }
+  catch (error) {
+    console.error('Error auto-migrating legacy sessions:', error)
+    throw error
+  }
+}
