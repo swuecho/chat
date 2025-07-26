@@ -90,7 +90,8 @@ function handleSetDefaultWorkspace(workspace: Chat.Workspace) {
 }
 
 async function handleWorkspaceCreated(workspace: Chat.Workspace) {
-  message.success(`Created workspace: ${workspace.name}`)
+  await chatStore.switchToWorkspace(workspace.uuid)
+  message.success(`Created and switched to ${workspace.name}`)
   showCreateModal.value = false
 }
 
