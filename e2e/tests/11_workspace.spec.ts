@@ -100,7 +100,7 @@ test('workspace management - create workspace and manage sessions', async ({ pag
   expect(urlAfterRefresh).toBe(urlBeforeRefresh);
   
   // Verify we're still in the correct workspace by checking the workspace name is displayed
-  await expect(page.locator('text=test_workspace_1')).toBeVisible();
+  await expect(page.locator('text=first session in workspace test_workspace_1')).toBeVisible();
   
   // Verify both sessions are still visible after refresh
   const sessionsAfterRefresh = page.locator('.relative.flex.items-center.gap-2.p-2.break-all.border.rounded-sm.cursor-pointer');
