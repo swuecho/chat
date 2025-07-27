@@ -36,6 +36,9 @@ let isCreatingSession = false
 // Navigation lock to prevent race conditions during route changes
 let isNavigating = false
 
+// Session switching lock to prevent race conditions during session changes
+let isSwitchingSession = false
+
 export const useChatStore = defineStore('chat-store', {
   state: (): Chat.ChatState => getLocalState(),
 
@@ -310,14 +313,12 @@ export const useChatStore = defineStore('chat-store', {
         this.chat[need_uuid] = messageData
         const session = this.getChatSessionByUuid(need_uuid)
         
-        // Only set active session if it's different from current
-        if (this.activeSession.sessionUuid !== need_uuid) {
+        // Only set active session if it's different from current and not already switching
+        if (this.activeSession.sessionUuid !== need_uuid && !isSwitchingSession) {
           await this.setActiveSession(session?.workspaceUuid || null, need_uuid)
-        } else {
+        } else if (session?.workspaceUuid && this.activeSession.workspaceUuid !== session.workspaceUuid) {
           // Just update the workspace if needed without triggering route reload
-          if (session?.workspaceUuid && this.activeSession.workspaceUuid !== session.workspaceUuid) {
-            this.setActiveSessionLocal(session.workspaceUuid, need_uuid)
-          }
+          this.setActiveSessionLocal(session.workspaceUuid, need_uuid)
         }
       }
     },
@@ -375,21 +376,39 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     async setActiveSession(workspaceUuid: string | null, sessionUuid: string) {
-      this.activeSession = { workspaceUuid, sessionUuid }
-
-      // Store active session for this workspace
-      if (workspaceUuid) {
-        this.workspaceActiveSessions[workspaceUuid] = sessionUuid
-        
-        try {
-          await setWorkspaceActiveSession(workspaceUuid, sessionUuid)
-          console.log(`✅ Set active session: workspace=${workspaceUuid}, session=${sessionUuid}`)
-        } catch (error) {
-          console.warn('⚠️ Failed to persist active session:', error)
-        }
+      // Prevent concurrent session switching
+      if (isSwitchingSession) {
+        console.log('🚫 Session switch already in progress, skipping')
+        return
       }
 
-      await this.reloadRoute(sessionUuid)
+      // Check if we're already on this session to prevent unnecessary switching
+      if (this.activeSession.sessionUuid === sessionUuid && this.activeSession.workspaceUuid === workspaceUuid) {
+        console.log('✅ Already on target session, skipping switch')
+        return
+      }
+
+      isSwitchingSession = true
+      
+      try {
+        this.activeSession = { workspaceUuid, sessionUuid }
+
+        // Store active session for this workspace
+        if (workspaceUuid) {
+          this.workspaceActiveSessions[workspaceUuid] = sessionUuid
+          
+          try {
+            await setWorkspaceActiveSession(workspaceUuid, sessionUuid)
+            console.log(`✅ Set active session: workspace=${workspaceUuid}, session=${sessionUuid}`)
+          } catch (error) {
+            console.warn('⚠️ Failed to persist active session:', error)
+          }
+        }
+
+        await this.reloadRoute(sessionUuid)
+      } finally {
+        isSwitchingSession = false
+      }
     },
 
     setActiveSessionLocal(workspaceUuid: string | null, sessionUuid: string) {
@@ -410,6 +429,12 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     async setActive(sessionUuid: string) {
+      // Prevent setting active session if already switching
+      if (isSwitchingSession) {
+        console.log('🚫 Cannot set active session - switch already in progress')
+        return
+      }
+      
       const session = this.getChatSessionByUuid(sessionUuid)
       if (session) {
         await this.setActiveSession(session.workspaceUuid || null, sessionUuid)
