@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { computed, watch } from 'vue'
+import { computed, watch, onMounted } from 'vue'
 import { NLayout, NLayoutContent } from 'naive-ui'
 import { useRouter } from 'vue-router'
 import Sider from './sider/index.vue'
@@ -17,11 +17,15 @@ const { isMobile } = useBasicLayout()
 
 const collapsed = computed(() => appStore.siderCollapsed)
 
-// Initialize auth state on component mount
-authStore.initializeAuth()
+// Initialize auth state on component mount (async)
+onMounted(async () => {
+  console.log('🔄 Layout mounted, initializing auth...')
+  await authStore.initializeAuth()
+  console.log('✅ Auth initialization completed in Layout')
+})
 
-// login modal will appear when there is no token and auth is initialized
-const needPermission = computed(() => authStore.isInitialized && !authStore.isValid)
+// login modal will appear when there is no token and auth is initialized (but not during initialization)
+const needPermission = computed(() => authStore.isInitialized && !authStore.isInitializing && !authStore.isValid)
 
 // Set up router after auth is initialized
 watch(() => authStore.isInitialized, (initialized) => {

@@ -7,6 +7,7 @@ export interface AuthState {
   expiresIn: number | null
   isRefreshing: boolean // Track if token refresh is in progress
   isInitialized: boolean // Track if auth state has been initialized
+  isInitializing: boolean // Track if auth initialization is in progress
 }
 
 export const useAuthStore = defineStore('auth-store', {
@@ -15,6 +16,7 @@ export const useAuthStore = defineStore('auth-store', {
     expiresIn: getExpiresIn(),
     isRefreshing: false,
     isInitialized: false,
+    isInitializing: false,
   }),
 
   getters: {
@@ -30,8 +32,10 @@ export const useAuthStore = defineStore('auth-store', {
 
   actions: {
     async initializeAuth() {
-      if (this.isInitialized) return
-
+      if (this.isInitialized || this.isInitializing) return
+      
+      this.isInitializing = true
+      
       try {
         // Try to refresh token if we have valid expiration
         if (this.expiresIn && this.expiresIn > Date.now() / 1000) {
@@ -45,9 +49,10 @@ export const useAuthStore = defineStore('auth-store', {
         // Clear invalid state on error
         this.removeToken()
         this.removeExpiresIn()
+      } finally {
+        this.isInitializing = false
+        this.isInitialized = true
       }
-
-      this.isInitialized = true
     },
 
     getToken() {

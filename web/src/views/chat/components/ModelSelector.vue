@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref, watch, h } from 'vue'
 import { NSelect, NForm } from 'naive-ui'
-import { useChatStore } from '@/store'
+import { useChatStore, useAuthStore } from '@/store'
 
 import { fetchChatModel } from '@/api'
 
@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/vue-query";
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
 
 const chatStore = useChatStore()
+const authStore = useAuthStore()
 
 const props = defineProps<{
         uuid: string
@@ -23,6 +24,7 @@ const { data } = useQuery({
         queryKey: ['chat_models'],
         queryFn: fetchChatModel,
         staleTime: 10 * 60 * 1000,
+        enabled: computed(() => authStore.isInitialized && !authStore.isInitializing && authStore.isValid),
 })
 
 // format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now

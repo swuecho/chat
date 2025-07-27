@@ -15,6 +15,16 @@ service.interceptors.request.use(
       return config
     }
 
+    // Wait for auth initialization to complete before making API calls
+    if (authStore.isInitializing) {
+      console.log('⏳ Waiting for auth initialization to complete before API call:', config.url)
+      // Wait for initialization to complete
+      while (authStore.isInitializing) {
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+      console.log('✅ Auth initialization completed, proceeding with API call:', config.url)
+    }
+
     // Check if token needs refresh
     if (authStore.needsRefresh && !authStore.isRefreshing) {
       try {
