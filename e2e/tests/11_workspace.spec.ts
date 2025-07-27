@@ -82,4 +82,30 @@ test('workspace management - create workspace and manage sessions', async ({ pag
   
   // Verify the new session title is displayed correctly
   await expect(page.locator('text=first session in workspace test_workspace_1')).toBeVisible();
+
+  // Test 4: Verify that page refresh doesn't change the route/workspace
+  // Get the current URL before refresh
+  const urlBeforeRefresh = page.url();
+  console.log('URL before refresh:', urlBeforeRefresh);
+  
+  // Perform page refresh
+  await page.reload();
+  await page.waitForTimeout(2000); // Wait for page to fully load
+  
+  // Get the URL after refresh
+  const urlAfterRefresh = page.url();
+  console.log('URL after refresh:', urlAfterRefresh);
+  
+  // Verify the URL hasn't changed (should stay in the same workspace)
+  expect(urlAfterRefresh).toBe(urlBeforeRefresh);
+  
+  // Verify we're still in the correct workspace by checking the workspace name is displayed
+  await expect(page.locator('text=test_workspace_1')).toBeVisible();
+  
+  // Verify both sessions are still visible after refresh
+  const sessionsAfterRefresh = page.locator('.relative.flex.items-center.gap-2.p-2.break-all.border.rounded-sm.cursor-pointer');
+  await expect(sessionsAfterRefresh).toHaveCount(2);
+  
+  // Verify the custom session title is still visible
+  await expect(page.locator('text=first session in workspace test_workspace_1')).toBeVisible();
 });
