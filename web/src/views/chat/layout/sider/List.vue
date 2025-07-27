@@ -17,9 +17,13 @@ const chatStore = useChatStore()
 const authStore = useAuthStore()
 
 const dataSources = computed(() => {
-  // If no active workspace, show all sessions
+  // If no active workspace, show sessions from all workspaces
   if (!chatStore.activeWorkspace) {
-    return chatStore.history
+    const allSessions: Chat.Session[] = []
+    for (const sessions of Object.values(chatStore.workspaceHistory)) {
+      allSessions.push(...sessions)
+    }
+    return allSessions
   }
   
   // Filter sessions by active workspace - show only sessions belonging to this workspace
@@ -38,13 +42,13 @@ onMounted(async () => {
   }
 })
 async function handleSyncChat() {
-  console.log('handleSyncChat called, current history length:', chatStore.history.length)
-  // if (chatStore.history.length == 1 && chatStore.history[0].title == 'New Chat'
-  //   && chatStore.chat[0].data.length <= 0)
+  const totalSessions = Object.values(chatStore.workspaceHistory).reduce((sum, sessions) => sum + sessions.length, 0)
+  console.log('handleSyncChat called, current total sessions:', totalSessions)
   try {
     console.log('Calling chatStore.syncChatSessions()...')
     await chatStore.syncChatSessions()
-    console.log('Chat sessions synced successfully, new history length:', chatStore.history.length)
+    const newTotalSessions = Object.values(chatStore.workspaceHistory).reduce((sum, sessions) => sum + sessions.length, 0)
+    console.log('Chat sessions synced successfully, new total sessions:', newTotalSessions)
   }
   catch (error: any) {
     console.error('Error syncing chat sessions:', error)
@@ -92,7 +96,10 @@ function handleSave({ uuid, title }: Chat.Session, isEdit: boolean, event?: Mous
 
 function handleDelete(index: number, event?: MouseEvent | TouchEvent) {
   event?.stopPropagation()
-  chatStore.deleteChatSession(index)
+  const session = dataSources.value[index]
+  if (session) {
+    chatStore.deleteChatSession(session.uuid)
+  }
 }
 
 function handleEnter({ uuid, title }: Chat.Session, isEdit: boolean, event: KeyboardEvent) {
