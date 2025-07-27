@@ -58,7 +58,7 @@ const fileDeleteMutation = useMutation({
 // login modal will appear when there is no token
 const authStore = useAuthStore()
 
-const token = authStore.getToken()
+const token = authStore.getToken
 
 const headers = ref({
         'Authorization': 'Bearer ' + token

@@ -47,7 +47,8 @@ watch(() => authStore.isInitialized, (initialized) => {
 // Watch for authentication state changes and sync chat sessions when user logs in
 watch(() => authStore.isValid, async (isValid) => {
   console.log('Auth state changed, isValid:', isValid)
-  if (isValid && chatStore.history.length === 0) {
+  const totalSessions = Object.values(chatStore.workspaceHistory).reduce((sum, sessions) => sum + sessions.length, 0)
+  if (isValid && totalSessions === 0) {
     console.log('User is now authenticated and no chat sessions loaded, syncing...')
     try {
       await chatStore.syncChatSessions()

@@ -34,7 +34,6 @@ func (h *ChatWorkspaceHandler) Register(router *mux.Router) {
 	router.HandleFunc("/workspaces/{uuid}/sessions", h.createSessionInWorkspace).Methods(http.MethodPost)
 	router.HandleFunc("/workspaces/{uuid}/sessions", h.getSessionsByWorkspace).Methods(http.MethodGet)
 	router.HandleFunc("/workspaces/default", h.ensureDefaultWorkspace).Methods(http.MethodPost)
-	router.HandleFunc("/workspaces/migrate-sessions", h.migrateSessionsToDefaultWorkspace).Methods(http.MethodPost)
 	router.HandleFunc("/workspaces/auto-migrate", h.autoMigrateLegacySessions).Methods(http.MethodPost)
 }
 
@@ -664,14 +663,16 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 		return
 	}
 
-	var sessionResponses []map[string]interface{}
+	sessionResponses := make([]map[string]interface{}, 0)
 	for _, session := range sessions {
 		sessionResponse := map[string]interface{}{
-			"uuid":      session.Uuid,
-			"topic":     session.Topic,
-			"model":     session.Model,
-			"createdAt": session.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			"updatedAt": session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+			"uuid":         session.Uuid,
+			"title":        session.Topic,  // Use "title" to match the original API
+			"isEdit":       false,
+			"model":        session.Model,
+			"workspaceUuid": workspaceUUID,
+			"createdAt":    session.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			"updatedAt":    session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 		}
 		sessionResponses = append(sessionResponses, sessionResponse)
 	}
@@ -679,48 +680,6 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 	json.NewEncoder(w).Encode(sessionResponses)
 }
 
-// migrateSessionsToDefaultWorkspace migrates all orphaned sessions to the user's default workspace
-func (h *ChatWorkspaceHandler) migrateSessionsToDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userID, err := getUserID(ctx)
-	if err != nil {
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-
-	// Ensure default workspace exists
-	defaultWorkspace, err := h.service.EnsureDefaultWorkspaceExists(ctx, userID)
-	if err != nil {
-		apiErr := WrapError(MapDatabaseError(err), "Failed to ensure default workspace")
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-
-	// Migrate sessions to default workspace
-	err = h.service.MigrateSessionsToDefaultWorkspace(ctx, userID, defaultWorkspace.ID)
-	if err != nil {
-		apiErr := WrapError(MapDatabaseError(err), "Failed to migrate sessions to default workspace")
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Sessions migrated to default workspace successfully",
-		"defaultWorkspace": WorkspaceResponse{
-			Uuid:          defaultWorkspace.Uuid,
-			Name:          defaultWorkspace.Name,
-			Description:   defaultWorkspace.Description,
-			Color:         defaultWorkspace.Color,
-			Icon:          defaultWorkspace.Icon,
-			IsDefault:     defaultWorkspace.IsDefault,
-			OrderPosition: defaultWorkspace.OrderPosition,
-			CreatedAt:     defaultWorkspace.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			UpdatedAt:     defaultWorkspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
-		},
-	})
-}
 
 // autoMigrateLegacySessions automatically detects and migrates legacy sessions without workspace_id
 func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { getExpiresIn, getToken, removeExpiresIn, removeToken, setExpiresIn, setToken } from './helper'
-import { store } from '@/store'
 
 export interface AuthState {
   token: string | null  // Access token stored in memory
@@ -22,6 +21,12 @@ export const useAuthStore = defineStore('auth-store', {
   getters: {
     isValid(): boolean {
       return !!(this.token && this.expiresIn && this.expiresIn > Date.now() / 1000)
+    },
+    getToken(): string | null {
+      return this.token
+    },
+    getExpiresIn(): number | null {
+      return this.expiresIn
     },
     needsRefresh(): boolean {
       // Check if token expires within next 5 minutes
@@ -53,10 +58,6 @@ export const useAuthStore = defineStore('auth-store', {
         this.isInitializing = false
         this.isInitialized = true
       }
-    },
-
-    getToken() {
-      return this.token
     },
     setToken(token: string) {
       this.token = token
@@ -105,9 +106,6 @@ export const useAuthStore = defineStore('auth-store', {
         this.isRefreshing = false
       }
     },
-    getExpiresIn() {
-      return this.expiresIn
-    },
     setExpiresIn(expiresIn: number) {
       this.expiresIn = expiresIn
       setExpiresIn(expiresIn)
@@ -116,10 +114,6 @@ export const useAuthStore = defineStore('auth-store', {
       this.expiresIn = null
       removeExpiresIn()
     },
-
   },
 })
 
-export function useAuthStoreWithout() {
-  return useAuthStore(store)
-}

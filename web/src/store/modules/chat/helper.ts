@@ -5,7 +5,7 @@ const default_chat_data: Chat.ChatState = {
   },
   workspaceActiveSessions: {}, // { [workspaceUuid: string]: string }
   workspaces: [], // Chat.Workspace[]
-  history: [], // Chat.Session[]
+  workspaceHistory: {}, // { [workspaceUuid: string]: Chat.Session[] }
   chat: {}, // { [key: string]: Chat.ChatMessage[] }
 }
 

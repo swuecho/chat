@@ -68,7 +68,7 @@ declare namespace Chat {
 		activeSession: ActiveSession
 		workspaceActiveSessions: { [workspaceUuid: string]: string } // workspaceUuid -> sessionUuid
 		workspaces: Workspace[]
-		history: Session[]
+		workspaceHistory: { [workspaceUuid: string]: Session[] } // workspaceUuid -> Session[]
 		chat: { [uuid: string]: Message[] }
 	}
 

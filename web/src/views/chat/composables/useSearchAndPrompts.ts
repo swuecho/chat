@@ -57,7 +57,13 @@ export function useSearchAndPrompts() {
       return lowerCaseTitle.includes(lowerCasePrompt)
     }
 
-    const sessionOptions: SearchOption[] = chatStore.history
+    // Get all sessions from workspace history
+    const allSessions: ChatItem[] = []
+    for (const sessions of Object.values(chatStore.workspaceHistory)) {
+      allSessions.push(...sessions)
+    }
+    
+    const sessionOptions: SearchOption[] = allSessions
       .filter(filterItemsByTitle)
       .map((session: ChatItem) => ({
         label: `UUID|$|${session.uuid}`,
@@ -81,8 +87,12 @@ export function useSearchAndPrompts() {
       return [promptItem.key]
     }
     
-    // Check if it's a chat session
-    const chatItem = chatStore.history.find((chat: ChatItem) => `UUID|$|${chat.uuid}` === option.label)
+    // Check if it's a chat session across all workspace histories
+    let chatItem = null
+    for (const sessions of Object.values(chatStore.workspaceHistory)) {
+      chatItem = sessions.find((chat: ChatItem) => `UUID|$|${chat.uuid}` === option.label)
+      if (chatItem) break
+    }
     if (chatItem) {
       return [chatItem.title]
     }

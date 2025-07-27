@@ -159,20 +159,6 @@ export const getSessionsByWorkspace = async (workspaceUuid: string) => {
   }
 }
 
-// Migrate orphaned sessions to default workspace
-export const migrateSessionsToDefaultWorkspace = async () => {
-  try {
-    const response = await request.post('/workspaces/migrate-sessions')
-    return response.data
-  }
-  catch (error) {
-    console.error('Error migrating sessions to default workspace:', error)
-    throw error
-  }
-}
-
-// Per-workspace active session APIs
-
 // Get active session for a specific workspace
 export const getWorkspaceActiveSession = async (workspaceUuid: string) => {
   try {

@@ -14,7 +14,7 @@ const appStore = useAppStore()
 
 const show = ref(false)
 
-const isAdminUser = computed(() => isAdmin(authStore.getToken() ?? ''))
+const isAdminUser = computed(() => isAdmin(authStore.getToken ?? ''))
 
 function handleLogout() {
   // clear all stores
