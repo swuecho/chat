@@ -47,6 +47,11 @@ export function setupPageGuard(router: Router) {
       }
     }
     
+    // Handle default route - let store sync handle navigation to default workspace
+    if (to.name === 'DefaultWorkspace') {
+      console.log('On default route, letting store handle workspace navigation')
+    }
+    
     next()
   })
 }

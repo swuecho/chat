@@ -26,7 +26,17 @@ const needPermission = computed(() => authStore.isInitialized && !authStore.isVa
 // Set up router after auth is initialized
 watch(() => authStore.isInitialized, (initialized) => {
   if (initialized) {
-    router.replace({ name: 'Chat', params: { uuid: chatStore.active } })
+    // Check if we're already on a workspace route and preserve it
+    const currentRoute = router.currentRoute.value
+    if (currentRoute.name === 'WorkspaceChat' && currentRoute.params.workspaceUuid) {
+      // We're already on a workspace route, don't navigate away
+      console.log('✅ Preserving current workspace route on auth init:', currentRoute.params.workspaceUuid)
+      return
+    }
+    
+    // For default route, we'll let the store handle navigation to default workspace
+    // No immediate navigation here - let syncChatSessions handle it
+    console.log('✅ Auth initialized, letting store handle workspace navigation')
   }
 }, { immediate: true })
 

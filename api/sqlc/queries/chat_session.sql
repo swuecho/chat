@@ -153,3 +153,7 @@ ORDER BY
 UPDATE chat_session 
 SET workspace_id = $2
 WHERE user_id = $1 AND workspace_id IS NULL;
+
+-- name: GetSessionsWithoutWorkspace :many
+SELECT * FROM chat_session 
+WHERE user_id = $1 AND workspace_id IS NULL AND active = true;

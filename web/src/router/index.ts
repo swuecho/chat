@@ -70,7 +70,6 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     name: 'Root',
     component: ChatLayout,
-    redirect: '/chat',
     children: [
       {
         path: '/workspace/:workspaceUuid/chat/:uuid?',
@@ -86,8 +85,8 @@ const routes: RouteRecordRaw[] = [
         }
       },
       {
-        path: '/chat/:uuid?',
-        name: 'Chat',
+        path: '/',
+        name: 'DefaultWorkspace',
         component: () => import('@/views/chat/index.vue'),
         props: true,
       },

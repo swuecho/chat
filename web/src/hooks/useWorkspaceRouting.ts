@@ -28,12 +28,14 @@ export function useWorkspaceRouting() {
     const session = chatStore.getChatSessionByUuid(sessionUuid)
     
     // Use session's workspace if available, otherwise use provided or active workspace
-    const targetWorkspace = session?.workspaceUuid || workspace
+    const targetWorkspace = session?.workspaceUuid || workspace || chatStore.getDefaultWorkspace?.uuid
     
     if (targetWorkspace) {
       return `/#/workspace/${targetWorkspace}/chat/${sessionUuid}`
     }
-    return `/#/chat/${sessionUuid}`
+    // Fallback to default workspace if none found
+    const defaultWorkspace = chatStore.getDefaultWorkspace
+    return defaultWorkspace ? `/#/workspace/${defaultWorkspace.uuid}/chat/${sessionUuid}` : `/#/`
   }
 
   // Generate workspace URL (without session)
@@ -46,8 +48,8 @@ export function useWorkspaceRouting() {
     const workspace = workspaceUuid || chatStore.activeWorkspace
     const session = chatStore.getChatSessionByUuid(sessionUuid)
     
-    // Use session's workspace if available
-    const targetWorkspace = session?.workspaceUuid || workspace
+    // Use session's workspace if available, otherwise use default workspace
+    const targetWorkspace = session?.workspaceUuid || workspace || chatStore.getDefaultWorkspace?.uuid
     
     if (targetWorkspace) {
       await router.push({
@@ -58,10 +60,8 @@ export function useWorkspaceRouting() {
         }
       })
     } else {
-      await router.push({
-        name: 'Chat',
-        params: { uuid: sessionUuid }
-      })
+      // Fallback to default route if no workspace found
+      await router.push({ name: 'DefaultWorkspace' })
     }
   }
 

@@ -575,6 +575,51 @@ func (q *Queries) GetSessionsGroupedByWorkspace(ctx context.Context, userID int3
 	return items, nil
 }
 
+const getSessionsWithoutWorkspace = `-- name: GetSessionsWithoutWorkspace :many
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug FROM chat_session 
+WHERE user_id = $1 AND workspace_id IS NULL AND active = true
+`
+
+func (q *Queries) GetSessionsWithoutWorkspace(ctx context.Context, userID int32) ([]ChatSession, error) {
+	rows, err := q.db.QueryContext(ctx, getSessionsWithoutWorkspace, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChatSession
+	for rows.Next() {
+		var i ChatSession
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Uuid,
+			&i.Topic,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Active,
+			&i.Model,
+			&i.MaxLength,
+			&i.Temperature,
+			&i.TopP,
+			&i.MaxTokens,
+			&i.N,
+			&i.SummarizeMode,
+			&i.WorkspaceID,
+			&i.Debug,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const hasChatSessionPermission = `-- name: HasChatSessionPermission :one
 
 SELECT COUNT(*) > 0 as has_permission

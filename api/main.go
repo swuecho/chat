@@ -179,6 +179,10 @@ func main() {
 	chatSessionHandler := NewChatSessionHandler(sqlc_q)
 	chatSessionHandler.Register(userRouter)
 
+	// Register active session handler before workspace handler to avoid route shadowing
+	activeSessionHandler := NewUserActiveChatSessionHandler(sqlc_q)
+	activeSessionHandler.Register(userRouter)
+
 	chatWorkspaceHandler := NewChatWorkspaceHandler(sqlc_q)
 	chatWorkspaceHandler.Register(userRouter)
 
@@ -187,9 +191,6 @@ func main() {
 
 	chatSnapshotHandler := NewChatSnapshotHandler(sqlc_q)
 	chatSnapshotHandler.Register(userRouter)
-
-	activeSessionHandler := NewUserActiveChatSessionHandler(sqlc_q)
-	activeSessionHandler.Register(userRouter)
 
 	// create a new ChatHandler instance
 	chatHandler := NewChatHandler(sqlc_q)

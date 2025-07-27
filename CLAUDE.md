@@ -115,6 +115,7 @@ both frontend and backend will be auto-reload whe code change.
 - `POST /api/auth/refresh` - Token refresh
 
 ### Chat
+
 - `GET /api/chat/sessions` - Get user sessions
 - `POST /api/chat/sessions` - Create new session
 - `GET /api/chat/messages` - Get session messages
