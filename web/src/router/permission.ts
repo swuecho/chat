@@ -1,14 +1,15 @@
 import type { Router } from 'vue-router'
-import { useAuthStoreWithout } from '@/store/modules/auth'
-import { useChatStoreWithout } from '@/store/modules/chat'
+import { useAuthStore } from '@/store/modules/auth'
+import { useChatStore } from '@/store/modules/chat'
+import { store } from '@/store'
 // when time expired, remove the username from localstorage
 // this will force user re-login after
 // rome-ignore lint/suspicious/noExplicitAny: <explanation>
 function checkIsTokenExpired(auth_store: any) {
-  const accessToken = auth_store.getToken()
+  const accessToken = auth_store.getToken
   if (accessToken) {
     const current_ts = Math.floor(Date.now() / 1000)
-    const expiresIn = auth_store.getExpiresIn()
+    const expiresIn = auth_store.getExpiresIn
     if (expiresIn) {
       const expired = expiresIn < current_ts
       if (expired) {
@@ -24,12 +25,12 @@ function checkIsTokenExpired(auth_store: any) {
 
 export function setupPageGuard(router: Router) {
   router.beforeEach(async (to, from, next) => {
-    const auth_store = useAuthStoreWithout()
+    const auth_store = useAuthStore(store)
     checkIsTokenExpired(auth_store)
     
     // Handle workspace context from URL
     if (to.name === 'WorkspaceChat' && to.params.workspaceUuid) {
-      const chat_store = useChatStoreWithout()
+      const chat_store = useChatStore(store)
       const workspaceUuid = to.params.workspaceUuid as string
       
       // Set active workspace if it's different from current

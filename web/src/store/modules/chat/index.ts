@@ -902,6 +902,3 @@ export const useChatStore = defineStore('chat-store', {
   },
 })
 
-export function useChatStoreWithout() {
-  return useChatStore(store)
-}

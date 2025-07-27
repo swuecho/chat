@@ -36,7 +36,7 @@ service.interceptors.request.use(
     }
 
     // Add access token to Authorization header
-    const token = authStore.getToken()
+    const token = authStore.getToken
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -65,7 +65,7 @@ service.interceptors.response.use(
       try {
         await authStore.refreshToken()
         // Retry the original request with new token
-        const token = authStore.getToken()
+        const token = authStore.getToken
         if (token) {
           console.log('Retrying request with new token...')
           error.config.headers.Authorization = `Bearer ${token}`

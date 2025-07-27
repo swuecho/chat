@@ -115,7 +115,7 @@ function handleMarkdown() {
 }
 
 async function handleChat() {
-  if (!authStore.getToken())
+  if (!authStore.getToken)
     nui_msg.error(t('common.ask_user_register'))
   window.open(`/`, '_blank')
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
