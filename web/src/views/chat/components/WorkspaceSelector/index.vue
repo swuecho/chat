@@ -95,6 +95,8 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
       trigger="click"
       placement="bottom-start"
       @select="handleDropdownSelect"
+      class="workspace-dropdown"
+      :width="'trigger'"
     >
       <div class="workspace-button">
         <div class="workspace-icon" :style="{ color: activeWorkspace?.color || '#6366f1' }">
@@ -208,6 +210,36 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
   
   .workspace-arrow {
     color: #737373;
+  }
+}
+
+/* Dropdown styling to match button */
+:deep(.n-dropdown-menu) {
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+}
+
+:deep(.n-dropdown-option) {
+  padding: 8px;
+  font-size: 14px;
+  gap: 8px;
+}
+
+:deep(.n-dropdown-option .n-dropdown-option-body__prefix) {
+  font-size: 16px;
+}
+
+:deep(.n-dropdown-option:hover) {
+  background-color: rgb(245 245 245);
+}
+
+@media (prefers-color-scheme: dark) {
+  :deep(.n-dropdown-menu) {
+    border-color: #404040;
+  }
+  
+  :deep(.n-dropdown-option:hover) {
+    background-color: #24272e;
   }
 }
 </style>
