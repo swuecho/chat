@@ -66,6 +66,7 @@ declare namespace Chat {
 
 	interface ChatState {
 		activeSession: ActiveSession
+		workspaceActiveSessions: { [workspaceUuid: string]: string } // workspaceUuid -> sessionUuid
 		workspaces: Workspace[]
 		history: Session[]
 		chat: { [uuid: string]: Message[] }
