@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { getChatKeys, getLocalState } from './helper'
 import { router } from '@/router'
-import { store } from '@/store'
 import {
   clearSessionChatMessages,
   createChatSession,
@@ -43,7 +42,6 @@ export const useChatStore = defineStore('chat-store', {
   state: (): Chat.ChatState => getLocalState(),
 
   getters: {
-
     getChatSessionByUuid(state: Chat.ChatState) {
       return (uuid?: string) => {
         if (uuid)
