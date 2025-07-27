@@ -226,8 +226,35 @@ export const useChatStore = defineStore('chat-store', {
         await this.migrateSessionsToDefaultWorkspace()
 
         if (this.history.length === 0) {
-          const new_chat_text = t('chat.new')
-          await this.addChatSession(await getChatSessionDefault(new_chat_text))
+          console.log('🔄 No sessions found for user, creating default session in default workspace')
+          
+          // Ensure we have a default workspace before creating a session
+          const defaultWorkspace = this.getDefaultWorkspace
+          if (!defaultWorkspace) {
+            console.error('❌ No default workspace found when trying to create default session')
+            throw new Error('No default workspace available for session creation')
+          }
+          
+          console.log('🔄 Creating default session in workspace:', defaultWorkspace.name)
+          
+          // Create session directly in the default workspace instead of using legacy addChatSession
+          try {
+            // Set active workspace for session creation
+            this.activeSession.workspaceUuid = defaultWorkspace.uuid
+            
+            const new_chat_text = t('chat.new')
+            await this.createSessionInActiveWorkspace(new_chat_text)
+            console.log('✅ Created default session in default workspace for new user')
+          } catch (error) {
+            console.error('❌ Failed to create default session in workspace:', error)
+            // Fallback to legacy method if workspace creation fails
+            const new_chat_text = t('chat.new')
+            const defaultSession = await getChatSessionDefault(new_chat_text)
+            // Assign to default workspace
+            defaultSession.workspaceUuid = defaultWorkspace.uuid
+            await this.addChatSession(defaultSession)
+            console.log('✅ Created default session using fallback method')
+          }
         }
 
         // Handle navigation based on current route and active session
@@ -737,14 +764,17 @@ export const useChatStore = defineStore('chat-store', {
       } else {
         // Create a default session in the empty workspace
         try {
-          // First set the active workspace so createSessionInActiveWorkspace works
-          this.setActiveWorkspace(workspaceUuid)
+          console.log('🔄 Creating default session for empty workspace:', workspaceUuid)
+          
+          // Clear any stale session state and set active workspace
+          this.activeSession = { sessionUuid: null, workspaceUuid }
           
           const new_chat_text = t('chat.new')
-          await this.createSessionInActiveWorkspace(new_chat_text)
-          console.log('✅ Created default session in new workspace')
+          const sessionData = await this.createSessionInActiveWorkspace(new_chat_text)
+          console.log('✅ Created default session in new workspace:', sessionData.uuid)
         } catch (error) {
           console.error('❌ Failed to create default session in workspace:', error)
+          console.error('Error details:', error)
           // Fallback to navigation without session
           await router.push({
             name: 'WorkspaceChat',
@@ -797,10 +827,18 @@ export const useChatStore = defineStore('chat-store', {
     async createSessionInActiveWorkspace(topic: string, model?: string) {
       try {
         if (!this.activeSession.workspaceUuid) {
+          console.error('❌ No active workspace selected for session creation')
           throw new Error('No active workspace selected')
         }
 
+        console.log('🚀 Creating session in workspace:', {
+          workspaceUuid: this.activeSession.workspaceUuid,
+          topic,
+          model
+        })
+
         const sessionData = await createSessionInWorkspace(this.activeSession.workspaceUuid, { topic, model })
+        console.log('✅ Session created via API:', sessionData)
 
         // Add to history with workspace context
         const session: Chat.Session = {
@@ -813,11 +851,15 @@ export const useChatStore = defineStore('chat-store', {
 
         this.history.unshift(session)
         this.chat[sessionData.uuid] = []
+        console.log('✅ Session added to history')
 
         // Set as active session for the workspace
         await this.setActiveSession(this.activeSession.workspaceUuid, sessionData.uuid)
+        console.log('✅ Session set as active')
 
         await this.reloadRoute(sessionData.uuid)
+        console.log('✅ Route reloaded to new session')
+        
         return sessionData
       } catch (error) {
         console.error('❌ Error creating session in workspace:', error)
