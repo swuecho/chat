@@ -33,6 +33,9 @@ import { t } from '@/locales'
 // Session creation lock to prevent race conditions
 let isCreatingSession = false
 
+// Navigation lock to prevent race conditions during route changes
+let isNavigating = false
+
 export const useChatStore = defineStore('chat-store', {
   state: (): Chat.ChatState => getLocalState(),
 
@@ -101,20 +104,47 @@ export const useChatStore = defineStore('chat-store', {
 
   actions: {
     async reloadRoute(uuid?: string) {
-      if (uuid) {
-        const session = this.getChatSessionByUuid(uuid)
-        if (session && session.workspaceUuid) {
-          await router.push({
-            name: 'WorkspaceChat',
-            params: {
-              workspaceUuid: session.workspaceUuid,
-              uuid
-            }
-          })
-          return
-        }
+      // Prevent concurrent navigation
+      if (isNavigating) {
+        console.log('🚫 Navigation already in progress, skipping')
+        return
       }
-      await router.push({ name: 'Chat', params: { uuid } })
+
+      isNavigating = true
+      
+      try {
+        if (uuid) {
+          const session = this.getChatSessionByUuid(uuid)
+          if (session && session.workspaceUuid) {
+            // Only navigate if we're not already on the correct route
+            const currentRoute = router.currentRoute.value
+            const isCorrectRoute = currentRoute.name === 'WorkspaceChat' && 
+                                  currentRoute.params.workspaceUuid === session.workspaceUuid &&
+                                  currentRoute.params.uuid === uuid
+            
+            if (!isCorrectRoute) {
+              await router.push({
+                name: 'WorkspaceChat',
+                params: {
+                  workspaceUuid: session.workspaceUuid,
+                  uuid
+                }
+              })
+            }
+            return
+          }
+        }
+        
+        // Only navigate if we're not already on the correct route
+        const currentRoute = router.currentRoute.value
+        const isCorrectRoute = currentRoute.name === 'Chat' && currentRoute.params.uuid === uuid
+        
+        if (!isCorrectRoute) {
+          await router.push({ name: 'Chat', params: { uuid } })
+        }
+      } finally {
+        isNavigating = false
+      }
     },
 
     // Helper method to get workspace-aware URL  
@@ -148,6 +178,9 @@ export const useChatStore = defineStore('chat-store', {
         // Sync workspace active sessions from backend
         await this.syncWorkspaceActiveSessions()
 
+        // Ensure we have an active workspace after syncing
+        await this.ensureActiveWorkspace()
+
         this.history = await getChatSessionsByUser()
         console.log('📋 Synced sessions from DB:', this.history.length)
 
@@ -180,7 +213,16 @@ export const useChatStore = defineStore('chat-store', {
         const messageData = await getChatMessagesBySessionUUID(need_uuid)
         this.chat[need_uuid] = messageData
         const session = this.getChatSessionByUuid(need_uuid)
-        await this.setActiveSession(session?.workspaceUuid || null, need_uuid)
+        
+        // Only set active session if it's different from current
+        if (this.activeSession.sessionUuid !== need_uuid) {
+          await this.setActiveSession(session?.workspaceUuid || null, need_uuid)
+        } else {
+          // Just update the workspace if needed without triggering route reload
+          if (session?.workspaceUuid && this.activeSession.workspaceUuid !== session.workspaceUuid) {
+            this.setActiveSessionLocal(session.workspaceUuid, need_uuid)
+          }
+        }
       }
     },
 
@@ -429,19 +471,23 @@ export const useChatStore = defineStore('chat-store', {
           }
         }
 
-        // Set active workspace to default if none selected
-        if (!this.activeSession.workspaceUuid) {
-          const defaultWorkspace = this.getDefaultWorkspace
-          if (defaultWorkspace) {
-            this.activeSession.workspaceUuid = defaultWorkspace.uuid
-          }
-        }
       } catch (error) {
         console.error('❌ Error in syncWorkspaces:', error)
         // Set fallback state to prevent app breakage
         this.workspaces = []
         this.activeSession.workspaceUuid = null
         // Don't throw - allow app to continue with empty workspace state
+      }
+    },
+
+    async ensureActiveWorkspace() {
+      // If we don't have an active workspace, set it to the default workspace
+      if (!this.activeSession.workspaceUuid && this.workspaces.length > 0) {
+        const defaultWorkspace = this.getDefaultWorkspace || this.workspaces[0]
+        if (defaultWorkspace) {
+          this.activeSession.workspaceUuid = defaultWorkspace.uuid
+          console.log('✅ Set active workspace to:', defaultWorkspace.name)
+        }
       }
     },
 
@@ -555,8 +601,11 @@ export const useChatStore = defineStore('chat-store', {
         const firstSession = workspaceSessions[0]
         await this.setActiveSession(workspaceUuid, firstSession.uuid)
       } else {
-        // Create a default session in the empty workspace (similar to syncChatSessions behavior)
+        // Create a default session in the empty workspace
         try {
+          // First set the active workspace so createSessionInActiveWorkspace works
+          this.setActiveWorkspace(workspaceUuid)
+          
           const new_chat_text = t('chat.new')
           await this.createSessionInActiveWorkspace(new_chat_text)
           console.log('✅ Created default session in new workspace')
