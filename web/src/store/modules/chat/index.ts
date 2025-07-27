@@ -871,9 +871,11 @@ export const useChatStore = defineStore('chat-store', {
       try {
         console.log('📋 Syncing sessions for workspace:', workspaceUuid)
         const workspaceSessions = await getSessionsByWorkspace(workspaceUuid)
-        this.workspaceHistory[workspaceUuid] = workspaceSessions
-        console.log('📋 Synced', workspaceSessions.length, 'sessions for workspace:', workspaceUuid)
-        return workspaceSessions
+        // Ensure we always have an array, even if API returns null
+        const sessions = Array.isArray(workspaceSessions) ? workspaceSessions : []
+        this.workspaceHistory[workspaceUuid] = sessions
+        console.log('📋 Synced', sessions.length, 'sessions for workspace:', workspaceUuid)
+        return sessions
       } catch (error) {
         console.error('❌ Error syncing workspace sessions:', error)
         throw error

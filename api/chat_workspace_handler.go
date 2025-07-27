@@ -663,7 +663,7 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 		return
 	}
 
-	var sessionResponses []map[string]interface{}
+	sessionResponses := make([]map[string]interface{}, 0)
 	for _, session := range sessions {
 		sessionResponse := map[string]interface{}{
 			"uuid":         session.Uuid,
