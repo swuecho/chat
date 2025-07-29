@@ -104,6 +104,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	var answer_id string
 	var hasReason bool
+	var reasonTagClosed bool // Track if we've closed the think tag
 	if bufferLen == 0 {
 		log.Println("chatSession.N is 0")
 		bufferLen += 1
@@ -150,9 +151,23 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		// Send the delta content directly instead of accumulated content
 		if len(delta.Content) > 0 || len(delta.ReasoningContent) > 0 {
 			var deltaToSend string
-			if hasReason && len(delta.ReasoningContent) > 0 {
-				deltaToSend = delta.ReasoningContent
+			if len(delta.ReasoningContent) > 0 {
+				// Handle reasoning content
+				if !hasReason {
+					// First time seeing reasoning content, add opening tag
+					deltaToSend = "<think>" + delta.ReasoningContent
+					hasReason = true
+				} else {
+					// Continue reasoning content
+					deltaToSend = delta.ReasoningContent
+				}
+			} else if hasReason && !reasonTagClosed {
+				// We had reasoning content before and now we have regular content for the first time
+				// Close the think tag first, then send the content
+				deltaToSend = "</think>" + delta.Content
+				reasonTagClosed = true
 			} else {
+				// Regular content without reasoning
 				deltaToSend = delta.Content
 			}
 
