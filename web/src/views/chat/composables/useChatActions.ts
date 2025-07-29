@@ -27,30 +27,7 @@ export function useChatActions(sessionUuid: string) {
   async function handleAdd(dataSources: any[]) {
     if (dataSources.length > 0) {
       const new_chat_text = t('chat.new')
-      
-      // Get current session's model as default for new session
-      const currentSession = chatStore.getChatSessionByCurrentActive
-      const currentModel = currentSession?.model
-      
-      // Try workspace-aware creation first if available
-      if (chatStore.activeWorkspace && currentModel) {
-        try {
-          await chatStore.createSessionInActiveWorkspace(new_chat_text, currentModel)
-          if (isMobile.value)
-            appStore.setSiderCollapsed(true)
-          return
-        } catch (error) {
-          console.error('Failed to create session in workspace:', error)
-          // Fall back to traditional method
-        }
-      }
-      
-      // Fallback to traditional session creation
       const default_model_parameters = await getChatSessionDefault(new_chat_text)
-      // Use current model if available, otherwise use default
-      if (currentModel) {
-        default_model_parameters.model = currentModel
-      }
       await chatStore.addChatSession(default_model_parameters)
       if (isMobile.value)
         appStore.setSiderCollapsed(true)

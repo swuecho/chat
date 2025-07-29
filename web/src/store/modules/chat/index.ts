@@ -959,14 +959,20 @@ export const useChatStore = defineStore('chat-store', {
           throw new Error('No active workspace selected')
         }
 
-        // If no model provided, try to get default model from backend
+        // If no model provided, use current session's model or get default from backend
         if (!model) {
-          try {
-            const defaultModelData = await fetchDefaultChatModel()
-            model = defaultModelData.name
-            console.log('🔧 Using default model for new session:', model)
-          } catch (error) {
-            console.warn('⚠️ Failed to fetch default model, backend will handle fallback')
+          const currentSession = this.getChatSessionByCurrentActive
+          if (currentSession?.model) {
+            model = currentSession.model
+            console.log('🔧 Using current session model for new session:', model)
+          } else {
+            try {
+              const defaultModelData = await fetchDefaultChatModel()
+              model = defaultModelData.name
+              console.log('🔧 Using default model for new session:', model)
+            } catch (error) {
+              console.warn('⚠️ Failed to fetch default model, backend will handle fallback')
+            }
           }
         }
 

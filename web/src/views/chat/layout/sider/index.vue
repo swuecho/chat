@@ -24,14 +24,10 @@ const collapsed = computed(() => appStore.siderCollapsed)
 async function handleAdd() {
   const new_chat_text = t('chat.new')
   
-  // Get current session's model as default for new session
-  const currentSession = chatStore.getChatSessionByCurrentActive
-  const currentModel = currentSession?.model
-  
   // Try to create session in active workspace if available
   if (chatStore.activeWorkspace) {
     try {
-      await chatStore.createSessionInActiveWorkspace(new_chat_text, currentModel)
+      await chatStore.createSessionInActiveWorkspace(new_chat_text)
       if (isMobile.value)
         appStore.setSiderCollapsed(true)
       return
@@ -43,10 +39,6 @@ async function handleAdd() {
   
   // Fallback to traditional session creation
   const default_model_parameters = await getChatSessionDefault(new_chat_text)
-  // Use current model if available, otherwise use default
-  if (currentModel) {
-    default_model_parameters.model = currentModel
-  }
   await chatStore.addChatSession(default_model_parameters)
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
