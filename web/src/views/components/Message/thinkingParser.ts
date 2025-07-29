@@ -1,4 +1,4 @@
-import { ThinkingParseResult, ThinkingCacheEntry, ThinkingParserConfig } from './types/thinking'
+import type { ThinkingParseResult, ThinkingCacheEntry, ThinkingParserConfig } from './types/thinking'
 
 class ThinkingParser {
   private cache: Map<string, ThinkingCacheEntry> = new Map()
@@ -141,6 +141,5 @@ export const getThinkingCacheStats = () => {
   return thinkingParser.getCacheStats()
 }
 
-// Backward compatibility
-export { ThinkingParseResult }
-export type { ThinkingCacheEntry, ThinkingParserConfig }
+// Backward compatibility - re-export types
+export type { ThinkingParseResult, ThinkingCacheEntry, ThinkingParserConfig } from './types/thinking'
