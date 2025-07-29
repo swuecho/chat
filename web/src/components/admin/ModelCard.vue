@@ -101,7 +101,7 @@ function copyJson() {
 
 <template>
   <div>
-    <NCard hoverable class="mb-4 cursor-pointer" @click="dialogVisible = true" :class="{ 'border-2 border-green-500 bg-green-50 shadow-lg': model.isDefault }">
+    <NCard hoverable class="mb-4 cursor-pointer" @click="dialogVisible = true" :class="{ 'border-2 border-green-500 bg-green-50': model.isDefault }">
       <div class="flex justify-between items-center">
         <div>
           <div class="flex items-center gap-2">
