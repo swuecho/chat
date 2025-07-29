@@ -9,6 +9,7 @@
             "clear_form": "Clear Form",
             "copy": "Copy",
             "copy_success": "Copied successfully",
+            "default": "Default",
             "defaultToken": "Default token number",
             "deleteModel": "Delete",
             "deleteModelConfirm": "Confirm deletion {name}?",
@@ -272,7 +273,7 @@
     "workspace": {
         "create": "Create Workspace",
         "edit": "Edit Workspace",
-        "manage": "Manage Workspaces", 
+        "manage": "Manage Workspaces",
         "loading": "Loading workspaces...",
         "name": "Name",
         "namePlaceholder": "Enter workspace name",

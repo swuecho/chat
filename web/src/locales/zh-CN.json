@@ -67,7 +67,7 @@
   "bot": {
     "list": "机器人",
     "noHistory": "还没有记录",
-    "runNumber": "Run {number}",    
+    "runNumber": "Run {number}",
     "all": {
       "title": "机器人"
     },
@@ -196,6 +196,7 @@
     "chat_model": {
       "copy": "复制",
       "copy_success": "复制成功",
+      "default": "默认",
       "deleteModel": "删除",
       "deleteModelConfirm": "确认删除 {name}?",
       "name": "模型ID",
