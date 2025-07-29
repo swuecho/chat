@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { CSSProperties, Component, Ref } from 'vue'
-import { computed, h, reactive, ref } from 'vue'
+import { computed, h, reactive, ref, onMounted } from 'vue'
 import { NIcon, NLayout, NLayoutSider, NMenu } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
 import { PulseOutline, ShieldCheckmarkOutline, KeyOutline } from '@vicons/ionicons5'
@@ -13,14 +13,21 @@ import { useAuthStore } from '@/store'
 
 const { isMobile } = useBasicLayout()
 
-// login modal will appear when there is no token
+// Initialize auth state on component mount (async)
+onMounted(async () => {
+  console.log('🔄 Admin layout mounted, initializing auth...')
+  await authStore.initializeAuth()
+  console.log('✅ Auth initialization completed in Admin layout')
+})
+
+// login modal will appear when there is no token and auth is initialized (but not during initialization)
 const authStore = useAuthStore()
 const currentRoute = useRoute()
 const USER_ROUTE = 'AdminUser'
 const MODEL_ROUTE = 'AdminModel'
 const MODELRATELIMIT_ROUTUE = 'ModelRateLimit'
 
-const needPermission = computed(() => !authStore.isValid)
+const needPermission = computed(() => authStore.isInitialized && !authStore.isInitializing && !authStore.isValid)
 
 const collapsed: Ref<boolean> = ref(isMobile.value)
 const activeKey = ref(currentRoute.name?.toString())
