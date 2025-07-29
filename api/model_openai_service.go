@@ -186,11 +186,16 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chatCompleti
 	}
 
 	log.Printf("messages: %+v\n", openaiMessages)
+	// Ensure TopP is always greater than 0 to prevent API validation errors
+	topP := float32(chatSession.TopP) - 0.01
+	if topP <= 0 {
+		topP = 0.01 // Minimum valid value
+	}
 	openaiReq := openai.ChatCompletionRequest{
 		Model:       chatSession.Model,
 		Messages:    openaiMessages,
 		Temperature: float32(chatSession.Temperature),
-		TopP:        float32(chatSession.TopP) - 0.01,
+		TopP:        topP,
 		N:           int(chatSession.N),
 		Stream:      streamOutput,
 	}
