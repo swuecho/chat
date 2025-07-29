@@ -101,13 +101,14 @@ function copyJson() {
 
 <template>
   <div>
-    <NCard hoverable class="mb-4 cursor-pointer" @click="dialogVisible = true">
+    <NCard hoverable class="mb-4 cursor-pointer" @click="dialogVisible = true" :class="{ 'border-2 border-green-500': model.isDefault }">
       <div class="flex justify-between items-center">
         <div>
           <div class="flex items-center gap-2">
             <NBadge :value="model.orderNumber?.toString() || '0'" show-zero type="success">
               <h3 class="font-bold">{{ model.name }}</h3>
             </NBadge>
+            <NBadge v-if="model.isDefault" type="success" :value="t('admin.chat_model.default')" />
           </div>
           <p class="text-gray-500">{{ model.label }}</p>
         </div>
