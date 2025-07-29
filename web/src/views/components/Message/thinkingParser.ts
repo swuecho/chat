@@ -27,10 +27,36 @@ class ThinkingParser {
 
     // Parse thinking content
     let thinkingContentStr = ''
-    const answerContent = text.replace(this.config.thinkingTagPattern, (match, content) => {
-      thinkingContentStr = content.trim()
-      return ''
-    })
+    let answerContent = text
+    
+    // Check for complete thinking tags first
+    const completeMatch = text.match(this.config.thinkingTagPattern)
+    if (completeMatch) {
+      // Complete thinking tags found, extract content
+      answerContent = text.replace(this.config.thinkingTagPattern, (match, content) => {
+        thinkingContentStr = content.trim()
+        return ''
+      })
+    } else {
+      // Check for incomplete thinking tags (opening without closing)
+      const openingTagMatch = text.match(/<think>/)
+      const closingTagMatch = text.match(/<\/think>/)
+      
+      if (openingTagMatch && !closingTagMatch) {
+        // Incomplete: has opening tag but no closing tag
+        // Extract content after opening tag as thinking content
+        const openingTagIndex = text.indexOf('<think>')
+        thinkingContentStr = text.substring(openingTagIndex + 7).trim() // 7 is length of '<think>'
+        answerContent = text.substring(0, openingTagIndex)
+      } else if (!openingTagMatch && closingTagMatch) {
+        // Incomplete: has closing tag but no opening tag
+        // Treat everything before closing tag as thinking content
+        const closingTagIndex = text.indexOf('</think>')
+        thinkingContentStr = text.substring(0, closingTagIndex).trim()
+        answerContent = text.substring(closingTagIndex + 8) // 8 is length of '</think>'
+      }
+      // If both tags are missing or both are present (already handled), no special handling needed
+    }
 
     const result: ThinkingParseResult = {
       hasThinking: thinkingContentStr.length > 0,

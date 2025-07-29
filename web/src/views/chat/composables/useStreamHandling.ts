@@ -8,6 +8,7 @@ import { useChat } from '@/views/chat/hooks/useChat'
 import renderMessage from '../components/RenderMessage.vue'
 import { t } from '@/locales'
 import { getStreamingUrl } from '@/config/api'
+import { parseThinkingContent } from '@/views/components/Message/thinkingParser'
 
 interface ErrorResponse {
   code: number
