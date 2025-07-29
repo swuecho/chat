@@ -4,6 +4,8 @@ import MarkdownIt from 'markdown-it'
 import mdKatex from '@vscode/markdown-it-katex'
 import hljs from 'highlight.js'
 import { parseText } from './Util'
+import { useThinkingContent } from './useThinkingContent'
+import ThinkingRenderer from './ThinkingRenderer.vue'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { escapeBrackets, escapeDollarNumber } from '@/utils/string'
@@ -21,7 +23,8 @@ const { isMobile } = useBasicLayout()
 
 const textRef = ref<HTMLElement>()
 
-const isCollapsed = ref(false)
+// Use the new thinking content composable
+const { thinkingContent, hasThinking, toggleExpanded, isExpanded } = useThinkingContent(props.text)
 
 const mdi = new MarkdownIt({
   html: false, // true vs false
@@ -61,9 +64,8 @@ const text = computed(() => {
 })
 
 const thinkText = computed(() => {
-  if (!props.inversion) {
-    const think = parseText(props.text ?? '').thinkPart
-    const escapedText = escapeBrackets(escapeDollarNumber(think))
+  if (!props.inversion && hasThinking.value) {
+    const escapedText = escapeBrackets(escapeDollarNumber(thinkingContent.value?.content || ''))
     return mdi.render(escapedText)
   }
   return ''
@@ -78,26 +80,24 @@ defineExpose({ textRef })
 
 <template>
   <div class="text-black relative" :class="wrapClass">
-    <button
-      v-if="!inversion && thinkText"
-      class="absolute right-1 top-1 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-      @click="isCollapsed = !isCollapsed"
-    >
-      <svg
-        class="w-4 h-4 transform transition-transform" :class="{ 'rotate-180': !isCollapsed }"
-        viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-      </svg>
-    </button>
     <template v-if="loading">
       <span class="dark:text-white w-[4px] h-[20px] block animate-blink" />
     </template>
     <template v-else>
-      <div ref="textRef" class="leading-relaxed break-words " tabindex="-1">
-        <div
-          v-if="!inversion && thinkText" class="markdown-body p-2 border-l-2 border-lime-600 dark:border-white "
-          :class="{ hidden: isCollapsed }" v-html="thinkText"
+      <div ref="textRef" class="leading-relaxed break-words" tabindex="-1">
+        <ThinkingRenderer
+          v-if="!inversion && thinkingContent"
+          :content="thinkingContent"
+          :options="{
+            enableMarkdown: true,
+            enableCollapsible: true,
+            defaultExpanded: isExpanded,
+            showBorder: true,
+            borderColor: 'border-lime-600',
+            maxLines: 20,
+            enableCopy: true
+          }"
+          @toggle="toggleExpanded"
         />
         <div v-if="!inversion" class="markdown-body" v-html="text" />
         <div v-else class="whitespace-pre-wrap" v-text="text" />
