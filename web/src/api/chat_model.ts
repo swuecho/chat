@@ -48,8 +48,27 @@ export const fetchDefaultChatModel = async () => {
     const response = await request.get('/chat_model/default')
     return response.data
   }
-  catch (error) {
-    console.error(error)
+  catch (error: any) {
+    console.error('Failed to fetch default chat model:', error)
+    
+    // If default model API fails, try to get all models and use the first enabled one
+    if (error.response?.data?.code === 'RES_001' || error.response?.status === 500) {
+      console.warn('Default model not found, falling back to first available model')
+      try {
+        const allModelsResponse = await request.get('/chat_model')
+        const enabledModels = allModelsResponse.data?.filter((model: any) => model.isEnable) || []
+        
+        if (enabledModels.length > 0) {
+          // Sort by order number and return first one
+          enabledModels.sort((a: any, b: any) => (a.orderNumber || 0) - (b.orderNumber || 0))
+          console.log('Using fallback model:', enabledModels[0].name)
+          return enabledModels[0]
+        }
+      } catch (fallbackError) {
+        console.error('Failed to fetch fallback model:', fallbackError)
+      }
+    }
+    
     throw error
   }
 }

@@ -55,7 +55,15 @@ const chatModelOptions = computed(() =>
 const defaultModel = computed(() => {
         if (!data?.value) return undefined
         const defaultModels = data.value.filter((x: any) => x.isDefault && x.isEnable)
-        if (defaultModels.length === 0) return undefined
+        if (defaultModels.length === 0) {
+                // Fallback to first enabled model if no default is set
+                const enabledModels = data.value.filter((x: any) => x.isEnable)
+                if (enabledModels.length > 0) {
+                        enabledModels.sort((a: any, b: any) => (a.orderNumber || 0) - (b.orderNumber || 0))
+                        return enabledModels[0]?.name
+                }
+                return undefined
+        }
         // Sort by order_number to ensure deterministic selection
         defaultModels.sort((a: any, b: any) => (a.orderNumber || 0) - (b.orderNumber || 0))
         return defaultModels[0]?.name
@@ -65,6 +73,13 @@ const defaultModel = computed(() => {
 const modelRef = ref({
         model: chatSession.value?.model ?? defaultModel.value
 })
+
+// Watch for changes to defaultModel only when modelRef is empty
+watch(defaultModel, (newDefaultModel) => {
+        if (!modelRef.value.model && newDefaultModel) {
+                modelRef.value.model = newDefaultModel
+        }
+}, { immediate: true })
 
 // why watch not work?, missed the deep = true option
 watch(modelRef, async (modelValue: any) => {
@@ -76,8 +91,9 @@ watch(modelRef, async (modelValue: any) => {
 
 chatStore.$subscribe((mutation, state) => {
         const session = chatStore.getChatSessionByUuid(props.uuid)
-        if (modelRef.value.model != session?.model) {
-                modelRef.value.model = session?.model
+        // Only update if session has a model and it's different from current
+        if (session?.model && modelRef.value.model !== session.model) {
+                modelRef.value.model = session.model
         }
 })
 

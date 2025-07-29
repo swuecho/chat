@@ -25,6 +25,7 @@ import {
   autoMigrateLegacySessions,
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
+  fetchDefaultChatModel,
 } from '@/api'
 
 import { t } from '@/locales'
@@ -956,6 +957,17 @@ export const useChatStore = defineStore('chat-store', {
         if (!this.activeSession.workspaceUuid) {
           console.error('❌ No active workspace selected for session creation')
           throw new Error('No active workspace selected')
+        }
+
+        // If no model provided, try to get default model from backend
+        if (!model) {
+          try {
+            const defaultModelData = await fetchDefaultChatModel()
+            model = defaultModelData.name
+            console.log('🔧 Using default model for new session:', model)
+          } catch (error) {
+            console.warn('⚠️ Failed to fetch default model, backend will handle fallback')
+          }
         }
 
         console.log('🚀 Creating session in workspace:', {

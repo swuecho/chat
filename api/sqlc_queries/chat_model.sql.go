@@ -134,6 +134,8 @@ func (q *Queries) DeleteChatModel(ctx context.Context, arg DeleteChatModelParams
 const getDefaultChatModel = `-- name: GetDefaultChatModel :one
 SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable FROM chat_model WHERE is_default = true
 and user_id in (select id from auth_user where is_superuser = true)
+ORDER BY order_number, id
+LIMIT 1
 `
 
 func (q *Queries) GetDefaultChatModel(ctx context.Context) (ChatModel, error) {
