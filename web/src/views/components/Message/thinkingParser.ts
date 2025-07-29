@@ -26,15 +26,15 @@ class ThinkingParser {
     }
 
     // Parse thinking content
-    let thinkingContentStr = ''
+    const thinkingContents: string[] = []
     let answerContent = text
     
     // Check for complete thinking tags first
     const completeMatch = text.match(this.config.thinkingTagPattern)
     if (completeMatch) {
       // Complete thinking tags found, extract content
-      answerContent = text.replace(this.config.thinkingTagPattern, (match, content) => {
-        thinkingContentStr = content.trim()
+      answerContent = text.replace(this.config.thinkingTagPattern, (_, content) => {
+        thinkingContents.push(content.trim())
         return ''
       })
     } else {
@@ -46,20 +46,29 @@ class ThinkingParser {
         // Incomplete: has opening tag but no closing tag
         // Extract content after opening tag as thinking content
         const openingTagIndex = text.indexOf('<think>')
-        thinkingContentStr = text.substring(openingTagIndex + 7).trim() // 7 is length of '<think>'
+        const content = text.substring(openingTagIndex + 7) // 7 is length of '<think>'
+        // Always add content, even if empty - this indicates we're in thinking mode
+        thinkingContents.push(content)
         answerContent = text.substring(0, openingTagIndex)
       } else if (!openingTagMatch && closingTagMatch) {
         // Incomplete: has closing tag but no opening tag
         // Treat everything before closing tag as thinking content
         const closingTagIndex = text.indexOf('</think>')
-        thinkingContentStr = text.substring(0, closingTagIndex).trim()
-        answerContent = text.substring(closingTagIndex + 8) // 8 is length of '</think>'
+        const content = text.substring(0, closingTagIndex)
+        // Always add content, even if empty - this indicates thinking content was present
+        thinkingContents.push(content)
+        answerContent = ''
       }
       // If both tags are missing or both are present (already handled), no special handling needed
     }
 
+    const thinkingContentStr = thinkingContents.map(content => content.trim()).join('\n\n')
+    
+    // We have thinking if there's content OR if we found an incomplete opening tag
+    const hasThinkingContent = thinkingContents.length > 0
+    
     const result: ThinkingParseResult = {
-      hasThinking: thinkingContentStr.length > 0,
+      hasThinking: hasThinkingContent,
       thinkingContent: {
         content: thinkingContentStr,
         isExpanded: true,
