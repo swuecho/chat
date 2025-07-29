@@ -40,8 +40,8 @@ ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS is_enable BOOLEAN DEFAULT true N
 
 
 INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key, max_token, default_token, order_number)
-VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 4096, 4096, 0),
-        ('gemini-2.0-flash', 'gemini-2.0-flash', true, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash', 'Authorization', 'GEMINI_API_KEY', 4096, 4096, 0),
+VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 4096, 4096, 0),
+        ('gemini-2.0-flash', 'gemini-2.0-flash', false, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash', 'Authorization', 'GEMINI_API_KEY', 4096, 4096, 0),
         ('gpt-3.5-turbo-16k', 'gpt-3.5-16k', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY', 16384, 8192, 2),
         ('claude-3-7-sonnet-20250219', 'claude-3-7-sonnet-20250219', false, 'https://api.anthropic.com/v1/messages', 'x-api-key', 'CLAUDE_API_KEY', 4096, 4096, 4),
         ('gpt-4', 'gpt-4(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY',  9192, 4096, 5),
