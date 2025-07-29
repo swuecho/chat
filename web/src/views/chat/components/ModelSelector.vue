@@ -52,7 +52,14 @@ const chatModelOptions = computed(() =>
 )
 
 
-const defaultModel = computed(() => data?.value ? data.value.find((x: ({ isDefault: boolean, name: string })) => x.isDefault)?.name : undefined)
+const defaultModel = computed(() => {
+        if (!data?.value) return undefined
+        const defaultModels = data.value.filter((x: any) => x.isDefault && x.isEnable)
+        if (defaultModels.length === 0) return undefined
+        // Sort by order_number to ensure deterministic selection
+        defaultModels.sort((a: any, b: any) => (a.orderNumber || 0) - (b.orderNumber || 0))
+        return defaultModels[0]?.name
+})
 
 
 const modelRef = ref({
