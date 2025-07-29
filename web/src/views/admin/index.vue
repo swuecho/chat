@@ -105,7 +105,7 @@ const mobileOverlayClass = computed(() => {
 })
 
 function handleChatHome() {
-  window.open('/#/chat/', '_blank')
+  window.open('/', '_blank')
 }
 
 

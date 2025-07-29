@@ -55,8 +55,17 @@ interface ModelType {
   summarizeMode: boolean
 }
 
+const defaultModel = computed(() => {
+  if (!data?.value) return 'gpt-3.5-turbo'
+  const defaultModels = data.value.filter((x: any) => x.isDefault && x.isEnable)
+  if (defaultModels.length === 0) return 'gpt-3.5-turbo'
+  // Sort by order_number to ensure deterministic selection
+  defaultModels.sort((a: any, b: any) => (a.orderNumber || 0) - (b.orderNumber || 0))
+  return defaultModels[0]?.name || 'gpt-3.5-turbo'
+})
+
 const modelRef: Ref<ModelType> = ref({
-  chatModel: session.value?.model ?? 'gpt-3.5-turbo',
+  chatModel: session.value?.model ?? defaultModel.value,
   summarizeMode: session.value?.summarizeMode ?? false,
   contextCount: session.value?.maxLength ?? 10,
   temperature: session.value?.temperature ?? 1.0,

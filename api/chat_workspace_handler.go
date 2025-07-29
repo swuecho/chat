@@ -574,10 +574,6 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 		return
 	}
 
-	// Default model if not provided
-	if req.Model == "" {
-		req.Model = "gpt-3.5-turbo"
-	}
 
 	// Create session
 	sessionUUID := uuid.New().String()
