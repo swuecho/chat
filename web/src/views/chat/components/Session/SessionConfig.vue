@@ -124,7 +124,7 @@ const defaultToken = computed(() => {
         </div>
         <NRadioGroup v-model:value="modelRef.chatModel">
           <NSpace>
-            <NRadio v-for="model in chatModelOptions" :key="model.value" :value="model.value">
+            <NRadio v-for="model in chatModelOptions" :key="model.name" :value="model.name">
               <div>
                 {{ model.label }}
                 <span style="color: #999; font-size: 0.8rem; margin-left: 4px">
