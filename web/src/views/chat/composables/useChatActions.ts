@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { useDialog, useMessage } from 'naive-ui'
 import { v7 as uuidv7 } from 'uuid'
 import { createChatBot, createChatSnapshot, getChatSessionDefault } from '@/api'
-import { useAppStore, useSessionStore } from '@/store'
+import { useAppStore, useSessionStore, useMessageStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { nowISO } from '@/utils/date'
@@ -13,6 +13,7 @@ export function useChatActions(sessionUuid: string) {
   const dialog = useDialog()
   const nui_msg = useMessage()
   const sessionStore = useSessionStore()
+  const messageStore = useMessageStore()
   const appStore = useAppStore()
   const { isMobile } = useBasicLayout()
   const { addChat } = useChat()
@@ -73,7 +74,7 @@ export function useChatActions(sessionUuid: string) {
       positiveText: t('common.yes'),
       negativeText: t('common.no'),
       onPositiveClick: () => {
-        sessionStore.clearSessionByUuid(sessionUuid)
+        messageStore.clearSessionMessages(sessionUuid)
       },
     })
   }
