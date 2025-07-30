@@ -79,12 +79,14 @@ func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req ope
 	return &models.LLMAnswer{Answer: completion.Choices[0].Message.Content, AnswerId: completion.ID}, nil
 }
 
+// doChatStream handles streaming chat completion responses from OpenAI
+// It properly manages thinking tags for models that support reasoning content
 func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
-	// check per chat_model limit
+	// Set timeout for the entire streaming operation
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	log.Print("before request")
+	log.Print("Creating OpenAI stream")
 	stream, err := client.CreateChatCompletionStream(ctx, req)
 
 	if err != nil {
@@ -93,6 +95,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 	}
 	defer stream.Close()
 
+	// Setup Server-Sent Events (SSE) streaming
 	flusher, err := setupSSEStream(w)
 	if err != nil {
 		return nil, APIError{
@@ -102,75 +105,66 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		}
 	}
 
+	// Initialize streaming state
 	var answer_id string
-	var hasReason bool
-	var reasonTagClosed bool // Track if we've closed the think tag
+	var hasReason bool           // Whether we've detected any reasoning content
+	var reasonTagOpened bool     // Whether we've sent the opening <think> tag
+	var reasonTagClosed bool     // Whether we've sent the closing </think> tag
+	
+	// Ensure minimum buffer length
 	if bufferLen == 0 {
-		log.Println("chatSession.N is 0")
-		bufferLen += 1
+		log.Println("Buffer length is 0, setting to 1")
+		bufferLen = 1
 	}
+	
+	// Initialize buffers for accumulating content
 	textBuffer := newTextBuffer(bufferLen, "", "")
 	reasonBuffer := newTextBuffer(bufferLen, "<think>\n\n", "\n\n</think>\n\n")
 	answer_id = GenerateAnswerID(chatUuid, regenerate)
+	// Main streaming loop
 	for {
 		rawLine, err := stream.RecvRaw()
 		if err != nil {
 			log.Printf("stream error: %+v", err)
 			if errors.Is(err, io.EOF) {
-				// send the last message - but we don't need this anymore since we send deltas directly
-
-				// no reason in the answer (so do not disrupt the context)
+				// Stream ended successfully - return accumulated content
 				llmAnswer := models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id}
 				if hasReason {
 					llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 				}
 				return &llmAnswer, nil
 			} else {
-				log.Printf("%v", err)
+				log.Printf("Stream error: %v", err)
 				return nil, ErrOpenAIStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())
 			}
 		}
+		// Parse the streaming response
 		response := llm_openai.ChatCompletionStreamResponse{}
 		err = json.Unmarshal(rawLine, &response)
 		if err != nil {
 			log.Printf("Could not unmarshal response: %v\n", err)
 			continue
 		}
+		
+		// Extract delta content from the response
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Delta
+		
+		// Accumulate content in buffers (for final answer construction)
 		textBuffer.appendByIndex(textIdx, delta.Content)
 		if len(delta.ReasoningContent) > 0 {
 			hasReason = true
 			reasonBuffer.appendByIndex(textIdx, delta.ReasoningContent)
 		}
 
+		// Set answer ID from response if not already set
 		if answer_id == "" {
 			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
 
-		// Send the delta content directly instead of accumulated content
+		// Process and send delta content
 		if len(delta.Content) > 0 || len(delta.ReasoningContent) > 0 {
-			var deltaToSend string
-			if len(delta.ReasoningContent) > 0 {
-				// Handle reasoning content
-				if !hasReason {
-					// First time seeing reasoning content, add opening tag
-					deltaToSend = "<think>" + delta.ReasoningContent
-					hasReason = true
-				} else {
-					// Continue reasoning content
-					deltaToSend = delta.ReasoningContent
-				}
-			} else if hasReason && !reasonTagClosed {
-				// We had reasoning content before and now we have regular content for the first time
-				// Close the think tag first, then send the content
-				deltaToSend = "</think>" + delta.Content
-				reasonTagClosed = true
-			} else {
-				// Regular content without reasoning
-				deltaToSend = delta.Content
-			}
-
+			deltaToSend := processDelta(delta, &reasonTagOpened, &reasonTagClosed, hasReason)
 			if len(deltaToSend) > 0 {
 				log.Printf("delta: %s", deltaToSend)
 				err := FlushResponse(w, flusher, StreamingResponse{
@@ -184,6 +178,33 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 			}
 		}
 	}
+}
+
+// processDelta handles the logic for processing delta content with thinking tags
+func processDelta(delta llm_openai.ChatCompletionStreamChoiceDelta, reasonTagOpened *bool, reasonTagClosed *bool, hasReason bool) string {
+	var deltaToSend string
+	
+	if len(delta.ReasoningContent) > 0 {
+		// Handle reasoning content
+		if !*reasonTagOpened {
+			// First time seeing reasoning content, add opening tag
+			deltaToSend = "<think>" + delta.ReasoningContent
+			*reasonTagOpened = true
+		} else {
+			// Continue reasoning content
+			deltaToSend = delta.ReasoningContent
+		}
+	} else if hasReason && !*reasonTagClosed {
+		// We had reasoning content before and now we have regular content for the first time
+		// Close the think tag first, then send the content
+		deltaToSend = "</think>" + delta.Content
+		*reasonTagClosed = true
+	} else {
+		// Regular content without reasoning
+		deltaToSend = delta.Content
+	}
+	
+	return deltaToSend
 }
 
 // NewUserMessage creates a new OpenAI user message

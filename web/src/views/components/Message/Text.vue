@@ -1,9 +1,8 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import mdKatex from '@vscode/markdown-it-katex'
 import hljs from 'highlight.js'
-import { parseText } from './Util'
 import { useThinkingContent } from './useThinkingContent'
 import ThinkingRenderer from './ThinkingRenderer.vue'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
@@ -24,7 +23,12 @@ const { isMobile } = useBasicLayout()
 const textRef = ref<HTMLElement>()
 
 // Use the new thinking content composable
-const { thinkingContent, hasThinking, toggleExpanded, isExpanded } = useThinkingContent(props.text)
+const { thinkingContent, hasThinking, toggleExpanded, isExpanded, parsedResult, updateText } = useThinkingContent(props.text)
+
+// Watch for prop changes and update the thinking content
+watch(() => props.text, (newText) => {
+  updateText(newText || '')
+}, { immediate: true })
 
 const mdi = new MarkdownIt({
   html: false, // true vs false
@@ -54,7 +58,7 @@ const wrapClass = computed(() => {
 })
 
 const text = computed(() => {
-  const value = parseText(props.text ?? '').answerPart
+  const value = parsedResult.value?.answerContent ?? props.text ?? ''
   // 对数学公式进行处理，自动添加 $$ 符号
   if (!props.inversion) {
     const escapedText = escapeBrackets(escapeDollarNumber(value))
@@ -63,13 +67,6 @@ const text = computed(() => {
   return value
 })
 
-const thinkText = computed(() => {
-  if (!props.inversion && hasThinking.value) {
-    const escapedText = escapeBrackets(escapeDollarNumber(thinkingContent.value?.content || ''))
-    return mdi.render(escapedText)
-  }
-  return ''
-})
 
 function highlightBlock(str: string, lang?: string) {
   return `<pre class="code-block-wrapper"><div class="code-block-header"><span class="code-block-header__lang">${lang}</span><span class="code-block-header__copy">${t('chat.copyCode')}</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`
@@ -86,8 +83,8 @@ defineExpose({ textRef })
     <template v-else>
       <div ref="textRef" class="leading-relaxed break-words" tabindex="-1">
         <ThinkingRenderer
-          v-if="!inversion && thinkingContent"
-          :content="thinkingContent"
+          v-if="!inversion && hasThinking"
+          :content="thinkingContent || { content: '', isExpanded: true, createdAt: new Date(), updatedAt: new Date() }"
           :options="{
             enableMarkdown: true,
             enableCollapsible: true,

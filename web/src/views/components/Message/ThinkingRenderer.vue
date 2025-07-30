@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import mdKatex from '@vscode/markdown-it-katex'
 import hljs from 'highlight.js'
@@ -28,6 +28,13 @@ const emit = defineEmits<{
 const { isMobile } = useBasicLayout()
 const isExpanded = ref(props.options.defaultExpanded ?? true)
 const isCopied = ref(false)
+
+// Watch for changes in defaultExpanded prop to stay in sync
+watch(() => props.options.defaultExpanded, (newVal) => {
+  if (newVal !== undefined) {
+    isExpanded.value = newVal
+  }
+})
 
 const mdi = new MarkdownIt({
   html: false,
