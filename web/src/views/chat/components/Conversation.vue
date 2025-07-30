@@ -39,24 +39,32 @@ const promptStore = usePromptStore()
 const { sessionUuid } = defineProps({
   sessionUuid: {
     type: String,
-    required: true
+    required: false,
+    default: undefined
   },
 });
 
 const { isMobile } = useBasicLayout()
 const { scrollRef, scrollToBottom, smoothScrollToBottomIfAtBottom } = useScroll()
 
-// Initialize composables
-const conversationFlow = useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom)
-const regenerate = useRegenerate(sessionUuid)
+// Early return if sessionUuid is not provided
+if (!sessionUuid) {
+  console.warn('Conversation component: sessionUuid is required but not provided')
+}
+
+// Initialize composables only if sessionUuid is available
+const conversationFlow = sessionUuid ? useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom) : null
+const regenerate = sessionUuid ? useRegenerate(sessionUuid) : null
 const searchAndPrompts = useSearchAndPrompts()
-const chatActions = useChatActions(sessionUuid)
+const chatActions = sessionUuid ? useChatActions(sessionUuid) : null
 
-// Sync chat messages
-messageStore.syncChatMessages(sessionUuid)
+// Sync chat messages only if sessionUuid is available
+if (sessionUuid) {
+  messageStore.syncChatMessages(sessionUuid)
+}
 
-const dataSources = computed(() => messageStore.getChatSessionDataByUuid(sessionUuid))
-const chatSession = computed(() => sessionStore.getChatSessionByUuid(sessionUuid))
+const dataSources = computed(() => sessionUuid ? messageStore.getChatSessionDataByUuid(sessionUuid) : [])
+const chatSession = computed(() => sessionUuid ? sessionStore.getChatSessionByUuid(sessionUuid) : null)
 
 // Destructure from composables
 const { prompt, searchOptions, renderOption, handleSelectAutoComplete, handleUsePrompt } = searchAndPrompts
@@ -68,12 +76,26 @@ const {
   showArtifactGallery,
   toggleArtifactGallery,
   handleVFSFileUploaded
-} = chatActions
+} = chatActions || {
+  snapshotLoading: ref(false),
+  botLoading: ref(false),
+  showUploadModal: ref(false),
+  showModal: ref(false),
+  showArtifactGallery: ref(false),
+  toggleArtifactGallery: () => {},
+  handleVFSFileUploaded: () => {}
+}
 
 // Use loading state from composables
-const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
+const loading = computed(() => {
+  const conversationLoading = conversationFlow?.loading?.value || false
+  const regenerateLoading = regenerate?.loading?.value || false
+  return conversationLoading || regenerateLoading
+})
 
 async function handleSubmit() {
+  if (!sessionUuid || !conversationFlow) return
+  
   const message = prompt.value
   if (conversationFlow.validateConversationInput(message)) {
     prompt.value = '' // Clear the input after validation passes
@@ -84,22 +106,27 @@ async function handleSubmit() {
 }
 
 async function onRegenerate(index: number) {
+  if (!sessionUuid || !regenerate) return
   await regenerate.onRegenerate(index, dataSources.value)
 }
 
 async function handleAdd() {
+  if (!sessionUuid || !chatActions) return
   await chatActions.handleAdd(dataSources.value)
 }
 
 async function handleSnapshot() {
+  if (!sessionUuid || !chatActions) return
   await chatActions.handleSnapshot()
 }
 
 async function handleCreateBot() {
+  if (!sessionUuid || !chatActions) return
   await chatActions.handleCreateBot()
 }
 
 function handleClear() {
+  if (!sessionUuid || !chatActions) return
   chatActions.handleClear(loading)
 }
 
@@ -148,6 +175,7 @@ onUnmounted(() => {
 
 // VFS event handlers with stream response functionality
 const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
+  if (!sessionUuid || !chatActions || !conversationFlow) return
   await chatActions.handleCodeExampleAdded(codeInfo, (chatUuid: string, message: string) => {
     return conversationFlow.startStream(message, dataSources.value, chatUuid)
   })
@@ -163,7 +191,13 @@ function handleUpload() {
 
 <template>
   <VFSProvider>
-    <div class="flex flex-col w-full h-full">
+    <div v-if="!sessionUuid" class="flex items-center justify-center h-full">
+      <div class="text-center text-neutral-400">
+        <SvgIcon icon="ri:chat-3-line" class="text-4xl mb-2" />
+        <p>No session selected</p>
+      </div>
+    </div>
+    <div v-else class="flex flex-col w-full h-full">
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />
       <ChatVFSUploader :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"

@@ -5,12 +5,12 @@ import { useRouter } from 'vue-router'
 import Sider from './sider/index.vue'
 import Permission from '@/views/components/Permission.vue'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useAppStore, useAuthStore, useSessionStore } from '@/store'
+import { useAppStore, useAuthStore, useChatStore } from '@/store'
 
 
 const router = useRouter()
 const appStore = useAppStore()
-const sessionStore = useSessionStore()
+const chatStore = useChatStore()
 const authStore = useAuthStore()
 
 const { isMobile } = useBasicLayout()
@@ -47,11 +47,11 @@ watch(() => authStore.isInitialized, (initialized) => {
 // Watch for authentication state changes and sync chat sessions when user logs in
 watch(() => authStore.isValid, async (isValid) => {
   console.log('Auth state changed, isValid:', isValid)
-  const totalSessions = sessionStore.getAllSessions().length
-  if (isValid && totalSessions === 0) {
+  const totalSessions = await chatStore.getAllSessions()
+  if (isValid && totalSessions.length === 0) {
     console.log('User is now authenticated and no chat sessions loaded, syncing...')
     try {
-      await sessionStore.syncAllWorkspaceSessions()
+      await chatStore.syncChatSessions()
       console.log('Chat sessions synced after auth state change')
     } catch (error) {
       console.error('Failed to sync chat sessions after auth state change:', error)
