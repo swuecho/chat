@@ -42,7 +42,10 @@ export function useStreamHandling() {
         render: renderMessage
       })
 
-      messageStore.deleteMessageByUuid(sessionUuid, responseIndex)
+      const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
+      if (messages && messages[responseIndex]) {
+        messageStore.removeMessage(sessionUuid, messages[responseIndex].uuid)
+      }
     } catch (parseError) {
       console.error('Failed to parse error response:', parseError)
       nui_msg.error('An unexpected error occurred')
@@ -67,7 +70,8 @@ export function useStreamHandling() {
       const answerUuid = parsedData.id.replace('chatcmpl-', '')
 
       // Get current message to append delta content
-      const currentMessage = messageStore.getMessageByUuidAndIndex(sessionUuid, responseIndex)
+      const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
+      const currentMessage = messages && messages[responseIndex] ? messages[responseIndex] : null
       const currentText = currentMessage?.text || ''
       const newText = currentText + deltaContent
 

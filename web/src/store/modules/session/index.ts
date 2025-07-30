@@ -4,6 +4,7 @@ import {
   createChatSession,
   deleteChatSession,
   renameChatSession,
+  updateChatSession,
   getSessionsByWorkspace,
   createSessionInWorkspace,
   type Session,
@@ -167,8 +168,15 @@ export const useSessionStore = defineStore('session-store', {
             // Update local state
             sessions[index] = { ...sessions[index], ...updates }
             
-            // Update backend
-            await renameChatSession(uuid, sessions[index].title)
+            // Update backend - use the appropriate API method
+            if (updates.title !== undefined) {
+              // If only title is changing, use the rename endpoint
+              await renameChatSession(uuid, sessions[index].title)
+            } else {
+              // For other updates (like model), use the full update endpoint
+              await updateChatSession(uuid, sessions[index])
+            }
+            
             return sessions[index]
           }
         }
