@@ -11,6 +11,8 @@ import {
   type Workspace,
 } from '@/api'
 
+import { useSessionStore } from '@/store/modules/session'
+
 export interface WorkspaceState {
   workspaces: Workspace[]
   activeWorkspaceUuid: string | null
