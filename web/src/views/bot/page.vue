@@ -12,14 +12,14 @@ import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { getCurrentDate } from '@/utils/date'
-import { useAuthStore, useChatStore } from '@/store'
+import { useAuthStore, useSessionStore } from '@/store'
 import { useQuery } from '@tanstack/vue-query'
 import { generateAPIHelper } from '@/service/snapshot'
 import { fetchAPIToken } from '@/api/token'
 import { fetchBotAnswerHistory } from '@/api/bot_answer_history'
 
 const authStore = useAuthStore()
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
 
 const route = useRoute()
 const dialog = useDialog()
@@ -119,7 +119,7 @@ async function handleChat() {
     nui_msg.error(t('common.ask_user_register'))
   window.open(`/`, '_blank')
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
-  await chatStore.setActiveLocal(SessionUuid)
+  await sessionStore.setActiveSessionLocal(null, SessionUuid)
 }
 
 const footerClass = computed(() => {

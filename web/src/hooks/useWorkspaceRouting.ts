@@ -1,11 +1,12 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useChatStore } from '@/store'
+import { useSessionStore, useWorkspaceStore } from '@/store'
 
 export function useWorkspaceRouting() {
   const router = useRouter()
   const route = useRoute()
-  const chatStore = useChatStore()
+  const sessionStore = useSessionStore()
+  const workspaceStore = useWorkspaceStore()
 
   // Get current workspace from URL
   const currentWorkspaceFromUrl = computed(() => {
@@ -24,17 +25,17 @@ export function useWorkspaceRouting() {
 
   // Generate workspace-aware URL for a session
   function getSessionUrl(sessionUuid: string, workspaceUuid?: string): string {
-    const workspace = workspaceUuid || chatStore.activeWorkspace
-    const session = chatStore.getChatSessionByUuid(sessionUuid)
+    const workspace = workspaceUuid || workspaceStore.activeWorkspace
+    const session = sessionStore.getSessionByUuid(sessionUuid)
     
     // Use session's workspace if available, otherwise use provided or active workspace
-    const targetWorkspace = session?.workspaceUuid || workspace || chatStore.getDefaultWorkspace?.uuid
+    const targetWorkspace = session?.workspaceUuid || workspace || workspaceStore.getDefaultWorkspace?.uuid
     
     if (targetWorkspace) {
       return `/#/workspace/${targetWorkspace}/chat/${sessionUuid}`
     }
     // Fallback to default workspace if none found
-    const defaultWorkspace = chatStore.getDefaultWorkspace
+    const defaultWorkspace = workspaceStore.getDefaultWorkspace
     return defaultWorkspace ? `/#/workspace/${defaultWorkspace.uuid}/chat/${sessionUuid}` : `/#/`
   }
 
@@ -45,11 +46,11 @@ export function useWorkspaceRouting() {
 
   // Navigate to session with workspace context
   async function navigateToSession(sessionUuid: string, workspaceUuid?: string) {
-    const workspace = workspaceUuid || chatStore.activeWorkspace
-    const session = chatStore.getChatSessionByUuid(sessionUuid)
+    const workspace = workspaceUuid || workspaceStore.activeWorkspace
+    const session = sessionStore.getSessionByUuid(sessionUuid)
     
     // Use session's workspace if available, otherwise use default workspace
-    const targetWorkspace = session?.workspaceUuid || workspace || chatStore.getDefaultWorkspace?.uuid
+    const targetWorkspace = session?.workspaceUuid || workspace || workspaceStore.getDefaultWorkspace?.uuid
     
     if (targetWorkspace) {
       await router.push({
@@ -75,7 +76,7 @@ export function useWorkspaceRouting() {
 
   // Navigate to first session in workspace, or workspace itself if no sessions
   async function navigateToWorkspaceOrFirstSession(workspaceUuid: string) {
-    const workspaceSessions = chatStore.getSessionsByWorkspace(workspaceUuid)
+    const workspaceSessions = sessionStore.getSessionsByWorkspace(workspaceUuid)
     
     if (workspaceSessions.length > 0) {
       await navigateToSession(workspaceSessions[0].uuid, workspaceUuid)
@@ -102,12 +103,12 @@ export function useWorkspaceRouting() {
 
   // Sync URL with current state (useful for redirects after workspace changes)
   async function syncUrlWithState() {
-    const activeSession = chatStore.active
-    const activeWorkspace = chatStore.activeWorkspace
+    const activeSession = sessionStore.active
+    const activeWorkspace = workspaceStore.activeWorkspace
     
     // If we have an active session and workspace, ensure URL is correct
     if (activeSession && activeWorkspace) {
-      const session = chatStore.getChatSessionByUuid(activeSession)
+      const session = sessionStore.getSessionByUuid(activeSession)
       if (session && session.workspaceUuid === activeWorkspace) {
         // Check if current URL doesn't match expected workspace-aware URL
         if (!isCurrentRoute(activeSession, activeWorkspace)) {
@@ -123,12 +124,12 @@ export function useWorkspaceRouting() {
     const sessionFromUrl = currentSessionFromUrl.value
     
     // Update store state to match URL
-    if (workspaceFromUrl && workspaceFromUrl !== chatStore.activeWorkspace) {
-      chatStore.setActiveWorkspace(workspaceFromUrl)
+    if (workspaceFromUrl && workspaceFromUrl !== workspaceStore.activeWorkspace) {
+      workspaceStore.setActiveWorkspace(workspaceFromUrl)
     }
     
-    if (sessionFromUrl && sessionFromUrl !== chatStore.active) {
-      chatStore.setActiveLocal(sessionFromUrl)
+    if (sessionFromUrl && sessionFromUrl !== sessionStore.active) {
+      sessionStore.setActiveLocal(sessionFromUrl)
     }
   }
 

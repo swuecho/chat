@@ -2,14 +2,16 @@
 import { computed, defineAsyncComponent, h, ref, watch } from 'vue'
 import { NDropdown } from 'naive-ui'
 import { HoverButton, SvgIcon, UserAvatar } from '@/components/common'
-import { useAppStore, useAuthStore, useChatStore, useUserStore } from '@/store/modules'
+import { useAppStore, useAuthStore, useUserStore, useMessageStore, useSessionStore, useWorkspaceStore } from '@/store/modules'
 import { isAdmin } from '@/utils/jwt'
 import { t } from '@/locales'
 const Setting = defineAsyncComponent(() => import('@/components/common/Setting/index.vue'))
 
 const authStore = useAuthStore()
 const userStore = useUserStore()
-const chatStore = useChatStore()
+const messageStore = useMessageStore()
+const sessionStore = useSessionStore()
+const workspaceStore = useWorkspaceStore()
 const appStore = useAppStore()
 
 const show = ref(false)
@@ -20,7 +22,8 @@ function handleLogout() {
   // clear all stores
   authStore.removeToken()
   userStore.resetUserInfo()
-  chatStore.clearState()
+  messageStore.clearAllMessages()
+  sessionStore.clearWorkspaceSessions(workspaceStore.activeWorkspace?.uuid || '')
 }
 
 function handleChangelang() {

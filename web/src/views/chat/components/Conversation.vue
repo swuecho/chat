@@ -7,7 +7,7 @@ import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'
 import SessionConfig from '@/views/chat/components/Session/SessionConfig.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useChatStore, usePromptStore } from '@/store'
+import { useMessageStore, useSessionStore, usePromptStore } from '@/store'
 import { t } from '@/locales'
 import UploadModal from '@/views/chat/components/UploadModal.vue'
 import UploaderReadOnly from '@/views/chat/components/UploaderReadOnly.vue'
@@ -32,7 +32,8 @@ useSlashToFocus(searchInputRef);
 
 let controller = new AbortController()
 
-const chatStore = useChatStore()
+const messageStore = useMessageStore()
+const sessionStore = useSessionStore()
 const promptStore = usePromptStore()
 
 const { sessionUuid } = defineProps({
@@ -52,10 +53,10 @@ const searchAndPrompts = useSearchAndPrompts()
 const chatActions = useChatActions(sessionUuid)
 
 // Sync chat messages
-chatStore.syncChatMessages(sessionUuid)
+messageStore.syncChatMessages(sessionUuid)
 
-const dataSources = computed(() => chatStore.getChatSessionDataByUuid(sessionUuid))
-const chatSession = computed(() => chatStore.getChatSessionByUuid(sessionUuid))
+const dataSources = computed(() => messageStore.getChatSessionDataByUuid(sessionUuid))
+const chatSession = computed(() => sessionStore.getChatSessionByUuid(sessionUuid))
 
 // Destructure from composables
 const { prompt, searchOptions, renderOption, handleSelectAutoComplete, handleUsePrompt } = searchAndPrompts

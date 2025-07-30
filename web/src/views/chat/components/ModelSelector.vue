@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref, watch, h, onUnmounted } from 'vue'
 import { NSelect, NForm } from 'naive-ui'
-import { useChatStore, useAuthStore } from '@/store'
+import { useSessionStore, useAuthStore } from '@/store'
 import { useChatModels } from '@/hooks/useChatModels'
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
 
@@ -27,7 +27,7 @@ interface ChatSession {
         // Add other session properties as needed
 }
 
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
 const authStore = useAuthStore()
 const { useChatModelsQuery } = useChatModels()
 
@@ -36,7 +36,7 @@ const props = defineProps<{
         model: string | undefined
 }>()
 
-const chatSession = computed(() => chatStore.getChatSessionByUuid(props.uuid))
+const chatSession = computed(() => sessionStore.getSessionByUuid(props.uuid))
 
 const { data } = useChatModelsQuery()
 
@@ -97,7 +97,7 @@ watch(defaultModel, (newDefaultModel) => {
 // Watch only the model property instead of deep watching the entire object
 watch(() => modelRef.value.model, async (newModel, oldModel) => {
         if (newModel !== oldModel && newModel) {
-                await chatStore.updateChatSession(props.uuid, {
+                await sessionStore.updateSession(props.uuid, {
                         model: newModel
                 })
         }

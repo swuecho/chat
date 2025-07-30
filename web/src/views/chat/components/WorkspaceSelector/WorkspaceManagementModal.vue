@@ -14,7 +14,8 @@ import {
   useMessage
 } from 'naive-ui'
 import { SvgIcon } from '@/components/common'
-import { useChatStore } from '@/store'
+import { useWorkspaceStore } from '@/store/modules/workspace'
+import { useSessionStore } from '@/store/modules/session'
 import { t } from '@/locales'
 import WorkspaceCard from './WorkspaceCard.vue'
 import WorkspaceModal from './WorkspaceModal.vue'
@@ -30,7 +31,8 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const chatStore = useChatStore()
+const workspaceStore = useWorkspaceStore()
+const sessionStore = useSessionStore()
 const message = useMessage()
 
 const searchQuery = ref('')
@@ -46,7 +48,7 @@ const isVisible = computed({
   set: (value) => emit('update:visible', value)
 })
 
-const workspaces = computed(() => chatStore.workspaces)
+const workspaces = computed(() => workspaceStore.workspaces)
 
 const filteredWorkspaces = computed(() => {
   if (!searchQuery.value.trim()) {
@@ -90,7 +92,7 @@ function handleSetDefaultWorkspace(workspace: Chat.Workspace) {
 }
 
 async function handleWorkspaceCreated(workspace: Chat.Workspace) {
-  await chatStore.switchToWorkspace(workspace.uuid)
+  await workspaceStore.setActiveWorkspace(workspace.uuid)
   message.success(`Created and switched to ${workspace.name}`)
   showCreateModal.value = false
 }
@@ -166,7 +168,7 @@ async function reorderWorkspaces(fromIndex: number, toIndex: number) {
       if (currentOrder !== index) {
         console.log(`📝 Updating ${workspace.name}: ${currentOrder} → ${index}`)
         try {
-          await chatStore.updateWorkspaceOrder(workspace.uuid, index)
+          await workspaceStore.updateWorkspaceOrder(workspace.uuid, index)
         } catch (error) {
           console.error(`❌ Failed to update order for workspace ${workspace.name}:`, error)
           throw error
@@ -177,7 +179,7 @@ async function reorderWorkspaces(fromIndex: number, toIndex: number) {
     await Promise.all(updatePromises)
     
     // Refresh workspaces to get the updated order from backend
-    await chatStore.syncWorkspaces()
+    await workspaceStore.syncWorkspaces()
     
     message.success(t('workspace.reorderSuccess'))
     console.log('✅ Workspace reordering completed')

@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { useDialog, useMessage } from 'naive-ui'
 import { v7 as uuidv7 } from 'uuid'
 import { createChatBot, createChatSnapshot, getChatSessionDefault } from '@/api'
-import { useAppStore, useChatStore } from '@/store'
+import { useAppStore, useSessionStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { nowISO } from '@/utils/date'
@@ -12,7 +12,7 @@ import { t } from '@/locales'
 export function useChatActions(sessionUuid: string) {
   const dialog = useDialog()
   const nui_msg = useMessage()
-  const chatStore = useChatStore()
+  const sessionStore = useSessionStore()
   const appStore = useAppStore()
   const { isMobile } = useBasicLayout()
   const { addChat } = useChat()
@@ -27,7 +27,7 @@ export function useChatActions(sessionUuid: string) {
     if (dataSources.length > 0) {
       const new_chat_text = t('chat.new')
       const default_model_parameters = await getChatSessionDefault(new_chat_text)
-      await chatStore.addChatSession(default_model_parameters)
+      await sessionStore.addSession(default_model_parameters)
       if (isMobile.value)
         appStore.setSiderCollapsed(true)
     } else {
@@ -73,7 +73,7 @@ export function useChatActions(sessionUuid: string) {
       positiveText: t('common.yes'),
       negativeText: t('common.no'),
       onPositiveClick: () => {
-        chatStore.clearChatByUuid(sessionUuid)
+        sessionStore.clearSessionByUuid(sessionUuid)
       },
     })
   }

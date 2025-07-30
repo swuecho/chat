@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, nextTick } from 'vue'
 import { HoverButton, SvgIcon } from '@/components/common'
-import { useAppStore, useChatStore } from '@/store'
+import { useAppStore, useSessionStore } from '@/store'
 
 interface Emit {
   (ev: 'snapshot'): void
@@ -12,10 +12,10 @@ interface Emit {
 const emit = defineEmits<Emit>()
 
 const appStore = useAppStore()
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
 
 const collapsed = computed(() => appStore.siderCollapsed)
-const currentChatSession = computed(() => chatStore.getChatSessionByCurrentActive)
+const currentChatSession = computed(() => sessionStore.activeSession)
 
 function handleUpdateCollapsed() {
   appStore.setSiderCollapsed(!collapsed.value)

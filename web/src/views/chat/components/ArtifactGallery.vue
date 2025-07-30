@@ -448,7 +448,7 @@ import { NButton, NInput, NSelect, NButtonGroup, NBadge, NPagination, NModal, NC
 import { Icon } from '@iconify/vue'
 import ArtifactViewer from './Message/ArtifactViewer.vue'
 import ArtifactEditor from './Message/ArtifactEditor.vue'
-import { useChatStore } from '@/store'
+import { useMessageStore, useSessionStore } from '@/store'
 import { getCodeRunner, type ExecutionResult } from '@/services/codeRunner'
 
 interface Artifact {
@@ -470,7 +470,8 @@ interface Artifact {
 
 const message = useMessage()
 const dialog = useDialog()
-const chatStore = useChatStore()
+const messageStore = useMessageStore()
+const sessionStore = useSessionStore()
 
 // UI State
 const showFilters = ref(false)
@@ -716,9 +717,9 @@ const deleteArtifact = (artifact: Artifact) => {
     positiveText: 'Delete',
     negativeText: 'Cancel',
     onPositiveClick: () => {
-      // Remove from chat store
+      // Remove from message store
       if (artifact.sessionUuid && artifact.messageUuid) {
-        const sessionMessages = chatStore.chat[artifact.sessionUuid]
+        const sessionMessages = messageStore.getChatSessionDataByUuid(artifact.sessionUuid)
         if (sessionMessages) {
           const messageIndex = sessionMessages.findIndex(msg => msg.uuid === artifact.messageUuid)
           if (messageIndex !== -1) {
@@ -790,9 +791,9 @@ const getFileExtension = (type: string, language?: string) => {
 
 const saveEdit = () => {
   if (editingArtifact.value && originalArtifact.value) {
-    // Update the artifact in the chat store
+    // Update the artifact in the message store
     if (editingArtifact.value.sessionUuid && editingArtifact.value.messageUuid) {
-      const sessionMessages = chatStore.chat[editingArtifact.value.sessionUuid]
+      const sessionMessages = messageStore.getChatSessionDataByUuid(editingArtifact.value.sessionUuid)
       if (sessionMessages) {
         const messageIndex = sessionMessages.findIndex(msg => msg.uuid === editingArtifact.value!.messageUuid)
         if (messageIndex !== -1) {
@@ -925,8 +926,8 @@ const loadArtifacts = () => {
   const allArtifacts: Artifact[] = []
   
   // Iterate through all chat sessions
-  chatStore.history.forEach(session => {
-    const messages = chatStore.chat[session.uuid] || []
+  sessionStore.getAllSessions().forEach(session => {
+    const messages = messageStore.getChatSessionDataByUuid(session.uuid) || []
     
     // Extract artifacts from each message
     messages.forEach(msg => {
@@ -981,18 +982,18 @@ onMounted(() => {
   loadArtifacts()
 })
 
-// Watch for changes in chat store and reload artifacts
+// Watch for changes in message store and reload artifacts
 watch(
-  () => chatStore.chat,
+  () => messageStore.sessions,
   () => {
     loadArtifacts()
   },
   { deep: true }
 )
 
-// Watch for changes in chat history (new sessions)
+// Watch for changes in session history (new sessions)
 watch(
-  () => chatStore.history,
+  () => sessionStore.sessions,
   () => {
     loadArtifacts()
   },

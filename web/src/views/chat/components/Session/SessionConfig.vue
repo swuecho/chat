@@ -4,7 +4,7 @@ import { computed, ref, watch, h } from 'vue'
 import type { FormInst } from 'naive-ui'
 import { NForm, NFormItem, NRadio, NRadioGroup, NSlider, NSpace, NSpin, NSwitch } from 'naive-ui'
 import { debounce } from 'lodash-es'
-import { useChatStore } from '@/store'
+import { useSessionStore } from '@/store'
 import { fetchChatModel } from '@/api'
 
 import { useQuery } from "@tanstack/vue-query";
@@ -40,9 +40,9 @@ const chatModelOptions = computed(() =>
   data?.value ? data.value.filter((x: any) => x.isEnable) : []
 )
 
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
 
-const session = computed(() => chatStore.getChatSessionByUuid(props.uuid))
+const session = computed(() => sessionStore.getSessionByUuid(props.uuid))
 
 interface ModelType {
   chatModel: string
@@ -78,7 +78,7 @@ const modelRef: Ref<ModelType> = ref({
 const formRef = ref<FormInst | null>(null)
 
 const debouneUpdate = debounce(async (model: ModelType) => {
-  chatStore.updateChatSession(props.uuid, {
+  sessionStore.updateSession(props.uuid, {
     maxLength: model.contextCount,
     temperature: model.temperature,
     maxTokens: model.maxTokens,

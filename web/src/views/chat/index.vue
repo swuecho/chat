@@ -2,7 +2,7 @@
 import { computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Conversation from './components/Conversation.vue'
-import { useChatStore } from '@/store'
+import { useWorkspaceStore } from '@/store/modules/workspace'
 
 interface Props {
   workspaceUuid?: string
@@ -11,7 +11,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const route = useRoute()
-const chatStore = useChatStore()
+const workspaceStore = useWorkspaceStore()
 
 // Get parameters from either props (new routing) or route params (legacy)
 const workspaceUuid = computed(() => {
@@ -24,16 +24,16 @@ const sessionUuid = computed(() => {
 
 // Set active workspace when workspace is specified in URL
 watch(workspaceUuid, (newWorkspaceUuid) => {
-  if (newWorkspaceUuid && newWorkspaceUuid !== chatStore.activeWorkspace) {
+  if (newWorkspaceUuid && newWorkspaceUuid !== workspaceStore.activeWorkspace?.uuid) {
     console.log('Setting active workspace from URL:', newWorkspaceUuid)
-    chatStore.setActiveWorkspace(newWorkspaceUuid)
+    workspaceStore.setActiveWorkspace(newWorkspaceUuid)
   }
 }, { immediate: true })
 
 // Handle initial workspace setting on mount
 onMounted(() => {
-  if (workspaceUuid.value && workspaceUuid.value !== chatStore.activeWorkspace) {
-    chatStore.setActiveWorkspace(workspaceUuid.value)
+  if (workspaceUuid.value && workspaceUuid.value !== workspaceStore.activeWorkspace?.uuid) {
+    workspaceStore.setActiveWorkspace(workspaceUuid.value)
   }
 })
 </script>

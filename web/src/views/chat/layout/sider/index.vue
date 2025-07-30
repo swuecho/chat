@@ -6,7 +6,7 @@ import { NButton, NLayoutSider, NTooltip, NButtonGroup } from 'naive-ui'
 import List from './List.vue'
 import Footer from './Footer.vue'
 import WorkspaceSelector from '../../components/WorkspaceSelector/index.vue'
-import { useAppStore, useChatStore } from '@/store'
+import { useAppStore, useSessionStore, useWorkspaceStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { SvgIcon } from '@/components/common'
@@ -14,7 +14,8 @@ import { getChatSessionDefault } from '@/api'
 import { PromptStore } from '@/components/common'
 
 const appStore = useAppStore()
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
+const workspaceStore = useWorkspaceStore()
 
 const { isMobile, isBigScreen } = useBasicLayout()
 const show = ref(false)
@@ -25,9 +26,9 @@ async function handleAdd() {
   const new_chat_text = t('chat.new')
   
   // Try to create session in active workspace if available
-  if (chatStore.activeWorkspace) {
+  if (workspaceStore.activeWorkspace) {
     try {
-      await chatStore.createSessionInActiveWorkspace(new_chat_text)
+      await sessionStore.createSessionInWorkspace(new_chat_text, workspaceStore.activeWorkspace.uuid)
       if (isMobile.value)
         appStore.setSiderCollapsed(true)
       return
@@ -39,7 +40,7 @@ async function handleAdd() {
   
   // Fallback to traditional session creation
   const default_model_parameters = await getChatSessionDefault(new_chat_text)
-  await chatStore.addChatSession(default_model_parameters)
+  await sessionStore.createLegacySession(default_model_parameters)
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
 }

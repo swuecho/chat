@@ -4,14 +4,16 @@ import { useRouter } from 'vue-router'
 import { NButton, NDropdown, NIcon, NText, NTooltip, useMessage } from 'naive-ui'
 import type { DropdownOption } from 'naive-ui'
 import { SvgIcon } from '@/components/common'
-import { useChatStore } from '@/store'
+import { useWorkspaceStore } from '@/store/modules/workspace'
+import { useSessionStore } from '@/store/modules/session'
 import { t } from '@/locales'
 import WorkspaceModal from './WorkspaceModal.vue'
 import WorkspaceManagementModal from './WorkspaceManagementModal.vue'
 
 const router = useRouter()
 
-const chatStore = useChatStore()
+const workspaceStore = useWorkspaceStore()
+const sessionStore = useSessionStore()
 const message = useMessage()
 
 const showCreateModal = ref(false)
@@ -19,8 +21,8 @@ const showEditModal = ref(false)
 const showManagementModal = ref(false)
 const editingWorkspace = ref<Chat.Workspace | null>(null)
 
-const activeWorkspace = computed(() => chatStore.getWorkspaceByUuid(chatStore.activeWorkspace))
-const workspaces = computed(() => chatStore.workspaces)
+const activeWorkspace = computed(() => workspaceStore.activeWorkspace)
+const workspaces = computed(() => workspaceStore.workspaces)
 
 // Icon mapping - convert icon value to full icon string
 const getWorkspaceIconString = (iconValue: string) => {
@@ -69,17 +71,17 @@ async function handleDropdownSelect(key: string) {
   }
   
   // Switch to selected workspace
-  if (key !== chatStore.activeWorkspace) {
+  if (key !== workspaceStore.activeWorkspace?.uuid) {
     const workspace = workspaces.value.find(w => w.uuid === key)
     if (workspace) {
-      await chatStore.switchToWorkspace(key)
+      await workspaceStore.setActiveWorkspace(key)
       message.success(`Switched to ${workspace.name}`)
     }
   }
 }
 
 async function handleWorkspaceCreated(workspace: Chat.Workspace) {
-  await chatStore.switchToWorkspace(workspace.uuid)
+  await workspaceStore.setActiveWorkspace(workspace.uuid)
   message.success(`Created and switched to ${workspace.name}`)
 }
 
