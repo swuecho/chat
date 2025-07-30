@@ -30,6 +30,13 @@ watch(workspaceUuid, (newWorkspaceUuid) => {
   }
 }, { immediate: true })
 
+// Watch for pending session restores and handle them
+watch(() => workspaceStore.pendingSessionRestore, (pending) => {
+  if (pending) {
+    workspaceStore.restoreActiveSession()
+  }
+})
+
 // Handle initial workspace setting on mount
 onMounted(() => {
   if (workspaceUuid.value && workspaceUuid.value !== workspaceStore.activeWorkspace?.uuid) {

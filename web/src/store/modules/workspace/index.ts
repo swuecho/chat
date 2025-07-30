@@ -15,6 +15,7 @@ export interface WorkspaceState {
   workspaces: Workspace[]
   activeWorkspaceUuid: string | null
   workspaceActiveSessions: Record<string, string> // workspaceUuid -> sessionUuid
+  pendingSessionRestore: { workspaceUuid: string; sessionUuid: string } | null
   isLoading: boolean
 }
 
@@ -23,6 +24,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
     workspaces: [],
     activeWorkspaceUuid: null,
     workspaceActiveSessions: {},
+    pendingSessionRestore: null,
     isLoading: false,
   }),
 
@@ -96,6 +98,38 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       const workspace = this.getWorkspaceByUuid(workspaceUuid)
       if (workspace) {
         this.activeWorkspaceUuid = workspaceUuid
+        
+        // Restore the previously active session for this workspace
+        const activeSessionForWorkspace = this.workspaceActiveSessions[workspaceUuid]
+        
+        if (activeSessionForWorkspace) {
+          // Emit an event that the chat view can listen to
+          this.$patch((state) => {
+            state.pendingSessionRestore = {
+              workspaceUuid,
+              sessionUuid: activeSessionForWorkspace
+            }
+          })
+        }
+      }
+    },
+
+    // Method to handle session restore (called from chat view)
+    restoreActiveSession() {
+      const pending = this.pendingSessionRestore
+      if (pending) {
+        const sessionStore = useSessionStore()
+        const session = sessionStore.getChatSessionByUuid(pending.sessionUuid)
+        if (session) {
+          sessionStore.setActiveSession(pending.workspaceUuid, pending.sessionUuid)
+        } else {
+          // Session no longer exists, clear the tracking
+          delete this.workspaceActiveSessions[pending.workspaceUuid]
+        }
+        // Clear the pending restore
+        this.$patch((state) => {
+          state.pendingSessionRestore = null
+        })
       }
     },
 
