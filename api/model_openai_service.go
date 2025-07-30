@@ -107,6 +107,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	// Initialize streaming state
 	var answer_id string
+	
 	var hasReason bool           // Whether we've detected any reasoning content
 	var reasonTagOpened bool     // Whether we've sent the opening <think> tag
 	var reasonTagClosed bool     // Whether we've sent the closing </think> tag

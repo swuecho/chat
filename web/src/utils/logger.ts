@@ -20,11 +20,11 @@ class Logger {
 
   constructor() {
     this.level = this.getLogLevelFromEnv()
-    this.isProduction = process.env.NODE_ENV === 'production'
+    this.isProduction = (import.meta as any).env?.VITE_ENV === 'production'
   }
 
   private getLogLevelFromEnv(): LogLevel {
-    const envLevel = process.env.VUE_APP_LOG_LEVEL
+    const envLevel = (import.meta as any).env?.VITE_LOG_LEVEL || 'info'
     switch (envLevel) {
       case 'debug': return LogLevel.DEBUG
       case 'info': return LogLevel.INFO
