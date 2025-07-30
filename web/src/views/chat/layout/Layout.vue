@@ -5,23 +5,39 @@ import { useRouter } from 'vue-router'
 import Sider from './sider/index.vue'
 import Permission from '@/views/components/Permission.vue'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useAppStore, useAuthStore, useSessionStore } from '@/store'
+import { useAppStore, useAuthStore, useSessionStore, useWorkspaceStore } from '@/store'
 
 
 const router = useRouter()
 const appStore = useAppStore()
 const sessionStore = useSessionStore()
+const workspaceStore = useWorkspaceStore()
 const authStore = useAuthStore()
 
 const { isMobile } = useBasicLayout()
 
 const collapsed = computed(() => appStore.siderCollapsed)
 
-// Initialize auth state on component mount (async)
+// Initialize auth state and workspaces on component mount (async)
 onMounted(async () => {
   console.log('🔄 Layout mounted, initializing auth...')
   await authStore.initializeAuth()
   console.log('✅ Auth initialization completed in Layout')
+  
+  // Initialize workspaces if user is authenticated
+  if (authStore.isValid) {
+    console.log('🔄 User is authenticated, syncing workspaces...')
+    try {
+      await workspaceStore.syncWorkspaces()
+      console.log('✅ Workspaces synced on mount')
+      
+      // Then sync sessions
+      await sessionStore.syncAllWorkspaceSessions()
+      console.log('✅ Chat sessions synced on mount')
+    } catch (error) {
+      console.error('Failed to sync workspaces and sessions on mount:', error)
+    }
+  }
 })
 
 // login modal will appear when there is no token and auth is initialized (but not during initialization)
@@ -44,17 +60,22 @@ watch(() => authStore.isInitialized, (initialized) => {
   }
 }, { immediate: true })
 
-// Watch for authentication state changes and sync chat sessions when user logs in
+// Watch for authentication state changes and sync workspaces and sessions when user logs in
 watch(() => authStore.isValid, async (isValid) => {
   console.log('Auth state changed, isValid:', isValid)
   const totalSessions = sessionStore.getAllSessions().length
   if (isValid && totalSessions === 0) {
     console.log('User is now authenticated and no chat sessions loaded, syncing...')
     try {
+      // First sync workspaces
+      await workspaceStore.syncWorkspaces()
+      console.log('Workspaces synced after auth state change')
+      
+      // Then sync sessions
       await sessionStore.syncAllWorkspaceSessions()
       console.log('Chat sessions synced after auth state change')
     } catch (error) {
-      console.error('Failed to sync chat sessions after auth state change:', error)
+      console.error('Failed to sync workspaces and sessions after auth state change:', error)
     }
   }
 })
