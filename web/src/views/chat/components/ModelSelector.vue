@@ -84,19 +84,31 @@ const defaultModel = computed(() => {
 
 
 const modelRef = ref<ModelFormData>({
-        model: chatSession.value?.model ?? defaultModel.value
+        model: undefined
 })
 
-// Watch for changes to defaultModel only when modelRef is empty
-watch(defaultModel, (newDefaultModel) => {
-        if (!modelRef.value.model && newDefaultModel) {
-                modelRef.value.model = newDefaultModel
+// Initialize model once both session and default model are available
+watch([chatSession, defaultModel], ([session, defaultModelValue]) => {
+        if (!modelRef.value.model) {
+                // Use session model if available, otherwise use default model
+                modelRef.value.model = session?.model ?? defaultModelValue
         }
 }, { immediate: true })
 
-// Watch only the model property instead of deep watching the entire object
+// Use computed property instead of manual store subscription for better performance
+const sessionModel = computed(() => chatSession.value?.model)
+
+// Watch session model changes to keep form in sync (but only after initialization)
+watch(sessionModel, (newSessionModel) => {
+        if (modelRef.value.model && newSessionModel && modelRef.value.model !== newSessionModel) {
+                modelRef.value.model = newSessionModel
+        }
+})
+
+// Watch only the model property for user-initiated changes
 watch(() => modelRef.value.model, async (newModel, oldModel) => {
-        if (newModel !== oldModel && newModel) {
+        // Only trigger update if this is a user-initiated change (both old and new values are defined)
+        if (oldModel !== undefined && newModel !== undefined && newModel !== oldModel && newModel) {
                 try {
                         await sessionStore.updateSession(props.uuid, {
                                 model: newModel
@@ -106,16 +118,6 @@ watch(() => modelRef.value.model, async (newModel, oldModel) => {
                         // Revert the model selection if update failed
                         modelRef.value.model = oldModel
                 }
-        }
-})
-
-// Use computed property instead of manual store subscription for better performance
-const sessionModel = computed(() => chatSession.value?.model)
-
-// Watch session model changes to keep form in sync
-watch(sessionModel, (newSessionModel) => {
-        if (newSessionModel && modelRef.value.model !== newSessionModel) {
-                modelRef.value.model = newSessionModel
         }
 })
 
