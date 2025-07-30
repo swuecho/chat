@@ -73,7 +73,8 @@ const pining = ref<boolean>(false)
 async function handleTogglePin(index: number) {
         if (pining.value)
                 return
-        const message = messageStore.getMessageBySessionUuidAndIndex(props.sessionUuid, index)
+        const messages = messageStore.getChatSessionDataByUuid(props.sessionUuid)
+        const message = messages && messages[index] ? messages[index] : null
         if (message == null)
                 return
 
