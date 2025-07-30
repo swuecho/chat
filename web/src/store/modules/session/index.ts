@@ -160,11 +160,15 @@ export const useSessionStore = defineStore('session-store', {
 
     async updateSession(uuid: string, updates: Partial<Session>) {
       try {
+        console.log('updateSession called with uuid:', uuid, 'updates:', updates)
+        console.log('Current workspaceHistory:', this.workspaceHistory)
+        
         // Find session across all workspace histories
         for (const workspaceUuid in this.workspaceHistory) {
           const sessions = this.workspaceHistory[workspaceUuid]
           const index = sessions.findIndex(item => item.uuid === uuid)
           if (index !== -1) {
+            console.log('Found session in workspace:', workspaceUuid, 'at index:', index)
             // Update local state
             sessions[index] = { ...sessions[index], ...updates }
             
@@ -180,6 +184,22 @@ export const useSessionStore = defineStore('session-store', {
             return sessions[index]
           }
         }
+        
+        // If session not found locally, try to update it on the backend anyway
+        // This handles cases where the session exists on the server but not in local state
+        console.log('Session not found locally, attempting backend update')
+        try {
+          const session = this.getChatSessionByUuid(uuid)
+          if (session) {
+            console.log('Found session via getter, updating')
+            const updatedSession = { ...session, ...updates }
+            await updateChatSession(uuid, updatedSession)
+            return updatedSession
+          }
+        } catch (backendError) {
+          console.error('Backend update also failed:', backendError)
+        }
+        
         throw new Error(`Session ${uuid} not found`)
       } catch (error) {
         console.error('Failed to update session:', error)

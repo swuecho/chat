@@ -97,9 +97,15 @@ watch(defaultModel, (newDefaultModel) => {
 // Watch only the model property instead of deep watching the entire object
 watch(() => modelRef.value.model, async (newModel, oldModel) => {
         if (newModel !== oldModel && newModel) {
-                await sessionStore.updateSession(props.uuid, {
-                        model: newModel
-                })
+                try {
+                        await sessionStore.updateSession(props.uuid, {
+                                model: newModel
+                        })
+                } catch (error) {
+                        console.error('Failed to update session model:', error)
+                        // Revert the model selection if update failed
+                        modelRef.value.model = oldModel
+                }
         }
 })
 
