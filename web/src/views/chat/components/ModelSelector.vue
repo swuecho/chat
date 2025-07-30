@@ -36,7 +36,7 @@ const props = defineProps<{
         model: string | undefined
 }>()
 
-const chatSession = computed(() => sessionStore.getSessionByUuid(props.uuid))
+const chatSession = computed(() => sessionStore.getChatSessionByUuid(props.uuid))
 
 const { data } = useChatModelsQuery()
 

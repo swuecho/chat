@@ -42,7 +42,7 @@ const chatModelOptions = computed(() =>
 
 const sessionStore = useSessionStore()
 
-const session = computed(() => sessionStore.getSessionByUuid(props.uuid))
+const session = computed(() => sessionStore.getChatSessionByUuid(props.uuid))
 
 interface ModelType {
   chatModel: string

@@ -26,7 +26,7 @@ export function useWorkspaceRouting() {
   // Generate workspace-aware URL for a session
   function getSessionUrl(sessionUuid: string, workspaceUuid?: string): string {
     const workspace = workspaceUuid || workspaceStore.activeWorkspace
-    const session = sessionStore.getSessionByUuid(sessionUuid)
+    const session = sessionStore.getChatSessionByUuid(sessionUuid)
     
     // Use session's workspace if available, otherwise use provided or active workspace
     const targetWorkspace = session?.workspaceUuid || workspace || workspaceStore.getDefaultWorkspace?.uuid
@@ -47,7 +47,7 @@ export function useWorkspaceRouting() {
   // Navigate to session with workspace context
   async function navigateToSession(sessionUuid: string, workspaceUuid?: string) {
     const workspace = workspaceUuid || workspaceStore.activeWorkspace
-    const session = sessionStore.getSessionByUuid(sessionUuid)
+    const session = sessionStore.getChatSessionByUuid(sessionUuid)
     
     // Use session's workspace if available, otherwise use default workspace
     const targetWorkspace = session?.workspaceUuid || workspace || workspaceStore.getDefaultWorkspace?.uuid
@@ -108,7 +108,7 @@ export function useWorkspaceRouting() {
     
     // If we have an active session and workspace, ensure URL is correct
     if (activeSession && activeWorkspace) {
-      const session = sessionStore.getSessionByUuid(activeSession)
+      const session = sessionStore.getChatSessionByUuid(activeSession)
       if (session && session.workspaceUuid === activeWorkspace) {
         // Check if current URL doesn't match expected workspace-aware URL
         if (!isCurrentRoute(activeSession, activeWorkspace)) {
