@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { getChatKeys, getLocalState } from './helper'
 import { router } from '@/router'
+import { logger } from '@/utils/logger'
 import {
   clearSessionChatMessages,
   createChatSession,
@@ -124,7 +125,7 @@ export const useChatStore = defineStore('chat-store', {
     async reloadRoute(uuid?: string) {
       // Prevent concurrent navigation
       if (isNavigating) {
-        console.log('🚫 Navigation already in progress, skipping')
+        logger.debug('Navigation already in progress, skipping', 'ChatStore')
         return
       }
 
@@ -141,7 +142,7 @@ export const useChatStore = defineStore('chat-store', {
                                   currentRoute.params.uuid === uuid
             
             if (!isCorrectRoute) {
-              console.log('🚀 Navigating to workspace route:', { workspaceUuid: session.workspaceUuid, uuid })
+              logger.debug('Navigating to workspace route', 'ChatStore', { workspaceUuid: session.workspaceUuid, uuid })
               await router.push({
                 name: 'WorkspaceChat',
                 params: {

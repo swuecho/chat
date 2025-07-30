@@ -1,5 +1,6 @@
 import axios, { type AxiosResponse } from 'axios'
 import { useAuthStore } from '@/store'
+import { logger } from '@/utils/logger'
 
 const service = axios.create({
   baseURL: "/api",
@@ -17,12 +18,12 @@ service.interceptors.request.use(
 
     // Wait for auth initialization to complete before making API calls
     if (authStore.isInitializing) {
-      console.log('⏳ Waiting for auth initialization to complete before API call:', config.url)
+      logger.debug('Waiting for auth initialization to complete', 'Axios', { url: config.url })
       // Wait for initialization to complete
       while (authStore.isInitializing) {
         await new Promise(resolve => setTimeout(resolve, 50))
       }
-      console.log('✅ Auth initialization completed, proceeding with API call:', config.url)
+      logger.debug('Auth initialization completed', 'Axios', { url: config.url })
     }
 
     // Check if token needs refresh
@@ -57,27 +58,26 @@ service.interceptors.response.use(
   async (error) => {
     const authStore = useAuthStore()
 
-    console.log('Axios response error:', error.response?.status, error.config?.url)
+    logger.logApiError(error.config?.method || 'unknown', error.config?.url || 'unknown', error, error.response?.status)
 
     // Handle 401 errors with automatic token refresh
     if (error.response?.status === 401 && !error.config?.url?.includes('/auth/')) {
-      console.log('Handling 401 error, attempting token refresh...')
+      logger.debug('Handling 401 error, attempting token refresh', 'Axios')
       try {
         await authStore.refreshToken()
         // Retry the original request with new token
         const token = authStore.getToken
         if (token) {
-          console.log('Retrying request with new token...')
+          logger.debug('Retrying request with new token', 'Axios')
           error.config.headers.Authorization = `Bearer ${token}`
           return service.request(error.config)
         }
       } catch (refreshError) {
         // Refresh failed - user needs to login again
-        console.log('Token refresh failed, clearing auth state...')
+        logger.warn('Token refresh failed, clearing auth state', 'Axios', refreshError)
         authStore.removeToken()
         authStore.removeExpiresIn()
         // Don't redirect - the login modal will appear automatically when authStore.isValid becomes false
-        console.error('Token refresh failed, user needs to login again:', refreshError)
       }
     }
 

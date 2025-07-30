@@ -1,7 +1,6 @@
 <script lang='ts' setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { NAutoComplete, NButton, NInput, NModal, NSpin } from 'naive-ui'
-// @ts-ignore
 import { v7 as uuidv7 } from 'uuid'
 import { useScroll } from '@/views/chat/hooks/useScroll'
 import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'

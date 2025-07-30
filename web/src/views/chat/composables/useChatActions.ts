@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { useDialog, useMessage } from 'naive-ui'
-// @ts-ignore
 import { v7 as uuidv7 } from 'uuid'
 import { createChatBot, createChatSnapshot, getChatSessionDefault } from '@/api'
 import { useAppStore, useChatStore } from '@/store'

@@ -1,9 +1,31 @@
 <script lang="ts" setup>
-import { computed, ref, watch, h } from 'vue'
+import { computed, ref, watch, h, onUnmounted } from 'vue'
 import { NSelect, NForm } from 'naive-ui'
 import { useChatStore, useAuthStore } from '@/store'
 import { useChatModels } from '@/hooks/useChatModels'
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
+
+// Type definitions
+interface ChatModel {
+        id: string
+        name: string
+        label: string
+        isEnable: boolean
+        isDefault: boolean
+        orderNumber: number
+        lastUsageTime: string
+        provider: string
+}
+
+interface ModelFormData {
+        model: string
+}
+
+interface ChatSession {
+        uuid: string
+        model?: string
+        // Add other session properties as needed
+}
 
 const chatStore = useChatStore()
 const authStore = useAuthStore()
@@ -28,7 +50,7 @@ const formatTimestamp = (timestamp: string) => {
         return formatDistanceToNow(date, { addSuffix: true })
 }
 
-const optionFromModel = (model: any) => {
+const optionFromModel = (model: ChatModel) => {
         return {
                 label: () => h('div', {}, [
                         model.label,
@@ -39,29 +61,29 @@ const optionFromModel = (model: any) => {
         }
 }
 const chatModelOptions = computed(() =>
-        data?.value ? data.value.filter((x: any) => x.isEnable).map(optionFromModel) : []
+        data?.value ? data.value.filter((x: ChatModel) => x.isEnable).map(optionFromModel) : []
 )
 
 
 const defaultModel = computed(() => {
         if (!data?.value) return undefined
-        const defaultModels = data.value.filter((x: any) => x.isDefault && x.isEnable)
+        const defaultModels = data.value.filter((x: ChatModel) => x.isDefault && x.isEnable)
         if (defaultModels.length === 0) {
                 // Fallback to first enabled model if no default is set
-                const enabledModels = data.value.filter((x: any) => x.isEnable)
+                const enabledModels = data.value.filter((x: ChatModel) => x.isEnable)
                 if (enabledModels.length > 0) {
-                        enabledModels.sort((a: any, b: any) => (a.orderNumber || 0) - (b.orderNumber || 0))
+                        enabledModels.sort((a: ChatModel, b: ChatModel) => (a.orderNumber || 0) - (b.orderNumber || 0))
                         return enabledModels[0]?.name
                 }
                 return undefined
         }
         // Sort by order_number to ensure deterministic selection
-        defaultModels.sort((a: any, b: any) => (a.orderNumber || 0) - (b.orderNumber || 0))
+        defaultModels.sort((a: ChatModel, b: ChatModel) => (a.orderNumber || 0) - (b.orderNumber || 0))
         return defaultModels[0]?.name
 })
 
 
-const modelRef = ref({
+const modelRef = ref<ModelFormData>({
         model: chatSession.value?.model ?? defaultModel.value
 })
 
@@ -72,19 +94,22 @@ watch(defaultModel, (newDefaultModel) => {
         }
 }, { immediate: true })
 
-// why watch not work?, missed the deep = true option
-watch(modelRef, async (modelValue: any) => {
-        await chatStore.updateChatSession(props.uuid, {
-                model: modelValue.model
-        })
+// Watch only the model property instead of deep watching the entire object
+watch(() => modelRef.value.model, async (newModel, oldModel) => {
+        if (newModel !== oldModel && newModel) {
+                await chatStore.updateChatSession(props.uuid, {
+                        model: newModel
+                })
+        }
+})
 
-}, { deep: true })
+// Use computed property instead of manual store subscription for better performance
+const sessionModel = computed(() => chatSession.value?.model)
 
-chatStore.$subscribe((mutation, state) => {
-        const session = chatStore.getChatSessionByUuid(props.uuid)
-        // Only update if session has a model and it's different from current
-        if (session?.model && modelRef.value.model !== session.model) {
-                modelRef.value.model = session.model
+// Watch session model changes to keep form in sync
+watch(sessionModel, (newSessionModel) => {
+        if (newSessionModel && modelRef.value.model !== newSessionModel) {
+                modelRef.value.model = newSessionModel
         }
 })
 
