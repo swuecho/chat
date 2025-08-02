@@ -36,8 +36,8 @@ export function setupPageGuard(router: Router) {
       const sessionStore = useSessionStore(store)
       const workspaceUuid = to.params.workspaceUuid as string
 
-      // Set active workspace if it's different from current
-      if (workspaceUuid !== workspaceStore.activeWorkspaceUuid) {
+      // Only set active workspace if it's different and not already loading
+      if (workspaceUuid !== workspaceStore.activeWorkspaceUuid && !workspaceStore.isLoading) {
         console.log('Setting workspace from URL:', workspaceUuid)
         await workspaceStore.setActiveWorkspace(workspaceUuid)
       }

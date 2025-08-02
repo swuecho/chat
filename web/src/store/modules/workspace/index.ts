@@ -172,12 +172,20 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           }
         }
 
+        // Check if we already have a default workspace loaded
+        const existingDefault = this.workspaces.find(w => w.isDefault)
+        if (existingDefault) {
+          this.activeWorkspaceUuid = existingDefault.uuid
+          console.log('✅ Using existing default workspace:', existingDefault.name)
+          return existingDefault
+        }
+
         // Ensure we have a default workspace (this only loads/creates the default one)
         const defaultWorkspace = await ensureDefaultWorkspace()
         this.workspaces = [defaultWorkspace]
         this.activeWorkspaceUuid = defaultWorkspace.uuid
 
-        console.log('✅ Loaded active workspace:', defaultWorkspace.name)
+        console.log('✅ Loaded default workspace:', defaultWorkspace.name)
         return defaultWorkspace
       } catch (error) {
         console.error('Failed to load active workspace:', error)
@@ -191,14 +199,16 @@ export const useWorkspaceStore = defineStore('workspace-store', {
     async loadAllWorkspaces() {
       try {
         const allWorkspaces = await getWorkspaces()
-
-        // Merge with existing workspaces, avoiding duplicates
-        const existingUuids = new Set(this.workspaces.map(w => w.uuid))
-        const newWorkspaces = allWorkspaces.filter(w => !existingUuids.has(w.uuid))
-
-        this.workspaces = [...this.workspaces, ...newWorkspaces]
-
-        console.log(`✅ Loaded ${newWorkspaces.length} additional workspaces`)
+        // Replace workspaces array with all workspaces (this is for workspace selector)
+        // Keep the active workspace UUID as is
+        this.workspaces = allWorkspaces
+        // Ensure activeWorkspaceUuid is still valid
+        if (this.activeWorkspaceUuid && !allWorkspaces.find(w => w.uuid === this.activeWorkspaceUuid)) {
+          const defaultWs = allWorkspaces.find(w => w.isDefault) || allWorkspaces[0]
+          if (defaultWs) {
+            this.activeWorkspaceUuid = defaultWs.uuid
+          }
+        }
         return allWorkspaces
       } catch (error) {
         console.error('Failed to load all workspaces:', error)
@@ -354,7 +364,11 @@ export const useWorkspaceStore = defineStore('workspace-store', {
     },
 
     async setActiveWorkspace(workspaceUuid: string) {
+      console.log('🔄 setActiveWorkspace called with:', workspaceUuid)
+      console.log('🔍 Current workspaces in store:', this.workspaces.map(w => ({ uuid: w.uuid, name: w.name })))
+
       let workspace = this.workspaces.find(workspace => workspace.uuid === workspaceUuid)
+      console.log('🔍 Found workspace in store:', workspace ? workspace.name : 'NOT FOUND')
 
       // If workspace is not loaded, load it on-demand
       if (!workspace) {
@@ -369,11 +383,15 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         }
       }
 
+      console.log('🔄 Setting activeWorkspaceUuid to:', workspaceUuid)
       this.activeWorkspaceUuid = workspaceUuid
+      console.log('✅ activeWorkspaceUuid set, current value:', this.activeWorkspaceUuid)
 
       // Load sessions for this workspace if not already loaded
       const sessionStore = useSessionStore()
       const existingSessions = sessionStore.getSessionsByWorkspace(workspaceUuid)
+      console.log('🔍 Existing sessions for workspace:', existingSessions.length)
+
       if (existingSessions.length === 0) {
         console.log(`Loading sessions for workspace ${workspaceUuid}...`)
         await sessionStore.syncWorkspaceSessions(workspaceUuid)
@@ -382,6 +400,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
       // Restore the previously active session for this workspace
       const activeSessionForWorkspace = this.workspaceActiveSessions[workspaceUuid]
+      console.log('🔍 Active session for workspace:', activeSessionForWorkspace)
 
       if (activeSessionForWorkspace) {
         // Emit an event that the chat view can listen to
@@ -391,7 +410,10 @@ export const useWorkspaceStore = defineStore('workspace-store', {
             sessionUuid: activeSessionForWorkspace
           }
         })
+        console.log('✅ Set pending session restore')
       }
+
+      console.log('✅ setActiveWorkspace completed successfully')
     },
 
     // Method to handle session restore (called from chat view)
