@@ -82,11 +82,17 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         // Step 2: Load only the active/target workspace
         const activeWorkspace = await this.loadActiveWorkspace(targetWorkspaceUuid)
 
-        // Step 3: Load sessions only for the active workspace
+        // Step 3: Sync workspace active sessions from backend (for session persistence)
+        const routeCurrent = router.currentRoute.value
+        const urlWorkspaceUuid = routeCurrent.params.workspaceUuid as string || targetWorkspaceUuid
+        const urlSessionUuid = routeCurrent.params.uuid as string
+        await this.syncWorkspaceActiveSessions(urlWorkspaceUuid, urlSessionUuid)
+
+        // Step 4: Load sessions only for the active workspace
         const sessionStore = useSessionStore()
         await sessionStore.syncActiveWorkspaceSessions()
 
-        // Step 4: Ensure user has at least one session in the active workspace
+        // Step 5: Ensure user has at least one session in the active workspace
         await this.ensureUserHasSession()
 
         console.log('✅ Optimized workspace initialization completed')
@@ -237,12 +243,29 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         if (urlWorkspaceUuid && urlSessionUuid) {
           this.activeWorkspaceUuid = urlWorkspaceUuid
           console.log('✅ Used workspace from URL:', { workspaceUuid: urlWorkspaceUuid, sessionUuid: urlSessionUuid })
+
+          // Set active session in session store
+          const sessionStore = useSessionStore()
+          sessionStore.setActiveSessionWithoutNavigation(urlWorkspaceUuid, urlSessionUuid)
         } else if (urlWorkspaceUuid) {
           this.activeWorkspaceUuid = urlWorkspaceUuid
           console.log('✅ Used workspace from URL (no session):', urlWorkspaceUuid)
+
+          // Restore active session for this workspace if available
+          const activeSessionForWorkspace = this.workspaceActiveSessions[urlWorkspaceUuid]
+          if (activeSessionForWorkspace) {
+            const sessionStore = useSessionStore()
+            sessionStore.setActiveSessionWithoutNavigation(urlWorkspaceUuid, activeSessionForWorkspace)
+            console.log('✅ Restored active session for workspace:', activeSessionForWorkspace)
+          }
         } else if (globalActiveSession?.workspaceUuid) {
           this.activeWorkspaceUuid = globalActiveSession.workspaceUuid
           console.log('✅ Used workspace from backend:', globalActiveSession.workspaceUuid)
+
+          // Set active session from backend
+          const sessionStore = useSessionStore()
+          sessionStore.setActiveSessionWithoutNavigation(globalActiveSession.workspaceUuid, globalActiveSession.chatSessionUuid)
+          console.log('✅ Restored active session from backend:', globalActiveSession.chatSessionUuid)
         }
       } catch (error) {
         console.warn('⚠️ Failed to sync workspace active sessions:', error)
@@ -555,8 +578,15 @@ export const useWorkspaceStore = defineStore('workspace-store', {
     },
 
     navigateToWorkspace(workspaceUuid: string, sessionUuid?: string) {
-      const route = sessionUuid
-        ? { name: 'WorkspaceChat', params: { workspaceUuid, uuid: sessionUuid } }
+      // If no sessionUuid provided, try to get the active session for this workspace
+      let targetSessionUuid = sessionUuid
+      if (!targetSessionUuid) {
+        const sessionStore = useSessionStore()
+        targetSessionUuid = sessionStore.activeSessionUuid || undefined
+      }
+
+      const route = targetSessionUuid
+        ? { name: 'WorkspaceChat', params: { workspaceUuid, uuid: targetSessionUuid } }
         : { name: 'WorkspaceChat', params: { workspaceUuid } }
 
       router.push(route)

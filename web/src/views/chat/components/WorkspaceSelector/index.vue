@@ -111,8 +111,14 @@ async function handleDropdownSelect(key: string) {
       await workspaceStore.setActiveWorkspace(key)
       console.log('✅ setActiveWorkspace completed')
 
-      console.log('🔄 Navigating to route:', `/workspace/${key}/chat`)
-      await router.push(`/workspace/${key}/chat`)
+      // Get the active session for this workspace to include in URL
+      const activeSession = sessionStore.activeSessionUuid
+      const targetRoute = activeSession
+        ? `/workspace/${key}/chat/${activeSession}`
+        : `/workspace/${key}/chat`
+
+      console.log('🔄 Navigating to route:', targetRoute)
+      await router.push(targetRoute)
       console.log('✅ Navigation completed')
 
       message.success('Workspace switched successfully')
@@ -125,7 +131,14 @@ async function handleDropdownSelect(key: string) {
 
 async function handleWorkspaceCreated(workspace: Chat.Workspace) {
   await workspaceStore.setActiveWorkspace(workspace.uuid)
-  await router.push(`/workspace/${workspace.uuid}/chat`)
+
+  // Get the active session to include in URL
+  const activeSession = sessionStore.activeSessionUuid
+  const targetRoute = activeSession
+    ? `/workspace/${workspace.uuid}/chat/${activeSession}`
+    : `/workspace/${workspace.uuid}/chat`
+
+  await router.push(targetRoute)
   message.success(`Created and switched to ${workspace.name}`)
 }
 
