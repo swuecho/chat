@@ -398,20 +398,31 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         console.log(`✅ Loaded sessions for workspace: ${workspace.name}`)
       }
 
+      // Get the updated sessions list after potential loading
+      const sessionsAfterLoad = sessionStore.getSessionsByWorkspace(workspaceUuid)
+
       // Restore the previously active session for this workspace
       const activeSessionForWorkspace = this.workspaceActiveSessions[workspaceUuid]
       console.log('🔍 Active session for workspace:', activeSessionForWorkspace)
 
       if (activeSessionForWorkspace) {
-        // Emit an event that the chat view can listen to
-        this.$patch((state) => {
-          state.pendingSessionRestore = {
-            workspaceUuid,
-            sessionUuid: activeSessionForWorkspace
-          }
-        })
-        console.log('✅ Set pending session restore')
+        // Restore the previously active session
+        sessionStore.setActiveSessionWithoutNavigation(workspaceUuid, activeSessionForWorkspace)
+        console.log('✅ Restored previously active session')
+      } else if (sessionsAfterLoad.length > 0) {
+        // No previously active session, set the first session as active
+        const firstSession = sessionsAfterLoad[0]
+        console.log('🔄 No previous active session, setting first session as active:', firstSession.title)
+        sessionStore.setActiveSessionWithoutNavigation(workspaceUuid, firstSession.uuid)
+        console.log('✅ Set first session as active')
+      } else {
+        console.log('⚠️ No sessions available in workspace')
       }
+
+      // Emit an event that the chat view can listen to
+      this.$patch((state) => {
+        state.pendingSessionRestore = null // Clear any pending restore
+      })
 
       console.log('✅ setActiveWorkspace completed successfully')
     },

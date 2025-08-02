@@ -341,6 +341,17 @@ export const useSessionStore = defineStore('session-store', {
       }
     },
 
+    // Set active session without navigation (for workspace switching)
+    setActiveSessionWithoutNavigation(workspaceUuid: string | null, sessionUuid: string) {
+      this.activeSessionUuid = sessionUuid
+
+      // Update workspace active session tracking
+      if (workspaceUuid) {
+        const workspaceStore = useWorkspaceStore()
+        workspaceStore.setActiveSessionForWorkspace(workspaceUuid, sessionUuid)
+      }
+    },
+
     async setNextActiveSession(workspaceUuid: string | null) {
       if (workspaceUuid && this.workspaceHistory[workspaceUuid]?.length > 0) {
         // Set first available session in the same workspace
