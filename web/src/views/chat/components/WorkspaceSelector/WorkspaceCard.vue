@@ -11,7 +11,7 @@ import {
 } from 'naive-ui'
 import type { DropdownOption } from 'naive-ui'
 import { SvgIcon } from '@/components/common'
-import { useChatStore } from '@/store'
+import { useSessionStore, useWorkspaceStore } from '@/store'
 import { t } from '@/locales'
 
 interface Props {
@@ -31,7 +31,8 @@ const props = withDefaults(defineProps<Props>(), {
 })
 const emit = defineEmits<Emits>()
 
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
+const workspaceStore = useWorkspaceStore()
 const message = useMessage()
 
 // Icon mapping - convert icon value to full icon string
@@ -43,11 +44,11 @@ const getWorkspaceIconString = (iconValue: string) => {
 }
 
 const sessionCount = computed(() => {
-  return chatStore.getSessionsByWorkspace(props.workspace.uuid).length
+  return sessionStore.getSessionsByWorkspace(props.workspace.uuid).length
 })
 
 const isActive = computed(() => {
-  return chatStore.activeWorkspace === props.workspace.uuid
+  return workspaceStore.activeWorkspace?.uuid === props.workspace.uuid
 })
 
 const dropdownOptions = computed((): DropdownOption[] => [
@@ -107,7 +108,7 @@ async function handleSwitchToWorkspace() {
   if (isActive.value) return
   
   try {
-    await chatStore.switchToWorkspace(props.workspace.uuid)
+    await workspaceStore.setActiveWorkspace(props.workspace.uuid)
     message.success(t('workspace.switchedTo', { name: props.workspace.name }))
   } catch (error) {
     console.error('Failed to switch workspace:', error)

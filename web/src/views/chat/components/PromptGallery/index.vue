@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { NTabs, NTabPane } from 'naive-ui'
 import { usePromptStore } from '@/store/modules'
 import { fetchChatbotAll, fetchChatSnapshot } from '@/api'
@@ -39,6 +39,8 @@ const botPrompts = computed(() => {
                 }))
 })
 
+const activeTab = ref('prompts')
+
 const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
         if (uuid) {
                 fetchChatSnapshot(uuid).then((data) => {
@@ -52,18 +54,7 @@ const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
 </script>
 
 <template>
-        <NTabs type="line" animated>
-                <NTabPane v-if="botPrompts.length > 0" name="bots">
-                        <template #tab>
-                                <div class="flex items-center gap-1">
-                                        <SvgIcon icon="majesticons:robot-line" class="w-4 h-4" />
-                                        <span>{{ t('bot.list') }}</span>
-                                </div>
-                        </template>
-                        <div class="mt-4">
-                                <PromptCards :prompts="botPrompts" @usePrompt="handleUsePrompt" />
-                        </div>
-                </NTabPane>
+        <NTabs default-value="prompts" type="line" animated>
                 <NTabPane name="prompts">
                         <template #tab>
                                 <div class="flex items-center gap-1">
@@ -75,5 +66,17 @@ const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
                                 <PromptCards :prompts="promptStore.promptList" @usePrompt="handleUsePrompt" />
                         </div>
                 </NTabPane>
+                <NTabPane v-if="botPrompts.length > 0" name="bots">
+                        <template #tab>
+                                <div class="flex items-center gap-1">
+                                        <SvgIcon icon="majesticons:robot-line" class="w-4 h-4" />
+                                        <span>{{ t('bot.list') }}</span>
+                                </div>
+                        </template>
+                        <div class="mt-4">
+                                <PromptCards :prompts="botPrompts" @usePrompt="handleUsePrompt" />
+                        </div>
+                </NTabPane>
+              
         </NTabs>
 </template>

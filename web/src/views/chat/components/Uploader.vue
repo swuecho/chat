@@ -90,8 +90,12 @@ function handleFinish({ file, event }: { file: UploadFileInfo, event?: ProgressE
         if (!event) {
                 return
         }
-        // @ts-ignore
-        file.url = JSON.parse(event.currentTarget.response)['url']
+        // Type assertion for ProgressEvent target
+        const target = event.target as XMLHttpRequest
+        if (target?.response) {
+                const response = JSON.parse(target.response)
+                file.url = response.url
+        }
         //fileList.value.push(file)
         console.log(file, event)
         queryClient.invalidateQueries({ queryKey: ['fileList', sessionUuid] })

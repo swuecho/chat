@@ -6,7 +6,7 @@ import { NButton, NLayoutSider, NTooltip, NButtonGroup } from 'naive-ui'
 import List from './List.vue'
 import Footer from './Footer.vue'
 import WorkspaceSelector from '../../components/WorkspaceSelector/index.vue'
-import { useAppStore, useChatStore } from '@/store'
+import { useAppStore, useSessionStore, useWorkspaceStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { SvgIcon } from '@/components/common'
@@ -14,7 +14,8 @@ import { getChatSessionDefault } from '@/api'
 import { PromptStore } from '@/components/common'
 
 const appStore = useAppStore()
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
+const workspaceStore = useWorkspaceStore()
 
 const { isMobile, isBigScreen } = useBasicLayout()
 const show = ref(false)
@@ -23,25 +24,14 @@ const collapsed = computed(() => appStore.siderCollapsed)
 
 async function handleAdd() {
   const new_chat_text = t('chat.new')
-  
-  // Try to create session in active workspace if available
-  if (chatStore.activeWorkspace) {
-    try {
-      await chatStore.createSessionInActiveWorkspace(new_chat_text)
-      if (isMobile.value)
-        appStore.setSiderCollapsed(true)
-      return
-    } catch (error) {
-      console.error('Failed to create session in workspace:', error)
-      // Fall back to traditional method
-    }
+
+  try {
+    await sessionStore.createNewSession(new_chat_text)
+    if (isMobile.value)
+      appStore.setSiderCollapsed(true)
+  } catch (error) {
+    console.error('Failed to create new session:', error)
   }
-  
-  // Fallback to traditional session creation
-  const default_model_parameters = await getChatSessionDefault(new_chat_text)
-  await chatStore.addChatSession(default_model_parameters)
-  if (isMobile.value)
-    appStore.setSiderCollapsed(true)
 }
 
 function handleUpdateCollapsed() {
@@ -92,11 +82,9 @@ function openAllSnapshot() {
 </script>
 
 <template>
-  <NLayoutSider
-    :collapsed="collapsed" :collapsed-width="0"  :width="isBigScreen ? 360 : 260" :show-trigger="isMobile ? false : 'arrow-circle'"
-    collapse-mode="transform" position="absolute" bordered :style="getMobileClass"
-    @update-collapsed="handleUpdateCollapsed"
-  >
+  <NLayoutSider :collapsed="collapsed" :collapsed-width="0" :width="isBigScreen ? 360 : 260"
+    :show-trigger="isMobile ? false : 'arrow-circle'" collapse-mode="transform" position="absolute" bordered
+    :style="getMobileClass" @update-collapsed="handleUpdateCollapsed">
     <div class="flex flex-col h-full" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
         <div class="p-2 space-y-2">
@@ -112,10 +100,7 @@ function openAllSnapshot() {
           <NButtonGroup class="w-full flex">
             <NTooltip placement="bottom">
               <template #trigger>
-                <NButton 
-                  class="flex-1 !rounded-r-none"
-                  @click="openAllSnapshot"
-                >
+                <NButton class="flex-1 !rounded-r-none" @click="openAllSnapshot">
                   <template #icon>
                     <SvgIcon icon="ri:file-list-line" />
                   </template>
@@ -123,13 +108,10 @@ function openAllSnapshot() {
               </template>
               {{ t('chat_snapshot.title') }}
             </NTooltip>
-            
+
             <NTooltip placement="bottom">
               <template #trigger>
-                <NButton 
-                  class="flex-1 !rounded-none"
-                  @click="openBotAll"
-                >
+                <NButton class="flex-1 !rounded-none" @click="openBotAll">
                   <template #icon>
                     <SvgIcon icon="majesticons:robot-line" />
                   </template>
@@ -137,13 +119,10 @@ function openAllSnapshot() {
               </template>
               {{ t('bot.list') }}
             </NTooltip>
-            
+
             <NTooltip placement="bottom">
               <template #trigger>
-                <NButton 
-                  class="flex-1 !rounded-l-none"
-                  @click="show = true"
-                >
+                <NButton class="flex-1 !rounded-l-none" @click="show = true">
                   <template #icon>
                     <SvgIcon icon="ri:lightbulb-line" />
                   </template>

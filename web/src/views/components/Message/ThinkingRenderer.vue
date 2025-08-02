@@ -159,7 +159,7 @@ function highlightBlock(str: string, lang?: string) {
     <div 
       class="markdown-body thinking-content"
       :class="{ 
-        'max-h-96 overflow-hidden': !isExpanded && shouldShowCollapse,
+        'max-h-48 overflow-hidden': !isExpanded && shouldShowCollapse,
         'line-clamp-none': isExpanded || !shouldShowCollapse
       }"
       v-html="renderedContent"

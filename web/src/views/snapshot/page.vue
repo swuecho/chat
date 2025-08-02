@@ -12,12 +12,12 @@ import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
-import { useAuthStore, useChatStore } from '@/store'
+import { useAuthStore, useSessionStore } from '@/store'
 import { useQuery } from '@tanstack/vue-query'
 import { getConversationComments } from '@/api/comment'
 
 const authStore = useAuthStore()
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
 
 const route = useRoute()
 const dialog = useDialog()
@@ -143,7 +143,7 @@ async function handleChat() {
     nui_msg.error(t('common.ask_user_register'))
   window.open(`/`, '_blank')
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
-  await chatStore.setActiveLocal(SessionUuid)
+  await sessionStore.setActiveSessionLocal(null, SessionUuid)
 }
 
 const footerClass = computed(() => {

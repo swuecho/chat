@@ -1,5 +1,4 @@
 import { ref } from 'vue'
-// @ts-ignore
 import { v7 as uuidv7 } from 'uuid'
 import { nowISO } from '@/utils/date'
 import { useChat } from '@/views/chat/hooks/useChat'

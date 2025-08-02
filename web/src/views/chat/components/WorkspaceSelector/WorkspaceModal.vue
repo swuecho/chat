@@ -13,7 +13,7 @@ import {
   useMessage
 } from 'naive-ui'
 import { SvgIcon } from '@/components/common'
-import { useChatStore } from '@/store'
+import { useWorkspaceStore } from '@/store/modules/workspace'
 import { t } from '@/locales'
 import type { CreateWorkspaceRequest, UpdateWorkspaceRequest } from '@/api'
 
@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 
-const chatStore = useChatStore()
+const workspaceStore = useWorkspaceStore()
 const message = useMessage()
 
 const loading = ref(false)
@@ -243,7 +243,7 @@ async function handleSubmit() {
         icon: formData.value.icon
       }
 
-      const workspace = await chatStore.createNewWorkspace(createData)
+      const workspace = await workspaceStore.createWorkspace(formData.value.name.trim(), formData.value.description.trim(), normalizedColor, formData.value.icon)
       emit('workspace-created', workspace)
     } else if (props.mode === 'edit' && props.workspace) {
       const updateData: UpdateWorkspaceRequest = {
@@ -253,7 +253,7 @@ async function handleSubmit() {
         icon: formData.value.icon
       }
 
-      const workspace = await chatStore.updateWorkspaceData(props.workspace.uuid, updateData)
+      const workspace = await workspaceStore.updateWorkspace(props.workspace.uuid, updateData)
       emit('workspace-updated', workspace)
     }
 

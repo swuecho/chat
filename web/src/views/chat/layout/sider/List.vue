@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue'
 import { NInput, NPopconfirm, NScrollbar, useMessage } from 'naive-ui'
 import { renameChatSession } from '@/api'
 import { SvgIcon } from '@/components/common'
-import { useAppStore, useAuthStore, useChatStore } from '@/store'
+import { useAppStore, useAuthStore, useSessionStore, useWorkspaceStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import ModelAvatar from '@/views/components/Avatar/ModelAvatar.vue'
 import { t } from '@/locales'
@@ -13,21 +13,18 @@ const { isMobile } = useBasicLayout()
 const nui_msg = useMessage()
 
 const appStore = useAppStore()
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
+const workspaceStore = useWorkspaceStore()
 const authStore = useAuthStore()
 
 const dataSources = computed(() => {
   // If no active workspace, show sessions from all workspaces
-  if (!chatStore.activeWorkspace) {
-    const allSessions: Chat.Session[] = []
-    for (const sessions of Object.values(chatStore.workspaceHistory)) {
-      allSessions.push(...sessions)
-    }
-    return allSessions
+  if (!workspaceStore.activeWorkspace) {
+    return sessionStore.getAllSessions()
   }
   
   // Filter sessions by active workspace - show only sessions belonging to this workspace
-  const workspaceSessions = chatStore.getSessionsByWorkspace(chatStore.activeWorkspace)
+  const workspaceSessions = sessionStore.getSessionsByWorkspace(workspaceStore.activeWorkspace.uuid)
   return workspaceSessions
 })
 const isLogined = computed(() => Boolean(authStore.token))
@@ -42,12 +39,12 @@ onMounted(async () => {
   }
 })
 async function handleSyncChat() {
-  const totalSessions = Object.values(chatStore.workspaceHistory).reduce((sum, sessions) => sum + sessions.length, 0)
+  const totalSessions = sessionStore.getAllSessions().length
   console.log('handleSyncChat called, current total sessions:', totalSessions)
   try {
-    console.log('Calling chatStore.syncChatSessions()...')
-    await chatStore.syncChatSessions()
-    const newTotalSessions = Object.values(chatStore.workspaceHistory).reduce((sum, sessions) => sum + sessions.length, 0)
+    console.log('Calling sessionStore.syncAllWorkspaceSessions()...')
+    await sessionStore.syncAllWorkspaceSessions()
+    const newTotalSessions = sessionStore.getAllSessions().length
     console.log('Chat sessions synced successfully, new total sessions:', newTotalSessions)
   }
   catch (error: any) {
@@ -63,11 +60,10 @@ async function handleSelect(uuid: string) {
   if (isActive(uuid))
     return
 
-  if (chatStore.active)
-    await chatStore.updateChatSessionIfEdited(chatStore.active, { isEdit: false })
-
-  // Use the store's setActive method which now handles workspace-aware routing
-  await chatStore.setActive(uuid)
+  const session = sessionStore.getChatSessionByUuid(uuid)
+  if (session && session.workspaceUuid) {
+    await sessionStore.setActiveSession(session.workspaceUuid, uuid)
+  }
 
   if (isMobile.value)
     appStore.setSiderCollapsed(true)
@@ -85,11 +81,11 @@ const throttledHandleSelect = throttle((uuid) => {
 
 function handleEdit({ uuid }: Chat.Session, isEdit: boolean, event?: MouseEvent) {
   event?.stopPropagation()
-  chatStore.updateChatSession(uuid, { isEdit })
+  sessionStore.updateSession(uuid, { isEdit })
 }
 function handleSave({ uuid, title }: Chat.Session, isEdit: boolean, event?: MouseEvent) {
   event?.stopPropagation()
-  chatStore.updateChatSession(uuid, { isEdit })
+  sessionStore.updateSession(uuid, { isEdit })
   // should move to store
   renameChatSession(uuid, title)
 }
@@ -98,20 +94,20 @@ function handleDelete(index: number, event?: MouseEvent | TouchEvent) {
   event?.stopPropagation()
   const session = dataSources.value[index]
   if (session) {
-    chatStore.deleteChatSession(session.uuid)
+    sessionStore.deleteSession(session.uuid)
   }
 }
 
 function handleEnter({ uuid, title }: Chat.Session, isEdit: boolean, event: KeyboardEvent) {
   event?.stopPropagation()
   if (event.key === 'Enter') {
-    chatStore.updateChatSession(uuid, { isEdit })
+    sessionStore.updateSession(uuid, { isEdit })
     renameChatSession(uuid, title)
   }
 }
 
 function isActive(uuid: string) {
-  return chatStore.active === uuid
+  return sessionStore.activeSessionUuid === uuid
 }
 </script>
 

@@ -5,23 +5,39 @@ import { useRouter } from 'vue-router'
 import Sider from './sider/index.vue'
 import Permission from '@/views/components/Permission.vue'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useAppStore, useAuthStore, useChatStore } from '@/store'
+import { useAppStore, useAuthStore, useSessionStore, useWorkspaceStore } from '@/store'
 
 
 const router = useRouter()
 const appStore = useAppStore()
-const chatStore = useChatStore()
+const sessionStore = useSessionStore()
+const workspaceStore = useWorkspaceStore()
 const authStore = useAuthStore()
 
 const { isMobile } = useBasicLayout()
 
 const collapsed = computed(() => appStore.siderCollapsed)
 
-// Initialize auth state on component mount (async)
+// Initialize auth state and workspaces on component mount (async)
 onMounted(async () => {
   console.log('🔄 Layout mounted, initializing auth...')
   await authStore.initializeAuth()
   console.log('✅ Auth initialization completed in Layout')
+
+  // Initialize only the active workspace if user is authenticated
+  if (authStore.isValid) {
+    console.log('🔄 User is authenticated, initializing active workspace...')
+    try {
+      // Get workspace UUID from current route if available
+      const currentRoute = router.currentRoute.value
+      const targetWorkspaceUuid = currentRoute.params.workspaceUuid as string || undefined
+
+      await workspaceStore.initializeActiveWorkspace(targetWorkspaceUuid)
+      console.log('✅ Active workspace initialized on mount')
+    } catch (error) {
+      console.error('Failed to initialize active workspace on mount:', error)
+    }
+  }
 })
 
 // login modal will appear when there is no token and auth is initialized (but not during initialization)
@@ -37,24 +53,25 @@ watch(() => authStore.isInitialized, (initialized) => {
       console.log('✅ Preserving current workspace route on auth init:', currentRoute.params.workspaceUuid)
       return
     }
-    
+
     // For default route, we'll let the store handle navigation to default workspace
     // No immediate navigation here - let syncChatSessions handle it
     console.log('✅ Auth initialized, letting store handle workspace navigation')
   }
 }, { immediate: true })
 
-// Watch for authentication state changes and sync chat sessions when user logs in
+// Watch for authentication state changes and sync workspaces and sessions when user logs in
 watch(() => authStore.isValid, async (isValid) => {
   console.log('Auth state changed, isValid:', isValid)
-  const totalSessions = Object.values(chatStore.workspaceHistory).reduce((sum, sessions) => sum + sessions.length, 0)
+  const totalSessions = sessionStore.getAllSessions().length
   if (isValid && totalSessions === 0) {
     console.log('User is now authenticated and no chat sessions loaded, syncing...')
     try {
-      await chatStore.syncChatSessions()
-      console.log('Chat sessions synced after auth state change')
+      // Initialize only the active workspace instead of all workspaces
+      await workspaceStore.initializeActiveWorkspace()
+      console.log('Active workspace initialized after auth state change')
     } catch (error) {
-      console.error('Failed to sync chat sessions after auth state change:', error)
+      console.error('Failed to initialize active workspace after auth state change:', error)
     }
   }
 })

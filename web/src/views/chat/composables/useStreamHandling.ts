@@ -1,9 +1,8 @@
 import { useMessage } from 'naive-ui'
-import { useAuthStore } from '@/store'
+import { useAuthStore, useMessageStore } from '@/store'
 import { extractStreamingData } from '@/utils/string'
 import { extractArtifacts } from '@/utils/artifacts'
 import { nowISO } from '@/utils/date'
-import { useChatStore } from '@/store'
 import { useChat } from '@/views/chat/hooks/useChat'
 import renderMessage from '../components/RenderMessage.vue'
 import { t } from '@/locales'
@@ -26,7 +25,7 @@ interface StreamChunkData {
 
 export function useStreamHandling() {
   const nui_msg = useMessage()
-  const chatStore = useChatStore()
+  const messageStore = useMessageStore()
   const { updateChat } = useChat()
 
 
@@ -43,7 +42,10 @@ export function useStreamHandling() {
         render: renderMessage
       })
 
-      chatStore.deleteChatByUuid(sessionUuid, responseIndex)
+      const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
+      if (messages && messages[responseIndex]) {
+        messageStore.removeMessage(sessionUuid, messages[responseIndex].uuid)
+      }
     } catch (parseError) {
       console.error('Failed to parse error response:', parseError)
       nui_msg.error('An unexpected error occurred')
@@ -68,7 +70,8 @@ export function useStreamHandling() {
       const answerUuid = parsedData.id.replace('chatcmpl-', '')
 
       // Get current message to append delta content
-      const currentMessage = chatStore.getChatByUuidAndIndex(sessionUuid, responseIndex)
+      const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
+      const currentMessage = messages && messages[responseIndex] ? messages[responseIndex] : null
       const currentText = currentMessage?.text || ''
       const newText = currentText + deltaContent
 

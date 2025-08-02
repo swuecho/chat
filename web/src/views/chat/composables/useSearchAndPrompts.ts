@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { type OnSelect } from 'naive-ui/es/auto-complete/src/interface'
-import { useChatStore, usePromptStore } from '@/store'
+import { useSessionStore, usePromptStore } from '@/store'
 import { useDebounce } from './usePerformanceOptimizations'
 
 interface PromptItem {
@@ -21,7 +21,7 @@ interface SearchOption {
 
 export function useSearchAndPrompts() {
   const prompt = ref<string>('')
-  const chatStore = useChatStore()
+  const sessionStore = useSessionStore()
   const promptStore = usePromptStore()
   
   // Get reactive store refs without explicit typing to avoid type issues
@@ -59,7 +59,7 @@ export function useSearchAndPrompts() {
 
     // Get all sessions from workspace history
     const allSessions: ChatItem[] = []
-    for (const sessions of Object.values(chatStore.workspaceHistory)) {
+    for (const sessions of Object.values(sessionStore.workspaceHistory)) {
       allSessions.push(...sessions)
     }
     
@@ -89,7 +89,7 @@ export function useSearchAndPrompts() {
     
     // Check if it's a chat session across all workspace histories
     let chatItem = null
-    for (const sessions of Object.values(chatStore.workspaceHistory)) {
+    for (const sessions of Object.values(sessionStore.workspaceHistory)) {
       chatItem = sessions.find((chat: ChatItem) => `UUID|$|${chat.uuid}` === option.label)
       if (chatItem) break
     }
@@ -102,7 +102,7 @@ export function useSearchAndPrompts() {
 
   const handleSelectAutoComplete: OnSelect = function (v: string | number) {
     if (typeof v === 'string' && v.startsWith('UUID|$|')) {
-      chatStore.setActive(v.split('|$|')[1])
+      sessionStore.setActive(v.split('|$|')[1])
     }
   }
 

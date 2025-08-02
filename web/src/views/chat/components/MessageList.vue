@@ -9,7 +9,7 @@
 <script lang='ts' setup>
 import Message from './Message/index.vue';
 import { computed, ref } from 'vue';
-import { useChatStore } from '@/store';
+import { useMessageStore, useSessionStore } from '@/store';
 import { useChat } from '@/views/chat/hooks/useChat'
 import { updateChatData } from '@/api'
 import { useDialog } from 'naive-ui'
@@ -34,9 +34,10 @@ const props = defineProps({
         },
 });
 
-const chatStore = useChatStore()
-const dataSources = computed(() => chatStore.getChatSessionDataByUuid(props.sessionUuid))
-const chatSession = computed(() => chatStore.getChatSessionByUuid(props.sessionUuid))
+const messageStore = useMessageStore()
+const sessionStore = useSessionStore()
+const dataSources = computed(() => messageStore.getChatSessionDataByUuid(props.sessionUuid))
+const chatSession = computed(() => sessionStore.getChatSessionByUuid(props.sessionUuid))
 
 // The user wants to delete the message with the given index.
 // If the message is already being deleted, we ignore the request.
@@ -49,7 +50,10 @@ function handleDelete(index: number) {
                 positiveText: t('common.yes'),
                 negativeText: t('common.no'),
                 onPositiveClick: async () => {
-                        chatStore.deleteChatByUuid(props.sessionUuid, index)
+                        const message = dataSources.value[index]
+                        if (message && message.uuid) {
+                                messageStore.removeMessage(props.sessionUuid, message.uuid)
+                        }
                 },
         })
 }
@@ -69,18 +73,19 @@ const pining = ref<boolean>(false)
 async function handleTogglePin(index: number) {
         if (pining.value)
                 return
-        const chat = chatStore.getChatByUuidAndIndex(props.sessionUuid, index)
-        if (chat == null)
+        const messages = messageStore.getChatSessionDataByUuid(props.sessionUuid)
+        const message = messages && messages[index] ? messages[index] : null
+        if (message == null)
                 return
 
-        chat.isPin = !chat.isPin
+        message.isPin = !message.isPin
         try {
                 pining.value = true
-                await updateChatData(chat)
+                await updateChatData(message)
                 updateChat(
                         props.sessionUuid,
                         index,
-                        chat,
+                        message,
                 )
         }
         finally {
