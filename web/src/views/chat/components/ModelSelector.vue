@@ -1,34 +1,23 @@
 <script lang="ts" setup>
 import { computed, ref, watch, h, onUnmounted } from 'vue'
-import { NSelect, NForm } from 'naive-ui'
+import { NSelect, NForm, useMessage } from 'naive-ui'
 import { useSessionStore, useAuthStore } from '@/store'
 import { useChatModels } from '@/hooks/useChatModels'
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
-
-// Type definitions
-interface ChatModel {
-        id: string
-        name: string
-        label: string
-        isEnable: boolean
-        isDefault: boolean
-        orderNumber: number
-        lastUsageTime: string
-        provider: string
-}
+import type { ChatModel } from '@/types/chat-models'
 
 interface ModelFormData {
-        model: string
+        model: string | undefined
 }
 
 interface ChatSession {
         uuid: string
         model?: string
-        // Add other session properties as needed
 }
 
 const sessionStore = useSessionStore()
 const authStore = useAuthStore()
+const message = useMessage()
 const { useChatModelsQuery } = useChatModels()
 
 const props = defineProps<{
@@ -38,7 +27,7 @@ const props = defineProps<{
 
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(props.uuid))
 
-const { data } = useChatModelsQuery()
+const { data, isLoading, error, isError } = useChatModelsQuery()
 
 // format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now
 const formatTimestamp = (timestamp: string) => {
@@ -105,18 +94,29 @@ watch(sessionModel, (newSessionModel) => {
         }
 })
 
-// Watch only the model property for user-initiated changes
+// Optimistic updates with error handling
+const isUpdating = ref(false)
+
 watch(() => modelRef.value.model, async (newModel, oldModel) => {
         // Only trigger update if this is a user-initiated change (both old and new values are defined)
         if (oldModel !== undefined && newModel !== undefined && newModel !== oldModel && newModel) {
+                isUpdating.value = true
+                
                 try {
+                        // Persist to server
                         await sessionStore.updateSession(props.uuid, {
                                 model: newModel
                         })
+                        
+                        message.success(`Model updated to ${newModel}`)
                 } catch (error) {
                         console.error('Failed to update session model:', error)
-                        // Revert the model selection if update failed
+                        message.error('Failed to update model selection')
+                        
+                        // Revert UI state
                         modelRef.value.model = oldModel
+                } finally {
+                        isUpdating.value = false
                 }
         }
 })
@@ -126,6 +126,14 @@ watch(() => modelRef.value.model, async (newModel, oldModel) => {
 
 <template>
         <NForm ref="formRef" :model="modelRef">
-                <NSelect v-model:value="modelRef.model" :options="chatModelOptions" size='large' />
+                <NSelect 
+                        v-model:value="modelRef.model" 
+                        :options="chatModelOptions" 
+                        :loading="isLoading || isUpdating"
+                        :disabled="isError || isLoading || isUpdating"
+                        size='large' 
+                        placeholder="Select a model..."
+                        :fallback-option="false"
+                />
         </NForm>
 </template>
