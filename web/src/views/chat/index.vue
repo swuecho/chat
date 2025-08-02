@@ -3,6 +3,7 @@ import { computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Conversation from './components/Conversation.vue'
 import { useWorkspaceStore } from '@/store/modules/workspace'
+import { useSessionStore } from '@/store/modules/session'
 
 interface Props {
   workspaceUuid?: string
@@ -12,6 +13,7 @@ interface Props {
 const props = defineProps<Props>()
 const route = useRoute()
 const workspaceStore = useWorkspaceStore()
+const sessionStore = useSessionStore()
 
 // Get parameters from either props (new routing) or route params (legacy)
 const workspaceUuid = computed(() => {
@@ -19,7 +21,14 @@ const workspaceUuid = computed(() => {
 })
 
 const sessionUuid = computed(() => {
-  return props.uuid || (route.params.uuid as string) || ''
+  // First try to get sessionUuid from props or route params
+  const urlSessionUuid = props.uuid || (route.params.uuid as string)
+  if (urlSessionUuid) {
+    return urlSessionUuid
+  }
+
+  // If no session in URL, use the active session from session store
+  return sessionStore.activeSessionUuid || ''
 })
 
 // Set active workspace when workspace is specified in URL

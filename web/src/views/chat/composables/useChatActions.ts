@@ -71,12 +71,15 @@ export function useChatActions(sessionUuid: string) {
     if (loading.value)
       return
 
+    console.log('🔄 handleClear called with sessionUuid:', sessionUuid)
+
     dialog.warning({
       title: t('chat.clearChat'),
       content: t('chat.clearChatConfirm'),
       positiveText: t('common.yes'),
       negativeText: t('common.no'),
       onPositiveClick: () => {
+        console.log('🔄 Clearing messages for sessionUuid:', sessionUuid)
         messageStore.clearSessionMessages(sessionUuid)
       },
     })

@@ -2,12 +2,11 @@ import { defineStore } from 'pinia'
 import {
   getChatMessagesBySessionUUID,
   clearSessionChatMessages,
-  type Message,
 } from '@/api'
 import { useSessionStore } from '../session'
 
 export interface MessageState {
-  chat: Record<string, Message[]> // sessionUuid -> messages
+  chat: Record<string, Chat.Message[]> // sessionUuid -> messages
   isLoading: Record<string, boolean> // sessionUuid -> isLoading
 }
 
@@ -58,11 +57,11 @@ export const useMessageStore = defineStore('message-store', {
       }
 
       this.isLoading[sessionUuid] = true
-      
+
       try {
         const messageData = await getChatMessagesBySessionUUID(sessionUuid)
         this.chat[sessionUuid] = messageData
-        
+
         // Update active session if needed
         const sessionStore = useSessionStore()
         if (sessionStore.activeSessionUuid !== sessionUuid) {
@@ -71,7 +70,7 @@ export const useMessageStore = defineStore('message-store', {
             await sessionStore.setActiveSession(session.workspaceUuid, sessionUuid)
           }
         }
-        
+
         return messageData
       } catch (error) {
         console.error(`Failed to sync messages for session ${sessionUuid}:`, error)
@@ -81,21 +80,21 @@ export const useMessageStore = defineStore('message-store', {
       }
     },
 
-    addMessage(sessionUuid: string, message: Message) {
+    addMessage(sessionUuid: string, message: Chat.Message) {
       if (!this.chat[sessionUuid]) {
         this.chat[sessionUuid] = []
       }
       this.chat[sessionUuid].push(message)
     },
 
-    addMessages(sessionUuid: string, messages: Message[]) {
+    addMessages(sessionUuid: string, messages: Chat.Message[]) {
       if (!this.chat[sessionUuid]) {
         this.chat[sessionUuid] = []
       }
       this.chat[sessionUuid].push(...messages)
     },
 
-    updateMessage(sessionUuid: string, messageUuid: string, updates: Partial<Message>) {
+    updateMessage(sessionUuid: string, messageUuid: string, updates: Partial<Chat.Message>) {
       const messages = this.chat[sessionUuid]
       if (messages) {
         const index = messages.findIndex(msg => msg.uuid === messageUuid)
@@ -116,14 +115,20 @@ export const useMessageStore = defineStore('message-store', {
     clearSessionMessages(sessionUuid: string) {
       try {
         clearSessionChatMessages(sessionUuid)
-        this.chat[sessionUuid] = []
+        // Keep the first message (system prompt) and clear the rest
+        const messages = this.chat[sessionUuid] || []
+        if (messages.length > 0) {
+          this.chat[sessionUuid] = [messages[0]] // Keep only the first message
+        } else {
+          this.chat[sessionUuid] = []
+        }
       } catch (error) {
         console.error(`Failed to clear messages for session ${sessionUuid}:`, error)
         throw error
       }
     },
 
-    updateLastMessage(sessionUuid: string, updates: Partial<Message>) {
+    updateLastMessage(sessionUuid: string, updates: Partial<Chat.Message>) {
       const messages = this.chat[sessionUuid]
       if (messages && messages.length > 0) {
         const lastIndex = messages.length - 1
@@ -194,7 +199,7 @@ export const useMessageStore = defineStore('message-store', {
     searchMessages(sessionUuid: string, query: string) {
       const messages = this.chat[sessionUuid] || []
       const lowercaseQuery = query.toLowerCase()
-      return messages.filter(msg => 
+      return messages.filter(msg =>
         msg.text.toLowerCase().includes(lowercaseQuery)
       )
     },
