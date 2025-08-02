@@ -23,14 +23,14 @@ onMounted(async () => {
   console.log('🔄 Layout mounted, initializing auth...')
   await authStore.initializeAuth()
   console.log('✅ Auth initialization completed in Layout')
-  
-  // Initialize workspaces if user is authenticated
+
+  // Initialize workspaces and sessions if user is authenticated
   if (authStore.isValid) {
     console.log('🔄 User is authenticated, syncing workspaces...')
     try {
       await workspaceStore.syncWorkspaces()
       console.log('✅ Workspaces synced on mount')
-      
+
       // Then sync sessions
       await sessionStore.syncAllWorkspaceSessions()
       console.log('✅ Chat sessions synced on mount')
@@ -53,7 +53,7 @@ watch(() => authStore.isInitialized, (initialized) => {
       console.log('✅ Preserving current workspace route on auth init:', currentRoute.params.workspaceUuid)
       return
     }
-    
+
     // For default route, we'll let the store handle navigation to default workspace
     // No immediate navigation here - let syncChatSessions handle it
     console.log('✅ Auth initialized, letting store handle workspace navigation')
@@ -70,7 +70,7 @@ watch(() => authStore.isValid, async (isValid) => {
       // First sync workspaces
       await workspaceStore.syncWorkspaces()
       console.log('Workspaces synced after auth state change')
-      
+
       // Then sync sessions
       await sessionStore.syncAllWorkspaceSessions()
       console.log('Chat sessions synced after auth state change')

@@ -7,12 +7,11 @@ import {
   updateChatSession,
   getSessionsByWorkspace,
   createSessionInWorkspace,
-  type Session,
 } from '@/api'
 import { useWorkspaceStore } from '../workspace'
 
 export interface SessionState {
-  workspaceHistory: Record<string, Session[]> // workspaceUuid -> sessions
+  workspaceHistory: Record<string, Chat.Session[]> // workspaceUuid -> sessions
   activeSessionUuid: string | null
   isLoading: boolean
   isCreatingSession: boolean
@@ -51,7 +50,11 @@ export const useSessionStore = defineStore('session-store', {
 
     activeSession(state) {
       if (state.activeSessionUuid) {
-        return this.getChatSessionByUuid(state.activeSessionUuid)
+        // Search across all workspace histories
+        for (const sessions of Object.values(state.workspaceHistory)) {
+          const session = sessions.find(item => item.uuid === state.activeSessionUuid)
+          if (session) return session
+        }
       }
       return null
     },
@@ -59,9 +62,12 @@ export const useSessionStore = defineStore('session-store', {
     // Get session URL for navigation
     getSessionUrl() {
       return (sessionUuid: string): string => {
-        const session = this.getChatSessionByUuid(sessionUuid)
-        if (session && session.workspaceUuid) {
-          return `/#/workspace/${session.workspaceUuid}/chat/${sessionUuid}`
+        // Search across all workspace histories
+        for (const sessions of Object.values(this.workspaceHistory)) {
+          const session = sessions.find(item => item.uuid === sessionUuid)
+          if (session && session.workspaceUuid) {
+            return `/#/workspace/${session.workspaceUuid}/chat/${sessionUuid}`
+          }
         }
         return `/#/chat/${sessionUuid}`
       }
@@ -87,7 +93,7 @@ export const useSessionStore = defineStore('session-store', {
       try {
         this.isLoading = true
         const workspaceStore = useWorkspaceStore()
-        
+
         // Sync sessions for all workspaces
         for (const workspace of workspaceStore.workspaces) {
           const sessions = await getSessionsByWorkspace(workspace.uuid)
@@ -107,18 +113,17 @@ export const useSessionStore = defineStore('session-store', {
       }
 
       this.isCreatingSession = true
-      
+
       try {
         const workspaceStore = useWorkspaceStore()
         const targetWorkspaceUuid = workspaceUuid || workspaceStore.activeWorkspaceUuid
-        
+
         if (!targetWorkspaceUuid) {
           throw new Error('No workspace available for session creation')
         }
 
-        const newSession = await createSessionInWorkspace({
-          workspaceUuid: targetWorkspaceUuid,
-          title,
+        const newSession = await createSessionInWorkspace(targetWorkspaceUuid, {
+          topic: title,
           model,
         })
 
@@ -140,17 +145,17 @@ export const useSessionStore = defineStore('session-store', {
       }
     },
 
-    async createLegacySession(session: Session) {
+    async createLegacySession(session: Chat.Session) {
       try {
         await createChatSession(session.uuid, session.title, session.model)
-        
+
         // Refresh workspace sessions to get updated list from backend
         const workspaceUuid = session.workspaceUuid
         if (workspaceUuid) {
           await this.syncWorkspaceSessions(workspaceUuid)
         }
-        
-        await this.setActiveSession(workspaceUuid, session.uuid)
+
+        await this.setActiveSession(workspaceUuid || null, session.uuid)
         return session
       } catch (error) {
         console.error('Failed to create legacy session:', error)
@@ -158,11 +163,11 @@ export const useSessionStore = defineStore('session-store', {
       }
     },
 
-    async updateSession(uuid: string, updates: Partial<Session>) {
+    async updateSession(uuid: string, updates: Partial<Chat.Session>) {
       try {
         console.log('updateSession called with uuid:', uuid, 'updates:', updates)
         console.log('Current workspaceHistory:', this.workspaceHistory)
-        
+
         // Find session across all workspace histories
         for (const workspaceUuid in this.workspaceHistory) {
           const sessions = this.workspaceHistory[workspaceUuid]
@@ -171,7 +176,7 @@ export const useSessionStore = defineStore('session-store', {
             console.log('Found session in workspace:', workspaceUuid, 'at index:', index)
             // Update local state
             sessions[index] = { ...sessions[index], ...updates }
-            
+
             // Update backend - use the appropriate API method
             if (updates.title !== undefined) {
               // If only title is changing, use the rename endpoint
@@ -180,11 +185,11 @@ export const useSessionStore = defineStore('session-store', {
               // For other updates (like model), use the full update endpoint
               await updateChatSession(uuid, sessions[index])
             }
-            
+
             return sessions[index]
           }
         }
-        
+
         // If session not found locally, try to update it on the backend anyway
         // This handles cases where the session exists on the server but not in local state
         console.log('Session not found locally, attempting backend update')
@@ -199,7 +204,7 @@ export const useSessionStore = defineStore('session-store', {
         } catch (backendError) {
           console.error('Backend update also failed:', backendError)
         }
-        
+
         throw new Error(`Session ${uuid} not found`)
       } catch (error) {
         console.error('Failed to update session:', error)
@@ -251,10 +256,10 @@ export const useSessionStore = defineStore('session-store', {
       }
 
       this.isSwitchingSession = true
-      
+
       try {
         this.activeSessionUuid = sessionUuid
-        
+
         // Update workspace active session tracking
         if (workspaceUuid) {
           const workspaceStore = useWorkspaceStore()
@@ -303,7 +308,7 @@ export const useSessionStore = defineStore('session-store', {
     // Helper method to clear all sessions for a workspace
     clearWorkspaceSessions(workspaceUuid: string) {
       this.workspaceHistory[workspaceUuid] = []
-      
+
       // Clear active session if it was in this workspace
       const activeSession = this.activeSession
       if (activeSession && activeSession.workspaceUuid === workspaceUuid) {
@@ -313,11 +318,16 @@ export const useSessionStore = defineStore('session-store', {
 
     // Helper method to get all sessions across all workspaces
     getAllSessions() {
-      const allSessions: Session[] = []
+      const allSessions: Chat.Session[] = []
       for (const sessions of Object.values(this.workspaceHistory)) {
         allSessions.push(...sessions)
       }
       return allSessions
+    },
+
+    // Legacy compatibility method - maps to createSessionInWorkspace
+    async addSession(session: Chat.Session) {
+      return await this.createSessionInWorkspace(session.title, session.workspaceUuid, session.model)
     },
   },
 })
