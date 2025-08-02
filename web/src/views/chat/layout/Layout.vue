@@ -24,14 +24,18 @@ onMounted(async () => {
   await authStore.initializeAuth()
   console.log('✅ Auth initialization completed in Layout')
 
-  // Initialize the full application if user is authenticated
+  // Initialize only the active workspace if user is authenticated
   if (authStore.isValid) {
-    console.log('🔄 User is authenticated, initializing application...')
+    console.log('🔄 User is authenticated, initializing active workspace...')
     try {
-      await workspaceStore.initializeApplication()
-      console.log('✅ Application fully initialized on mount')
+      // Get workspace UUID from current route if available
+      const currentRoute = router.currentRoute.value
+      const targetWorkspaceUuid = currentRoute.params.workspaceUuid as string || undefined
+
+      await workspaceStore.initializeActiveWorkspace(targetWorkspaceUuid)
+      console.log('✅ Active workspace initialized on mount')
     } catch (error) {
-      console.error('Failed to initialize application on mount:', error)
+      console.error('Failed to initialize active workspace on mount:', error)
     }
   }
 })
@@ -63,15 +67,11 @@ watch(() => authStore.isValid, async (isValid) => {
   if (isValid && totalSessions === 0) {
     console.log('User is now authenticated and no chat sessions loaded, syncing...')
     try {
-      // First sync workspaces
-      await workspaceStore.syncWorkspaces()
-      console.log('Workspaces synced after auth state change')
-
-      // Then sync sessions
-      await sessionStore.syncAllWorkspaceSessions()
-      console.log('Chat sessions synced after auth state change')
+      // Initialize only the active workspace instead of all workspaces
+      await workspaceStore.initializeActiveWorkspace()
+      console.log('Active workspace initialized after auth state change')
     } catch (error) {
-      console.error('Failed to sync workspaces and sessions after auth state change:', error)
+      console.error('Failed to initialize active workspace after auth state change:', error)
     }
   }
 })

@@ -11,6 +11,7 @@ import {
   autoMigrateLegacySessions,
   getAllWorkspaceActiveSessions,
   getChatSessionDefault,
+  getWorkspace,
 } from '@/api'
 
 import { useSessionStore } from '@/store/modules/session'
@@ -63,6 +64,39 @@ export const useWorkspaceStore = defineStore('workspace-store', {
   },
 
   actions: {
+    // Optimized initialization that only loads active workspace
+    async initializeActiveWorkspace(targetWorkspaceUuid?: string) {
+      try {
+        console.log('🔄 Starting optimized workspace initialization...')
+
+        // Step 1: Handle legacy session migration (if needed)
+        try {
+          const migrationResult = await autoMigrateLegacySessions()
+          if (migrationResult.hasLegacySessions && migrationResult.migratedSessions > 0) {
+            console.log(`🔄 Auto-migrated ${migrationResult.migratedSessions} legacy sessions to default workspace`)
+          }
+        } catch (migrationError) {
+          console.warn('⚠️ Legacy session migration failed:', migrationError)
+        }
+
+        // Step 2: Load only the active/target workspace
+        const activeWorkspace = await this.loadActiveWorkspace(targetWorkspaceUuid)
+
+        // Step 3: Load sessions only for the active workspace
+        const sessionStore = useSessionStore()
+        await sessionStore.syncActiveWorkspaceSessions()
+
+        // Step 4: Ensure user has at least one session in the active workspace
+        await this.ensureUserHasSession()
+
+        console.log('✅ Optimized workspace initialization completed')
+        return activeWorkspace
+      } catch (error) {
+        console.error('❌ Error in optimized workspace initialization:', error)
+        throw error
+      }
+    },
+
     // Comprehensive initialization method that replaces the old chat store logic
     async initializeApplication() {
       try {
@@ -117,6 +151,57 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         console.log('✅ Application initialization completed successfully')
       } catch (error) {
         console.error('❌ Error in initializeApplication:', error)
+        throw error
+      }
+    },
+
+    // Optimized method to load only the active/default workspace
+    async loadActiveWorkspace(targetWorkspaceUuid?: string) {
+      try {
+        this.isLoading = true
+
+        // If specific workspace is requested, try to load it
+        if (targetWorkspaceUuid) {
+          try {
+            const workspace = await getWorkspace(targetWorkspaceUuid)
+            this.workspaces = [workspace]
+            this.activeWorkspaceUuid = workspace.uuid
+            return workspace
+          } catch (error) {
+            console.warn(`Failed to load specific workspace ${targetWorkspaceUuid}, falling back to default`, error)
+          }
+        }
+
+        // Ensure we have a default workspace (this only loads/creates the default one)
+        const defaultWorkspace = await ensureDefaultWorkspace()
+        this.workspaces = [defaultWorkspace]
+        this.activeWorkspaceUuid = defaultWorkspace.uuid
+
+        console.log('✅ Loaded active workspace:', defaultWorkspace.name)
+        return defaultWorkspace
+      } catch (error) {
+        console.error('Failed to load active workspace:', error)
+        throw error
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    // Load additional workspaces on demand (for workspace selector)
+    async loadAllWorkspaces() {
+      try {
+        const allWorkspaces = await getWorkspaces()
+
+        // Merge with existing workspaces, avoiding duplicates
+        const existingUuids = new Set(this.workspaces.map(w => w.uuid))
+        const newWorkspaces = allWorkspaces.filter(w => !existingUuids.has(w.uuid))
+
+        this.workspaces = [...this.workspaces, ...newWorkspaces]
+
+        console.log(`✅ Loaded ${newWorkspaces.length} additional workspaces`)
+        return allWorkspaces
+      } catch (error) {
+        console.error('Failed to load all workspaces:', error)
         throw error
       }
     },
@@ -249,6 +334,18 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         const defaultWorkspace = await ensureDefaultWorkspace()
         this.workspaces.push(defaultWorkspace)
         this.activeWorkspaceUuid = defaultWorkspace.uuid
+
+        // Automatically create a default session for the default workspace
+        try {
+          const sessionStore = useSessionStore()
+          const new_chat_text = t('chat.new')
+          await sessionStore.createSessionInWorkspace(new_chat_text, defaultWorkspace.uuid)
+          console.log(`✅ Created default session for default workspace: ${defaultWorkspace.name}`)
+        } catch (sessionError) {
+          console.warn(`⚠️ Failed to create default session for default workspace ${defaultWorkspace.name}:`, sessionError)
+          // Don't throw here - workspace creation should succeed even if session creation fails
+        }
+
         return defaultWorkspace
       } catch (error) {
         console.error('Failed to ensure default workspace:', error)
@@ -257,22 +354,43 @@ export const useWorkspaceStore = defineStore('workspace-store', {
     },
 
     async setActiveWorkspace(workspaceUuid: string) {
-      const workspace = this.workspaces.find(workspace => workspace.uuid === workspaceUuid)
-      if (workspace) {
-        this.activeWorkspaceUuid = workspaceUuid
+      let workspace = this.workspaces.find(workspace => workspace.uuid === workspaceUuid)
 
-        // Restore the previously active session for this workspace
-        const activeSessionForWorkspace = this.workspaceActiveSessions[workspaceUuid]
-
-        if (activeSessionForWorkspace) {
-          // Emit an event that the chat view can listen to
-          this.$patch((state) => {
-            state.pendingSessionRestore = {
-              workspaceUuid,
-              sessionUuid: activeSessionForWorkspace
-            }
-          })
+      // If workspace is not loaded, load it on-demand
+      if (!workspace) {
+        try {
+          console.log(`Loading workspace ${workspaceUuid} on-demand...`)
+          workspace = await getWorkspace(workspaceUuid)
+          this.workspaces.push(workspace)
+          console.log(`✅ Loaded workspace on-demand: ${workspace.name}`)
+        } catch (error) {
+          console.error(`Failed to load workspace ${workspaceUuid}:`, error)
+          throw new Error(`Workspace ${workspaceUuid} not found`)
         }
+      }
+
+      this.activeWorkspaceUuid = workspaceUuid
+
+      // Load sessions for this workspace if not already loaded
+      const sessionStore = useSessionStore()
+      const existingSessions = sessionStore.getSessionsByWorkspace(workspaceUuid)
+      if (existingSessions.length === 0) {
+        console.log(`Loading sessions for workspace ${workspaceUuid}...`)
+        await sessionStore.syncWorkspaceSessions(workspaceUuid)
+        console.log(`✅ Loaded sessions for workspace: ${workspace.name}`)
+      }
+
+      // Restore the previously active session for this workspace
+      const activeSessionForWorkspace = this.workspaceActiveSessions[workspaceUuid]
+
+      if (activeSessionForWorkspace) {
+        // Emit an event that the chat view can listen to
+        this.$patch((state) => {
+          state.pendingSessionRestore = {
+            workspaceUuid,
+            sessionUuid: activeSessionForWorkspace
+          }
+        })
       }
     },
 
@@ -304,6 +422,18 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           icon,
         })
         this.workspaces.push(newWorkspace)
+
+        // Automatically create a default session for the new workspace
+        try {
+          const sessionStore = useSessionStore()
+          const new_chat_text = t('chat.new')
+          await sessionStore.createSessionInWorkspace(new_chat_text, newWorkspace.uuid)
+          console.log(`✅ Created default session for new workspace: ${newWorkspace.name}`)
+        } catch (sessionError) {
+          console.warn(`⚠️ Failed to create default session for workspace ${newWorkspace.name}:`, sessionError)
+          // Don't throw here - workspace creation should succeed even if session creation fails
+        }
+
         return newWorkspace
       } catch (error) {
         console.error('Failed to create workspace:', error)

@@ -24,6 +24,19 @@ const editingWorkspace = ref<Chat.Workspace | null>(null)
 const activeWorkspace = computed(() => workspaceStore.activeWorkspace)
 const workspaces = computed(() => workspaceStore.workspaces)
 
+// Load all workspaces when dropdown is opened
+async function handleDropdownVisibilityChange(visible: boolean) {
+  if (visible && workspaces.value.length <= 1) {
+    try {
+      console.log('Loading all workspaces for workspace selector...')
+      await workspaceStore.loadAllWorkspaces()
+    } catch (error) {
+      console.error('Failed to load workspaces:', error)
+      message.error(t('workspace.loadError'))
+    }
+  }
+}
+
 // Icon mapping - convert icon value to full icon string
 const getWorkspaceIconString = (iconValue: string) => {
   // If already has prefix, return as is
@@ -38,9 +51,9 @@ const dropdownOptions = computed((): DropdownOption[] => [
   ...workspaces.value.map(workspace => ({
     key: workspace.uuid,
     label: workspace.name,
-    icon: () => h(SvgIcon, { 
-      icon: getWorkspaceIconString(workspace.icon), 
-      style: { color: workspace.color } 
+    icon: () => h(SvgIcon, {
+      icon: getWorkspaceIconString(workspace.icon),
+      style: { color: workspace.color }
     }),
   })),
   {
@@ -64,12 +77,12 @@ async function handleDropdownSelect(key: string) {
     showCreateModal.value = true
     return
   }
-  
+
   if (key === 'manage-workspaces') {
     showManagementModal.value = true
     return
   }
-  
+
   // Switch to selected workspace
   if (key !== workspaceStore.activeWorkspace?.uuid) {
     const workspace = workspaces.value.find(w => w.uuid === key)
@@ -92,24 +105,12 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
 
 <template>
   <div class="workspace-selector">
-    <NDropdown
-      :options="dropdownOptions"
-      trigger="click"
-      placement="bottom-start"
-      @select="handleDropdownSelect"
-      class="workspace-dropdown"
-      :width="'trigger'"
-    >
+    <NDropdown :options="dropdownOptions" trigger="click" placement="bottom-start" @select="handleDropdownSelect"
+      class="workspace-dropdown" :width="'trigger'" @update:visible="handleDropdownVisibilityChange">
       <div class="workspace-button">
         <div class="workspace-icon" :style="{ color: activeWorkspace?.color || '#6366f1' }">
-          <SvgIcon 
-            v-if="activeWorkspace" 
-            :icon="getWorkspaceIconString(activeWorkspace.icon)"
-          />
-          <SvgIcon 
-            v-else
-            icon="material-symbols:folder"
-          />
+          <SvgIcon v-if="activeWorkspace" :icon="getWorkspaceIconString(activeWorkspace.icon)" />
+          <SvgIcon v-else icon="material-symbols:folder" />
         </div>
         <div class="workspace-content">
           <span v-if="activeWorkspace" class="workspace-name">
@@ -126,24 +127,14 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
     </NDropdown>
 
     <!-- Create Workspace Modal -->
-    <WorkspaceModal
-      v-model:visible="showCreateModal"
-      mode="create"
-      @workspace-created="handleWorkspaceCreated"
-    />
+    <WorkspaceModal v-model:visible="showCreateModal" mode="create" @workspace-created="handleWorkspaceCreated" />
 
     <!-- Edit Workspace Modal -->
-    <WorkspaceModal
-      v-model:visible="showEditModal"
-      mode="edit"
-      :workspace="editingWorkspace"
-      @workspace-updated="handleWorkspaceUpdated"
-    />
+    <WorkspaceModal v-model:visible="showEditModal" mode="edit" :workspace="editingWorkspace"
+      @workspace-updated="handleWorkspaceUpdated" />
 
     <!-- Workspace Management Modal -->
-    <WorkspaceManagementModal
-      v-model:visible="showManagementModal"
-    />
+    <WorkspaceManagementModal v-model:visible="showManagementModal" />
   </div>
 </template>
 
@@ -201,15 +192,15 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
   .workspace-button {
     border-color: #404040;
   }
-  
+
   .workspace-button:hover {
     background-color: #24272e;
   }
-  
+
   .workspace-loading {
     color: #737373;
   }
-  
+
   .workspace-arrow {
     color: #737373;
   }
@@ -239,7 +230,7 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
   :deep(.n-dropdown-menu) {
     border-color: #404040;
   }
-  
+
   :deep(.n-dropdown-option:hover) {
     background-color: #24272e;
   }

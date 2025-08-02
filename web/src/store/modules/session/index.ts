@@ -79,10 +79,49 @@ export const useSessionStore = defineStore('session-store', {
       try {
         this.isLoading = true
         const sessions = await getSessionsByWorkspace(workspaceUuid)
-        this.workspaceHistory[workspaceUuid] = sessions
-        return sessions
+
+        // Map topic to title for frontend compatibility
+        const sessionsWithTitle = sessions.map((session: any) => ({
+          ...session,
+          title: session.topic || session.title || 'Untitled'
+        }))
+
+        this.workspaceHistory[workspaceUuid] = sessionsWithTitle
+        return sessionsWithTitle
       } catch (error) {
         console.error(`Failed to sync sessions for workspace ${workspaceUuid}:`, error)
+        throw error
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    // Optimized method to load only active workspace sessions
+    async syncActiveWorkspaceSessions() {
+      try {
+        this.isLoading = true
+        const workspaceStore = useWorkspaceStore()
+
+        if (!workspaceStore.activeWorkspaceUuid) {
+          console.log('No active workspace, skipping session sync')
+          return
+        }
+
+        console.log('Loading sessions for active workspace:', workspaceStore.activeWorkspaceUuid)
+        const sessions = await getSessionsByWorkspace(workspaceStore.activeWorkspaceUuid)
+
+        // Map topic to title for frontend compatibility
+        const sessionsWithTitle = sessions.map((session: any) => ({
+          ...session,
+          title: session.topic || session.title || 'Untitled'
+        }))
+
+        this.workspaceHistory[workspaceStore.activeWorkspaceUuid] = sessionsWithTitle
+        console.log(`✅ Loaded ${sessionsWithTitle.length} sessions for active workspace`)
+
+        return sessionsWithTitle
+      } catch (error) {
+        console.error('Failed to sync active workspace sessions:', error)
         throw error
       } finally {
         this.isLoading = false
@@ -97,7 +136,14 @@ export const useSessionStore = defineStore('session-store', {
         // Sync sessions for all workspaces
         for (const workspace of workspaceStore.workspaces) {
           const sessions = await getSessionsByWorkspace(workspace.uuid)
-          this.workspaceHistory[workspace.uuid] = sessions
+
+          // Map topic to title for frontend compatibility
+          const sessionsWithTitle = sessions.map((session: any) => ({
+            ...session,
+            title: session.topic || session.title || 'Untitled'
+          }))
+
+          this.workspaceHistory[workspace.uuid] = sessionsWithTitle
         }
       } catch (error) {
         console.error('Failed to sync all workspace sessions:', error)
@@ -122,21 +168,40 @@ export const useSessionStore = defineStore('session-store', {
           throw new Error('No workspace available for session creation')
         }
 
+        // Get default model if none provided
+        let sessionModel = model
+        if (!sessionModel) {
+          try {
+            const { fetchDefaultChatModel } = await import('@/api/chat_model')
+            const defaultModel = await fetchDefaultChatModel()
+            sessionModel = defaultModel.name
+          } catch (error) {
+            console.warn('Failed to fetch default model, proceeding without model:', error)
+          }
+        }
+
         const newSession = await createSessionInWorkspace(targetWorkspaceUuid, {
           topic: title,
-          model,
+          model: sessionModel,
         })
+
+        // Map topic to title for frontend compatibility
+        const sessionWithTitle = {
+          ...newSession,
+          title: newSession.topic || title,
+          model: newSession.model || sessionModel
+        }
 
         // Add to workspace history
         if (!this.workspaceHistory[targetWorkspaceUuid]) {
           this.workspaceHistory[targetWorkspaceUuid] = []
         }
-        this.workspaceHistory[targetWorkspaceUuid].unshift(newSession)
+        this.workspaceHistory[targetWorkspaceUuid].unshift(sessionWithTitle)
 
         // Set as active session
-        await this.setActiveSession(targetWorkspaceUuid, newSession.uuid)
+        await this.setActiveSession(targetWorkspaceUuid, sessionWithTitle.uuid)
 
-        return newSession
+        return sessionWithTitle
       } catch (error) {
         console.error('Failed to create session in workspace:', error)
         throw error
