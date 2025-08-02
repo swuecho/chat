@@ -982,22 +982,35 @@ onMounted(() => {
   loadArtifacts()
 })
 
-// Watch for changes in message store and reload artifacts
+// Simple debounce utility
+function debounce(func: Function, wait: number) {
+  let timeout: NodeJS.Timeout
+  return function executedFunction(...args: any[]) {
+    const later = () => {
+      clearTimeout(timeout)
+      func(...args)
+    }
+    clearTimeout(timeout)
+    timeout = setTimeout(later, wait)
+  }
+}
+
+// Watch for changes in message store and reload artifacts with debouncing
+const debouncedLoadArtifacts = debounce(loadArtifacts, 300)
+
 watch(
-  () => messageStore.sessions,
+  () => Object.keys(messageStore.chat).length,
   () => {
-    loadArtifacts()
-  },
-  { deep: true }
+    debouncedLoadArtifacts()
+  }
 )
 
-// Watch for changes in session history (new sessions)
+// Watch for changes in session history (new sessions)  
 watch(
-  () => sessionStore.sessions,
+  () => sessionStore.getAllSessions().length,
   () => {
-    loadArtifacts()
-  },
-  { deep: true }
+    debouncedLoadArtifacts()
+  }
 )
 </script>
 
