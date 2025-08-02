@@ -8,9 +8,13 @@ import {
   ensureDefaultWorkspace,
   setDefaultWorkspace,
   updateWorkspaceOrder,
+  autoMigrateLegacySessions,
+  getAllWorkspaceActiveSessions,
+  getChatSessionDefault,
 } from '@/api'
 
 import { useSessionStore } from '@/store/modules/session'
+import { t } from '@/locales'
 
 export interface WorkspaceState {
   workspaces: Chat.Workspace[]
@@ -59,6 +63,162 @@ export const useWorkspaceStore = defineStore('workspace-store', {
   },
 
   actions: {
+    // Comprehensive initialization method that replaces the old chat store logic
+    async initializeApplication() {
+      try {
+        console.log('🔄 Starting comprehensive application initialization...')
+
+        // Step 1: Handle legacy session migration
+        try {
+          const migrationResult = await autoMigrateLegacySessions()
+          if (migrationResult.hasLegacySessions && migrationResult.migratedSessions > 0) {
+            console.log(`🔄 Auto-migrated ${migrationResult.migratedSessions} legacy sessions to default workspace`)
+
+            // Only force refresh if we're not already on a workspace route
+            const currentRoute = router.currentRoute.value
+            if (currentRoute.name !== 'WorkspaceChat') {
+              console.log('🔄 Refreshing page after migration')
+              window.location.reload()
+              return // Exit early since we're refreshing
+            } else {
+              console.log('🔄 Skipping refresh - already on workspace route')
+            }
+          }
+        } catch (migrationError) {
+          console.warn('⚠️ Legacy session migration failed:', migrationError)
+          // Continue with normal sync - don't block the app
+        }
+
+        // Step 2: Sync workspaces
+        await this.syncWorkspaces()
+
+        // Step 3: Determine workspace context from URL
+        const routeBeforeSync = router.currentRoute.value
+        const urlWorkspaceUuid = routeBeforeSync.name === 'WorkspaceChat' ? routeBeforeSync.params.workspaceUuid as string : null
+        const urlSessionUuid = routeBeforeSync.params.uuid as string
+        const isOnDefaultRoute = routeBeforeSync.name === 'DefaultWorkspace'
+
+        // Step 4: Sync workspace active sessions from backend
+        await this.syncWorkspaceActiveSessions(urlWorkspaceUuid || undefined, urlSessionUuid || undefined)
+
+        // Step 5: Ensure we have an active workspace
+        await this.ensureActiveWorkspace()
+
+        // Step 6: Initialize sessions through session store
+        const sessionStore = useSessionStore()
+        await sessionStore.syncAllWorkspaceSessions()
+
+        // Step 7: Handle session creation if needed
+        await this.ensureUserHasSession()
+
+        // Step 8: Handle navigation
+        await this.handleInitialNavigation(urlWorkspaceUuid || undefined, urlSessionUuid || undefined, isOnDefaultRoute)
+
+        console.log('✅ Application initialization completed successfully')
+      } catch (error) {
+        console.error('❌ Error in initializeApplication:', error)
+        throw error
+      }
+    },
+
+    async syncWorkspaceActiveSessions(urlWorkspaceUuid?: string, urlSessionUuid?: string) {
+      try {
+        const backendSessions = await getAllWorkspaceActiveSessions()
+
+        // Build workspace active sessions mapping
+        this.workspaceActiveSessions = {}
+        let globalActiveSession = null
+
+        for (const session of backendSessions) {
+          if (session.workspaceUuid) {
+            this.workspaceActiveSessions[session.workspaceUuid] = session.chatSessionUuid
+            if (!globalActiveSession) {
+              globalActiveSession = session
+            }
+          }
+        }
+
+        // Prioritize URL context over backend data
+        if (urlWorkspaceUuid && urlSessionUuid) {
+          this.activeWorkspaceUuid = urlWorkspaceUuid
+          console.log('✅ Used workspace from URL:', { workspaceUuid: urlWorkspaceUuid, sessionUuid: urlSessionUuid })
+        } else if (urlWorkspaceUuid) {
+          this.activeWorkspaceUuid = urlWorkspaceUuid
+          console.log('✅ Used workspace from URL (no session):', urlWorkspaceUuid)
+        } else if (globalActiveSession?.workspaceUuid) {
+          this.activeWorkspaceUuid = globalActiveSession.workspaceUuid
+          console.log('✅ Used workspace from backend:', globalActiveSession.workspaceUuid)
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to sync workspace active sessions:', error)
+      }
+    },
+
+    async ensureActiveWorkspace() {
+      // If we don't have an active workspace, set to default
+      if (!this.activeWorkspaceUuid && this.workspaces.length > 0) {
+        const defaultWorkspace = this.workspaces.find(workspace => workspace.isDefault) || this.workspaces[0]
+        if (defaultWorkspace) {
+          this.activeWorkspaceUuid = defaultWorkspace.uuid
+          console.log('✅ Set active workspace to default:', defaultWorkspace.name)
+        }
+      }
+    },
+
+    async ensureUserHasSession() {
+      const sessionStore = useSessionStore()
+
+      // Check if user has any sessions
+      const allSessions = sessionStore.getAllSessions()
+      if (allSessions.length === 0) {
+        console.log('🔄 No sessions found for user, creating default session')
+
+        // Ensure we have a default workspace
+        const defaultWorkspace = this.workspaces.find(workspace => workspace.isDefault) || null
+        if (!defaultWorkspace) {
+          console.error('❌ No default workspace found when trying to create default session')
+          throw new Error('No default workspace available for session creation')
+        }
+
+        // Set active workspace
+        this.activeWorkspaceUuid = defaultWorkspace.uuid
+
+        // Create default session
+        const new_chat_text = t('chat.new')
+        await sessionStore.createSessionInWorkspace(new_chat_text, defaultWorkspace.uuid)
+        console.log('✅ Created default session for new user')
+      }
+    },
+
+    async handleInitialNavigation(urlWorkspaceUuid?: string, urlSessionUuid?: string, isOnDefaultRoute?: boolean) {
+      const sessionStore = useSessionStore()
+
+      if (urlSessionUuid && sessionStore.getChatSessionByUuid(urlSessionUuid)) {
+        // We have a valid session in URL, set it as active
+        const session = sessionStore.getChatSessionByUuid(urlSessionUuid)
+        if (session) {
+          await sessionStore.setActiveSession(session.workspaceUuid || this.activeWorkspaceUuid, urlSessionUuid)
+          console.log('✅ Set active session from URL:', urlSessionUuid)
+        }
+      } else if (this.activeWorkspaceUuid) {
+        // Find a session to activate in the active workspace
+        const workspaceSessions = sessionStore.getSessionsByWorkspace(this.activeWorkspaceUuid)
+        if (workspaceSessions.length > 0) {
+          await sessionStore.setActiveSession(this.activeWorkspaceUuid, workspaceSessions[0].uuid)
+          console.log('✅ Set first session as active in workspace')
+        }
+      }
+
+      // Handle default route navigation
+      if (isOnDefaultRoute && this.activeWorkspaceUuid) {
+        console.log('✅ Navigating from default route to active workspace')
+        await router.push({
+          name: 'WorkspaceChat',
+          params: { workspaceUuid: this.activeWorkspaceUuid }
+        })
+      }
+    },
+
     async syncWorkspaces() {
       try {
         this.isLoading = true

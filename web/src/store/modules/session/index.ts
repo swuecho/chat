@@ -300,8 +300,18 @@ export const useSessionStore = defineStore('session-store', {
         const workspaceStore = useWorkspaceStore()
         await workspaceStore.navigateToWorkspace(session.workspaceUuid, sessionUuid)
       } else {
-        // Fallback to legacy route
-        await router.push({ name: 'Chat', params: { uuid: sessionUuid } })
+        // If session doesn't have a workspace, try to assign it to the default workspace
+        const workspaceStore = useWorkspaceStore()
+        const defaultWorkspace = workspaceStore.workspaces.find(w => w.isDefault) || workspaceStore.workspaces[0]
+
+        if (defaultWorkspace) {
+          console.log('Session without workspace, navigating to default workspace:', defaultWorkspace.uuid)
+          await workspaceStore.navigateToWorkspace(defaultWorkspace.uuid, sessionUuid)
+        } else {
+          // Last resort: navigate to default route
+          console.log('No workspace available, navigating to default route')
+          await router.push({ name: 'DefaultWorkspace' })
+        }
       }
     },
 
@@ -328,6 +338,19 @@ export const useSessionStore = defineStore('session-store', {
     // Legacy compatibility method - maps to createSessionInWorkspace
     async addSession(session: Chat.Session) {
       return await this.createSessionInWorkspace(session.title, session.workspaceUuid, session.model)
+    },
+
+    // Centralized session creation method for consistent behavior
+    async createNewSession(title?: string, workspaceUuid?: string, model?: string) {
+      const workspaceStore = useWorkspaceStore()
+      const targetWorkspaceUuid = workspaceUuid || workspaceStore.activeWorkspaceUuid
+
+      if (!targetWorkspaceUuid) {
+        throw new Error('No workspace available for session creation')
+      }
+
+      const sessionTitle = title || 'New Chat'
+      return await this.createSessionInWorkspace(sessionTitle, targetWorkspaceUuid, model)
     },
   },
 })

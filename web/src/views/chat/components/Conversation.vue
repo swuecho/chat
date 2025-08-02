@@ -1,7 +1,7 @@
 <script lang='ts' setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { NAutoComplete, NButton, NInput, NModal, NSpin } from 'naive-ui'
-import { v7 as uuidv7 } from 'uuid'
+import  { v7 as uuidv7 } from 'uuid'
 import { useScroll } from '@/views/chat/hooks/useScroll'
 import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'
 import SessionConfig from '@/views/chat/components/Session/SessionConfig.vue'
@@ -39,7 +39,8 @@ const promptStore = usePromptStore()
 const { sessionUuid } = defineProps({
   sessionUuid: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
 });
 
@@ -52,8 +53,10 @@ const regenerate = useRegenerate(sessionUuid)
 const searchAndPrompts = useSearchAndPrompts()
 const chatActions = useChatActions(sessionUuid)
 
-// Sync chat messages
-messageStore.syncChatMessages(sessionUuid)
+// Sync chat messages only if we have a valid sessionUuid
+if (sessionUuid) {
+  messageStore.syncChatMessages(sessionUuid)
+}
 
 const dataSources = computed(() => messageStore.getChatSessionDataByUuid(sessionUuid))
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(sessionUuid))
@@ -182,8 +185,8 @@ function handleUpload() {
         <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
         </UploaderReadOnly>
         <div id="scrollRef" ref="scrollRef" class="flex-1 overflow-hidden overflow-y-auto">
-          <div v-if="!showArtifactGallery" id="image-wrapper"
-            class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] " :class="[isMobile ? 'p-2' : 'p-4']">
+          <div v-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] "
+            :class="[isMobile ? 'p-2' : 'p-4']">
             <template v-if="!dataSources.length">
               <div class="flex items-center justify-center m-4 text-center text-neutral-300">
                 <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />

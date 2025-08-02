@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useDialog, useMessage } from 'naive-ui'
-import { v7 as uuidv7 } from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 import { createChatBot, createChatSnapshot, getChatSessionDefault } from '@/api'
 import { useAppStore, useSessionStore, useMessageStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
@@ -27,10 +27,13 @@ export function useChatActions(sessionUuid: string) {
   async function handleAdd(dataSources: any[]) {
     if (dataSources.length > 0) {
       const new_chat_text = t('chat.new')
-      const default_model_parameters = await getChatSessionDefault(new_chat_text)
-      await sessionStore.addSession(default_model_parameters)
-      if (isMobile.value)
-        appStore.setSiderCollapsed(true)
+      try {
+        await sessionStore.createNewSession(new_chat_text)
+        if (isMobile.value)
+          appStore.setSiderCollapsed(true)
+      } catch (error) {
+        console.error('Failed to create new session:', error)
+      }
     } else {
       nui_msg.warning(t('chat.alreadyInNewChat'))
     }
@@ -102,7 +105,7 @@ ${codeInfo.javascript}
 
 Your files are now available in the Virtual File System! 🚀`
 
-    const chatUuid = uuidv7()
+    const chatUuid = uuidv4()
     addChat(
       sessionUuid,
       {

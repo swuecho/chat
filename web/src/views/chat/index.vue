@@ -19,7 +19,7 @@ const workspaceUuid = computed(() => {
 })
 
 const sessionUuid = computed(() => {
-  return props.uuid || (route.params.uuid as string)
+  return props.uuid || (route.params.uuid as string) || ''
 })
 
 // Set active workspace when workspace is specified in URL
@@ -47,6 +47,9 @@ onMounted(() => {
 
 <template>
   <div class="h-full flex">
-    <Conversation :session-uuid="sessionUuid" />
+    <Conversation v-if="sessionUuid" :session-uuid="sessionUuid" />
+    <div v-else class="h-full w-full flex items-center justify-center text-gray-500">
+      Loading...
+    </div>
   </div>
 </template>

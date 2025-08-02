@@ -24,18 +24,14 @@ onMounted(async () => {
   await authStore.initializeAuth()
   console.log('✅ Auth initialization completed in Layout')
 
-  // Initialize workspaces and sessions if user is authenticated
+  // Initialize the full application if user is authenticated
   if (authStore.isValid) {
-    console.log('🔄 User is authenticated, syncing workspaces...')
+    console.log('🔄 User is authenticated, initializing application...')
     try {
-      await workspaceStore.syncWorkspaces()
-      console.log('✅ Workspaces synced on mount')
-
-      // Then sync sessions
-      await sessionStore.syncAllWorkspaceSessions()
-      console.log('✅ Chat sessions synced on mount')
+      await workspaceStore.initializeApplication()
+      console.log('✅ Application fully initialized on mount')
     } catch (error) {
-      console.error('Failed to sync workspaces and sessions on mount:', error)
+      console.error('Failed to initialize application on mount:', error)
     }
   }
 })
