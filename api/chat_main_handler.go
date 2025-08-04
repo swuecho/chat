@@ -22,6 +22,7 @@ import (
 type ChatHandler struct {
 	service         *ChatService
 	chatfileService *ChatFileService
+	requestCtx      context.Context // Store the request context for streaming
 }
 
 func NewChatHandler(sqlc_q *sqlc_queries.Queries) *ChatHandler {
@@ -31,6 +32,7 @@ func NewChatHandler(sqlc_q *sqlc_queries.Queries) *ChatHandler {
 	return &ChatHandler{
 		service:         chatService,
 		chatfileService: ChatFileService,
+		requestCtx:      context.Background(),
 	}
 }
 
@@ -174,9 +176,9 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	if req.Regenerate {
-		regenerateAnswer(h, w, chatSessionUuid, chatUuid, req.Stream)
+		regenerateAnswer(h, w, ctx, chatSessionUuid, chatUuid, req.Stream)
 	} else {
-		genAnswer(h, w, chatSessionUuid, chatUuid, newQuestion, userID, req.Stream)
+		genAnswer(h, w, ctx, chatSessionUuid, chatUuid, newQuestion, userID, req.Stream)
 	}
 
 }
@@ -266,6 +268,8 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	}
 	log.Printf("Collected messages for processing - SessionUUID: %s, MessageCount: %d, Model: %s", chatSession.Uuid, len(msgs), chatSession.Model)
 
+	// Store the request context so models can access it
+	h.requestCtx = ctx
 	model := h.chooseChatModel(*chatSession, msgs)
 	LLMAnswer, err := model.Stream(w, *chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
@@ -294,8 +298,7 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 // genAnswer is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
 // if there is no prompt yet, it will create a new prompt and use it as request
 // otherwise, it will create a message, use prompt + get latest N message + newQuestion as request
-func genAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string, newQuestion string, userID int32, streamOutput bool) {
-	ctx := context.Background()
+func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, chatSessionUuid string, chatUuid string, newQuestion string, userID int32, streamOutput bool) {
 
 	// Validate chat session and get model info
 	chatSession, _, baseURL, ok := h.validateChatSession(ctx, w, chatSessionUuid)
@@ -375,8 +378,7 @@ func simpleChatMessagesToMessages(simpleChatMessages []SimpleChatMessage) []mode
 	return messages
 }
 
-func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid string, chatUuid string, stream bool) {
-	ctx := context.Background()
+func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, chatSessionUuid string, chatUuid string, stream bool) {
 
 	// Validate chat session
 	chatSession, _, _, ok := h.validateChatSession(ctx, w, chatSessionUuid)
@@ -393,6 +395,8 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		return
 	}
 
+	// Store the request context so models can access it
+	h.requestCtx = ctx
 	model := h.chooseChatModel(*chatSession, msgs)
 	LLMAnswer, err := model.Stream(w, *chatSession, msgs, chatUuid, true, stream)
 	if err != nil {
@@ -409,6 +413,11 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, chatSessionUuid str
 		RespondWithAPIError(w, apiErr)
 		return
 	}
+}
+
+// GetRequestContext returns the current request context for streaming operations
+func (h *ChatHandler) GetRequestContext() context.Context {
+	return h.requestCtx
 }
 
 func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msgs []models.Message) ChatModel {

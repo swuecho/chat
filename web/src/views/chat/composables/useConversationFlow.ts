@@ -22,6 +22,7 @@ export function useConversationFlow(
   smoothScrollToBottomIfAtBottom: () => Promise<void>
 ) {
   const loading = ref<boolean>(false)
+  const abortController = ref<AbortController | null>(null)
   const { addChat, updateChat } = useChat()
   const { streamChatResponse, processStreamChunk } = useStreamHandling()
   const { handleApiError, showErrorNotification } = useErrorHandling()
@@ -87,6 +88,14 @@ export function useConversationFlow(
     }
   }
 
+  function stopStream(): void {
+    if (abortController.value) {
+      abortController.value.abort()
+      abortController.value = null
+      loading.value = false
+    }
+  }
+
   async function startStream(
     message: string,
     dataSources: any[],
@@ -95,6 +104,7 @@ export function useConversationFlow(
     if (!validateConversationInput(message)) return
 
     loading.value = true
+    abortController.value = new AbortController()
     const responseIndex = await initializeChatResponse(dataSources)
 
     try {
@@ -106,12 +116,18 @@ export function useConversationFlow(
         async (chunk: string, index: number) => {
           processStreamChunk(chunk, index, sessionUuid)
           await smoothScrollToBottomIfAtBottom()
-        }
+        },
+        abortController.value.signal
       )
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Stream was cancelled, no need to show error
+        return
+      }
       handleStreamingError(error, responseIndex, dataSources)
     } finally {
       loading.value = false
+      abortController.value = null
     }
   }
 
@@ -121,6 +137,7 @@ export function useConversationFlow(
     addUserMessage,
     initializeChatResponse,
     handleStreamingError,
-    startStream
+    startStream,
+    stopStream
   }
 }

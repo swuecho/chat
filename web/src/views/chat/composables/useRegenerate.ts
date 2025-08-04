@@ -7,6 +7,7 @@ import { t } from '@/locales'
 
 export function useRegenerate(sessionUuid: string) {
   const loading = ref<boolean>(false)
+  const abortController = ref<AbortController | null>(null)
   const { addChat, updateChat, updateChatPartial } = useChat()
   const { streamRegenerateResponse, processStreamChunk } = useStreamHandling()
 
@@ -97,10 +98,19 @@ export function useRegenerate(sessionUuid: string) {
     })
   }
 
+  function stopRegenerate(): void {
+    if (abortController.value) {
+      abortController.value.abort()
+      abortController.value = null
+      loading.value = false
+    }
+  }
+
   async function onRegenerate(index: number, dataSources: any[]): Promise<void> {
     if (!validateRegenerateInput()) return
 
     const chat = dataSources[index]
+    abortController.value = new AbortController()
     const { updateIndex, isRegenerate } = await prepareRegenerateContext(index, chat, dataSources)
 
     try {
@@ -111,12 +121,18 @@ export function useRegenerate(sessionUuid: string) {
         isRegenerate,
         (chunk: string, updateIdx: number) => {
           processStreamChunk(chunk, updateIdx, sessionUuid)
-        }
+        },
+        abortController.value.signal
       )
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Stream was cancelled, no need to show error
+        return
+      }
       handleRegenerateError(error, chat.uuid, index)
     } finally {
       loading.value = false
+      abortController.value = null
     }
   }
 
@@ -126,6 +142,7 @@ export function useRegenerate(sessionUuid: string) {
     prepareRegenerateContext,
     handleUserMessageRegenerate,
     handleRegenerateError,
-    onRegenerate
+    onRegenerate,
+    stopRegenerate
   }
 }
