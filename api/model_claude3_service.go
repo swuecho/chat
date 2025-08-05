@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -86,8 +87,11 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		return nil, ErrValidationInvalidInputGeneric.WithDetail("failed to marshal request payload").WithDebugInfo(err.Error())
 	}
 
-	// Create HTTP request
-	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
+	// Get request context for cancellation support
+	ctx := m.h.GetRequestContext()
+	
+	// Create HTTP request with context
+	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		return nil, ErrClaudeRequestFailed.WithDetail("failed to create HTTP request").WithDebugInfo(err.Error())
 	}
@@ -113,7 +117,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 			Timeout: 5 * time.Minute,
 		}
 
-		llmAnswer, err := doGenerateClaude3(client, req)
+		llmAnswer, err := doGenerateClaude3(ctx, client, req)
 		if err != nil {
 			return nil, ErrClaudeRequestFailed.WithDetail("failed to generate response").WithDebugInfo(err.Error())
 		}
@@ -136,14 +140,14 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Connection", "keep-alive")
 
-	llmAnswer, err := m.h.chatStreamClaude3(w, req, chatUuid, regenerate)
+	llmAnswer, err := m.h.chatStreamClaude3(ctx, w, req, chatUuid, regenerate)
 	if err != nil {
 		return nil, ErrClaudeStreamFailed.WithDetail("failed to stream response").WithDebugInfo(err.Error())
 	}
 	return llmAnswer, nil
 }
 
-func doGenerateClaude3(client http.Client, req *http.Request) (*models.LLMAnswer, error) {
+func doGenerateClaude3(ctx context.Context, client http.Client, req *http.Request) (*models.LLMAnswer, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, ErrClaudeRequestFailed.WithMessage("Failed to process Claude request").WithDebugInfo(err.Error())
@@ -166,7 +170,7 @@ func doGenerateClaude3(client http.Client, req *http.Request) (*models.LLMAnswer
 // claude-3-opus-20240229
 // claude-3-sonnet-20240229
 // claude-3-haiku-20240307
-func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
+func (h *ChatHandler) chatStreamClaude3(ctx context.Context, w http.ResponseWriter, req *http.Request, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 
 	// create the http client and send the request
 	client := &http.Client{
@@ -202,6 +206,15 @@ func (h *ChatHandler) chatStreamClaude3(w http.ResponseWriter, req *http.Request
 	var headerData = []byte("data: ")
 	count := 0
 	for {
+		// Check if client disconnected or context was cancelled
+		select {
+		case <-ctx.Done():
+			log.Printf("Claude stream cancelled by client: %v", ctx.Err())
+			// Return current accumulated content when cancelled
+			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
+		default:
+		}
+
 		count++
 		// prevent infinite loop
 		if count > 10000 {

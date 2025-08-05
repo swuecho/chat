@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -35,11 +36,13 @@ type CustomChatModel struct {
 
 // Stream implements the ChatModel interface for custom model scenarios
 func (m *CustomChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.customChatStream(w, chatSession, chat_completion_messages, chatUuid, regenerate)
+	// Get request context for cancellation support
+	ctx := m.h.GetRequestContext()
+	return m.customChatStream(ctx, w, chatSession, chat_completion_messages, chatUuid, regenerate)
 }
 
 // customChatStream handles streaming for custom model providers
-func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
+func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// Get chat model configuration
 	chat_model, err := GetChatModel(m.h.service.q, chatSession.Model)
 	if err != nil {
@@ -67,8 +70,8 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 	// Marshal request data
 	jsonValue, _ := json.Marshal(jsonData)
 
-	// Create HTTP request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
+	// Create HTTP request with context
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		RespondWithAPIError(w, createAPIError(ErrChatRequestFailed, "Failed to create custom model request", err.Error()))
 		return nil, err
@@ -114,6 +117,15 @@ func (m *CustomChatModel) customChatStream(w http.ResponseWriter, chatSession sq
 
 	// Process streaming response
 	for {
+		// Check if client disconnected or context was cancelled
+		select {
+		case <-ctx.Done():
+			log.Printf("Custom model stream cancelled by client: %v", ctx.Err())
+			// Return current accumulated content when cancelled
+			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
+		default:
+		}
+
 		count++
 		// Prevent infinite loop
 		if count > MaxStreamingLoopIterations {

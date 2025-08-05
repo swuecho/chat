@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,10 +38,12 @@ type OllamaChatModel struct {
 }
 
 func (m *OllamaChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.h.chatOllamStream(w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
+	// Get request context for cancellation support
+	ctx := m.h.GetRequestContext()
+	return m.h.chatOllamStream(ctx, w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
 
-func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
+func (h *ChatHandler) chatOllamStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// set the api key
 	chatModel, err := GetChatModel(h.service.q, chatSession.Model)
 	if err != nil {
@@ -53,8 +56,8 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 	}
 	// convert data to json format
 	jsonValue, _ := json.Marshal(jsonData)
-	// create the request
-	req, err := http.NewRequest("POST", chatModel.Url, bytes.NewBuffer(jsonValue))
+	// create the request with context
+	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
 		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to make request").WithDebugInfo(err.Error()))
@@ -107,6 +110,15 @@ func (h *ChatHandler) chatOllamStream(w http.ResponseWriter, chatSession sqlc_qu
 
 	count := 0
 	for {
+		// Check if client disconnected or context was cancelled
+		select {
+		case <-ctx.Done():
+			log.Printf("Ollama stream cancelled by client: %v", ctx.Err())
+			// Return current accumulated content when cancelled
+			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
+		default:
+		}
+
 		count++
 		// prevent infinite loop
 		if count > 10000 {

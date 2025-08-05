@@ -56,7 +56,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		openaiReq.Model, len(openaiReq.Messages), openaiReq.Temperature)
 	client := openai.NewClientWithConfig(config)
 	if streamOutput {
-		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate)
+		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate, m.h)
 	} else {
 		return handleRegularResponse(w, client, openaiReq)
 	}
@@ -81,9 +81,13 @@ func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req ope
 
 // doChatStream handles streaming chat completion responses from OpenAI
 // It properly manages thinking tags for models that support reasoning content
-func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
-	// Set timeout for the entire streaming operation
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, handler *ChatHandler) (*models.LLMAnswer, error) {
+	// Use request context with timeout, but prioritize client cancellation
+	baseCtx := context.Background()
+	if handler != nil {
+		baseCtx = handler.GetRequestContext()
+	}
+	ctx, cancel := context.WithTimeout(baseCtx, 5*time.Minute)
 	defer cancel()
 
 	log.Print("Creating OpenAI stream")
@@ -124,6 +128,19 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 	answer_id = GenerateAnswerID(chatUuid, regenerate)
 	// Main streaming loop
 	for {
+		// Check if client disconnected or context was cancelled
+		select {
+		case <-ctx.Done():
+			log.Printf("Stream cancelled by client: %v", ctx.Err())
+			// Return current accumulated content when cancelled
+			llmAnswer := models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id}
+			if hasReason {
+				llmAnswer.ReasoningContent = reasonBuffer.String("\n")
+			}
+			return &llmAnswer, nil
+		default:
+		}
+
 		rawLine, err := stream.RecvRaw()
 		if err != nil {
 			log.Printf("stream error: %+v", err)

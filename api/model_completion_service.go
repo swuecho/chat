@@ -23,11 +23,13 @@ type CompletionChatModel struct {
 
 // Stream implements the ChatModel interface for completion model scenarios
 func (m *CompletionChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return m.completionStream(w, chatSession, chat_completion_messages, chatUuid, regenerate, stream)
+	// Get request context for cancellation support
+	ctx := m.h.GetRequestContext()
+	return m.completionStream(ctx, w, chatSession, chat_completion_messages, chatUuid, regenerate, stream)
 }
 
 // completionStream handles streaming for OpenAI completion models
-func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, _ bool) (*models.LLMAnswer, error) {
+func (m *CompletionChatModel) completionStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, _ bool) (*models.LLMAnswer, error) {
 	// Check per chat_model rate limit
 	openAIRateLimiter.Wait(context.Background())
 
@@ -90,6 +92,15 @@ func (m *CompletionChatModel) completionStream(w http.ResponseWriter, chatSessio
 
 	// Process streaming response
 	for {
+		// Check if client disconnected or context was cancelled
+		select {
+		case <-ctx.Done():
+			log.Printf("Completion stream cancelled by client: %v", ctx.Err())
+			// Return current accumulated content when cancelled
+			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
+		default:
+		}
+
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			// Send the final message

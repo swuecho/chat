@@ -131,6 +131,11 @@ const sendButtonDisabled = computed(() => {
   return loading.value || !prompt.value || (typeof prompt.value === 'string' ? prompt.value.trim() === '' : true)
 })
 
+function handleStopStream() {
+  conversationFlow.stopStream()
+  regenerate.stopRegenerate()
+}
+
 const footerClass = computed(() => {
   let classes = ['m-2', 'p-2']
   if (isMobile.value)
@@ -269,11 +274,19 @@ function handleUpload() {
                 <SvgIcon icon="clarity:attachment-line" />
               </span>
             </button>
-            <NButton id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
+            <NButton v-if="!loading" id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
               :disabled="sendButtonDisabled" @click="handleSubmit">
               <template #icon>
                 <span class="dark:text-black">
                   <SvgIcon icon="ri:send-plane-fill" />
+                </span>
+              </template>
+            </NButton>
+            <NButton v-else id="stop_stream_button" class="!ml-4" data-testid="stop_stream_button" type="error"
+              @click="handleStopStream">
+              <template #icon>
+                <span class="dark:text-white">
+                  <SvgIcon icon="ri:stop-fill" />
                 </span>
               </template>
             </NButton>

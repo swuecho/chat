@@ -96,7 +96,8 @@ export function useStreamHandling() {
     chatUuid: string,
     message: string,
     responseIndex: number,
-    onStreamChunk: (chunk: string, responseIndex: number) => void
+    onStreamChunk: (chunk: string, responseIndex: number) => void,
+    abortSignal?: AbortSignal
   ): Promise<void> {
     const authStore = useAuthStore()
     const token = authStore.getToken
@@ -117,6 +118,7 @@ export function useStreamHandling() {
           chatUuid,
           stream: true,
         }),
+        signal: abortSignal,
       })
 
       if (!response.ok) {
@@ -166,6 +168,10 @@ export function useStreamHandling() {
         reader.releaseLock()
       }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Stream was cancelled by user')
+        return
+      }
       console.error('Stream error:', error)
       handleStreamError(error instanceof Error ? error.message : 'Unknown error', responseIndex, sessionUuid)
       throw error
@@ -177,7 +183,8 @@ export function useStreamHandling() {
     chatUuid: string,
     updateIndex: number,
     isRegenerate: boolean,
-    onStreamChunk: (chunk: string, updateIndex: number) => void
+    onStreamChunk: (chunk: string, updateIndex: number) => void,
+    abortSignal?: AbortSignal
   ): Promise<void> {
     const authStore = useAuthStore()
     const token = authStore.getToken
@@ -198,6 +205,7 @@ export function useStreamHandling() {
           chatUuid,
           stream: true,
         }),
+        signal: abortSignal,
       })
 
       if (!response.ok) {
@@ -246,6 +254,10 @@ export function useStreamHandling() {
         reader.releaseLock()
       }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Regenerate stream was cancelled by user')
+        return
+      }
       console.error('Stream error:', error)
       handleStreamError(error instanceof Error ? error.message : 'Unknown error', updateIndex, sessionUuid)
       throw error
