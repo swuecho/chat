@@ -47,14 +47,7 @@ const formData = ref<FormData>({ ...defaultFormData })
 // API Type options (imported from constants)
 const apiTypeOptions = API_TYPE_OPTIONS
 
-// API Type options
-const apiTypeOptions = [
-  { label: 'OpenAI', value: 'openai' },
-  { label: 'Claude', value: 'claude' },
-  { label: 'Gemini', value: 'gemini' },
-  { label: 'Ollama', value: 'ollama' },
-  { label: 'Custom', value: 'custom' }
-]
+
 
 function clearForm() {
   formData.value = { ...defaultFormData }
