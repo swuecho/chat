@@ -5,6 +5,7 @@ import { useSessionStore, useAuthStore } from '@/store'
 import { useChatModels } from '@/hooks/useChatModels'
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
 import type { ChatModel } from '@/types/chat-models'
+import { API_TYPE_DISPLAY_NAMES, API_TYPES } from '@/constants/apiTypes'
 
 interface ModelFormData {
         model: string | undefined
@@ -68,13 +69,13 @@ const chatModelOptions = computed(() => {
         // Create grouped options with api type headers
         const groupedOptions: any[] = []
         
-        // Define api type display names and order
+        // Define api type display names and order using shared constants
         const apiTypeConfig = {
-                'openai': { name: 'OpenAI', order: 1 },
-                'claude': { name: 'Claude', order: 2 },
-                'gemini': { name: 'Gemini', order: 3 },
-                'ollama': { name: 'Ollama', order: 4 },
-                'custom': { name: 'Custom', order: 5 },
+                [API_TYPES.OPENAI]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.OPENAI], order: 1 },
+                [API_TYPES.CLAUDE]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.CLAUDE], order: 2 },
+                [API_TYPES.GEMINI]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.GEMINI], order: 3 },
+                [API_TYPES.OLLAMA]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.OLLAMA], order: 4 },
+                [API_TYPES.CUSTOM]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.CUSTOM], order: 5 },
         }
         
         // Sort api types by defined order

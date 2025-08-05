@@ -99,6 +99,7 @@ declare namespace Chat {
 		id?: number
 		apiAuthHeader: string
 		apiAuthKey: string
+		apiType: string
 		isDefault: boolean
 		label: string
 		name: string
@@ -151,16 +152,16 @@ declare namespace Snapshot {
 }
 
 declare namespace Bot {
- interface BotAnswerHistory {                                                                                       
-   id: number                                                                                                       
-   botUuid: string                                                                                                 
-   userId: number                                                                                                  
-   prompt: string                                                                                                   
-   answer: string                                                                                                   
-   model: string                                                                                                    
-   tokensUsed: number                                                                                              
-   createdAt: string                                                                                               
-   updatedAt: string                                                                                               
- }                                                                                                                  
-                      
+	interface BotAnswerHistory {
+		id: number
+		botUuid: string
+		userId: number
+		prompt: string
+		answer: string
+		model: string
+		tokensUsed: number
+		createdAt: string
+		updatedAt: string
+	}
+
 }

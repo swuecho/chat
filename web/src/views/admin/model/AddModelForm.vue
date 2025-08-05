@@ -3,14 +3,31 @@ import { ref } from 'vue'
 import { NButton, NForm, NFormItem, NInput, NSwitch, NSelect, useMessage } from 'naive-ui'
 import { createChatModel } from '@/api'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { t } from '@/locales'
+import { API_TYPE_OPTIONS, API_TYPES, type ApiType } from '@/constants/apiTypes'
 
 const queryClient = useQueryClient()
 
 const emit = defineEmits<Emit>()
 
+interface FormData {
+  name: string
+  label: string
+  url: string
+  isDefault: boolean
+  apiAuthHeader: string
+  apiAuthKey: string
+  enablePerModeRatelimit: boolean
+  isEnable: boolean
+  orderNumber: number
+  defaultToken: number
+  maxToken: number
+  apiType: ApiType
+}
+
 const ms_ui = useMessage()
 const jsonInput = ref('')
-const defaultFormData = {
+const defaultFormData: FormData = {
   name: '',
   label: '',
   url: '',
@@ -22,10 +39,13 @@ const defaultFormData = {
   orderNumber: 0,
   defaultToken: 0,
   maxToken: 0,
-  apiType: 'openai'
+  apiType: API_TYPES.OPENAI
 }
 
-const formData = ref<Chat.ChatModel>({ ...defaultFormData })
+const formData = ref<FormData>({ ...defaultFormData })
+
+// API Type options (imported from constants)
+const apiTypeOptions = API_TYPE_OPTIONS
 
 // API Type options
 const apiTypeOptions = [
@@ -77,7 +97,7 @@ function populateFromJson() {
     
     ms_ui.success('Form populated successfully from JSON')
   } catch (error) {
-    ms_ui.error(`Error: ${error.message}`)
+    ms_ui.error(`Error: ${(error as Error).message}`)
     console.error('JSON parse error:', error)
   }
 }
@@ -88,7 +108,7 @@ interface Emit {
 
 
 const createChatModelMutation = useMutation({
-  mutationFn: (formData: Chat.ChatModel) => createChatModel(formData),
+  mutationFn: (formData: FormData) => createChatModel(formData),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['chat_models'] })
   },
@@ -105,39 +125,39 @@ async function addRow() {
 <template>
   <div>
     <NForm :model="formData">
-      <NFormItem path="name" :label="$t('admin.chat_model.name')">
+      <NFormItem path="name" :label="t('admin.chat_model.name')">
         <NInput v-model:value="formData.name" />
       </NFormItem>
-      <NFormItem path="label" :label="$t('admin.chat_model.label')">
+      <NFormItem path="label" :label="t('admin.chat_model.label')">
         <NInput v-model:value="formData.label" />
       </NFormItem>
-      <NFormItem path="apiType" :label="$t('admin.chat_model.apiType')">
+      <NFormItem path="apiType" :label="t('admin.chat_model.apiType')">
         <NSelect v-model:value="formData.apiType" :options="apiTypeOptions" />
       </NFormItem>
-      <NFormItem path="url" :label="$t('admin.chat_model.url')">
+      <NFormItem path="url" :label="t('admin.chat_model.url')">
         <NInput v-model:value="formData.url" />
       </NFormItem>
-      <NFormItem path="apiAuthHeader" :label="$t('admin.chat_model.apiAuthHeader')">
+      <NFormItem path="apiAuthHeader" :label="t('admin.chat_model.apiAuthHeader')">
         <NInput v-model:value="formData.apiAuthHeader" />
       </NFormItem>
-      <NFormItem path="apiAuthKey" :label="$t('admin.chat_model.apiAuthKey')">
+      <NFormItem path="apiAuthKey" :label="t('admin.chat_model.apiAuthKey')">
         <NInput v-model:value="formData.apiAuthKey" />
       </NFormItem>
       <div class="flex gap-4">
-        <NFormItem path="isDefault" :label="$t('admin.chat_model.isDefault')" class="flex-1">
+        <NFormItem path="isDefault" :label="t('admin.chat_model.isDefault')" class="flex-1">
           <NSwitch v-model:value="formData.isDefault" />
         </NFormItem>
-        <NFormItem path="enablePerModeRatelimit" :label="$t('admin.chat_model.enablePerModeRatelimit')" class="flex-1">
+        <NFormItem path="enablePerModeRatelimit" :label="t('admin.chat_model.enablePerModeRatelimit')" class="flex-1">
           <NSwitch v-model:value="formData.enablePerModeRatelimit" />
         </NFormItem>
       </div>
     </NForm>
 
-    <NFormItem :label="$t('admin.chat_model.paste_json')">
+    <NFormItem :label="t('admin.chat_model.paste_json')">
       <NInput
         v-model:value="jsonInput"
         type="textarea"
-        :placeholder="$t('admin.chat_model.paste_json_placeholder')"
+        :placeholder="t('admin.chat_model.paste_json_placeholder')"
         :rows="5"
       />
     </NFormItem>
@@ -150,7 +170,7 @@ async function addRow() {
         @click="populateFromJson"
         class="flex-1"
       >
-        {{ $t('admin.chat_model.populate_form') }}
+        {{ t('admin.chat_model.populate_form') }}
       </NButton>
       <NButton 
         type="warning" 
@@ -159,7 +179,7 @@ async function addRow() {
         @click="clearForm"
         class="flex-1"
       >
-        {{ $t('admin.chat_model.clear_form') }}
+        {{ t('admin.chat_model.clear_form') }}
       </NButton>
       <NButton 
         type="primary" 
@@ -168,7 +188,7 @@ async function addRow() {
         @click="addRow"
         class="flex-1"
       >
-        {{ $t('common.confirm') }}
+        {{ t('common.confirm') }}
       </NButton>
     </div>
   </div>
