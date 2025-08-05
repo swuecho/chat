@@ -13,3 +13,8 @@ export async function fetchBotAnswerHistory(botUuid: string, page: number, pageS
   })
   return data
 }
+
+export async function fetchBotRunCount(botUuid: string) {
+  const { data } = await request.get<{ count: number }>(`/bot_answer_history/bot/${botUuid}/count`)
+  return data.count
+}

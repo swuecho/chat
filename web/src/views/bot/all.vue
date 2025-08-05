@@ -7,6 +7,7 @@ import { fetchChatbotAll, fetchSnapshotDelete } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { generateAPIHelper, getBotPostLinks } from '@/service/snapshot'
 import { fetchAPIToken } from '@/api/token'
+import { fetchBotRunCount } from '@/api/bot_answer_history'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store'
 import Permission from '@/views/components/Permission.vue'
@@ -21,6 +22,7 @@ const apiToken = ref('')
 const needPermission = computed(() => !authStore.isValid)
 
 const postsByYearMonth = ref<Record<string, Snapshot.PostLink[]>>({})
+const botRunCounts = ref<Record<string, number>>({})
 
 onMounted(async () => {
   await refreshSnapshot()
@@ -32,6 +34,23 @@ onMounted(async () => {
 async function refreshSnapshot() {
   const bots: Snapshot.Snapshot[] = await fetchChatbotAll()
   postsByYearMonth.value = getBotPostLinks(bots)
+  
+  // Fetch run counts for all bots
+  const runCountPromises = bots.map(async (bot) => {
+    try {
+      const count = await fetchBotRunCount(bot.uuid)
+      return { uuid: bot.uuid, count }
+    } catch (error) {
+      console.warn(`Failed to fetch run count for bot ${bot.uuid}:`, error)
+      return { uuid: bot.uuid, count: 0 }
+    }
+  })
+  
+  const runCounts = await Promise.all(runCountPromises)
+  botRunCounts.value = runCounts.reduce((acc, { uuid, count }) => {
+    acc[uuid] = count
+    return acc
+  }, {} as Record<string, number>)
 }
 
 function handleDelete(post: Snapshot.PostLink) {
@@ -135,8 +154,14 @@ function postUrl(uuid: string): string {
                 </div>
               </div>
               <div class="mt-2">
-                <div class="text-xs text-gray-400 break-all">
-                  {{ post.uuid }}
+                <div class="flex items-center justify-between">
+                  <div class="text-xs text-gray-400 break-all">
+                    {{ post.uuid }}
+                  </div>
+                  <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                    <SvgIcon icon="ic:baseline-play-arrow" class="w-3 h-3" />
+                    <span>{{ botRunCounts[post.uuid] || 0 }} runs</span>
+                  </div>
                 </div>
               </div>
             </div>
