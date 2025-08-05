@@ -67,15 +67,18 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		return nil, ErrInternalUnexpected.WithMessage("Failed to generate Gemini payload").WithDebugInfo(err.Error())
 	}
 
+	// Get request context for cancellation support
+	ctx := m.h.GetRequestContext()
+
 	url := gemini.BuildAPIURL(chatSession.Model, stream)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return nil, ErrInternalUnexpected.WithMessage("Failed to create Gemini API request").WithDebugInfo(err.Error())
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	if stream {
-		return m.handleStreamResponse(w, req, answerID)
+		return m.handleStreamResponse(ctx, w, req, answerID)
 	}
 
 	llmAnswer, err := gemini.HandleRegularResponse(*m.client.client, req)
@@ -149,7 +152,7 @@ func GenerateChatTitle(ctx context.Context, model, chatText string) (string, err
 	return firstN(title, 100), nil
 }
 
-func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.Request, answerID string) (*models.LLMAnswer, error) {
+func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, w http.ResponseWriter, req *http.Request, answerID string) (*models.LLMAnswer, error) {
 	resp, err := m.client.client.Do(req)
 	if err != nil {
 		return nil, ErrInternalUnexpected.WithMessage("Failed to send Gemini API request").WithDebugInfo(err.Error())
@@ -186,6 +189,15 @@ func (m *GeminiChatModel) handleStreamResponse(w http.ResponseWriter, req *http.
 	headerData := []byte("data: ")
 
 	for count := 0; count < 10000; count++ {
+		// Check if client disconnected or context was cancelled
+		select {
+		case <-ctx.Done():
+			log.Printf("Gemini stream cancelled by client: %v", ctx.Err())
+			// Return current accumulated content when cancelled
+			return &models.LLMAnswer{Answer: answer, AnswerId: answerID}, nil
+		default:
+		}
+
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
 			if errors.Is(err, io.EOF) {
