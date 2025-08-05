@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	openai "github.com/sashabaranov/go-openai"
@@ -423,33 +422,47 @@ func (h *ChatHandler) GetRequestContext() context.Context {
 func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msgs []models.Message) ChatModel {
 	model := chat_session.Model
 	isTestChat := isTest(msgs)
-	isClaude3 := strings.HasPrefix(model, "claude-3") || strings.HasPrefix(model, "claude-sonnet-4")
-	isOllama := strings.HasPrefix(model, "ollama-")
-	isGemini := strings.HasPrefix(model, "gemini")
+	
+	// If this is a test chat, return the test model immediately
+	if isTestChat {
+		return &TestChatModel{h: h}
+	}
 
+	// Get the chat model from database to access provider field
+	chatModel, err := GetChatModel(h.service.q, model)
+	if err != nil {
+		// Fallback to OpenAI if model not found in database
+		return &OpenAIChatModel{h: h}
+	}
+
+	// Use api_type field from database instead of string prefix matching
+	apiType := chatModel.ApiType
+	
 	completionModel := mapset.NewSet[string]()
-
 	// completionModel.Add(openai.GPT3TextDavinci002)
 	isCompletion := completionModel.Contains(model)
-	isCustom := strings.HasPrefix(model, "custom-")
 
-	var chatModel ChatModel
-	if isTestChat {
-		chatModel = &TestChatModel{h: h}
-	} else if isClaude3 {
-		chatModel = &Claude3ChatModel{h: h}
-	} else if isOllama {
-		chatModel = &OllamaChatModel{h: h}
-	} else if isCompletion {
-		chatModel = &CompletionChatModel{h: h}
-	} else if isGemini {
-		chatModel = NewGeminiChatModel(h)
-	} else if isCustom {
-		chatModel = &CustomChatModel{h: h}
-	} else {
-		chatModel = &OpenAIChatModel{h: h}
+	var chatModelImpl ChatModel
+	switch apiType {
+	case "claude":
+		chatModelImpl = &Claude3ChatModel{h: h}
+	case "ollama":
+		chatModelImpl = &OllamaChatModel{h: h}
+	case "gemini":
+		chatModelImpl = NewGeminiChatModel(h)
+	case "custom":
+		chatModelImpl = &CustomChatModel{h: h}
+	case "openai":
+		if isCompletion {
+			chatModelImpl = &CompletionChatModel{h: h}
+		} else {
+			chatModelImpl = &OpenAIChatModel{h: h}
+		}
+	default:
+		// Default to OpenAI for unknown api types
+		chatModelImpl = &OpenAIChatModel{h: h}
 	}
-	return chatModel
+	return chatModelImpl
 }
 
 // isTest determines if the chat messages indicate this is a test scenario

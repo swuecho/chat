@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, useMessage, NBadge, useDialog } from 'naive-ui'
+import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, NSelect, useMessage, NBadge, useDialog } from 'naive-ui'
 import { t  } from '@/locales'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { updateChatModel, deleteChatModel } from '@/api'
@@ -15,6 +15,15 @@ const ms_ui = useMessage()
 const dialog = useDialog()
 const dialogVisible = ref(false)
 const editData = ref({ ...props.model })
+
+// API Type options
+const apiTypeOptions = [
+  { label: 'OpenAI', value: 'openai' },
+  { label: 'Claude', value: 'claude' },
+  { label: 'Gemini', value: 'gemini' },
+  { label: 'Ollama', value: 'ollama' },
+  { label: 'Custom', value: 'custom' }
+]
 
 const chatModelMutation = useMutation({
   mutationFn: (variables: { id: number, data: any }) => updateChatModel(variables.id, variables.data),
@@ -77,6 +86,7 @@ function copyJson() {
   const dataToCopy = {
     name: editData.value.name,
     label: editData.value.label,
+    apiType: editData.value.apiType,
     url: editData.value.url,
     apiAuthHeader: editData.value.apiAuthHeader,
     apiAuthKey: editData.value.apiAuthKey,
@@ -111,6 +121,9 @@ function copyJson() {
             <NBadge v-if="model.isDefault" type="success" :value="t('admin.chat_model.default')" size="large" class="font-bold" />
           </div>
           <p class="text-gray-500" :class="{ 'text-green-600': model.isDefault }">{{ model.label }}</p>
+          <div class="flex items-center gap-2 mt-1">
+            <NBadge type="info" :value="model.apiType || 'openai'" />
+          </div>
         </div>
         <NSwitch :value="model.isEnable" @update:value="handleEnableToggle" @click.stop />
       </div>
@@ -124,6 +137,9 @@ function copyJson() {
           </NFormItem>
           <NFormItem :label="t('admin.chat_model.label')">
             <NInput v-model:value="editData.label" />
+          </NFormItem>
+          <NFormItem :label="t('admin.chat_model.apiType')">
+            <NSelect v-model:value="editData.apiType" :options="apiTypeOptions" />
           </NFormItem>
           <NFormItem :label="t('admin.chat_model.url')">
             <NInput v-model:value="editData.url" />

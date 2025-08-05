@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { NButton, NForm, NFormItem, NInput, NSwitch, useMessage } from 'naive-ui'
+import { NButton, NForm, NFormItem, NInput, NSwitch, NSelect, useMessage } from 'naive-ui'
 import { createChatModel } from '@/api'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 
@@ -21,10 +21,20 @@ const defaultFormData = {
   isEnable: true,
   orderNumber: 0,
   defaultToken: 0,
-  maxToken: 0
+  maxToken: 0,
+  apiType: 'openai'
 }
 
 const formData = ref<Chat.ChatModel>({ ...defaultFormData })
+
+// API Type options
+const apiTypeOptions = [
+  { label: 'OpenAI', value: 'openai' },
+  { label: 'Claude', value: 'claude' },
+  { label: 'Gemini', value: 'gemini' },
+  { label: 'Ollama', value: 'ollama' },
+  { label: 'Custom', value: 'custom' }
+]
 
 function clearForm() {
   formData.value = { ...defaultFormData }
@@ -100,6 +110,9 @@ async function addRow() {
       </NFormItem>
       <NFormItem path="label" :label="$t('admin.chat_model.label')">
         <NInput v-model:value="formData.label" />
+      </NFormItem>
+      <NFormItem path="apiType" :label="$t('admin.chat_model.apiType')">
+        <NSelect v-model:value="formData.apiType" :options="apiTypeOptions" />
       </NFormItem>
       <NFormItem path="url" :label="$t('admin.chat_model.url')">
         <NInput v-model:value="formData.url" />

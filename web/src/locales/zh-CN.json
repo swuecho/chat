@@ -204,6 +204,7 @@
       "isDefault": "是否默认",
       "apiAuthHeader": "AuthHeader",
       "apiAuthKey": "API密钥环境变量",
+      "apiType": "API类型",
       "actions": "操作",
       "url": "访问接口(完整URL路径)",
       "enablePerModeRatelimit": "是否单独流控",

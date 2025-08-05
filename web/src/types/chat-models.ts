@@ -6,7 +6,7 @@ export interface ChatModel {
   isDefault: boolean
   orderNumber: number
   lastUsageTime: string
-  provider: string
+  apiType: string
   maxTokens?: number
   costPer1kTokens?: number
   description?: string
@@ -15,7 +15,7 @@ export interface ChatModel {
 export interface CreateChatModelRequest {
   name: string
   label: string
-  provider: string
+  apiType: string
   isEnable?: boolean
   isDefault?: boolean
   orderNumber?: number
@@ -27,7 +27,7 @@ export interface CreateChatModelRequest {
 export interface UpdateChatModelRequest {
   name?: string
   label?: string
-  provider?: string
+  apiType?: string
   isEnable?: boolean
   isDefault?: boolean
   orderNumber?: number
