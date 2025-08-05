@@ -428,7 +428,7 @@ func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msg
 		return &TestChatModel{h: h}
 	}
 
-	// Get the chat model from database to access provider field
+	// Get the chat model from database to access api_type field
 	chatModel, err := GetChatModel(h.service.q, model)
 	if err != nil {
 		// Fallback to OpenAI if model not found in database

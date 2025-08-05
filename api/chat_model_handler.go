@@ -139,6 +139,21 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 	if apiType == "" {
 		apiType = "openai" // default api type
 	}
+	
+	// Validate api_type
+	validApiTypes := map[string]bool{
+		"openai": true,
+		"claude": true,
+		"gemini": true,
+		"ollama": true,
+		"custom": true,
+	}
+	
+	if !validApiTypes[apiType] {
+		apiErr := ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
+		RespondWithAPIError(w, apiErr)
+		return
+	}
 
 	ChatModel, err := h.db.CreateChatModel(r.Context(), sqlc_queries.CreateChatModelParams{
 		Name:                   input.Name,
@@ -213,6 +228,21 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	apiType := input.ApiType
 	if apiType == "" {
 		apiType = "openai" // default api type
+	}
+	
+	// Validate api_type
+	validApiTypes := map[string]bool{
+		"openai": true,
+		"claude": true,
+		"gemini": true,
+		"ollama": true,
+		"custom": true,
+	}
+	
+	if !validApiTypes[apiType] {
+		apiErr := ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
+		RespondWithAPIError(w, apiErr)
+		return
 	}
 
 	ChatModel, err := h.db.UpdateChatModel(r.Context(), sqlc_queries.UpdateChatModelParams{
