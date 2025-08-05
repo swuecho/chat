@@ -111,6 +111,7 @@ type ChatModel struct {
 	OrderNumber            int32  `json:"orderNumber"`
 	HttpTimeOut            int32  `json:"httpTimeOut"`
 	IsEnable               bool   `json:"isEnable"`
+	ApiType                string `json:"apiType"`
 }
 
 type ChatPrompt struct {

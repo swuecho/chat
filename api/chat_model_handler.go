@@ -123,12 +123,34 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		ApiAuthHeader          string `json:"apiAuthHeader"`
 		ApiAuthKey             string `json:"apiAuthKey"`
 		EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
+		ApiType                string `json:"apiType"`
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Failed to parse request body")
 		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
+	}
+
+	// Set default api_type if not provided
+	apiType := input.ApiType
+	if apiType == "" {
+		apiType = "openai" // default api type
+	}
+	
+	// Validate api_type
+	validApiTypes := map[string]bool{
+		"openai": true,
+		"claude": true,
+		"gemini": true,
+		"ollama": true,
+		"custom": true,
+	}
+	
+	if !validApiTypes[apiType] {
+		apiErr := ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
 		RespondWithAPIError(w, apiErr)
 		return
 	}
@@ -142,6 +164,11 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		ApiAuthKey:             input.ApiAuthKey,
 		UserID:                 userID,
 		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
+		MaxToken:               4096,  // default max token
+		DefaultToken:           2048,  // default token
+		OrderNumber:            0,     // default order
+		HttpTimeOut:            120,   // default timeout
+		ApiType:               apiType,
 	})
 
 	if err != nil {
@@ -175,23 +202,45 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 
 	var input struct {
-		Name                   string
-		Label                  string
-		IsDefault              bool
-		URL                    string
-		ApiAuthHeader          string
-		ApiAuthKey             string
-		EnablePerModeRatelimit bool
-		OrderNumber            int32
-		DefaultToken           int32
-		MaxToken               int32
-		HttpTimeOut            int32
-		IsEnable               bool
+		Name                   string `json:"name"`
+		Label                  string `json:"label"`
+		IsDefault              bool   `json:"isDefault"`
+		URL                    string `json:"url"`
+		ApiAuthHeader          string `json:"apiAuthHeader"`
+		ApiAuthKey             string `json:"apiAuthKey"`
+		EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
+		OrderNumber            int32  `json:"orderNumber"`
+		DefaultToken           int32  `json:"defaultToken"`
+		MaxToken               int32  `json:"maxToken"`
+		HttpTimeOut            int32  `json:"httpTimeOut"`
+		IsEnable               bool   `json:"isEnable"`
+		ApiType                string `json:"apiType"`
 	}
 	err = json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Failed to parse request body")
 		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
+	}
+
+	// Set default api_type if not provided
+	apiType := input.ApiType
+	if apiType == "" {
+		apiType = "openai" // default api type
+	}
+	
+	// Validate api_type
+	validApiTypes := map[string]bool{
+		"openai": true,
+		"claude": true,
+		"gemini": true,
+		"ollama": true,
+		"custom": true,
+	}
+	
+	if !validApiTypes[apiType] {
+		apiErr := ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
 		RespondWithAPIError(w, apiErr)
 		return
 	}
@@ -211,6 +260,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		MaxToken:               input.MaxToken,
 		HttpTimeOut:            input.HttpTimeOut,
 		IsEnable:               input.IsEnable,
+		ApiType:               apiType,
 	})
 
 	if err != nil {

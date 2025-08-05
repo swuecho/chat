@@ -6,6 +6,7 @@
             "actions": "Actions",
             "apiAuthHeader": "Auth Header key",
             "apiAuthKey": "API KEY corresponding to the environment variable",
+            "apiType": "API Type",
             "clear_form": "Clear Form",
             "copy": "Copy",
             "copy_success": "Copied successfully",

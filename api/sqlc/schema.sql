@@ -37,6 +37,8 @@ ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS default_token INTEGER NOT NULL d
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS order_number INTEGER NOT NULL default 1;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS http_time_out INTEGER NOT NULL default 120;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS is_enable BOOLEAN DEFAULT true NOT NULL;
+ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS api_type VARCHAR(50) NOT NULL DEFAULT 'openai';
+
 
 
 INSERT INTO chat_model(name, label, is_default, url, api_auth_header, api_auth_key, max_token, default_token, order_number)
@@ -58,6 +60,13 @@ UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4-32k';
 DELETE FROM chat_model where name = 'claude-v1';
 DELETE FROM chat_model where name = 'claude-v1-100k';
 DELETE FROM chat_model where name = 'claude-instant-v1';
+
+-- Update existing records with appropriate api_type values
+UPDATE chat_model SET api_type = 'openai' WHERE name LIKE 'gpt-%' OR name LIKE 'text-davinci-%' OR name LIKE 'deepseek-%';
+UPDATE chat_model SET api_type = 'claude' WHERE name LIKE 'claude-%';
+UPDATE chat_model SET api_type = 'gemini' WHERE name LIKE 'gemini-%';
+UPDATE chat_model SET api_type = 'ollama' WHERE name LIKE 'ollama-%';
+UPDATE chat_model SET api_type = 'custom' WHERE name LIKE 'custom-%' OR name IN ('echo', 'debug');
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
 

@@ -49,9 +49,59 @@ const optionFromModel = (model: ChatModel) => {
                 value: model.name,
         }
 }
-const chatModelOptions = computed(() =>
-        data?.value ? data.value.filter((x: ChatModel) => x.isEnable).map(optionFromModel) : []
-)
+
+const chatModelOptions = computed(() => {
+        if (!data?.value) return []
+        
+        const enabledModels = data.value.filter((x: ChatModel) => x.isEnable)
+        
+        // Group models by api type
+        const modelsByApiType = enabledModels.reduce((acc, model) => {
+                const apiType = model.apiType || 'unknown'
+                if (!acc[apiType]) {
+                        acc[apiType] = []
+                }
+                acc[apiType].push(model)
+                return acc
+        }, {} as Record<string, ChatModel[]>)
+        
+        // Create grouped options with api type headers
+        const groupedOptions: any[] = []
+        
+        // Define api type display names and order
+        const apiTypeConfig = {
+                'openai': { name: 'OpenAI', order: 1 },
+                'claude': { name: 'Claude', order: 2 },
+                'gemini': { name: 'Gemini', order: 3 },
+                'ollama': { name: 'Ollama', order: 4 },
+                'custom': { name: 'Custom', order: 5 },
+        }
+        
+        // Sort api types by defined order
+        const sortedApiTypes = Object.keys(modelsByApiType).sort((a, b) => {
+                const orderA = apiTypeConfig[a as keyof typeof apiTypeConfig]?.order || 999
+                const orderB = apiTypeConfig[b as keyof typeof apiTypeConfig]?.order || 999
+                return orderA - orderB
+        })
+        
+        sortedApiTypes.forEach(apiType => {
+                const models = modelsByApiType[apiType]
+                const apiTypeName = apiTypeConfig[apiType as keyof typeof apiTypeConfig]?.name || apiType.charAt(0).toUpperCase() + apiType.slice(1)
+                
+                // Sort models within api type by order number
+                models.sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0))
+                
+                // Add api type group with models
+                groupedOptions.push({
+                        type: 'group',
+                        label: apiTypeName,
+                        key: apiType,
+                        children: models.map(optionFromModel)
+                })
+        })
+        
+        return groupedOptions
+})
 
 
 const defaultModel = computed(() => {
