@@ -6,6 +6,8 @@
     "edit": "编辑",
     "editUser": "编辑用户",
     "delete": "删除",
+    "disabled": "禁用",
+    "enabled": "启用",
     "actions": "操作",
     "warning": "警告",
     "save": "保存",
