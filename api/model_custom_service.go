@@ -148,14 +148,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 
 		if bytes.HasPrefix(line, []byte("[DONE]")) {
 			fmt.Println(ErrorDoneBreak)
-			err := FlushResponse(w, flusher, StreamingResponse{
-				AnswerID: answer_id,
-				Content:  answer,
-				IsFinal:  true,
-			})
-			if err != nil {
-				log.Printf("Failed to flush final response: %v", err)
-			}
+			
 			break
 		}
 
