@@ -36,6 +36,24 @@ const apiTypeDisplay = computed(() => {
   return API_TYPE_DISPLAY_NAMES[apiType as keyof typeof API_TYPE_DISPLAY_NAMES] || apiType || 'Unknown'
 })
 
+const apiTypeBadgeType = computed(() => {
+  const apiType = props.model.apiType?.toLowerCase()
+  switch (apiType) {
+    case 'openai':
+      return 'success'
+    case 'claude':
+      return 'info'
+    case 'gemini':
+      return 'warning'
+    case 'ollama':
+      return 'error'
+    case 'custom':
+      return 'default'
+    default:
+      return 'info'
+  }
+})
+
 // API Type options (imported from constants)
 const apiTypeOptions = API_TYPE_OPTIONS
 
@@ -168,7 +186,7 @@ function copyJson() {
 
           <!-- API Type and Status -->
           <div class="flex items-center gap-2 flex-wrap">
-            <NBadge type="info" :value="apiTypeDisplay" size="small" />
+            <NBadge :type="apiTypeBadgeType" :value="apiTypeDisplay" size="small" />
           </div>
         </div>
 
