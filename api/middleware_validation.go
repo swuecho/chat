@@ -16,8 +16,8 @@ import (
 
 // Common validation patterns
 var (
-	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	uuidRegex  = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+	validationEmailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	validationUuidRegex  = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 )
 
 // ValidationConfig defines validation rules for API endpoints
@@ -38,7 +38,7 @@ func ValidateEmail(value interface{}) error {
 	if !ok {
 		return ErrValidationInvalidInput("email must be a string")
 	}
-	if !emailRegex.MatchString(email) {
+	if !validationEmailRegex.MatchString(email) {
 		return ErrValidationInvalidInput("invalid email format")
 	}
 	if len(email) > 254 {
@@ -52,7 +52,7 @@ func ValidateUUID(value interface{}) error {
 	if !ok {
 		return ErrValidationInvalidInput("UUID must be a string")
 	}
-	if !uuidRegex.MatchString(uuid) {
+	if !validationUuidRegex.MatchString(uuid) {
 		return ErrValidationInvalidInput("invalid UUID format")
 	}
 	return nil
