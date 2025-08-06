@@ -316,7 +316,8 @@ export const useSessionStore = defineStore('session-store', {
     },
 
     async setActiveSession(workspaceUuid: string | null, sessionUuid: string) {
-      if (this.isSwitchingSession) {
+      // Early return if already switching or if this is already the active session
+      if (this.isSwitchingSession || this.activeSessionUuid === sessionUuid) {
         return
       }
 
@@ -373,8 +374,18 @@ export const useSessionStore = defineStore('session-store', {
     async navigateToSession(sessionUuid: string) {
       const session = this.getChatSessionByUuid(sessionUuid)
       if (session && session.workspaceUuid) {
+        // Check if we're already on the correct route to avoid unnecessary navigation
+        const currentRoute = router.currentRoute.value
+        const currentWorkspaceUuid = currentRoute.params.workspaceUuid as string
+        const currentSessionUuid = currentRoute.params.uuid as string
+        
+        if (currentWorkspaceUuid === session.workspaceUuid && currentSessionUuid === sessionUuid) {
+          console.log('Already on correct route, skipping navigation')
+          return
+        }
+
         const workspaceStore = useWorkspaceStore()
-        await workspaceStore.navigateToWorkspace(session.workspaceUuid, sessionUuid)
+        workspaceStore.navigateToWorkspace(session.workspaceUuid, sessionUuid)
       } else {
         // If session doesn't have a workspace, try to assign it to the default workspace
         const workspaceStore = useWorkspaceStore()
@@ -382,7 +393,7 @@ export const useSessionStore = defineStore('session-store', {
 
         if (defaultWorkspace) {
           console.log('Session without workspace, navigating to default workspace:', defaultWorkspace.uuid)
-          await workspaceStore.navigateToWorkspace(defaultWorkspace.uuid, sessionUuid)
+          workspaceStore.navigateToWorkspace(defaultWorkspace.uuid, sessionUuid)
         } else {
           // Last resort: navigate to default route
           console.log('No workspace available, navigating to default route')

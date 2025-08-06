@@ -578,6 +578,11 @@ export const useWorkspaceStore = defineStore('workspace-store', {
     },
 
     navigateToWorkspace(workspaceUuid: string, sessionUuid?: string) {
+      // Check if we're already on the target route to avoid unnecessary navigation
+      const currentRoute = router.currentRoute.value
+      const currentWorkspaceUuid = currentRoute.params.workspaceUuid as string
+      const currentSessionUuid = currentRoute.params.uuid as string
+
       // If no sessionUuid provided, try to get the active session for this workspace
       let targetSessionUuid = sessionUuid
       if (!targetSessionUuid) {
@@ -585,11 +590,18 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         targetSessionUuid = sessionStore.activeSessionUuid || undefined
       }
 
+      // Check if we're already on the correct route
+      if (currentWorkspaceUuid === workspaceUuid && 
+          (!targetSessionUuid || currentSessionUuid === targetSessionUuid)) {
+        console.log('Already on target workspace route, skipping navigation')
+        return Promise.resolve()
+      }
+
       const route = targetSessionUuid
         ? { name: 'WorkspaceChat', params: { workspaceUuid, uuid: targetSessionUuid } }
         : { name: 'WorkspaceChat', params: { workspaceUuid } }
 
-      router.push(route)
+      return router.push(route)
     },
   },
 })

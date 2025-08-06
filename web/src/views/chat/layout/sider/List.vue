@@ -60,6 +60,10 @@ async function handleSelect(uuid: string) {
   if (isActive(uuid))
     return
 
+  // Prevent multiple rapid session switches
+  if (sessionStore.isSwitchingSession)
+    return
+
   const session = sessionStore.getChatSessionByUuid(uuid)
   if (session && session.workspaceUuid) {
     await sessionStore.setActiveSession(session.workspaceUuid, uuid)
