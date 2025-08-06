@@ -169,7 +169,6 @@ function copyJson() {
           <!-- API Type and Status -->
           <div class="flex items-center gap-2 flex-wrap">
             <NBadge type="info" :value="apiTypeDisplay" size="small" />
-            <NBadge v-if="!model.isEnable" type="warning" :value="t('admin.chat_model.disabled')" size="small" />
           </div>
         </div>
 
