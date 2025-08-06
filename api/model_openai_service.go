@@ -97,7 +97,11 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		log.Printf("fail to do request: %+v", err)
 		return nil, ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())
 	}
-	defer stream.Close()
+	defer func() {
+		if err := stream.Close(); err != nil {
+			log.Printf("Error closing OpenAI stream: %v", err)
+		}
+	}()
 
 	// Setup Server-Sent Events (SSE) streaming
 	flusher, err := setupSSEStream(w)

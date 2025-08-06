@@ -481,11 +481,12 @@ func isTest(msgs []models.Message) bool {
 
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
-	log.Printf("%+v", chatModel)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("chat model"+chatModel.Name))
+		log.WithError(err).WithField("model", model).Error("Chat model not found")
+		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+model))
 		return true
 	}
+	log.Printf("%+v", chatModel)
 	if !chatModel.EnablePerModeRatelimit {
 		return false
 	}

@@ -493,7 +493,12 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Generate temporary password
-	tempPassword := auth.GenerateRandomPassword()
+	tempPassword, err := auth.GenerateRandomPassword()
+	if err != nil {
+		log.WithError(err).Error("Failed to generate temporary password")
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate temporary password").WithDebugInfo(err.Error()))
+		return
+	}
 
 	// Hash temporary password
 	hashedPassword, err := auth.GeneratePasswordHash(tempPassword)

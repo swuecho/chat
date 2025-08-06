@@ -59,15 +59,15 @@ func ValidatePassword(password, hash string) bool {
 	return subtle.ConstantTimeCompare(decodedHash, computedHash) == 1
 }
 
-func GenerateRandomPassword() string {
+func GenerateRandomPassword() (string, error) {
 	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 	password := make([]byte, 12)
 	_, err := rand.Read(password)
 	if err != nil {
-		panic(err)
+		return "", eris.Wrap(err, "failed to generate random password")
 	}
 	for i := 0; i < len(password); i++ {
 		password[i] = letters[int(password[i])%len(letters)]
 	}
-	return string(password)
+	return string(password), nil
 }
