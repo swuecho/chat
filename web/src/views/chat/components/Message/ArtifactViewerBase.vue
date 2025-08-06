@@ -36,9 +36,9 @@
 <script lang="ts" setup>
 import { ref, reactive } from 'vue'
 import { useMessage } from 'naive-ui'
-import { type Artifact, type ExecutionResult } from '@/typings/chat'
-import { getCodeRunner } from '@/services/codeRunner'
-import { useCopyCode } from '@/hooks/useCopyCode'
+import { type Artifact } from '@/utils/artifacts'
+import { getCodeRunner, type ExecutionResult } from '@/services/codeRunner'
+import { copyText } from '@/utils/format'
 import ArtifactHeader from './ArtifactHeader.vue'
 import ArtifactContent from './ArtifactContent.vue'
 
@@ -49,7 +49,6 @@ interface Props {
 const props = defineProps<Props>()
 
 const message = useMessage()
-const { copy: copyCode } = useCopyCode()
 
 // State management
 const expandedArtifacts = ref<Set<string>>(new Set())
@@ -134,7 +133,11 @@ const clearOutput = (uuid: string) => {
 
 const copyContent = async (content: string) => {
   try {
-    await copyCode(content)
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content)
+    } else {
+      copyText({ text: content, origin: true })
+    }
     message.success('Content copied to clipboard')
   } catch (error) {
     message.error('Failed to copy content')

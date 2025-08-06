@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts" setup>
-import { type Artifact } from '@/typings/chat'
+import { type Artifact } from '@/utils/artifacts'
 import ArtifactViewerBase from './ArtifactViewerBase.vue'
 
 interface Props {

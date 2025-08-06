@@ -101,8 +101,6 @@ export function useConversationFlow(
     dataSources: any[],
     chatUuid: string
   ): Promise<void> {
-    if (!validateConversationInput(message)) return
-
     loading.value = true
     abortController.value = new AbortController()
     const responseIndex = await initializeChatResponse(dataSources)
