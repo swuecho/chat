@@ -54,8 +54,14 @@ function http<T>(
       errorMessage = error
     }
     
-    // Create enhanced error object
-    const enhancedError = new Error(errorMessage)
+    // Create enhanced error object with proper typing
+    interface EnhancedError extends Error {
+      code?: string | number
+      status?: number
+      originalError?: any
+    }
+    
+    const enhancedError = new Error(errorMessage) as EnhancedError
     enhancedError.name = errorCode
     enhancedError.code = errorCode
     enhancedError.status = error?.response?.status || 0

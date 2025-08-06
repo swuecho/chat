@@ -22,10 +22,11 @@ var (
 
 // ValidationConfig defines validation rules for API endpoints
 type ValidationConfig struct {
-	MaxBodySize    int64                      // Maximum request body size
-	RequiredFields []string                   // Required JSON fields
+	MaxBodySize     int64                      // Maximum request body size
+	RequiredFields  []string                   // Required JSON fields
 	FieldValidators map[string]FieldValidator  // Custom field validators
-	AllowedMethods []string                   // Allowed HTTP methods
+	AllowedMethods  []string                   // Allowed HTTP methods
+	SkipBodyBuffer  bool                       // Skip body buffering for large requests (disables field validation)
 }
 
 // FieldValidator defines a validation function for a specific field
@@ -162,9 +163,39 @@ func ValidationMiddleware(config ValidationConfig) func(http.Handler) http.Handl
 				return
 			}
 
-			// Read and validate request body
-			body, err := io.ReadAll(io.LimitReader(r.Body, config.MaxBodySize+1))
-			if err != nil {
+			// Skip body buffering for large requests or when explicitly configured
+			if config.SkipBodyBuffer {
+				// Just validate content length and skip field validation
+				if config.MaxBodySize > 0 && r.ContentLength > config.MaxBodySize {
+					log.WithFields(log.Fields{
+						"content_length": r.ContentLength,
+						"max_size":       config.MaxBodySize,
+						"path":           r.URL.Path,
+						"ip":             r.RemoteAddr,
+					}).Warn("Request body exceeds size limit")
+					RespondWithAPIError(w, APIError{
+						HTTPCode: http.StatusRequestEntityTooLarge,
+						Code:     ErrValidation + "_102",
+						Message:  "Request body too large",
+					})
+					return
+				}
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Create a limited reader to prevent memory exhaustion
+			var limitedReader io.Reader = r.Body
+			if config.MaxBodySize > 0 {
+				limitedReader = io.LimitReader(r.Body, config.MaxBodySize+1)
+			}
+			
+			// Read with streaming approach using a buffer
+			var bodyBuffer bytes.Buffer
+			written, err := io.CopyN(&bodyBuffer, limitedReader, config.MaxBodySize+1)
+			r.Body.Close()
+			
+			if err != nil && err != io.EOF {
 				log.WithError(err).WithFields(log.Fields{
 					"path": r.URL.Path,
 					"ip":   r.RemoteAddr,
@@ -172,12 +203,11 @@ func ValidationMiddleware(config ValidationConfig) func(http.Handler) http.Handl
 				RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to read request body"))
 				return
 			}
-			r.Body.Close()
 
-			// Check if body exceeds limit after reading
-			if config.MaxBodySize > 0 && int64(len(body)) > config.MaxBodySize {
+			// Check if body exceeds limit
+			if config.MaxBodySize > 0 && written > config.MaxBodySize {
 				log.WithFields(log.Fields{
-					"body_size": len(body),
+					"body_size": written,
 					"max_size":  config.MaxBodySize,
 					"path":      r.URL.Path,
 					"ip":        r.RemoteAddr,
@@ -189,6 +219,8 @@ func ValidationMiddleware(config ValidationConfig) func(http.Handler) http.Handl
 				})
 				return
 			}
+			
+			body := bodyBuffer.Bytes()
 
 			// Parse JSON body
 			var jsonData map[string]interface{}
@@ -276,6 +308,7 @@ var (
 	FileUploadValidationConfig = ValidationConfig{
 		MaxBodySize:    32 * 1024 * 1024, // 32MB
 		AllowedMethods: []string{"POST", "GET", "DELETE"},
+		SkipBodyBuffer: true, // Skip buffering for large file uploads
 	}
 
 	GeneralValidationConfig = ValidationConfig{
