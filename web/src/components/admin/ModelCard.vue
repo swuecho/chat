@@ -148,15 +148,15 @@ function copyJson() {
       <div class="flex justify-between items-start gap-4">
         <div class="flex-1 min-w-0">
           <!-- Header with model name and badges -->
-          <div class="flex items-center gap-2 mb-2">
+          <div class="flex items-start gap-2 mb-2">
             <NBadge :value="model.orderNumber?.toString() || '0'" show-zero type="success" class="flex-shrink-0">
-              <h3 class="font-semibold text-lg truncate"
+              <h3 class="font-semibold text-lg truncate max-w-[120px] sm:max-w-[150px] md:max-w-[180px]"
                 :class="{ 'text-green-700 dark:text-green-300': isDefaultModel }" :title="model.name">
                 {{ model.name }}
               </h3>
             </NBadge>
             <NBadge v-if="isDefaultModel" type="success" :value="t('admin.chat_model.default')" size="small"
-              class="flex-shrink-0" />
+              class="flex-shrink-0 mt-1" />
           </div>
 
           <!-- Model label/description -->
@@ -174,8 +174,8 @@ function copyJson() {
         </div>
 
         <!-- Enable/Disable Toggle -->
-        <div class="flex-shrink-0 flex flex-col items-center gap-2">
-          <NSwitch :value="model.isEnable" @update:value="handleEnableToggle" @click.stop
+        <div class="flex-shrink-0 flex flex-col items-center gap-2" @click.stop>
+          <NSwitch :value="model.isEnable" @update:value="handleEnableToggle"
             :loading="chatModelMutation.isPending.value" size="medium" />
           <span class="text-xs text-gray-500 dark:text-gray-400">
             {{ model.isEnable ? t('common.enabled') : t('common.disabled') }}
