@@ -102,7 +102,12 @@ export function useSearchAndPrompts() {
 
   const handleSelectAutoComplete: OnSelect = function (v: string | number) {
     if (typeof v === 'string' && v.startsWith('UUID|$|')) {
-      sessionStore.setActive(v.split('|$|')[1])
+      const sessionUuid = v.split('|$|')[1]
+      const session = sessionStore.getChatSessionByUuid(sessionUuid)
+      if (session && session.workspaceUuid) {
+        // Switch to the workspace and session
+        sessionStore.setActiveSession(session.workspaceUuid, sessionUuid)
+      }
     }
   }
 
