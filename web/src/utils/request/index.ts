@@ -38,9 +38,36 @@ function http<T>(
     return Promise.reject(res.data)
   }
 
-  const failHandler = (error: Response<Error>) => {
+  const failHandler = (error: any) => {
     afterRequest?.()
-    throw new Error(error?.message || 'Error')
+    
+    // Enhanced error handling with more detailed error information
+    let errorMessage = 'An unexpected error occurred'
+    let errorCode = 'UNKNOWN_ERROR'
+    
+    if (error?.response?.data) {
+      errorMessage = error.response.data.message || errorMessage
+      errorCode = error.response.data.code || errorCode
+    } else if (error?.message) {
+      errorMessage = error.message
+    } else if (typeof error === 'string') {
+      errorMessage = error
+    }
+    
+    // Create enhanced error object with proper typing
+    interface EnhancedError extends Error {
+      code?: string | number
+      status?: number
+      originalError?: any
+    }
+    
+    const enhancedError = new Error(errorMessage) as EnhancedError
+    enhancedError.name = errorCode
+    enhancedError.code = errorCode
+    enhancedError.status = error?.response?.status || 0
+    enhancedError.originalError = error
+    
+    throw enhancedError
   }
 
   beforeRequest?.()

@@ -119,7 +119,10 @@ async function handleChat() {
     nui_msg.error(t('common.ask_user_register'))
   window.open(`/`, '_blank')
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
-  await sessionStore.setActiveSessionLocal(null, SessionUuid)
+  const session = sessionStore.getChatSessionByUuid(SessionUuid)
+  if (session) {
+    sessionStore.setActiveSessionWithoutNavigation(session.workspaceUuid, SessionUuid)
+  }
 }
 
 const footerClass = computed(() => {

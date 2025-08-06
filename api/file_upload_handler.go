@@ -85,7 +85,11 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 		RespondWithAPIError(w, WrapError(err, "failed to get uploaded file"))
 		return
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Error closing uploaded file: %v", err)
+		}
+	}()
 
 	// Validate file type and extension
 	mimeType := header.Header.Get("Content-Type")

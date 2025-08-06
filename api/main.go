@@ -118,7 +118,7 @@ func main() {
 	// Get current executable file path
 	ex, err := os.Executable()
 	if err != nil {
-		panic(err)
+		log.WithError(err).Fatal("Failed to get executable path")
 	}
 
 	// Get current project directory
@@ -132,7 +132,7 @@ func main() {
 	// Execute SQL statements
 	_, err = pgdb.Exec(sqlStatements)
 	if err != nil {
-		panic(err.Error())
+		log.WithError(err).Fatal("Failed to execute SQL schema statements")
 	}
 	fmt.Println("SQL statements executed successfully")
 

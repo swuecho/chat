@@ -151,13 +151,14 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 	var userParams sqlc_queries.UpdateAuthUserParams
 	err = json.NewDecoder(r.Body).Decode(&userParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 	userParams.ID = userID
 	user, err := h.service.q.UpdateAuthUser(r.Context(), userParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.WithError(err).Error("Failed to update user")
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to update user").WithDebugInfo(err.Error()))
 		return
 	}
 	json.NewEncoder(w).Encode(user)
@@ -493,7 +494,12 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Generate temporary password
-	tempPassword := auth.GenerateRandomPassword()
+	tempPassword, err := auth.GenerateRandomPassword()
+	if err != nil {
+		log.WithError(err).Error("Failed to generate temporary password")
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate temporary password").WithDebugInfo(err.Error()))
+		return
+	}
 
 	// Hash temporary password
 	hashedPassword, err := auth.GeneratePasswordHash(tempPassword)

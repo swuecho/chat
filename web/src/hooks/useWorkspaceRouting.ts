@@ -129,7 +129,10 @@ export function useWorkspaceRouting() {
     }
     
     if (sessionFromUrl && sessionFromUrl !== sessionStore.active) {
-      sessionStore.setActiveLocal(sessionFromUrl)
+      const session = sessionStore.getChatSessionByUuid(sessionFromUrl)
+      if (session) {
+        sessionStore.setActiveSessionWithoutNavigation(session.workspaceUuid, sessionFromUrl)
+      }
     }
   }
 
