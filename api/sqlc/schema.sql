@@ -160,7 +160,8 @@ CREATE TABLE IF NOT EXISTS chat_session (
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 4096 NOT NULL; 
-ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NOT NULL; 
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NOT NULL;
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS explore_mode boolean DEFAULT false NOT NULL; 
 ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS n INTEGER DEFAULT 1 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS summarize_mode boolean DEFAULT false NOT NULL;
@@ -206,6 +207,7 @@ ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS llm_summary character varying(
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS model character varying(255) NOT NULL DEFAULT '';
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS reasoning_content character varying NOT NULL DEFAULT '';
 ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS artifacts JSONB DEFAULT '[]' NOT NULL;
+ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS suggested_questions JSONB DEFAULT '[]' NOT NULL;
 
 -- add hash index on uuid
 CREATE INDEX IF NOT EXISTS chat_message_uuid_idx ON chat_message using hash (uuid) ;

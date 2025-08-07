@@ -30,6 +30,7 @@ export const useAppStore = defineStore('app-store', {
       this.language = nextLang
       this.recordState()
     },
+
     recordState() {
       setLocalSetting(this.$state)
     },

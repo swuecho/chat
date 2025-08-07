@@ -92,8 +92,9 @@ type ChatMessage struct {
 	IsDeleted        bool            `json:"isDeleted"`
 	IsPin            bool            `json:"isPin"`
 	TokenCount       int32           `json:"tokenCount"`
-	Raw              json.RawMessage `json:"raw"`
-	Artifacts        json.RawMessage `json:"artifacts"`
+	Raw               json.RawMessage `json:"raw"`
+	Artifacts         json.RawMessage `json:"artifacts"`
+	SuggestedQuestions json.RawMessage `json:"suggestedQuestions"`
 }
 
 type ChatModel struct {
@@ -147,6 +148,7 @@ type ChatSession struct {
 	SummarizeMode bool          `json:"summarizeMode"`
 	WorkspaceID   sql.NullInt32 `json:"workspaceId"`
 	Debug         bool          `json:"debug"`
+	ExploreMode   bool          `json:"exploreMode"`
 }
 
 type ChatSnapshot struct {

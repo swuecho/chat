@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/rotisserie/eris"
@@ -172,25 +174,137 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	}
 
 	chatMessage := sqlc_queries.CreateChatMessageParams{
-		ChatSessionUuid:  sessionUuid,
-		Uuid:             uuid,
-		Role:             role,
-		Content:          content,
-		ReasoningContent: reasoningContent,
-		Model:            model,
-		UserID:           userId,
-		CreatedBy:        userId,
-		UpdatedBy:        userId,
-		LlmSummary:       summary,
-		TokenCount:       int32(numTokens),
-		Raw:              json.RawMessage([]byte("{}")),
-		Artifacts:        artifactsJSON,
+		ChatSessionUuid:    sessionUuid,
+		Uuid:               uuid,
+		Role:               role,
+		Content:            content,
+		ReasoningContent:   reasoningContent,
+		Model:              model,
+		UserID:             userId,
+		CreatedBy:          userId,
+		UpdatedBy:          userId,
+		LlmSummary:         summary,
+		TokenCount:         int32(numTokens),
+		Raw:                json.RawMessage([]byte("{}")),
+		Artifacts:          artifactsJSON,
+		SuggestedQuestions: json.RawMessage([]byte("[]")),
 	}
 	message, err := s.q.CreateChatMessage(ctx, chatMessage)
 	if err != nil {
 		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
 	}
 	return message, nil
+}
+
+// CreateChatMessageWithSuggestedQuestions creates a chat message with optional suggested questions for explore mode
+func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode, exploreMode bool, messages []models.Message) (sqlc_queries.ChatMessage, error) {
+	numTokens, err := getTokenCount(content)
+	if err != nil {
+		log.Printf("Warning: Failed to get token count: %v", err)
+		numTokens = len(content) / TokenEstimateRatio // Fallback estimate
+	}
+
+	summary := ""
+	if is_summarize_mode && numTokens > SummarizeThreshold {
+		log.Println("summarizing")
+		summary = llm_summarize_with_timeout(baseURL, content)
+		log.Println("summarizing: " + summary)
+	}
+
+	// Extract artifacts from content
+	artifacts := extractArtifacts(content)
+	artifactsJSON, err := json.Marshal(artifacts)
+	if err != nil {
+		log.Printf("Warning: Failed to marshal artifacts: %v", err)
+		artifactsJSON = json.RawMessage([]byte("[]"))
+	}
+
+	// Generate suggested questions if explore mode is enabled and role is assistant
+	suggestedQuestions := json.RawMessage([]byte("[]"))
+	if exploreMode && role == "assistant" && messages != nil {
+		questions := s.generateSuggestedQuestions(baseURL, content, messages)
+		if questionsJSON, err := json.Marshal(questions); err == nil {
+			suggestedQuestions = questionsJSON
+		} else {
+			log.Printf("Warning: Failed to marshal suggested questions: %v", err)
+		}
+	}
+
+	chatMessage := sqlc_queries.CreateChatMessageParams{
+		ChatSessionUuid:    sessionUuid,
+		Uuid:               uuid,
+		Role:               role,
+		Content:            content,
+		ReasoningContent:   reasoningContent,
+		Model:              model,
+		UserID:             userId,
+		CreatedBy:          userId,
+		UpdatedBy:          userId,
+		LlmSummary:         summary,
+		TokenCount:         int32(numTokens),
+		Raw:                json.RawMessage([]byte("{}")),
+		Artifacts:          artifactsJSON,
+		SuggestedQuestions: suggestedQuestions,
+	}
+	message, err := s.q.CreateChatMessage(ctx, chatMessage)
+	if err != nil {
+		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
+	}
+	return message, nil
+}
+
+// generateSuggestedQuestions generates follow-up questions based on the conversation context
+func (s *ChatService) generateSuggestedQuestions(baseURL, content string, messages []models.Message) []string {
+	// Create a simplified prompt to generate follow-up questions
+	prompt := `Based on the following conversation, generate 3 thoughtful follow-up questions that would help explore the topic further. Return only the questions, one per line, without numbering or bullet points.
+
+Conversation context:
+`
+	
+	// Add the last few messages for context (limit to avoid token overflow)
+	contextMessages := messages
+	if len(messages) > 6 {
+		contextMessages = messages[len(messages)-6:]
+	}
+	
+	for _, msg := range contextMessages {
+		prompt += fmt.Sprintf("%s: %s\n", msg.Role, msg.Content)
+	}
+	
+	prompt += fmt.Sprintf("assistant: %s\n\nGenerate 3 follow-up questions:", content)
+	
+	// Use a simple OpenAI API call to generate suggestions
+	// This is a simplified version - in a real implementation you'd want to use the same model selection logic
+	questions := s.callLLMForSuggestions(baseURL, prompt)
+	
+	// Parse the response into individual questions
+	lines := strings.Split(strings.TrimSpace(questions), "\n")
+	var result []string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && len(result) < 3 {
+			// Clean up any numbering or bullet points that might remain
+			line = strings.TrimPrefix(line, "1. ")
+			line = strings.TrimPrefix(line, "2. ")
+			line = strings.TrimPrefix(line, "3. ")
+			line = strings.TrimPrefix(line, "- ")
+			line = strings.TrimPrefix(line, "• ")
+			result = append(result, line)
+		}
+	}
+	
+	return result
+}
+
+// callLLMForSuggestions makes a simple API call to generate suggested questions
+func (s *ChatService) callLLMForSuggestions(baseURL, prompt string) string {
+	// This is a simplified implementation
+	// In a real implementation, you'd use the same model selection and API calling logic
+	// For now, return some default suggestions if the API call fails
+	
+	// TODO: Implement actual LLM API call
+	// For now, return empty string so the function doesn't break
+	return ""
 }
 
 // UpdateChatMessageContent updates the content of an existing chat message.

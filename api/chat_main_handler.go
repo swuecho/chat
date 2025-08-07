@@ -287,7 +287,7 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		h.service.logChat(*chatSession, msgs, LLMAnswer.ReasoningContent+LLMAnswer.Answer)
 	}
 
-	if _, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
+	if _, err := h.service.CreateChatMessageWithSuggestedQuestions(ctx, chatSession.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs); err != nil {
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to create message", err.Error()))
 		return false
 	}

@@ -12,26 +12,27 @@ import (
 )
 
 const createChatMessage = `-- name: CreateChatMessage :one
-INSERT INTO chat_message (chat_session_uuid, uuid, role, content, reasoning_content,  model, token_count, score, user_id, created_by, updated_by, llm_summary, raw, artifacts)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts
+INSERT INTO chat_message (chat_session_uuid, uuid, role, content, reasoning_content,  model, token_count, score, user_id, created_by, updated_by, llm_summary, raw, artifacts, suggested_questions)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions
 `
 
 type CreateChatMessageParams struct {
-	ChatSessionUuid  string          `json:"chatSessionUuid"`
-	Uuid             string          `json:"uuid"`
-	Role             string          `json:"role"`
-	Content          string          `json:"content"`
-	ReasoningContent string          `json:"reasoningContent"`
-	Model            string          `json:"model"`
-	TokenCount       int32           `json:"tokenCount"`
-	Score            float64         `json:"score"`
-	UserID           int32           `json:"userId"`
-	CreatedBy        int32           `json:"createdBy"`
-	UpdatedBy        int32           `json:"updatedBy"`
-	LlmSummary       string          `json:"llmSummary"`
-	Raw              json.RawMessage `json:"raw"`
-	Artifacts        json.RawMessage `json:"artifacts"`
+	ChatSessionUuid    string          `json:"chatSessionUuid"`
+	Uuid               string          `json:"uuid"`
+	Role               string          `json:"role"`
+	Content            string          `json:"content"`
+	ReasoningContent   string          `json:"reasoningContent"`
+	Model              string          `json:"model"`
+	TokenCount         int32           `json:"tokenCount"`
+	Score              float64         `json:"score"`
+	UserID             int32           `json:"userId"`
+	CreatedBy          int32           `json:"createdBy"`
+	UpdatedBy          int32           `json:"updatedBy"`
+	LlmSummary         string          `json:"llmSummary"`
+	Raw                json.RawMessage `json:"raw"`
+	Artifacts          json.RawMessage `json:"artifacts"`
+	SuggestedQuestions json.RawMessage `json:"suggestedQuestions"`
 }
 
 func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error) {
@@ -50,6 +51,7 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 		arg.LlmSummary,
 		arg.Raw,
 		arg.Artifacts,
+		arg.SuggestedQuestions,
 	)
 	var i ChatMessage
 	err := row.Scan(
@@ -72,6 +74,7 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 		&i.TokenCount,
 		&i.Raw,
 		&i.Artifacts,
+		&i.SuggestedQuestions,
 	)
 	return i, err
 }
@@ -108,7 +111,7 @@ func (q *Queries) DeleteChatMessagesBySesionUUID(ctx context.Context, chatSessio
 }
 
 const getAllChatMessages = `-- name: GetAllChatMessages :many
-SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts FROM chat_message 
+SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions FROM chat_message 
 WHERE is_deleted = false
 ORDER BY id
 `
