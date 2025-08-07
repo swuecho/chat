@@ -287,11 +287,68 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		h.service.logChat(*chatSession, msgs, LLMAnswer.ReasoningContent+LLMAnswer.Answer)
 	}
 
-	if _, err := h.service.CreateChatMessageWithSuggestedQuestions(ctx, chatSession.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs); err != nil {
+	chatMessage, err := h.service.CreateChatMessageWithSuggestedQuestions(ctx, chatSession.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs)
+	if err != nil {
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to create message", err.Error()))
 		return false
 	}
+
+	// Send suggested questions as a separate streaming event if streaming is enabled and exploreMode is on
+	if streamOutput && chatSession.ExploreMode && chatMessage.SuggestedQuestions != nil {
+		h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, chatMessage.SuggestedQuestions)
+	}
+
 	return true
+}
+
+// sendSuggestedQuestionsStream sends suggested questions as a separate streaming event
+func (h *ChatHandler) sendSuggestedQuestionsStream(w http.ResponseWriter, answerID string, suggestedQuestionsJSON json.RawMessage) {
+	// Parse the suggested questions JSON
+	var suggestedQuestions []string
+	if err := json.Unmarshal(suggestedQuestionsJSON, &suggestedQuestions); err != nil {
+		log.Printf("Warning: Failed to parse suggested questions for streaming: %v", err)
+		return
+	}
+
+	// Only send if we have questions
+	if len(suggestedQuestions) == 0 {
+		return
+	}
+
+	// Get the flusher for streaming
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		log.Printf("Warning: Response writer does not support flushing, cannot send suggested questions stream")
+		return
+	}
+
+	// Create a special response with suggested questions
+	suggestedQuestionsResponse := map[string]interface{}{
+		"id": answerID,
+		"object": "chat.completion.chunk",
+		"choices": []map[string]interface{}{
+			{
+				"index": 0,
+				"delta": map[string]interface{}{
+					"content": "", // Empty content
+					"suggestedQuestions": suggestedQuestions,
+				},
+				"finish_reason": nil,
+			},
+		},
+	}
+
+	data, err := json.Marshal(suggestedQuestionsResponse)
+	if err != nil {
+		log.Printf("Warning: Failed to marshal suggested questions response: %v", err)
+		return
+	}
+
+	// Send the streaming event
+	fmt.Fprintf(w, "data: %v\n\n", string(data))
+	flusher.Flush()
+
+	log.Printf("Sent suggested questions stream for answer ID: %s, questions: %v", answerID, suggestedQuestions)
 }
 
 // genAnswer is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)

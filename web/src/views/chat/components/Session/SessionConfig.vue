@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import type { Ref } from 'vue'
-import { computed, ref, watch, h } from 'vue'
+import { computed, ref, watch, h, nextTick } from 'vue'
 import type { FormInst } from 'naive-ui'
 import { NForm, NFormItem, NRadio, NRadioGroup, NSlider, NSpace, NSpin, NSwitch } from 'naive-ui'
-import { debounce } from 'lodash-es'
+import { debounce, isEqual } from 'lodash-es'
 import { useSessionStore, useAppStore } from '@/store'
 import { fetchChatModel } from '@/api'
 
@@ -80,7 +80,15 @@ const modelRef: Ref<ModelType> = ref({
 
 const formRef = ref<FormInst | null>(null)
 
+// Flag to prevent circular updates
+let isUpdatingFromSession = false
+
 const debouneUpdate = debounce(async (model: ModelType) => {
+  // Prevent update if we're currently updating from session
+  if (isUpdatingFromSession) {
+    return
+  }
+  
   sessionStore.updateSession(props.uuid, {
     maxLength: model.contextCount,
     temperature: model.temperature,
@@ -94,10 +102,38 @@ const debouneUpdate = debounce(async (model: ModelType) => {
   })
 }, 200)
 
-// why watch not work?, missed the deep = true option
+// Watch modelRef changes from user interaction
 watch(modelRef, async (modelValue: ModelType) => {
   debouneUpdate(modelValue)
 }, { deep: true })
+
+// Watch for session changes and update modelRef
+watch(session, (newSession) => {
+  if (newSession) {
+    const newModelRef = {
+      chatModel: newSession.model ?? defaultModel.value,
+      summarizeMode: newSession.summarizeMode ?? false,
+      contextCount: newSession.maxLength ?? 10,
+      temperature: newSession.temperature ?? 1.0,
+      maxTokens: newSession.maxTokens ?? 2048,
+      topP: newSession.topP ?? 1.0,
+      n: newSession.n ?? 1,
+      debug: newSession.debug ?? false,
+      exploreMode: newSession.exploreMode ?? false,
+    }
+    
+    // Only update if the values are actually different
+    if (!isEqual(modelRef.value, newModelRef)) {
+      isUpdatingFromSession = true
+      modelRef.value = newModelRef
+      
+      // Reset flag after Vue's next tick to allow reactivity to settle
+      nextTick(() => {
+        isUpdatingFromSession = false
+      })
+    }
+  }
+}, { deep: true, immediate: true })
 
 
 
@@ -177,16 +213,6 @@ const defaultToken = computed(() => {
         :label="$t('chat.N', { n: modelRef.n })" path="n">
         <NSlider v-model:value="modelRef.n" :min="1" :max="10" :step="1" :tooltip="false" />
       </NFormItem>
-      <NFormItem :label="$t('chat.debug')" path="debug">
-        <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode">
-          <template #checked>
-            {{ $t('chat.enable_debug') }}
-          </template>
-          <template #unchecked>
-            {{ $t('chat.disable_debug') }}
-          </template>
-        </NSwitch>
-      </NFormItem>
       <NFormItem :label="$t('chat.exploreMode')" path="exploreMode">
         <NSwitch v-model:value="modelRef.exploreMode" data-testid="explore_mode">
           <template #checked>
@@ -197,6 +223,17 @@ const defaultToken = computed(() => {
           </template>
         </NSwitch>
       </NFormItem>
+      <NFormItem :label="$t('chat.debug')" path="debug">
+        <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode">
+          <template #checked>
+            {{ $t('chat.enable_debug') }}
+          </template>
+          <template #unchecked>
+            {{ $t('chat.disable_debug') }}
+          </template>
+        </NSwitch>
+      </NFormItem>
+    
     </NForm>
     <!--
                                         <div class="center">

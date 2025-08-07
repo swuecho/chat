@@ -18,6 +18,7 @@ interface StreamChunkData {
   choices: Array<{
     delta: {
       content: string
+      suggestedQuestions?: string[]
     }
   }>
   id: string
@@ -60,24 +61,34 @@ export function useStreamHandling() {
     try {
       const parsedData: StreamChunkData = JSON.parse(data)
 
-      // Validate data structure
-      if (!parsedData.choices?.[0]?.delta?.content || !parsedData.id) {
+      const delta = parsedData.choices?.[0]?.delta
+      const answerUuid = parsedData.id?.replace('chatcmpl-', '') || parsedData.id
+      
+      // Handle both content and suggested questions
+      const deltaContent = delta?.content || ''
+      const suggestedQuestions = delta?.suggestedQuestions
+
+      // Skip if neither content nor suggested questions are present
+      if (!deltaContent && !suggestedQuestions && !parsedData.id) {
         console.warn('Invalid stream chunk structure:', parsedData)
         return
       }
 
-      const deltaContent = parsedData.choices[0].delta.content
-      const answerUuid = parsedData.id.replace('chatcmpl-', '')
-
-      // Get current message to append delta content
+      // Get current message
       const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
       const currentMessage = messages && messages[responseIndex] ? messages[responseIndex] : null
-      const currentText = currentMessage?.text || ''
-      const newText = currentText + deltaContent
+      
+      // Process content if present
+      let newText = currentMessage?.text || ''
+      let artifacts = currentMessage?.artifacts || []
+      
+      if (deltaContent) {
+        newText = newText + deltaContent
+        artifacts = extractArtifacts(newText)
+      }
 
-      const artifacts = extractArtifacts(newText)
-
-      updateChat(sessionUuid, responseIndex, {
+      // Prepare update object
+      const updateData: any = {
         uuid: answerUuid,
         dateTime: nowISO(),
         text: newText,
@@ -85,7 +96,15 @@ export function useStreamHandling() {
         error: false,
         loading: false,
         artifacts: artifacts,
-      })
+      }
+
+      // Add suggested questions if present
+      if (suggestedQuestions && Array.isArray(suggestedQuestions) && suggestedQuestions.length > 0) {
+        updateData.suggestedQuestions = suggestedQuestions
+        console.log('Received suggested questions via stream:', suggestedQuestions)
+      }
+
+      updateChat(sessionUuid, responseIndex, updateData)
     } catch (error) {
       console.error('Failed to parse stream chunk:', error)
     }
