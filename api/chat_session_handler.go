@@ -104,6 +104,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		N:             1,    // Default values
 		Debug:         false,
 		SummarizeMode: false,
+		ExploreMode:   false, // Default values
 		WorkspaceID:   sql.NullInt32{Int32: defaultWorkspace.ID, Valid: true},
 	}
 
@@ -140,6 +141,7 @@ type UpdateChatSessionRequest struct {
 	MaxTokens     int32   `json:"maxTokens"`
 	Debug         bool    `json:"debug"`
 	SummarizeMode bool    `json:"summarizeMode"`
+	ExploreMode   bool    `json:"exploreMode"`
 	WorkspaceUUID string  `json:"workspaceUuid,omitempty"`
 }
 
@@ -178,6 +180,7 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.MaxTokens = sessionReq.MaxTokens
 	sessionParams.Debug = sessionReq.Debug
 	sessionParams.SummarizeMode = sessionReq.SummarizeMode
+	sessionParams.ExploreMode = sessionReq.ExploreMode
 
 	// Handle workspace
 	if sessionReq.WorkspaceUUID != "" {
@@ -355,16 +358,19 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	sessionUUID := uuid.New().String()
 
 	session, err := h.service.q.CreateOrUpdateChatSessionByUUID(r.Context(), sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
-		Uuid:        sessionUUID,
-		UserID:      userID,
-		Topic:       sessionTitle,
-		MaxLength:   originSession.MaxLength,
-		Temperature: originSession.Temperature,
-		Model:       originSession.Model,
-		MaxTokens:   originSession.MaxTokens,
-		TopP:        originSession.TopP,
-		Debug:       originSession.Debug,
-		N:           1,
+		Uuid:          sessionUUID,
+		UserID:        userID,
+		Topic:         sessionTitle,
+		MaxLength:     originSession.MaxLength,
+		Temperature:   originSession.Temperature,
+		Model:         originSession.Model,
+		MaxTokens:     originSession.MaxTokens,
+		TopP:          originSession.TopP,
+		Debug:         originSession.Debug,
+		SummarizeMode: originSession.SummarizeMode,
+		ExploreMode:   originSession.ExploreMode,
+		WorkspaceID:   originSession.WorkspaceID,
+		N:             1,
 	})
 	if err != nil {
 		apiErr := ErrInternalUnexpected

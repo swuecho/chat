@@ -10,16 +10,17 @@ import (
 )
 
 type SimpleChatMessage struct {
-	Uuid      string     `json:"uuid"`
-	DateTime  string     `json:"dateTime"`
-	Text      string     `json:"text"`
-	Model     string     `json:"model"`
-	Inversion bool       `json:"inversion"`
-	Error     bool       `json:"error"`
-	Loading   bool       `json:"loading"`
-	IsPin     bool       `json:"isPin"`
-	IsPrompt  bool       `json:"isPrompt"`
-	Artifacts []Artifact `json:"artifacts,omitempty"`
+	Uuid               string     `json:"uuid"`
+	DateTime           string     `json:"dateTime"`
+	Text               string     `json:"text"`
+	Model              string     `json:"model"`
+	Inversion          bool       `json:"inversion"`
+	Error              bool       `json:"error"`
+	Loading            bool       `json:"loading"`
+	IsPin              bool       `json:"isPin"`
+	IsPrompt           bool       `json:"isPrompt"`
+	Artifacts          []Artifact `json:"artifacts,omitempty"`
+	SuggestedQuestions []string   `json:"suggestedQuestions,omitempty"`
 }
 
 type Artifact struct {
@@ -77,16 +78,27 @@ func (q *Queries) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, 
 			}
 		}
 
+		// Extract suggested questions from database
+		var suggestedQuestions []string
+		if message.SuggestedQuestions != nil {
+			err := json.Unmarshal(message.SuggestedQuestions, &suggestedQuestions)
+			if err != nil {
+				// Log error but don't fail the request
+				suggestedQuestions = []string{}
+			}
+		}
+
 		return SimpleChatMessage{
-			Uuid:      message.Uuid,
-			DateTime:  message.UpdatedAt.Format(time.RFC3339),
-			Text:      text,
-			Model:     message.Model,
-			Inversion: message.Role == "user",
-			Error:     false,
-			Loading:   false,
-			IsPin:     message.IsPin,
-			Artifacts: artifacts,
+			Uuid:               message.Uuid,
+			DateTime:           message.UpdatedAt.Format(time.RFC3339),
+			Text:               text,
+			Model:              message.Model,
+			Inversion:          message.Role == "user",
+			Error:              false,
+			Loading:            false,
+			IsPin:              message.IsPin,
+			Artifacts:          artifacts,
+			SuggestedQuestions: suggestedQuestions,
 		}
 	})
 

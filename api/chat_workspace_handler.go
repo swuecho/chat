@@ -662,13 +662,21 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 	sessionResponses := make([]map[string]interface{}, 0)
 	for _, session := range sessions {
 		sessionResponse := map[string]interface{}{
-			"uuid":         session.Uuid,
-			"title":        session.Topic,  // Use "title" to match the original API
-			"isEdit":       false,
-			"model":        session.Model,
-			"workspaceUuid": workspaceUUID,
-			"createdAt":    session.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			"updatedAt":    session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+			"uuid":           session.Uuid,
+			"title":          session.Topic,  // Use "title" to match the original API
+			"isEdit":         false,
+			"model":          session.Model,
+			"workspaceUuid":  workspaceUUID,
+			"maxLength":      session.MaxLength,
+			"temperature":    session.Temperature,
+			"maxTokens":      session.MaxTokens,
+			"topP":           session.TopP,
+			"n":              session.N,
+			"debug":          session.Debug,
+			"summarizeMode":  session.SummarizeMode,
+			"exploreMode":    session.ExploreMode,
+			"createdAt":      session.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			"updatedAt":      session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 		}
 		sessionResponses = append(sessionResponses, sessionResponse)
 	}
