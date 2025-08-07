@@ -1,6 +1,8 @@
 import { ref, computed } from 'vue'
 import { useMessage } from 'naive-ui'
 import { t } from '@/locales'
+import { useAuthStore } from '@/store'
+import * as notificationManager from '@/utils/notificationManager'
 
 interface AppError {
   code?: number | string
@@ -56,6 +58,8 @@ export function useErrorHandling() {
   function handleApiError(error: any, context: string = 'api'): void {
     let errorMessage = 'An unexpected error occurred'
     let errorCode: string | number = 'UNKNOWN'
+    let errorType: 'network' | 'auth' | 'server' | 'client' | 'timeout' | 'unknown' = 'unknown'
+    let action: { text: string; onClick: () => void } | undefined
 
     if (error?.response) {
       // HTTP error response
@@ -63,22 +67,62 @@ export function useErrorHandling() {
       errorMessage = error.response.data?.message || `HTTP ${error.response.status}`
       
       if (error.response.status === 401) {
-        errorMessage = t('error.unauthorized') || 'Unauthorized access'
+        errorMessage = t('error.unauthorized') || 'Session expired. Please login again.'
+        errorType = 'auth'
+        action = {
+          text: 'Login',
+          onClick: () => {
+            const authStore = useAuthStore()
+            authStore.removeToken()
+            authStore.removeExpiresIn()
+          }
+        }
       } else if (error.response.status === 403) {
-        errorMessage = t('error.forbidden') || 'Access forbidden'
+        errorMessage = t('error.forbidden') || 'Access denied. You don\'t have permission for this action.'
+        errorType = 'auth'
       } else if (error.response.status === 404) {
-        errorMessage = t('error.notFound') || 'Resource not found'
+        errorMessage = t('error.notFound') || 'The requested resource was not found.'
+        errorType = 'client'
+      } else if (error.response.status === 429) {
+        errorMessage = 'Too many requests. Please wait a moment before trying again.'
+        errorType = 'client'
+        action = {
+          text: 'Retry',
+          onClick: () => window.location.reload()
+        }
       } else if (error.response.status >= 500) {
-        errorMessage = t('error.serverError') || 'Server error occurred'
+        errorMessage = t('error.serverError') || 'Server error. Our team has been notified and is working on a fix.'
+        errorType = 'server'
+        action = {
+          text: 'Retry',
+          onClick: () => window.location.reload()
+        }
+      } else {
+        errorType = 'client'
       }
     } else if (error?.message) {
       // Network or other errors
       errorMessage = error.message
-      if (error.message.includes('timeout')) {
-        errorMessage = t('error.timeout') || 'Request timed out'
-      } else if (error.message.includes('network')) {
-        errorMessage = t('error.network') || 'Network error'
+      
+      if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
+        errorMessage = t('error.timeout') || 'Request timed out. Please check your connection and try again.'
+        errorType = 'timeout'
+        action = {
+          text: 'Retry',
+          onClick: () => window.location.reload()
+        }
+      } else if (error.message.includes('network') || error.message.includes('Network Error') || error.code === 'ECONNABORTED') {
+        errorMessage = t('error.network') || 'Network connection error. Please check your internet connection.'
+        errorType = 'network'
+        action = {
+          text: 'Retry',
+          onClick: () => window.location.reload()
+        }
       }
+    } else if (error?.code === 'ERR_CANCELED') {
+      errorMessage = 'Request was cancelled.'
+      errorType = 'client'
+      return // Don't show notification for cancelled requests
     }
 
     logError({
@@ -87,13 +131,18 @@ export function useErrorHandling() {
       details: error
     }, context)
 
-    showErrorNotification(errorMessage)
+    // Use persistent notification for server errors and network issues
+    if (errorType === 'server' || errorType === 'network') {
+      showPersistentErrorNotification(errorMessage, action)
+    } else {
+      showErrorNotification(errorMessage, 5000, action)
+    }
   }
 
   function handleStreamError(responseText: string, context: string = 'stream'): void {
     try {
       const errorJson = JSON.parse(responseText)
-      const errorMessage = t(`error.${errorJson.code}`) || errorJson.message
+      const errorMessage = t(`error.${errorJson.code}`) || errorJson.message || 'Stream error occurred'
       
       logError({
         code: errorJson.code,
@@ -101,36 +150,47 @@ export function useErrorHandling() {
         details: errorJson.details
       }, context)
 
-      showErrorNotification(`${errorJson.code}: ${errorMessage}`)
+      // Handle specific stream errors with better messages
+      let action: { text: string; onClick: () => void } | undefined
+      if (errorJson.code === 'MODEL_006' || errorJson.code === 'INTN_004') {
+        action = {
+          text: 'Retry',
+          onClick: () => window.location.reload()
+        }
+      }
+
+      showErrorNotification(`${errorMessage}`, 5000, action)
     } catch (parseError) {
       logError({
         message: 'Failed to parse error response',
         details: { responseText, parseError }
       }, context)
 
-      showErrorNotification('An unexpected error occurred')
+      showPersistentErrorNotification('Connection interrupted. Please check your connection and try again.', {
+        text: 'Retry',
+        onClick: () => window.location.reload()
+      })
     }
   }
 
-  function showErrorNotification(message: string, duration: number = 5000): void {
-    nui_msg.error(message, {
-      duration,
-      closable: true
-    })
+  function showErrorNotification(message: string, duration: number = 5000, action?: { text: string; onClick: () => void }): void {
+    notificationManager.showErrorNotification(message, { duration, action })
   }
 
-  function showWarningNotification(message: string, duration: number = 3000): void {
-    nui_msg.warning(message, {
-      duration,
-      closable: true
-    })
+  function showWarningNotification(message: string, duration: number = 3000, action?: { text: string; onClick: () => void }): void {
+    notificationManager.showWarningNotification(message, { duration, action })
   }
 
   function showSuccessNotification(message: string, duration: number = 3000): void {
-    nui_msg.success(message, {
-      duration,
-      closable: true
-    })
+    notificationManager.showSuccessNotification(message, { duration })
+  }
+
+  function showInfoNotification(message: string, duration: number = 3000): void {
+    notificationManager.showInfoNotification(message, { duration })
+  }
+
+  function showPersistentErrorNotification(message: string, action?: { text: string; onClick: () => void }): void {
+    notificationManager.showPersistentNotification(message, 'error', action)
   }
 
   function clearError(): void {
@@ -161,11 +221,29 @@ export function useErrorHandling() {
             return
           }
 
+          // Show retry notification
+          if (attempt === 1) {
+            showWarningNotification(`Retrying... (${attempt}/${maxRetries})`, 2000)
+          }
+
           // Wait before retrying
           await new Promise(resolve => setTimeout(resolve, delay * attempt))
         }
       }
     })
+  }
+
+  function showNetworkStatusNotification(): void {
+    if (!navigator.onLine) {
+      showPersistentErrorNotification('You are offline. Please check your internet connection.', {
+        text: 'Retry',
+        onClick: () => window.location.reload()
+      })
+    }
+  }
+
+  function clearAllNotifications(): void {
+    notificationManager.clearAllNotifications()
   }
 
   return {
@@ -178,8 +256,12 @@ export function useErrorHandling() {
     showErrorNotification,
     showWarningNotification,
     showSuccessNotification,
+    showInfoNotification,
+    showPersistentErrorNotification,
     clearError,
     clearErrorHistory,
-    retryOperation
+    retryOperation,
+    showNetworkStatusNotification,
+    clearAllNotifications
   }
 }
