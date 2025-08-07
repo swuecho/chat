@@ -14,7 +14,7 @@ import (
 const createChatSession = `-- name: CreateChatSession :one
 INSERT INTO chat_session (user_id, topic, max_length, uuid, model)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 type CreateChatSessionParams struct {
@@ -51,6 +51,7 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
@@ -58,7 +59,7 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 const createChatSessionByUUID = `-- name: CreateChatSessionByUUID :one
 INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length, model)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 type CreateChatSessionByUUIDParams struct {
@@ -99,6 +100,7 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
@@ -106,7 +108,7 @@ func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSes
 const createChatSessionInWorkspace = `-- name: CreateChatSessionInWorkspace :one
 INSERT INTO chat_session (user_id, uuid, topic, created_at, active, max_length, model, workspace_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 type CreateChatSessionInWorkspaceParams struct {
@@ -149,6 +151,7 @@ func (q *Queries) CreateChatSessionInWorkspace(ctx context.Context, arg CreateCh
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
@@ -169,7 +172,7 @@ summarize_mode = EXCLUDED.summarize_mode,
 workspace_id = CASE WHEN EXCLUDED.workspace_id IS NOT NULL THEN EXCLUDED.workspace_id ELSE chat_session.workspace_id END,
 topic = CASE WHEN chat_session.topic IS NULL THEN EXCLUDED.topic ELSE chat_session.topic END,
 updated_at = now()
-returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 type CreateOrUpdateChatSessionByUUIDParams struct {
@@ -220,6 +223,7 @@ func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg Creat
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
@@ -237,7 +241,7 @@ func (q *Queries) DeleteChatSession(ctx context.Context, id int32) error {
 const deleteChatSessionByUUID = `-- name: DeleteChatSessionByUUID :exec
 update chat_session set active = false
 WHERE uuid = $1
-returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 func (q *Queries) DeleteChatSessionByUUID(ctx context.Context, uuid string) error {
@@ -246,7 +250,7 @@ func (q *Queries) DeleteChatSessionByUUID(ctx context.Context, uuid string) erro
 }
 
 const getAllChatSessions = `-- name: GetAllChatSessions :many
-SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug FROM chat_session 
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode FROM chat_session 
 where active = true
 ORDER BY id
 `
@@ -277,6 +281,7 @@ func (q *Queries) GetAllChatSessions(ctx context.Context) ([]ChatSession, error)
 			&i.SummarizeMode,
 			&i.WorkspaceID,
 			&i.Debug,
+			&i.ExploreMode,
 		); err != nil {
 			return nil, err
 		}
@@ -292,7 +297,7 @@ func (q *Queries) GetAllChatSessions(ctx context.Context) ([]ChatSession, error)
 }
 
 const getChatSessionByID = `-- name: GetChatSessionByID :one
-SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug FROM chat_session WHERE id = $1
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode FROM chat_session WHERE id = $1
 `
 
 func (q *Queries) GetChatSessionByID(ctx context.Context, id int32) (ChatSession, error) {
@@ -315,12 +320,13 @@ func (q *Queries) GetChatSessionByID(ctx context.Context, id int32) (ChatSession
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
 
 const getChatSessionByUUID = `-- name: GetChatSessionByUUID :one
-SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug FROM chat_session 
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode FROM chat_session 
 WHERE active = true and uuid = $1
 order by updated_at
 `
@@ -345,12 +351,13 @@ func (q *Queries) GetChatSessionByUUID(ctx context.Context, uuid string) (ChatSe
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
 
 const getChatSessionByUUIDWithInActive = `-- name: GetChatSessionByUUIDWithInActive :one
-SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug FROM chat_session 
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode FROM chat_session 
 WHERE uuid = $1
 order by updated_at
 `
@@ -375,12 +382,13 @@ func (q *Queries) GetChatSessionByUUIDWithInActive(ctx context.Context, uuid str
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
 
 const getChatSessionsByUserID = `-- name: GetChatSessionsByUserID :many
-SELECT cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.n, cs.summarize_mode, cs.workspace_id, cs.debug
+SELECT cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.n, cs.summarize_mode, cs.workspace_id, cs.debug, cs.explore_mode
 FROM chat_session cs
 LEFT JOIN (
     SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
@@ -419,6 +427,7 @@ func (q *Queries) GetChatSessionsByUserID(ctx context.Context, userID int32) ([]
 			&i.SummarizeMode,
 			&i.WorkspaceID,
 			&i.Debug,
+			&i.ExploreMode,
 		); err != nil {
 			return nil, err
 		}
@@ -434,7 +443,7 @@ func (q *Queries) GetChatSessionsByUserID(ctx context.Context, userID int32) ([]
 }
 
 const getSessionsByWorkspaceID = `-- name: GetSessionsByWorkspaceID :many
-SELECT cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.n, cs.summarize_mode, cs.workspace_id, cs.debug
+SELECT cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.n, cs.summarize_mode, cs.workspace_id, cs.debug, cs.explore_mode
 FROM chat_session cs
 LEFT JOIN (
     SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
@@ -473,6 +482,7 @@ func (q *Queries) GetSessionsByWorkspaceID(ctx context.Context, workspaceID sql.
 			&i.SummarizeMode,
 			&i.WorkspaceID,
 			&i.Debug,
+			&i.ExploreMode,
 		); err != nil {
 			return nil, err
 		}
@@ -489,7 +499,7 @@ func (q *Queries) GetSessionsByWorkspaceID(ctx context.Context, workspaceID sql.
 
 const getSessionsGroupedByWorkspace = `-- name: GetSessionsGroupedByWorkspace :many
 SELECT 
-    cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.n, cs.summarize_mode, cs.workspace_id, cs.debug,
+    cs.id, cs.user_id, cs.uuid, cs.topic, cs.created_at, cs.updated_at, cs.active, cs.model, cs.max_length, cs.temperature, cs.top_p, cs.max_tokens, cs.n, cs.summarize_mode, cs.workspace_id, cs.debug, cs.explore_mode,
     w.uuid as workspace_uuid,
     w.name as workspace_name,
     w.color as workspace_color,
@@ -525,6 +535,7 @@ type GetSessionsGroupedByWorkspaceRow struct {
 	SummarizeMode  bool           `json:"summarizeMode"`
 	WorkspaceID    sql.NullInt32  `json:"workspaceId"`
 	Debug          bool           `json:"debug"`
+	ExploreMode    bool           `json:"exploreMode"`
 	WorkspaceUuid  sql.NullString `json:"workspaceUuid"`
 	WorkspaceName  sql.NullString `json:"workspaceName"`
 	WorkspaceColor sql.NullString `json:"workspaceColor"`
@@ -557,6 +568,7 @@ func (q *Queries) GetSessionsGroupedByWorkspace(ctx context.Context, userID int3
 			&i.SummarizeMode,
 			&i.WorkspaceID,
 			&i.Debug,
+			&i.ExploreMode,
 			&i.WorkspaceUuid,
 			&i.WorkspaceName,
 			&i.WorkspaceColor,
@@ -576,7 +588,7 @@ func (q *Queries) GetSessionsGroupedByWorkspace(ctx context.Context, userID int3
 }
 
 const getSessionsWithoutWorkspace = `-- name: GetSessionsWithoutWorkspace :many
-SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug FROM chat_session 
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode FROM chat_session 
 WHERE user_id = $1 AND workspace_id IS NULL AND active = true
 `
 
@@ -606,6 +618,7 @@ func (q *Queries) GetSessionsWithoutWorkspace(ctx context.Context, userID int32)
 			&i.SummarizeMode,
 			&i.WorkspaceID,
 			&i.Debug,
+			&i.ExploreMode,
 		); err != nil {
 			return nil, err
 		}
@@ -663,7 +676,7 @@ func (q *Queries) MigrateSessionsToDefaultWorkspace(ctx context.Context, arg Mig
 const updateChatSession = `-- name: UpdateChatSession :one
 UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now(), active = $4
 WHERE id = $1
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 type UpdateChatSessionParams struct {
@@ -698,6 +711,7 @@ func (q *Queries) UpdateChatSession(ctx context.Context, arg UpdateChatSessionPa
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
@@ -705,7 +719,7 @@ func (q *Queries) UpdateChatSession(ctx context.Context, arg UpdateChatSessionPa
 const updateChatSessionByUUID = `-- name: UpdateChatSessionByUUID :one
 UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now()
 WHERE uuid = $1
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 type UpdateChatSessionByUUIDParams struct {
@@ -734,6 +748,7 @@ func (q *Queries) UpdateChatSessionByUUID(ctx context.Context, arg UpdateChatSes
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
@@ -745,7 +760,7 @@ ON CONFLICT (uuid)
 DO UPDATE SET
 topic = EXCLUDED.topic, 
 updated_at = now()
-returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 type UpdateChatSessionTopicByUUIDParams struct {
@@ -774,6 +789,7 @@ func (q *Queries) UpdateChatSessionTopicByUUID(ctx context.Context, arg UpdateCh
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
@@ -783,7 +799,7 @@ UPDATE chat_session
 SET max_length = $2,
     updated_at = now()
 WHERE uuid = $1
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 type UpdateSessionMaxLengthParams struct {
@@ -811,6 +827,7 @@ func (q *Queries) UpdateSessionMaxLength(ctx context.Context, arg UpdateSessionM
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
@@ -819,7 +836,7 @@ const updateSessionWorkspace = `-- name: UpdateSessionWorkspace :one
 UPDATE chat_session 
 SET workspace_id = $2, updated_at = now()
 WHERE uuid = $1
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug
+RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, debug, explore_mode
 `
 
 type UpdateSessionWorkspaceParams struct {
@@ -847,6 +864,7 @@ func (q *Queries) UpdateSessionWorkspace(ctx context.Context, arg UpdateSessionW
 		&i.SummarizeMode,
 		&i.WorkspaceID,
 		&i.Debug,
+		&i.ExploreMode,
 	)
 	return i, err
 }
