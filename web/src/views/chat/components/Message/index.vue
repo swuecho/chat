@@ -4,6 +4,7 @@ import { NModal, NInput, NCard, NButton } from 'naive-ui'
 import TextComponent from '@/views/components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
 import ArtifactViewer from './ArtifactViewer.vue'
+import SuggestedQuestions from './SuggestedQuestions.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { copyText } from '@/utils/format'
 import { useUserStore } from '@/store'
@@ -21,6 +22,7 @@ interface Props {
   isPin?: boolean
   pining?: boolean
   artifacts?: Chat.Artifact[]
+  suggestedQuestions?: string[]
 }
 
 interface Emit {
@@ -28,6 +30,7 @@ interface Emit {
   (ev: 'delete'): void
   (ev: 'togglePin'): void
   (ev: 'afterEdit', index: number, text: string): void
+  (ev: 'useQuestion', question: string): void
 }
 
 const props = defineProps<Props>()
@@ -68,6 +71,10 @@ function handleEditConfirm() {
 function handleDelete() {
   emit('delete')
 }
+
+function handleUseQuestion(question: string) {
+  emit('useQuestion', question)
+}
 </script>
 
 <template>
@@ -90,6 +97,10 @@ function handleDelete() {
               :artifacts="artifacts" 
               :inversion="inversion"
               data-testid="artifact-viewer"
+            />
+            <SuggestedQuestions v-if="!inversion && suggestedQuestions && suggestedQuestions.length > 0" 
+              :questions="suggestedQuestions"
+              @useQuestion="handleUseQuestion"
             />
           </div>
           <div class="flex flex-col">

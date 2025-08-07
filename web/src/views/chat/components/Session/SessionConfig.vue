@@ -4,7 +4,7 @@ import { computed, ref, watch, h } from 'vue'
 import type { FormInst } from 'naive-ui'
 import { NForm, NFormItem, NRadio, NRadioGroup, NSlider, NSpace, NSpin, NSwitch } from 'naive-ui'
 import { debounce } from 'lodash-es'
-import { useSessionStore } from '@/store'
+import { useSessionStore, useAppStore } from '@/store'
 import { fetchChatModel } from '@/api'
 
 import { useQuery } from "@tanstack/vue-query";
@@ -41,6 +41,7 @@ const chatModelOptions = computed(() =>
 )
 
 const sessionStore = useSessionStore()
+const appStore = useAppStore()
 
 const session = computed(() => sessionStore.getChatSessionByUuid(props.uuid))
 
@@ -53,6 +54,7 @@ interface ModelType {
   n: number
   debug: boolean
   summarizeMode: boolean
+  exploreMode: boolean
 }
 
 const defaultModel = computed(() => {
@@ -73,6 +75,7 @@ const modelRef: Ref<ModelType> = ref({
   topP: session.value?.topP ?? 1.0,
   n: session.value?.n ?? 1,
   debug: session.value?.debug ?? false,
+  exploreMode: session.value?.exploreMode ?? false,
 })
 
 const formRef = ref<FormInst | null>(null)
@@ -87,6 +90,7 @@ const debouneUpdate = debounce(async (model: ModelType) => {
     debug: model.debug,
     model: model.chatModel,
     summarizeMode: model.summarizeMode,
+    exploreMode: model.exploreMode,
   })
 }, 200)
 
@@ -180,6 +184,16 @@ const defaultToken = computed(() => {
           </template>
           <template #unchecked>
             {{ $t('chat.disable_debug') }}
+          </template>
+        </NSwitch>
+      </NFormItem>
+      <NFormItem :label="$t('chat.exploreMode')" path="exploreMode">
+        <NSwitch v-model:value="modelRef.exploreMode" data-testid="explore_mode">
+          <template #checked>
+            {{ $t('chat.enable_explore') }}
+          </template>
+          <template #unchecked>
+            {{ $t('chat.disable_explore') }}
           </template>
         </NSwitch>
       </NFormItem>

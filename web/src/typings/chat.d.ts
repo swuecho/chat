@@ -29,6 +29,7 @@ declare namespace Chat {
 		isPrompt?: boolean
 		isPin?: boolean
 		artifacts?: Artifact[]
+		suggestedQuestions?: string[]
 	}
 
 	interface Session {
@@ -43,6 +44,7 @@ declare namespace Chat {
 		maxTokens?: number
 		debug?: boolean
 		summarizeMode?: boolean
+		exploreMode?: boolean
 		workspaceUuid?: string
 	}
 

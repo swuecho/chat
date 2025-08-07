@@ -167,6 +167,12 @@ const showVFSUploadModal = ref(false)
 function handleUpload() {
   showVFSUploadModal.value = true
 }
+
+function handleUseQuestion(question: string) {
+  prompt.value = question
+  // Auto-submit the question
+  handleSubmit()
+}
 </script>
 
 <template>
@@ -201,7 +207,7 @@ function handleUpload() {
             </template>
             <template v-else>
               <div>
-                <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate" />
+                <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate" @use-question="handleUseQuestion" />
               </div>
             </template>
           </div>
