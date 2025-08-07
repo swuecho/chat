@@ -94,12 +94,9 @@ function handleUseQuestion(question: string) {
           <div class="flex flex-col min-w-0">
             <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
               :code="code" :loading="loading" :idex="index" />
-            <ArtifactViewer v-if="artifacts && artifacts.length > 0" 
-              :artifacts="artifacts" 
-              :inversion="inversion"
-              data-testid="artifact-viewer"
-            />
-           
+            <ArtifactViewer v-if="artifacts && artifacts.length > 0" :artifacts="artifacts" :inversion="inversion"
+              data-testid="artifact-viewer" />
+
           </div>
           <div class="flex flex-col">
 
@@ -116,7 +113,7 @@ function handleUseQuestion(question: string) {
             </button>
 
           </div>
-          
+
         </div>
         <div class="flex" :class="[inversion ? 'justify-end' : 'justify-start']">
           <div class="flex items-center">
@@ -141,11 +138,8 @@ function handleUseQuestion(question: string) {
 
           </div>
         </div>
-        <SuggestedQuestions v-if="!inversion && exploreMode && !loading" 
-              :questions="suggestedQuestions || []"
-              :loading="!suggestedQuestions || suggestedQuestions.length === 0"
-              @useQuestion="handleUseQuestion"
-            />
+        <SuggestedQuestions v-if="!inversion && exploreMode && !loading" :questions="suggestedQuestions || []"
+          :loading="!suggestedQuestions || suggestedQuestions.length === 0" @useQuestion="handleUseQuestion" />
       </div>
     </div>
   </div>
@@ -184,7 +178,7 @@ function handleUseQuestion(question: string) {
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
-  
+
   .message-text {
     /* Ensure text content doesn't break layout */
     max-width: 100%;
