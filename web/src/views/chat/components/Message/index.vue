@@ -23,6 +23,7 @@ interface Props {
   pining?: boolean
   artifacts?: Chat.Artifact[]
   suggestedQuestions?: string[]
+  exploreMode?: boolean
 }
 
 interface Emit {
@@ -98,10 +99,7 @@ function handleUseQuestion(question: string) {
               :inversion="inversion"
               data-testid="artifact-viewer"
             />
-            <SuggestedQuestions v-if="!inversion && suggestedQuestions && suggestedQuestions.length > 0" 
-              :questions="suggestedQuestions"
-              @useQuestion="handleUseQuestion"
-            />
+           
           </div>
           <div class="flex flex-col">
 
@@ -118,6 +116,7 @@ function handleUseQuestion(question: string) {
             </button>
 
           </div>
+          
         </div>
         <div class="flex" :class="[inversion ? 'justify-end' : 'justify-start']">
           <div class="flex items-center">
@@ -142,7 +141,11 @@ function handleUseQuestion(question: string) {
 
           </div>
         </div>
-
+        <SuggestedQuestions v-if="!inversion && exploreMode && !loading" 
+              :questions="suggestedQuestions || []"
+              :loading="!suggestedQuestions || suggestedQuestions.length === 0"
+              @useQuestion="handleUseQuestion"
+            />
       </div>
     </div>
   </div>

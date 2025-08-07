@@ -30,6 +30,7 @@ declare namespace Chat {
 		isPin?: boolean
 		artifacts?: Artifact[]
 		suggestedQuestions?: string[]
+		suggestedQuestionsLoading?: boolean
 	}
 
 	interface Session {
