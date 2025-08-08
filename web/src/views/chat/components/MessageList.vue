@@ -2,8 +2,20 @@
         <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
                 :model="item?.model || chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :index="index"
-                :artifacts="item.artifacts" :suggested-questions="item.suggestedQuestions" :suggested-questions-loading="item.suggestedQuestionsLoading" :explore-mode="chatSession?.exploreMode"
-                @regenerate="onRegenerate(index)" @toggle-pin="handleTogglePin(index)" @delete="handleDelete(index)" @after-edit="handleAfterEdit" @use-question="handleUseQuestion" />
+                :artifacts="item.artifacts" :suggested-questions="item.suggestedQuestions" 
+                :suggested-questions-loading="item.suggestedQuestionsLoading" 
+                :suggested-questions-batches="item.suggestedQuestionsBatches"
+                :current-suggested-questions-batch="item.currentSuggestedQuestionsBatch"
+                :suggested-questions-generating="item.suggestedQuestionsGenerating"
+                :explore-mode="chatSession?.exploreMode"
+                @regenerate="onRegenerate(index)" 
+                @toggle-pin="handleTogglePin(index)" 
+                @delete="handleDelete(index)" 
+                @after-edit="handleAfterEdit" 
+                @use-question="handleUseQuestion"
+                @generate-more-suggestions="handleGenerateMoreSuggestions(index)"
+                @previous-suggestions-batch="handlePreviousSuggestionsBatch(index)"
+                @next-suggestions-batch="handleNextSuggestionsBatch(index)" />
 </template>
 
 <script lang='ts' setup>
@@ -96,6 +108,32 @@ async function handleTogglePin(index: number) {
         }
         finally {
                 pining.value = false
+        }
+}
+
+// Handle suggested questions functionality
+async function handleGenerateMoreSuggestions(index: number) {
+        const message = dataSources.value[index]
+        if (message && message.uuid) {
+                try {
+                        await messageStore.generateMoreSuggestedQuestions(props.sessionUuid, message.uuid)
+                } catch (error) {
+                        console.error('Failed to generate more suggestions:', error)
+                }
+        }
+}
+
+function handlePreviousSuggestionsBatch(index: number) {
+        const message = dataSources.value[index]
+        if (message && message.uuid) {
+                messageStore.previousSuggestedQuestionsBatch(props.sessionUuid, message.uuid)
+        }
+}
+
+function handleNextSuggestionsBatch(index: number) {
+        const message = dataSources.value[index]
+        if (message && message.uuid) {
+                messageStore.nextSuggestedQuestionsBatch(props.sessionUuid, message.uuid)
         }
 }
 

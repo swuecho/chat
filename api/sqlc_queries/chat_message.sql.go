@@ -827,3 +827,43 @@ func (q *Queries) UpdateChatMessageContent(ctx context.Context, arg UpdateChatMe
 	_, err := q.db.ExecContext(ctx, updateChatMessageContent, arg.Uuid, arg.Content, arg.TokenCount)
 	return err
 }
+
+const updateChatMessageSuggestions = `-- name: UpdateChatMessageSuggestions :one
+UPDATE chat_message 
+SET suggested_questions = $2, updated_at = now() 
+WHERE uuid = $1
+RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions
+`
+
+type UpdateChatMessageSuggestionsParams struct {
+	Uuid               string          `json:"uuid"`
+	SuggestedQuestions json.RawMessage `json:"suggestedQuestions"`
+}
+
+func (q *Queries) UpdateChatMessageSuggestions(ctx context.Context, arg UpdateChatMessageSuggestionsParams) (ChatMessage, error) {
+	row := q.db.QueryRowContext(ctx, updateChatMessageSuggestions, arg.Uuid, arg.SuggestedQuestions)
+	var i ChatMessage
+	err := row.Scan(
+		&i.ID,
+		&i.Uuid,
+		&i.ChatSessionUuid,
+		&i.Role,
+		&i.Content,
+		&i.ReasoningContent,
+		&i.Model,
+		&i.LlmSummary,
+		&i.Score,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.UpdatedBy,
+		&i.IsDeleted,
+		&i.IsPin,
+		&i.TokenCount,
+		&i.Raw,
+		&i.Artifacts,
+		&i.SuggestedQuestions,
+	)
+	return i, err
+}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/samber/lo"
+	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -32,6 +33,7 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_messages/{uuid}", h.GetChatMessageByUUID).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_messages/{uuid}", h.UpdateChatMessageByUUID).Methods(http.MethodPut)
 	router.HandleFunc("/uuid/chat_messages/{uuid}", h.DeleteChatMessageByUUID).Methods(http.MethodDelete)
+	router.HandleFunc("/uuid/chat_messages/{uuid}/generate-suggestions", h.GenerateMoreSuggestions).Methods(http.MethodPost)
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.GetChatHistoryBySessionUUID).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.DeleteChatMessagesBySesionUUID).Methods(http.MethodDelete)
 }
@@ -230,4 +232,113 @@ func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWrite
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+// GenerateMoreSuggestions generates additional suggested questions for a message
+func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *http.Request) {
+	messageUUID := mux.Vars(r)["uuid"]
+
+	// Get the existing message
+	message, err := h.service.q.GetChatMessageByUUID(r.Context(), messageUUID)
+	if err != nil {
+		http.Error(w, "Message not found", http.StatusNotFound)
+		return
+	}
+
+	// Only allow suggestions for assistant messages
+	if message.Role != "assistant" {
+		http.Error(w, "Suggestions can only be generated for assistant messages", http.StatusBadRequest)
+		return
+	}
+
+	// Get the session to check if explore mode is enabled
+	session, err := h.service.q.GetChatSessionByUUID(r.Context(), message.ChatSessionUuid)
+	if err != nil {
+		http.Error(w, "Session not found", http.StatusNotFound)
+		return
+	}
+
+	// Check if explore mode is enabled
+	if !session.ExploreMode {
+		http.Error(w, "Suggestions are only available in explore mode", http.StatusBadRequest)
+		return
+	}
+
+	// Get conversation context - last 6 messages
+	contextMessages, err := h.service.q.GetLatestMessagesBySessionUUID(r.Context(),
+		sqlc_queries.GetLatestMessagesBySessionUUIDParams{
+			ChatSessionUuid: session.Uuid,
+			Limit:           6,
+		})
+	if err != nil {
+		http.Error(w, "Failed to get conversation context", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to models.Message format for suggestion generation
+	var msgs []models.Message
+	for _, msg := range contextMessages {
+		msgs = append(msgs, models.Message{
+			Role:    msg.Role,
+			Content: msg.Content,
+		})
+	}
+
+	// Create a new ChatService to access suggestion generation methods
+	chatService := NewChatService(h.service.q)
+	
+	// Generate new suggested questions
+	newSuggestions := chatService.generateSuggestedQuestions(message.Content, msgs)
+	if len(newSuggestions) == 0 {
+		http.Error(w, "Failed to generate suggestions", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse existing suggestions
+	var existingSuggestions []string
+	if len(message.SuggestedQuestions) > 0 {
+		if err := json.Unmarshal(message.SuggestedQuestions, &existingSuggestions); err != nil {
+			// If unmarshal fails, treat as empty array
+			existingSuggestions = []string{}
+		}
+	}
+
+	// Combine existing and new suggestions (avoiding duplicates)
+	allSuggestions := append(existingSuggestions, newSuggestions...)
+	
+	// Remove duplicates
+	seenSuggestions := make(map[string]bool)
+	var uniqueSuggestions []string
+	for _, suggestion := range allSuggestions {
+		if !seenSuggestions[suggestion] {
+			seenSuggestions[suggestion] = true
+			uniqueSuggestions = append(uniqueSuggestions, suggestion)
+		}
+	}
+
+	// Update the message with new suggestions
+	suggestionsJSON, err := json.Marshal(uniqueSuggestions)
+	if err != nil {
+		http.Error(w, "Failed to serialize suggestions", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.service.q.UpdateChatMessageSuggestions(r.Context(),
+		sqlc_queries.UpdateChatMessageSuggestionsParams{
+			Uuid:               messageUUID,
+			SuggestedQuestions: suggestionsJSON,
+		})
+	if err != nil {
+		http.Error(w, "Failed to update message with suggestions", http.StatusInternalServerError)
+		return
+	}
+
+	// Return the new suggestions to the client
+	response := map[string]interface{}{
+		"newSuggestions": newSuggestions,
+		"allSuggestions": uniqueSuggestions,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

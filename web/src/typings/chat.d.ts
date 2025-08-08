@@ -31,6 +31,9 @@ declare namespace Chat {
 		artifacts?: Artifact[]
 		suggestedQuestions?: string[]
 		suggestedQuestionsLoading?: boolean
+		suggestedQuestionsBatches?: string[][]
+		currentSuggestedQuestionsBatch?: number
+		suggestedQuestionsGenerating?: boolean
 	}
 
 	interface Session {
