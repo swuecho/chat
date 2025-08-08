@@ -101,6 +101,7 @@ export function useStreamHandling() {
       // Add suggested questions if present
       if (suggestedQuestions && Array.isArray(suggestedQuestions) && suggestedQuestions.length > 0) {
         updateData.suggestedQuestions = suggestedQuestions
+        updateData.suggestedQuestionsLoading = false // Clear loading state when questions are received
         console.log('Received suggested questions via stream:', suggestedQuestions)
       }
 
