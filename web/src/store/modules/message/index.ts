@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import {
   getChatMessagesBySessionUUID,
   clearSessionChatMessages,
+  generateMoreSuggestions,
 } from '@/api'
 import { useSessionStore } from '../session'
 
@@ -60,7 +61,30 @@ export const useMessageStore = defineStore('message-store', {
 
       try {
         const messageData = await getChatMessagesBySessionUUID(sessionUuid)
-        this.chat[sessionUuid] = messageData
+        
+        // Initialize batching structure for messages with suggested questions
+        const processedMessageData = messageData.map((message: Chat.Message) => {
+          if (message.suggestedQuestions && message.suggestedQuestions.length > 0) {
+            // If batches don't exist, create the first batch from existing questions
+            if (!message.suggestedQuestionsBatches || message.suggestedQuestionsBatches.length === 0) {
+              // Split suggestions into batches of 3 (assuming original suggestions come in groups of 3)
+              const batches: string[][] = []
+              for (let i = 0; i < message.suggestedQuestions.length; i += 3) {
+                batches.push(message.suggestedQuestions.slice(i, i + 3))
+              }
+              
+              return {
+                ...message,
+                suggestedQuestionsBatches: batches,
+                currentSuggestedQuestionsBatch: batches.length - 1, // Show the last batch (most recent)
+                suggestedQuestions: batches[batches.length - 1] || message.suggestedQuestions, // Show last batch
+              }
+            }
+          }
+          return message
+        })
+        
+        this.chat[sessionUuid] = processedMessageData
 
         // Update active session if needed
         const sessionStore = useSessionStore()
@@ -71,7 +95,7 @@ export const useMessageStore = defineStore('message-store', {
           }
         }
 
-        return messageData
+        return processedMessageData
       } catch (error) {
         console.error(`Failed to sync messages for session ${sessionUuid}:`, error)
         throw error
@@ -220,6 +244,91 @@ export const useMessageStore = defineStore('message-store', {
     getPromptMessages(sessionUuid: string) {
       const messages = this.chat[sessionUuid] || []
       return messages.filter(msg => msg.isPrompt)
+    },
+
+    // Generate more suggested questions for a message
+    async generateMoreSuggestedQuestions(sessionUuid: string, messageUuid: string) {
+      try {
+        // Set generating state for the message
+        this.updateMessage(sessionUuid, messageUuid, { suggestedQuestionsGenerating: true })
+
+        const response = await generateMoreSuggestions(messageUuid)
+        const { newSuggestions, allSuggestions } = response
+
+        // Get existing message
+        const messages = this.chat[sessionUuid] || []
+        const messageIndex = messages.findIndex(msg => msg.uuid === messageUuid)
+        
+        if (messageIndex !== -1) {
+          const message = messages[messageIndex]
+          
+          // Initialize batches if they don't exist
+          let suggestedQuestionsBatches = message.suggestedQuestionsBatches || []
+          
+          // If this is the first time, create the first batch from existing questions
+          if (suggestedQuestionsBatches.length === 0 && message.suggestedQuestions) {
+            suggestedQuestionsBatches.push(message.suggestedQuestions)
+          }
+          
+          // Add the new suggestions as a new batch
+          suggestedQuestionsBatches.push(newSuggestions)
+          
+          // Update the message with new data - show the new batch, not all suggestions
+          this.updateMessage(sessionUuid, messageUuid, {
+            suggestedQuestions: newSuggestions, // Show only the new batch
+            suggestedQuestionsBatches,
+            currentSuggestedQuestionsBatch: suggestedQuestionsBatches.length - 1, // Set to the new batch
+            suggestedQuestionsGenerating: false,
+          })
+        }
+
+        return response
+      } catch (error) {
+        // Clear generating state on error
+        this.updateMessage(sessionUuid, messageUuid, { suggestedQuestionsGenerating: false })
+        console.error('Failed to generate more suggestions:', error)
+        throw error
+      }
+    },
+
+    // Navigate to previous suggestions batch
+    previousSuggestedQuestionsBatch(sessionUuid: string, messageUuid: string) {
+      const messages = this.chat[sessionUuid] || []
+      const messageIndex = messages.findIndex(msg => msg.uuid === messageUuid)
+      
+      if (messageIndex !== -1) {
+        const message = messages[messageIndex]
+        const batches = message.suggestedQuestionsBatches || []
+        const currentBatch = message.currentSuggestedQuestionsBatch || 0
+        
+        if (currentBatch > 0 && batches.length > 0) {
+          const newBatchIndex = currentBatch - 1
+          this.updateMessage(sessionUuid, messageUuid, {
+            suggestedQuestions: batches[newBatchIndex],
+            currentSuggestedQuestionsBatch: newBatchIndex,
+          })
+        }
+      }
+    },
+
+    // Navigate to next suggestions batch
+    nextSuggestedQuestionsBatch(sessionUuid: string, messageUuid: string) {
+      const messages = this.chat[sessionUuid] || []
+      const messageIndex = messages.findIndex(msg => msg.uuid === messageUuid)
+      
+      if (messageIndex !== -1) {
+        const message = messages[messageIndex]
+        const batches = message.suggestedQuestionsBatches || []
+        const currentBatch = message.currentSuggestedQuestionsBatch || 0
+        
+        if (currentBatch < batches.length - 1) {
+          const newBatchIndex = currentBatch + 1
+          this.updateMessage(sessionUuid, messageUuid, {
+            suggestedQuestions: batches[newBatchIndex],
+            currentSuggestedQuestionsBatch: newBatchIndex,
+          })
+        }
+      }
     },
   },
 })

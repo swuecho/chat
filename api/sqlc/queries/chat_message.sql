@@ -121,6 +121,11 @@ UPDATE chat_message
 SET content = $2, updated_at = now(), token_count = $3
 WHERE uuid = $1 ;
 
+-- name: UpdateChatMessageSuggestions :one
+UPDATE chat_message 
+SET suggested_questions = $2, updated_at = now() 
+WHERE uuid = $1
+RETURNING *;
 
 -- name: DeleteChatMessagesBySesionUUID :exec
 UPDATE chat_message 

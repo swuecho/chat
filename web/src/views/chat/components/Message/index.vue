@@ -24,6 +24,9 @@ interface Props {
   artifacts?: Chat.Artifact[]
   suggestedQuestions?: string[]
   suggestedQuestionsLoading?: boolean
+  suggestedQuestionsBatches?: string[][]
+  currentSuggestedQuestionsBatch?: number
+  suggestedQuestionsGenerating?: boolean
   exploreMode?: boolean
 }
 
@@ -33,6 +36,9 @@ interface Emit {
   (ev: 'togglePin'): void
   (ev: 'afterEdit', index: number, text: string): void
   (ev: 'useQuestion', question: string): void
+  (ev: 'generateMoreSuggestions'): void
+  (ev: 'previousSuggestionsBatch'): void
+  (ev: 'nextSuggestionsBatch'): void
 }
 
 const props = defineProps<Props>()
@@ -76,6 +82,18 @@ function handleDelete() {
 
 function handleUseQuestion(question: string) {
   emit('useQuestion', question)
+}
+
+function handleGenerateMoreSuggestions() {
+  emit('generateMoreSuggestions')
+}
+
+function handlePreviousSuggestionsBatch() {
+  emit('previousSuggestionsBatch')
+}
+
+function handleNextSuggestionsBatch() {
+  emit('nextSuggestionsBatch')
 }
 </script>
 
@@ -139,8 +157,16 @@ function handleUseQuestion(question: string) {
 
           </div>
         </div>
-        <SuggestedQuestions v-if="!inversion && exploreMode && !loading && (suggestedQuestionsLoading || (suggestedQuestions && suggestedQuestions.length > 0))" :questions="suggestedQuestions || []"
-          :loading="suggestedQuestionsLoading && (!suggestedQuestions || suggestedQuestions.length === 0)" @useQuestion="handleUseQuestion" />
+        <SuggestedQuestions v-if="!inversion && exploreMode && !loading && (suggestedQuestionsLoading || (suggestedQuestions && suggestedQuestions.length > 0))" 
+          :questions="suggestedQuestions || []"
+          :loading="suggestedQuestionsLoading && (!suggestedQuestions || suggestedQuestions.length === 0)"
+          :batches="suggestedQuestionsBatches"
+          :currentBatch="currentSuggestedQuestionsBatch"
+          :generating="suggestedQuestionsGenerating"
+          @useQuestion="handleUseQuestion"
+          @generateMore="handleGenerateMoreSuggestions"
+          @previousBatch="handlePreviousSuggestionsBatch"
+          @nextBatch="handleNextSuggestionsBatch" />
       </div>
     </div>
   </div>

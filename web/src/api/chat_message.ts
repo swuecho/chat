@@ -32,3 +32,14 @@ export const getChatMessagesBySessionUUID = async (uuid: string) => {
     throw error
   }
 }
+
+export const generateMoreSuggestions = async (messageUuid: string) => {
+  try {
+    const response = await request.post(`/uuid/chat_messages/${messageUuid}/generate-suggestions`)
+    return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
