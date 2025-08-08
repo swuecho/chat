@@ -2,7 +2,7 @@
         <Message v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime"
                 :model="item?.model || chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :index="index"
-                :artifacts="item.artifacts" :suggested-questions="item.suggestedQuestions" :explore-mode="chatSession?.exploreMode"
+                :artifacts="item.artifacts" :suggested-questions="item.suggestedQuestions" :suggested-questions-loading="item.suggestedQuestionsLoading" :explore-mode="chatSession?.exploreMode"
                 @regenerate="onRegenerate(index)" @toggle-pin="handleTogglePin(index)" @delete="handleDelete(index)" @after-edit="handleAfterEdit" @use-question="handleUseQuestion" />
 </template>
 

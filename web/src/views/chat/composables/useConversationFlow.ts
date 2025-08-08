@@ -5,6 +5,7 @@ import { useChat } from '@/views/chat/hooks/useChat'
 import { useStreamHandling } from './useStreamHandling'
 import { useErrorHandling } from './useErrorHandling'
 import { useValidation } from './useValidation'
+import { useSessionStore } from '@/store'
 
 interface ChatMessage {
   uuid: string
@@ -23,10 +24,11 @@ export function useConversationFlow(
 ) {
   const loading = ref<boolean>(false)
   const abortController = ref<AbortController | null>(null)
-  const { addChat, updateChat } = useChat()
+  const { addChat, updateChat, updateChatPartial } = useChat()
   const { streamChatResponse, processStreamChunk } = useStreamHandling()
   const { handleApiError, showErrorNotification } = useErrorHandling()
   const { validateChatMessage } = useValidation()
+  const sessionStore = useSessionStore()
 
   function validateConversationInput(message: string): boolean {
     if (loading.value) {
@@ -126,6 +128,14 @@ export function useConversationFlow(
     } finally {
       loading.value = false
       abortController.value = null
+      
+      // For sessions in exploreMode, set suggested questions loading state
+      const session = sessionStore.getChatSessionByUuid(sessionUuid)
+      if (session?.exploreMode && dataSources[responseIndex] && !dataSources[responseIndex].inversion) {
+        updateChatPartial(sessionUuid, responseIndex, {
+          suggestedQuestionsLoading: true
+        })
+      }
     }
   }
 
