@@ -140,7 +140,7 @@ function handleUseQuestion(question: string) {
           </div>
         </div>
         <SuggestedQuestions v-if="!inversion && exploreMode && !loading && (suggestedQuestionsLoading || (suggestedQuestions && suggestedQuestions.length > 0))" :questions="suggestedQuestions || []"
-          :loading="suggestedQuestionsLoading || (!suggestedQuestions || suggestedQuestions.length === 0)" @useQuestion="handleUseQuestion" />
+          :loading="suggestedQuestionsLoading && (!suggestedQuestions || suggestedQuestions.length === 0)" @useQuestion="handleUseQuestion" />
       </div>
     </div>
   </div>
