@@ -113,7 +113,7 @@
     "clearHistoryConfirm": "确定清空聊天记录?",
     "contextLength": "上下文数量, 默认10 (会话开始的2条 + 最近的8条)",
     "stopAnswer": "停止回答",
-    "suggestedQuestions": "建议问题",
+    "suggestedQuestions": "深入提问",
     "contextCount": "上下文数量: {contextCount}",
     "temperature": "温度: {temperature}, 越高回答越发散, 越低回答越精确",
     "model": "模型",

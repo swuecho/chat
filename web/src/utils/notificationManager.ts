@@ -1,7 +1,9 @@
-import { ref, computed } from 'vue'
+import { ref, computed, h } from 'vue'
 import { useMessage } from 'naive-ui'
+import EnhancedNotification from '@/components/common/EnhancedNotification.vue'
 
 interface NotificationOptions {
+  title?: string
   message: string
   type?: 'success' | 'error' | 'warning' | 'info'
   duration?: number
@@ -11,6 +13,7 @@ interface NotificationOptions {
   }
   persistent?: boolean
   closable?: boolean
+  enhanced?: boolean // New option to use enhanced notifications
 }
 
 interface QueuedNotification {
@@ -60,7 +63,27 @@ class NotificationManager {
     }
 
     try {
-      showFn(options.message, notificationOptions)
+      // Use enhanced notification if requested
+      if (options.enhanced) {
+        const content = h(EnhancedNotification, {
+          type: options.type || 'info',
+          title: options.title,
+          content: options.message,
+          closable: options.closable !== false,
+          action: options.action,
+          onClose: () => {
+            this.activeNotifications.value.delete(id)
+            this.processQueue()
+          }
+        })
+        
+        showFn(content, {
+          ...notificationOptions,
+          closable: false // Let the component handle closing
+        })
+      } else {
+        showFn(options.message, notificationOptions)
+      }
     } catch (error) {
       console.error('Failed to show notification:', error)
       this.activeNotifications.value.delete(id)
@@ -108,6 +131,23 @@ class NotificationManager {
 
   info(message: string, options: Omit<NotificationOptions, 'message' | 'type'> = {}): string {
     return this.show({ message, type: 'info', ...options })
+  }
+
+  // Enhanced notification methods with better visual hierarchy
+  enhancedSuccess(title: string, message: string, options: Omit<NotificationOptions, 'message' | 'type' | 'title' | 'enhanced'> = {}): string {
+    return this.show({ title, message, type: 'success', enhanced: true, ...options })
+  }
+
+  enhancedError(title: string, message: string, options: Omit<NotificationOptions, 'message' | 'type' | 'title' | 'enhanced'> = {}): string {
+    return this.show({ title, message, type: 'error', enhanced: true, ...options })
+  }
+
+  enhancedWarning(title: string, message: string, options: Omit<NotificationOptions, 'message' | 'type' | 'title' | 'enhanced'> = {}): string {
+    return this.show({ title, message, type: 'warning', enhanced: true, ...options })
+  }
+
+  enhancedInfo(title: string, message: string, options: Omit<NotificationOptions, 'message' | 'type' | 'title' | 'enhanced'> = {}): string {
+    return this.show({ title, message, type: 'info', enhanced: true, ...options })
   }
 
   persistent(message: string, type: 'error' | 'warning' | 'info' = 'error', action?: { text: string; onClick: () => void }): string {
@@ -177,6 +217,10 @@ export function useNotification() {
     error: notificationManager.error.bind(notificationManager),
     warning: notificationManager.warning.bind(notificationManager),
     info: notificationManager.info.bind(notificationManager),
+    enhancedSuccess: notificationManager.enhancedSuccess.bind(notificationManager),
+    enhancedError: notificationManager.enhancedError.bind(notificationManager),
+    enhancedWarning: notificationManager.enhancedWarning.bind(notificationManager),
+    enhancedInfo: notificationManager.enhancedInfo.bind(notificationManager),
     persistent: notificationManager.persistent.bind(notificationManager),
     clear: notificationManager.clear.bind(notificationManager),
     stats: computed(() => notificationManager.getStats())
@@ -206,6 +250,23 @@ export function showInfoNotification(message: string, options?: Omit<Notificatio
 
 export function showPersistentNotification(message: string, type: 'error' | 'warning' | 'info' = 'error', action?: { text: string; onClick: () => void }): string {
   return notificationManager.persistent(message, type, action)
+}
+
+// Enhanced notification functions with better visual hierarchy
+export function showEnhancedSuccessNotification(title: string, message: string, options?: Omit<NotificationOptions, 'message' | 'type' | 'title' | 'enhanced'>): string {
+  return notificationManager.enhancedSuccess(title, message, options)
+}
+
+export function showEnhancedErrorNotification(title: string, message: string, options?: Omit<NotificationOptions, 'message' | 'type' | 'title' | 'enhanced'>): string {
+  return notificationManager.enhancedError(title, message, options)
+}
+
+export function showEnhancedWarningNotification(title: string, message: string, options?: Omit<NotificationOptions, 'message' | 'type' | 'title' | 'enhanced'>): string {
+  return notificationManager.enhancedWarning(title, message, options)
+}
+
+export function showEnhancedInfoNotification(title: string, message: string, options?: Omit<NotificationOptions, 'message' | 'type' | 'title' | 'enhanced'>): string {
+  return notificationManager.enhancedInfo(title, message, options)
 }
 
 export function clearAllNotifications(): void {

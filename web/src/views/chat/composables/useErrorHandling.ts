@@ -34,6 +34,21 @@ export function useErrorHandling() {
 
   const errorCount = computed(() => errorState.value.errorHistory.length)
 
+  function getErrorTitle(errorType: string, errorCode: string | number): string {
+    switch (errorType) {
+      case 'network':
+        return 'Connection Problem'
+      case 'server':
+        return errorCode >= 500 ? 'Server Error' : 'Request Failed'
+      case 'auth':
+        return 'Authentication Required'
+      case 'timeout':
+        return 'Request Timeout'
+      default:
+        return 'Error'
+    }
+  }
+
   function logError(error: Partial<AppError>, context?: string): void {
     const appError: AppError = {
       code: error.code,
@@ -131,11 +146,25 @@ export function useErrorHandling() {
       details: error
     }, context)
 
-    // Use persistent notification for server errors and network issues
+    // Use enhanced notifications for better visual hierarchy
     if (errorType === 'server' || errorType === 'network') {
-      showPersistentErrorNotification(errorMessage, action)
+      notificationManager.showEnhancedErrorNotification(
+        getErrorTitle(errorType, errorCode),
+        errorMessage,
+        { persistent: true, action }
+      )
+    } else if (errorType === 'auth') {
+      notificationManager.showEnhancedWarningNotification(
+        'Authentication Required',
+        errorMessage,
+        { persistent: true, action }
+      )
     } else {
-      showErrorNotification(errorMessage, 5000, action)
+      notificationManager.showEnhancedErrorNotification(
+        'Error',
+        errorMessage,
+        { duration: 5000, action }
+      )
     }
   }
 
@@ -159,17 +188,28 @@ export function useErrorHandling() {
         }
       }
 
-      showErrorNotification(`${errorMessage}`, 5000, action)
+      notificationManager.showEnhancedErrorNotification(
+        'Stream Error', 
+        errorMessage, 
+        { duration: 5000, action }
+      )
     } catch (parseError) {
       logError({
         message: 'Failed to parse error response',
         details: { responseText, parseError }
       }, context)
 
-      showPersistentErrorNotification('Connection interrupted. Please check your connection and try again.', {
-        text: 'Retry',
-        onClick: () => window.location.reload()
-      })
+      notificationManager.showEnhancedErrorNotification(
+        'Connection Error',
+        'Connection interrupted. Please check your connection and try again.',
+        { 
+          persistent: true, 
+          action: {
+            text: 'Retry',
+            onClick: () => window.location.reload()
+          }
+        }
+      )
     }
   }
 

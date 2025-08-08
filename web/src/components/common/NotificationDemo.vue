@@ -3,6 +3,16 @@
     <n-card title="Notification System Demo">
       <n-space vertical>
         <div class="demo-section">
+          <h3>Enhanced Notifications (with Banner)</h3>
+          <n-space>
+            <n-button @click="showEnhancedSuccess" type="success">Enhanced Success</n-button>
+            <n-button @click="showEnhancedError" type="error">Enhanced Error</n-button>
+            <n-button @click="showEnhancedWarning" type="warning">Enhanced Warning</n-button>
+            <n-button @click="showEnhancedInfo" type="info">Enhanced Info</n-button>
+          </n-space>
+        </div>
+
+        <div class="demo-section">
           <h3>Basic Notifications</h3>
           <n-space>
             <n-button @click="showSuccess" type="success">Success</n-button>
@@ -76,6 +86,38 @@ const notification = useNotification()
 const { handleApiError } = useErrorHandling()
 
 const stats = ref(notification.stats)
+
+// Enhanced notifications with banner design
+function showEnhancedSuccess() {
+  notification.enhancedSuccess('Operation Completed', 'Your file has been successfully uploaded and processed.', {
+    action: {
+      text: 'View File',
+      onClick: () => notification.info('Opening file viewer...')
+    }
+  })
+}
+
+function showEnhancedError() {
+  notification.enhancedError('Connection Failed', 'Unable to connect to the server. Please check your internet connection and try again.', {
+    action: {
+      text: 'Retry',
+      onClick: () => notification.enhancedSuccess('Connected', 'Successfully reconnected to the server.')
+    }
+  })
+}
+
+function showEnhancedWarning() {
+  notification.enhancedWarning('Storage Space Low', 'You are running low on storage space. Consider removing unused files to free up space.', {
+    action: {
+      text: 'Clean Up',
+      onClick: () => notification.enhancedInfo('Cleanup Started', 'Storage cleanup process has been initiated.')
+    }
+  })
+}
+
+function showEnhancedInfo() {
+  notification.enhancedInfo('System Update Available', 'A new version of the application is available. The update includes performance improvements and bug fixes.')
+}
 
 // Basic notifications
 function showSuccess() {

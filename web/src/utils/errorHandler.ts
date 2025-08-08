@@ -1,6 +1,15 @@
 import { logger } from './logger'
 import { useAuthStore } from '@/store'
-import { showNotification, showErrorNotification, showWarningNotification, showSuccessNotification, showPersistentNotification } from './notificationManager'
+import { 
+  showNotification, 
+  showErrorNotification, 
+  showWarningNotification, 
+  showSuccessNotification, 
+  showPersistentNotification,
+  showEnhancedErrorNotification,
+  showEnhancedWarningNotification,
+  showEnhancedInfoNotification
+} from './notificationManager'
 
 export interface ApiError {
   status: number
