@@ -11,8 +11,9 @@ service.interceptors.request.use(
   async (config) => {
     const authStore = useAuthStore()
 
-    // Skip token refresh for auth endpoints
-    if (config.url?.includes('/auth/')) {
+    // Skip token validation for authentication endpoints
+    const authEndpoints = ['/login', '/signup', '/logout', '/auth/refresh']
+    if (authEndpoints.some(endpoint => config.url?.includes(endpoint))) {
       return config
     }
 
