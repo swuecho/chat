@@ -477,6 +477,15 @@ func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, conten
 	return err
 }
 
+// UpdateChatMessageSuggestions updates the suggested questions for a chat message
+func (s *ChatService) UpdateChatMessageSuggestions(ctx context.Context, uuid string, suggestedQuestions json.RawMessage) error {
+	_, err := s.q.UpdateChatMessageSuggestions(ctx, sqlc_queries.UpdateChatMessageSuggestionsParams{
+		Uuid:               uuid,
+		SuggestedQuestions: suggestedQuestions,
+	})
+	return err
+}
+
 // logChat creates a chat log entry for analytics and debugging.
 // Logs the session, messages, and LLM response for audit purposes.
 func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []models.Message, answerText string) {

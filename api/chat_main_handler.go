@@ -469,6 +469,23 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		RespondWithAPIError(w, apiErr)
 		return
 	}
+
+	// Generate suggested questions if explore mode is enabled
+	if chatSession.ExploreMode {
+		suggestedQuestions := h.service.generateSuggestedQuestions(LLMAnswer.Answer, msgs)
+		if len(suggestedQuestions) > 0 {
+			// Update the message with suggested questions in database
+			questionsJSON, err := json.Marshal(suggestedQuestions)
+			if err == nil {
+				h.service.UpdateChatMessageSuggestions(ctx, chatUuid, questionsJSON)
+				
+				// Stream suggested questions to frontend
+				if stream {
+					h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, questionsJSON)
+				}
+			}
+		}
+	}
 }
 
 // GetRequestContext returns the current request context for streaming operations

@@ -118,7 +118,7 @@ ORDER BY created_at;
 
 -- name: UpdateChatMessageContent :exec
 UPDATE chat_message
-SET content = $2, updated_at = now(), token_count = $3, suggested_questions = '[]'
+SET content = $2, updated_at = now(), token_count = $3
 WHERE uuid = $1 ;
 
 -- name: UpdateChatMessageSuggestions :one
