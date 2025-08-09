@@ -124,12 +124,7 @@ function handleNextSuggestionsBatch() {
               :disabled="pining" @click="emit('togglePin')">
               <SvgIcon :icon="isPin ? 'ri:unpin-line' : 'ri:pushpin-line'" />
             </button>
-            <!-- testid="chat-message-regenerate" not ok, something like testclass -->
-            <button v-if="!isPrompt"
-              class="chat-message-regenerate mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
-              @click="handleRegenerate">
-              <SvgIcon icon="ri:restart-line" />
-            </button>
+
 
           </div>
 
@@ -149,6 +144,12 @@ function handleNextSuggestionsBatch() {
               @click="handleEdit">
               <SvgIcon icon="ri:edit-line" />
             </HoverButton>
+            <!-- testid="chat-message-regenerate" not ok, something like testclass -->
+            <HoverButton :tooltip="$t('common.regenerate')"
+              class="chat-message-regenerate transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+              @click="handleRegenerate">
+              <SvgIcon icon="ri:restart-line" />
+            </HoverButton>
             <HoverButton :tooltip="$t('chat.copy')"
               class="transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
               @click="handleCopy">
@@ -157,15 +158,13 @@ function handleNextSuggestionsBatch() {
 
           </div>
         </div>
-        <SuggestedQuestions v-if="!inversion && exploreMode && !loading && (suggestedQuestionsLoading || (suggestedQuestions && suggestedQuestions.length > 0))" 
+        <SuggestedQuestions
+          v-if="!inversion && exploreMode && !loading && (suggestedQuestionsLoading || (suggestedQuestions && suggestedQuestions.length > 0))"
           :questions="suggestedQuestions || []"
           :loading="suggestedQuestionsLoading && (!suggestedQuestions || suggestedQuestions.length === 0)"
-          :batches="suggestedQuestionsBatches"
-          :currentBatch="currentSuggestedQuestionsBatch"
-          :generating="suggestedQuestionsGenerating"
-          @useQuestion="handleUseQuestion"
-          @generateMore="handleGenerateMoreSuggestions"
-          @previousBatch="handlePreviousSuggestionsBatch"
+          :batches="suggestedQuestionsBatches" :currentBatch="currentSuggestedQuestionsBatch"
+          :generating="suggestedQuestionsGenerating" @useQuestion="handleUseQuestion"
+          @generateMore="handleGenerateMoreSuggestions" @previousBatch="handlePreviousSuggestionsBatch"
           @nextBatch="handleNextSuggestionsBatch" />
       </div>
     </div>

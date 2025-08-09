@@ -813,7 +813,7 @@ func (q *Queries) UpdateChatMessageByUUID(ctx context.Context, arg UpdateChatMes
 
 const updateChatMessageContent = `-- name: UpdateChatMessageContent :exec
 UPDATE chat_message
-SET content = $2, updated_at = now(), token_count = $3
+SET content = $2, updated_at = now(), token_count = $3, suggested_questions = '[]'
 WHERE uuid = $1
 `
 

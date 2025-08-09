@@ -38,6 +38,11 @@ export function useRegenerate(sessionUuid: string) {
         inversion: false,
         error: false,
         loading: true,
+        suggestedQuestions: undefined,
+        suggestedQuestionsLoading: false,
+        suggestedQuestionsBatches: undefined,
+        currentSuggestedQuestionsBatch: undefined,
+        suggestedQuestionsGenerating: false,
       })
     }
 
@@ -61,6 +66,11 @@ export function useRegenerate(sessionUuid: string) {
         inversion: false,
         error: false,
         loading: true,
+        suggestedQuestions: undefined,
+        suggestedQuestionsLoading: false,
+        suggestedQuestionsBatches: undefined,
+        currentSuggestedQuestionsBatch: undefined,
+        suggestedQuestionsGenerating: false,
       })
     } else {
       addChat(sessionUuid, {
@@ -70,6 +80,11 @@ export function useRegenerate(sessionUuid: string) {
         loading: true,
         inversion: false,
         error: false,
+        suggestedQuestions: undefined,
+        suggestedQuestionsLoading: false,
+        suggestedQuestionsBatches: undefined,
+        currentSuggestedQuestionsBatch: undefined,
+        suggestedQuestionsGenerating: false,
       })
     }
 
