@@ -26,13 +26,29 @@ service.interceptors.request.use(
       logger.debug('Auth initialization completed', 'Axios', { url: config.url })
     }
 
-    // Check if token needs refresh
-    if (authStore.needsRefresh && !authStore.isRefreshing) {
+    // Check if token is expired before making request
+    if (!authStore.isValid) {
+      logger.debug('Token is expired or invalid, attempting refresh', 'Axios', { url: config.url })
+      try {
+        await authStore.refreshToken()
+        // Check again after refresh
+        if (!authStore.isValid) {
+          logger.warn('Token still invalid after refresh attempt', 'Axios')
+          return Promise.reject(new Error('Authentication required'))
+        }
+      } catch (error) {
+        logger.error('Token refresh failed in request interceptor', 'Axios', error)
+        return Promise.reject(new Error('Authentication required'))
+      }
+    } 
+    // Check if token needs refresh (expires within 5 minutes)
+    else if (authStore.needsRefresh && !authStore.isRefreshing) {
+      logger.debug('Token needs refresh, refreshing proactively', 'Axios', { url: config.url })
       try {
         await authStore.refreshToken()
       } catch (error) {
-        // Refresh failed - redirect to login or handle appropriately
-        console.error('Token refresh failed:', error)
+        logger.error('Proactive token refresh failed', 'Axios', error)
+        // Continue with existing token if proactive refresh fails
       }
     }
 
@@ -63,13 +79,31 @@ service.interceptors.response.use(
     // Handle 401 errors with automatic token refresh
     if (error.response?.status === 401 && !error.config?.url?.includes('/auth/')) {
       logger.debug('Handling 401 error, attempting token refresh', 'Axios')
+      
+      // Prevent infinite retry loops
+      if (error.config._retryCount >= 1) {
+        logger.warn('Already retried once, clearing auth state', 'Axios')
+        authStore.removeToken()
+        authStore.removeExpiresIn()
+        return Promise.reject(new Error('Authentication failed after retry'))
+      }
+      
       try {
         await authStore.refreshToken()
+        // Check if refresh was successful
+        if (!authStore.isValid) {
+          logger.warn('Token invalid after refresh attempt', 'Axios')
+          authStore.removeToken()
+          authStore.removeExpiresIn()
+          return Promise.reject(new Error('Authentication failed'))
+        }
+        
         // Retry the original request with new token
         const token = authStore.getToken
         if (token) {
           logger.debug('Retrying request with new token', 'Axios')
           error.config.headers.Authorization = `Bearer ${token}`
+          error.config._retryCount = (error.config._retryCount || 0) + 1
           return service.request(error.config)
         }
       } catch (refreshError) {
@@ -77,7 +111,7 @@ service.interceptors.response.use(
         logger.warn('Token refresh failed, clearing auth state', 'Axios', refreshError)
         authStore.removeToken()
         authStore.removeExpiresIn()
-        // Don't redirect - the login modal will appear automatically when authStore.isValid becomes false
+        return Promise.reject(new Error('Authentication required'))
       }
     }
 
