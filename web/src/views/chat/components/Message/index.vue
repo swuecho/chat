@@ -146,7 +146,7 @@ function handleNextSuggestionsBatch() {
             </HoverButton>
             <!-- testid="chat-message-regenerate" not ok, something like testclass -->
             <HoverButton :tooltip="$t('common.regenerate')"
-              class="transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+              class="chat-message-regenerate transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
               @click="handleRegenerate">
               <SvgIcon icon="ri:restart-line" />
             </HoverButton>
