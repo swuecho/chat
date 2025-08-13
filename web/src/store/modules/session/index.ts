@@ -16,6 +16,7 @@ export interface SessionState {
   isLoading: boolean
   isCreatingSession: boolean
   isSwitchingSession: boolean
+  isNavigating: boolean
 }
 
 export const useSessionStore = defineStore('session-store', {
@@ -25,6 +26,7 @@ export const useSessionStore = defineStore('session-store', {
     isLoading: false,
     isCreatingSession: false,
     isSwitchingSession: false,
+    isNavigating: false,
   }),
 
   getters: {
@@ -372,33 +374,45 @@ export const useSessionStore = defineStore('session-store', {
     },
 
     async navigateToSession(sessionUuid: string) {
-      const session = this.getChatSessionByUuid(sessionUuid)
-      if (session && session.workspaceUuid) {
-        // Check if we're already on the correct route to avoid unnecessary navigation
-        const currentRoute = router.currentRoute.value
-        const currentWorkspaceUuid = currentRoute.params.workspaceUuid as string
-        const currentSessionUuid = currentRoute.params.uuid as string
-        
-        if (currentWorkspaceUuid === session.workspaceUuid && currentSessionUuid === sessionUuid) {
-          console.log('Already on correct route, skipping navigation')
-          return
-        }
+      // Prevent overlapping navigation calls
+      if (this.isNavigating) {
+        console.log('Navigation already in progress, skipping')
+        return
+      }
 
-        const workspaceStore = useWorkspaceStore()
-        workspaceStore.navigateToWorkspace(session.workspaceUuid, sessionUuid)
-      } else {
-        // If session doesn't have a workspace, try to assign it to the default workspace
-        const workspaceStore = useWorkspaceStore()
-        const defaultWorkspace = workspaceStore.workspaces.find(w => w.isDefault) || workspaceStore.workspaces[0]
+      this.isNavigating = true
+      
+      try {
+        const session = this.getChatSessionByUuid(sessionUuid)
+        if (session && session.workspaceUuid) {
+          // Check if we're already on the correct route to avoid unnecessary navigation
+          const currentRoute = router.currentRoute.value
+          const currentWorkspaceUuid = currentRoute.params.workspaceUuid as string
+          const currentSessionUuid = currentRoute.params.uuid as string
+          
+          if (currentWorkspaceUuid === session.workspaceUuid && currentSessionUuid === sessionUuid) {
+            console.log('Already on correct route, skipping navigation')
+            return
+          }
 
-        if (defaultWorkspace) {
-          console.log('Session without workspace, navigating to default workspace:', defaultWorkspace.uuid)
-          workspaceStore.navigateToWorkspace(defaultWorkspace.uuid, sessionUuid)
+          const workspaceStore = useWorkspaceStore()
+          await workspaceStore.navigateToWorkspace(session.workspaceUuid, sessionUuid)
         } else {
-          // Last resort: navigate to default route
-          console.log('No workspace available, navigating to default route')
-          await router.push({ name: 'DefaultWorkspace' })
+          // If session doesn't have a workspace, try to assign it to the default workspace
+          const workspaceStore = useWorkspaceStore()
+          const defaultWorkspace = workspaceStore.workspaces.find(w => w.isDefault) || workspaceStore.workspaces[0]
+
+          if (defaultWorkspace) {
+            console.log('Session without workspace, navigating to default workspace:', defaultWorkspace.uuid)
+            await workspaceStore.navigateToWorkspace(defaultWorkspace.uuid, sessionUuid)
+          } else {
+            // Last resort: navigate to default route
+            console.log('No workspace available, navigating to default route')
+            await router.push({ name: 'DefaultWorkspace' })
+          }
         }
+      } finally {
+        this.isNavigating = false
       }
     },
 
