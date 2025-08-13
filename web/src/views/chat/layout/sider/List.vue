@@ -64,13 +64,17 @@ async function handleSelect(uuid: string) {
   if (sessionStore.isSwitchingSession)
     return
 
-  const session = sessionStore.getChatSessionByUuid(uuid)
-  if (session && session.workspaceUuid) {
-    await sessionStore.setActiveSession(session.workspaceUuid, uuid)
-  }
+  try {
+    const session = sessionStore.getChatSessionByUuid(uuid)
+    if (session && session.workspaceUuid) {
+      await sessionStore.setActiveSession(session.workspaceUuid, uuid)
+    }
 
-  if (isMobile.value)
-    appStore.setSiderCollapsed(true)
+    if (isMobile.value)
+      appStore.setSiderCollapsed(true)
+  } catch (error) {
+    console.error('Error handling session select:', error)
+  }
 }
 
 // throttle handleSelect
@@ -78,10 +82,10 @@ async function handleSelect(uuid: string) {
 //   throttle(async ({ uuid }: Chat.Session) => await handleSelect(uuid), 500)
 // } 
 
-// Create a wrapper to debounce the handleSelect function
-const throttledHandleSelect = throttle((uuid) => {
-  handleSelect(uuid);
-}, 500); // 300ms debounce time
+// Create a wrapper to throttle the handleSelect function
+const throttledHandleSelect = throttle(async (uuid) => {
+  await handleSelect(uuid);
+}, 300); // 300ms throttle time
 
 function handleEdit({ uuid }: Chat.Session, isEdit: boolean, event?: MouseEvent) {
   event?.stopPropagation()
