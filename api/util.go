@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/pkoukk/tiktoken-go"
@@ -42,6 +43,20 @@ func firstN(s string, n int) string {
 		i++
 	}
 	return s
+}
+
+// firstNWords extracts the first n words from a string
+func firstNWords(s string, n int) string {
+	if s == "" {
+		return ""
+	}
+	
+	words := strings.Fields(s)
+	if len(words) <= n {
+		return s
+	}
+	
+	return strings.Join(words[:n], " ")
 }
 
 func getUserID(ctx context.Context) (int32, error) {

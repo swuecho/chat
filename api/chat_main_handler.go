@@ -253,6 +253,24 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 			return false
 		}
 		log.Printf("%+v\n", chatPrompt)
+		
+		// Update session title with first 10 words of the prompt
+		if newQuestion != "" {
+			sessionTitle := firstNWords(newQuestion, 10)
+			if sessionTitle != "" {
+				updateParams := sqlc_queries.UpdateChatSessionTopicByUUIDParams{
+					Uuid:   chatSession.Uuid,
+					UserID: userID,
+					Topic:  sessionTitle,
+				}
+				_, err := h.service.q.UpdateChatSessionTopicByUUID(ctx, updateParams)
+				if err != nil {
+					log.Printf("Warning: Failed to update session title for session %s: %v", chatSession.Uuid, err)
+				} else {
+					log.Printf("Updated session %s title to: %s", chatSession.Uuid, sessionTitle)
+				}
+			}
+		}
 	}
 	return true
 }
