@@ -14,6 +14,8 @@
 
 <img width="850" alt="image" src="https://github.com/swuecho/chat/assets/666683/0c4f546a-e884-4dc1-91c0-d4b07e63a1a9.png">
 
+<img width="850" alt="explore" src="https://github.com/user-attachments/assets/102af939-6bc3-41f1-8886-1bb631eaa31c" />
+
 
 ![image](https://github.com/user-attachments/assets/5b3751e4-eaa1-4a79-b47a-9b073c63eb04)
 
