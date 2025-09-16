@@ -207,6 +207,7 @@
         "password_placeholder": "Please enter your password",
         "please_register": "Please Register First",
         "reset": "Reset",
+        "regenerate": "regenerate",
         "save": "Save",
         "signup": "Sign up",
         "signup_failed": "Registration Failed",
