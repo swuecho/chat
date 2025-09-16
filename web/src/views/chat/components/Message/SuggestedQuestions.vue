@@ -41,8 +41,8 @@ const hasPreviousBatch = computed(() => {
 })
 
 const hasNextBatch = computed(() => {
-  return props.batches && props.currentBatch !== undefined && 
-         props.currentBatch < props.batches.length - 1
+  return props.batches && props.currentBatch !== undefined &&
+    props.currentBatch < props.batches.length - 1
 })
 
 const currentBatchNumber = computed(() => {
@@ -55,11 +55,14 @@ const totalBatches = computed(() => {
 </script>
 
 <template>
-  <div class="suggested-questions mt-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+  <div
+    class="suggested-questions mt-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center">
         <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+          </path>
         </svg>
         <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('chat.suggestedQuestions') }}</span>
         <!-- Loading spinner inline with title -->
@@ -71,53 +74,44 @@ const totalBatches = computed(() => {
           <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-green-500"></div>
         </div>
       </div>
-      
+
       <!-- Batch indicator and navigation -->
-      <div v-if="batches && batches.length > 1" class="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+      <div v-if="batches && batches.length > 1"
+        class="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
         <span>{{ currentBatchNumber }}/{{ totalBatches }}</span>
-        <button
-          :disabled="!hasPreviousBatch"
-          @click="handlePreviousBatch"
-          class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <button :disabled="!hasPreviousBatch" @click="handlePreviousBatch"
+          class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
           </svg>
         </button>
-        <button
-          :disabled="!hasNextBatch"
-          @click="handleNextBatch"
-          class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <button :disabled="!hasNextBatch" @click="handleNextBatch"
+          class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
           </svg>
         </button>
       </div>
     </div>
-    
+
     <!-- Actual questions -->
     <div v-if="!loading && questions.length > 0" class="space-y-2">
-      <button
-        v-for="(question, index) in questions"
-        :key="index"
+      <button v-for="(question, index) in questions" :key="index"
         class="w-full text-left p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors duration-200 text-sm text-gray-800 dark:text-gray-200"
-        @click="handleQuestionClick(question)"
-      >
+        @click="handleQuestionClick(question)">
         {{ question }}
       </button>
-      
+
       <!-- Generate more button -->
-      <button
-        @click="handleGenerateMore"
-        :disabled="generating"
-        class="w-full mt-3 p-2 rounded border border-dashed border-gray-400 dark:border-gray-500 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-      >
+      <button @click="handleGenerateMore" :disabled="generating"
+        class="w-full mt-3 p-2 rounded border border-dashed border-gray-400 dark:border-gray-500 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
         <svg v-if="!generating" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+          </path>
         </svg>
         <div v-if="generating" class="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-        <span>{{ generating ? 'Generating...' : 'Generate more suggestions' }}</span>
+        <span>{{ generating ? $t('chat.generating') : $t('chat.generateMoreSuggestions') }}</span>
       </button>
     </div>
   </div>
