@@ -96,6 +96,12 @@ function postUrl(uuid: string): string {
   return `#/bot/${uuid}`
 }
 
+function openPostUrl(uuid: string) {
+  if (typeof window !== 'undefined' && window.open) {
+    window.open(postUrl(uuid), '_blank')
+  }
+}
+
 function copyToClipboard(text: string) {
   const success = copy(text)
   if (success) {
@@ -138,7 +144,7 @@ function copyToClipboard(text: string) {
           <div class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div v-for="post in postsOfYearMonth" :key="post.uuid" 
               class="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 cursor-pointer"
-              @click="window.open(postUrl(post.uuid), '_blank')">
+              @click="openPostUrl(post.uuid)">
               
               <!-- Header with date and actions -->
               <div class="flex justify-between items-start mb-3">
