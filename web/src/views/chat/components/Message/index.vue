@@ -63,7 +63,11 @@ function handleRegenerate() {
 }
 
 function handleCopy() {
-  copyText({ text: props.text ?? '' })
+  if (copyText) {
+    copyText({ text: props.text ?? '' })
+  } else {
+    console.error('copyText function is not available')
+  }
 }
 
 function handleEdit() {
@@ -72,7 +76,9 @@ function handleEdit() {
 }
 
 function handleEditConfirm() {
-  emit('afterEdit', props.index, editedText.value)
+  if (emit) {
+    emit('afterEdit', props.index, editedText.value)
+  }
   showEditModal.value = false
 }
 
