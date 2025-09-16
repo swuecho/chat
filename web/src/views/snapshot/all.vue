@@ -14,9 +14,12 @@ const searchVisible = ref(false)
 const postsByYearMonth = ref<Record<string, Snapshot.PostLink[]>>({})
 const authStore = useAuthStore()
 
-const needPermission = computed(() => !authStore.isValid)
+const needPermission = authStore.needPermission
 
-onMounted(refreshSnapshot)
+onMounted(async() => {
+  await authStore.initializeAuth()
+  await refreshSnapshot()
+})
 
 function postUrl(uuid: string): string {
   return `#/snapshot/${uuid}`
@@ -57,8 +60,7 @@ function handleDelete(post: Snapshot.PostLink) {
     <header
       class="flex items-center justify-between h-16 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur">
       <div class="flex items-center ml-1 md:ml-10 gap-2">
-        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-          stroke="currentColor">
+        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
@@ -90,14 +92,15 @@ function handleDelete(post: Snapshot.PostLink) {
               <div>
                 <div class="flex items-center">
                   <time :datetime="post.date" class="text-sm font-medium text-gray-600 dark:text-gray-400">{{
-                  post.date
-                  }}</time>
+                    post.date
+                    }}</time>
                   <div class="ml-2 text-sm flex items-center cursor-pointer" @click="handleDelete(post)">
                     <SvgIcon icon="ic:baseline-delete-forever" class="w-5 h-5" />
                   </div>
                 </div>
                 <a :href="postUrl(post.uuid)" :title="post.title"
-                  class="block text-xl font-semibold text-gray-900 dark:text-gray-200 hover:text-blue-600 mb-2">{{ post.title }}</a>
+                  class="block text-xl font-semibold text-gray-900 dark:text-gray-200 hover:text-blue-600 mb-2">{{
+                    post.title }}</a>
               </div>
             </li>
           </ul>

@@ -33,14 +33,17 @@ export const useAuthStore = defineStore('auth-store', {
       const fiveMinutesFromNow = Date.now() / 1000 + 300
       return !!(this.expiresIn && this.expiresIn < fiveMinutesFromNow)
     },
+    needPermission(): boolean {
+      return this.isInitialized && !this.isInitializing && !this.isValid
+    }
   },
 
   actions: {
     async initializeAuth() {
       if (this.isInitialized || this.isInitializing) return
-      
+
       this.isInitializing = true
-      
+
       try {
         // Try to refresh token if we have valid expiration
         if (this.expiresIn && this.expiresIn > Date.now() / 1000) {

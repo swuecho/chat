@@ -13,6 +13,8 @@ import { useAuthStore } from '@/store'
 
 const { isMobile } = useBasicLayout()
 
+const authStore = useAuthStore()
+
 // Initialize auth state on component mount (async)
 onMounted(async () => {
   console.log('🔄 Admin layout mounted, initializing auth...')
@@ -21,7 +23,6 @@ onMounted(async () => {
 })
 
 // login modal will appear when there is no token and auth is initialized (but not during initialization)
-const authStore = useAuthStore()
 const currentRoute = useRoute()
 const USER_ROUTE = 'AdminUser'
 const MODEL_ROUTE = 'AdminModel'
@@ -137,12 +138,11 @@ function handleChatHome() {
       </NLayoutSider>
       <NLayout :style="isMobile && !collapsed ? 'pointer-events: none' : ''">
         <div class="flex flex-col h-full">
-          <div class="flex items-center justify-between px-4 md:px-6 lg:px-8 py-3 border-b dark:border-neutral-800" v-if="!isMobile">
+          <div class="flex items-center justify-between px-4 md:px-6 lg:px-8 py-3 border-b dark:border-neutral-800"
+            v-if="!isMobile">
             <nav class="flex items-center space-x-2 text-sm">
-              <button 
-                @click="handleChatHome" 
-                class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 transition-colors"
-              >
+              <button @click="handleChatHome"
+                class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 transition-colors">
                 Home
               </button>
               <span class="text-gray-400 dark:text-gray-500">/</span>
