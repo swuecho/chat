@@ -130,6 +130,8 @@
     "enable_explore": "启用",
     "disable_explore": "关闭",
     "completionsCount": "结果数量:  {contextCount}",
+    "generateMoreSuggestions": "生成更多建议",
+    "generating": "生成中...",
     "playAudio": "语音",
     "uploader_title": "上传文件",
     "uploader_button": "上传",

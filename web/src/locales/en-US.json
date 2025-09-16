@@ -135,6 +135,8 @@
         "exportMDConfirm": "Do you want to save the chat session as a markdown file?",
         "exportSuccess": "Saved successfully",
         "frequencyPenalty": "Frequency Penalty",
+        "generateMoreSuggestions": "Generate more suggestions",
+        "generating": "Generating...",
         "is_summarize_mode": "On",
         "maxTokens": "Max Total Tokens : {maxTokens}",
         "model": "Model",
