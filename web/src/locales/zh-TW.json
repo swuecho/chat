@@ -201,6 +201,7 @@
         "password_placeholder": "請輸入密碼",
         "please_register": "請先註冊",
         "reset": "重置",
+        "regenerate": "重新生成",
         "save": "保存",
         "signup": "註冊",
         "signup_failed": "註冊失敗",
