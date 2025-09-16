@@ -26,6 +26,7 @@
     "verify": "验证",
     "login": "登录",
     "logout": "登出",
+    "regenerate": "重新生成",
     "signup": "注册",
     "email": "邮箱",
     "confirm": "确认",

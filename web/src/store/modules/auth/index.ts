@@ -47,6 +47,7 @@ export const useAuthStore = defineStore('auth-store', {
       try {
         // Try to refresh token if we have valid expiration
         if (this.expiresIn && this.expiresIn > Date.now() / 1000) {
+          console.log('Token expired or about to expire, refreshing...')
           await this.refreshToken()
         } else if (this.token) {
           // Clear expired token

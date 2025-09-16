@@ -63,7 +63,7 @@ export function useStreamHandling() {
 
       const delta = parsedData.choices?.[0]?.delta
       const answerUuid = parsedData.id?.replace('chatcmpl-', '') || parsedData.id
-      
+
       // Handle both content and suggested questions
       const deltaContent = delta?.content || ''
       const suggestedQuestions = delta?.suggestedQuestions
@@ -77,11 +77,11 @@ export function useStreamHandling() {
       // Get current message
       const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
       const currentMessage = messages && messages[responseIndex] ? messages[responseIndex] : null
-      
+
       // Process content if present
       let newText = currentMessage?.text || ''
       let artifacts = currentMessage?.artifacts || []
-      
+
       if (deltaContent) {
         newText = newText + deltaContent
         artifacts = extractArtifacts(newText)
@@ -120,6 +120,8 @@ export function useStreamHandling() {
     abortSignal?: AbortSignal
   ): Promise<void> {
     const authStore = useAuthStore()
+    console.log('authStore', authStore.isValid)
+    await authStore.initializeAuth()
     const token = authStore.getToken
 
     try {
@@ -207,6 +209,7 @@ export function useStreamHandling() {
     abortSignal?: AbortSignal
   ): Promise<void> {
     const authStore = useAuthStore()
+    await authStore.initializeAuth()
     const token = authStore.getToken
 
     try {
