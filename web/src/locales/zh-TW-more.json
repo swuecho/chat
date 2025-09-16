@@ -1,16 +1,56 @@
 {
-  "bot": {
-    "noHistory": "還沒有紀錄",
-    "runNumber": "執行 {number}",
-    "tabs": {
-      "conversation": "預設",
-      "history": "紀錄"
-    }
+  "common": {
+    "disabled": "停用",
+    "enabled": "啟用",
+    "create": "建立",
+    "update": "更新"
+  },
+  "chat": {
+    "alreadyInNewChat": "已在新的對話中",
+    "generateMoreSuggestions": "產生更多建議",
+    "generating": "生成中..."
   },
   "admin": {
-    "name": "姓名"
+    "chat_model": {
+      "default": "預設",
+      "apiType": "API 類型"
+    }
   },
-  "error": {
-    "MODEL_006": "無法從模型取得回覆"
+  "workspace": {
+    "create": "建立工作區",
+    "edit": "編輯工作區",
+    "manage": "管理工作區",
+    "loading": "載入工作區中...",
+    "name": "名稱",
+    "namePlaceholder": "輸入工作區名稱",
+    "nameRequired": "工作區名稱為必填項",
+    "description": "描述",
+    "descriptionPlaceholder": "為此工作區添加可選描述",
+    "icon": "圖示",
+    "color": "顏色",
+    "saveError": "儲存工作區失敗",
+    "deleteConfirm": "確定要刪除此工作區嗎？",
+    "cannotDeleteDefault": "無法刪除預設工作區",
+    "switchedTo": "已切換至 {name}",
+    "created": "工作區建立成功",
+    "updated": "工作區更新成功",
+    "deleted": "工作區刪除成功",
+    "searchPlaceholder": "搜尋工作區...",
+    "totalCount": "共 {count} 個工作區",
+    "filteredResults": "/ {total}",
+    "noWorkspaces": "未找到工作區",
+    "createFirst": "建立您的第一個工作區",
+    "duplicate": "複製",
+    "setAsDefault": "設為預設",
+    "active": "目前",
+    "default": "預設",
+    "sessionCount": "{count} 個會話",
+    "lastUpdated": "更新於",
+    "switchError": "切換工作區失敗",
+    "reorderMode": "排序模式",
+    "dragToReorder": "拖曳排序",
+    "reorderSuccess": "工作區排序成功",
+    "reorderError": "工作區排序失敗",
+    "invalidColor": "顏色格式無效。請使用有效的十六進制顏色。"
   }
 }
