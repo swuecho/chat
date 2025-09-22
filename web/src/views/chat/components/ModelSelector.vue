@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { computed, ref, watch, h, onUnmounted } from 'vue'
+import { computed, ref, watch, h } from 'vue'
 import { NSelect, NForm, useMessage } from 'naive-ui'
-import { useSessionStore, useAuthStore } from '@/store'
+import { useSessionStore } from '@/store'
 import { useChatModels } from '@/hooks/useChatModels'
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
 import type { ChatModel } from '@/types/chat-models'
@@ -17,7 +17,6 @@ interface ChatSession {
 }
 
 const sessionStore = useSessionStore()
-const authStore = useAuthStore()
 const message = useMessage()
 const { useChatModelsQuery } = useChatModels()
 
@@ -127,11 +126,21 @@ const modelRef = ref<ModelFormData>({
         model: undefined
 })
 
+const isProgrammaticUpdate = ref(false)
+
+const setModelValue = (value: string | undefined) => {
+        if (modelRef.value.model === value) {
+                return
+        }
+        isProgrammaticUpdate.value = true
+        modelRef.value.model = value
+}
+
 // Initialize model once both session and default model are available
 watch([chatSession, defaultModel], ([session, defaultModelValue]) => {
         if (!modelRef.value.model) {
                 // Use session model if available, otherwise use default model
-                modelRef.value.model = session?.model ?? defaultModelValue
+                setModelValue(session?.model ?? defaultModelValue)
         }
 }, { immediate: true })
 
@@ -141,7 +150,7 @@ const sessionModel = computed(() => chatSession.value?.model)
 // Watch session model changes to keep form in sync (but only after initialization)
 watch(sessionModel, (newSessionModel) => {
         if (modelRef.value.model && newSessionModel && modelRef.value.model !== newSessionModel) {
-                modelRef.value.model = newSessionModel
+                setModelValue(newSessionModel)
         }
 })
 
@@ -149,10 +158,15 @@ watch(sessionModel, (newSessionModel) => {
 const isUpdating = ref(false)
 
 watch(() => modelRef.value.model, async (newModel, oldModel) => {
+        if (isProgrammaticUpdate.value) {
+                isProgrammaticUpdate.value = false
+                return
+        }
+
         // Only trigger update if this is a user-initiated change (both old and new values are defined)
         if (oldModel !== undefined && newModel !== undefined && newModel !== oldModel && newModel) {
                 isUpdating.value = true
-                
+
                 try {
                         // Persist to server
                         await sessionStore.updateSession(props.uuid, {
@@ -163,9 +177,9 @@ watch(() => modelRef.value.model, async (newModel, oldModel) => {
                 } catch (error) {
                         console.error('Failed to update session model:', error)
                         message.error('Failed to update model selection')
-                        
+
                         // Revert UI state
-                        modelRef.value.model = oldModel
+                        setModelValue(oldModel)
                 } finally {
                         isUpdating.value = false
                 }
