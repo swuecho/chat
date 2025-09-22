@@ -180,11 +180,16 @@ function onScrollToTop() {
     <div v-if="isLoading">
       <NSpin size="large" />
     </div>
-    <div v-else>
+    <!--
+     min-h-0 zeroes out the flex item’s minimum height. In a column flex container, the browser otherwise keeps a auto min-height that forces
+  the element to be at least as tall as its content, so it can’t shrink—the content overflows and the parent starts scrolling. Setting min-
+  h-0 lets that middle section shrink below its content height, which confines the overflow to the inner scrollRef div.
+
+    -->
+    <div v-else class="flex flex-col flex-1 min-h-0">
       <Header :title="snapshot_data.title" typ="snapshot" />
-      <main class="flex-1 overflow-hidden">
-        <div ref="scrollRef" class="h-full overflow-y-auto"
-          style="height: calc(100vh - 100px); scroll-behavior: smooth;">
+      <main class="flex flex-1 min-h-0 overflow-hidden">
+        <div ref="scrollRef" class="flex-1 overflow-y-auto" style="scroll-behavior: smooth;">
           <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
             <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
