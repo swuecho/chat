@@ -241,19 +241,49 @@ func main() {
 	// Public routes (apiRouter) don't need authentication or rate limiting
 	// TTS and errors endpoints are public
 	// Add CORS middleware to handle cross-origin requests
-	allowedOrigins := []string{"http://localhost:9002", "http://localhost:3000"}
+	defaultOrigins := []string{"http://localhost:9002", "http://localhost:3000"}
+	allowedOrigins := append([]string{}, defaultOrigins...)
+	restrictToConfigured := false
 	if corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); corsOrigins != "" {
-		allowedOrigins = strings.Split(corsOrigins, ",")
-		// Trim whitespace from each origin
-		for i, origin := range allowedOrigins {
-			allowedOrigins[i] = strings.TrimSpace(origin)
+		parts := strings.Split(corsOrigins, ",")
+		allowedOrigins = allowedOrigins[:0]
+		for _, origin := range parts {
+			trimmed := strings.TrimSpace(origin)
+			if trimmed == "" {
+				continue
+			}
+			allowedOrigins = append(allowedOrigins, trimmed)
 		}
+		restrictToConfigured = true
+	}
+
+	originValidator := func(origin string) bool {
+		if len(allowedOrigins) == 0 {
+			return true
+		}
+		for _, allowed := range allowedOrigins {
+			if allowed == "*" {
+				return true
+			}
+			if strings.EqualFold(origin, allowed) {
+				return true
+			}
+		}
+		if !restrictToConfigured {
+			if strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "http://127.0.0.1:") {
+				return true
+			}
+			if strings.HasPrefix(origin, "https://localhost:") || strings.HasPrefix(origin, "https://127.0.0.1:") {
+				return true
+			}
+		}
+		return false
 	}
 
 	corsOptions := handlers.CORS(
-		handlers.AllowedOrigins(allowedOrigins),
+		handlers.AllowedOriginValidator(originValidator),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cache-Control", "Connection"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cache-Control", "Connection", "Pragma", "Accept", "Accept-Language", "Origin", "Referer"}),
 		handlers.AllowCredentials(),
 	)
 
