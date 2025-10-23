@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"net/http"
+	"strings"
+
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // This function returns a middleware that limits requests from each user by their ID.
@@ -12,7 +14,8 @@ func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			// Get the user ID from the request, e.g. from a JWT token.
-			if r.URL.Path == "/chat" || r.URL.Path == "/chat_stream" {
+			path := r.URL.Path
+			if strings.HasSuffix(path, "/chat") || strings.HasSuffix(path, "/chat_stream") || strings.HasSuffix(path, "/chatbot") {
 				ctx := r.Context()
 				userIDInt, err := getUserID(ctx)
 				// role := ctx.Value(roleContextKey).(string)
