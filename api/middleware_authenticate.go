@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/swuecho/chat_backend/auth"
 )
 
 func CheckPermission(userID int, ctx context.Context) bool {
@@ -30,12 +31,13 @@ func CheckPermission(userID int, ctx context.Context) bool {
 }
 
 type AuthTokenResult struct {
-	Token  *jwt.Token
-	Claims jwt.MapClaims
-	UserID string
-	Role   string
-	Valid  bool
-	Error  *APIError
+	Token     *jwt.Token
+	Claims    jwt.MapClaims
+	UserID    string
+	Role      string
+	TokenType string
+	Valid     bool
+	Error     *APIError
 }
 
 func extractBearerToken(r *http.Request) string {
@@ -54,7 +56,7 @@ func createUserContext(r *http.Request, userID, role string) *http.Request {
 	return r.WithContext(ctx)
 }
 
-func parseAndValidateJWT(bearerToken string) *AuthTokenResult {
+func parseAndValidateJWT(bearerToken string, expectedTokenType string) *AuthTokenResult {
 	result := &AuthTokenResult{}
 
 	if bearerToken == "" {
@@ -110,10 +112,26 @@ func parseAndValidateJWT(bearerToken string) *AuthTokenResult {
 		return result
 	}
 
+	tokenType, ok := claims["token_type"].(string)
+	if !ok {
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.Detail = "Token type not found in token"
+		result.Error = &apiErr
+		return result
+	}
+
+	if expectedTokenType != "" && tokenType != expectedTokenType {
+		apiErr := ErrAuthInvalidCredentials
+		apiErr.Detail = "Token type is not valid for this operation"
+		result.Error = &apiErr
+		return result
+	}
+
 	result.Token = token
 	result.Claims = claims
 	result.UserID = userID
 	result.Role = role
+	result.TokenType = tokenType
 	result.Valid = true
 	return result
 }
@@ -204,7 +222,7 @@ func AdminRouteMiddleware(next http.Handler) http.Handler {
 func AdminAuthMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		bearerToken := extractBearerToken(r)
-		result := parseAndValidateJWT(bearerToken)
+		result := parseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
 
 		if result.Error != nil {
 			RespondWithAPIError(w, *result.Error)
@@ -228,7 +246,7 @@ func AdminAuthMiddleware(handler http.Handler) http.Handler {
 func UserAuthMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		bearerToken := extractBearerToken(r)
-		result := parseAndValidateJWT(bearerToken)
+		result := parseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
 
 		if result.Error != nil {
 			RespondWithAPIError(w, *result.Error)
@@ -256,7 +274,7 @@ func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
 		}
 
 		bearerToken := extractBearerToken(r)
-		result := parseAndValidateJWT(bearerToken)
+		result := parseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
 
 		if result.Error != nil {
 			RespondWithAPIError(w, *result.Error)
