@@ -1,11 +1,11 @@
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { deleteChatMessage } from '@/api'
 import { nowISO } from '@/utils/date'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { useStreamHandling } from './useStreamHandling'
 import { t } from '@/locales'
 
-export function useRegenerate(sessionUuid: string) {
+export function useRegenerate(sessionUuidRef: Ref<string>) {
   const loading = ref<boolean>(false)
   const abortController = ref<AbortController | null>(null)
   const { addChat, updateChat, updateChatPartial } = useChat()
@@ -21,6 +21,11 @@ export function useRegenerate(sessionUuid: string) {
     chat: any,
     dataSources: any[]
   ): Promise<{ updateIndex: number; isRegenerate: boolean }> {
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      return { updateIndex: index, isRegenerate: true }
+    }
+
     loading.value = true
 
     let updateIndex = index
@@ -49,6 +54,11 @@ export function useRegenerate(sessionUuid: string) {
     index: number,
     dataSources: any[]
   ): Promise<{ updateIndex: number; isRegenerate: boolean }> {
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      return { updateIndex: index, isRegenerate: false }
+    }
+
     const chatNext = dataSources[index + 1]
     let updateIndex = index + 1
     const isRegenerate = false
@@ -80,6 +90,11 @@ export function useRegenerate(sessionUuid: string) {
   }
 
   function handleRegenerateError(error: any, chatUuid: string, index: number): void {
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      return
+    }
+
     console.error('Regenerate error:', error)
 
     if (error.message === 'canceled') {
@@ -111,6 +126,11 @@ export function useRegenerate(sessionUuid: string) {
 
   async function onRegenerate(index: number, dataSources: any[]): Promise<void> {
     if (!validateRegenerateInput()) return
+
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      return
+    }
 
     const chat = dataSources[index]
     abortController.value = new AbortController()

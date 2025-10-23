@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { v7 as uuidv7 } from 'uuid'
 import { nowISO } from '@/utils/date'
 import { useChat } from '@/views/chat/hooks/useChat'
@@ -18,7 +18,7 @@ interface ChatMessage {
 }
 
 export function useConversationFlow(
-  sessionUuid: string,
+  sessionUuidRef: Ref<string>,
   scrollToBottom: () => Promise<void>,
   smoothScrollToBottomIfAtBottom: () => Promise<void>
 ) {
@@ -36,6 +36,11 @@ export function useConversationFlow(
       return false
     }
 
+    if (!sessionUuidRef.value) {
+      showErrorNotification('No active session selected')
+      return false
+    }
+
     // Validate message content
     const messageValidation = validateChatMessage(message)
     if (!messageValidation.isValid) {
@@ -47,6 +52,11 @@ export function useConversationFlow(
   }
 
   async function addUserMessage(chatUuid: string, message: string): Promise<void> {
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      return
+    }
+
     const chatMessage: ChatMessage = {
       uuid: chatUuid,
       dateTime: nowISO(),
@@ -60,6 +70,11 @@ export function useConversationFlow(
   }
 
   async function initializeChatResponse(dataSources: any[]): Promise<number> {
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      return dataSources.length - 1
+    }
+
     addChat(sessionUuid, {
       uuid: '',
       dateTime: nowISO(),
@@ -76,6 +91,11 @@ export function useConversationFlow(
     handleApiError(error, 'conversation-stream')
 
     const lastMessage = dataSources[responseIndex]
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      return
+    }
+
     if (lastMessage) {
       const errorMessage: ChatMessage = {
         uuid: lastMessage.uuid || uuidv7(),
@@ -103,6 +123,13 @@ export function useConversationFlow(
     dataSources: any[],
     chatUuid: string
   ): Promise<void> {
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      loading.value = false
+      abortController.value = null
+      return
+    }
+
     loading.value = true
     abortController.value = new AbortController()
     const responseIndex = await initializeChatResponse(dataSources)
