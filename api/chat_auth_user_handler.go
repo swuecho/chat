@@ -231,7 +231,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate access token using constant
-	tokenString, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, AccessTokenLifetime)
+	tokenString, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, AccessTokenLifetime, auth.TokenTypeAccess)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"user_id": user.ID,
@@ -242,7 +242,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate refresh token using constant
-	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, RefreshTokenLifetime)
+	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, RefreshTokenLifetime, auth.TokenTypeRefresh)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"user_id": user.ID,
@@ -300,7 +300,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate access token using constant
-	accessToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, AccessTokenLifetime)
+	accessToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, AccessTokenLifetime, auth.TokenTypeAccess)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"user_id": user.ID,
@@ -311,7 +311,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate refresh token using constant
-	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, RefreshTokenLifetime)
+	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, RefreshTokenLifetime, auth.TokenTypeRefresh)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"user_id": user.ID,
@@ -353,7 +353,7 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 	lifetime := time.Duration(10*365*24) * time.Hour
 	userId, _ := getUserID(r.Context())
 	userRole := r.Context().Value(userContextKey).(string)
-	token, err := auth.GenerateToken(userId, userRole, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime)
+	token, err := auth.GenerateToken(userId, userRole, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime, auth.TokenTypeAccess)
 
 	if err != nil {
 		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error()))
@@ -403,7 +403,7 @@ func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate refresh token
-	result := parseAndValidateJWT(refreshCookie.Value)
+	result := parseAndValidateJWT(refreshCookie.Value, auth.TokenTypeRefresh)
 	if result.Error != nil {
 		log.WithFields(log.Fields{
 			"ip":     r.RemoteAddr,
@@ -427,7 +427,7 @@ func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate new access token using constant
-	accessToken, err := auth.GenerateToken(int32(userIDInt), result.Role, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, AccessTokenLifetime)
+	accessToken, err := auth.GenerateToken(int32(userIDInt), result.Role, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, AccessTokenLifetime, auth.TokenTypeAccess)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"user_id": userIDInt,

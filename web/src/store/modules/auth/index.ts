@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { getExpiresIn, getToken, removeExpiresIn, removeToken, setExpiresIn, setToken } from './helper'
 
+let activeRefreshPromise: Promise<string | void> | null = null
+
 export interface AuthState {
   token: string | null  // Access token stored in memory
   expiresIn: number | null
@@ -72,43 +74,48 @@ export const useAuthStore = defineStore('auth-store', {
       removeToken()
     },
     async refreshToken() {
-      if (this.isRefreshing) {
-        console.log('Token refresh already in progress, skipping...')
-        return // Prevent multiple simultaneous refresh attempts
-      }
+      if (this.isRefreshing && activeRefreshPromise)
+        return activeRefreshPromise
 
       console.log('Starting token refresh...')
       this.isRefreshing = true
-      try {
-        // Call refresh endpoint - refresh token is sent automatically via httpOnly cookie
-        const response = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          credentials: 'include', // Include httpOnly cookies
-        })
 
-        console.log('Refresh response status:', response.status)
+      const refreshOperation = (async () => {
+        try {
+          // Call refresh endpoint - refresh token is sent automatically via httpOnly cookie
+          const response = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            credentials: 'include', // Include httpOnly cookies
+          })
 
-        if (response.ok) {
-          const data = await response.json()
-          console.log('Token refresh successful, setting new token')
-          this.setToken(data.accessToken)
-          this.setExpiresIn(data.expiresIn)
-          return data.accessToken
-        } else {
+          console.log('Refresh response status:', response.status)
+
+          if (response.ok) {
+            const data = await response.json()
+            console.log('Token refresh successful, setting new token')
+            this.setToken(data.accessToken)
+            this.setExpiresIn(data.expiresIn)
+            return data.accessToken as string
+          }
+
           // Refresh failed - user needs to login again
           console.log('Token refresh failed, removing tokens')
           this.removeToken()
           this.removeExpiresIn()
           throw new Error('Token refresh failed')
+        } catch (error) {
+          console.error('Token refresh error:', error)
+          this.removeToken()
+          this.removeExpiresIn()
+          throw error
+        } finally {
+          this.isRefreshing = false
+          activeRefreshPromise = null
         }
-      } catch (error) {
-        console.error('Token refresh error:', error)
-        this.removeToken()
-        this.removeExpiresIn()
-        throw error
-      } finally {
-        this.isRefreshing = false
-      }
+      })()
+
+      activeRefreshPromise = refreshOperation
+      return refreshOperation
     },
     setExpiresIn(expiresIn: number) {
       this.expiresIn = expiresIn
@@ -120,4 +127,3 @@ export const useAuthStore = defineStore('auth-store', {
     },
   },
 })
-

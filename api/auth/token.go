@@ -23,6 +23,11 @@ func NewUUID() string {
 
 var ErrInvalidToken = errors.New("invalid token")
 
+const (
+	TokenTypeAccess  = "access"
+	TokenTypeRefresh = "refresh"
+)
+
 func GenJwtSecretAndAudience() (string, string) {
 	// Generate a random byte string to use as the secret
 	secretBytes := make([]byte, 32)
@@ -41,19 +46,24 @@ func GenJwtSecretAndAudience() (string, string) {
 	return secret, audience
 }
 
-func GenerateToken(userID int32, role string, secret, jwt_audience string, lifetime time.Duration) (string, error) {
+func GenerateToken(userID int32, role string, secret, jwt_audience string, lifetime time.Duration, tokenType string) (string, error) {
+	if tokenType == "" {
+		tokenType = TokenTypeAccess
+	}
+
 	expires := time.Now().Add(lifetime).Unix()
 	notBefore := time.Now().Unix()
 	issuer := "https://www.bestqa.net"
 
 	claims := jwt.MapClaims{
-		"user_id": strconv.FormatInt(int64(userID), 10),
-		"exp":     expires,
-		"role":    role,
-		"jti":     NewUUID(),
-		"iss":     issuer,
-		"nbf":     notBefore,
-		"aud":     jwt_audience,
+		"user_id":    strconv.FormatInt(int64(userID), 10),
+		"exp":        expires,
+		"role":       role,
+		"jti":        NewUUID(),
+		"iss":        issuer,
+		"nbf":        notBefore,
+		"aud":        jwt_audience,
+		"token_type": tokenType,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -66,7 +76,7 @@ func GenerateToken(userID int32, role string, secret, jwt_audience string, lifet
 	return signedToken, nil
 }
 
-func ValidateToken(tokenString string, secret string) (int32, error) {
+func ValidateToken(tokenString string, secret string, expectedTokenType string) (int32, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Verify the signing algorithm and secret key used to sign the token
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -86,6 +96,15 @@ func ValidateToken(tokenString string, secret string) (int32, error) {
 
 	userIDStr, ok := claims["user_id"].(string)
 	if !ok {
+		return 0, ErrInvalidToken
+	}
+
+	tokenType, ok := claims["token_type"].(string)
+	if !ok {
+		return 0, ErrInvalidToken
+	}
+
+	if expectedTokenType != "" && tokenType != expectedTokenType {
 		return 0, ErrInvalidToken
 	}
 
