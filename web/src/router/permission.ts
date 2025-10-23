@@ -4,31 +4,35 @@ import { useWorkspaceStore } from '@/store/modules/workspace'
 import { useSessionStore } from '@/store/modules/session'
 import { store } from '@/store'
 
-// when time expired, remove the username from localstorage
-// this will force user re-login after
-// rome-ignore lint/suspicious/noExplicitAny: <explanation>
-function checkIsTokenExpired(auth_store: any) {
-  const accessToken = auth_store.getToken
-  if (accessToken) {
-    const current_ts = Math.floor(Date.now() / 1000)
-    const expiresIn = auth_store.getExpiresIn
-    if (expiresIn) {
-      const expired = expiresIn < current_ts
-      if (expired) {
-        auth_store.removeToken()
-        return expired
-      }
-    }
-    else {
-      return true
-    }
+const FIVE_MINUTES_IN_SECONDS = 5 * 60
+
+// Attempt to ensure we have a valid access token before continuing navigation
+async function ensureFreshToken(authStore: any) {
+  const currentTs = Math.floor(Date.now() / 1000)
+  const expiresIn = authStore.getExpiresIn
+  const token = authStore.getToken
+  //  the user hasn’t logged in
+  if (!token && !expiresIn)
+    return
+
+  // If we already have a token that is valid for some time, nothing to do
+  if (token && expiresIn && expiresIn > currentTs + FIVE_MINUTES_IN_SECONDS)
+    return
+
+  try {
+    await authStore.refreshToken()
+  }
+  catch (error) {
+    // If refresh fails, make sure state is cleared so UI can prompt user
+    authStore.removeToken()
+    authStore.removeExpiresIn()
   }
 }
 
 export function setupPageGuard(router: Router) {
   router.beforeEach(async (to, from, next) => {
     const auth_store = useAuthStore(store)
-    checkIsTokenExpired(auth_store)
+    await ensureFreshToken(auth_store)
 
     // Handle workspace context from URL
     if (to.name === 'WorkspaceChat' && to.params.workspaceUuid) {
