@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { useDialog, useMessage } from 'naive-ui'
 import { v4 as uuidv4 } from 'uuid'
 import { createChatBot, createChatSnapshot, getChatSessionDefault } from '@/api'
@@ -9,7 +9,7 @@ import { nowISO } from '@/utils/date'
 import { extractArtifacts } from '@/utils/artifacts'
 import { t } from '@/locales'
 
-export function useChatActions(sessionUuid: string) {
+export function useChatActions(sessionUuidRef: Ref<string>) {
   const dialog = useDialog()
   const nui_msg = useMessage()
   const sessionStore = useSessionStore()
@@ -40,6 +40,12 @@ export function useChatActions(sessionUuid: string) {
   }
 
   async function handleSnapshot() {
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      nui_msg.error('No active session selected.')
+      return
+    }
+
     snapshotLoading.value = true
     try {
       const snapshot = await createChatSnapshot(sessionUuid)
@@ -54,6 +60,12 @@ export function useChatActions(sessionUuid: string) {
   }
 
   async function handleCreateBot() {
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      nui_msg.error('No active session selected.')
+      return
+    }
+
     botLoading.value = true
     try {
       const snapshot = await createChatBot(sessionUuid)
@@ -70,6 +82,12 @@ export function useChatActions(sessionUuid: string) {
   function handleClear(loading: any) {
     if (loading.value)
       return
+
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      nui_msg.error('No active session selected.')
+      return
+    }
 
     console.log('🔄 handleClear called with sessionUuid:', sessionUuid)
 
@@ -94,6 +112,12 @@ export function useChatActions(sessionUuid: string) {
   }
 
   const handleCodeExampleAdded = async (codeInfo: any, streamResponse: any) => {
+    const sessionUuid = sessionUuidRef.value
+    if (!sessionUuid) {
+      nui_msg.error('No active session selected.')
+      return
+    }
+
     const exampleMessage = `📁 **Files uploaded successfully!**
 
 **Python example:**

@@ -20,11 +20,13 @@ service.interceptors.request.use(
     // Wait for auth initialization to complete before making API calls
     if (authStore.isInitializing) {
       logger.debug('Waiting for auth initialization to complete', 'Axios', { url: config.url })
-      // Wait for initialization to complete
-      while (authStore.isInitializing) {
-        await new Promise(resolve => setTimeout(resolve, 50))
+      await authStore.waitForInitialization()
+
+      if (authStore.isInitializing) {
+        logger.warn('Auth initialization still in progress after timeout', 'Axios', { url: config.url })
+      } else {
+        logger.debug('Auth initialization completed', 'Axios', { url: config.url })
       }
-      logger.debug('Auth initialization completed', 'Axios', { url: config.url })
     }
 
     // Check if token is expired before making request

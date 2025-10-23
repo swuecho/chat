@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { watch } from 'vue'
 import { getExpiresIn, getToken, removeExpiresIn, removeToken, setExpiresIn, setToken } from './helper'
 
 let activeRefreshPromise: Promise<string | void> | null = null
@@ -124,6 +125,31 @@ export const useAuthStore = defineStore('auth-store', {
     removeExpiresIn() {
       this.expiresIn = null
       removeExpiresIn()
+    },
+    async waitForInitialization(timeoutMs = 10000) {
+      if (!this.isInitializing) {
+        return
+      }
+
+      await new Promise<void>((resolve) => {
+        let stopWatcher: (() => void) | null = null
+        const timeoutId = setTimeout(() => {
+          if (stopWatcher) stopWatcher()
+          resolve()
+        }, timeoutMs)
+
+        stopWatcher = watch(
+          () => this.isInitializing,
+          (isInit) => {
+            if (!isInit) {
+              clearTimeout(timeoutId)
+              if (stopWatcher) stopWatcher()
+              resolve()
+            }
+          },
+          { immediate: false }
+        )
+      })
     },
   },
 })

@@ -1,5 +1,5 @@
 <script lang='ts' setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { NAutoComplete, NButton, NInput, NModal, NSpin } from 'naive-ui'
 import  { v7 as uuidv7 } from 'uuid'
 import { useScroll } from '@/views/chat/hooks/useScroll'
@@ -36,13 +36,15 @@ const messageStore = useMessageStore()
 const sessionStore = useSessionStore()
 const promptStore = usePromptStore()
 
-const { sessionUuid } = defineProps({
+const props = defineProps({
   sessionUuid: {
     type: String,
     required: false,
     default: ''
   },
-});
+})
+
+const sessionUuid = toRef(props, 'sessionUuid')
 
 const { isMobile } = useBasicLayout()
 const { scrollRef, scrollToBottom, smoothScrollToBottomIfAtBottom } = useScroll()
@@ -53,13 +55,25 @@ const regenerate = useRegenerate(sessionUuid)
 const searchAndPrompts = useSearchAndPrompts()
 const chatActions = useChatActions(sessionUuid)
 
-// Sync chat messages only if we have a valid sessionUuid
-if (sessionUuid) {
-  messageStore.syncChatMessages(sessionUuid)
-}
+watch(sessionUuid, async (newSession, oldSession) => {
+  if (!newSession) {
+    return
+  }
 
-const dataSources = computed(() => messageStore.getChatSessionDataByUuid(sessionUuid))
-const chatSession = computed(() => sessionStore.getChatSessionByUuid(sessionUuid))
+  if (oldSession && oldSession !== newSession) {
+    conversationFlow.stopStream()
+    regenerate.stopRegenerate()
+  }
+
+  try {
+    await messageStore.syncChatMessages(newSession)
+  } catch (error) {
+    console.error('Failed to sync messages for session change:', error)
+  }
+}, { immediate: true })
+
+const dataSources = computed(() => messageStore.getChatSessionDataByUuid(sessionUuid.value))
+const chatSession = computed(() => sessionStore.getChatSessionByUuid(sessionUuid.value))
 
 // Destructure from composables
 const { prompt, searchOptions, renderOption, handleSelectAutoComplete, handleUsePrompt } = searchAndPrompts
