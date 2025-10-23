@@ -20,7 +20,7 @@ import { t } from '@/locales'
 export interface WorkspaceState {
   workspaces: Chat.Workspace[]
   activeWorkspaceUuid: string | null
-  workspaceActiveSessions: Record<string, string> // workspaceUuid -> sessionUuid
+  workspaceActiveSessions: Record<string, string | undefined> // workspaceUuid -> sessionUuid
   pendingSessionRestore: { workspaceUuid: string; sessionUuid: string } | null
   isLoading: boolean
 }
@@ -424,22 +424,28 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       // Get the updated sessions list after potential loading
       const sessionsAfterLoad = sessionStore.getSessionsByWorkspace(workspaceUuid)
 
-      // Restore the previously active session for this workspace
+      // Restore the previously active session for this workspace if it is still valid
       const activeSessionForWorkspace = this.workspaceActiveSessions[workspaceUuid]
-      console.log('🔍 Active session for workspace:', activeSessionForWorkspace)
+      const hasSessions = sessionsAfterLoad.length > 0
+      const isStoredSessionValid = Boolean(
+        activeSessionForWorkspace &&
+        sessionsAfterLoad.some(session => session.uuid === activeSessionForWorkspace)
+      )
 
-      if (activeSessionForWorkspace) {
-        // Restore the previously active session
+      console.log('🔍 Active session for workspace:', activeSessionForWorkspace, 'isValid:', isStoredSessionValid)
+
+      if (isStoredSessionValid && activeSessionForWorkspace) {
         sessionStore.setActiveSessionWithoutNavigation(workspaceUuid, activeSessionForWorkspace)
         console.log('✅ Restored previously active session')
-      } else if (sessionsAfterLoad.length > 0) {
-        // No previously active session, set the first session as active
+      } else if (hasSessions) {
         const firstSession = sessionsAfterLoad[0]
-        console.log('🔄 No previous active session, setting first session as active:', firstSession.title)
+        console.log('🔄 Selecting first available session as active:', firstSession.title)
         sessionStore.setActiveSessionWithoutNavigation(workspaceUuid, firstSession.uuid)
         console.log('✅ Set first session as active')
       } else {
-        console.log('⚠️ No sessions available in workspace')
+        console.log('⚠️ No sessions available in workspace; clearing active session state')
+        this.clearActiveSessionForWorkspace(workspaceUuid)
+        sessionStore.activeSessionUuid = null
       }
 
       // Emit an event that the chat view can listen to

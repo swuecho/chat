@@ -111,8 +111,8 @@ async function handleDropdownSelect(key: string) {
       await workspaceStore.setActiveWorkspace(key)
       console.log('✅ setActiveWorkspace completed')
 
-      // Get the active session for this workspace to include in URL
-      const activeSession = sessionStore.activeSessionUuid
+      // Get the active session tracked for this workspace to include in URL
+      const activeSession = workspaceStore.getActiveSessionForWorkspace(key)
       const targetRoute = activeSession
         ? `/workspace/${key}/chat/${activeSession}`
         : `/workspace/${key}/chat`
@@ -133,7 +133,7 @@ async function handleWorkspaceCreated(workspace: Chat.Workspace) {
   await workspaceStore.setActiveWorkspace(workspace.uuid)
 
   // Get the active session to include in URL
-  const activeSession = sessionStore.activeSessionUuid
+  const activeSession = workspaceStore.getActiveSessionForWorkspace(workspace.uuid)
   const targetRoute = activeSession
     ? `/workspace/${workspace.uuid}/chat/${activeSession}`
     : `/workspace/${workspace.uuid}/chat`
