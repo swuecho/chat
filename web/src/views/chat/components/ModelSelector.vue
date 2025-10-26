@@ -126,6 +126,8 @@ const modelRef = ref<ModelFormData>({
         model: undefined
 })
 
+const committedModel = ref<string | undefined>(undefined)
+
 const isProgrammaticUpdate = ref(false)
 
 const setModelValue = (value: string | undefined) => {
@@ -138,9 +140,16 @@ const setModelValue = (value: string | undefined) => {
 
 // Initialize model once both session and default model are available
 watch([chatSession, defaultModel], ([session, defaultModelValue]) => {
-        if (!modelRef.value.model) {
+        const sessionModelValue = session?.model
+        const initialModel = sessionModelValue ?? defaultModelValue
+
+        if (initialModel && committedModel.value !== initialModel) {
+                committedModel.value = initialModel
+        }
+
+        if (!modelRef.value.model && initialModel) {
                 // Use session model if available, otherwise use default model
-                setModelValue(session?.model ?? defaultModelValue)
+                setModelValue(initialModel)
         }
 }, { immediate: true })
 
@@ -149,7 +158,13 @@ const sessionModel = computed(() => chatSession.value?.model)
 
 // Watch session model changes to keep form in sync (but only after initialization)
 watch(sessionModel, (newSessionModel) => {
-        if (modelRef.value.model && newSessionModel && modelRef.value.model !== newSessionModel) {
+        if (!newSessionModel) {
+                return
+        }
+
+        committedModel.value = newSessionModel
+
+        if (modelRef.value.model !== newSessionModel) {
                 setModelValue(newSessionModel)
         }
 })
@@ -157,33 +172,46 @@ watch(sessionModel, (newSessionModel) => {
 // Optimistic updates with error handling
 const isUpdating = ref(false)
 
-watch(() => modelRef.value.model, async (newModel, oldModel) => {
+const handleModelChange = async (newModel: string | undefined, oldModel: string | undefined) => {
         if (isProgrammaticUpdate.value) {
                 isProgrammaticUpdate.value = false
                 return
         }
 
-        // Only trigger update if this is a user-initiated change (both old and new values are defined)
-        if (oldModel !== undefined && newModel !== undefined && newModel !== oldModel && newModel) {
-                isUpdating.value = true
-
-                try {
-                        // Persist to server
-                        await sessionStore.updateSession(props.uuid, {
-                                model: newModel
-                        })
-                        
-                        message.success(`Model updated to ${newModel}`)
-                } catch (error) {
-                        console.error('Failed to update session model:', error)
-                        message.error('Failed to update model selection')
-
-                        // Revert UI state
-                        setModelValue(oldModel)
-                } finally {
-                        isUpdating.value = false
-                }
+        if (!newModel) {
+                return
         }
+
+        const previousModel = committedModel.value ?? oldModel
+
+        if (previousModel && previousModel === newModel) {
+                return
+        }
+
+        isUpdating.value = true
+
+        try {
+                await sessionStore.updateSession(props.uuid, {
+                        model: newModel
+                })
+
+                const selectedModel = data?.value?.find((model: ChatModel) => model.name === newModel)
+                const displayName = selectedModel?.label || newModel
+                message.success(`Model updated to ${displayName}`)
+                committedModel.value = newModel
+        } catch (error) {
+                console.error('Failed to update session model:', error)
+                message.error('Failed to update model selection')
+                setModelValue(previousModel ?? defaultModel.value)
+        } finally {
+                isUpdating.value = false
+        }
+}
+
+watch(() => modelRef.value.model, (newModel, oldModel) => {
+        // Align the watch signature with handleModelChange expectations
+        // Naive UI emits undefined before the actual value, so coerce to undefined instead of null
+        handleModelChange(newModel ?? undefined, oldModel ?? undefined)
 })
 
 
