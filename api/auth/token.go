@@ -101,7 +101,13 @@ func ValidateToken(tokenString string, secret string, expectedTokenType string) 
 
 	tokenType, ok := claims["token_type"].(string)
 	if !ok {
-		return 0, ErrInvalidToken
+		// Support legacy tokens that were minted without token_type; treat them as access tokens
+		// so existing forever tokens continue to work.
+		if expectedTokenType == "" || expectedTokenType == TokenTypeAccess {
+			tokenType = TokenTypeAccess
+		} else {
+			return 0, ErrInvalidToken
+		}
 	}
 
 	if expectedTokenType != "" && tokenType != expectedTokenType {

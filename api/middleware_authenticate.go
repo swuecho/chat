@@ -114,10 +114,16 @@ func parseAndValidateJWT(bearerToken string, expectedTokenType string) *AuthToke
 
 	tokenType, ok := claims["token_type"].(string)
 	if !ok {
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.Detail = "Token type not found in token"
-		result.Error = &apiErr
-		return result
+		// Legacy forever tokens were generated before the token_type claim existed.
+		// Treat them as access tokens so they remain usable.
+		if expectedTokenType == "" || expectedTokenType == auth.TokenTypeAccess {
+			tokenType = auth.TokenTypeAccess
+		} else {
+			apiErr := ErrAuthInvalidCredentials
+			apiErr.Detail = "Token type not found in token"
+			result.Error = &apiErr
+			return result
+		}
 	}
 
 	if expectedTokenType != "" && tokenType != expectedTokenType {
