@@ -162,24 +162,8 @@ async function reorderWorkspaces(fromIndex: number, toIndex: number) {
     
     console.log('📋 New order:', reorderedWorkspaces.map((w, i) => `${i}: ${w.name}`))
     
-    // Update order positions for each workspace
-    const updatePromises = reorderedWorkspaces.map(async (workspace, index) => {
-      const currentOrder = workspace.orderPosition || 0
-      if (currentOrder !== index) {
-        console.log(`📝 Updating ${workspace.name}: ${currentOrder} → ${index}`)
-        try {
-          await workspaceStore.updateWorkspaceOrder(workspace.uuid, index)
-        } catch (error) {
-          console.error(`❌ Failed to update order for workspace ${workspace.name}:`, error)
-          throw error
-        }
-      }
-    })
-    
-    await Promise.all(updatePromises)
-    
-    // Refresh workspaces to get the updated order from backend
-    await workspaceStore.syncWorkspaces()
+    // Persist the new order (currently local-only; backend wiring TBD)
+    await workspaceStore.updateWorkspaceOrder(reorderedWorkspaces.map(w => w.uuid))
     
     message.success(t('workspace.reorderSuccess'))
     console.log('✅ Workspace reordering completed')

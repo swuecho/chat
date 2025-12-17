@@ -30,8 +30,14 @@ const chatSession = computed(() => sessionStore.getChatSessionByUuid(props.uuid)
 const { data, isLoading, error, isError } = useChatModelsQuery()
 
 // format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now
-const formatTimestamp = (timestamp: string) => {
+const formatTimestamp = (timestamp?: string) => {
+        if (!timestamp) {
+                return 'Never used'
+        }
         const date = new Date(timestamp)
+        if (Number.isNaN(date.getTime())) {
+                return 'Never used'
+        }
         const days = differenceInDays(new Date(), date)
         if (days > 30) {
                 return 'a month ago'

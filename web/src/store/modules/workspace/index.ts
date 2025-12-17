@@ -7,7 +7,7 @@ import {
   deleteWorkspace,
   ensureDefaultWorkspace,
   setDefaultWorkspace,
-  updateWorkspaceOrder,
+  updateWorkspaceOrder as updateWorkspaceOrderApi,
   autoMigrateLegacySessions,
   getAllWorkspaceActiveSessions,
   getChatSessionDefault,
@@ -557,17 +557,30 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
     async updateWorkspaceOrder(workspaceUuids: string[]) {
       try {
-        // API expects individual updates - this needs to be implemented properly
-        // For now, just reorder locally
-        console.warn('updateWorkspaceOrder API call needs to be implemented')
-        // Reorder workspaces locally
+        if (!Array.isArray(workspaceUuids) || workspaceUuids.length === 0) {
+          console.warn('updateWorkspaceOrder expects a non-empty array of UUIDs')
+          return
+        }
+
+        // Persist order positions to backend
+        const updatePromises = workspaceUuids.map((uuid, index) => updateWorkspaceOrderApi(uuid, index))
+        await Promise.all(updatePromises)
+
+        // Reorder locally to reflect saved order
         const reorderedWorkspaces: Chat.Workspace[] = []
-        workspaceUuids.forEach(uuid => {
+        workspaceUuids.forEach((uuid, index) => {
           const workspace = this.workspaces.find(w => w.uuid === uuid)
           if (workspace) {
-            reorderedWorkspaces.push(workspace)
+            reorderedWorkspaces.push({ ...workspace, orderPosition: index })
           }
         })
+
+        // If we couldn't build a valid reordered list, avoid wiping the current state
+        if (reorderedWorkspaces.length === 0) {
+          console.warn('No workspaces matched the provided order list; skipping reorder')
+          return
+        }
+
         this.workspaces = reorderedWorkspaces
       } catch (error) {
         console.error('Failed to update workspace order:', error)
