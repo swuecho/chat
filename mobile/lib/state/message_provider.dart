@@ -359,6 +359,20 @@ class MessageNotifier extends StateNotifier<MessageState> {
       return error.toString();
     }
   }
+
+  Future<String?> deleteMessage(String messageId) async {
+    try {
+      await _api.deleteMessage(messageId);
+      final updatedMessages = state.messages
+          .where((message) => message.id != messageId)
+          .toList();
+      state = state.copyWith(messages: updatedMessages);
+      return null;
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      return error.toString();
+    }
+  }
 }
 
 final messageProvider = StateNotifierProvider<MessageNotifier, MessageState>(

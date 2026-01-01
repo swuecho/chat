@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../models/chat_session.dart';
 import '../models/workspace.dart';
 import '../state/auth_provider.dart';
+import '../state/model_provider.dart';
 import '../state/session_provider.dart';
 import '../state/workspace_provider.dart';
 import '../widgets/session_tile.dart';
@@ -19,6 +20,7 @@ class HomeScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final workspaceState = ref.watch(workspaceProvider);
     final sessionState = ref.watch(sessionProvider);
+    final modelState = ref.watch(modelProvider);
     final sessions = ref.watch(
       sessionsForWorkspaceProvider(workspaceState.activeWorkspaceId),
     );
@@ -40,6 +42,16 @@ class HomeScreen extends HookConsumerWidget {
       );
       return null;
     }, [workspaceState.activeWorkspaceId]);
+
+    // Pre-load models
+    useEffect(() {
+      if (modelState.models.isEmpty && !modelState.isLoading) {
+        Future.microtask(
+          () => ref.read(modelProvider.notifier).loadModels(),
+        );
+      }
+      return null;
+    }, const []);
 
     return Scaffold(
       appBar: AppBar(
@@ -268,10 +280,30 @@ class HomeScreen extends HookConsumerWidget {
     if (workspaceId == null) {
       return;
     }
+
+    // Get default model from API
+    final modelState = ref.read(modelProvider);
+    if (modelState.models.isEmpty) {
+      // Load models if not loaded yet
+      await ref.read(modelProvider.notifier).loadModels();
+    }
+
+    final defaultModel = ref.read(modelProvider).activeModel;
+    if (defaultModel == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No models available. Please configure models in the backend.'),
+          ),
+        );
+      }
+      return;
+    }
+
     final created = await ref.read(sessionProvider.notifier).createSession(
           workspaceId: workspaceId,
           title: 'New session',
-          model: 'GPT-4.1',
+          model: defaultModel.name,
         );
 
     if (created == null) {

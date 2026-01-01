@@ -156,7 +156,10 @@ class ChatScreen extends HookConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            MessageBubble(message: message),
+            MessageBubble(
+              message: message,
+              onDelete: () => _deleteMessage(context, ref, message.id),
+            ),
             if (showSuggested)
               SuggestedQuestions(
                 questions: message.suggestedQuestions,
@@ -359,6 +362,26 @@ class ChatScreen extends HookConsumerWidget {
           SnackBar(content: Text(error.toString())),
         );
       }
+    }
+  }
+
+  Future<void> _deleteMessage(
+    BuildContext context,
+    WidgetRef ref,
+    String messageId,
+  ) async {
+    final error = await ref.read(messageProvider.notifier).deleteMessage(messageId);
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Message deleted'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 }

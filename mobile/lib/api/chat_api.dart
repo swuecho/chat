@@ -322,6 +322,17 @@ class ChatApi {
     }
   }
 
+  Future<void> deleteMessage(String messageId) async {
+    final uri = Uri.parse('$baseUrl/api/uuid/chat_messages/$messageId');
+    debugPrint('DELETE $uri');
+    final response = await _client.delete(uri, headers: _defaultHeaders());
+    debugPrint('Delete message response ${response.statusCode}: ${response.body}');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to delete message (${response.statusCode})');
+    }
+  }
+
   Future<ChatSession> createSession({
     required String workspaceId,
     required String title,
@@ -365,7 +376,15 @@ class ChatApi {
     }
     final cookie = refreshCookie;
     if (cookie != null && cookie.isNotEmpty) {
-      headers['Cookie'] = cookie;
+      // Ensure the cookie is properly formatted with the refresh_token name
+      // The stored cookie value includes the name (e.g., "refresh_token=xyz")
+      // If it doesn't include the name, add it
+      if (cookie.contains('=')) {
+        headers['Cookie'] = cookie;
+      } else {
+        headers['Cookie'] = 'refresh_token=$cookie';
+      }
+      debugPrint('Sending Cookie header: ${headers['Cookie']!.length > 50 ? '${headers['Cookie']!.substring(0, 50)}...' : headers['Cookie']}');
     }
     return headers;
   }
@@ -404,11 +423,29 @@ class ChatApi {
   }
 
   String? _extractRefreshCookie(http.Response response) {
+    // Log all response headers for debugging
+    debugPrint('All response headers: ${response.headers.keys.join(", ")}');
+
+    // Try to get the set-cookie header (case-insensitive)
     final rawCookie = response.headers['set-cookie'];
     if (rawCookie == null || rawCookie.isEmpty) {
+      debugPrint('WARNING: No set-cookie header found in response');
+      debugPrint('Available headers: ${response.headers.toString()}');
       return null;
     }
-    return rawCookie.split(';').first;
+
+    // The Set-Cookie header may contain multiple attributes separated by semicolons
+    // We only need the first part (name=value)
+    final cookie = rawCookie.split(';').first.trim();
+
+    // Verify it's the refresh_token cookie
+    if (!cookie.startsWith('refresh_token=')) {
+      debugPrint('WARNING: Cookie is not refresh_token: $cookie');
+      return null;
+    }
+
+    debugPrint('Extracted refresh cookie: ${cookie.length > 50 ? '${cookie.substring(0, 50)}...' : cookie}');
+    return cookie;
   }
 
   int? _asInt(dynamic value) {
@@ -430,6 +467,7 @@ class ChatApi {
   Future<AuthTokenResult> refreshToken() async {
     final uri = Uri.parse('$baseUrl/api/auth/refresh');
     debugPrint('POST $uri');
+    debugPrint('Refresh token cookie: $refreshCookie');
     final response = await _client.post(
       uri,
       headers: _defaultHeaders(),
@@ -442,10 +480,12 @@ class ChatApi {
 
     final payload = jsonDecode(response.body);
     if (payload is Map<String, dynamic> && payload['accessToken'] is String) {
+      // Extract new refresh cookie if the backend sends one (for token rotation)
+      final newRefreshCookie = _extractRefreshCookie(response);
       return AuthTokenResult(
         accessToken: payload['accessToken'] as String,
         expiresIn: _asInt(payload['expiresIn']) ?? 0,
-        refreshCookie: refreshCookie,
+        refreshCookie: newRefreshCookie ?? refreshCookie,
       );
     }
     throw Exception('Refresh response missing access token.');
