@@ -12,6 +12,7 @@ dependencies:
   flutter_hooks: ^0.20.5
   hooks_riverpod: ^2.4.10
   http: ^1.2.1
+  flutter_markdown: ^0.7.2
 
 
 dev_dependencies:

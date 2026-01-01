@@ -42,7 +42,11 @@ class SessionNotifier extends StateNotifier<SessionState> {
       state = state.copyWith(sessions: const [], isLoading: false);
       return;
     }
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(
+      sessions: const [],
+      isLoading: true,
+      errorMessage: null,
+    );
     try {
       final sessions = await _api.fetchSessions(workspaceId: workspaceId);
       sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));

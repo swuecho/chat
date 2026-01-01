@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 class MessageComposer extends HookWidget {
-  const MessageComposer({super.key, required this.onSend});
+  const MessageComposer({
+    super.key,
+    required this.onSend,
+    required this.isSending,
+  });
 
   final ValueChanged<String> onSend;
+  final bool isSending;
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +24,7 @@ class MessageComposer extends HookWidget {
             Expanded(
               child: TextField(
                 controller: controller,
+                enabled: !isSending,
                 minLines: 1,
                 maxLines: 4,
                 decoration: const InputDecoration(
@@ -28,7 +34,9 @@ class MessageComposer extends HookWidget {
             ),
             const SizedBox(width: 8),
             IconButton.filled(
-              onPressed: () {
+              onPressed: isSending
+                  ? null
+                  : () {
                 final text = controller.text.trim();
                 if (text.isEmpty) return;
                 controller.clear();

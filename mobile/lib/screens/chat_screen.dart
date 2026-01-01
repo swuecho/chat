@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../models/chat_message.dart';
@@ -15,6 +16,14 @@ class ChatScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final messages = ref.watch(messagesForSessionProvider(session.id));
+    final messageState = ref.watch(messageProvider);
+
+    useEffect(() {
+      Future.microtask(
+        () => ref.read(messageProvider.notifier).loadMessages(session.id),
+      );
+      return null;
+    }, [session.id]);
 
     return Scaffold(
       appBar: AppBar(
@@ -41,43 +50,93 @@ class ChatScreen extends HookConsumerWidget {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[index];
-                return MessageBubble(message: message);
-              },
+            child: _buildMessageList(
+              context,
+              ref,
+              messages,
+              messageState,
             ),
           ),
           MessageComposer(
-            onSend: (text) => _sendMessage(ref, text),
+            onSend: (text) => _sendMessage(context, ref, text),
+            isSending: messageState.isSending,
           ),
         ],
       ),
     );
   }
 
-  void _sendMessage(WidgetRef ref, String text) {
-    final now = DateTime.now();
-    final userMessage = ChatMessage(
-      id: now.millisecondsSinceEpoch.toString(),
-      sessionId: session.id,
-      role: MessageRole.user,
-      content: text,
-      createdAt: now,
+  Widget _buildMessageList(
+    BuildContext context,
+    WidgetRef ref,
+    List<ChatMessage> messages,
+    MessageState messageState,
+  ) {
+    if (messageState.isLoading && messages.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (messageState.errorMessage != null && messages.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Unable to load messages.',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              messageState.errorMessage!,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () =>
+                  ref.read(messageProvider.notifier).loadMessages(session.id),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (messages.isEmpty) {
+      return Center(
+        child: Text(
+          'No messages yet.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      itemCount: messages.length,
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        return MessageBubble(message: message);
+      },
     );
+  }
 
-    ref.read(messageProvider.notifier).addMessage(userMessage);
-
-    final assistantMessage = ChatMessage(
-      id: '${now.millisecondsSinceEpoch}-ai',
-      sessionId: session.id,
-      role: MessageRole.assistant,
-      content: 'Working on that now... ',
-      createdAt: DateTime.now().add(const Duration(milliseconds: 200)),
-    );
-
-    ref.read(messageProvider.notifier).addMessage(assistantMessage);
+  Future<void> _sendMessage(
+    BuildContext context,
+    WidgetRef ref,
+    String text,
+  ) async {
+    final error = await ref.read(messageProvider.notifier).sendMessage(
+          sessionId: session.id,
+          content: text,
+        );
+    if (error == null) {
+      return;
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+    }
   }
 }

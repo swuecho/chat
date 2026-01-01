@@ -18,7 +18,8 @@ class ChatSession {
         _asString(json['uuid']) ??
         _asString(json['session_id']) ??
         '';
-    final workspaceId = _asString(json['workspace_id']) ??
+    final workspaceId = _asString(json['workspaceUuid']) ??
+        _asString(json['workspace_id']) ??
         _asString(json['workspaceId']) ??
         _asString(json['workspace_uuid']) ??
         '';
