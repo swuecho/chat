@@ -45,7 +45,7 @@ class ChatScreen extends HookConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(activeSession.title),
+           Text(_getDisplayTitle(activeSession.title)),
             Text(
               activeSession.model,
               style: Theme.of(context)
@@ -383,5 +383,12 @@ class ChatScreen extends HookConsumerWidget {
         ),
       );
     }
+  }
+it 
+  String _getDisplayTitle(String title) {
+    if (title.isEmpty || title.toLowerCase() == 'untitled session') {
+      return 'New Chat';
+    }
+    return title;
   }
 }

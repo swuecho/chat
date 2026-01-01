@@ -14,14 +14,25 @@ class SessionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Display title or 'New Chat' if empty/untitled
+    final displayTitle = _getDisplayTitle();
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        title: Text(session.title),
+        title: Text(displayTitle),
         subtitle: Text('Model: ${session.model}'),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
     );
+  }
+
+  String _getDisplayTitle() {
+    if (session.title.isEmpty ||
+        session.title.toLowerCase() == 'untitled session') {
+      return 'New Chat';
+    }
+    return session.title;
   }
 }

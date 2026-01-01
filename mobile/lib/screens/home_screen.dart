@@ -302,7 +302,7 @@ class HomeScreen extends HookConsumerWidget {
 
     final created = await ref.read(sessionProvider.notifier).createSession(
           workspaceId: workspaceId,
-          title: 'New session',
+          title: 'New Chat',
           model: defaultModel.name,
         );
 
