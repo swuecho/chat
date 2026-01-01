@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../models/chat_session.dart';
 import '../models/workspace.dart';
+import '../state/auth_provider.dart';
 import '../state/session_provider.dart';
 import '../state/workspace_provider.dart';
 import '../widgets/session_tile.dart';
@@ -21,7 +22,6 @@ class HomeScreen extends HookConsumerWidget {
       sessionsForWorkspaceProvider(workspaceState.activeWorkspaceId),
     );
     final activeWorkspace = workspaceState.activeWorkspace;
-
     useEffect(() {
       Future.microtask(
         () => ref.read(workspaceProvider.notifier).loadWorkspaces(),
@@ -43,8 +43,13 @@ class HomeScreen extends HookConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chats'),
-        actions: const [
-          Padding(
+        actions: [
+          IconButton(
+            onPressed: () => ref.read(authProvider.notifier).logout(),
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+          ),
+          const Padding(
             padding: EdgeInsets.only(right: 12),
             child: WorkspaceSelector(),
           ),
@@ -107,26 +112,6 @@ class HomeScreen extends HookConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Workspace',
-          style: Theme.of(context)
-              .textTheme
-              .labelLarge
-              ?.copyWith(color: Colors.grey[600]),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          activeWorkspace.name,
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        if (activeWorkspace.description.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(
-            activeWorkspace.description,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-        const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -206,18 +191,64 @@ class HomeScreen extends HookConsumerWidget {
       itemCount: sessions.length,
       itemBuilder: (context, index) {
         final session = sessions[index];
-        return SessionTile(
-          session: session,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ChatScreen(session: session),
-              ),
-            );
+        return Dismissible(
+          key: ValueKey(session.id),
+          direction: DismissDirection.endToStart,
+          confirmDismiss: (_) => _confirmDeleteSession(context),
+          background: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            alignment: Alignment.centerRight,
+            decoration: BoxDecoration(
+              color: Colors.red[600],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.delete, color: Colors.white),
+          ),
+          onDismissed: (_) async {
+            final error = await ref
+                .read(sessionProvider.notifier)
+                .deleteSession(session.id);
+            if (error != null && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(error)),
+              );
+            }
           },
+          child: SessionTile(
+            session: session,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ChatScreen(session: session),
+                ),
+              );
+            },
+          ),
         );
       },
     );
+  }
+
+  Future<bool> _confirmDeleteSession(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete session?'),
+        content: const Text('This will remove the session and its messages.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   Future<void> _createSession(BuildContext context, WidgetRef ref) async {

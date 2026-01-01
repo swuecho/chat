@@ -10,25 +10,25 @@ class MessageState {
   const MessageState({
     required this.messages,
     required this.isLoading,
-    required this.isSending,
+    required this.sendingSessionIds,
     this.errorMessage,
   });
 
   final List<ChatMessage> messages;
   final bool isLoading;
-  final bool isSending;
+  final Set<String> sendingSessionIds;
   final String? errorMessage;
 
   MessageState copyWith({
     List<ChatMessage>? messages,
     bool? isLoading,
-    bool? isSending,
+    Set<String>? sendingSessionIds,
     String? errorMessage,
   }) {
     return MessageState(
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
-      isSending: isSending ?? this.isSending,
+      sendingSessionIds: sendingSessionIds ?? this.sendingSessionIds,
       errorMessage: errorMessage,
     );
   }
@@ -39,7 +39,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       : super(const MessageState(
           messages: [],
           isLoading: false,
-          isSending: false,
+          sendingSessionIds: {},
         ));
 
   final ChatApi _api;
@@ -51,8 +51,13 @@ class MessageNotifier extends StateNotifier<MessageState> {
       final remaining = state.messages
           .where((message) => message.sessionId != sessionId)
           .toList();
+      final merged = _mergeSessionMessages(
+        existing: state.messages,
+        fetched: messages,
+        sessionId: sessionId,
+      );
       state = state.copyWith(
-        messages: [...remaining, ...messages],
+        messages: [...remaining, ...merged],
         isLoading: false,
       );
     } catch (error) {
@@ -66,8 +71,9 @@ class MessageNotifier extends StateNotifier<MessageState> {
   Future<String?> sendMessage({
     required String sessionId,
     required String content,
+    required bool exploreMode,
   }) async {
-    if (state.isSending) {
+    if (state.sendingSessionIds.contains(sessionId)) {
       return 'Please wait for the current response to finish.';
     }
     final now = DateTime.now();
@@ -85,11 +91,13 @@ class MessageNotifier extends StateNotifier<MessageState> {
       role: MessageRole.assistant,
       content: '',
       createdAt: now,
+      suggestedQuestionsLoading: exploreMode,
     );
 
+    final sendingSessions = {...state.sendingSessionIds, sessionId};
     state = state.copyWith(
       messages: [...state.messages, userMessage, assistantMessage],
-      isSending: true,
+      sendingSessionIds: sendingSessions,
       errorMessage: null,
     );
 
@@ -102,15 +110,19 @@ class MessageNotifier extends StateNotifier<MessageState> {
           _handleStreamChunk(sessionId, assistantMessage.id, chunk);
         },
       );
-      state = state.copyWith(isSending: false);
+      _clearSuggestedQuestionsLoading(sessionId);
+      final updatedSending = {...state.sendingSessionIds}..remove(sessionId);
+      state = state.copyWith(sendingSessionIds: updatedSending);
       return null;
     } catch (error) {
       _replaceMessageContent(
         assistantMessage.id,
         'Failed to get response. Please try again.',
       );
+      _clearSuggestedQuestionsLoading(sessionId);
+      final updatedSending = {...state.sendingSessionIds}..remove(sessionId);
       state = state.copyWith(
-        isSending: false,
+        sendingSessionIds: updatedSending,
         errorMessage: error.toString(),
       );
       return error.toString();
@@ -137,8 +149,9 @@ class MessageNotifier extends StateNotifier<MessageState> {
         return;
       }
       final deltaContent = delta['content'];
+      final suggestedQuestions = delta['suggestedQuestions'];
       final answerId = parsed['id']?.toString();
-      if (deltaContent is! String && answerId == null) {
+      if (deltaContent is! String && suggestedQuestions == null && answerId == null) {
         return;
       }
 
@@ -153,12 +166,29 @@ class MessageNotifier extends StateNotifier<MessageState> {
       final existing = state.messages[messageIndex];
       final newContent =
           existing.content + (deltaContent is String ? deltaContent : '');
+      final newQuestions = suggestedQuestions is List
+          ? suggestedQuestions.map((e) => e.toString()).toList()
+          : null;
+      final questions = newQuestions ?? existing.suggestedQuestions;
+      final loading = newQuestions != null
+          ? false
+          : existing.suggestedQuestionsLoading;
+      final batches = newQuestions != null
+          ? [newQuestions]
+          : existing.suggestedQuestionsBatches;
+      final currentBatch =
+          newQuestions != null ? batches.length - 1 : existing.currentSuggestedQuestionsBatch;
       final updated = ChatMessage(
         id: answerId ?? existing.id,
         sessionId: existing.sessionId,
         role: existing.role,
         content: newContent,
         createdAt: existing.createdAt,
+        suggestedQuestions: questions,
+        suggestedQuestionsLoading: loading,
+        suggestedQuestionsBatches: batches,
+        currentSuggestedQuestionsBatch: currentBatch,
+        suggestedQuestionsGenerating: existing.suggestedQuestionsGenerating,
       );
       final updatedMessages = [...state.messages];
       updatedMessages[messageIndex] = updated;
@@ -179,10 +209,155 @@ class MessageNotifier extends StateNotifier<MessageState> {
       role: existing.role,
       content: content,
       createdAt: existing.createdAt,
+      suggestedQuestions: existing.suggestedQuestions,
+      suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
+      suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
+      currentSuggestedQuestionsBatch: existing.currentSuggestedQuestionsBatch,
+      suggestedQuestionsGenerating: existing.suggestedQuestionsGenerating,
     );
     final updatedMessages = [...state.messages];
     updatedMessages[index] = updated;
     state = state.copyWith(messages: updatedMessages);
+  }
+
+  void _clearSuggestedQuestionsLoading(String sessionId) {
+    final index = state.messages.lastIndexWhere(
+      (message) =>
+          message.sessionId == sessionId &&
+          message.role == MessageRole.assistant &&
+          message.suggestedQuestionsLoading,
+    );
+    if (index == -1) {
+      return;
+    }
+    final existing = state.messages[index];
+    final updated = ChatMessage(
+      id: existing.id,
+      sessionId: existing.sessionId,
+      role: existing.role,
+      content: existing.content,
+      createdAt: existing.createdAt,
+      suggestedQuestions: existing.suggestedQuestions,
+      suggestedQuestionsLoading: false,
+      suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
+      currentSuggestedQuestionsBatch: existing.currentSuggestedQuestionsBatch,
+      suggestedQuestionsGenerating: existing.suggestedQuestionsGenerating,
+    );
+    final updatedMessages = [...state.messages];
+    updatedMessages[index] = updated;
+    state = state.copyWith(messages: updatedMessages);
+  }
+
+  Future<String?> generateMoreSuggestions(String messageId) async {
+    final index =
+        state.messages.indexWhere((message) => message.id == messageId);
+    if (index == -1) {
+      return 'Message not found.';
+    }
+    final existing = state.messages[index];
+    if (existing.role != MessageRole.assistant) {
+      return 'Suggestions only apply to assistant messages.';
+    }
+    final updatedMessages = [...state.messages];
+    updatedMessages[index] = ChatMessage(
+      id: existing.id,
+      sessionId: existing.sessionId,
+      role: existing.role,
+      content: existing.content,
+      createdAt: existing.createdAt,
+      suggestedQuestions: existing.suggestedQuestions,
+      suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
+      suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
+      currentSuggestedQuestionsBatch: existing.currentSuggestedQuestionsBatch,
+      suggestedQuestionsGenerating: true,
+    );
+    state = state.copyWith(messages: updatedMessages);
+
+    try {
+      final response =
+          await _api.generateMoreSuggestions(messageId: messageId);
+      final newSuggestions = response.newSuggestions;
+      final batches = [
+        ...existing.suggestedQuestionsBatches,
+        newSuggestions,
+      ];
+      final updated = ChatMessage(
+        id: existing.id,
+        sessionId: existing.sessionId,
+        role: existing.role,
+        content: existing.content,
+        createdAt: existing.createdAt,
+        suggestedQuestions: newSuggestions,
+        suggestedQuestionsLoading: false,
+        suggestedQuestionsBatches: batches,
+        currentSuggestedQuestionsBatch: batches.length - 1,
+        suggestedQuestionsGenerating: false,
+      );
+      updatedMessages[index] = updated;
+      state = state.copyWith(messages: updatedMessages);
+      return null;
+    } catch (error) {
+      updatedMessages[index] = ChatMessage(
+        id: existing.id,
+        sessionId: existing.sessionId,
+        role: existing.role,
+        content: existing.content,
+        createdAt: existing.createdAt,
+        suggestedQuestions: existing.suggestedQuestions,
+        suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
+        suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
+        currentSuggestedQuestionsBatch: existing.currentSuggestedQuestionsBatch,
+        suggestedQuestionsGenerating: false,
+      );
+      state = state.copyWith(messages: updatedMessages, errorMessage: error.toString());
+      return error.toString();
+    }
+  }
+
+  void setSuggestedQuestionBatch({
+    required String messageId,
+    required int batchIndex,
+  }) {
+    final index =
+        state.messages.indexWhere((message) => message.id == messageId);
+    if (index == -1) {
+      return;
+    }
+    final existing = state.messages[index];
+    if (batchIndex < 0 ||
+        batchIndex >= existing.suggestedQuestionsBatches.length) {
+      return;
+    }
+    final updated = ChatMessage(
+      id: existing.id,
+      sessionId: existing.sessionId,
+      role: existing.role,
+      content: existing.content,
+      createdAt: existing.createdAt,
+      suggestedQuestions: existing.suggestedQuestionsBatches[batchIndex],
+      suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
+      suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
+      currentSuggestedQuestionsBatch: batchIndex,
+      suggestedQuestionsGenerating: existing.suggestedQuestionsGenerating,
+    );
+    final updatedMessages = [...state.messages];
+    updatedMessages[index] = updated;
+    state = state.copyWith(messages: updatedMessages);
+  }
+
+  Future<String?> clearSessionMessages(String sessionId) async {
+    try {
+      await _api.clearSessionMessages(sessionId);
+      final fetched = await _api.fetchMessages(sessionId: sessionId);
+      final remaining = state.messages
+          .where((message) => message.sessionId != sessionId)
+          .toList();
+      state = state.copyWith(messages: [...remaining, ...fetched]);
+      return null;
+    } catch (error) {
+      state = state.copyWith(errorMessage: error.toString());
+      return error.toString();
+    }
   }
 }
 
@@ -208,4 +383,21 @@ String _extractStreamingData(String chunk) {
     return '';
   }
   return data;
+}
+
+List<ChatMessage> _mergeSessionMessages({
+  required List<ChatMessage> existing,
+  required List<ChatMessage> fetched,
+  required String sessionId,
+}) {
+  final fetchedMap = <String, ChatMessage>{
+    for (final message in fetched) message.id: message,
+  };
+  final extras = existing.where(
+    (message) =>
+        message.sessionId == sessionId && !fetchedMap.containsKey(message.id),
+  );
+  final merged = [...fetched, ...extras];
+  merged.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  return merged;
 }

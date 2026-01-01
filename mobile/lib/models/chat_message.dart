@@ -11,6 +11,11 @@ class ChatMessage {
     required this.role,
     required this.content,
     required this.createdAt,
+    this.suggestedQuestions = const [],
+    this.suggestedQuestionsLoading = false,
+    this.suggestedQuestionsBatches = const [],
+    this.currentSuggestedQuestionsBatch = 0,
+    this.suggestedQuestionsGenerating = false,
   });
 
   final String id;
@@ -18,6 +23,11 @@ class ChatMessage {
   final MessageRole role;
   final String content;
   final DateTime createdAt;
+  final List<String> suggestedQuestions;
+  final bool suggestedQuestionsLoading;
+  final List<List<String>> suggestedQuestionsBatches;
+  final int currentSuggestedQuestionsBatch;
+  final bool suggestedQuestionsGenerating;
 
   factory ChatMessage.fromApi({
     required String sessionId,
@@ -29,6 +39,8 @@ class ChatMessage {
           json['dateTime'] ?? json['createdAt'] ?? json['updatedAt'],
         ) ??
         DateTime.now();
+    final suggestedQuestions =
+        _asStringList(json['suggestedQuestions']) ?? const [];
     final isPrompt = _asBool(json['isPrompt']);
     final inversion = _asBool(json['inversion']);
     final role = isPrompt
@@ -41,6 +53,11 @@ class ChatMessage {
       role: role,
       content: content,
       createdAt: createdAt,
+      suggestedQuestions: suggestedQuestions,
+      suggestedQuestionsBatches:
+          suggestedQuestions.isNotEmpty ? [suggestedQuestions] : const [],
+      currentSuggestedQuestionsBatch:
+          suggestedQuestions.isNotEmpty ? 0 : 0,
     );
   }
 }
@@ -83,6 +100,16 @@ DateTime? _asDateTime(dynamic value) {
   }
   if (value is String) {
     return DateTime.tryParse(value);
+  }
+  return null;
+}
+
+List<String>? _asStringList(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is List) {
+    return value.map((item) => item.toString()).toList();
   }
   return null;
 }

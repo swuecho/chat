@@ -75,6 +75,10 @@ class SessionNotifier extends StateNotifier<SessionState> {
         sessions: [session, ...state.sessions],
         isLoading: false,
       );
+      await updateSessionExploreMode(
+        session: session,
+        exploreMode: true,
+      );
       return session;
     } catch (error) {
       state = state.copyWith(
@@ -95,6 +99,164 @@ class SessionNotifier extends StateNotifier<SessionState> {
           .map((session) => session.id == updated.id ? updated : session)
           .toList(),
     );
+  }
+
+  Future<String?> deleteSession(String sessionId) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      await _api.deleteSession(sessionId);
+      state = state.copyWith(
+        sessions:
+            state.sessions.where((session) => session.id != sessionId).toList(),
+        isLoading: false,
+      );
+      return null;
+    } catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: error.toString(),
+      );
+      return error.toString();
+    }
+  }
+
+  Future<String?> updateSessionModel({
+    required ChatSession session,
+    required String modelName,
+  }) async {
+    if (session.workspaceId.isEmpty) {
+      return 'Workspace not set for session.';
+    }
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      await _api.updateSession(
+        sessionId: session.id,
+        title: session.title,
+        model: modelName,
+        workspaceUuid: session.workspaceId,
+        maxLength: session.maxLength,
+        temperature: session.temperature,
+        topP: session.topP,
+        n: session.n,
+        maxTokens: session.maxTokens,
+        debug: session.debug,
+        summarizeMode: session.summarizeMode,
+        exploreMode: session.exploreMode,
+      );
+      updateSession(
+        ChatSession(
+          id: session.id,
+          workspaceId: session.workspaceId,
+          title: session.title,
+          model: modelName,
+          updatedAt: DateTime.now(),
+          maxLength: session.maxLength,
+          temperature: session.temperature,
+          topP: session.topP,
+          n: session.n,
+          maxTokens: session.maxTokens,
+          debug: session.debug,
+          summarizeMode: session.summarizeMode,
+          exploreMode: session.exploreMode,
+        ),
+      );
+      state = state.copyWith(isLoading: false);
+      return null;
+    } catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: error.toString(),
+      );
+      return error.toString();
+    }
+  }
+
+  Future<String?> refreshSession(String sessionId) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final fetched = await _api.fetchSessionById(sessionId);
+      final existing = state.sessions.firstWhere(
+        (session) => session.id == sessionId,
+        orElse: () => fetched,
+      );
+      final merged = ChatSession(
+        id: fetched.id.isNotEmpty ? fetched.id : existing.id,
+        workspaceId: fetched.workspaceId.isNotEmpty
+            ? fetched.workspaceId
+            : existing.workspaceId,
+        title: fetched.title.isNotEmpty ? fetched.title : existing.title,
+        model: fetched.model != 'Default' ? fetched.model : existing.model,
+        updatedAt: fetched.updatedAt,
+        maxLength: fetched.maxLength != 0 ? fetched.maxLength : existing.maxLength,
+        temperature: fetched.temperature != 0 ? fetched.temperature : existing.temperature,
+        topP: fetched.topP != 0 ? fetched.topP : existing.topP,
+        n: fetched.n != 0 ? fetched.n : existing.n,
+        maxTokens: fetched.maxTokens != 0 ? fetched.maxTokens : existing.maxTokens,
+        debug: fetched.debug || existing.debug,
+        summarizeMode: fetched.summarizeMode || existing.summarizeMode,
+        exploreMode: fetched.exploreMode || existing.exploreMode,
+      );
+      updateSession(merged);
+      state = state.copyWith(isLoading: false);
+      return null;
+    } catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: error.toString(),
+      );
+      return error.toString();
+    }
+  }
+
+  Future<String?> updateSessionExploreMode({
+    required ChatSession session,
+    required bool exploreMode,
+  }) async {
+    if (session.workspaceId.isEmpty) {
+      return 'Workspace not set for session.';
+    }
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      await _api.updateSession(
+        sessionId: session.id,
+        title: session.title,
+        model: session.model,
+        workspaceUuid: session.workspaceId,
+        maxLength: session.maxLength,
+        temperature: session.temperature,
+        topP: session.topP,
+        n: session.n,
+        maxTokens: session.maxTokens,
+        debug: session.debug,
+        summarizeMode: session.summarizeMode,
+        exploreMode: exploreMode,
+      );
+      updateSession(
+        ChatSession(
+          id: session.id,
+          workspaceId: session.workspaceId,
+          title: session.title,
+          model: session.model,
+          updatedAt: DateTime.now(),
+          maxLength: session.maxLength,
+          temperature: session.temperature,
+          topP: session.topP,
+          n: session.n,
+          maxTokens: session.maxTokens,
+          debug: session.debug,
+          summarizeMode: session.summarizeMode,
+          exploreMode: exploreMode,
+        ),
+      );
+      state = state.copyWith(isLoading: false);
+      return null;
+    } catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: error.toString(),
+      );
+      return error.toString();
+    }
   }
 }
 
