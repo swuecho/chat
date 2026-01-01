@@ -10,6 +10,7 @@ import '../state/workspace_provider.dart';
 import '../widgets/session_tile.dart';
 import '../widgets/workspace_selector.dart';
 import 'chat_screen.dart';
+import 'snapshot_list_screen.dart';
 
 class HomeScreen extends HookConsumerWidget {
   const HomeScreen({super.key});
@@ -48,6 +49,17 @@ class HomeScreen extends HookConsumerWidget {
             onPressed: () => ref.read(authProvider.notifier).logout(),
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const SnapshotListScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.photo_library_outlined),
+            tooltip: 'Snapshots',
           ),
           const Padding(
             padding: EdgeInsets.only(right: 12),

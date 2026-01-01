@@ -7,6 +7,7 @@ import '../models/chat_session.dart';
 import '../models/chat_message.dart';
 import '../models/chat_model.dart';
 import '../models/auth_token_result.dart';
+import '../models/chat_snapshot.dart';
 import '../models/suggestions_response.dart';
 import '../models/workspace.dart';
 
@@ -276,6 +277,38 @@ class ChatApi {
       return payload['uuid'] as String;
     }
     throw Exception('Snapshot response missing uuid.');
+  }
+
+  Future<List<ChatSnapshotMeta>> fetchSnapshots() async {
+    final uri = Uri.parse('$baseUrl/api/uuid/chat_snapshot/all?type=snapshot');
+    debugPrint('GET $uri');
+    final response = await _client.get(uri, headers: _defaultHeaders());
+    debugPrint('Snapshot list response ${response.statusCode}: ${response.body}');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load snapshots (${response.statusCode})');
+    }
+
+    final payload = jsonDecode(response.body);
+    final items = _extractList(payload);
+    return items.map((item) => ChatSnapshotMeta.fromJson(item)).toList();
+  }
+
+  Future<ChatSnapshotDetail> fetchSnapshot(String snapshotId) async {
+    final uri = Uri.parse('$baseUrl/api/uuid/chat_snapshot/$snapshotId');
+    debugPrint('GET $uri');
+    final response = await _client.get(uri, headers: _defaultHeaders());
+    debugPrint('Snapshot response ${response.statusCode}: ${response.body}');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load snapshot (${response.statusCode})');
+    }
+
+    final payload = jsonDecode(response.body);
+    if (payload is Map<String, dynamic>) {
+      return ChatSnapshotDetail.fromJson(payload);
+    }
+    throw Exception('Snapshot response missing data.');
   }
 
   Future<void> deleteSession(String sessionId) async {

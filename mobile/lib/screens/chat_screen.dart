@@ -334,15 +334,26 @@ class ChatScreen extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
     try {
       final uuid =
           await ref.read(authedApiProvider).createChatSnapshot(session.id);
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Snapshot created: $uuid')),
         );
       }
     } catch (error) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(error.toString())),
