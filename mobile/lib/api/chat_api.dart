@@ -333,6 +333,26 @@ class ChatApi {
     }
   }
 
+  Future<void> updateMessage({
+    required String messageId,
+    required bool isPinned,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/uuid/chat_messages/$messageId');
+    debugPrint('PUT $uri');
+    final response = await _client.put(
+      uri,
+      headers: _defaultHeaders(),
+      body: jsonEncode({
+        'isPin': isPinned,
+      }),
+    );
+    debugPrint('Update message response ${response.statusCode}: ${response.body}');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to update message (${response.statusCode})');
+    }
+  }
+
   Future<ChatSession> createSession({
     required String workspaceId,
     required String title,

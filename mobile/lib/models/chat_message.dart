@@ -11,6 +11,7 @@ class ChatMessage {
     required this.role,
     required this.content,
     required this.createdAt,
+    this.isPinned = false,
     this.suggestedQuestions = const [],
     this.suggestedQuestionsLoading = false,
     this.suggestedQuestionsBatches = const [],
@@ -23,11 +24,40 @@ class ChatMessage {
   final MessageRole role;
   final String content;
   final DateTime createdAt;
+  final bool isPinned;
   final List<String> suggestedQuestions;
   final bool suggestedQuestionsLoading;
   final List<List<String>> suggestedQuestionsBatches;
   final int currentSuggestedQuestionsBatch;
   final bool suggestedQuestionsGenerating;
+
+  ChatMessage copyWith({
+    String? id,
+    String? sessionId,
+    MessageRole? role,
+    String? content,
+    DateTime? createdAt,
+    bool? isPinned,
+    List<String>? suggestedQuestions,
+    bool? suggestedQuestionsLoading,
+    List<List<String>>? suggestedQuestionsBatches,
+    int? currentSuggestedQuestionsBatch,
+    bool? suggestedQuestionsGenerating,
+  }) {
+    return ChatMessage(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      role: role ?? this.role,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+      isPinned: isPinned ?? this.isPinned,
+      suggestedQuestions: suggestedQuestions ?? this.suggestedQuestions,
+      suggestedQuestionsLoading: suggestedQuestionsLoading ?? this.suggestedQuestionsLoading,
+      suggestedQuestionsBatches: suggestedQuestionsBatches ?? this.suggestedQuestionsBatches,
+      currentSuggestedQuestionsBatch: currentSuggestedQuestionsBatch ?? this.currentSuggestedQuestionsBatch,
+      suggestedQuestionsGenerating: suggestedQuestionsGenerating ?? this.suggestedQuestionsGenerating,
+    );
+  }
 
   factory ChatMessage.fromApi({
     required String sessionId,
@@ -46,6 +76,7 @@ class ChatMessage {
     final role = isPrompt
         ? MessageRole.system
         : (inversion ? MessageRole.user : MessageRole.assistant);
+    final isPinned = _asBool(json['isPin']) || _asBool(json['is_pinned']);
 
     return ChatMessage(
       id: id,
@@ -53,6 +84,7 @@ class ChatMessage {
       role: role,
       content: content,
       createdAt: createdAt,
+      isPinned: isPinned,
       suggestedQuestions: suggestedQuestions,
       suggestedQuestionsBatches:
           suggestedQuestions.isNotEmpty ? [suggestedQuestions] : const [],

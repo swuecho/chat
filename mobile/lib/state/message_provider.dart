@@ -373,6 +373,36 @@ class MessageNotifier extends StateNotifier<MessageState> {
       return error.toString();
     }
   }
+
+  Future<String?> toggleMessagePin(String messageId) async {
+    final index = state.messages.indexWhere((message) => message.id == messageId);
+    if (index == -1) {
+      return 'Message not found.';
+    }
+
+    final message = state.messages[index];
+    final newPinStatus = !message.isPinned;
+
+    // Optimistically update UI
+    final updatedMessage = message.copyWith(isPinned: newPinStatus);
+    final updatedMessages = [...state.messages];
+    updatedMessages[index] = updatedMessage;
+    state = state.copyWith(messages: updatedMessages);
+
+    try {
+      await _api.updateMessage(
+        messageId: messageId,
+        isPinned: newPinStatus,
+      );
+      return null;
+    } catch (error) {
+      // Revert on error
+      final revertedMessages = [...state.messages];
+      revertedMessages[index] = message;
+      state = state.copyWith(messages: revertedMessages, errorMessage: error.toString());
+      return error.toString();
+    }
+  }
 }
 
 final messageProvider = StateNotifierProvider<MessageNotifier, MessageState>(

@@ -159,6 +159,7 @@ class ChatScreen extends HookConsumerWidget {
             MessageBubble(
               message: message,
               onDelete: () => _deleteMessage(context, ref, message.id),
+              onTogglePin: () => _toggleMessagePin(context, ref, message.id),
             ),
             if (showSuggested)
               SuggestedQuestions(
@@ -381,6 +382,19 @@ class ChatScreen extends HookConsumerWidget {
           content: Text('Message deleted'),
           duration: Duration(seconds: 2),
         ),
+      );
+    }
+  }
+
+  Future<void> _toggleMessagePin(
+    BuildContext context,
+    WidgetRef ref,
+    String messageId,
+  ) async {
+    final error = await ref.read(messageProvider.notifier).toggleMessagePin(messageId);
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
       );
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:intl/intl.dart';
 
 import '../models/chat_message.dart';
 
@@ -9,10 +10,12 @@ class MessageBubble extends StatelessWidget {
     super.key,
     required this.message,
     this.onDelete,
+    this.onTogglePin,
   });
 
   final ChatMessage message;
   final VoidCallback? onDelete;
+  final VoidCallback? onTogglePin;
 
   @override
   Widget build(BuildContext context) {
@@ -52,25 +55,90 @@ class MessageBubble extends StatelessWidget {
 
     return GestureDetector(
       onLongPress: () => _showMessageMenu(context),
-      child: Align(
-        alignment: alignment,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          constraints: const BoxConstraints(maxWidth: 320),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Timestamp - centered above message
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            child: Text(
+              _formatTimestamp(message.createdAt),
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
-          child: MarkdownBody(
-            data: message.content,
-            selectable: true,
-            softLineBreak: true,
-            styleSheet: styleSheet,
+          // Pinned indicator - aligned with message
+          Row(
+            mainAxisAlignment:
+                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            children: [
+              if (message.isPinned)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4, left: 14, right: 14),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.push_pin,
+                        size: 12,
+                        color: isUser ? Colors.white70 : Colors.black54,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Pinned',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isUser ? Colors.white70 : Colors.black54,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
-        ),
+          // Message bubble
+          Align(
+            alignment: alignment,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              constraints: const BoxConstraints(maxWidth: 320),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: MarkdownBody(
+                data: message.content,
+                selectable: true,
+                softLineBreak: true,
+                styleSheet: styleSheet,
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inSeconds < 60) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return DateFormat('MMM d, yyyy').format(timestamp);
+    }
   }
 
   void _showMessageMenu(BuildContext context) {
@@ -80,6 +148,16 @@ class MessageBubble extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              leading: Icon(
+                message.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+              ),
+              title: Text(message.isPinned ? 'Unpin' : 'Pin'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                onTogglePin?.call();
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.copy),
               title: const Text('Copy'),
