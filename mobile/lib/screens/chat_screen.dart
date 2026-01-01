@@ -384,7 +384,7 @@ class ChatScreen extends HookConsumerWidget {
       );
     }
   }
-it 
+
   String _getDisplayTitle(String title) {
     if (title.isEmpty || title.toLowerCase() == 'untitled session') {
       return 'New Chat';
