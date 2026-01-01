@@ -83,7 +83,7 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 		if session.WorkspaceUuid.Valid {
 			workspaceUuid = session.WorkspaceUuid.String
 		}
-		
+
 		return SimpleChatSession{
 			Uuid:          session.Uuid,
 			IsEdit:        false,

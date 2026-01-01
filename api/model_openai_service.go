@@ -115,17 +115,17 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	// Initialize streaming state
 	var answer_id string
-	
-	var hasReason bool           // Whether we've detected any reasoning content
-	var reasonTagOpened bool     // Whether we've sent the opening <think> tag
-	var reasonTagClosed bool     // Whether we've sent the closing </think> tag
-	
+
+	var hasReason bool       // Whether we've detected any reasoning content
+	var reasonTagOpened bool // Whether we've sent the opening <think> tag
+	var reasonTagClosed bool // Whether we've sent the closing </think> tag
+
 	// Ensure minimum buffer length
 	if bufferLen == 0 {
 		log.Println("Buffer length is 0, setting to 1")
 		bufferLen = 1
 	}
-	
+
 	// Initialize buffers for accumulating content
 	textBuffer := newTextBuffer(bufferLen, "", "")
 	reasonBuffer := newTextBuffer(bufferLen, "<think>\n\n", "\n\n</think>\n\n")
@@ -167,11 +167,11 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 			log.Printf("Could not unmarshal response: %v\n", err)
 			continue
 		}
-		
+
 		// Extract delta content from the response
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Delta
-		
+
 		// Accumulate content in buffers (for final answer construction)
 		textBuffer.appendByIndex(textIdx, delta.Content)
 		if len(delta.ReasoningContent) > 0 {
@@ -205,7 +205,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 // processDelta handles the logic for processing delta content with thinking tags
 func processDelta(delta llm_openai.ChatCompletionStreamChoiceDelta, reasonTagOpened *bool, reasonTagClosed *bool, hasReason bool) string {
 	var deltaToSend string
-	
+
 	if len(delta.ReasoningContent) > 0 {
 		// Handle reasoning content
 		if !*reasonTagOpened {
@@ -225,7 +225,7 @@ func processDelta(delta llm_openai.ChatCompletionStreamChoiceDelta, reasonTagOpe
 		// Regular content without reasoning
 		deltaToSend = delta.Content
 	}
-	
+
 	return deltaToSend
 }
 

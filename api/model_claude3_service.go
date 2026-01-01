@@ -89,7 +89,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 
 	// Get request context for cancellation support
 	ctx := m.h.GetRequestContext()
-	
+
 	// Create HTTP request with context
 	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 	if err != nil {

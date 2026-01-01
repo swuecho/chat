@@ -286,7 +286,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 
 	// Create a new ChatService to access suggestion generation methods
 	chatService := NewChatService(h.service.q)
-	
+
 	// Generate new suggested questions
 	newSuggestions := chatService.generateSuggestedQuestions(message.Content, msgs)
 	if len(newSuggestions) == 0 {
@@ -305,7 +305,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 
 	// Combine existing and new suggestions (avoiding duplicates)
 	allSuggestions := append(existingSuggestions, newSuggestions...)
-	
+
 	// Remove duplicates
 	seenSuggestions := make(map[string]bool)
 	var uniqueSuggestions []string

@@ -253,7 +253,7 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 			return false
 		}
 		log.Printf("%+v\n", chatPrompt)
-		
+
 		// Update session title with first 10 words of the prompt
 		if newQuestion != "" {
 			sessionTitle := firstNWords(newQuestion, 10)
@@ -342,13 +342,13 @@ func (h *ChatHandler) sendSuggestedQuestionsStream(w http.ResponseWriter, answer
 
 	// Create a special response with suggested questions
 	suggestedQuestionsResponse := map[string]interface{}{
-		"id": answerID,
+		"id":     answerID,
 		"object": "chat.completion.chunk",
 		"choices": []map[string]interface{}{
 			{
 				"index": 0,
 				"delta": map[string]interface{}{
-					"content": "", // Empty content
+					"content":            "", // Empty content
 					"suggestedQuestions": suggestedQuestions,
 				},
 				"finish_reason": nil,
@@ -496,7 +496,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 			questionsJSON, err := json.Marshal(suggestedQuestions)
 			if err == nil {
 				h.service.UpdateChatMessageSuggestions(ctx, chatUuid, questionsJSON)
-				
+
 				// Stream suggested questions to frontend
 				if stream {
 					h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, questionsJSON)
@@ -514,7 +514,7 @@ func (h *ChatHandler) GetRequestContext() context.Context {
 func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msgs []models.Message) ChatModel {
 	model := chat_session.Model
 	isTestChat := isTest(msgs)
-	
+
 	// If this is a test chat, return the test model immediately
 	if isTestChat {
 		return &TestChatModel{h: h}
@@ -529,7 +529,7 @@ func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msg
 
 	// Use api_type field from database instead of string prefix matching
 	apiType := chatModel.ApiType
-	
+
 	completionModel := mapset.NewSet[string]()
 	// completionModel.Add(openai.GPT3TextDavinci002)
 	isCompletion := completionModel.Contains(model)

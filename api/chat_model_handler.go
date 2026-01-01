@@ -139,7 +139,7 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 	if apiType == "" {
 		apiType = "openai" // default api type
 	}
-	
+
 	// Validate api_type
 	validApiTypes := map[string]bool{
 		"openai": true,
@@ -148,7 +148,7 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		"ollama": true,
 		"custom": true,
 	}
-	
+
 	if !validApiTypes[apiType] {
 		apiErr := ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
 		RespondWithAPIError(w, apiErr)
@@ -164,11 +164,11 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		ApiAuthKey:             input.ApiAuthKey,
 		UserID:                 userID,
 		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
-		MaxToken:               4096,  // default max token
-		DefaultToken:           2048,  // default token
-		OrderNumber:            0,     // default order
-		HttpTimeOut:            120,   // default timeout
-		ApiType:               apiType,
+		MaxToken:               4096, // default max token
+		DefaultToken:           2048, // default token
+		OrderNumber:            0,    // default order
+		HttpTimeOut:            120,  // default timeout
+		ApiType:                apiType,
 	})
 
 	if err != nil {
@@ -229,7 +229,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	if apiType == "" {
 		apiType = "openai" // default api type
 	}
-	
+
 	// Validate api_type
 	validApiTypes := map[string]bool{
 		"openai": true,
@@ -238,7 +238,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		"ollama": true,
 		"custom": true,
 	}
-	
+
 	if !validApiTypes[apiType] {
 		apiErr := ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
 		RespondWithAPIError(w, apiErr)
@@ -260,7 +260,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		MaxToken:               input.MaxToken,
 		HttpTimeOut:            input.HttpTimeOut,
 		IsEnable:               input.IsEnable,
-		ApiType:               apiType,
+		ApiType:                apiType,
 	})
 
 	if err != nil {

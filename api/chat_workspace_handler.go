@@ -37,7 +37,6 @@ func (h *ChatWorkspaceHandler) Register(router *mux.Router) {
 	router.HandleFunc("/workspaces/auto-migrate", h.autoMigrateLegacySessions).Methods(http.MethodPost)
 }
 
-
 type CreateWorkspaceRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -574,12 +573,11 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 		return
 	}
 
-
 	// Create session
 	sessionUUID := uuid.New().String()
 	sessionService := NewChatSessionService(h.service.q)
 	activeSessionService := NewUserActiveChatSessionService(h.service.q)
-	
+
 	sessionParams := sqlc_queries.CreateChatSessionInWorkspaceParams{
 		UserID:      userID,
 		Uuid:        sessionUUID,
@@ -607,11 +605,11 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"uuid":         session.Uuid,
-		"topic":        session.Topic,
-		"model":        session.Model,
+		"uuid":          session.Uuid,
+		"topic":         session.Topic,
+		"model":         session.Model,
 		"workspaceUuid": workspaceUUID,
-		"createdAt":    session.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		"createdAt":     session.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	})
 }
 
@@ -662,28 +660,27 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 	sessionResponses := make([]map[string]interface{}, 0)
 	for _, session := range sessions {
 		sessionResponse := map[string]interface{}{
-			"uuid":           session.Uuid,
-			"title":          session.Topic,  // Use "title" to match the original API
-			"isEdit":         false,
-			"model":          session.Model,
-			"workspaceUuid":  workspaceUUID,
-			"maxLength":      session.MaxLength,
-			"temperature":    session.Temperature,
-			"maxTokens":      session.MaxTokens,
-			"topP":           session.TopP,
-			"n":              session.N,
-			"debug":          session.Debug,
-			"summarizeMode":  session.SummarizeMode,
-			"exploreMode":    session.ExploreMode,
-			"createdAt":      session.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			"updatedAt":      session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+			"uuid":          session.Uuid,
+			"title":         session.Topic, // Use "title" to match the original API
+			"isEdit":        false,
+			"model":         session.Model,
+			"workspaceUuid": workspaceUUID,
+			"maxLength":     session.MaxLength,
+			"temperature":   session.Temperature,
+			"maxTokens":     session.MaxTokens,
+			"topP":          session.TopP,
+			"n":             session.N,
+			"debug":         session.Debug,
+			"summarizeMode": session.SummarizeMode,
+			"exploreMode":   session.ExploreMode,
+			"createdAt":     session.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			"updatedAt":     session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 		}
 		sessionResponses = append(sessionResponses, sessionResponse)
 	}
 
 	json.NewEncoder(w).Encode(sessionResponses)
 }
-
 
 // autoMigrateLegacySessions automatically detects and migrates legacy sessions without workspace_id
 func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, r *http.Request) {
@@ -704,7 +701,7 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 
 	response := map[string]interface{}{
 		"hasLegacySessions": len(legacySessions) > 0,
-		"migratedSessions": 0,
+		"migratedSessions":  0,
 	}
 
 	// If no legacy sessions, return early

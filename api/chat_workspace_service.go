@@ -132,7 +132,7 @@ func (s *ChatWorkspaceService) EnsureDefaultWorkspaceExists(ctx context.Context,
 // HasWorkspacePermission checks if a user has permission to access a workspace.
 func (s *ChatWorkspaceService) HasWorkspacePermission(ctx context.Context, workspaceUUID string, userID int32) (bool, error) {
 	log.Printf("🔍 DEBUG: Checking permission for workspace=%s, user=%d", workspaceUUID, userID)
-	
+
 	result, err := s.q.HasWorkspacePermission(ctx, sqlc_queries.HasWorkspacePermissionParams{
 		Uuid:   workspaceUUID,
 		UserID: userID,
@@ -141,7 +141,7 @@ func (s *ChatWorkspaceService) HasWorkspacePermission(ctx context.Context, works
 		log.Printf("❌ DEBUG: Permission check failed: %v", err)
 		return false, eris.Wrap(err, "failed to check workspace permission")
 	}
-	
+
 	log.Printf("✅ DEBUG: Permission result=%t for workspace=%s, user=%d", result, workspaceUUID, userID)
 	return result, nil
 }
