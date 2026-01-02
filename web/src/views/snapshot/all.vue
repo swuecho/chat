@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useDialog, useMessage, NModal } from 'naive-ui'
+import { useDialog, useMessage, NModal, NPagination } from 'naive-ui'
 import Search from './components/Search.vue'
 import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
@@ -13,6 +13,11 @@ const message = useMessage()
 const searchVisible = ref(false)
 const postsByYearMonth = ref<Record<string, Snapshot.PostLink[]>>({})
 const authStore = useAuthStore()
+
+// Pagination state
+const page = ref(1)
+const pageSize = ref(20)
+const totalCount = ref(0)
 
 const needPermission = authStore.needPermission
 
@@ -27,12 +32,21 @@ function postUrl(uuid: string): string {
 
 async function refreshSnapshot() {
   try {
-    const snapshots = await fetchSnapshotAll()
+    const response = await fetchSnapshotAll(page.value, pageSize.value)
+    // Handle the new response format with data and pagination metadata
+    const snapshots = response.data || response
     postsByYearMonth.value = getSnapshotPostLinks(snapshots)
+    // Update total count from response
+    totalCount.value = response.total || snapshots.length || 0
   } catch (error) {
     console.error('Failed to fetch snapshots:', error)
     // Error handling can be implemented here
   }
+}
+
+function handlePageChange(newPage: number) {
+  page.value = newPage
+  refreshSnapshot()
 }
 
 function handleDelete(post: Snapshot.PostLink) {
@@ -104,6 +118,18 @@ function handleDelete(post: Snapshot.PostLink) {
               </div>
             </li>
           </ul>
+        </div>
+        <!-- Pagination Controls -->
+        <div v-if="totalCount > 0" class="flex justify-center mt-8 pb-4">
+          <NPagination
+            v-model:page="page"
+            :page-size="pageSize"
+            :item-count="totalCount"
+            :show-size-picker="true"
+            :page-sizes="[10, 20, 30, 50]"
+            @update:page="handlePageChange"
+            @update:page-size="(newSize: number) => { pageSize = newSize; refreshSnapshot() }"
+          />
         </div>
       </div>
     </div>

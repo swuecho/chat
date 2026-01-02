@@ -34,9 +34,10 @@ SELECT * FROM chat_snapshot WHERE uuid = $1;
 SELECT * FROM chat_snapshot WHERE user_id = $1 AND uuid = $2;
 
 -- name: ChatSnapshotMetaByUserID :many
-SELECT uuid, title, summary, tags, created_at, typ 
+SELECT uuid, title, summary, tags, created_at, typ
 FROM chat_snapshot WHERE user_id = $1 and typ = $2
-order by created_at desc;
+order by created_at desc
+LIMIT $3 OFFSET $4;
 
 -- name: UpdateChatSnapshotMetaByUUID :exec
 UPDATE chat_snapshot

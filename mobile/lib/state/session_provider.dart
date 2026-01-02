@@ -265,6 +265,58 @@ class SessionNotifier extends StateNotifier<SessionState> {
       return errorMessage;
     }
   }
+
+  Future<String?> updateSessionTitle({
+    required ChatSession session,
+    required String newTitle,
+  }) async {
+    if (session.workspaceId.isEmpty) {
+      return 'Workspace not set for session.';
+    }
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      await _api.updateSession(
+        sessionId: session.id,
+        title: newTitle,
+        model: session.model,
+        workspaceUuid: session.workspaceId,
+        maxLength: session.maxLength,
+        temperature: session.temperature,
+        topP: session.topP,
+        n: session.n,
+        maxTokens: session.maxTokens,
+        debug: session.debug,
+        summarizeMode: session.summarizeMode,
+        exploreMode: session.exploreMode,
+      );
+      updateSession(
+        ChatSession(
+          id: session.id,
+          workspaceId: session.workspaceId,
+          title: newTitle,
+          model: session.model,
+          updatedAt: DateTime.now(),
+          maxLength: session.maxLength,
+          temperature: session.temperature,
+          topP: session.topP,
+          n: session.n,
+          maxTokens: session.maxTokens,
+          debug: session.debug,
+          summarizeMode: session.summarizeMode,
+          exploreMode: session.exploreMode,
+        ),
+      );
+      state = state.copyWith(isLoading: false);
+      return null;
+    } catch (error) {
+      final errorMessage = formatApiError(error);
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: errorMessage,
+      );
+      return errorMessage;
+    }
+  }
 }
 
 final sessionProvider = StateNotifierProvider<SessionNotifier, SessionState>(
