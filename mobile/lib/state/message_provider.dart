@@ -112,6 +112,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
         onChunk: (chunk) {
           _handleStreamChunk(sessionId, assistantMessage.id, chunk);
         },
+        regenerate: false,
       );
       _setLatestAssistantLoading(sessionId, false);
       _clearSuggestedQuestionsLoading(sessionId);
@@ -123,6 +124,92 @@ class MessageNotifier extends StateNotifier<MessageState> {
       _replaceMessageContent(
         assistantMessage.id,
         'Failed to get response. Please try again.',
+      );
+      _setLatestAssistantLoading(sessionId, false);
+      _clearSuggestedQuestionsLoading(sessionId);
+      final updatedSending = {...state.sendingSessionIds}..remove(sessionId);
+      state = state.copyWith(
+        sendingSessionIds: updatedSending,
+        errorMessage: errorMessage,
+      );
+      return errorMessage;
+    }
+  }
+
+  Future<String?> regenerateMessage({
+    required String messageId,
+  }) async {
+    final index = state.messages.indexWhere((message) => message.id == messageId);
+    if (index == -1) {
+      return 'Message not found.';
+    }
+
+    final message = state.messages[index];
+    if (message.role != MessageRole.assistant) {
+      return 'Can only regenerate assistant messages.';
+    }
+
+    // Find the user message before this assistant message
+    final userMessageIndex = index - 1;
+    if (userMessageIndex < 0) {
+      return 'No user message found to regenerate from.';
+    }
+
+    final userMessage = state.messages[userMessageIndex];
+    if (userMessage.role != MessageRole.user) {
+      return 'Previous message is not a user message.';
+    }
+
+    final sessionId = message.sessionId;
+    if (state.sendingSessionIds.contains(sessionId)) {
+      return 'Please wait for the current response to finish.';
+    }
+
+    // Create a new assistant message for the regeneration
+    final now = DateTime.now();
+    final newChatUuid = now.microsecondsSinceEpoch.toString();
+    final newAssistantMessage = ChatMessage(
+      id: 'assistant-$newChatUuid',
+      sessionId: sessionId,
+      role: MessageRole.assistant,
+      content: '',
+      createdAt: now,
+      loading: true,
+      suggestedQuestionsLoading: message.suggestedQuestionsLoading,
+    );
+
+    // Remove the old assistant message and add the new one
+    final updatedMessages = [...state.messages];
+    updatedMessages.removeAt(index);
+    updatedMessages.insert(index, newAssistantMessage);
+
+    final sendingSessions = {...state.sendingSessionIds, sessionId};
+    state = state.copyWith(
+      messages: updatedMessages,
+      sendingSessionIds: sendingSessions,
+      errorMessage: null,
+    );
+
+    try {
+      await _api.streamChatResponse(
+        sessionId: sessionId,
+        chatUuid: newChatUuid,
+        prompt: userMessage.content,
+        onChunk: (chunk) {
+          _handleStreamChunk(sessionId, newAssistantMessage.id, chunk);
+        },
+        regenerate: true,
+      );
+      _setLatestAssistantLoading(sessionId, false);
+      _clearSuggestedQuestionsLoading(sessionId);
+      final updatedSending = {...state.sendingSessionIds}..remove(sessionId);
+      state = state.copyWith(sendingSessionIds: updatedSending);
+      return null;
+    } catch (error) {
+      final errorMessage = formatApiError(error);
+      _replaceMessageContent(
+        newAssistantMessage.id,
+        'Failed to regenerate response. Please try again.',
       );
       _setLatestAssistantLoading(sessionId, false);
       _clearSuggestedQuestionsLoading(sessionId);

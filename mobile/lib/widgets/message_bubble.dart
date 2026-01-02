@@ -11,11 +11,13 @@ class MessageBubble extends StatelessWidget {
     required this.message,
     this.onDelete,
     this.onTogglePin,
+    this.onRegenerate,
   });
 
   final ChatMessage message;
   final VoidCallback? onDelete;
   final VoidCallback? onTogglePin;
+  final VoidCallback? onRegenerate;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +57,7 @@ class MessageBubble extends StatelessWidget {
 
     return GestureDetector(
       onLongPress: () => _showMessageMenu(context),
+      behavior: HitTestBehavior.opaque,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -70,54 +73,94 @@ class MessageBubble extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          // Pinned indicator - aligned with message
+          // Message row with bubble and menu button
           Row(
             mainAxisAlignment:
                 isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (message.isPinned)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4, left: 14, right: 14),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.push_pin,
-                        size: 12,
-                        color: isUser ? Colors.white70 : Colors.black54,
+              // Pinned indicator and message bubble
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Pinned indicator
+                  if (message.isPinned)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4, left: 14, right: 14),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.push_pin,
+                            size: 12,
+                            color: isUser ? Colors.white70 : Colors.black54,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Pinned',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isUser ? Colors.white70 : Colors.black54,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Pinned',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isUser ? Colors.white70 : Colors.black54,
-                          fontStyle: FontStyle.italic,
+                    ),
+                  // Message bubble with three-dot button
+                  Row(
+                    mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Three-dot menu button (outside bubble)
+                      if (!isUser)
+                        GestureDetector(
+                          onTap: () => _showMessageMenu(context),
+                          child: Container(
+                            margin: const EdgeInsets.only(top: 6, right: 4),
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.more_vert,
+                              size: 20,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      // Message bubble
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        constraints: const BoxConstraints(maxWidth: 280),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: MarkdownBody(
+                          data: message.content,
+                          selectable: true,
+                          softLineBreak: true,
+                          styleSheet: styleSheet,
                         ),
                       ),
+                      // Three-dot menu button (outside bubble)
+                      if (isUser)
+                        GestureDetector(
+                          onTap: () => _showMessageMenu(context),
+                          child: Container(
+                            margin: const EdgeInsets.only(top: 6, left: 4),
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.more_vert,
+                              size: 20,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
-                ),
+                ],
+              ),
             ],
-          ),
-          // Message bubble
-          Align(
-            alignment: alignment,
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              constraints: const BoxConstraints(maxWidth: 320),
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: MarkdownBody(
-                data: message.content,
-                selectable: true,
-                softLineBreak: true,
-                styleSheet: styleSheet,
-              ),
-            ),
           ),
           if (!isUser && message.loading)
             Align(
@@ -170,6 +213,7 @@ class MessageBubble extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Pin/Unpin option
             ListTile(
               leading: Icon(
                 message.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
@@ -180,6 +224,7 @@ class MessageBubble extends StatelessWidget {
                 onTogglePin?.call();
               },
             ),
+            // Copy option
             ListTile(
               leading: const Icon(Icons.copy),
               title: const Text('Copy'),
@@ -188,6 +233,17 @@ class MessageBubble extends StatelessWidget {
                 Navigator.pop(sheetContext);
               },
             ),
+            // Regenerate option (only for assistant messages)
+            if (message.role == MessageRole.assistant && onRegenerate != null)
+              ListTile(
+                leading: const Icon(Icons.refresh),
+                title: const Text('Regenerate'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  onRegenerate?.call();
+                },
+              ),
+            // Delete option
             if (onDelete != null)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),

@@ -134,13 +134,14 @@ class ChatApi {
     required String chatUuid,
     required String prompt,
     required void Function(String chunk) onChunk,
+    bool regenerate = false,
   }) async {
     final uri = Uri.parse('$baseUrl/api/chat_stream');
     debugPrint('POST $uri');
     final request = http.Request('POST', uri);
     request.headers.addAll(_defaultHeaders());
     request.body = jsonEncode({
-      'regenerate': false,
+      'regenerate': regenerate,
       'prompt': prompt,
       'sessionUuid': sessionId,
       'chatUuid': chatUuid,

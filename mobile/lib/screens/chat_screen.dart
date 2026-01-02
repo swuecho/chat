@@ -215,6 +215,9 @@ class ChatScreen extends HookConsumerWidget {
               message: message,
               onDelete: () => _deleteMessage(context, ref, message.id),
               onTogglePin: () => _toggleMessagePin(context, ref, message.id),
+              onRegenerate: message.role == MessageRole.assistant
+                  ? () => _regenerateMessage(context, ref, message.id)
+                  : null,
             ),
             if (showSuggested)
               SuggestedQuestions(
@@ -447,6 +450,21 @@ class ChatScreen extends HookConsumerWidget {
     String messageId,
   ) async {
     final error = await ref.read(messageProvider.notifier).toggleMessagePin(messageId);
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+    }
+  }
+
+  Future<void> _regenerateMessage(
+    BuildContext context,
+    WidgetRef ref,
+    String messageId,
+  ) async {
+    final error = await ref.read(messageProvider.notifier).regenerateMessage(
+          messageId: messageId,
+        );
     if (error != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error)),

@@ -21,7 +21,6 @@ class SessionTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         title: Text(displayTitle),
-        subtitle: Text('Model: ${session.model}'),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
