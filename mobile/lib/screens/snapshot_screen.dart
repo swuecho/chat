@@ -22,6 +22,11 @@ class SnapshotScreen extends HookConsumerWidget {
       isLoading.value = true;
       errorMessage.value = null;
       try {
+        final ok = await ref.read(authProvider.notifier).ensureFreshToken();
+        if (!ok) {
+          errorMessage.value = 'Please log in first.';
+          return;
+        }
         final data = await ref.read(authedApiProvider).fetchSnapshot(snapshotId);
         snapshot.value = data;
       } catch (error) {

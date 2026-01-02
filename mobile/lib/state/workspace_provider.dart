@@ -51,7 +51,7 @@ class WorkspaceState {
 const _unset = Object();
 
 class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
-  WorkspaceNotifier(this._api)
+  WorkspaceNotifier(this._api, this._authNotifier)
       : super(WorkspaceState(
           workspaces: const [],
           activeWorkspaceId: null,
@@ -59,9 +59,24 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
         ));
 
   final ChatApi _api;
+  final AuthNotifier _authNotifier;
+
+  Future<bool> _ensureAuth() async {
+    final ok = await _authNotifier.ensureFreshToken();
+    if (!ok) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Please log in first.',
+      );
+    }
+    return ok;
+  }
 
   Future<void> loadWorkspaces() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+    if (!await _ensureAuth()) {
+      return;
+    }
     try {
       final workspaces = await _api.fetchWorkspaces();
       final activeWorkspaceId = _resolveActiveWorkspaceId(workspaces);
@@ -111,5 +126,8 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
 
 final workspaceProvider =
     StateNotifierProvider<WorkspaceNotifier, WorkspaceState>(
-  (ref) => WorkspaceNotifier(ref.watch(authedApiProvider)),
+  (ref) => WorkspaceNotifier(
+    ref.watch(authedApiProvider),
+    ref.read(authProvider.notifier),
+  ),
 );

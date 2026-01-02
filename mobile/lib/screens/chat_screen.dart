@@ -402,6 +402,10 @@ class ChatScreen extends HookConsumerWidget {
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
     try {
+      final ok = await ref.read(authProvider.notifier).ensureFreshToken();
+      if (!ok) {
+        throw Exception('Please log in first.');
+      }
       final uuid =
           await ref.read(authedApiProvider).createChatSnapshot(session.id);
       if (context.mounted) {

@@ -65,6 +65,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         ));
 
   final ChatApi _api;
+  bool _isRefreshing = false;
+  Future<void>? _refreshFuture;
 
   Future<void> loadToken() async {
     state = state.copyWith(isHydrating: true, errorMessage: null);
@@ -133,13 +135,44 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, result.accessToken);
       await prefs.setInt(_expiresInKey, result.expiresIn);
+      if (result.refreshCookie != null && result.refreshCookie!.isNotEmpty) {
+        await prefs.setString(_refreshCookieKey, result.refreshCookie!);
+      }
       state = state.copyWith(
         accessToken: result.accessToken,
         expiresIn: result.expiresIn,
+        refreshCookie: result.refreshCookie ?? state.refreshCookie,
       );
     } catch (error) {
       await logout();
     }
+  }
+
+  Future<bool> ensureFreshToken() async {
+    final accessToken = state.accessToken;
+    final expiresIn = state.expiresIn;
+    final hasToken = accessToken != null && accessToken.isNotEmpty;
+    if (hasToken && !_needsRefresh(expiresIn)) {
+      return true;
+    }
+    final refreshCookie = state.refreshCookie;
+    if (refreshCookie == null || refreshCookie.isEmpty) {
+      return false;
+    }
+    if (_isRefreshing && _refreshFuture != null) {
+      await _refreshFuture;
+      return state.isAuthenticated;
+    }
+    _isRefreshing = true;
+    final refreshFuture = refreshToken();
+    _refreshFuture = refreshFuture;
+    try {
+      await refreshFuture;
+    } finally {
+      _isRefreshing = false;
+      _refreshFuture = null;
+    }
+    return state.isAuthenticated;
   }
 
   Future<void> logout() async {

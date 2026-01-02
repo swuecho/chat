@@ -122,6 +122,20 @@ export function useStreamHandling() {
     const authStore = useAuthStore()
     console.log('authStore', authStore.isValid)
     await authStore.initializeAuth()
+    if (!authStore.isValid || authStore.needsRefresh) {
+      try {
+        await authStore.refreshToken()
+      } catch (error) {
+        authStore.removeToken()
+        authStore.removeExpiresIn()
+        nui_msg.error(t('error.NotAuthorized') || 'Please log in first', {
+          duration: 5000,
+          closable: true,
+          render: renderMessage
+        })
+        return
+      }
+    }
     const token = authStore.getToken
 
     try {
@@ -210,6 +224,20 @@ export function useStreamHandling() {
   ): Promise<void> {
     const authStore = useAuthStore()
     await authStore.initializeAuth()
+    if (!authStore.isValid || authStore.needsRefresh) {
+      try {
+        await authStore.refreshToken()
+      } catch (error) {
+        authStore.removeToken()
+        authStore.removeExpiresIn()
+        nui_msg.error(t('error.NotAuthorized') || 'Please log in first', {
+          duration: 5000,
+          closable: true,
+          render: renderMessage
+        })
+        return
+      }
+    }
     const token = authStore.getToken
 
     try {

@@ -36,7 +36,7 @@ class MessageState {
 }
 
 class MessageNotifier extends StateNotifier<MessageState> {
-  MessageNotifier(this._api)
+  MessageNotifier(this._api, this._authNotifier)
       : super(const MessageState(
           messages: [],
           isLoading: false,
@@ -44,9 +44,24 @@ class MessageNotifier extends StateNotifier<MessageState> {
         ));
 
   final ChatApi _api;
+  final AuthNotifier _authNotifier;
+
+  Future<bool> _ensureAuth() async {
+    final ok = await _authNotifier.ensureFreshToken();
+    if (!ok) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Please log in first.',
+      );
+    }
+    return ok;
+  }
 
   Future<void> loadMessages(String sessionId) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+    if (!await _ensureAuth()) {
+      return;
+    }
     try {
       final messages = await _api.fetchMessages(sessionId: sessionId);
       final remaining = state.messages
@@ -105,6 +120,17 @@ class MessageNotifier extends StateNotifier<MessageState> {
     );
 
     try {
+      if (!await _ensureAuth()) {
+        _replaceMessageContent(
+          assistantMessage.id,
+          'Please log in first.',
+        );
+        _setLatestAssistantLoading(sessionId, false);
+        _clearSuggestedQuestionsLoading(sessionId);
+        final updatedSending = {...state.sendingSessionIds}..remove(sessionId);
+        state = state.copyWith(sendingSessionIds: updatedSending);
+        return 'Please log in first.';
+      }
       await _api.streamChatResponse(
         sessionId: sessionId,
         chatUuid: chatUuid,
@@ -191,6 +217,17 @@ class MessageNotifier extends StateNotifier<MessageState> {
     );
 
     try {
+      if (!await _ensureAuth()) {
+        _replaceMessageContent(
+          newAssistantMessage.id,
+          'Please log in first.',
+        );
+        _setLatestAssistantLoading(sessionId, false);
+        _clearSuggestedQuestionsLoading(sessionId);
+        final updatedSending = {...state.sendingSessionIds}..remove(sessionId);
+        state = state.copyWith(sendingSessionIds: updatedSending);
+        return 'Please log in first.';
+      }
       await _api.streamChatResponse(
         sessionId: sessionId,
         chatUuid: newChatUuid,
@@ -389,6 +426,25 @@ class MessageNotifier extends StateNotifier<MessageState> {
     state = state.copyWith(messages: updatedMessages);
 
     try {
+      if (!await _ensureAuth()) {
+        updatedMessages[index] = ChatMessage(
+          id: existing.id,
+          sessionId: existing.sessionId,
+          role: existing.role,
+          content: existing.content,
+          createdAt: existing.createdAt,
+          loading: existing.loading,
+          suggestedQuestions: existing.suggestedQuestions,
+          suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
+          suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
+          currentSuggestedQuestionsBatch:
+              existing.currentSuggestedQuestionsBatch,
+          suggestedQuestionsGenerating: false,
+        );
+        const errorMessage = 'Please log in first.';
+        state = state.copyWith(messages: updatedMessages, errorMessage: errorMessage);
+        return errorMessage;
+      }
       final response =
           await _api.generateMoreSuggestions(messageId: messageId);
       final newSuggestions = response.newSuggestions;
@@ -466,6 +522,9 @@ class MessageNotifier extends StateNotifier<MessageState> {
 
   Future<String?> clearSessionMessages(String sessionId) async {
     try {
+      if (!await _ensureAuth()) {
+        return 'Please log in first.';
+      }
       await _api.clearSessionMessages(sessionId);
       final fetched = await _api.fetchMessages(sessionId: sessionId);
       final remaining = state.messages
@@ -482,6 +541,9 @@ class MessageNotifier extends StateNotifier<MessageState> {
 
   Future<String?> deleteMessage(String messageId) async {
     try {
+      if (!await _ensureAuth()) {
+        return 'Please log in first.';
+      }
       await _api.deleteMessage(messageId);
       final updatedMessages = state.messages
           .where((message) => message.id != messageId)
@@ -511,6 +573,9 @@ class MessageNotifier extends StateNotifier<MessageState> {
     state = state.copyWith(messages: updatedMessages);
 
     try {
+      if (!await _ensureAuth()) {
+        return 'Please log in first.';
+      }
       await _api.updateMessage(
         messageId: messageId,
         isPinned: newPinStatus,
@@ -546,7 +611,10 @@ class MessageNotifier extends StateNotifier<MessageState> {
 }
 
 final messageProvider = StateNotifierProvider<MessageNotifier, MessageState>(
-  (ref) => MessageNotifier(ref.watch(authedApiProvider)),
+  (ref) => MessageNotifier(
+    ref.watch(authedApiProvider),
+    ref.read(authProvider.notifier),
+  ),
 );
 
 final messagesForSessionProvider =

@@ -30,13 +30,25 @@ class SessionState {
 }
 
 class SessionNotifier extends StateNotifier<SessionState> {
-  SessionNotifier(this._api)
+  SessionNotifier(this._api, this._authNotifier)
       : super(const SessionState(
           sessions: [],
           isLoading: false,
         ));
 
   final ChatApi _api;
+  final AuthNotifier _authNotifier;
+
+  Future<bool> _ensureAuth() async {
+    final ok = await _authNotifier.ensureFreshToken();
+    if (!ok) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Please log in first.',
+      );
+    }
+    return ok;
+  }
 
   Future<void> loadSessions(String? workspaceId) async {
     if (workspaceId == null) {
@@ -48,6 +60,9 @@ class SessionNotifier extends StateNotifier<SessionState> {
       isLoading: true,
       errorMessage: null,
     );
+    if (!await _ensureAuth()) {
+      return;
+    }
     try {
       final sessions = await _api.fetchSessions(workspaceId: workspaceId);
       sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -67,6 +82,9 @@ class SessionNotifier extends StateNotifier<SessionState> {
     required String model,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+    if (!await _ensureAuth()) {
+      return null;
+    }
     try {
       final session = await _api.createSession(
         workspaceId: workspaceId,
@@ -106,6 +124,9 @@ class SessionNotifier extends StateNotifier<SessionState> {
 
   Future<String?> deleteSession(String sessionId) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+    if (!await _ensureAuth()) {
+      return 'Please log in first.';
+    }
     try {
       await _api.deleteSession(sessionId);
       state = state.copyWith(
@@ -132,6 +153,9 @@ class SessionNotifier extends StateNotifier<SessionState> {
       return 'Workspace not set for session.';
     }
     state = state.copyWith(isLoading: true, errorMessage: null);
+    if (!await _ensureAuth()) {
+      return 'Please log in first.';
+    }
     try {
       await _api.updateSession(
         sessionId: session.id,
@@ -178,6 +202,9 @@ class SessionNotifier extends StateNotifier<SessionState> {
 
   Future<String?> refreshSession(String sessionId) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+    if (!await _ensureAuth()) {
+      return 'Please log in first.';
+    }
     try {
       final fetched = await _api.fetchSessionById(sessionId);
       final existing = state.sessions.firstWhere(
@@ -222,6 +249,9 @@ class SessionNotifier extends StateNotifier<SessionState> {
       return 'Workspace not set for session.';
     }
     state = state.copyWith(isLoading: true, errorMessage: null);
+    if (!await _ensureAuth()) {
+      return 'Please log in first.';
+    }
     try {
       await _api.updateSession(
         sessionId: session.id,
@@ -274,6 +304,9 @@ class SessionNotifier extends StateNotifier<SessionState> {
       return 'Workspace not set for session.';
     }
     state = state.copyWith(isLoading: true, errorMessage: null);
+    if (!await _ensureAuth()) {
+      return 'Please log in first.';
+    }
     try {
       await _api.updateSession(
         sessionId: session.id,
@@ -320,7 +353,10 @@ class SessionNotifier extends StateNotifier<SessionState> {
 }
 
 final sessionProvider = StateNotifierProvider<SessionNotifier, SessionState>(
-  (ref) => SessionNotifier(ref.watch(authedApiProvider)),
+  (ref) => SessionNotifier(
+    ref.watch(authedApiProvider),
+    ref.read(authProvider.notifier),
+  ),
 );
 
 final sessionsForWorkspaceProvider =

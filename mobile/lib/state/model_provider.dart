@@ -55,7 +55,7 @@ class ModelState {
 const _unset = Object();
 
 class ModelNotifier extends StateNotifier<ModelState> {
-  ModelNotifier(this._api)
+  ModelNotifier(this._api, this._authNotifier)
       : super(const ModelState(
           models: [],
           activeModelName: null,
@@ -63,9 +63,24 @@ class ModelNotifier extends StateNotifier<ModelState> {
         ));
 
   final ChatApi _api;
+  final AuthNotifier _authNotifier;
+
+  Future<bool> _ensureAuth() async {
+    final ok = await _authNotifier.ensureFreshToken();
+    if (!ok) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Please log in first.',
+      );
+    }
+    return ok;
+  }
 
   Future<void> loadModels() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+    if (!await _ensureAuth()) {
+      return;
+    }
     try {
       final models = await _api.fetchChatModels();
       models.sort((a, b) => a.orderNumber.compareTo(b.orderNumber));
@@ -107,5 +122,8 @@ class ModelNotifier extends StateNotifier<ModelState> {
 }
 
 final modelProvider = StateNotifierProvider<ModelNotifier, ModelState>(
-  (ref) => ModelNotifier(ref.watch(authedApiProvider)),
+  (ref) => ModelNotifier(
+    ref.watch(authedApiProvider),
+    ref.read(authProvider.notifier),
+  ),
 );
