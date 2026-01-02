@@ -91,6 +91,24 @@ func (q *Queries) ChatSnapshotByUserIdAndUuid(ctx context.Context, arg ChatSnaps
 	return i, err
 }
 
+const chatSnapshotCountByUserIDAndType = `-- name: ChatSnapshotCountByUserIDAndType :one
+SELECT COUNT(*)
+FROM chat_snapshot
+WHERE user_id = $1 AND ($2::text = '' OR typ = $2)
+`
+
+type ChatSnapshotCountByUserIDAndTypeParams struct {
+	UserID  int32  `json:"userId"`
+	Column2 string `json:"column2"`
+}
+
+func (q *Queries) ChatSnapshotCountByUserIDAndType(ctx context.Context, arg ChatSnapshotCountByUserIDAndTypeParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, chatSnapshotCountByUserIDAndType, arg.UserID, arg.Column2)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const chatSnapshotMetaByUserID = `-- name: ChatSnapshotMetaByUserID :many
 SELECT uuid, title, summary, tags, created_at, typ
 FROM chat_snapshot WHERE user_id = $1 and typ = $2
@@ -115,7 +133,12 @@ type ChatSnapshotMetaByUserIDRow struct {
 }
 
 func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, arg ChatSnapshotMetaByUserIDParams) ([]ChatSnapshotMetaByUserIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, chatSnapshotMetaByUserID, arg.UserID, arg.Typ, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, chatSnapshotMetaByUserID,
+		arg.UserID,
+		arg.Typ,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -44,6 +44,11 @@ UPDATE chat_snapshot
 SET title = $2, summary = $3
 WHERE uuid = $1 and user_id = $4;
 
+-- name: ChatSnapshotCountByUserIDAndType :one
+SELECT COUNT(*)
+FROM chat_snapshot
+WHERE user_id = $1 AND ($2::text = '' OR typ = $2);
+
 -- name: ChatSnapshotSearch :many
 SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery(@search), 1) as rank
 FROM chat_snapshot

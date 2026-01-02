@@ -138,12 +138,25 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 		return
 	}
 
+	// Get total count for pagination
+	totalCount, err := h.service.q.ChatSnapshotCountByUserIDAndType(r.Context(), sqlc_queries.ChatSnapshotCountByUserIDAndTypeParams{
+		UserID: userID,
+		Column2: typ,
+	})
+	if err != nil {
+		apiErr := ErrInternalUnexpected
+		apiErr.Detail = "Failed to retrieve snapshot count"
+		apiErr.DebugInfo = err.Error()
+		RespondWithAPIError(w, apiErr)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"data":       chatSnapshots,
 		"page":       page,
 		"page_size":  pageSize,
-		"total":      len(chatSnapshots),
+		"total":      totalCount,
 	})
 }
 func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter, r *http.Request) {
