@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { HoverButton, SvgIcon } from '@/components/common'
 import request from '@/utils/request/axios'
+import { useErrorHandling } from '../../composables/useErrorHandling'
 
 interface Props {
         text: string
@@ -12,6 +13,7 @@ const props = defineProps<Props>()
 const source = ref('')
 const soundPlayer = ref();
 const isActive = ref(false);
+const { handleApiError } = useErrorHandling()
 // const speaker_id = ref('')
 // const style_wav = ref('')
 // const language_id = ref('')
@@ -41,7 +43,7 @@ async function playAudio() {
                                 console.log("request failed")
                         }
                 } catch (error) {
-                        console.log(error);
+                        handleApiError(error, 'audio-playback')
                 }
         }
 }

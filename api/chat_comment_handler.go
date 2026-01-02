@@ -35,13 +35,13 @@ func (h *ChatCommentHandler) CreateChatComment(w http.ResponseWriter, r *http.Re
 		Content string `json:"content"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("unauthorized").WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -53,7 +53,7 @@ func (h *ChatCommentHandler) CreateChatComment(w http.ResponseWriter, r *http.Re
 		CreatedBy:       userID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to create chat comment"))
 		return
 	}
 
@@ -66,7 +66,7 @@ func (h *ChatCommentHandler) GetCommentsBySessionUUID(w http.ResponseWriter, r *
 
 	comments, err := h.service.GetCommentsBySessionUUID(r.Context(), sessionUUID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get comments by session"))
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *ChatCommentHandler) GetCommentsByMessageUUID(w http.ResponseWriter, r *
 
 	comments, err := h.service.GetCommentsByMessageUUID(r.Context(), messageUUID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get comments by message"))
 		return
 	}
 

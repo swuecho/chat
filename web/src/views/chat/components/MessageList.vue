@@ -26,11 +26,13 @@ import { useChat } from '@/views/chat/hooks/useChat'
 import { updateChatData } from '@/api'
 import { useDialog } from 'naive-ui'
 import { useCopyCode } from '@/views/chat/hooks/useCopyCode'
+import { useErrorHandling } from '../composables/useErrorHandling'
 
 
 import { t } from '@/locales'
 const dialog = useDialog()
 const { updateChatText, updateChat } = useChat()
+const { handleApiError } = useErrorHandling()
 
 useCopyCode()
 
@@ -96,6 +98,7 @@ async function handleTogglePin(index: number) {
         if (message == null)
                 return
 
+        const previousPin = message.isPin
         message.isPin = !message.isPin
         try {
                 pining.value = true
@@ -105,6 +108,9 @@ async function handleTogglePin(index: number) {
                         index,
                         message,
                 )
+        } catch (error) {
+                message.isPin = previousPin
+                handleApiError(error, 'toggle-pin')
         }
         finally {
                 pining.value = false
@@ -118,7 +124,7 @@ async function handleGenerateMoreSuggestions(index: number) {
                 try {
                         await messageStore.generateMoreSuggestedQuestions(props.sessionUuid, message.uuid)
                 } catch (error) {
-                        console.error('Failed to generate more suggestions:', error)
+                        handleApiError(error, 'generate-more-suggestions')
                 }
         }
 }

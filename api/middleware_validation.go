@@ -22,11 +22,11 @@ var (
 
 // ValidationConfig defines validation rules for API endpoints
 type ValidationConfig struct {
-	MaxBodySize     int64                      // Maximum request body size
-	RequiredFields  []string                   // Required JSON fields
-	FieldValidators map[string]FieldValidator  // Custom field validators
-	AllowedMethods  []string                   // Allowed HTTP methods
-	SkipBodyBuffer  bool                       // Skip body buffering for large requests (disables field validation)
+	MaxBodySize     int64                     // Maximum request body size
+	RequiredFields  []string                  // Required JSON fields
+	FieldValidators map[string]FieldValidator // Custom field validators
+	AllowedMethods  []string                  // Allowed HTTP methods
+	SkipBodyBuffer  bool                      // Skip body buffering for large requests (disables field validation)
 }
 
 // FieldValidator defines a validation function for a specific field
@@ -94,7 +94,7 @@ func ValidationMiddleware(config ValidationConfig) func(http.Handler) http.Handl
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Start timing for performance monitoring
 			start := time.Now()
-			
+
 			// Validate HTTP method
 			if len(config.AllowedMethods) > 0 {
 				methodAllowed := false
@@ -189,12 +189,12 @@ func ValidationMiddleware(config ValidationConfig) func(http.Handler) http.Handl
 			if config.MaxBodySize > 0 {
 				limitedReader = io.LimitReader(r.Body, config.MaxBodySize+1)
 			}
-			
+
 			// Read with streaming approach using a buffer
 			var bodyBuffer bytes.Buffer
 			written, err := io.CopyN(&bodyBuffer, limitedReader, config.MaxBodySize+1)
 			r.Body.Close()
-			
+
 			if err != nil && err != io.EOF {
 				log.WithError(err).WithFields(log.Fields{
 					"path": r.URL.Path,
@@ -219,7 +219,7 @@ func ValidationMiddleware(config ValidationConfig) func(http.Handler) http.Handl
 				})
 				return
 			}
-			
+
 			body := bodyBuffer.Bytes()
 
 			// Parse JSON body

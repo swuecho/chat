@@ -50,12 +50,12 @@ func firstNWords(s string, n int) string {
 	if s == "" {
 		return ""
 	}
-	
+
 	words := strings.Fields(s)
 	if len(words) <= n {
 		return s
 	}
-	
+
 	return strings.Join(words[:n], " ")
 }
 

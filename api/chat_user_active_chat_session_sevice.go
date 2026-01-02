@@ -23,7 +23,7 @@ func (s *UserActiveChatSessionService) UpsertActiveSession(ctx context.Context, 
 	if workspaceID != nil {
 		nullWorkspaceID = sql.NullInt32{Int32: *workspaceID, Valid: true}
 	}
-	
+
 	session, err := s.q.UpsertUserActiveSession(ctx, sqlc.UpsertUserActiveSessionParams{
 		UserID:          userID,
 		WorkspaceID:     nullWorkspaceID,
@@ -41,7 +41,7 @@ func (s *UserActiveChatSessionService) GetActiveSession(ctx context.Context, use
 	if workspaceID != nil {
 		workspaceParam = *workspaceID
 	}
-	
+
 	session, err := s.q.GetUserActiveSession(ctx, sqlc.GetUserActiveSessionParams{
 		UserID:  userID,
 		Column2: workspaceParam, // SQLC generated this awkward name due to the complex WHERE clause
@@ -67,7 +67,7 @@ func (s *UserActiveChatSessionService) DeleteActiveSession(ctx context.Context, 
 	if workspaceID != nil {
 		workspaceParam = *workspaceID
 	}
-	
+
 	err := s.q.DeleteUserActiveSession(ctx, sqlc.DeleteUserActiveSessionParams{
 		UserID:  userID,
 		Column2: workspaceParam, // SQLC generated this awkward name
@@ -77,4 +77,3 @@ func (s *UserActiveChatSessionService) DeleteActiveSession(ctx context.Context, 
 	}
 	return nil
 }
-

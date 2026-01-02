@@ -148,7 +148,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 
 		if bytes.HasPrefix(line, []byte("[DONE]")) {
 			fmt.Println(ErrorDoneBreak)
-			
+
 			break
 		}
 

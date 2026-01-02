@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -46,12 +48,12 @@ func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Re
 	var messageParams sqlc_queries.CreateChatMessageParams
 	err := json.NewDecoder(r.Body).Decode(&messageParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 	message, err := h.service.CreateChatMessage(r.Context(), messageParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to create chat message"))
 		return
 	}
 	json.NewEncoder(w).Encode(message)
@@ -61,12 +63,12 @@ func (h *ChatMessageHandler) GetChatMessageByID(w http.ResponseWriter, r *http.R
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "invalid chat message ID", http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("invalid chat message ID"))
 		return
 	}
 	message, err := h.service.GetChatMessageByID(r.Context(), int32(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get chat message"))
 		return
 	}
 	json.NewEncoder(w).Encode(message)
@@ -76,19 +78,19 @@ func (h *ChatMessageHandler) UpdateChatMessage(w http.ResponseWriter, r *http.Re
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "invalid chat message ID", http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("invalid chat message ID"))
 		return
 	}
 	var messageParams sqlc_queries.UpdateChatMessageParams
 	err = json.NewDecoder(r.Body).Decode(&messageParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 	messageParams.ID = int32(id)
 	message, err := h.service.UpdateChatMessage(r.Context(), messageParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update chat message"))
 		return
 	}
 	json.NewEncoder(w).Encode(message)
@@ -98,12 +100,12 @@ func (h *ChatMessageHandler) DeleteChatMessage(w http.ResponseWriter, r *http.Re
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "invalid chat message ID", http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("invalid chat message ID"))
 		return
 	}
 	err = h.service.DeleteChatMessage(r.Context(), int32(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to delete chat message"))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -112,7 +114,7 @@ func (h *ChatMessageHandler) DeleteChatMessage(w http.ResponseWriter, r *http.Re
 func (h *ChatMessageHandler) GetAllChatMessages(w http.ResponseWriter, r *http.Request) {
 	messages, err := h.service.GetAllChatMessages(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get chat messages"))
 		return
 	}
 	json.NewEncoder(w).Encode(messages)
@@ -123,7 +125,7 @@ func (h *ChatMessageHandler) GetChatMessageByUUID(w http.ResponseWriter, r *http
 	uuidStr := mux.Vars(r)["uuid"]
 	message, err := h.service.GetChatMessageByUUID(r.Context(), uuidStr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get chat message"))
 		return
 	}
 
@@ -135,7 +137,7 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 	var simple_msg SimpleChatMessage
 	err := json.NewDecoder(r.Body).Decode(&simple_msg)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 	var messageParams sqlc_queries.UpdateChatMessageByUUIDParams
@@ -146,7 +148,7 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 	messageParams.IsPin = simple_msg.IsPin
 	message, err := h.service.UpdateChatMessageByUUID(r.Context(), messageParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update chat message"))
 		return
 	}
 	json.NewEncoder(w).Encode(message)
@@ -157,7 +159,7 @@ func (h *ChatMessageHandler) DeleteChatMessageByUUID(w http.ResponseWriter, r *h
 	uuidStr := mux.Vars(r)["uuid"]
 	err := h.service.DeleteChatMessageByUUID(r.Context(), uuidStr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to delete chat message"))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -177,7 +179,7 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 
 	messages, err := h.service.GetChatMessagesBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get chat messages"))
 		return
 	}
 
@@ -217,7 +219,7 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 	}
 	simple_msgs, err := h.service.q.GetChatHistoryBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get chat history"))
 		return
 	}
 	json.NewEncoder(w).Encode(simple_msgs)
@@ -228,7 +230,7 @@ func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWrite
 	uuidStr := mux.Vars(r)["uuid"]
 	err := h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to delete chat messages"))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -241,26 +243,34 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 	// Get the existing message
 	message, err := h.service.q.GetChatMessageByUUID(r.Context(), messageUUID)
 	if err != nil {
-		http.Error(w, "Message not found", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithAPIError(w, ErrChatMessageNotFound.WithMessage("Message not found").WithDebugInfo(err.Error()))
+		} else {
+			RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get message"))
+		}
 		return
 	}
 
 	// Only allow suggestions for assistant messages
 	if message.Role != "assistant" {
-		http.Error(w, "Suggestions can only be generated for assistant messages", http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Suggestions can only be generated for assistant messages"))
 		return
 	}
 
 	// Get the session to check if explore mode is enabled
 	session, err := h.service.q.GetChatSessionByUUID(r.Context(), message.ChatSessionUuid)
 	if err != nil {
-		http.Error(w, "Session not found", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondWithAPIError(w, ErrChatSessionNotFound.WithMessage("Session not found").WithDebugInfo(err.Error()))
+		} else {
+			RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get session"))
+		}
 		return
 	}
 
 	// Check if explore mode is enabled
 	if !session.ExploreMode {
-		http.Error(w, "Suggestions are only available in explore mode", http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Suggestions are only available in explore mode"))
 		return
 	}
 
@@ -271,7 +281,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 			Limit:           6,
 		})
 	if err != nil {
-		http.Error(w, "Failed to get conversation context", http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get conversation context"))
 		return
 	}
 
@@ -286,11 +296,11 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 
 	// Create a new ChatService to access suggestion generation methods
 	chatService := NewChatService(h.service.q)
-	
+
 	// Generate new suggested questions
 	newSuggestions := chatService.generateSuggestedQuestions(message.Content, msgs)
 	if len(newSuggestions) == 0 {
-		http.Error(w, "Failed to generate suggestions", http.StatusInternalServerError)
+		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to generate suggestions", "no suggestions returned"))
 		return
 	}
 
@@ -305,7 +315,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 
 	// Combine existing and new suggestions (avoiding duplicates)
 	allSuggestions := append(existingSuggestions, newSuggestions...)
-	
+
 	// Remove duplicates
 	seenSuggestions := make(map[string]bool)
 	var uniqueSuggestions []string
@@ -319,7 +329,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 	// Update the message with new suggestions
 	suggestionsJSON, err := json.Marshal(uniqueSuggestions)
 	if err != nil {
-		http.Error(w, "Failed to serialize suggestions", http.StatusInternalServerError)
+		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to serialize suggestions", err.Error()))
 		return
 	}
 
@@ -329,7 +339,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 			SuggestedQuestions: suggestionsJSON,
 		})
 	if err != nil {
-		http.Error(w, "Failed to update message with suggestions", http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update message with suggestions"))
 		return
 	}
 
