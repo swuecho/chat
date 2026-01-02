@@ -315,10 +315,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
         role: existing.role,
         content: existing.content,
         createdAt: existing.createdAt,
-<<<<<<< HEAD
         loading: existing.loading,
-=======
->>>>>>> add_session_title
         suggestedQuestions: newSuggestions,
         suggestedQuestionsLoading: false,
         suggestedQuestionsBatches: batches,
@@ -336,10 +333,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
         role: existing.role,
         content: existing.content,
         createdAt: existing.createdAt,
-<<<<<<< HEAD
         loading: existing.loading,
-=======
->>>>>>> add_session_title
         suggestedQuestions: existing.suggestedQuestions,
         suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
         suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
@@ -371,10 +365,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       role: existing.role,
       content: existing.content,
       createdAt: existing.createdAt,
-<<<<<<< HEAD
       loading: existing.loading,
-=======
->>>>>>> add_session_title
       suggestedQuestions: existing.suggestedQuestionsBatches[batchIndex],
       suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
       suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
