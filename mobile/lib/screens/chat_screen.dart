@@ -28,6 +28,37 @@ class ChatScreen extends HookConsumerWidget {
       orElse: () => session,
     );
 
+    // Create and manage scroll controller
+    final scrollController = useMemoized(() => ScrollController());
+    final previousMessagesLength = useRef<int>(0);
+
+    // Auto-scroll to bottom when new messages are added
+    useEffect(() {
+      final shouldScroll = messages.length > previousMessagesLength.value &&
+          messages.isNotEmpty &&
+          scrollController.hasClients;
+
+      if (shouldScroll) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (scrollController.hasClients) {
+            scrollController.animateTo(
+              scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
+
+      previousMessagesLength.value = messages.length;
+      return null;
+    }, [messages.length]);
+
+    // Dispose scroll controller when done
+    useEffect(() {
+      return () => scrollController.dispose();
+    }, []);
+
     useEffect(() {
       Future.microtask(
         () => ref.read(messageProvider.notifier).loadMessages(session.id),
@@ -87,6 +118,7 @@ class ChatScreen extends HookConsumerWidget {
               messages,
               messageState,
               activeSession,
+              scrollController,
             ),
           ),
           MessageComposer(
@@ -104,6 +136,7 @@ class ChatScreen extends HookConsumerWidget {
     List<ChatMessage> messages,
     MessageState messageState,
     ChatSession activeSession,
+    ScrollController scrollController,
   ) {
     if (messageState.isLoading && messages.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -145,6 +178,7 @@ class ChatScreen extends HookConsumerWidget {
     }
 
     return ListView.builder(
+      controller: scrollController,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       itemCount: messages.length,
       itemBuilder: (context, index) {
