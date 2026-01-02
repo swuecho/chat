@@ -74,18 +74,37 @@ class ChatScreen extends HookConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-           Text(_getDisplayTitle(activeSession.title)),
-            Text(
-              activeSession.model,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: Colors.grey[600]),
-            ),
-          ],
+        title: GestureDetector(
+          onTap: () => _showEditTitleDialog(context, ref, activeSession),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _getDisplayTitle(activeSession.title),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.edit,
+                    size: 14,
+                    color: Colors.grey[600],
+                  ),
+                ],
+              ),
+              Text(
+                activeSession.model,
+                style: Theme.of(context)
+                    .textTheme
+                    .labelMedium
+                    ?.copyWith(color: Colors.grey[600]),
+              ),
+            ],
+          ),
         ),
         actions: [
           IconButton(
@@ -439,5 +458,58 @@ class ChatScreen extends HookConsumerWidget {
       return 'New Chat';
     }
     return title;
+  }
+
+  void _showEditTitleDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ChatSession activeSession,
+  ) {
+    final controller = TextEditingController(text: activeSession.title);
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit session title'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Enter session title',
+          ),
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newTitle = controller.text.trim();
+              if (newTitle.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Title cannot be empty')),
+                );
+                return;
+              }
+              Navigator.of(context).pop();
+              final error = await ref
+                  .read(sessionProvider.notifier)
+                  .updateSessionTitle(
+                    session: activeSession,
+                    newTitle: newTitle,
+                  );
+              if (error != null && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(error)),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 }
