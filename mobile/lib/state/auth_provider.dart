@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_config.dart';
 import '../api/chat_api.dart';
+import '../utils/api_error.dart';
 
 class AuthState {
   const AuthState({
@@ -82,9 +83,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await refreshToken();
       }
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isHydrating: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
     }
   }
@@ -109,9 +111,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
       );
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
     }
   }

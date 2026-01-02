@@ -11,6 +11,7 @@ import '../state/session_provider.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/message_composer.dart';
 import '../widgets/suggested_questions.dart';
+import '../utils/api_error.dart';
 
 class ChatScreen extends HookConsumerWidget {
   const ChatScreen({super.key, required this.session});
@@ -394,7 +395,7 @@ class ChatScreen extends HookConsumerWidget {
       }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
+          SnackBar(content: Text(formatApiError(error))),
         );
       }
     }

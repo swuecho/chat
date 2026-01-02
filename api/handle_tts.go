@@ -17,7 +17,7 @@ func handleTTSRequest(w http.ResponseWriter, r *http.Request) {
 	print(fullURL)
 	proxyReq, err := http.NewRequest(r.Method, fullURL, r.Body)
 	if err != nil {
-		http.Error(w, "Error creating proxy request", http.StatusInternalServerError)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Error creating proxy request").WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -32,7 +32,7 @@ func handleTTSRequest(w http.ResponseWriter, r *http.Request) {
 	// Send the proxy request using the custom transport
 	resp, err := customTransport.RoundTrip(proxyReq)
 	if err != nil {
-		http.Error(w, "Error sending proxy request", http.StatusInternalServerError)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Error sending proxy request").WithDebugInfo(err.Error()))
 		return
 	}
 	defer resp.Body.Close()

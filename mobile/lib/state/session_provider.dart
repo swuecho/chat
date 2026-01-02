@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../api/chat_api.dart';
 import '../models/chat_session.dart';
 import 'auth_provider.dart';
+import '../utils/api_error.dart';
 
 class SessionState {
   const SessionState({
@@ -52,9 +53,10 @@ class SessionNotifier extends StateNotifier<SessionState> {
       sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       state = state.copyWith(sessions: sessions, isLoading: false);
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
     }
   }
@@ -81,9 +83,10 @@ class SessionNotifier extends StateNotifier<SessionState> {
       );
       return session;
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
     }
     return null;
@@ -112,11 +115,12 @@ class SessionNotifier extends StateNotifier<SessionState> {
       );
       return null;
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
-      return error.toString();
+      return errorMessage;
     }
   }
 
@@ -163,11 +167,12 @@ class SessionNotifier extends StateNotifier<SessionState> {
       state = state.copyWith(isLoading: false);
       return null;
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
-      return error.toString();
+      return errorMessage;
     }
   }
 
@@ -200,11 +205,12 @@ class SessionNotifier extends StateNotifier<SessionState> {
       state = state.copyWith(isLoading: false);
       return null;
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
-      return error.toString();
+      return errorMessage;
     }
   }
 
@@ -251,11 +257,12 @@ class SessionNotifier extends StateNotifier<SessionState> {
       state = state.copyWith(isLoading: false);
       return null;
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
-      return error.toString();
+      return errorMessage;
     }
   }
 }

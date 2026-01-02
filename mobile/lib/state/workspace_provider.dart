@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../api/chat_api.dart';
 import 'auth_provider.dart';
 import '../models/workspace.dart';
+import '../utils/api_error.dart';
 
 class WorkspaceState {
   const WorkspaceState({
@@ -70,9 +71,10 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
         isLoading: false,
       );
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
     }
   }

@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../api/chat_api.dart';
 import '../models/chat_message.dart';
 import 'auth_provider.dart';
+import '../utils/api_error.dart';
 
 class MessageState {
   const MessageState({
@@ -61,9 +62,10 @@ class MessageNotifier extends StateNotifier<MessageState> {
         isLoading: false,
       );
     } catch (error) {
+      final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
     }
   }
@@ -115,6 +117,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       state = state.copyWith(sendingSessionIds: updatedSending);
       return null;
     } catch (error) {
+      final errorMessage = formatApiError(error);
       _replaceMessageContent(
         assistantMessage.id,
         'Failed to get response. Please try again.',
@@ -123,9 +126,9 @@ class MessageNotifier extends StateNotifier<MessageState> {
       final updatedSending = {...state.sendingSessionIds}..remove(sessionId);
       state = state.copyWith(
         sendingSessionIds: updatedSending,
-        errorMessage: error.toString(),
+        errorMessage: errorMessage,
       );
-      return error.toString();
+      return errorMessage;
     }
   }
 
@@ -140,6 +143,24 @@ class MessageNotifier extends StateNotifier<MessageState> {
     }
     try {
       final parsed = jsonDecode(data);
+      if (parsed is Map<String, dynamic> &&
+          parsed['code'] is String &&
+          parsed['message'] is String &&
+          parsed['choices'] == null) {
+        final message = parsed['message'] as String;
+        final detail = parsed['detail'];
+        final errorMessage =
+            detail is String && detail.isNotEmpty ? '$message ($detail)' : message;
+        _replaceMessageContent(tempId, errorMessage);
+        state = state.copyWith(errorMessage: errorMessage);
+        return;
+      }
+      if (parsed is Map<String, dynamic> && parsed['error'] is String) {
+        final errorMessage = parsed['error'] as String;
+        _replaceMessageContent(tempId, errorMessage);
+        state = state.copyWith(errorMessage: errorMessage);
+        return;
+      }
       final choices = parsed['choices'];
       if (choices is! List || choices.isEmpty) {
         return;
@@ -297,6 +318,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       state = state.copyWith(messages: updatedMessages);
       return null;
     } catch (error) {
+      final errorMessage = formatApiError(error);
       updatedMessages[index] = ChatMessage(
         id: existing.id,
         sessionId: existing.sessionId,
@@ -309,8 +331,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
         currentSuggestedQuestionsBatch: existing.currentSuggestedQuestionsBatch,
         suggestedQuestionsGenerating: false,
       );
-      state = state.copyWith(messages: updatedMessages, errorMessage: error.toString());
-      return error.toString();
+      state = state.copyWith(messages: updatedMessages, errorMessage: errorMessage);
+      return errorMessage;
     }
   }
 
@@ -355,8 +377,9 @@ class MessageNotifier extends StateNotifier<MessageState> {
       state = state.copyWith(messages: [...remaining, ...fetched]);
       return null;
     } catch (error) {
-      state = state.copyWith(errorMessage: error.toString());
-      return error.toString();
+      final errorMessage = formatApiError(error);
+      state = state.copyWith(errorMessage: errorMessage);
+      return errorMessage;
     }
   }
 
@@ -369,8 +392,9 @@ class MessageNotifier extends StateNotifier<MessageState> {
       state = state.copyWith(messages: updatedMessages);
       return null;
     } catch (error) {
-      state = state.copyWith(errorMessage: error.toString());
-      return error.toString();
+      final errorMessage = formatApiError(error);
+      state = state.copyWith(errorMessage: errorMessage);
+      return errorMessage;
     }
   }
 
@@ -399,8 +423,9 @@ class MessageNotifier extends StateNotifier<MessageState> {
       // Revert on error
       final revertedMessages = [...state.messages];
       revertedMessages[index] = message;
-      state = state.copyWith(messages: revertedMessages, errorMessage: error.toString());
-      return error.toString();
+      final errorMessage = formatApiError(error);
+      state = state.copyWith(messages: revertedMessages, errorMessage: errorMessage);
+      return errorMessage;
     }
   }
 }

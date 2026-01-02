@@ -25,6 +25,7 @@ import { useConversationFlow } from '../composables/useConversationFlow'
 import { useRegenerate } from '../composables/useRegenerate'
 import { useSearchAndPrompts } from '../composables/useSearchAndPrompts'
 import { useChatActions } from '../composables/useChatActions'
+import { useErrorHandling } from '../composables/useErrorHandling'
 
 // Create a ref for the input element
 const searchInputRef = ref(null);
@@ -35,6 +36,7 @@ let controller = new AbortController()
 const messageStore = useMessageStore()
 const sessionStore = useSessionStore()
 const promptStore = usePromptStore()
+const { handleApiError } = useErrorHandling()
 
 const props = defineProps({
   sessionUuid: {
@@ -68,7 +70,7 @@ watch(sessionUuid, async (newSession, oldSession) => {
   try {
     await messageStore.syncChatMessages(newSession)
   } catch (error) {
-    console.error('Failed to sync messages for session change:', error)
+    handleApiError(error, 'sync-chat-messages')
   }
 }, { immediate: true })
 

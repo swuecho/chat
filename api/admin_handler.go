@@ -49,12 +49,12 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	var userParams sqlc_queries.UpdateAuthUserByEmailParams
 	err := json.NewDecoder(r.Body).Decode(&userParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 	user, err := h.service.q.UpdateAuthUserByEmail(r.Context(), userParams)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update user"))
 		return
 	}
 	json.NewEncoder(w).Encode(user)
@@ -64,13 +64,13 @@ func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
 	var pagination Pagination
 	err := json.NewDecoder(r.Body).Decode(&pagination)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 
 	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get user stats"))
 		return
 	}
 
@@ -111,7 +111,7 @@ func (h *AdminHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
 	var rateLimitRequest RateLimitRequest
 	err := json.NewDecoder(r.Body).Decode(&rateLimitRequest)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 	rate, err := h.service.q.UpdateAuthUserRateLimitByEmail(r.Context(),
@@ -121,7 +121,7 @@ func (h *AdminHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
 		})
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update rate limit"))
 		return
 	}
 	json.NewEncoder(w).Encode(

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
@@ -41,7 +40,7 @@ func (s *ChatSessionService) GetChatSessionByID(ctx context.Context, id int32) (
 func (s *ChatSessionService) UpdateChatSession(ctx context.Context, session_params sqlc_queries.UpdateChatSessionParams) (sqlc_queries.ChatSession, error) {
 	session_u, err := s.q.UpdateChatSession(ctx, session_params)
 	if err != nil {
-		return sqlc_queries.ChatSession{}, errors.New("failed to update session")
+		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session")
 	}
 	return session_u, nil
 }
@@ -50,7 +49,7 @@ func (s *ChatSessionService) UpdateChatSession(ctx context.Context, session_para
 func (s *ChatSessionService) DeleteChatSession(ctx context.Context, id int32) error {
 	err := s.q.DeleteChatSession(ctx, id)
 	if err != nil {
-		return errors.New("failed to delete session by id")
+		return eris.Wrap(err, "failed to delete session by id")
 	}
 	return nil
 }
@@ -59,7 +58,7 @@ func (s *ChatSessionService) DeleteChatSession(ctx context.Context, id int32) er
 func (s *ChatSessionService) GetAllChatSessions(ctx context.Context) ([]sqlc_queries.ChatSession, error) {
 	sessions, err := s.q.GetAllChatSessions(ctx)
 	if err != nil {
-		return nil, errors.New("failed to retrieve sessions")
+		return nil, eris.Wrap(err, "failed to retrieve sessions")
 	}
 	return sessions, nil
 }
@@ -67,7 +66,7 @@ func (s *ChatSessionService) GetAllChatSessions(ctx context.Context) ([]sqlc_que
 func (s *ChatSessionService) GetChatSessionsByUserID(ctx context.Context, userID int32) ([]sqlc_queries.ChatSession, error) {
 	sessions, err := s.q.GetChatSessionsByUserID(ctx, userID)
 	if err != nil {
-		return nil, errors.New("failed to retrieve sessions")
+		return nil, eris.Wrap(err, "failed to retrieve sessions")
 	}
 	return sessions, nil
 }

@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../models/chat_snapshot.dart';
 import '../state/auth_provider.dart';
+import '../utils/api_error.dart';
 import '../widgets/message_bubble.dart';
 
 class SnapshotScreen extends HookConsumerWidget {
@@ -24,7 +25,7 @@ class SnapshotScreen extends HookConsumerWidget {
         final data = await ref.read(authedApiProvider).fetchSnapshot(snapshotId);
         snapshot.value = data;
       } catch (error) {
-        errorMessage.value = error.toString();
+        errorMessage.value = formatApiError(error);
       } finally {
         isLoading.value = false;
       }

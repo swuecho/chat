@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'api_exception.dart';
 import '../models/chat_session.dart';
 import '../models/chat_message.dart';
 import '../models/chat_model.dart';
@@ -41,7 +42,7 @@ class ChatApi {
     debugPrint('Login response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(_extractError(response));
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -63,9 +64,7 @@ class ChatApi {
     debugPrint('Workspaces response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        'Failed to load workspaces (${response.statusCode})',
-      );
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -82,9 +81,7 @@ class ChatApi {
     debugPrint('Sessions response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        'Failed to load sessions (${response.statusCode})',
-      );
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -99,7 +96,7 @@ class ChatApi {
     debugPrint('Session response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to load session (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -122,7 +119,7 @@ class ChatApi {
     debugPrint('Messages response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to load messages (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -154,7 +151,7 @@ class ChatApi {
     final status = response.statusCode;
     if (status < 200 || status >= 300) {
       final body = await response.stream.bytesToString();
-      throw Exception('Failed to stream response ($status): $body');
+      throw _parseApiError(status, body);
     }
 
     final decoder = const Utf8Decoder();
@@ -182,7 +179,7 @@ class ChatApi {
     debugPrint('Chat models response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to load chat models (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -227,7 +224,7 @@ class ChatApi {
     debugPrint('Update session response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to update session (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
   }
 
@@ -241,7 +238,7 @@ class ChatApi {
     debugPrint('Suggestions response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to generate suggestions (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -258,7 +255,7 @@ class ChatApi {
     debugPrint('Clear session messages response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to clear messages (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
   }
 
@@ -269,7 +266,7 @@ class ChatApi {
     debugPrint('Snapshot response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to create snapshot (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -286,7 +283,7 @@ class ChatApi {
     debugPrint('Snapshot list response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to load snapshots (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -301,7 +298,7 @@ class ChatApi {
     debugPrint('Snapshot response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to load snapshot (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -318,7 +315,7 @@ class ChatApi {
     debugPrint('Delete session response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to delete session (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
   }
 
@@ -329,7 +326,7 @@ class ChatApi {
     debugPrint('Delete message response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to delete message (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
   }
 
@@ -349,7 +346,7 @@ class ChatApi {
     debugPrint('Update message response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to update message (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
   }
 
@@ -371,7 +368,7 @@ class ChatApi {
     debugPrint('Create session response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(_extractError(response));
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
@@ -429,17 +426,36 @@ class ChatApi {
     return const [];
   }
 
-  String _extractError(http.Response response) {
-    try {
-      final payload = jsonDecode(response.body);
-      if (payload is Map<String, dynamic>) {
-        final message = payload['message'] ?? payload['error'];
-        if (message is String && message.isNotEmpty) {
-          return message;
+  ApiException _parseApiError(int status, String body) {
+    String message = 'Request failed ($status).';
+    String? code;
+    String? detail;
+    if (body.isNotEmpty) {
+      try {
+        final payload = jsonDecode(body);
+        if (payload is Map<String, dynamic>) {
+          final msg = payload['message'] ?? payload['error'];
+          if (msg is String && msg.isNotEmpty) {
+            message = msg;
+          }
+          final detailValue = payload['detail'];
+          if (detailValue is String && detailValue.isNotEmpty) {
+            detail = detailValue;
+          }
+          final codeValue = payload['code'];
+          if (codeValue is String && codeValue.isNotEmpty) {
+            code = codeValue;
+          }
         }
-      }
-    } catch (_) {}
-    return 'Request failed (${response.statusCode}).';
+      } catch (_) {}
+    }
+    return ApiException(
+      status: status,
+      message: message,
+      code: code,
+      detail: detail,
+      rawBody: body.isNotEmpty ? body : null,
+    );
   }
 
   String? _extractRefreshCookie(http.Response response) {
@@ -495,7 +511,7 @@ class ChatApi {
     debugPrint('Refresh response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to refresh token (${response.statusCode})');
+      throw _parseApiError(response.statusCode, response.body);
     }
 
     final payload = jsonDecode(response.body);
