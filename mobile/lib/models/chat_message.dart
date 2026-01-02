@@ -11,6 +11,7 @@ class ChatMessage {
     required this.role,
     required this.content,
     required this.createdAt,
+    this.loading = false,
     this.isPinned = false,
     this.suggestedQuestions = const [],
     this.suggestedQuestionsLoading = false,
@@ -24,6 +25,7 @@ class ChatMessage {
   final MessageRole role;
   final String content;
   final DateTime createdAt;
+  final bool loading;
   final bool isPinned;
   final List<String> suggestedQuestions;
   final bool suggestedQuestionsLoading;
@@ -37,6 +39,7 @@ class ChatMessage {
     MessageRole? role,
     String? content,
     DateTime? createdAt,
+    bool? loading,
     bool? isPinned,
     List<String>? suggestedQuestions,
     bool? suggestedQuestionsLoading,
@@ -50,6 +53,7 @@ class ChatMessage {
       role: role ?? this.role,
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
+      loading: loading ?? this.loading,
       isPinned: isPinned ?? this.isPinned,
       suggestedQuestions: suggestedQuestions ?? this.suggestedQuestions,
       suggestedQuestionsLoading: suggestedQuestionsLoading ?? this.suggestedQuestionsLoading,
@@ -84,6 +88,7 @@ class ChatMessage {
       role: role,
       content: content,
       createdAt: createdAt,
+      loading: false,
       isPinned: isPinned,
       suggestedQuestions: suggestedQuestions,
       suggestedQuestionsBatches:

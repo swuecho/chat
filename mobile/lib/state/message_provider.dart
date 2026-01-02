@@ -93,6 +93,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       role: MessageRole.assistant,
       content: '',
       createdAt: now,
+      loading: true,
       suggestedQuestionsLoading: exploreMode,
     );
 
@@ -112,6 +113,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
           _handleStreamChunk(sessionId, assistantMessage.id, chunk);
         },
       );
+      _setLatestAssistantLoading(sessionId, false);
       _clearSuggestedQuestionsLoading(sessionId);
       final updatedSending = {...state.sendingSessionIds}..remove(sessionId);
       state = state.copyWith(sendingSessionIds: updatedSending);
@@ -122,6 +124,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
         assistantMessage.id,
         'Failed to get response. Please try again.',
       );
+      _setLatestAssistantLoading(sessionId, false);
       _clearSuggestedQuestionsLoading(sessionId);
       final updatedSending = {...state.sendingSessionIds}..remove(sessionId);
       state = state.copyWith(
@@ -205,6 +208,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
         role: existing.role,
         content: newContent,
         createdAt: existing.createdAt,
+        loading: true,
         suggestedQuestions: questions,
         suggestedQuestionsLoading: loading,
         suggestedQuestionsBatches: batches,
@@ -230,6 +234,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       role: existing.role,
       content: content,
       createdAt: existing.createdAt,
+      loading: false,
       suggestedQuestions: existing.suggestedQuestions,
       suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
       suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
@@ -258,6 +263,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       role: existing.role,
       content: existing.content,
       createdAt: existing.createdAt,
+      loading: existing.loading,
       suggestedQuestions: existing.suggestedQuestions,
       suggestedQuestionsLoading: false,
       suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
@@ -286,6 +292,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       role: existing.role,
       content: existing.content,
       createdAt: existing.createdAt,
+      loading: existing.loading,
       suggestedQuestions: existing.suggestedQuestions,
       suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
       suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
@@ -308,6 +315,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
         role: existing.role,
         content: existing.content,
         createdAt: existing.createdAt,
+        loading: existing.loading,
         suggestedQuestions: newSuggestions,
         suggestedQuestionsLoading: false,
         suggestedQuestionsBatches: batches,
@@ -325,6 +333,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
         role: existing.role,
         content: existing.content,
         createdAt: existing.createdAt,
+        loading: existing.loading,
         suggestedQuestions: existing.suggestedQuestions,
         suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
         suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
@@ -356,6 +365,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       role: existing.role,
       content: existing.content,
       createdAt: existing.createdAt,
+      loading: existing.loading,
       suggestedQuestions: existing.suggestedQuestionsBatches[batchIndex],
       suggestedQuestionsLoading: existing.suggestedQuestionsLoading,
       suggestedQuestionsBatches: existing.suggestedQuestionsBatches,
@@ -427,6 +437,24 @@ class MessageNotifier extends StateNotifier<MessageState> {
       state = state.copyWith(messages: revertedMessages, errorMessage: errorMessage);
       return errorMessage;
     }
+  }
+
+  void _setLatestAssistantLoading(String sessionId, bool loading) {
+    final index = state.messages.lastIndexWhere(
+      (message) =>
+          message.sessionId == sessionId && message.role == MessageRole.assistant,
+    );
+    if (index == -1) {
+      return;
+    }
+    final existing = state.messages[index];
+    if (existing.loading == loading) {
+      return;
+    }
+    final updated = existing.copyWith(loading: loading);
+    final updatedMessages = [...state.messages];
+    updatedMessages[index] = updated;
+    state = state.copyWith(messages: updatedMessages);
   }
 }
 

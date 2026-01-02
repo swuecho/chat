@@ -119,6 +119,28 @@ class MessageBubble extends StatelessWidget {
               ),
             ),
           ),
+          if (!isUser && message.loading)
+            Align(
+              alignment: alignment,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 6, right: 6, bottom: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      height: 12,
+                      width: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Generating...',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

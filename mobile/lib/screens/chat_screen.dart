@@ -186,6 +186,7 @@ class ChatScreen extends HookConsumerWidget {
         final message = messages[index];
         final showSuggested = activeSession.exploreMode &&
             message.role == MessageRole.assistant &&
+            !message.loading &&
             (message.suggestedQuestionsLoading ||
                 message.suggestedQuestions.isNotEmpty);
         return Column(
@@ -234,6 +235,7 @@ class ChatScreen extends HookConsumerWidget {
       },
     );
   }
+
 
   Future<void> _sendMessage(
     BuildContext context,
