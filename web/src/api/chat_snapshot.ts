@@ -34,9 +34,9 @@ export const fetchChatSnapshot = async (uuid: string): Promise<any> => {
   }
 }
 
-export const fetchSnapshotAll = async (): Promise<any> => {
+export const fetchSnapshotAll = async (page: number = 1, pageSize: number = 20): Promise<any> => {
   try {
-    const response = await request.get('/uuid/chat_snapshot/all?type=snapshot')
+    const response = await request.get(`/uuid/chat_snapshot/all?type=snapshot&page=${page}&page_size=${pageSize}`)
     return response.data
   }
   catch (error) {

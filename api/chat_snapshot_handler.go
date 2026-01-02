@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -98,7 +99,36 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 	}
 	// get type from query
 	typ := r.URL.Query().Get("type")
-	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), sqlc_queries.ChatSnapshotMetaByUserIDParams{UserID: userID, Typ: typ})
+
+	// Parse pagination parameters
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("page_size")
+
+	page := int32(1)    // Default to page 1
+	pageSize := int32(20) // Default to 20 items per page
+
+	if pageStr != "" {
+		parsedPage, err := strconv.Atoi(pageStr)
+		if err == nil && parsedPage > 0 {
+			page = int32(parsedPage)
+		}
+	}
+
+	if pageSizeStr != "" {
+		parsedPageSize, err := strconv.Atoi(pageSizeStr)
+		if err == nil && parsedPageSize > 0 && parsedPageSize <= 100 {
+			pageSize = int32(parsedPageSize)
+		}
+	}
+
+	offset := (page - 1) * pageSize
+
+	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), sqlc_queries.ChatSnapshotMetaByUserIDParams{
+		UserID: userID,
+		Typ:    typ,
+		Limit:  pageSize,
+		Offset: offset,
+	})
 
 	if err != nil {
 		apiErr := ErrInternalUnexpected
@@ -109,7 +139,12 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatSnapshots)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data":       chatSnapshots,
+		"page":       page,
+		"page_size":  pageSize,
+		"total":      len(chatSnapshots),
+	})
 }
 func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]

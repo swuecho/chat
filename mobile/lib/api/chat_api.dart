@@ -276,8 +276,11 @@ class ChatApi {
     throw Exception('Snapshot response missing uuid.');
   }
 
-  Future<List<ChatSnapshotMeta>> fetchSnapshots() async {
-    final uri = Uri.parse('$baseUrl/api/uuid/chat_snapshot/all?type=snapshot');
+  Future<List<ChatSnapshotMeta>> fetchSnapshots({
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/uuid/chat_snapshot/all?type=snapshot&page=$page&page_size=$pageSize');
     debugPrint('GET $uri');
     final response = await _client.get(uri, headers: _defaultHeaders());
     debugPrint('Snapshot list response ${response.statusCode}: ${response.body}');
@@ -287,7 +290,12 @@ class ChatApi {
     }
 
     final payload = jsonDecode(response.body);
-    final items = _extractList(payload);
+
+    // Handle new response format with data field
+    final items = payload is Map<String, dynamic>
+        ? _extractList(payload['data'])
+        : _extractList(payload);
+
     return items.map((item) => ChatSnapshotMeta.fromJson(item)).toList();
   }
 

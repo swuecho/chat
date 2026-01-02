@@ -14,23 +14,45 @@ class SnapshotListScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final snapshots = useState<List<ChatSnapshotMeta>>([]);
     final isLoading = useState(false);
+    final isLoadingMore = useState(false);
     final errorMessage = useState<String?>(null);
+    final currentPage = useState(1);
+    final hasMore = useState(true);
+    final pageSize = 20;
 
-    Future<void> loadSnapshots() async {
-      isLoading.value = true;
-      errorMessage.value = null;
+    Future<void> loadSnapshots({bool loadMore = false}) async {
+      if (loadMore) {
+        isLoadingMore.value = true;
+      } else {
+        isLoading.value = true;
+        errorMessage.value = null;
+        currentPage.value = 1;
+      }
+
       try {
-        final items = await ref.read(authedApiProvider).fetchSnapshots();
-        snapshots.value = items;
+        final items = await ref.read(authedApiProvider).fetchSnapshots(
+          page: currentPage.value,
+          pageSize: pageSize,
+        );
+
+        if (loadMore) {
+          snapshots.value = [...snapshots.value, ...items];
+        } else {
+          snapshots.value = items;
+        }
+
+        // Check if there might be more items
+        hasMore.value = items.length >= pageSize;
       } catch (error) {
         errorMessage.value = formatApiError(error);
       } finally {
         isLoading.value = false;
+        isLoadingMore.value = false;
       }
     }
 
     useEffect(() {
-      Future.microtask(loadSnapshots);
+      Future.microtask(() => loadSnapshots());
       return null;
     }, const []);
 
@@ -39,7 +61,7 @@ class SnapshotListScreen extends HookConsumerWidget {
         title: const Text('Snapshots'),
       ),
       body: RefreshIndicator(
-        onRefresh: loadSnapshots,
+        onRefresh: () => loadSnapshots(),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -49,7 +71,7 @@ class SnapshotListScreen extends HookConsumerWidget {
               _buildEmptyState(
                 context,
                 message: errorMessage.value!,
-                onRetry: loadSnapshots,
+                onRetry: () => loadSnapshots(),
               ),
             if (!isLoading.value &&
                 errorMessage.value == null &&
@@ -57,7 +79,7 @@ class SnapshotListScreen extends HookConsumerWidget {
               _buildEmptyState(
                 context,
                 message: 'No snapshots yet.',
-                onRetry: loadSnapshots,
+                onRetry: () => loadSnapshots(),
               ),
             for (final snapshot in snapshots.value)
               Card(
@@ -78,6 +100,40 @@ class SnapshotListScreen extends HookConsumerWidget {
                       ),
                     );
                   },
+                ),
+              ),
+            // Load More Button
+            if (!isLoading.value &&
+                snapshots.value.isNotEmpty &&
+                hasMore.value)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: isLoadingMore.value
+                      ? const CircularProgressIndicator()
+                      : ElevatedButton.icon(
+                          onPressed: () {
+                            currentPage.value = currentPage.value + 1;
+                            loadSnapshots(loadMore: true);
+                          },
+                          icon: const Icon(Icons.add_circle_outline),
+                          label: const Text('Load More'),
+                        ),
+                ),
+              ),
+            // End of list indicator
+            if (!isLoading.value &&
+                snapshots.value.isNotEmpty &&
+                !hasMore.value)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    'You\'ve reached the end',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey,
+                        ),
+                  ),
                 ),
               ),
           ],
