@@ -4,6 +4,8 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 
 import '../models/chat_message.dart';
+import '../utils/thinking_parser.dart';
+import 'thinking_section.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -54,6 +56,28 @@ class MessageBubble extends StatelessWidget {
       blockquotePadding: const EdgeInsets.only(left: 12),
       listBullet: TextStyle(color: textColor),
     );
+    final thinkingStyleSheet = styleSheet.copyWith(
+      p: TextStyle(color: const Color(0xFF1F2937), height: 1.4),
+      a: const TextStyle(
+        color: Color(0xFF1D4ED8),
+        decoration: TextDecoration.underline,
+      ),
+      code: const TextStyle(
+        color: Color(0xFF0F172A),
+        fontFamily: 'monospace',
+        fontSize: 13,
+        backgroundColor: Color(0xFFE2E8F0),
+      ),
+      codeblockDecoration: BoxDecoration(
+        color: const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      listBullet: const TextStyle(color: Color(0xFF1F2937)),
+    );
+    final parsed = !isUser ? parseThinkingContent(message.content) : null;
+    final displayContent = !isUser ? (parsed?.answerContent ?? '') : message.content;
+    final hasAnswerContent = displayContent.trim().isNotEmpty;
+    final hasThinking = parsed?.hasThinking ?? false;
 
     return GestureDetector(
       onLongPress: () => _showMessageMenu(context),
@@ -127,20 +151,35 @@ class MessageBubble extends StatelessWidget {
                           ),
                         ),
                       // Message bubble
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        constraints: const BoxConstraints(maxWidth: 280),
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: MarkdownBody(
-                          data: message.content,
-                          selectable: true,
-                          softLineBreak: true,
-                          styleSheet: styleSheet,
-                        ),
+                      Column(
+                        crossAxisAlignment:
+                            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                        children: [
+                          if (!isUser && hasThinking)
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 280),
+                              child: ThinkingSection(
+                                content: parsed?.thinkingContent ?? '',
+                                styleSheet: thinkingStyleSheet,
+                              ),
+                            ),
+                          if (hasAnswerContent)
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              constraints: const BoxConstraints(maxWidth: 280),
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: MarkdownBody(
+                                data: displayContent,
+                                selectable: true,
+                                softLineBreak: true,
+                                styleSheet: styleSheet,
+                              ),
+                            ),
+                        ],
                       ),
                       // Three-dot menu button (outside bubble)
                       if (isUser)
@@ -259,7 +298,10 @@ class MessageBubble extends StatelessWidget {
   }
 
   void _copyMessage(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: message.content));
+    final content = message.role == MessageRole.assistant
+        ? parseThinkingContent(message.content).answerContent
+        : message.content;
+    await Clipboard.setData(ClipboardData(text: content));
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
