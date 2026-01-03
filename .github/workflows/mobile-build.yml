@@ -52,7 +52,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       - name: Build iOS app (no codesign)
-        run: flutter build ios --release --simulator
+        run: flutter build ios --simulator
       - name: Upload iOS artifact
         uses: actions/upload-artifact@v4
         with:
