@@ -23,7 +23,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
-          flutter-version: "3.22.2"
+          flutter-version: "3.35.4"
       - name: Install dependencies
         run: flutter pub get
       - name: Build Android APK
@@ -48,20 +48,13 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
-          flutter-version: "3.22.2"
+          flutter-version: "3.35.4"
       - name: Install dependencies
         run: flutter pub get
       - name: Build iOS app (no codesign)
-        run: flutter build ios --release --no-codesign
-      - name: Build iOS archive (no codesign)
-        run: flutter build ipa --release --no-codesign
+        run: flutter build ios --release --simulator
       - name: Upload iOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: chat-mobile-ios
-          path: mobile/build/ios/iphoneos/Runner.app
-      - name: Upload iOS archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: chat-mobile-ios-archive
-          path: mobile/build/ios/archive/Runner.xcarchive
+          path: mobile/build/ios/iphonesimulator/Runner.app
