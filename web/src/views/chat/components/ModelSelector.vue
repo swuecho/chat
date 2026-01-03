@@ -6,6 +6,7 @@ import { useChatModels } from '@/hooks/useChatModels'
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
 import type { ChatModel } from '@/types/chat-models'
 import { API_TYPE_DISPLAY_NAMES, API_TYPES } from '@/constants/apiTypes'
+import { getInitialModelState } from './modelSelectorUtils'
 
 interface ModelFormData {
         model: string | undefined
@@ -147,10 +148,11 @@ const setModelValue = (value: string | undefined) => {
 // Initialize model once both session and default model are available
 watch([chatSession, defaultModel], ([session, defaultModelValue]) => {
         const sessionModelValue = session?.model
-        const initialModel = sessionModelValue ?? defaultModelValue
+        const { initialModel, shouldCommit } = getInitialModelState(sessionModelValue, defaultModelValue)
 
-        if (initialModel && committedModel.value !== initialModel) {
-                committedModel.value = initialModel
+        if (shouldCommit && sessionModelValue && committedModel.value !== sessionModelValue) {
+                // Only commit when the session already has a model set
+                committedModel.value = sessionModelValue
         }
 
         if (!modelRef.value.model && initialModel) {
