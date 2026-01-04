@@ -3,7 +3,7 @@ import { computed, onMounted, ref, h } from 'vue'
 import { NModal, useDialog, useMessage } from 'naive-ui'
 import copy from 'copy-to-clipboard'
 import Search from '../snapshot/components/Search.vue'
-import { fetchChatbotAll, fetchSnapshotDelete } from '@/api'
+import { fetchChatbotAll, fetchSnapshotDelete, fetchChatbotAllData } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { generateAPIHelper, getBotPostLinks } from '@/service/snapshot'
 import { fetchAPIToken } from '@/api/token'
@@ -36,7 +36,7 @@ onMounted(async () => {
 
 
 async function refreshSnapshot() {
-  const bots: Snapshot.Snapshot[] = await fetchChatbotAll()
+  const bots: Snapshot.Snapshot[] = await fetchChatbotAllData()
   postsByYearMonth.value = getBotPostLinks(bots)
 
   // Fetch run counts for all bots

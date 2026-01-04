@@ -8,18 +8,32 @@ class SimpleVFS {
   constructor() {
     this.files = new Map()
     this.directories = new Set(['/'])
+    this.metadata = new Map()  // Add metadata support
     this.currentDirectory = '/workspace'
-    
+
     // Create default directories
     this.directories.add('/data')
-    this.directories.add('/tmp') 
+    this.directories.add('/tmp')
     this.directories.add('/workspace')
   }
   
   writeFile(path, data, options = {}) {
     const normalizedPath = this.normalize(path)
     this.ensureDirectoryExists(this.dirname(normalizedPath))
-    this.files.set(normalizedPath, data)
+    const isBinary = options.binary || data instanceof ArrayBuffer || data instanceof Uint8Array
+    let storedData = data
+    if (isBinary) {
+      if (data instanceof ArrayBuffer) {
+        storedData = new Uint8Array(data)
+      } else if (data instanceof Uint8Array) {
+        storedData = data
+      } else if (typeof data === 'string') {
+        storedData = new TextEncoder().encode(data)
+      }
+    } else {
+      storedData = String(data)
+    }
+    this.files.set(normalizedPath, storedData)
     return normalizedPath
   }
   
@@ -28,7 +42,17 @@ class SimpleVFS {
     if (!this.files.has(normalizedPath)) {
       throw new Error(`File not found: ${path}`)
     }
-    return this.files.get(normalizedPath)
+    const data = this.files.get(normalizedPath)
+    if (encoding === 'binary' || encoding === null) {
+      if (typeof data === 'string') {
+        return new TextEncoder().encode(data)
+      }
+      return data
+    }
+    if (data instanceof Uint8Array) {
+      return new TextDecoder(encoding).decode(data)
+    }
+    return String(data)
   }
   
   exists(path) {
@@ -164,6 +188,10 @@ let initializationPromise = null
 // Global VFS instance
 let vfs = null
 
+// Counter to detect corrupted package issues
+let packageLoadFailures = 0
+let totalPackageLoadAttempts = 0
+
 class SafePyRunner {
   constructor() {
     this.output = []
@@ -175,6 +203,38 @@ class SafePyRunner {
       maxOperations: 100000,
       maxMemory: 100 * 1024 * 1024 // 100MB limit
     }
+    this.cdnOptions = [
+      {
+        name: 'unpkg',
+        scriptURL: 'https://unpkg.com/pyodide@0.24.1/full/pyodide.js',
+        indexURL: 'https://unpkg.com/pyodide@0.24.1/full/'
+      },
+      {
+        name: 'jsDelivr',
+        scriptURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js',
+        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/'
+      }
+    ]
+    this.activeCdnIndex = 0
+    this.micropipReady = false
+    this.needsPyodideFsSync = false
+    this.preloadPackages = ['pandas']
+    this.pyodidePackages = new Set([
+      'numpy',
+      'pandas',
+      'matplotlib',
+      'scipy',
+      'scikit-learn',
+      'networkx',
+      'sympy',
+      'pillow',
+      'requests',
+      'beautifulsoup4',
+      'seaborn',
+      'plotly',
+      'bokeh',
+      'altair'
+    ])
     this.setupOutput()
     this.setupVFS()
   }
@@ -184,6 +244,74 @@ class SafePyRunner {
     if (!vfs) {
       vfs = new SimpleVFS()
       this.addOutput('info', 'Virtual file system initialized')
+    }
+    // Expose VFS on the worker global so Python `from js import vfs` works
+    self.vfs = vfs
+  }
+
+  ensurePyodideFsDir(dirPath) {
+    if (!pyodide || !pyodide.FS) return
+
+    const FS = pyodide.FS
+    const normalized = String(dirPath || '/')
+    if (normalized === '/' || normalized === '') return
+
+    const parts = normalized.split('/').filter(Boolean)
+    let current = ''
+    for (const part of parts) {
+      current += `/${part}`
+      try {
+        FS.mkdir(current)
+      } catch (error) {
+        // Ignore EEXIST
+      }
+    }
+  }
+
+  syncVfsToPyodideFs() {
+    if (!pyodide || !pyodide.FS || !vfs) return
+
+    const FS = pyodide.FS
+
+    // Ensure core directories exist
+    for (const dir of ['/data', '/workspace', '/tmp', '/uploads']) {
+      this.ensurePyodideFsDir(dir)
+    }
+
+    // Mirror VFS directories into Pyodide FS
+    try {
+      for (const dir of vfs.directories) {
+        this.ensurePyodideFsDir(dir)
+      }
+    } catch (error) {
+      // Ignore directory sync errors
+    }
+
+    let syncedFiles = 0
+    for (const [path, content] of vfs.files.entries()) {
+      try {
+        const filePath = String(path)
+        const parentDir = filePath.substring(0, filePath.lastIndexOf('/')) || '/'
+        this.ensurePyodideFsDir(parentDir)
+
+        if (content instanceof Uint8Array) {
+          FS.writeFile(filePath, content)
+        } else if (content instanceof ArrayBuffer) {
+          FS.writeFile(filePath, new Uint8Array(content))
+        } else if (typeof content === 'string') {
+          FS.writeFile(filePath, content, { encoding: 'utf8' })
+        } else {
+          FS.writeFile(filePath, String(content), { encoding: 'utf8' })
+        }
+
+        syncedFiles++
+      } catch (error) {
+        this.addOutput('warn', `Failed to sync '${path}' to Pyodide FS: ${error.message}`)
+      }
+    }
+
+    if (syncedFiles > 0) {
+      this.addOutput('debug', `Synced ${syncedFiles} file(s) to Pyodide FS`)
     }
   }
 
@@ -208,7 +336,7 @@ class SafePyRunner {
     })
   }
 
-  // Initialize Pyodide
+  // Initialize Pyodide with fallback CDNs
   async initializePyodide() {
     if (isInitialized) return pyodide
     if (initializationPromise) return initializationPromise
@@ -216,16 +344,84 @@ class SafePyRunner {
     initializationPromise = new Promise(async (resolve, reject) => {
       try {
         this.addOutput('info', 'Initializing Python environment...')
-        
-        // Load Pyodide
-        importScripts('https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js')
-        
-        pyodide = await loadPyodide({
-          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
-          stdout: this.outputCapture.write.bind(this.outputCapture),
-          stderr: this.outputCapture.write.bind(this.outputCapture)
-        })
-        
+
+        // Try multiple CDNs in case one is down or corrupted
+        const cdnOptions = this.cdnOptions
+
+        let lastError = null
+        let loadedSuccessfully = false
+
+        for (let index = 0; index < cdnOptions.length; index++) {
+          const cdn = cdnOptions[index]
+          try {
+            this.addOutput('info', `Trying Pyodide CDN: ${cdn.name}...`)
+
+            // Load Pyodide script dynamically (only if not already loaded)
+            if (typeof self.loadPyodide === 'undefined') {
+              await new Promise((loadResolve, loadReject) => {
+                const hasDocument = typeof document !== 'undefined' && document && document.createElement
+                const script = hasDocument ? document.createElement('script') : null
+                if (!script) {
+                  // In worker context, use importScripts (synchronous)
+                  try {
+                    importScripts(cdn.scriptURL)
+                    loadResolve()
+                  } catch (e) {
+                    loadReject(e)
+                  }
+                } else {
+                  // In main thread context
+                  script.src = cdn.scriptURL
+                  script.onload = () => loadResolve()
+                  script.onerror = () => loadReject(new Error(`Failed to load ${cdn.scriptURL}`))
+                  document.head.appendChild(script)
+                }
+              })
+            }
+
+            // Try to load Pyodide
+            pyodide = await loadPyodide({
+              indexURL: cdn.indexURL,
+              stdout: this.outputCapture.write.bind(this.outputCapture),
+              stderr: this.outputCapture.write.bind(this.outputCapture)
+            })
+
+            this.addOutput('info', `✓ Successfully loaded Pyodide from ${cdn.name}`)
+            this.activeCdnIndex = index
+            loadedSuccessfully = true
+            break
+          } catch (error) {
+            lastError = error
+            this.addOutput('warn', `Failed to load from ${cdn.name}: ${error.message}`)
+            // Reset for next CDN attempt
+            pyodide = null
+          }
+        }
+
+        if (!loadedSuccessfully || !pyodide) {
+          throw lastError || new Error('Failed to load Pyodide from any CDN')
+        }
+
+        // Register VFS with Pyodide
+        pyodide.registerJsModule('vfs', vfs)
+
+        try {
+          await pyodide.loadPackage('micropip')
+          this.micropipReady = true
+          for (const pkg of this.preloadPackages) {
+            try {
+              await this.installWithMicropip(pkg)
+              this.loadedPackages.add(pkg)
+              this.addOutput('info', `Preloaded package '${pkg}'`)
+            } catch (error) {
+              this.addOutput('warn', `Failed to preload '${pkg}': ${error.message}`)
+            }
+          }
+        } catch (error) {
+          this.addOutput('warn', `Failed to load micropip: ${error.message}`)
+          this.micropipReady = false
+        }
+
         // Set up matplotlib backend for web and VFS integration
         await pyodide.runPython(`
 import sys
@@ -291,12 +487,34 @@ class VFSFile:
                     else:
                         self._content = vfs.readFile(path, 'utf8')
                 else:
+                    if 'r' in mode and 'w' not in mode and 'a' not in mode and '+' not in mode:
+                        raise FileNotFoundError(f"No such file or directory: '{path}'")
                     self._content = b'' if 'b' in mode else ''
-            except:
+            except Exception as e:
+                # Avoid silently returning empty content for real errors (e.g. VFS not available)
+                if 'r' in mode and 'w' not in mode and 'a' not in mode and '+' not in mode:
+                    raise
                 self._content = b'' if 'b' in mode else ''
         else:
             self._content = b'' if 'b' in mode else ''
-            
+
+        # Normalize JS Uint8Array for binary mode
+        if 'b' in mode:
+            try:
+                if hasattr(self._content, 'to_py'):
+                    self._content = bytes(self._content.to_py())
+                elif isinstance(self._content, list):
+                    self._content = bytes(self._content)
+                elif isinstance(self._content, bytearray):
+                    self._content = bytes(self._content)
+            except Exception:
+                pass
+        elif isinstance(self._content, (bytes, bytearray)):
+            try:
+                self._content = self._content.decode(self.encoding)
+            except Exception:
+                self._content = self._content.decode('utf-8', errors='ignore')
+
         # For write modes, truncate content
         if 'w' in mode:
             self._content = b'' if 'b' in mode else ''
@@ -440,6 +658,10 @@ class VFSFile:
 
 # Override built-in open function
 _original_open = builtins.open
+import io
+_original_io_open = io.open
+
+_VFS_ROOTS = ('/data', '/workspace', '/tmp', '/uploads')
 
 def vfs_open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None):
     """VFS-aware open() replacement"""
@@ -449,8 +671,20 @@ def vfs_open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=N
     
     file_str = str(file)
     
-    # Check if this is a VFS path (starts with /)
-    if file_str.startswith('/'):
+    # Check if this is a VFS path
+    is_vfs_path = file_str.startswith('/') and (file_str in _VFS_ROOTS or any(file_str.startswith(root + '/') for root in _VFS_ROOTS))
+    is_write_mode = any(flag in mode for flag in ('w', 'a', '+', 'x'))
+    if is_vfs_path and not is_write_mode:
+        # Prefer Pyodide's native filesystem for reads (better compatibility with pandas, etc.)
+        try:
+            return _original_open(file, mode, buffering, encoding, errors, newline, closefd, opener)
+        except FileNotFoundError:
+            pass
+
+        if encoding is None:
+            encoding = 'utf-8'
+        return VFSFile(file_str, mode, encoding)
+    elif is_vfs_path:
         if encoding is None:
             encoding = 'utf-8'
         return VFSFile(file_str, mode, encoding)
@@ -460,6 +694,7 @@ def vfs_open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=N
 
 # Replace built-in open
 builtins.open = vfs_open
+io.open = vfs_open
 
 # Override os module functions for VFS
 _original_listdir = os.listdir
@@ -700,8 +935,79 @@ except:
     }
   }
 
-  // Load a Python package
-  async loadPackage(packageName) {
+  isPackageNotFoundError(error) {
+    if (!error || !error.message) return false
+    const message = error.message.toLowerCase()
+    return message.includes('404') ||
+      message.includes('not found') ||
+      message.includes('unknown package') ||
+      message.includes('no such file') ||
+      message.includes('does not exist')
+  }
+
+  makeCacheBustingFetch(attempt) {
+    return async (url, ...args) => {
+      const separator = url.includes('?') ? '&' : '?'
+      const cacheBustedUrl = `${url}${separator}cachebust=${Date.now()}_${attempt}`
+      const response = await fetch(cacheBustedUrl, ...args)
+      const contentType = response.headers.get('content-type') || ''
+      const isWheel = url.endsWith('.whl') || url.includes('.whl?')
+
+      if (isWheel && contentType.includes('application/wasm')) {
+        this.addOutput('warn', `Unexpected content-type for wheel: ${contentType} from ${url}`)
+        const alt = this.getAlternateCdnUrl(url)
+        if (alt) {
+          this.addOutput('info', `Retrying wheel download from alternate CDN: ${alt}`)
+          return fetch(alt, ...args)
+        }
+      }
+
+      return response
+    }
+  }
+
+  getAlternateCdnUrl(url) {
+    const current = this.cdnOptions[this.activeCdnIndex]
+    if (!current || !current.indexURL || !url.startsWith(current.indexURL)) return null
+    const fallbackIndex = (this.activeCdnIndex + 1) % this.cdnOptions.length
+    const fallback = this.cdnOptions[fallbackIndex]
+    if (!fallback || !fallback.indexURL) return null
+    return url.replace(current.indexURL, fallback.indexURL)
+  }
+
+  async ensureMicropip() {
+    if (this.micropipReady) return true
+    try {
+      await pyodide.loadPackage('micropip')
+      this.micropipReady = true
+      return true
+    } catch (error) {
+      this.addOutput('warn', `Failed to load micropip: ${error.message}`)
+      this.micropipReady = false
+      return false
+    }
+  }
+
+  async installWithMicropip(packageName) {
+    const ready = await this.ensureMicropip()
+    if (!ready) {
+      throw new Error('micropip is not available')
+    }
+
+    const pkg = JSON.stringify(packageName)
+    await pyodide.runPythonAsync(`
+import micropip
+await micropip.install(${pkg})
+`)
+  }
+
+  async installWithPyodide(packageName, attempt) {
+    const options = attempt > 1 ? { fetch: this.makeCacheBustingFetch(attempt) } : undefined
+    await pyodide.loadPackage(packageName, options)
+  }
+
+  // Load a Python package with retry logic and cache busting
+  async loadPackage(packageName, retries = 3) {
     if (!pyodide) {
       await this.initializePyodide()
     }
@@ -710,16 +1016,84 @@ except:
       return true
     }
 
-    try {
-      this.addOutput('info', `Loading Python package: ${packageName}`)
-      await pyodide.loadPackage(packageName)
-      this.loadedPackages.add(packageName)
-      this.addOutput('info', `Package '${packageName}' loaded successfully`)
-      return true
-    } catch (error) {
-      this.addOutput('error', `Failed to load package '${packageName}': ${error.message}`)
-      return false
+    let lastError = null
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        totalPackageLoadAttempts++
+        this.addOutput('info', `Loading Python package: ${packageName}${attempt > 1 ? ` (attempt ${attempt}/${retries})` : ''}`)
+
+        if (this.pyodidePackages.has(packageName)) {
+          await this.installWithPyodide(packageName, attempt)
+        } else {
+          await this.installWithMicropip(packageName)
+        }
+        this.loadedPackages.add(packageName)
+        this.addOutput('info', `Package '${packageName}' loaded successfully`)
+        return true
+      } catch (error) {
+        lastError = error
+        const isNotFound = this.isPackageNotFoundError(error)
+        if (!isNotFound) {
+          packageLoadFailures++
+        }
+        this.addOutput('warn', `Attempt ${attempt}/${retries} failed for '${packageName}': ${error.message}`)
+
+        if (attempt < retries) {
+          // Exponential backoff: wait 1s, 2s, 4s, etc.
+          const waitTime = Math.pow(2, attempt - 1) * 1000
+          this.addOutput('info', `Retrying in ${waitTime / 1000}s...`)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
+
+          // Clear pyodide's internal package cache on retry
+          try {
+            if (pyodide.package_loader && pyodide.package_loader.loadedPackages) {
+              delete pyodide.package_loader.loadedPackages[packageName]
+            }
+          } catch (e) {
+            // Ignore cache clear errors
+          }
+        }
+      }
     }
+
+    // Check if this is a systematic failure (most packages failing)
+    const failureRate = totalPackageLoadAttempts > 0 ? packageLoadFailures / totalPackageLoadAttempts : 0
+    const isSystematicFailure = failureRate > 0.7 && totalPackageLoadAttempts >= 3
+
+    // Provide detailed troubleshooting instructions
+    this.addOutput('error', `Failed to load package '${packageName}' after ${retries} attempts`)
+    this.addOutput('error', `Last error: ${lastError?.message || 'Unknown error'}`)
+
+    if (this.isPackageNotFoundError(lastError)) {
+      this.addOutput('error', `⚠️  PACKAGE NOT FOUND IN PYODIDE INDEX`)
+      this.addOutput('error', `The package '${packageName}' is not available in the Pyodide package repository.`)
+      this.addOutput('info', `If you need this package, consider using micropip with a compatible wheel.`)
+    } else if (isSystematicFailure) {
+      this.addOutput('error', `⚠️  DETECTED SYSTEMATIC PACKAGE FAILURE (${Math.round(failureRate * 100)}% failure rate)`)
+      this.addOutput('error', `All packages are being corrupted during download. This is likely:`)
+      this.addOutput('error', `  • Corporate proxy/firewall inspecting and corrupting .whl files`)
+      this.addOutput('error', `  • Browser extension interfering with downloads`)
+      this.addOutput('error', `  • Network issue corrupting binary downloads`)
+      this.addOutput('error', ``)
+      this.addOutput('error', `TO FIX THIS ISSUE:`)
+      this.addOutput('error', `  1. Try disabling ALL browser extensions`)
+      this.addOutput('error', `  2. Try a different browser (Chrome, Firefox, Safari)`)
+      this.addOutput('error', `  3. Try a different network (WiFi hotspot, mobile data)`)
+      this.addOutput('error', `  4. If using corporate VPN/proxy, try disconnecting`)
+      this.addOutput('error', `  5. Check if antivirus is scanning web downloads`)
+      this.addOutput('error', `  6. Try in incognito/private mode (extensions disabled)`)
+      this.addOutput('info', `💡 Python standard library will still work (math, json, re, datetime, etc.)`)
+      this.addOutput('info', `   Only external packages like numpy/pandas require download.`)
+    } else {
+      this.addOutput('info', `📋 Troubleshooting steps:`)
+      this.addOutput('info', `   1. Hard refresh: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)`)
+      this.addOutput('info', `   2. Clear browser cache for this site`)
+      this.addOutput('info', `   3. Check your internet connection`)
+      this.addOutput('info', `   4. Try a different browser or network`)
+      this.addOutput('info', `   5. If problem persists, the CDN may be temporarily unavailable`)
+    }
+
+    return false
   }
 
   // Parse code for package import statements
@@ -757,10 +1131,27 @@ except:
       const mappedName = packageMapping[packageName] || packageName
       if (this.getAvailablePackages()[mappedName]) {
         imports.push(mappedName)
+      } else if (!this.isStdlibPackage(mappedName)) {
+        imports.push(mappedName)
       }
     }
     
     return [...new Set(imports)] // Remove duplicates
+  }
+
+  isStdlibPackage(name) {
+    const stdlib = new Set([
+      'abc', 'argparse', 'array', 'asyncio', 'base64', 'binascii', 'bisect',
+      'calendar', 'collections', 'contextlib', 'copy', 'csv', 'dataclasses',
+      'datetime', 'decimal', 'difflib', 'enum', 'functools', 'gc', 'hashlib',
+      'heapq', 'hmac', 'html', 'http', 'io', 'itertools', 'json', 'logging',
+      'math', 'numbers', 'operator', 'os', 'pathlib', 'pickle', 'platform',
+      'queue', 'random', 're', 'shlex', 'signal', 'socket', 'sqlite3',
+      'statistics', 'string', 'struct', 'subprocess', 'sys', 'tempfile',
+      'textwrap', 'threading', 'time', 'types', 'typing', 'unicodedata',
+      'urllib', 'uuid', 'warnings', 'weakref', 'zipfile'
+    ])
+    return stdlib.has(name)
   }
 
   // Handle matplotlib plots
@@ -847,10 +1238,22 @@ len(plt.get_fignums()) > 0
         await this.initializePyodide()
       }
 
+      if (this.needsPyodideFsSync) {
+        try {
+          this.syncVfsToPyodideFs()
+        } catch (error) {
+          this.addOutput('warn', `Pyodide FS sync failed: ${error.message}`)
+        }
+        this.needsPyodideFsSync = false
+      }
+
       // Parse and load required packages
       const requiredPackages = this.parsePackageImports(code)
       for (const pkg of requiredPackages) {
-        await this.loadPackage(pkg)
+        const success = await this.loadPackage(pkg)
+        if (!success) {
+          throw new Error(`Failed to load required package '${pkg}'. Please try again.`)
+        }
       }
 
       // Clear previous output
@@ -1080,27 +1483,51 @@ self.onmessage = async (e) => {
           // Clear current VFS state
           vfs.files.clear()
           vfs.directories.clear()
-          
+          vfs.metadata.clear()
+
           // Import files from serialized state (array of [path, content] pairs)
           if (Array.isArray(vfsState.files)) {
             vfsState.files.forEach(([path, content]) => {
               vfs.files.set(path, content)
             })
           }
-          
+
           // Import directories from serialized state (array of paths)
           if (Array.isArray(vfsState.directories)) {
             vfsState.directories.forEach(dir => {
               vfs.directories.add(dir)
             })
           }
-          
+
+          // Import metadata from serialized state (array of [path, meta] pairs)
+          if (Array.isArray(vfsState.metadata)) {
+            vfsState.metadata.forEach(([path, meta]) => {
+              // Convert ISO strings back to Date objects
+              const processedMeta = {
+                ...meta,
+                mtime: meta.mtime && typeof meta.mtime === 'string' ? new Date(meta.mtime) : meta.mtime,
+                created: meta.created && typeof meta.created === 'string' ? new Date(meta.created) : meta.created
+              }
+              vfs.metadata.set(path, processedMeta)
+            })
+          }
+
           // Update current directory
           if (vfsState.currentDirectory) {
             vfs.currentDirectory = vfsState.currentDirectory
           }
-          
+
           runner.addOutput('info', `VFS synchronized: ${vfs.files.size} files, ${vfs.directories.size} directories`)
+
+          runner.needsPyodideFsSync = true
+          if (pyodide) {
+            try {
+              runner.syncVfsToPyodideFs()
+              runner.needsPyodideFsSync = false
+            } catch (error) {
+              runner.addOutput('warn', `Pyodide FS sync failed: ${error.message}`)
+            }
+          }
         }
       } catch (error) {
         runner.addOutput('error', `VFS sync failed: ${error.message}`)

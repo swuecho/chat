@@ -51,9 +51,16 @@ const sessionUuid = toRef(props, 'sessionUuid')
 const { isMobile } = useBasicLayout()
 const { scrollRef, scrollToBottom, smoothScrollToBottomIfAtBottom } = useScroll()
 const vfsUploaderRef = ref(null)
+const vfsProviderRef = ref<any>(null)
+
+const vfsInstance = computed(() => vfsProviderRef.value?.vfs?.value ?? null)
+const isVFSReady = computed(() => vfsProviderRef.value?.isVFSReady?.value ?? false)
 
 // Initialize composables
-const conversationFlow = useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom)
+const conversationFlow = useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom, {
+  vfsInstance,
+  isVFSReady
+})
 const regenerate = useRegenerate(sessionUuid)
 const searchAndPrompts = useSearchAndPrompts()
 const chatActions = useChatActions(sessionUuid)
@@ -203,7 +210,7 @@ function handleUseQuestion(question: string) {
 </script>
 
 <template>
-  <VFSProvider>
+  <VFSProvider ref="vfsProviderRef">
     <div class="flex flex-col w-full h-full">
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />

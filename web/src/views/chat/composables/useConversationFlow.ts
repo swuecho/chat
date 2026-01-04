@@ -23,7 +23,11 @@ interface ChatMessage {
 export function useConversationFlow(
   sessionUuidRef: Ref<string>,
   scrollToBottom: () => Promise<void>,
-  smoothScrollToBottomIfAtBottom: () => Promise<void>
+  smoothScrollToBottomIfAtBottom: () => Promise<void>,
+  vfsContext?: {
+    vfsInstance: Ref<any>
+    isVFSReady: Ref<boolean>
+  }
 ) {
   const loading = ref<boolean>(false)
   const abortController = ref<AbortController | null>(null)
@@ -33,10 +37,10 @@ export function useConversationFlow(
   const { validateChatMessage } = useValidation()
   const sessionStore = useSessionStore()
   const messageStore = useMessageStore()
-  const vfsInstance = inject('vfsInstance', ref(null))
-  const isVFSReady = inject('isVFSReady', ref(false))
+  const vfsInstance = vfsContext?.vfsInstance ?? inject('vfsInstance', ref(null))
+  const isVFSReady = vfsContext?.isVFSReady ?? inject('isVFSReady', ref(false))
 
-  const maxToolTurns = 3
+  const maxToolTurns = 10 
   const toolRunning = ref<boolean>(false)
 
   const toBase64 = (bytes: Uint8Array) => {

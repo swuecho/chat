@@ -45,10 +45,34 @@ export const fetchSnapshotAll = async (page: number = 1, pageSize: number = 20):
   }
 }
 
+export const fetchSnapshotAllData = async (page: number = 1, pageSize: number = 20): Promise<Snapshot.Snapshot[]> => {
+  try {
+    const response = await fetchSnapshotAll(page, pageSize)
+    // Handle response format: { data: [...], total: n } or just the array
+    return Array.isArray(response) ? response : (response.data ?? [])
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
 export const fetchChatbotAll= async (): Promise<any> => {
   try {
     const response = await request.get('/uuid/chat_snapshot/all?type=chatbot')
     return response.data
+  }
+  catch (error) {
+    console.error(error)
+    throw error
+  }
+}
+
+export const fetchChatbotAllData = async (): Promise<Snapshot.Snapshot[]> => {
+  try {
+    const response = await fetchChatbotAll()
+    // Handle response format: { data: [...], total: n } or just the array
+    return Array.isArray(response) ? response : (response.data ?? [])
   }
   catch (error) {
     console.error(error)

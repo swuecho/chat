@@ -8,11 +8,12 @@ class SimpleVFS {
   constructor() {
     this.files = new Map()
     this.directories = new Set(['/'])
+    this.metadata = new Map()  // Add metadata support
     this.currentDirectory = '/workspace'
-    
+
     // Create default directories
     this.directories.add('/data')
-    this.directories.add('/tmp') 
+    this.directories.add('/tmp')
     this.directories.add('/workspace')
   }
   
@@ -903,26 +904,40 @@ self.onmessage = async (e) => {
           // Clear current VFS state
           vfs.files.clear()
           vfs.directories.clear()
-          
+          vfs.metadata.clear()
+
           // Import files from serialized state (array of [path, content] pairs)
           if (Array.isArray(vfsState.files)) {
             vfsState.files.forEach(([path, content]) => {
               vfs.files.set(path, content)
             })
           }
-          
+
           // Import directories from serialized state (array of paths)
           if (Array.isArray(vfsState.directories)) {
             vfsState.directories.forEach(dir => {
               vfs.directories.add(dir)
             })
           }
-          
+
+          // Import metadata from serialized state (array of [path, meta] pairs)
+          if (Array.isArray(vfsState.metadata)) {
+            vfsState.metadata.forEach(([path, meta]) => {
+              // Convert ISO strings back to Date objects
+              const processedMeta = {
+                ...meta,
+                mtime: meta.mtime && typeof meta.mtime === 'string' ? new Date(meta.mtime) : meta.mtime,
+                created: meta.created && typeof meta.created === 'string' ? new Date(meta.created) : meta.created
+              }
+              vfs.metadata.set(path, processedMeta)
+            })
+          }
+
           // Update current directory
           if (vfsState.currentDirectory) {
             vfs.currentDirectory = vfsState.currentDirectory
           }
-          
+
           runner.addOutput('info', `VFS synchronized: ${vfs.files.size} files, ${vfs.directories.size} directories`)
         }
       } catch (error) {

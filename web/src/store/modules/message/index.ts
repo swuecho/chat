@@ -3,6 +3,7 @@ import {
   getChatMessagesBySessionUUID,
   clearSessionChatMessages,
   generateMoreSuggestions,
+  deleteChatMessage,
 } from '@/api'
 import { useSessionStore } from '../session'
 
@@ -128,11 +129,19 @@ export const useMessageStore = defineStore('message-store', {
       }
     },
 
-    removeMessage(sessionUuid: string, messageUuid: string) {
-      if (this.chat[sessionUuid]) {
-        this.chat[sessionUuid] = this.chat[sessionUuid].filter(
-          msg => msg.uuid !== messageUuid
-        )
+    async removeMessage(sessionUuid: string, messageUuid: string) {
+      try {
+        // Call the API to delete the message from the server
+        await deleteChatMessage(messageUuid)
+        // Remove the message from local state after successful API call
+        if (this.chat[sessionUuid]) {
+          this.chat[sessionUuid] = this.chat[sessionUuid].filter(
+            msg => msg.uuid !== messageUuid
+          )
+        }
+      } catch (error) {
+        console.error(`Failed to delete message ${messageUuid}:`, error)
+        throw error
       }
     },
 
