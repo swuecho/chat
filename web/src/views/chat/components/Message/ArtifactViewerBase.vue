@@ -111,7 +111,12 @@ const runCode = async (artifact: Artifact) => {
 
     const hasError = results.some(result => result.type === 'error')
     if (hasError) {
-      message.error('Code execution completed with errors')
+      const errorSummary = results
+        .filter(result => result.type === 'error')
+        .map(result => result.content)
+        .find(Boolean)
+      const trimmedSummary = errorSummary ? errorSummary.split('\n')[0].slice(0, 200) : ''
+      message.error(`Code execution completed with errors${trimmedSummary ? `: ${trimmedSummary}` : ''}`)
     } else {
       message.success('Code executed successfully')
     }
