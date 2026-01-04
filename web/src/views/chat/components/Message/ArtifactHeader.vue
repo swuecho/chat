@@ -73,7 +73,7 @@ defineEmits<{
 
 // Artifact type utilities
 const isExecutable = (artifact: Artifact) => {
-  return artifact.type === 'executable-code' && artifact.isExecutable
+  return artifact.type === 'executable-code'
 }
 
 const getArtifactIcon = (type: string) => {

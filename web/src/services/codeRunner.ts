@@ -692,7 +692,7 @@ export class CodeRunner {
           'canvas graphics',
           'enhanced APIs'
         ],
-        limitations: ['no DOM access', 'no direct network requests', 'no file system'],
+        limitations: ['no DOM access', 'no direct network requests from user code', 'VFS-only file system'],
         libraries: [
           'lodash', 'd3', 'chart.js', 'moment', 'axios', 'rxjs', 'p5', 'three', 'fabric'
         ]
@@ -710,7 +710,7 @@ export class CodeRunner {
           'timeouts',
           'memory monitoring'
         ],
-        limitations: ['no file system', 'no direct network requests', 'limited to Pyodide packages'],
+        limitations: ['VFS-only file system', 'no direct network requests', 'limited to Pyodide packages'],
         packages: [
           'numpy', 'pandas', 'matplotlib', 'scipy', 'scikit-learn', 'requests', 
           'beautifulsoup4', 'pillow', 'sympy', 'networkx', 'seaborn', 'plotly', 'bokeh', 'altair'

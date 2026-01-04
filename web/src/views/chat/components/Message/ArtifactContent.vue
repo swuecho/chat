@@ -40,7 +40,7 @@
 
     <!-- SVG Artifact -->
     <div v-else-if="artifact.type === 'svg'" class="svg-artifact">
-      <div v-html="artifact.content" class="svg-content" />
+      <div v-html="sanitizedSvg" class="svg-content" />
     </div>
 
     <!-- Mermaid Artifact -->
@@ -69,7 +69,15 @@
             <span class="output-type">{{ output.type }}</span>
             <span class="output-time">{{ formatTime(output.timestamp) }}</span>
           </div>
-          <pre class="output-text">{{ output.content }}</pre>
+          <template v-if="output.type === 'canvas'">
+            <canvas :ref="el => registerCanvas(el, output)" class="output-canvas" />
+          </template>
+          <template v-else-if="output.type === 'matplotlib'">
+            <img :ref="el => registerMatplotlib(el, output)" class="output-image" alt="Matplotlib output" />
+          </template>
+          <template v-else>
+            <pre class="output-text">{{ output.content }}</pre>
+          </template>
         </div>
       </div>
     </div>
@@ -77,11 +85,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, nextTick } from 'vue'
 import { NButton } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { type Artifact, type ExecutionResult } from '@/typings/chat'
 import MarkdownIt from 'markdown-it'
+import { getCodeRunner } from '@/services/codeRunner'
+import { sanitizeHtml, sanitizeSvg } from '@/utils/sanitize'
 
 interface Props {
   artifact: Artifact
@@ -108,7 +118,11 @@ defineEmits<{
 const mdi = new MarkdownIt()
 
 const renderedMarkdown = computed(() => {
-  return mdi.render(props.artifact.content)
+  return sanitizeHtml(mdi.render(props.artifact.content))
+})
+
+const sanitizedSvg = computed(() => {
+  return sanitizeSvg(props.artifact.content)
 })
 
 // Utility functions
@@ -123,6 +137,26 @@ const formatJson = (jsonString: string) => {
 
 const formatTime = (timestamp: string) => {
   return new Date(timestamp).toLocaleTimeString()
+}
+
+const renderCanvas = (output: ExecutionResult, canvasElement: HTMLCanvasElement) => {
+  const runner = getCodeRunner()
+  runner.renderCanvasToElement(output.content, canvasElement)
+}
+
+const renderMatplotlib = (output: ExecutionResult, imgElement: HTMLImageElement) => {
+  const runner = getCodeRunner()
+  runner.renderMatplotlibToElement(output.content, imgElement)
+}
+
+const registerCanvas = (el: HTMLCanvasElement | null, output: ExecutionResult) => {
+  if (!el) return
+  nextTick(() => renderCanvas(output, el))
+}
+
+const registerMatplotlib = (el: HTMLImageElement | null, output: ExecutionResult) => {
+  if (!el) return
+  nextTick(() => renderMatplotlib(output, el))
 }
 </script>
 
@@ -223,6 +257,16 @@ const formatTime = (timestamp: string) => {
   background: #f8fafc;
   border-radius: 0.375rem;
   overflow-x: auto;
+}
+
+/* Execution Output */
+.output-canvas,
+.output-image {
+  display: block;
+  max-width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background: #fff;
 }
 
 /* Markdown Artifact */

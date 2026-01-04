@@ -12,7 +12,7 @@ declare namespace Chat {
 
 	interface ExecutionResult {
 		id: string
-		type: 'log' | 'error' | 'return' | 'stdout' | 'warn' | 'info' | 'debug'
+		type: 'log' | 'error' | 'return' | 'stdout' | 'warn' | 'info' | 'debug' | 'canvas' | 'matplotlib'
 		content: string
 		timestamp: string
 		execution_time_ms?: number

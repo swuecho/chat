@@ -39,6 +39,7 @@ import { useMessage } from 'naive-ui'
 import { type Artifact } from '@/utils/artifacts'
 import { getCodeRunner, type ExecutionResult } from '@/services/codeRunner'
 import { copyText } from '@/utils/format'
+import { sanitizeHtml } from '@/utils/sanitize'
 import ArtifactHeader from './ArtifactHeader.vue'
 import ArtifactContent from './ArtifactContent.vue'
 
@@ -68,7 +69,7 @@ const hasOutput = (uuid: string) => executionOutputs[uuid]?.length > 0
 
 // Artifact type utilities
 const isExecutable = (artifact: Artifact) => {
-  return artifact.type === 'executable-code' && artifact.isExecutable
+  return artifact.type === 'executable-code'
 }
 
 const getArtifactIcon = (type: string) => {
@@ -99,15 +100,21 @@ const runCode = async (artifact: Artifact) => {
   runningArtifacts.value.add(artifact.uuid)
   
   try {
-    const runner = getCodeRunner(artifact.language || 'javascript')
-    const result = await runner.run(artifact.content)
-    
-    if (!executionOutputs[artifact.uuid]) {
-      executionOutputs[artifact.uuid] = []
+    const runner = getCodeRunner()
+    const results = await runner.execute(
+      artifact.language || 'javascript',
+      artifact.content,
+      artifact.uuid
+    )
+
+    executionOutputs[artifact.uuid] = results
+
+    const hasError = results.some(result => result.type === 'error')
+    if (hasError) {
+      message.error('Code execution completed with errors')
+    } else {
+      message.success('Code executed successfully')
     }
-    executionOutputs[artifact.uuid].push(result)
-    
-    message.success('Code executed successfully')
   } catch (error) {
     const errorResult: ExecutionResult = {
       id: Date.now().toString(),
@@ -116,10 +123,7 @@ const runCode = async (artifact: Artifact) => {
       timestamp: new Date().toISOString(),
     }
     
-    if (!executionOutputs[artifact.uuid]) {
-      executionOutputs[artifact.uuid] = []
-    }
-    executionOutputs[artifact.uuid].push(errorResult)
+    executionOutputs[artifact.uuid] = [errorResult]
     
     message.error('Code execution failed')
   } finally {
@@ -147,7 +151,7 @@ const copyContent = async (content: string) => {
 const openInNewWindow = (content: string) => {
   const newWindow = window.open('', '_blank')
   if (newWindow) {
-    newWindow.document.write(content)
+    newWindow.document.write(sanitizeHtml(content))
     newWindow.document.close()
   }
 }
