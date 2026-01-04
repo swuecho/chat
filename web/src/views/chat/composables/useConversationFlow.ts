@@ -36,7 +36,7 @@ export function useConversationFlow(
   const vfsInstance = inject('vfsInstance', ref(null))
   const isVFSReady = inject('isVFSReady', ref(false))
 
-  const maxToolTurns = 3
+  const maxToolTurns = 10 
   const toolRunning = ref<boolean>(false)
 
   const toBase64 = (bytes: Uint8Array) => {
