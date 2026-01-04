@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useDialog, useMessage, NModal, NPagination } from 'naive-ui'
 import Search from './components/Search.vue'
-import { fetchSnapshotAll, fetchSnapshotDelete } from '@/api'
+import { fetchSnapshotAll, fetchSnapshotDelete, fetchSnapshotAllData } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { getSnapshotPostLinks } from '@/service/snapshot'
 import { t } from '@/locales'
@@ -32,9 +32,10 @@ function postUrl(uuid: string): string {
 
 async function refreshSnapshot() {
   try {
-    const response = await fetchSnapshotAll(page.value, pageSize.value)
-    // Handle the new response format with data and pagination metadata
-    const snapshots = response.data || response
+    const [response, snapshots] = await Promise.all([
+      fetchSnapshotAll(page.value, pageSize.value),
+      fetchSnapshotAllData(page.value, pageSize.value)
+    ])
     postsByYearMonth.value = getSnapshotPostLinks(snapshots)
     // Update total count from response
     totalCount.value = response.total || snapshots.length || 0

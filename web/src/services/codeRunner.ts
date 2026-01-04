@@ -62,19 +62,28 @@ export class CodeRunner {
    */
   async syncVFSToWorkers() {
     if (!this.vfsInstance) return
-    
+
     try {
       // Get all files from VFS
       const vfsState = this.vfsInstance.export()
-      
+
       // Convert Map/Set to plain objects for worker transfer
+      // Also convert Date objects to ISO strings for serialization
+      const metadataEntries = Array.from(vfsState.metadata.entries()) as Array<[string, any]>
       const serializedState = {
         files: Array.from(vfsState.files.entries()),
         directories: Array.from(vfsState.directories),
-        metadata: Array.from(vfsState.metadata.entries()),
+        metadata: metadataEntries.map(([path, meta]) => [
+          path,
+          {
+            ...meta,
+            mtime: meta.mtime instanceof Date ? meta.mtime.toISOString() : meta.mtime,
+            created: meta.created instanceof Date ? meta.created.toISOString() : meta.created
+          }
+        ]),
         currentDirectory: vfsState.currentDirectory
       }
-      
+
       // Send VFS state to both workers
       if (this.jsWorker) {
         this.jsWorker.postMessage({
@@ -82,10 +91,10 @@ export class CodeRunner {
           vfsState: serializedState
         })
       }
-      
+
       if (this.pyWorker) {
         this.pyWorker.postMessage({
-          type: 'syncVFS', 
+          type: 'syncVFS',
           vfsState: serializedState
         })
       }

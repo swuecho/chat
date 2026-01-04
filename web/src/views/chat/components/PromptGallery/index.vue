@@ -30,7 +30,11 @@ interface Bot {
 
 // Get bot prompts
 const botPrompts = computed(() => {
-        return (bots.value || [])
+        const botsData = bots.value
+        if (!Array.isArray(botsData)) {
+                return []
+        }
+        return botsData
                 .filter((bot: Bot) => bot.typ === 'chatbot')
                 .map((bot: Bot) => ({
                         key: bot.title,

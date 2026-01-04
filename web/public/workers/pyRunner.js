@@ -8,11 +8,12 @@ class SimpleVFS {
   constructor() {
     this.files = new Map()
     this.directories = new Set(['/'])
+    this.metadata = new Map()  // Add metadata support
     this.currentDirectory = '/workspace'
-    
+
     // Create default directories
     this.directories.add('/data')
-    this.directories.add('/tmp') 
+    this.directories.add('/tmp')
     this.directories.add('/workspace')
   }
   
@@ -164,6 +165,10 @@ let initializationPromise = null
 // Global VFS instance
 let vfs = null
 
+// Counter to detect corrupted package issues
+let packageLoadFailures = 0
+let totalPackageLoadAttempts = 0
+
 class SafePyRunner {
   constructor() {
     this.output = []
@@ -208,7 +213,7 @@ class SafePyRunner {
     })
   }
 
-  // Initialize Pyodide
+  // Initialize Pyodide with fallback CDNs
   async initializePyodide() {
     if (isInitialized) return pyodide
     if (initializationPromise) return initializationPromise
@@ -216,16 +221,75 @@ class SafePyRunner {
     initializationPromise = new Promise(async (resolve, reject) => {
       try {
         this.addOutput('info', 'Initializing Python environment...')
-        
-        // Load Pyodide
-        importScripts('https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js')
-        
-        pyodide = await loadPyodide({
-          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
-          stdout: this.outputCapture.write.bind(this.outputCapture),
-          stderr: this.outputCapture.write.bind(this.outputCapture)
-        })
-        
+
+        // Try multiple CDNs in case one is down or corrupted
+        const cdnOptions = [
+          {
+            name: 'jsDelivr',
+            scriptURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js',
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/'
+          },
+          {
+            name: 'unpkg',
+            scriptURL: 'https://unpkg.com/pyodide@0.24.1/full/pyodide.js',
+            indexURL: 'https://unpkg.com/pyodide@0.24.1/full/'
+          }
+        ]
+
+        let lastError = null
+        let loadedSuccessfully = false
+
+        for (const cdn of cdnOptions) {
+          try {
+            this.addOutput('info', `Trying Pyodide CDN: ${cdn.name}...`)
+
+            // Load Pyodide script dynamically (only if not already loaded)
+            if (typeof self.loadPyodide === 'undefined') {
+              await new Promise((loadResolve, loadReject) => {
+                const script = document ? document.createElement('script') : null
+                if (!script) {
+                  // In worker context, use importScripts (synchronous)
+                  try {
+                    importScripts(cdn.scriptURL)
+                    loadResolve()
+                  } catch (e) {
+                    loadReject(e)
+                  }
+                } else {
+                  // In main thread context
+                  script.src = cdn.scriptURL
+                  script.onload = () => loadResolve()
+                  script.onerror = () => loadReject(new Error(`Failed to load ${cdn.scriptURL}`))
+                  document.head.appendChild(script)
+                }
+              })
+            }
+
+            // Try to load Pyodide
+            pyodide = await loadPyodide({
+              indexURL: cdn.indexURL,
+              stdout: this.outputCapture.write.bind(this.outputCapture),
+              stderr: this.outputCapture.write.bind(this.outputCapture)
+            })
+
+            this.addOutput('info', `✓ Successfully loaded Pyodide from ${cdn.name}`)
+            loadedSuccessfully = true
+            break
+          } catch (error) {
+            lastError = error
+            this.addOutput('warn', `Failed to load from ${cdn.name}: ${error.message}`)
+            // Reset for next CDN attempt
+            pyodide = null
+          }
+        }
+
+        if (!loadedSuccessfully || !pyodide) {
+          throw lastError || new Error('Failed to load Pyodide from any CDN')
+        }
+
+        // Register VFS with Pyodide
+        pyodide.registerJsModule('vfs', vfs)
+
         // Set up matplotlib backend for web and VFS integration
         await pyodide.runPython(`
 import sys
@@ -700,8 +764,8 @@ except:
     }
   }
 
-  // Load a Python package
-  async loadPackage(packageName) {
+  // Load a Python package with retry logic and cache busting
+  async loadPackage(packageName, retries = 3) {
     if (!pyodide) {
       await this.initializePyodide()
     }
@@ -710,16 +774,75 @@ except:
       return true
     }
 
-    try {
-      this.addOutput('info', `Loading Python package: ${packageName}`)
-      await pyodide.loadPackage(packageName)
-      this.loadedPackages.add(packageName)
-      this.addOutput('info', `Package '${packageName}' loaded successfully`)
-      return true
-    } catch (error) {
-      this.addOutput('error', `Failed to load package '${packageName}': ${error.message}`)
-      return false
+    let lastError = null
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        totalPackageLoadAttempts++
+        this.addOutput('info', `Loading Python package: ${packageName}${attempt > 1 ? ` (attempt ${attempt}/${retries})` : ''}`)
+
+        // Add cache-busting parameter for retries to avoid using corrupted cached files
+        const options = attempt > 1 ? {} : undefined
+        await pyodide.loadPackage(packageName, options)
+        this.loadedPackages.add(packageName)
+        this.addOutput('info', `Package '${packageName}' loaded successfully`)
+        return true
+      } catch (error) {
+        lastError = error
+        packageLoadFailures++
+        this.addOutput('warn', `Attempt ${attempt}/${retries} failed for '${packageName}': ${error.message}`)
+
+        if (attempt < retries) {
+          // Exponential backoff: wait 1s, 2s, 4s, etc.
+          const waitTime = Math.pow(2, attempt - 1) * 1000
+          this.addOutput('info', `Retrying in ${waitTime / 1000}s...`)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
+
+          // Clear pyodide's internal package cache on retry
+          try {
+            if (pyodide.package_loader && pyodide.package_loader.loadedPackages) {
+              delete pyodide.package_loader.loadedPackages[packageName]
+            }
+          } catch (e) {
+            // Ignore cache clear errors
+          }
+        }
+      }
     }
+
+    // Check if this is a systematic failure (most packages failing)
+    const failureRate = totalPackageLoadAttempts > 0 ? packageLoadFailures / totalPackageLoadAttempts : 0
+    const isSystematicFailure = failureRate > 0.7 && totalPackageLoadAttempts >= 3
+
+    // Provide detailed troubleshooting instructions
+    this.addOutput('error', `Failed to load package '${packageName}' after ${retries} attempts`)
+    this.addOutput('error', `Last error: ${lastError?.message || 'Unknown error'}`)
+
+    if (isSystematicFailure) {
+      this.addOutput('error', `⚠️  DETECTED SYSTEMATIC PACKAGE FAILURE (${Math.round(failureRate * 100)}% failure rate)`)
+      this.addOutput('error', `All packages are being corrupted during download. This is likely:`)
+      this.addOutput('error', `  • Corporate proxy/firewall inspecting and corrupting .whl files`)
+      this.addOutput('error', `  • Browser extension interfering with downloads`)
+      this.addOutput('error', `  • Network issue corrupting binary downloads`)
+      this.addOutput('error', ``)
+      this.addOutput('error', `TO FIX THIS ISSUE:`)
+      this.addOutput('error', `  1. Try disabling ALL browser extensions`)
+      this.addOutput('error', `  2. Try a different browser (Chrome, Firefox, Safari)`)
+      this.addOutput('error', `  3. Try a different network (WiFi hotspot, mobile data)`)
+      this.addOutput('error', `  4. If using corporate VPN/proxy, try disconnecting`)
+      this.addOutput('error', `  5. Check if antivirus is scanning web downloads`)
+      this.addOutput('error', `  6. Try in incognito/private mode (extensions disabled)`)
+      this.addOutput('info', `💡 Python standard library will still work (math, json, re, datetime, etc.)`)
+      this.addOutput('info', `   Only external packages like numpy/pandas require download.`)
+    } else {
+      this.addOutput('info', `📋 Troubleshooting steps:`)
+      this.addOutput('info', `   1. Hard refresh: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)`)
+      this.addOutput('info', `   2. Clear browser cache for this site`)
+      this.addOutput('info', `   3. Check your internet connection`)
+      this.addOutput('info', `   4. Try a different browser or network`)
+      this.addOutput('info', `   5. If problem persists, the CDN may be temporarily unavailable`)
+    }
+
+    return false
   }
 
   // Parse code for package import statements
@@ -850,7 +973,10 @@ len(plt.get_fignums()) > 0
       // Parse and load required packages
       const requiredPackages = this.parsePackageImports(code)
       for (const pkg of requiredPackages) {
-        await this.loadPackage(pkg)
+        const success = await this.loadPackage(pkg)
+        if (!success) {
+          throw new Error(`Failed to load required package '${pkg}'. Please try again.`)
+        }
       }
 
       // Clear previous output
@@ -1080,26 +1206,40 @@ self.onmessage = async (e) => {
           // Clear current VFS state
           vfs.files.clear()
           vfs.directories.clear()
-          
+          vfs.metadata.clear()
+
           // Import files from serialized state (array of [path, content] pairs)
           if (Array.isArray(vfsState.files)) {
             vfsState.files.forEach(([path, content]) => {
               vfs.files.set(path, content)
             })
           }
-          
+
           // Import directories from serialized state (array of paths)
           if (Array.isArray(vfsState.directories)) {
             vfsState.directories.forEach(dir => {
               vfs.directories.add(dir)
             })
           }
-          
+
+          // Import metadata from serialized state (array of [path, meta] pairs)
+          if (Array.isArray(vfsState.metadata)) {
+            vfsState.metadata.forEach(([path, meta]) => {
+              // Convert ISO strings back to Date objects
+              const processedMeta = {
+                ...meta,
+                mtime: meta.mtime && typeof meta.mtime === 'string' ? new Date(meta.mtime) : meta.mtime,
+                created: meta.created && typeof meta.created === 'string' ? new Date(meta.created) : meta.created
+              }
+              vfs.metadata.set(path, processedMeta)
+            })
+          }
+
           // Update current directory
           if (vfsState.currentDirectory) {
             vfs.currentDirectory = vfsState.currentDirectory
           }
-          
+
           runner.addOutput('info', `VFS synchronized: ${vfs.files.size} files, ${vfs.directories.size} directories`)
         }
       } catch (error) {
