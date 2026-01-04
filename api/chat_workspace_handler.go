@@ -608,6 +608,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 		"uuid":          session.Uuid,
 		"topic":         session.Topic,
 		"model":         session.Model,
+		"codeRunnerEnabled": session.CodeRunnerEnabled,
 		"workspaceUuid": workspaceUUID,
 		"createdAt":     session.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	})
@@ -673,6 +674,7 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 			"debug":         session.Debug,
 			"summarizeMode": session.SummarizeMode,
 			"exploreMode":   session.ExploreMode,
+			"codeRunnerEnabled": session.CodeRunnerEnabled,
 			"createdAt":     session.CreatedAt.Format("2006-01-02T15:04:05Z"),
 			"updatedAt":     session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 		}

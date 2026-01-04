@@ -17,6 +17,7 @@ export const getChatSessionDefault = async (title: string): Promise<Chat.Session
     n: 1,
     debug: false,
     exploreMode: false,
+    codeRunnerEnabled: false,
   }
 }
 

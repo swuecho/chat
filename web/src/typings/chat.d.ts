@@ -48,6 +48,7 @@ declare namespace Chat {
 		maxTokens?: number
 		debug?: boolean
 		summarizeMode?: boolean
+		codeRunnerEnabled?: boolean
 		exploreMode?: boolean
 		workspaceUuid?: string
 	}

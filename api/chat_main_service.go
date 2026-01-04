@@ -38,6 +38,37 @@ func loadArtifactInstruction() (string, error) {
 	return string(content), nil
 }
 
+// loadToolInstruction loads the tool-use instruction from file.
+// Returns the instruction content or an error if the file cannot be read.
+func loadToolInstruction() (string, error) {
+	content, err := os.ReadFile("tool_instruction.txt")
+	if err != nil {
+		return "", eris.Wrap(err, "failed to read tool instruction file")
+	}
+	return string(content), nil
+}
+
+func appendInstructionToSystemMessage(msgs []models.Message, instruction string) {
+	if instruction == "" || len(msgs) == 0 {
+		return
+	}
+
+	systemMsgFound := false
+	for i, msg := range msgs {
+		if msg.Role == "system" {
+			msgs[i].Content = msg.Content + "\n" + instruction
+			msgs[i].SetTokenCount(int32(len(msgs[i].Content) / TokenEstimateRatio))
+			systemMsgFound = true
+			break
+		}
+	}
+
+	if !systemMsgFound {
+		msgs[0].Content = msgs[0].Content + "\n" + instruction
+		msgs[0].SetTokenCount(int32(len(msgs[0].Content) / TokenEstimateRatio))
+	}
+}
+
 // getAskMessages retrieves and processes chat messages for LLM requests.
 // It combines prompts and messages, applies length limits, and adds artifact instructions (unless explore mode is enabled).
 // Parameters:
@@ -100,22 +131,17 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 			artifactInstruction = "" // Use empty string if file can't be loaded
 		}
 
-		// Append artifact instruction to system messages or add as new system message
-		systemMsgFound := false
-		for i, msg := range msgs {
-			if msg.Role == "system" {
-				msgs[i].Content = msg.Content + "\n" + artifactInstruction
-				msgs[i].SetTokenCount(int32(len(msgs[i].Content) / TokenEstimateRatio)) // Rough token estimate
-				systemMsgFound = true
-				break
-			}
+		appendInstructionToSystemMessage(msgs, artifactInstruction)
+	}
+
+	if chatSession.CodeRunnerEnabled {
+		toolInstruction, err := loadToolInstruction()
+		if err != nil {
+			log.Printf("Warning: Failed to load tool instruction: %v", err)
+			toolInstruction = ""
 		}
 
-		if !systemMsgFound {
-			// append to the first message
-			msgs[0].Content = msgs[0].Content + "\n" + artifactInstruction
-			msgs[0].SetTokenCount(int32(len(msgs[0].Content) / TokenEstimateRatio)) // Rough token estimate
-		}
+		appendInstructionToSystemMessage(msgs, toolInstruction)
 	}
 
 	return msgs, nil

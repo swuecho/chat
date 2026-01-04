@@ -1,6 +1,6 @@
 <script lang='ts' setup>
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
-import { NAutoComplete, NButton, NInput, NModal, NSpin } from 'naive-ui'
+import { NAutoComplete, NButton, NInput, NModal, NSpin, NSwitch } from 'naive-ui'
 import  { v7 as uuidv7 } from 'uuid'
 import { useScroll } from '@/views/chat/hooks/useScroll'
 import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'
@@ -91,6 +91,8 @@ const {
 
 // Use loading state from composables
 const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
+const toolRunning = computed(() => conversationFlow.toolRunning.value)
+const showToolDebug = ref(false)
 
 async function handleSubmit() {
   const message = prompt.value
@@ -209,6 +211,18 @@ function handleUseQuestion(question: string) {
             <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
           </div>
         </div>
+        <div v-if="chatSession?.codeRunnerEnabled" class="flex items-center justify-center mb-2">
+          <div class="flex items-center gap-3 text-sm text-gray-500">
+            <div v-if="toolRunning" class="flex items-center gap-2">
+              <NSpin size="small" />
+              <span>{{ $t('chat.toolRunning') }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <NSwitch v-model:value="showToolDebug" size="small" data-testid="tool_debug_toggle" />
+              <span>{{ $t('chat.toolDebug') }}</span>
+            </div>
+          </div>
+        </div>
         <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
         </UploaderReadOnly>
         <div id="scrollRef" ref="scrollRef" class="flex-1 overflow-hidden overflow-y-auto">
@@ -223,7 +237,8 @@ function handleUseQuestion(question: string) {
             </template>
             <template v-else>
               <div>
-                <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate" @use-question="handleUseQuestion" />
+                <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate"
+                  :show-tool-debug="showToolDebug" @use-question="handleUseQuestion" />
               </div>
             </template>
           </div>

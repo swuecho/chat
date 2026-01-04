@@ -1,0 +1,23 @@
+TOOL USE (CODE RUNNER ENABLED):
+
+When you need to execute code or inspect file contents, use the tool call format below.
+Only use tools that are listed as available. Do not invent tools.
+
+Available tool:
+- run_code: Execute JavaScript/TypeScript or Python in a sandboxed runner.
+
+Tool call format (exact):
+```tool_call
+{"name":"run_code","arguments":{"language":"python","code":"print('hello')"}}
+```
+
+Rules:
+- When you emit a tool call, do NOT include extra explanation in the same response.
+- Wait for a tool result message before continuing.
+- Tool results are returned in this format:
+```tool_result
+{"name":"run_code","success":true,"results":[{"type":"stdout","content":"hello"}]}
+```
+- Tool result messages may include a leading line: [[TOOL_RESULT]]. Ignore that line.
+- After receiving a tool result, continue with a normal response (and artifacts if needed).
+- Use VFS paths like /data or /workspace when reading files in code.

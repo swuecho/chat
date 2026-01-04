@@ -59,6 +59,7 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 		MaxLength: session.MaxLength,
 		CreatedAt: session.CreatedAt,
 		UpdatedAt: session.UpdatedAt,
+		CodeRunnerEnabled: session.CodeRunnerEnabled,
 	}
 	json.NewEncoder(w).Encode(session_resp)
 }
@@ -141,6 +142,7 @@ type UpdateChatSessionRequest struct {
 	MaxTokens     int32   `json:"maxTokens"`
 	Debug         bool    `json:"debug"`
 	SummarizeMode bool    `json:"summarizeMode"`
+	CodeRunnerEnabled bool `json:"codeRunnerEnabled"`
 	ExploreMode   bool    `json:"exploreMode"`
 	WorkspaceUUID string  `json:"workspaceUuid,omitempty"`
 }
@@ -180,6 +182,7 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.MaxTokens = sessionReq.MaxTokens
 	sessionParams.Debug = sessionReq.Debug
 	sessionParams.SummarizeMode = sessionReq.SummarizeMode
+	sessionParams.CodeRunnerEnabled = sessionReq.CodeRunnerEnabled
 	sessionParams.ExploreMode = sessionReq.ExploreMode
 
 	// Handle workspace
@@ -368,6 +371,7 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 		TopP:          originSession.TopP,
 		Debug:         originSession.Debug,
 		SummarizeMode: originSession.SummarizeMode,
+		CodeRunnerEnabled: originSession.CodeRunnerEnabled,
 		ExploreMode:   originSession.ExploreMode,
 		WorkspaceID:   originSession.WorkspaceID,
 		N:             1,

@@ -54,6 +54,7 @@ interface ModelType {
   n: number
   debug: boolean
   summarizeMode: boolean
+  codeRunnerEnabled: boolean
   exploreMode: boolean
 }
 
@@ -76,6 +77,7 @@ const modelRef: Ref<ModelType> = ref({
   n: session.value?.n ?? 1,
   debug: session.value?.debug ?? false,
   exploreMode: session.value?.exploreMode ?? false,
+  codeRunnerEnabled: session.value?.codeRunnerEnabled ?? false,
 })
 
 const formRef = ref<FormInst | null>(null)
@@ -98,6 +100,7 @@ const debouneUpdate = debounce(async (model: ModelType) => {
     debug: model.debug,
     model: model.chatModel,
     summarizeMode: model.summarizeMode,
+    codeRunnerEnabled: model.codeRunnerEnabled,
     exploreMode: model.exploreMode,
   })
 }, 200)
@@ -120,6 +123,7 @@ watch(session, (newSession) => {
       n: newSession.n ?? 1,
       debug: newSession.debug ?? false,
       exploreMode: newSession.exploreMode ?? false,
+      codeRunnerEnabled: newSession.codeRunnerEnabled ?? false,
     }
     
     // Only update if the values are actually different
@@ -212,6 +216,16 @@ const defaultToken = computed(() => {
       <NFormItem v-if="modelRef.chatModel.startsWith('gpt') || modelRef.chatModel.includes('davinci')"
         :label="$t('chat.N', { n: modelRef.n })" path="n">
         <NSlider v-model:value="modelRef.n" :min="1" :max="10" :step="1" :tooltip="false" />
+      </NFormItem>
+      <NFormItem :label="$t('chat.codeRunner')" path="codeRunnerEnabled">
+        <NSwitch v-model:value="modelRef.codeRunnerEnabled" data-testid="code_runner_mode">
+          <template #checked>
+            {{ $t('chat.enable_code_runner') }}
+          </template>
+          <template #unchecked>
+            {{ $t('chat.disable_code_runner') }}
+          </template>
+        </NSwitch>
       </NFormItem>
       <NFormItem :label="$t('chat.exploreMode')" path="exploreMode">
         <NSwitch v-model:value="modelRef.exploreMode" data-testid="explore_mode">
