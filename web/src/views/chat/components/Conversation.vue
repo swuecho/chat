@@ -1,6 +1,6 @@
 <script lang='ts' setup>
-import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
-import { NAutoComplete, NButton, NInput, NModal, NSpin } from 'naive-ui'
+import { computed, onMounted, onUnmounted, provide, ref, toRef, watch } from 'vue'
+import { NAutoComplete, NButton, NInput, NModal, NSpin, NSwitch } from 'naive-ui'
 import  { v7 as uuidv7 } from 'uuid'
 import { useScroll } from '@/views/chat/hooks/useScroll'
 import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'
@@ -50,6 +50,7 @@ const sessionUuid = toRef(props, 'sessionUuid')
 
 const { isMobile } = useBasicLayout()
 const { scrollRef, scrollToBottom, smoothScrollToBottomIfAtBottom } = useScroll()
+const vfsUploaderRef = ref(null)
 
 // Initialize composables
 const conversationFlow = useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom)
@@ -91,6 +92,16 @@ const {
 
 // Use loading state from composables
 const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
+const toolRunning = computed(() => conversationFlow.toolRunning.value)
+const showToolDebug = ref(false)
+
+const openVfsAtPath = (path: string) => {
+  if (vfsUploaderRef.value?.openFileManagerAt) {
+    vfsUploaderRef.value.openFileManagerAt(path)
+  }
+}
+
+provide('openVfsAtPath', openVfsAtPath)
 
 async function handleSubmit() {
   const message = prompt.value
@@ -196,7 +207,7 @@ function handleUseQuestion(question: string) {
     <div class="flex flex-col w-full h-full">
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />
-      <ChatVFSUploader :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"
+      <ChatVFSUploader ref="vfsUploaderRef" :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"
         @update:showUploadModal="showVFSUploadModal = $event" @file-uploaded="handleVFSFileUploaded"
         @code-example-added="handleCodeExampleAddedWithStream" />
       <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
@@ -207,6 +218,18 @@ function handleUseQuestion(question: string) {
         <div class="flex items-center justify-center mt-2 mb-2">
           <div class="w-4/5 md:w-1/3">
             <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
+          </div>
+        </div>
+        <div v-if="chatSession?.codeRunnerEnabled" class="flex items-center justify-center mb-2">
+          <div class="flex items-center gap-3 text-sm text-gray-500">
+            <div v-if="toolRunning" class="flex items-center gap-2">
+              <NSpin size="small" />
+              <span>{{ $t('chat.toolRunning') }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <NSwitch v-model:value="showToolDebug" size="small" data-testid="tool_debug_toggle" />
+              <span>{{ $t('chat.toolDebug') }}</span>
+            </div>
           </div>
         </div>
         <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
@@ -223,7 +246,8 @@ function handleUseQuestion(question: string) {
             </template>
             <template v-else>
               <div>
-                <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate" @use-question="handleUseQuestion" />
+                <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate"
+                  :show-tool-debug="showToolDebug" @use-question="handleUseQuestion" />
               </div>
             </template>
           </div>

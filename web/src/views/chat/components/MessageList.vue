@@ -1,21 +1,23 @@
 <template>
-        <Message v-for="(item, index) of dataSources" :key="item.uuid || `message-${index}`" :date-time="item.dateTime"
-                :model="item?.model || chatSession?.model" :text="item.text" :inversion="item.inversion" :error="item.error"
-                :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :index="index"
-                :artifacts="item.artifacts" :suggested-questions="item.suggestedQuestions" 
-                :suggested-questions-loading="item.suggestedQuestionsLoading" 
-                :suggested-questions-batches="item.suggestedQuestionsBatches"
-                :current-suggested-questions-batch="item.currentSuggestedQuestionsBatch"
-                :suggested-questions-generating="item.suggestedQuestionsGenerating"
-                :explore-mode="chatSession?.exploreMode"
-                @regenerate="onRegenerate(index)" 
-                @toggle-pin="handleTogglePin(index)" 
-                @delete="handleDelete(index)" 
-                @after-edit="handleAfterEdit" 
-                @use-question="handleUseQuestion"
-                @generate-more-suggestions="handleGenerateMoreSuggestions(index)"
-                @previous-suggestions-batch="handlePreviousSuggestionsBatch(index)"
-                @next-suggestions-batch="handleNextSuggestionsBatch(index)" />
+        <template v-for="(item, index) of dataSources" :key="item.uuid || `message-${index}`">
+                <Message v-if="shouldShowMessage(item)" :date-time="item.dateTime"
+                        :model="item?.model || chatSession?.model" :text="getDisplayText(item.text)" :inversion="item.inversion" :error="item.error"
+                        :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :index="index"
+                        :artifacts="item.artifacts" :suggested-questions="item.suggestedQuestions" 
+                        :suggested-questions-loading="item.suggestedQuestionsLoading" 
+                        :suggested-questions-batches="item.suggestedQuestionsBatches"
+                        :current-suggested-questions-batch="item.currentSuggestedQuestionsBatch"
+                        :suggested-questions-generating="item.suggestedQuestionsGenerating"
+                        :explore-mode="chatSession?.exploreMode"
+                        @regenerate="onRegenerate(index)" 
+                        @toggle-pin="handleTogglePin(index)" 
+                        @delete="handleDelete(index)" 
+                        @after-edit="handleAfterEdit" 
+                        @use-question="handleUseQuestion"
+                        @generate-more-suggestions="handleGenerateMoreSuggestions(index)"
+                        @previous-suggestions-batch="handlePreviousSuggestionsBatch(index)"
+                        @next-suggestions-batch="handleNextSuggestionsBatch(index)" />
+        </template>
 </template>
 
 <script lang='ts' setup>
@@ -27,6 +29,7 @@ import { updateChatData } from '@/api'
 import { useDialog } from 'naive-ui'
 import { useCopyCode } from '@/views/chat/hooks/useCopyCode'
 import { useErrorHandling } from '../composables/useErrorHandling'
+import { isToolResultMessage, stripToolBlocks } from '@/utils/tooling'
 
 
 import { t } from '@/locales'
@@ -46,6 +49,11 @@ const props = defineProps({
                 type: Function,
                 required: true
         },
+        showToolDebug: {
+                type: Boolean,
+                required: false,
+                default: false
+        },
 });
 
 const emit = defineEmits(['useQuestion']);
@@ -54,6 +62,16 @@ const messageStore = useMessageStore()
 const sessionStore = useSessionStore()
 const dataSources = computed(() => messageStore.getChatSessionDataByUuid(props.sessionUuid))
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(props.sessionUuid))
+
+const shouldShowMessage = (message: Chat.Message) => {
+        if (props.showToolDebug) return true
+        return !isToolResultMessage(message.text || '')
+}
+
+const getDisplayText = (text: string) => {
+        if (props.showToolDebug) return text
+        return stripToolBlocks(text || '')
+}
 
 // The user wants to delete the message with the given index.
 // If the message is already being deleted, we ignore the request.

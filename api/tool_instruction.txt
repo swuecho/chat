@@ -1,0 +1,51 @@
+TOOL USE (CODE RUNNER ENABLED):
+
+When you need to execute code or inspect file contents, use the tool call format below.
+Only use tools that are listed as available. Do not invent tools.
+
+Available tools:
+- run_code: Execute JavaScript/TypeScript or Python in a sandboxed runner.
+- read_vfs: Read a file from the Virtual File System.
+- write_vfs: Write a file to the Virtual File System.
+- list_vfs: List directory entries in the Virtual File System.
+- stat_vfs: Get metadata for a file or directory in the Virtual File System.
+
+Tool call format (exact):
+```tool_call
+{"name":"run_code","arguments":{"language":"python","code":"print('hello')"}}
+```
+
+```tool_call
+{"name":"read_vfs","arguments":{"path":"/data/iris.csv","encoding":"utf8"}}
+```
+
+```tool_call
+{"name":"read_vfs","arguments":{"path":"/data/image.png","encoding":"binary"}}
+```
+
+```tool_call
+{"name":"write_vfs","arguments":{"path":"/data/output.txt","content":"hello","encoding":"utf8"}}
+```
+
+```tool_call
+{"name":"write_vfs","arguments":{"path":"/data/blob.bin","content":"<base64>","encoding":"base64"}}
+```
+
+```tool_call
+{"name":"list_vfs","arguments":{"path":"/data"}}
+```
+
+```tool_call
+{"name":"stat_vfs","arguments":{"path":"/data/iris.csv"}}
+```
+
+Rules:
+- When you emit a tool call, do NOT include extra explanation in the same response.
+- Wait for a tool result message before continuing.
+- Tool results are returned in this format:
+```tool_result
+{"name":"run_code","success":true,"results":[{"type":"stdout","content":"hello"}]}
+```
+- Tool result messages may include a leading line: [[TOOL_RESULT]]. Ignore that line.
+- After receiving a tool result, continue with a normal response (and artifacts if needed).
+- Use VFS paths like /data or /workspace when reading files in code.

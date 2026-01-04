@@ -76,7 +76,50 @@
             <img :ref="el => registerMatplotlib(el, output)" class="output-image" alt="Matplotlib output" />
           </template>
           <template v-else>
-            <pre class="output-text">{{ output.content }}</pre>
+            <template v-if="structuredOutputs[output.id]">
+              <div class="output-table-wrapper">
+                <table class="output-table">
+                  <thead>
+                    <tr>
+                      <th v-for="header in structuredOutputs[output.id]?.headers" :key="header">
+                        {{ header }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, rowIndex) in structuredOutputs[output.id]?.rows" :key="rowIndex">
+                      <td v-for="(cell, cellIndex) in row" :key="cellIndex">
+                        <template v-if="isVfsPath(cell)">
+                          <button type="button" class="vfs-path-link" @click="handleOpenVfs(cell)">
+                            {{ cell }}
+                          </button>
+                          <button type="button" class="vfs-copy-button" @click="copyPath(cell)" aria-label="Copy path">
+                            <Icon icon="ri:file-copy-line" />
+                          </button>
+                        </template>
+                        <span v-else>{{ cell }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+            <template v-else>
+              <pre class="output-text">
+                <template v-for="(segment, segIndex) in getOutputSegments(output.content)" :key="segIndex">
+                  <span v-if="segment.path" class="vfs-path-inline">
+                    <button type="button" class="vfs-path-link" @click="handleOpenVfs(segment.path)">
+                      {{ segment.text }}
+                    </button>
+                    <button type="button" class="vfs-copy-button" @click="copyPath(segment.path)"
+                      aria-label="Copy path">
+                      <Icon icon="ri:file-copy-line" />
+                    </button>
+                  </span>
+                  <span v-else>{{ segment.text }}</span>
+                </template>
+              </pre>
+            </template>
           </template>
         </div>
       </div>
@@ -85,13 +128,14 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick } from 'vue'
-import { NButton } from 'naive-ui'
+import { computed, inject, nextTick } from 'vue'
+import { NButton, useMessage } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { type Artifact, type ExecutionResult } from '@/typings/chat'
 import MarkdownIt from 'markdown-it'
 import { getCodeRunner } from '@/services/codeRunner'
 import { sanitizeHtml, sanitizeSvg } from '@/utils/sanitize'
+import { copyText } from '@/utils/format'
 
 interface Props {
   artifact: Artifact
@@ -104,6 +148,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const message = useMessage()
 
 defineEmits<{
   'toggle-edit': [uuid: string, content: string]
@@ -121,6 +166,8 @@ const renderedMarkdown = computed(() => {
   return sanitizeHtml(mdi.render(props.artifact.content))
 })
 
+const openVfsAtPath = inject('openVfsAtPath', null)
+
 const sanitizedSvg = computed(() => {
   return sanitizeSvg(props.artifact.content)
 })
@@ -137,6 +184,171 @@ const formatJson = (jsonString: string) => {
 
 const formatTime = (timestamp: string) => {
   return new Date(timestamp).toLocaleTimeString()
+}
+
+type StructuredOutput = {
+  headers: string[]
+  rows: string[][]
+}
+
+type OutputSegment = {
+  text: string
+  path?: string
+}
+
+const maxStructuredRows = 50
+const maxStructuredColumns = 20
+const vfsPathRegex = /\/(?:data|workspace|tmp|uploads)(?:\/[^\s'"`<>]+)+/g
+
+const parseJsonTable = (content: string): StructuredOutput | null => {
+  try {
+    const parsed = JSON.parse(content)
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      if (parsed.every(item => item && typeof item === 'object' && !Array.isArray(item))) {
+        const headers = Object.keys(parsed[0]).slice(0, maxStructuredColumns)
+        const rows = parsed.slice(0, maxStructuredRows).map(row =>
+          headers.map(header => String((row as Record<string, unknown>)[header] ?? ''))
+        )
+        return { headers, rows }
+      }
+
+      if (parsed.every(item => Array.isArray(item))) {
+        const headers = parsed[0].slice(0, maxStructuredColumns).map((_, index) => `col_${index + 1}`)
+        const rows = parsed.slice(0, maxStructuredRows).map(row =>
+          (row as unknown[]).slice(0, maxStructuredColumns).map(cell => String(cell ?? ''))
+        )
+        return { headers, rows }
+      }
+    }
+
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const entries = Object.entries(parsed).slice(0, maxStructuredRows)
+      return {
+        headers: ['key', 'value'],
+        rows: entries.map(([key, value]) => [String(key), String(value ?? '')])
+      }
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+const parseCsvLine = (line: string): string[] => {
+  const cells: string[] = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i]
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"'
+        i += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+
+    if (char === ',' && !inQuotes) {
+      cells.push(current.trim())
+      current = ''
+      continue
+    }
+
+    current += char
+  }
+
+  cells.push(current.trim())
+  return cells
+}
+
+const parseCsvTable = (content: string): StructuredOutput | null => {
+  const lines = content.trim().split(/\r?\n/).filter(line => line.trim().length > 0)
+  if (lines.length < 2) return null
+  if (!lines[0].includes(',')) return null
+
+  const headers = parseCsvLine(lines[0]).slice(0, maxStructuredColumns)
+  if (headers.length === 0) return null
+
+  const rows = lines.slice(1, maxStructuredRows + 1).map(line =>
+    parseCsvLine(line).slice(0, maxStructuredColumns).map(cell => cell)
+  )
+
+  return { headers, rows }
+}
+
+const getStructuredOutput = (output: ExecutionResult): StructuredOutput | null => {
+  if (!['stdout', 'return', 'log', 'info', 'debug', 'warn'].includes(output.type)) return null
+  const content = output.content?.trim()
+  if (!content) return null
+
+  const jsonTable = parseJsonTable(content)
+  if (jsonTable) return jsonTable
+
+  return parseCsvTable(content)
+}
+
+const structuredOutputs = computed<Record<string, StructuredOutput | null>>(() => {
+  const outputMap: Record<string, StructuredOutput | null> = {}
+  if (!props.executionOutputs) return outputMap
+  for (const output of props.executionOutputs) {
+    outputMap[output.id] = getStructuredOutput(output)
+  }
+  return outputMap
+})
+
+const isVfsPath = (value: string) => {
+  vfsPathRegex.lastIndex = 0
+  return vfsPathRegex.test(value)
+}
+
+const getOutputSegments = (content: string): OutputSegment[] => {
+  const segments: OutputSegment[] = []
+  if (!content) return segments
+
+  let lastIndex = 0
+  const matches = [...content.matchAll(vfsPathRegex)]
+
+  for (const match of matches) {
+    if (!match.index && match.index !== 0) continue
+    const start = match.index
+    const end = start + match[0].length
+
+    if (start > lastIndex) {
+      segments.push({ text: content.slice(lastIndex, start) })
+    }
+
+    segments.push({ text: match[0], path: match[0] })
+    lastIndex = end
+  }
+
+  if (lastIndex < content.length) {
+    segments.push({ text: content.slice(lastIndex) })
+  }
+
+  return segments
+}
+
+const handleOpenVfs = (path: string) => {
+  if (openVfsAtPath && typeof openVfsAtPath === 'function') {
+    openVfsAtPath(path)
+  }
+}
+
+const copyPath = async (path: string) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(path)
+    } else {
+      copyText({ text: path, origin: true })
+    }
+    message.success('Path copied to clipboard')
+  } catch (error) {
+    message.error('Failed to copy path')
+  }
 }
 
 const renderCanvas = (output: ExecutionResult, canvasElement: HTMLCanvasElement) => {
@@ -377,6 +589,90 @@ const registerMatplotlib = (el: HTMLImageElement | null, output: ExecutionResult
   font-size: 0.875rem;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.output-table-wrapper {
+  overflow-x: auto;
+}
+
+.output-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.output-table th,
+.output-table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.output-table th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.vfs-path-link {
+  color: #2563eb;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vfs-path-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.vfs-copy-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 0.25rem;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.vfs-path-inline:hover .vfs-copy-button,
+.output-table td:hover .vfs-copy-button {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.vfs-copy-button:hover {
+  color: #111827;
+}
+
+:deep(.dark) .vfs-path-link {
+  color: #93c5fd;
+}
+
+:deep(.dark) .vfs-copy-button {
+  color: #9ca3af;
+}
+
+:deep(.dark) .vfs-copy-button:hover {
+  color: #e5e7eb;
+}
+
+:deep(.dark) .output-table th,
+:deep(.dark) .output-table td {
+  border-color: #374151;
+}
+
+:deep(.dark) .output-table th {
+  background: #111827;
 }
 
 /* Dark mode */
