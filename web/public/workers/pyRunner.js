@@ -217,6 +217,7 @@ class SafePyRunner {
     ]
     this.activeCdnIndex = 0
     this.micropipReady = false
+    this.needsPyodideFsSync = false
     this.preloadPackages = ['pandas']
     this.pyodidePackages = new Set([
       'numpy',
@@ -246,6 +247,72 @@ class SafePyRunner {
     }
     // Expose VFS on the worker global so Python `from js import vfs` works
     self.vfs = vfs
+  }
+
+  ensurePyodideFsDir(dirPath) {
+    if (!pyodide || !pyodide.FS) return
+
+    const FS = pyodide.FS
+    const normalized = String(dirPath || '/')
+    if (normalized === '/' || normalized === '') return
+
+    const parts = normalized.split('/').filter(Boolean)
+    let current = ''
+    for (const part of parts) {
+      current += `/${part}`
+      try {
+        FS.mkdir(current)
+      } catch (error) {
+        // Ignore EEXIST
+      }
+    }
+  }
+
+  syncVfsToPyodideFs() {
+    if (!pyodide || !pyodide.FS || !vfs) return
+
+    const FS = pyodide.FS
+
+    // Ensure core directories exist
+    for (const dir of ['/data', '/workspace', '/tmp', '/uploads']) {
+      this.ensurePyodideFsDir(dir)
+    }
+
+    // Mirror VFS directories into Pyodide FS
+    try {
+      for (const dir of vfs.directories) {
+        this.ensurePyodideFsDir(dir)
+      }
+    } catch (error) {
+      // Ignore directory sync errors
+    }
+
+    let syncedFiles = 0
+    for (const [path, content] of vfs.files.entries()) {
+      try {
+        const filePath = String(path)
+        const parentDir = filePath.substring(0, filePath.lastIndexOf('/')) || '/'
+        this.ensurePyodideFsDir(parentDir)
+
+        if (content instanceof Uint8Array) {
+          FS.writeFile(filePath, content)
+        } else if (content instanceof ArrayBuffer) {
+          FS.writeFile(filePath, new Uint8Array(content))
+        } else if (typeof content === 'string') {
+          FS.writeFile(filePath, content, { encoding: 'utf8' })
+        } else {
+          FS.writeFile(filePath, String(content), { encoding: 'utf8' })
+        }
+
+        syncedFiles++
+      } catch (error) {
+        this.addOutput('warn', `Failed to sync '${path}' to Pyodide FS: ${error.message}`)
+      }
+    }
+
+    if (syncedFiles > 0) {
+      this.addOutput('debug', `Synced ${syncedFiles} file(s) to Pyodide FS`)
+    }
   }
 
   setupOutput() {
@@ -606,7 +673,18 @@ def vfs_open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=N
     
     # Check if this is a VFS path
     is_vfs_path = file_str.startswith('/') and (file_str in _VFS_ROOTS or any(file_str.startswith(root + '/') for root in _VFS_ROOTS))
-    if is_vfs_path:
+    is_write_mode = any(flag in mode for flag in ('w', 'a', '+', 'x'))
+    if is_vfs_path and not is_write_mode:
+        # Prefer Pyodide's native filesystem for reads (better compatibility with pandas, etc.)
+        try:
+            return _original_open(file, mode, buffering, encoding, errors, newline, closefd, opener)
+        except FileNotFoundError:
+            pass
+
+        if encoding is None:
+            encoding = 'utf-8'
+        return VFSFile(file_str, mode, encoding)
+    elif is_vfs_path:
         if encoding is None:
             encoding = 'utf-8'
         return VFSFile(file_str, mode, encoding)
@@ -1160,6 +1238,15 @@ len(plt.get_fignums()) > 0
         await this.initializePyodide()
       }
 
+      if (this.needsPyodideFsSync) {
+        try {
+          this.syncVfsToPyodideFs()
+        } catch (error) {
+          this.addOutput('warn', `Pyodide FS sync failed: ${error.message}`)
+        }
+        this.needsPyodideFsSync = false
+      }
+
       // Parse and load required packages
       const requiredPackages = this.parsePackageImports(code)
       for (const pkg of requiredPackages) {
@@ -1431,6 +1518,16 @@ self.onmessage = async (e) => {
           }
 
           runner.addOutput('info', `VFS synchronized: ${vfs.files.size} files, ${vfs.directories.size} directories`)
+
+          runner.needsPyodideFsSync = true
+          if (pyodide) {
+            try {
+              runner.syncVfsToPyodideFs()
+              runner.needsPyodideFsSync = false
+            } catch (error) {
+              runner.addOutput('warn', `Pyodide FS sync failed: ${error.message}`)
+            }
+          }
         }
       } catch (error) {
         runner.addOutput('error', `VFS sync failed: ${error.message}`)
