@@ -21,9 +21,21 @@ When the model needs execution, it will emit a tool call block:
 ```
 ````
 
-Only `run_code` is supported:
-- `language`: `python`, `javascript`, or `typescript`
-- `code`: the code to execute
+Supported tools:
+- `run_code`:
+  - `language`: `python`, `javascript`, or `typescript`
+  - `code`: the code to execute
+- `read_vfs`:
+  - `path`: VFS path like `/data/iris.csv`
+  - `encoding`: `utf8` or `binary`
+- `write_vfs`:
+  - `path`: VFS path like `/data/output.txt`
+  - `content`: file contents (string or base64)
+  - `encoding`: `utf8` or `base64`
+- `list_vfs`:
+  - `path`: VFS directory path like `/data`
+- `stat_vfs`:
+  - `path`: VFS path like `/data/iris.csv`
 
 The UI runs the tool automatically and sends results back to the model.
 
@@ -34,6 +46,30 @@ Tool results are sent back to the model using `tool_result` blocks:
 ````text
 ```tool_result
 {"name":"run_code","success":true,"results":[{"type":"stdout","content":"hello"}]}
+```
+````
+
+````
+```tool_result
+{"name":"read_vfs","success":true,"results":[{"type":"vfs","content":"sepal_length,sepal_width,...","encoding":"utf8","path":"/data/iris.csv"}]}
+```
+````
+
+````
+```tool_result
+{"name":"write_vfs","success":true,"results":[{"type":"vfs","content":"ok","encoding":"utf8","path":"/data/output.txt"}]}
+```
+````
+
+````
+```tool_result
+{"name":"list_vfs","success":true,"results":[{"type":"vfs","content":"[\"iris.csv\",\"notes.txt\"]","path":"/data"}]}
+```
+````
+
+````
+```tool_result
+{"name":"stat_vfs","success":true,"results":[{"type":"vfs","content":"{\"isDirectory\":false,\"isFile\":true}","path":"/data/iris.csv"}]}
 ```
 ````
 

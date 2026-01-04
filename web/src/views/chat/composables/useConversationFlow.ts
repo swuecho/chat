@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { inject, ref, type Ref } from 'vue'
 import { v7 as uuidv7 } from 'uuid'
 import { nowISO } from '@/utils/date'
 import { useChat } from '@/views/chat/hooks/useChat'
@@ -33,9 +33,21 @@ export function useConversationFlow(
   const { validateChatMessage } = useValidation()
   const sessionStore = useSessionStore()
   const messageStore = useMessageStore()
+  const vfsInstance = inject('vfsInstance', ref(null))
+  const isVFSReady = inject('isVFSReady', ref(false))
 
   const maxToolTurns = 3
   const toolRunning = ref<boolean>(false)
+
+  const toBase64 = (bytes: Uint8Array) => {
+    const chunkSize = 0x8000
+    let binary = ''
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize)
+      binary += String.fromCharCode(...chunk)
+    }
+    return btoa(binary)
+  }
 
   function validateConversationInput(message: string): boolean {
     if (loading.value) {
@@ -159,8 +171,12 @@ export function useConversationFlow(
           abortController.value.signal
         )
 
+        if (toolTurns >= maxToolTurns) {
+          break
+        }
+
         const toolPrompt = await handleToolCalls(sessionUuid, responseIndex)
-        if (!toolPrompt || toolTurns >= maxToolTurns) {
+        if (!toolPrompt) {
           break
         }
 
@@ -213,54 +229,222 @@ export function useConversationFlow(
 
     try {
       for (const call of calls) {
-        if (call.name !== 'run_code') {
-          toolResults.push({
-            name: call.name,
-            success: false,
-            results: [{ type: 'error', content: `Unsupported tool: ${call.name}` }],
-          })
-          continue
-        }
-
         const args = call.arguments || {}
-        const language = typeof args.language === 'string' ? args.language : 'python'
-        const code = typeof args.code === 'string' ? args.code : ''
 
-        if (!code) {
-          toolResults.push({
-            name: call.name,
-            success: false,
-            results: [{ type: 'error', content: 'Missing code to execute.' }],
-          })
+        if (call.name === 'run_code') {
+          const language = typeof args.language === 'string' ? args.language : 'python'
+          const code = typeof args.code === 'string' ? args.code : ''
+
+          if (!code) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: 'Missing code to execute.' }],
+            })
+            continue
+          }
+
+          if (!runner.isLanguageSupported(language)) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: `Unsupported language: ${language}` }],
+            })
+            continue
+          }
+
+          try {
+            const results = await runner.execute(language, code)
+            toolResults.push({
+              name: call.name,
+              success: !results.some(result => result.type === 'error'),
+              results: results.map(result => ({
+                type: result.type,
+                content: result.content,
+              })),
+            })
+          } catch (error) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: error instanceof Error ? error.message : String(error) }],
+            })
+          }
           continue
         }
 
-        if (!runner.isLanguageSupported(language)) {
-          toolResults.push({
-            name: call.name,
-            success: false,
-            results: [{ type: 'error', content: `Unsupported language: ${language}` }],
-          })
+        if (call.name === 'read_vfs') {
+          if (!isVFSReady.value || !vfsInstance.value) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: 'VFS is not ready.' }],
+            })
+            continue
+          }
+
+          const path = typeof args.path === 'string' ? args.path : ''
+          const encoding = typeof args.encoding === 'string' ? args.encoding : 'utf8'
+          if (!path) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: 'Missing VFS path.' }],
+            })
+            continue
+          }
+
+          try {
+            const data = await vfsInstance.value.readFile(path, encoding === 'binary' ? 'binary' : encoding)
+            if (encoding === 'binary' && data instanceof Uint8Array) {
+              const base64 = toBase64(data)
+              toolResults.push({
+                name: call.name,
+                success: true,
+                results: [{ type: 'vfs', content: base64, encoding: 'base64', path }],
+              })
+            } else {
+              toolResults.push({
+                name: call.name,
+                success: true,
+                results: [{ type: 'vfs', content: String(data), encoding: 'utf8', path }],
+              })
+            }
+          } catch (error) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: error instanceof Error ? error.message : String(error) }],
+            })
+          }
           continue
         }
 
-        try {
-          const results = await runner.execute(language, code)
-          toolResults.push({
-            name: call.name,
-            success: !results.some(result => result.type === 'error'),
-            results: results.map(result => ({
-              type: result.type,
-              content: result.content,
-            })),
-          })
-        } catch (error) {
-          toolResults.push({
-            name: call.name,
-            success: false,
-            results: [{ type: 'error', content: error instanceof Error ? error.message : String(error) }],
-          })
+        if (call.name === 'write_vfs') {
+          if (!isVFSReady.value || !vfsInstance.value) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: 'VFS is not ready.' }],
+            })
+            continue
+          }
+
+          const path = typeof args.path === 'string' ? args.path : ''
+          const encoding = typeof args.encoding === 'string' ? args.encoding : 'utf8'
+          const content = typeof args.content === 'string' ? args.content : ''
+          if (!path) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: 'Missing VFS path.' }],
+            })
+            continue
+          }
+
+          try {
+            if (encoding === 'base64') {
+              const binary = Uint8Array.from(atob(content), c => c.charCodeAt(0))
+              await vfsInstance.value.writeFile(path, binary, { binary: true })
+            } else {
+              await vfsInstance.value.writeFile(path, content, { encoding })
+            }
+
+            await runner.syncVFSToWorkers()
+            toolResults.push({
+              name: call.name,
+              success: true,
+              results: [{ type: 'vfs', content: 'ok', encoding, path }],
+            })
+          } catch (error) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: error instanceof Error ? error.message : String(error) }],
+            })
+          }
+          continue
         }
+
+        if (call.name === 'list_vfs') {
+          if (!isVFSReady.value || !vfsInstance.value) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: 'VFS is not ready.' }],
+            })
+            continue
+          }
+
+          const path = typeof args.path === 'string' ? args.path : ''
+          if (!path) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: 'Missing VFS path.' }],
+            })
+            continue
+          }
+
+          try {
+            const entries = await vfsInstance.value.readdir(path)
+            toolResults.push({
+              name: call.name,
+              success: true,
+              results: [{ type: 'vfs', content: JSON.stringify(entries), path }],
+            })
+          } catch (error) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: error instanceof Error ? error.message : String(error) }],
+            })
+          }
+          continue
+        }
+
+        if (call.name === 'stat_vfs') {
+          if (!isVFSReady.value || !vfsInstance.value) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: 'VFS is not ready.' }],
+            })
+            continue
+          }
+
+          const path = typeof args.path === 'string' ? args.path : ''
+          if (!path) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: 'Missing VFS path.' }],
+            })
+            continue
+          }
+
+          try {
+            const stat = await vfsInstance.value.stat(path)
+            toolResults.push({
+              name: call.name,
+              success: true,
+              results: [{ type: 'vfs', content: JSON.stringify(stat), path }],
+            })
+          } catch (error) {
+            toolResults.push({
+              name: call.name,
+              success: false,
+              results: [{ type: 'error', content: error instanceof Error ? error.message : String(error) }],
+            })
+          }
+          continue
+        }
+
+        toolResults.push({
+          name: call.name,
+          success: false,
+          results: [{ type: 'error', content: `Unsupported tool: ${call.name}` }],
+        })
       }
     } finally {
       toolRunning.value = false

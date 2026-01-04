@@ -1,5 +1,5 @@
 <script lang='ts' setup>
-import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
+import { computed, onMounted, onUnmounted, provide, ref, toRef, watch } from 'vue'
 import { NAutoComplete, NButton, NInput, NModal, NSpin, NSwitch } from 'naive-ui'
 import  { v7 as uuidv7 } from 'uuid'
 import { useScroll } from '@/views/chat/hooks/useScroll'
@@ -50,6 +50,7 @@ const sessionUuid = toRef(props, 'sessionUuid')
 
 const { isMobile } = useBasicLayout()
 const { scrollRef, scrollToBottom, smoothScrollToBottomIfAtBottom } = useScroll()
+const vfsUploaderRef = ref(null)
 
 // Initialize composables
 const conversationFlow = useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom)
@@ -93,6 +94,14 @@ const {
 const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
 const toolRunning = computed(() => conversationFlow.toolRunning.value)
 const showToolDebug = ref(false)
+
+const openVfsAtPath = (path: string) => {
+  if (vfsUploaderRef.value?.openFileManagerAt) {
+    vfsUploaderRef.value.openFileManagerAt(path)
+  }
+}
+
+provide('openVfsAtPath', openVfsAtPath)
 
 async function handleSubmit() {
   const message = prompt.value
@@ -198,7 +207,7 @@ function handleUseQuestion(question: string) {
     <div class="flex flex-col w-full h-full">
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />
-      <ChatVFSUploader :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"
+      <ChatVFSUploader ref="vfsUploaderRef" :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"
         @update:showUploadModal="showVFSUploadModal = $event" @file-uploaded="handleVFSFileUploaded"
         @code-example-added="handleCodeExampleAddedWithStream" />
       <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />

@@ -140,7 +140,7 @@
     <!-- File Manager Modal -->
     <n-modal v-model:show="showFileManager" style="width: 90vw; max-width: 1200px;">
       <n-card title="VFS File Manager" :bordered="false" size="huge" role="dialog">
-        <VFSFileManager v-if="vfsInstance && importExportInstance" :vfs-instance="vfsInstance"
+        <VFSFileManager v-if="vfsInstance && importExportInstance" ref="fileManagerRef" :vfs-instance="vfsInstance"
           :import-export="importExportInstance" />
         <div v-else class="loading">
           <n-spin size="small" />
@@ -155,7 +155,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted, watch } from 'vue'
+import { ref, computed, inject, nextTick, onMounted, watch } from 'vue'
 import { useMessage, NSpin, NTabPane, NCard, NModal, NButton, NIcon, NText, NAlert, NDivider, NUpload, NUploadDragger, NCode, NRadio, NRadioGroup, NSpace, NTooltip, NTabs, NP } from 'naive-ui'
 import {
   FolderOpen,
@@ -209,6 +209,7 @@ const uploadProgress = ref(0)
 const selectedDirectory = ref('/data')
 const uploadResults = ref([])
 const uploadRef = ref()
+const fileManagerRef = ref(null)
 
 const vfsStats = ref({
   totalFiles: 0,
@@ -439,6 +440,31 @@ const openFileManager = () => {
   showUploadModal.value = false
 }
 
+const openFileManagerAt = async (path) => {
+  openFileManager()
+
+  await nextTick()
+  if (!vfsInstance.value || !fileManagerRef.value || !path) return
+
+  let targetPath = path
+  let highlightPath = ''
+  try {
+    const stat = await vfsInstance.value.stat(path)
+    if (!stat.isDirectory) {
+      targetPath = vfsInstance.value.pathResolver.dirname(path)
+      highlightPath = path
+    }
+  } catch (error) {
+    targetPath = vfsInstance.value.pathResolver.dirname(path)
+    highlightPath = path
+  }
+
+  fileManagerRef.value.navigateTo(targetPath)
+  if (highlightPath && fileManagerRef.value.highlightPath) {
+    fileManagerRef.value.highlightPath(highlightPath)
+  }
+}
+
 const addCodeExample = () => {
   const pythonCode = generatePythonExample()
   const jsCode = generateJavaScriptExample()
@@ -465,6 +491,7 @@ onMounted(() => {
 defineExpose({
   openUploadModal: () => { showUploadModal.value = true },
   openFileManager: () => { showFileManager.value = true },
+  openFileManagerAt,
   getUploadedFiles: () => uploadResults.value.filter(r => r.success),
   refreshStats: updateVFSStats
 })

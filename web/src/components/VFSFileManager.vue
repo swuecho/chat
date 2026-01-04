@@ -71,7 +71,8 @@
     <!-- File listing -->
     <div class="file-list-container" @dragover.prevent @drop.prevent="handleDrop">
       <n-data-table :columns="fileColumns" :data="fileItems" :row-key="row => row.path"
-        v-model:checked-row-keys="selectedItems" :pagination="false" size="small" :max-height="400" virtual-scroll />
+        v-model:checked-row-keys="selectedItems" :pagination="false" size="small" :max-height="400"
+        :row-class-name="getRowClassName" virtual-scroll />
     </div>
 
     <!-- Status bar -->
@@ -268,6 +269,7 @@ const message = useMessage()
 const currentPath = ref('/workspace')
 const fileItems = ref([])
 const selectedItems = ref([])
+const highlightedPath = ref('')
 const showUploadDialog = ref(false)
 const showImportExportDialog = ref(false)
 const showCreateFolderDialog = ref(false)
@@ -349,6 +351,10 @@ const fileColumns = [
   }
 ]
 
+const getRowClassName = (row) => {
+  return row.path === highlightedPath.value ? 'highlighted-row' : ''
+}
+
 // Methods
 const refreshCurrentPath = async () => {
   try {
@@ -386,7 +392,16 @@ const refreshCurrentPath = async () => {
 const navigateTo = (path) => {
   currentPath.value = path
   selectedItems.value = []
+  highlightedPath.value = ''
   refreshCurrentPath()
+}
+
+const highlightPath = (path) => {
+  if (!path) return
+  highlightedPath.value = path
+  setTimeout(() => {
+    highlightedPath.value = ''
+  }, 2000)
 }
 
 const getPathUpTo = (index) => {
@@ -658,6 +673,7 @@ watch(() => props.vfsInstance.files.size, () => {
 defineExpose({
   refreshCurrentPath,
   navigateTo,
+  highlightPath,
   openImportExportDialog: () => { showImportExportDialog.value = true }
 })
 </script>
@@ -667,6 +683,10 @@ defineExpose({
   border: 1px solid var(--border-color);
   border-radius: 6px;
   overflow: hidden;
+}
+
+.highlighted-row td {
+  background: rgba(59, 130, 246, 0.15);
 }
 
 .file-manager-header {
