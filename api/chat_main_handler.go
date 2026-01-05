@@ -41,6 +41,7 @@ func (h *ChatHandler) Register(router *mux.Router) {
 	// given a chat_uuid, a user message, return the answer
 	//
 	router.HandleFunc("/chatbot", h.ChatBotCompletionHandler).Methods(http.MethodPost)
+	router.HandleFunc("/chat_instructions", h.GetChatInstructions).Methods(http.MethodGet)
 }
 
 type ChatRequest struct {
@@ -79,6 +80,30 @@ type BotRequest struct {
 	Message      string `json:"message"`
 	SnapshotUuid string `json:"snapshot_uuid"`
 	Stream       bool   `json:"stream"`
+}
+
+type ChatInstructionResponse struct {
+	ArtifactInstruction string `json:"artifactInstruction"`
+	ToolInstruction     string `json:"toolInstruction"`
+}
+
+func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) {
+	artifactInstruction, err := loadArtifactInstruction()
+	if err != nil {
+		log.Printf("Warning: Failed to load artifact instruction: %v", err)
+		artifactInstruction = ""
+	}
+
+	toolInstruction, err := loadToolInstruction()
+	if err != nil {
+		log.Printf("Warning: Failed to load tool instruction: %v", err)
+		toolInstruction = ""
+	}
+
+	json.NewEncoder(w).Encode(ChatInstructionResponse{
+		ArtifactInstruction: artifactInstruction,
+		ToolInstruction:     toolInstruction,
+	})
 }
 
 // ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)

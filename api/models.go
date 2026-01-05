@@ -68,6 +68,7 @@ type SimpleChatSession struct {
 	Model         string  `json:"model"`
 	SummarizeMode bool    `json:"summarizeMode"`
 	CodeRunnerEnabled bool `json:"codeRunnerEnabled"`
+	ArtifactEnabled bool `json:"artifactEnabled"`
 	WorkspaceUuid string  `json:"workspaceUuid"`
 }
 
@@ -92,6 +93,7 @@ type ChatSessionResponse struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	MaxLength int32     `json:"maxLength"`
 	CodeRunnerEnabled bool `json:"codeRunnerEnabled"`
+	ArtifactEnabled bool `json:"artifactEnabled"`
 }
 
 type Pagination struct {

@@ -96,6 +96,7 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 			Model:         session.Model,
 			SummarizeMode: session.SummarizeMode,
 			CodeRunnerEnabled: session.CodeRunnerEnabled,
+			ArtifactEnabled: session.ArtifactEnabled,
 			WorkspaceUuid: workspaceUuid,
 		}
 	})

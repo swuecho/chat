@@ -50,6 +50,7 @@ declare namespace Chat {
 		summarizeMode?: boolean
 		codeRunnerEnabled?: boolean
 		exploreMode?: boolean
+		artifactEnabled?: boolean
 		workspaceUuid?: string
 	}
 

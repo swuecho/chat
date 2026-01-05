@@ -153,7 +153,8 @@ CREATE TABLE IF NOT EXISTS chat_session (
     n  integer DEFAULT 1 NOT NULL,
     summarize_mode boolean DEFAULT false NOT NULL,
     code_runner_enabled boolean DEFAULT false NOT NULL,
-    workspace_id INTEGER REFERENCES chat_workspace(id) ON DELETE SET NULL
+    workspace_id INTEGER REFERENCES chat_workspace(id) ON DELETE SET NULL,
+    artifact_enabled boolean DEFAULT false NOT NULL
 );
 
 
@@ -168,6 +169,7 @@ ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS n INTEGER DEFAULT 1 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS summarize_mode boolean DEFAULT false NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS code_runner_enabled boolean DEFAULT false NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS workspace_id INTEGER REFERENCES chat_workspace(id) ON DELETE SET NULL;
+ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS artifact_enabled boolean DEFAULT false NOT NULL;
 
 
 -- add hash index on uuid

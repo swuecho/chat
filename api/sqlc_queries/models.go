@@ -150,6 +150,7 @@ type ChatSession struct {
 	WorkspaceID   sql.NullInt32 `json:"workspaceId"`
 	Debug         bool          `json:"debug"`
 	ExploreMode   bool          `json:"exploreMode"`
+	ArtifactEnabled bool        `json:"artifactEnabled"`
 }
 
 type ChatSnapshot struct {

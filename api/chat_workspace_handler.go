@@ -609,6 +609,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 		"topic":         session.Topic,
 		"model":         session.Model,
 		"codeRunnerEnabled": session.CodeRunnerEnabled,
+		"artifactEnabled": session.ArtifactEnabled,
 		"workspaceUuid": workspaceUUID,
 		"createdAt":     session.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	})
@@ -675,6 +676,7 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 			"summarizeMode": session.SummarizeMode,
 			"exploreMode":   session.ExploreMode,
 			"codeRunnerEnabled": session.CodeRunnerEnabled,
+			"artifactEnabled": session.ArtifactEnabled,
 			"createdAt":     session.CreatedAt.Format("2006-01-02T15:04:05Z"),
 			"updatedAt":     session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 		}

@@ -18,6 +18,7 @@ export const getChatSessionDefault = async (title: string): Promise<Chat.Session
     debug: false,
     exploreMode: false,
     codeRunnerEnabled: false,
+    artifactEnabled: false,
   }
 }
 

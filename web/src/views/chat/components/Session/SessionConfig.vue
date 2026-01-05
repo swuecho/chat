@@ -2,10 +2,10 @@
 import type { Ref } from 'vue'
 import { computed, ref, watch, h, nextTick } from 'vue'
 import type { FormInst } from 'naive-ui'
-import { NForm, NFormItem, NRadio, NRadioGroup, NSlider, NSpace, NSpin, NSwitch } from 'naive-ui'
+import { NForm, NFormItem, NInput, NRadio, NRadioGroup, NSlider, NSpace, NSpin, NSwitch } from 'naive-ui'
 import { debounce, isEqual } from 'lodash-es'
 import { useSessionStore, useAppStore } from '@/store'
-import { fetchChatModel } from '@/api'
+import { fetchChatInstructions, fetchChatModel } from '@/api'
 
 import { useQuery } from "@tanstack/vue-query";
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
@@ -33,6 +33,12 @@ const { data, isLoading } = useQuery({
   staleTime: 10 * 60 * 1000,
 })
 
+const { data: instructionData, isLoading: isInstructionLoading } = useQuery({
+  queryKey: ['chat_instructions'],
+  queryFn: fetchChatInstructions,
+  staleTime: 10 * 60 * 1000,
+})
+
 // Remove or comment out the optionFromModel function
 // const optionFromModel = (model: any) => { ... }
 
@@ -55,6 +61,7 @@ interface ModelType {
   debug: boolean
   summarizeMode: boolean
   codeRunnerEnabled: boolean
+  artifactEnabled: boolean
   exploreMode: boolean
 }
 
@@ -78,6 +85,22 @@ const modelRef: Ref<ModelType> = ref({
   debug: session.value?.debug ?? false,
   exploreMode: session.value?.exploreMode ?? false,
   codeRunnerEnabled: session.value?.codeRunnerEnabled ?? false,
+  artifactEnabled: session.value?.artifactEnabled ?? false,
+})
+
+const artifactInstruction = computed(() => instructionData.value?.artifactInstruction ?? '')
+const toolInstruction = computed(() => instructionData.value?.toolInstruction ?? '')
+const showInstructionPanel = computed(() => {
+  if (!modelRef.value.artifactEnabled && !modelRef.value.codeRunnerEnabled) {
+    return false
+  }
+  if (isInstructionLoading.value) {
+    return true
+  }
+  return Boolean(
+    (modelRef.value.artifactEnabled && artifactInstruction.value) ||
+    (modelRef.value.codeRunnerEnabled && toolInstruction.value)
+  )
 })
 
 const formRef = ref<FormInst | null>(null)
@@ -101,6 +124,7 @@ const debouneUpdate = debounce(async (model: ModelType) => {
     model: model.chatModel,
     summarizeMode: model.summarizeMode,
     codeRunnerEnabled: model.codeRunnerEnabled,
+    artifactEnabled: model.artifactEnabled,
     exploreMode: model.exploreMode,
   })
 }, 200)
@@ -124,6 +148,7 @@ watch(session, (newSession) => {
       debug: newSession.debug ?? false,
       exploreMode: newSession.exploreMode ?? false,
       codeRunnerEnabled: newSession.codeRunnerEnabled ?? false,
+      artifactEnabled: newSession.artifactEnabled ?? false,
     }
     
     // Only update if the values are actually different
@@ -217,6 +242,16 @@ const defaultToken = computed(() => {
         :label="$t('chat.N', { n: modelRef.n })" path="n">
         <NSlider v-model:value="modelRef.n" :min="1" :max="10" :step="1" :tooltip="false" />
       </NFormItem>
+      <NFormItem :label="$t('chat.artifactMode')" path="artifactEnabled">
+        <NSwitch v-model:value="modelRef.artifactEnabled" data-testid="artifact_mode">
+          <template #checked>
+            {{ $t('chat.enable_artifact') }}
+          </template>
+          <template #unchecked>
+            {{ $t('chat.disable_artifact') }}
+          </template>
+        </NSwitch>
+      </NFormItem>
       <NFormItem :label="$t('chat.codeRunner')" path="codeRunnerEnabled">
         <NSwitch v-model:value="modelRef.codeRunnerEnabled" data-testid="code_runner_mode">
           <template #checked>
@@ -226,6 +261,34 @@ const defaultToken = computed(() => {
             {{ $t('chat.disable_code_runner') }}
           </template>
         </NSwitch>
+      </NFormItem>
+      <NFormItem v-if="showInstructionPanel" :label="$t('chat.promptInstructions')">
+        <div class="instruction-panel">
+          <div v-if="isInstructionLoading" class="instruction-loading">
+            <NSpin size="small" />
+            <span>{{ $t('chat.loading_instructions') }}</span>
+          </div>
+          <div v-if="modelRef.artifactEnabled && artifactInstruction" class="instruction-block">
+            <div class="instruction-title">{{ $t('chat.artifactInstructionTitle') }}</div>
+            <NInput
+              class="instruction-input"
+              :value="artifactInstruction"
+              type="textarea"
+              readonly
+              :autosize="{ minRows: 3, maxRows: 10 }"
+            />
+          </div>
+          <div v-if="modelRef.codeRunnerEnabled && toolInstruction" class="instruction-block">
+            <div class="instruction-title">{{ $t('chat.toolInstructionTitle') }}</div>
+            <NInput
+              class="instruction-input"
+              :value="toolInstruction"
+              type="textarea"
+              readonly
+              :autosize="{ minRows: 3, maxRows: 10 }"
+            />
+          </div>
+        </div>
       </NFormItem>
       <NFormItem :label="$t('chat.exploreMode')" path="exploreMode">
         <NSwitch v-model:value="modelRef.exploreMode" data-testid="explore_mode">
@@ -256,3 +319,30 @@ const defaultToken = computed(() => {
                                         -->
   </div>
 </template>
+
+<style scoped>
+.instruction-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.instruction-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.instruction-title {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.instruction-input :deep(textarea) {
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+}
+</style>
