@@ -31,7 +31,7 @@ func NewChatService(q *sqlc_queries.Queries) *ChatService {
 // loadArtifactInstruction loads the artifact instruction from file.
 // Returns the instruction content or an error if the file cannot be read.
 func loadArtifactInstruction() (string, error) {
-	content, err := os.ReadFile("artifact_instruction.txt")
+	content, err := os.ReadFile("api/artifact_instruction.txt")
 	if err != nil {
 		return "", eris.Wrap(err, "failed to read artifact instruction file")
 	}
@@ -41,7 +41,7 @@ func loadArtifactInstruction() (string, error) {
 // loadToolInstruction loads the tool-use instruction from file.
 // Returns the instruction content or an error if the file cannot be read.
 func loadToolInstruction() (string, error) {
-	content, err := os.ReadFile("tool_instruction.txt")
+	content, err := os.ReadFile("api/tool_instruction.txt")
 	if err != nil {
 		return "", eris.Wrap(err, "failed to read tool instruction file")
 	}
