@@ -210,7 +210,7 @@ function handleUseQuestion(question: string) {
 </script>
 
 <template>
-  <VFSProvider ref="vfsProviderRef">
+  <VFSProvider ref="vfsProviderRef" :session-uuid="sessionUuid">
     <div class="flex flex-col w-full h-full">
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />
