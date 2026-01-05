@@ -5,16 +5,36 @@
 </template>
 
 <script setup>
-import { ref, provide, onMounted, onUnmounted } from 'vue'
+import { ref, provide, onMounted, onUnmounted, watch } from 'vue'
 import { useMessage } from 'naive-ui'
 import { getCodeRunner } from '@/services/codeRunner'
 
 const message = useMessage()
+const VFS_AUTOSAVE_DELAY_MS = 500
+
+const props = defineProps({
+  sessionUuid: {
+    type: String,
+    default: ''
+  }
+})
 
 // VFS instances
 const vfs = ref(null)
 const importExport = ref(null)
 const isVFSReady = ref(false)
+let autoSaveTimer = null
+let beforeUnloadHandler = null
+
+const getSessionName = () => (props.sessionUuid || 'default')
+
+const ensureDefaultDirectories = async () => {
+  if (!vfs.value) return
+  await vfs.value.mkdir('/data', { recursive: true })
+  await vfs.value.mkdir('/workspace', { recursive: true })
+  await vfs.value.mkdir('/tmp', { recursive: true })
+  await vfs.value.mkdir('/uploads', { recursive: true })
+}
 
 // Provide reactive instances to child components (provide needs to be at setup level)
 provide('vfsInstance', vfs)
@@ -40,18 +60,68 @@ onMounted(async () => {
     // Initialize Import/Export
     importExport.value = new VFSImportExport(vfs.value)
 
+    const scheduleAutoSave = () => {
+      if (!vfs.value?.persistence) return
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer)
+      }
+      autoSaveTimer = setTimeout(async () => {
+        try {
+          await vfs.value.persistence.saveSession(getSessionName())
+        } catch (error) {
+          console.warn('Failed to auto-save VFS session:', error)
+        }
+      }, VFS_AUTOSAVE_DELAY_MS)
+    }
+
+    const wrapAsyncMutation = (methodName) => {
+      const original = vfs.value[methodName].bind(vfs.value)
+      vfs.value[methodName] = async (...args) => {
+        const result = await original(...args)
+        scheduleAutoSave()
+        return result
+      }
+    }
+
+    const wrapSyncMutation = (methodName) => {
+      const original = vfs.value[methodName].bind(vfs.value)
+      vfs.value[methodName] = (...args) => {
+        const result = original(...args)
+        scheduleAutoSave()
+        return result
+      }
+    }
+
+    const mutationMethods = ['writeFile', 'mkdir', 'unlink', 'rmdir', 'copy', 'move']
+    mutationMethods.forEach(wrapAsyncMutation)
+    wrapSyncMutation('clear')
+    wrapSyncMutation('chdir')
+
+    try {
+      await vfs.value.persistence.loadSession(getSessionName())
+      console.log('Restored VFS session from localStorage')
+    } catch (error) {
+      console.info('No VFS session found in localStorage; starting fresh')
+    }
+
     // Create default directories
-    await vfs.value.mkdir('/data', { recursive: true })
-    await vfs.value.mkdir('/workspace', { recursive: true })
-    await vfs.value.mkdir('/tmp', { recursive: true })
-    await vfs.value.mkdir('/uploads', { recursive: true })
+    await ensureDefaultDirectories()
 
     // Connect VFS to code runner
     const codeRunner = getCodeRunner()
     codeRunner.setVFSInstance(vfs.value)
+    await codeRunner.syncVFSToWorkers()
 
     // Set VFS as ready
     isVFSReady.value = true
+
+    beforeUnloadHandler = () => {
+      if (!vfs.value?.persistence) return
+      vfs.value.persistence.saveSession(getSessionName()).catch(error => {
+        console.warn('Failed to save VFS session on unload:', error)
+      })
+    }
+    window.addEventListener('beforeunload', beforeUnloadHandler)
 
     console.log('VFS initialized successfully', {
       vfs: vfs.value,
@@ -75,7 +145,52 @@ onUnmounted(() => {
   if (vfs.value) {
     // Could add cleanup logic here if needed
     console.log('VFS provider unmounted')
+    vfs.value.persistence?.saveSession(getSessionName()).catch(error => {
+      console.warn('Failed to save VFS session on unmount:', error)
+    })
   }
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer)
+    autoSaveTimer = null
+  }
+  if (beforeUnloadHandler) {
+    window.removeEventListener('beforeunload', beforeUnloadHandler)
+    beforeUnloadHandler = null
+  }
+})
+
+watch(() => props.sessionUuid, async (newUuid, oldUuid) => {
+  if (!vfs.value || !isVFSReady.value) return
+
+  const newName = newUuid || 'default'
+  const oldName = oldUuid || 'default'
+  if (newName === oldName) return
+
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer)
+    autoSaveTimer = null
+  }
+
+  try {
+    await vfs.value.persistence?.saveSession(oldName)
+  } catch (error) {
+    console.warn('Failed to save previous VFS session:', error)
+  }
+
+  vfs.value.clear()
+  await ensureDefaultDirectories()
+
+  try {
+    await vfs.value.persistence?.loadSession(newName)
+    console.log(`Restored VFS session from localStorage: ${newName}`)
+  } catch (error) {
+    console.info(`No VFS session found for ${newName}; starting fresh`)
+  }
+
+  await ensureDefaultDirectories()
+  const codeRunner = getCodeRunner()
+  codeRunner.setVFSInstance(vfs.value)
+  await codeRunner.syncVFSToWorkers()
 })
 
 // Expose VFS instances for parent components

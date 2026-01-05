@@ -40,7 +40,7 @@ export function useConversationFlow(
   const vfsInstance = vfsContext?.vfsInstance ?? inject('vfsInstance', ref(null))
   const isVFSReady = vfsContext?.isVFSReady ?? inject('isVFSReady', ref(false))
 
-  const maxToolTurns = 10 
+  const maxToolTurns = 30
   const toolRunning = ref<boolean>(false)
 
   const toBase64 = (bytes: Uint8Array) => {
@@ -162,6 +162,7 @@ export function useConversationFlow(
       let currentChatUuid = chatUuid
       let toolTurns = 0
 
+      // Loop until the model stops emitting tool calls or max turns reached.
       while (true) {
         await streamChatResponse(
           sessionUuid,
@@ -179,6 +180,7 @@ export function useConversationFlow(
           break
         }
 
+        // Parse and execute tool calls, then build a follow-up prompt.
         const toolPrompt = await handleToolCalls(sessionUuid, responseIndex)
         if (!toolPrompt) {
           break
@@ -187,6 +189,7 @@ export function useConversationFlow(
         toolTurns += 1
         currentPrompt = toolPrompt
         currentChatUuid = uuidv7()
+        // Create a new assistant message slot for the tool-followup response.
         responseIndex = await initializeChatResponse(dataSources)
       }
     } catch (error) {
@@ -218,6 +221,7 @@ export function useConversationFlow(
     const currentMessage = messages?.[responseIndex]
     if (!currentMessage || currentMessage.inversion) return null
 
+    // Extract tool calls and strip tool markup from the visible message text.
     const { calls, cleanedText } = extractToolCalls(currentMessage.text || '')
     if (!calls.length) return null
 
@@ -232,6 +236,7 @@ export function useConversationFlow(
     const toolResults = []
 
     try {
+      // Execute tools in order and collect structured results.
       for (const call of calls) {
         const args = call.arguments || {}
 
@@ -454,6 +459,7 @@ export function useConversationFlow(
       toolRunning.value = false
     }
 
+    // Wrap tool results for the model to consume on the next turn.
     const toolBlocks = toolResults.map(result => {
       return `\`\`\`tool_result\n${JSON.stringify(result)}\n\`\`\``
     })

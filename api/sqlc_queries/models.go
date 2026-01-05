@@ -132,24 +132,25 @@ type ChatPrompt struct {
 }
 
 type ChatSession struct {
-	ID            int32         `json:"id"`
-	UserID        int32         `json:"userId"`
-	Uuid          string        `json:"uuid"`
-	Topic         string        `json:"topic"`
-	CreatedAt     time.Time     `json:"createdAt"`
-	UpdatedAt     time.Time     `json:"updatedAt"`
-	Active        bool          `json:"active"`
-	Model         string        `json:"model"`
-	MaxLength     int32         `json:"maxLength"`
-	Temperature   float64       `json:"temperature"`
-	TopP          float64       `json:"topP"`
-	MaxTokens     int32         `json:"maxTokens"`
-	N             int32         `json:"n"`
-	SummarizeMode bool          `json:"summarizeMode"`
-	CodeRunnerEnabled bool      `json:"codeRunnerEnabled"`
-	WorkspaceID   sql.NullInt32 `json:"workspaceId"`
-	Debug         bool          `json:"debug"`
-	ExploreMode   bool          `json:"exploreMode"`
+	ID                int32         `json:"id"`
+	UserID            int32         `json:"userId"`
+	Uuid              string        `json:"uuid"`
+	Topic             string        `json:"topic"`
+	CreatedAt         time.Time     `json:"createdAt"`
+	UpdatedAt         time.Time     `json:"updatedAt"`
+	Active            bool          `json:"active"`
+	Model             string        `json:"model"`
+	MaxLength         int32         `json:"maxLength"`
+	Temperature       float64       `json:"temperature"`
+	TopP              float64       `json:"topP"`
+	MaxTokens         int32         `json:"maxTokens"`
+	N                 int32         `json:"n"`
+	SummarizeMode     bool          `json:"summarizeMode"`
+	CodeRunnerEnabled bool          `json:"codeRunnerEnabled"`
+	WorkspaceID       sql.NullInt32 `json:"workspaceId"`
+	ArtifactEnabled   bool          `json:"artifactEnabled"`
+	Debug             bool          `json:"debug"`
+	ExploreMode       bool          `json:"exploreMode"`
 }
 
 type ChatSnapshot struct {

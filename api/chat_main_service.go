@@ -123,8 +123,8 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	})
 	msgs := append(chatPromptMsgs, chatMessageMsgs...)
 
-	// Add artifact instruction to system messages only if explore mode is disabled
-	if !chatSession.ExploreMode {
+	// Add artifact instruction to system messages only if artifact mode is enabled
+	if chatSession.ArtifactEnabled {
 		artifactInstruction, err := loadArtifactInstruction()
 		if err != nil {
 			log.Printf("Warning: Failed to load artifact instruction: %v", err)

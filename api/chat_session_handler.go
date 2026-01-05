@@ -60,6 +60,7 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 		CreatedAt: session.CreatedAt,
 		UpdatedAt: session.UpdatedAt,
 		CodeRunnerEnabled: session.CodeRunnerEnabled,
+		ArtifactEnabled: session.ArtifactEnabled,
 	}
 	json.NewEncoder(w).Encode(session_resp)
 }
@@ -106,6 +107,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		Debug:         false,
 		SummarizeMode: false,
 		ExploreMode:   false, // Default values
+		ArtifactEnabled: false,
 		WorkspaceID:   sql.NullInt32{Int32: defaultWorkspace.ID, Valid: true},
 	}
 
@@ -143,6 +145,7 @@ type UpdateChatSessionRequest struct {
 	Debug         bool    `json:"debug"`
 	SummarizeMode bool    `json:"summarizeMode"`
 	CodeRunnerEnabled bool `json:"codeRunnerEnabled"`
+	ArtifactEnabled bool `json:"artifactEnabled"`
 	ExploreMode   bool    `json:"exploreMode"`
 	WorkspaceUUID string  `json:"workspaceUuid,omitempty"`
 }
@@ -183,6 +186,7 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.Debug = sessionReq.Debug
 	sessionParams.SummarizeMode = sessionReq.SummarizeMode
 	sessionParams.CodeRunnerEnabled = sessionReq.CodeRunnerEnabled
+	sessionParams.ArtifactEnabled = sessionReq.ArtifactEnabled
 	sessionParams.ExploreMode = sessionReq.ExploreMode
 
 	// Handle workspace
