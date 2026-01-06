@@ -142,6 +142,7 @@
     "artifactInstructionTitle": "Artifact 说明",
     "toolInstructionTitle": "工具说明",
     "loading_instructions": "正在加载说明...",
+    "loadingSession": "正在加载会话...",
     "completionsCount": "结果数量:  {contextCount}",
     "generateMoreSuggestions": "生成更多建议",
     "generating": "生成中...",

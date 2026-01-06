@@ -85,6 +85,11 @@ watch(sessionUuid, async (newSession, oldSession) => {
 const dataSources = computed(() => messageStore.getChatSessionDataByUuid(sessionUuid.value))
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(sessionUuid.value))
 
+// Session loading state - combines message loading and session switching
+const isSessionLoading = computed(() => {
+  return messageStore.getIsLoadingBySession(sessionUuid.value) || sessionStore.isSwitchingSession
+})
+
 // Destructure from composables
 const { prompt, searchOptions, renderOption, handleSelectAutoComplete, handleUsePrompt } = searchAndPrompts
 const {
@@ -212,6 +217,20 @@ function handleUseQuestion(question: string) {
 <template>
   <VFSProvider ref="vfsProviderRef" :session-uuid="sessionUuid">
     <div class="flex flex-col w-full h-full">
+      <!-- Session Loading Modal -->
+      <NModal
+        :show="isSessionLoading"
+        :mask-closable="false"
+        :close-on-esc="false"
+        :show-icon="false"
+        class="session-loading-modal"
+      >
+        <div class="session-loading-content">
+          <NSpin size="large" />
+          <div class="loading-text">{{ $t('chat.loadingSession') }}</div>
+        </div>
+      </NModal>
+
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />
       <ChatVFSUploader ref="vfsUploaderRef" :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"
@@ -219,7 +238,13 @@ function handleUseQuestion(question: string) {
         @code-example-added="handleCodeExampleAddedWithStream" />
       <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
       <main class="flex-1 overflow-hidden flex flex-col">
-        <NModal ref="sessionConfigModal" v-model:show="showModal" :title="$t('chat.sessionConfig')" preset="dialog">
+        <NModal
+          ref="sessionConfigModal"
+          v-model:show="showModal"
+          :title="$t('chat.sessionConfig')"
+          preset="dialog"
+          :style="{ maxWidth: '800px', width: '90%' }"
+        >
           <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
         </NModal>
         <div class="flex items-center justify-center mt-2 mb-2">
@@ -399,5 +424,39 @@ function handleUseQuestion(question: string) {
   #scrollRef::-webkit-scrollbar {
     width: 4px;
   }
+}
+
+/* Session Loading Modal */
+.session-loading-modal :deep(.n-modal) {
+  background: transparent !important;
+  box-shadow: none !important;
+  max-width: 300px;
+}
+
+.session-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.dark .session-loading-content {
+  background: rgba(30, 30, 30, 0.95);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.loading-text {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.dark .loading-text {
+  color: #999;
 }
 </style>

@@ -141,6 +141,7 @@
         "artifactInstructionTitle": "Artifact Instructions",
         "toolInstructionTitle": "Tool Instructions",
         "loading_instructions": "Loading instructions...",
+        "loadingSession": "Loading session...",
         "exportFailed": "Saving failed",
         "exportImage": "Export chat session to image",
         "exportImageConfirm": "Do you want to save the chat session as an image?",

@@ -240,13 +240,11 @@ const defaultToken = computed(() => {
         <NRadioGroup v-else v-model:value="modelRef.chatModel">
           <div v-for="providerGroup in chatModelOptionsByProvider" :key="providerGroup.type" class="model-provider-group">
             <div class="provider-label">{{ providerGroup.label }}</div>
-            <NSpace vertical>
-              <NRadio v-for="model in providerGroup.models" :key="model.name" :value="model.name">
-                <div>
-                  {{ model.label }}
-                  <span style="color: #999; font-size: 0.8rem; margin-left: 4px">
-                    - {{ formatTimestamp(model.lastUsageTime) }}
-                  </span>
+            <NSpace vertical :size="4">
+              <NRadio v-for="model in providerGroup.models" :key="model.name" :value="model.name" size="small">
+                <div class="model-option">
+                  <span class="model-name">{{ model.label }}</span>
+                  <span class="model-timestamp">{{ formatTimestamp(model.lastUsageTime) }}</span>
                 </div>
               </NRadio>
             </NSpace>
@@ -282,26 +280,48 @@ const defaultToken = computed(() => {
         :label="$t('chat.N', { n: modelRef.n })" path="n">
         <NSlider v-model:value="modelRef.n" :min="1" :max="10" :step="1" :tooltip="false" />
       </NFormItem>
-      <NFormItem :label="$t('chat.artifactMode')" path="artifactEnabled">
-        <NSwitch v-model:value="modelRef.artifactEnabled" data-testid="artifact_mode">
-          <template #checked>
-            {{ $t('chat.enable_artifact') }}
-          </template>
-          <template #unchecked>
-            {{ $t('chat.disable_artifact') }}
-          </template>
-        </NSwitch>
+
+      <!-- Mode Switches in a Grid Layout -->
+      <NFormItem label="Modes">
+        <div class="mode-switches-grid">
+          <div class="mode-switch-item">
+            <div class="mode-switch-label">{{ $t('chat.artifactMode') }}</div>
+            <NSwitch v-model:value="modelRef.artifactEnabled" data-testid="artifact_mode" size="small">
+              <template #checked>
+                {{ $t('chat.enable_artifact') }}
+              </template>
+              <template #unchecked>
+                {{ $t('chat.disable_artifact') }}
+              </template>
+            </NSwitch>
+          </div>
+
+          <div class="mode-switch-item">
+            <div class="mode-switch-label">{{ $t('chat.codeRunner') }}</div>
+            <NSwitch v-model:value="modelRef.codeRunnerEnabled" data-testid="code_runner_mode" size="small">
+              <template #checked>
+                {{ $t('chat.enable_code_runner') }}
+              </template>
+              <template #unchecked>
+                {{ $t('chat.disable_code_runner') }}
+              </template>
+            </NSwitch>
+          </div>
+
+          <div class="mode-switch-item">
+            <div class="mode-switch-label">{{ $t('chat.exploreMode') }}</div>
+            <NSwitch v-model:value="modelRef.exploreMode" data-testid="explore_mode" size="small">
+              <template #checked>
+                {{ $t('chat.enable_explore') }}
+              </template>
+              <template #unchecked>
+                {{ $t('chat.disable_explore') }}
+              </template>
+            </NSwitch>
+          </div>
+        </div>
       </NFormItem>
-      <NFormItem :label="$t('chat.codeRunner')" path="codeRunnerEnabled">
-        <NSwitch v-model:value="modelRef.codeRunnerEnabled" data-testid="code_runner_mode">
-          <template #checked>
-            {{ $t('chat.enable_code_runner') }}
-          </template>
-          <template #unchecked>
-            {{ $t('chat.disable_code_runner') }}
-          </template>
-        </NSwitch>
-      </NFormItem>
+
       <NFormItem v-if="showInstructionPanel" :label="$t('chat.promptInstructions')">
         <div class="instruction-panel">
           <div v-if="isInstructionLoading" class="instruction-loading">
@@ -343,16 +363,7 @@ const defaultToken = computed(() => {
           </template>
         </div>
       </NFormItem>
-      <NFormItem :label="$t('chat.exploreMode')" path="exploreMode">
-        <NSwitch v-model:value="modelRef.exploreMode" data-testid="explore_mode">
-          <template #checked>
-            {{ $t('chat.enable_explore') }}
-          </template>
-          <template #unchecked>
-            {{ $t('chat.disable_explore') }}
-          </template>
-        </NSwitch>
-      </NFormItem>
+
       <NFormItem :label="$t('chat.debug')" path="debug">
         <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode">
           <template #checked>
@@ -375,7 +386,7 @@ const defaultToken = computed(() => {
 
 <style scoped>
 .model-provider-group {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .model-provider-group:last-child {
@@ -383,17 +394,63 @@ const defaultToken = computed(() => {
 }
 
 .provider-label {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #666;
-  margin-bottom: 8px;
-  padding-bottom: 4px;
+  margin-bottom: 6px;
+  padding-bottom: 3px;
   border-bottom: 1px solid #e0e0e0;
 }
 
 :deep(.dark) .provider-label {
   color: #999;
   border-bottom-color: #3a3a3a;
+}
+
+/* Model Options */
+.model-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.model-name {
+  font-size: 0.875rem;
+}
+
+.model-timestamp {
+  color: #999;
+  font-size: 0.75rem;
+}
+
+/* Mode Switches Grid Layout */
+.mode-switches-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .mode-switches-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.mode-switch-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mode-switch-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+:deep(.dark) .mode-switch-label {
+  color: #999;
 }
 
 .instruction-panel {

@@ -136,6 +136,7 @@
         "artifactInstructionTitle": "Artifact 說明",
         "toolInstructionTitle": "工具說明",
         "loading_instructions": "正在載入說明...",
+        "loadingSession": "正在載入會話...",
         "exportFailed": "導出失敗",
         "exportImage": "導出對話到圖片",
         "exportImageConfirm": "是否將對話導出為圖片?",
