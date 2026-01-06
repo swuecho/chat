@@ -17,6 +17,7 @@ export interface SessionState {
   isCreatingSession: boolean
   isSwitchingSession: boolean
   isNavigating: boolean
+  lastRequestedSessionUuid: string | null // Track the most recent session switch request
 }
 
 export const useSessionStore = defineStore('session-store', {
@@ -27,6 +28,7 @@ export const useSessionStore = defineStore('session-store', {
     isCreatingSession: false,
     isSwitchingSession: false,
     isNavigating: false,
+    lastRequestedSessionUuid: null,
   }),
 
   getters: {
@@ -318,14 +320,35 @@ export const useSessionStore = defineStore('session-store', {
     },
 
     async setActiveSession(workspaceUuid: string | null, sessionUuid: string) {
-      // Early return if already switching or if this is already the active session
-      if (this.isSwitchingSession || this.activeSessionUuid === sessionUuid) {
+      // Early return if this is already the active session
+      if (this.activeSessionUuid === sessionUuid) {
         return
+      }
+
+      // Track this as the most recent requested session
+      this.lastRequestedSessionUuid = sessionUuid
+
+      // If already switching, wait a bit and check if this request is still the latest
+      if (this.isSwitchingSession) {
+        console.log('Session switch in progress, deferring request for:', sessionUuid)
+        // Wait for current switch to complete
+        await new Promise(resolve => setTimeout(resolve, 100))
+        // Check if a newer request came in while we were waiting
+        if (this.lastRequestedSessionUuid !== sessionUuid) {
+          console.log('Ignoring stale session switch request for:', sessionUuid)
+          return
+        }
       }
 
       this.isSwitchingSession = true
 
       try {
+        // Double-check this is still the latest requested session
+        if (this.lastRequestedSessionUuid !== sessionUuid) {
+          console.log('Aborting session switch, newer request exists:', this.lastRequestedSessionUuid)
+          return
+        }
+
         this.activeSessionUuid = sessionUuid
 
         // Update workspace active session tracking

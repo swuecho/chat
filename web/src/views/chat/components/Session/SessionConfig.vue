@@ -9,6 +9,8 @@ import { fetchChatInstructions, fetchChatModel } from '@/api'
 
 import { useQuery } from "@tanstack/vue-query";
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
+import { API_TYPE_DISPLAY_NAMES, API_TYPES } from '@/constants/apiTypes'
+import type { ChatModel } from '@/types/chat-models'
 
 
 
@@ -39,12 +41,54 @@ const { data: instructionData, isLoading: isInstructionLoading } = useQuery({
   staleTime: 10 * 60 * 1000,
 })
 
-// Remove or comment out the optionFromModel function
-// const optionFromModel = (model: any) => { ... }
+// Group models by API type/provider
+const chatModelOptionsByProvider = computed(() => {
+  if (!data?.value) return []
 
-const chatModelOptions = computed(() =>
-  data?.value ? data.value.filter((x: any) => x.isEnable) : []
-)
+  const enabledModels = data.value.filter((x: ChatModel) => x.isEnable)
+
+  // Group models by apiType
+  const modelsByApiType = enabledModels.reduce((acc, model) => {
+    const apiType = model.apiType || 'unknown'
+    if (!acc[apiType]) {
+      acc[apiType] = []
+    }
+    acc[apiType].push(model)
+    return acc
+  }, {} as Record<string, ChatModel[]>)
+
+  // Define provider order and display names
+  const apiTypeConfig = {
+    [API_TYPES.OPENAI]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.OPENAI], order: 1 },
+    [API_TYPES.CLAUDE]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.CLAUDE], order: 2 },
+    [API_TYPES.GEMINI]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.GEMINI], order: 3 },
+    [API_TYPES.OLLAMA]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.OLLAMA], order: 4 },
+    [API_TYPES.CUSTOM]: { name: API_TYPE_DISPLAY_NAMES[API_TYPES.CUSTOM], order: 5 },
+  }
+
+  // Sort API types by order
+  const sortedApiTypes = Object.keys(modelsByApiType).sort((a, b) => {
+    const orderA = apiTypeConfig[a as keyof typeof apiTypeConfig]?.order || 999
+    const orderB = apiTypeConfig[b as keyof typeof apiTypeConfig]?.order || 999
+    return orderA - orderB
+  })
+
+  // Create grouped structure
+  return sortedApiTypes.map(apiType => {
+    const models = modelsByApiType[apiType]
+    const apiTypeName = apiTypeConfig[apiType as keyof typeof apiTypeConfig]?.name
+      || apiType.charAt(0).toUpperCase() + apiType.slice(1)
+
+    // Sort models within each group by orderNumber
+    models.sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0))
+
+    return {
+      type: apiType,
+      label: apiTypeName,
+      models: models,
+    }
+  })
+})
 
 const sessionStore = useSessionStore()
 const appStore = useAppStore()
@@ -200,17 +244,20 @@ const defaultToken = computed(() => {
         <div v-if="isLoading">
           <NSpin size="medium" />
         </div>
-        <NRadioGroup v-model:value="modelRef.chatModel">
-          <NSpace>
-            <NRadio v-for="model in chatModelOptions" :key="model.name" :value="model.name">
-              <div>
-                {{ model.label }}
-                <span style="color: #999; font-size: 0.8rem; margin-left: 4px">
-                  - {{ formatTimestamp(model.lastUsageTime) }}
-                </span>
-              </div>
-            </NRadio>
-          </NSpace>
+        <NRadioGroup v-else v-model:value="modelRef.chatModel">
+          <div v-for="providerGroup in chatModelOptionsByProvider" :key="providerGroup.type" class="model-provider-group">
+            <div class="provider-label">{{ providerGroup.label }}</div>
+            <NSpace vertical>
+              <NRadio v-for="model in providerGroup.models" :key="model.name" :value="model.name">
+                <div>
+                  {{ model.label }}
+                  <span style="color: #999; font-size: 0.8rem; margin-left: 4px">
+                    - {{ formatTimestamp(model.lastUsageTime) }}
+                  </span>
+                </div>
+              </NRadio>
+            </NSpace>
+          </div>
         </NRadioGroup>
       </NFormItem>
       <!-- not implemented
@@ -321,6 +368,28 @@ const defaultToken = computed(() => {
 </template>
 
 <style scoped>
+.model-provider-group {
+  margin-bottom: 16px;
+}
+
+.model-provider-group:last-child {
+  margin-bottom: 0;
+}
+
+.provider-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+:deep(.dark) .provider-label {
+  color: #999;
+  border-bottom-color: #3a3a3a;
+}
+
 .instruction-panel {
   display: flex;
   flex-direction: column;

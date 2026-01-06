@@ -32,8 +32,12 @@ const sessionUuid = computed(() => {
 })
 
 // Set active workspace when workspace is specified in URL
-watch(workspaceUuid, (newWorkspaceUuid) => {
-  if (newWorkspaceUuid && newWorkspaceUuid !== workspaceStore.activeWorkspace?.uuid) {
+watch(workspaceUuid, (newWorkspaceUuid, oldWorkspaceUuid) => {
+  // Only update if workspace actually changed and not during initial navigation
+  if (newWorkspaceUuid &&
+      newWorkspaceUuid !== oldWorkspaceUuid &&
+      newWorkspaceUuid !== workspaceStore.activeWorkspace?.uuid &&
+      !sessionStore.isSwitchingSession) {
     console.log('Setting active workspace from URL:', newWorkspaceUuid)
     workspaceStore.setActiveWorkspace(newWorkspaceUuid)
   }
