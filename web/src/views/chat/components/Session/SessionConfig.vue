@@ -135,16 +135,9 @@ const modelRef: Ref<ModelType> = ref({
 const artifactInstruction = computed(() => instructionData.value?.artifactInstruction ?? '')
 const toolInstruction = computed(() => instructionData.value?.toolInstruction ?? '')
 const showInstructionPanel = computed(() => {
-  if (!modelRef.value.artifactEnabled && !modelRef.value.codeRunnerEnabled) {
-    return false
-  }
-  if (isInstructionLoading.value) {
-    return true
-  }
-  return Boolean(
-    (modelRef.value.artifactEnabled && artifactInstruction.value) ||
-    (modelRef.value.codeRunnerEnabled && toolInstruction.value)
-  )
+  // Show panel if either artifact or code runner mode is enabled
+  // The individual instruction blocks will handle showing/hiding based on data availability
+  return modelRef.value.artifactEnabled || modelRef.value.codeRunnerEnabled
 })
 
 const formRef = ref<FormInst | null>(null)
@@ -315,26 +308,39 @@ const defaultToken = computed(() => {
             <NSpin size="small" />
             <span>{{ $t('chat.loading_instructions') }}</span>
           </div>
-          <div v-if="modelRef.artifactEnabled && artifactInstruction" class="instruction-block">
-            <div class="instruction-title">{{ $t('chat.artifactInstructionTitle') }}</div>
-            <NInput
-              class="instruction-input"
-              :value="artifactInstruction"
-              type="textarea"
-              readonly
-              :autosize="{ minRows: 3, maxRows: 10 }"
-            />
-          </div>
-          <div v-if="modelRef.codeRunnerEnabled && toolInstruction" class="instruction-block">
-            <div class="instruction-title">{{ $t('chat.toolInstructionTitle') }}</div>
-            <NInput
-              class="instruction-input"
-              :value="toolInstruction"
-              type="textarea"
-              readonly
-              :autosize="{ minRows: 3, maxRows: 10 }"
-            />
-          </div>
+          <template v-else>
+            <!-- Artifact Instructions -->
+            <div v-if="modelRef.artifactEnabled" class="instruction-block">
+              <div class="instruction-title">{{ $t('chat.artifactInstructionTitle') }}</div>
+              <NInput
+                v-if="artifactInstruction"
+                class="instruction-input"
+                :value="artifactInstruction"
+                type="textarea"
+                readonly
+                :autosize="{ minRows: 3, maxRows: 10 }"
+              />
+              <div v-else class="instruction-empty">
+                No artifact instructions available
+              </div>
+            </div>
+
+            <!-- Tool/Code Runner Instructions -->
+            <div v-if="modelRef.codeRunnerEnabled" class="instruction-block">
+              <div class="instruction-title">{{ $t('chat.toolInstructionTitle') }}</div>
+              <NInput
+                v-if="toolInstruction"
+                class="instruction-input"
+                :value="toolInstruction"
+                type="textarea"
+                readonly
+                :autosize="{ minRows: 3, maxRows: 10 }"
+              />
+              <div v-else class="instruction-empty">
+                No code runner instructions available
+              </div>
+            </div>
+          </template>
         </div>
       </NFormItem>
       <NFormItem :label="$t('chat.exploreMode')" path="exploreMode">
@@ -413,5 +419,20 @@ const defaultToken = computed(() => {
 .instruction-input :deep(textarea) {
   font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.85rem;
+}
+
+.instruction-empty {
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  color: #999;
+  font-size: 0.85rem;
+  font-style: italic;
+  text-align: center;
+}
+
+:deep(.dark) .instruction-empty {
+  background-color: #2a2a2a;
+  color: #888;
 }
 </style>
