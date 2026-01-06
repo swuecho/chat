@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	_ "embed"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
@@ -23,6 +24,12 @@ type ChatService struct {
 	q *sqlc_queries.Queries
 }
 
+//go:embed artifact_instruction.txt
+var artifactInstructionText string
+
+//go:embed tool_instruction.txt
+var toolInstructionText string
+
 // NewChatService creates a new ChatService with database queries.
 func NewChatService(q *sqlc_queries.Queries) *ChatService {
 	return &ChatService{q: q}
@@ -31,21 +38,19 @@ func NewChatService(q *sqlc_queries.Queries) *ChatService {
 // loadArtifactInstruction loads the artifact instruction from file.
 // Returns the instruction content or an error if the file cannot be read.
 func loadArtifactInstruction() (string, error) {
-	content, err := os.ReadFile("api/artifact_instruction.txt")
-	if err != nil {
-		return "", eris.Wrap(err, "failed to read artifact instruction file")
+	if artifactInstructionText == "" {
+		return "", eris.New("artifact instruction text is empty")
 	}
-	return string(content), nil
+	return artifactInstructionText, nil
 }
 
 // loadToolInstruction loads the tool-use instruction from file.
 // Returns the instruction content or an error if the file cannot be read.
 func loadToolInstruction() (string, error) {
-	content, err := os.ReadFile("api/tool_instruction.txt")
-	if err != nil {
-		return "", eris.Wrap(err, "failed to read tool instruction file")
+	if toolInstructionText == "" {
+		return "", eris.New("tool instruction text is empty")
 	}
-	return string(content), nil
+	return toolInstructionText, nil
 }
 
 func appendInstructionToSystemMessage(msgs []models.Message, instruction string) {

@@ -237,10 +237,10 @@ const defaultToken = computed(() => {
         <div v-if="isLoading">
           <NSpin size="medium" />
         </div>
-        <NRadioGroup v-else v-model:value="modelRef.chatModel">
+        <NRadioGroup v-else v-model:value="modelRef.chatModel" class="model-radio-group">
           <div v-for="providerGroup in chatModelOptionsByProvider" :key="providerGroup.type" class="model-provider-group">
             <div class="provider-label">{{ providerGroup.label }}</div>
-            <NSpace vertical :size="4">
+            <NSpace vertical :size="2" class="model-options">
               <NRadio v-for="model in providerGroup.models" :key="model.name" :value="model.name" size="small">
                 <div class="model-option">
                   <span class="model-name">{{ model.label }}</span>
@@ -385,8 +385,13 @@ const defaultToken = computed(() => {
 </template>
 
 <style scoped>
+.model-radio-group {
+  width: 100%;
+}
+
 .model-provider-group {
-  margin-bottom: 12px;
+  width: 100%;
+  margin-bottom: 8px;
 }
 
 .model-provider-group:last-child {
@@ -394,11 +399,11 @@ const defaultToken = computed(() => {
 }
 
 .provider-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #666;
-  margin-bottom: 6px;
-  padding-bottom: 3px;
+  margin-bottom: 4px;
+  padding-bottom: 2px;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -411,23 +416,62 @@ const defaultToken = computed(() => {
 .model-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.model-options :deep(.n-space) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 8px;
+  width: 100%;
+}
+
+@media (min-width: 1200px) {
+  .model-options :deep(.n-space) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .model-options :deep(.n-space) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.model-options :deep(.n-radio) {
+  width: 100%;
+  margin-right: 0;
+}
+
+.model-options :deep(.n-space-item) {
+  min-width: 0;
 }
 
 .model-name {
-  font-size: 0.875rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-name {
+  font-size: 0.82rem;
+  line-height: 1.2;
 }
 
 .model-timestamp {
   color: #999;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 /* Mode Switches Grid Layout */
 .mode-switches-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 12px;
 }
 
 @media (max-width: 768px) {
@@ -439,18 +483,26 @@ const defaultToken = computed(() => {
 
 .mode-switch-item {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .mode-switch-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #666;
   font-weight: 500;
 }
 
 :deep(.dark) .mode-switch-label {
   color: #999;
+}
+
+:deep(.dark) .mode-switch-item {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .instruction-panel {
