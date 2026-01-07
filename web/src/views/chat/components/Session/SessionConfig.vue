@@ -266,7 +266,7 @@ const defaultToken = computed(() => {
       <!-- Model Selection Section -->
       <NCollapseItem name="model" class="collapse-item">
         <template #header>
-          <div class="collapse-header">
+          <div class="collapse-header" data-testid="collapse-model">
             <NIcon :component="PsychologyOutlined" size="18" />
             <span>{{ $t('chat.model') }}</span>
           </div>
@@ -304,7 +304,7 @@ const defaultToken = computed(() => {
       <!-- Modes Section -->
       <NCollapseItem name="modes" class="collapse-item">
         <template #header>
-          <div class="collapse-header">
+          <div class="collapse-header" data-testid="collapse-modes">
             <NIcon :component="ExtensionOutlined" size="18" />
             <span>{{ $t('chat.modes') }}</span>
           </div>
@@ -396,7 +396,7 @@ const defaultToken = computed(() => {
       <!-- Advanced Settings Section -->
       <NCollapseItem name="advanced" class="collapse-item">
         <template #header>
-          <div class="collapse-header">
+          <div class="collapse-header" data-testid="collapse-advanced">
             <NIcon :component="TuneOutlined" size="18" />
             <span>{{ $t('chat.advanced_settings') }}</span>
           </div>

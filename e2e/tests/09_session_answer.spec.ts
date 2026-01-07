@@ -31,6 +31,10 @@ test('test', async ({ page }) => {
 
   // set debug mode
   await page.getByTestId('chat-settings-button').click();
+  // expand the Advanced Settings section (accordion)
+  await page.getByTestId('collapse-advanced').click();
+  // wait for the section to expand
+  await page.waitForTimeout(300);
   await page.getByTestId('debug_mode').click();
 
 
