@@ -22,6 +22,7 @@
     "@tanstack/vue-query": "^5.40.1",
     "@types/uuid": "^10.0.0",
     "@vicons/ionicons5": "^0.12.0",
+    "@vicons/material": "^0.13.0",
     "@vscode/markdown-it-katex": "^1.0.3",
     "@vueuse/core": "^9.13.0",
     "copy-to-clipboard": "^3.3.3",
