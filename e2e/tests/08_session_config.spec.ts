@@ -37,8 +37,13 @@ test('test', async ({ page }) => {
   const new_sesion = sessions[0]
   expect(new_sesion.debug).toBe(false);
   expect(new_sesion.temperature).toBe(1);
-  // click the chat settings button to open the modal 
+  // click the chat settings button to open the modal
   await page.getByTestId('chat-settings-button').click();
+  // expand the Advanced Settings section (accordion)
+  await page.getByText('Advanced Settings').click();
+  // wait for the section to expand
+  await page.waitForTimeout(300);
+  // click the debug switch
   await page.getByTestId('debug_mode').click();
   // sleep 1s
   await page.waitForTimeout(1000);
