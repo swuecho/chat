@@ -40,7 +40,7 @@ test('test', async ({ page }) => {
   // click the chat settings button to open the modal
   await page.getByTestId('chat-settings-button').click();
   // expand the Advanced Settings section (accordion)
-  await page.getByText('Advanced Settings').click();
+  await page.getByTestId('collapse-advanced').click();
   // wait for the section to expand
   await page.waitForTimeout(300);
   // click the debug switch
