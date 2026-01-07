@@ -1,8 +1,34 @@
 <script lang="ts" setup>
 import type { Ref } from 'vue'
 import { computed, ref, watch, h, nextTick } from 'vue'
-import type { FormInst } from 'naive-ui'
-import { NForm, NFormItem, NInput, NRadio, NRadioGroup, NSlider, NSpace, NSpin, NSwitch } from 'naive-ui'
+import type { FormInst, CollapseInst } from 'naive-ui'
+import {
+  NForm,
+  NFormItem,
+  NInput,
+  NRadio,
+  NRadioGroup,
+  NSlider,
+  NSpace,
+  NSpin,
+  NSwitch,
+  NCollapse,
+  NCollapseItem,
+  NIcon,
+  NTooltip
+} from 'naive-ui'
+import {
+  SettingsOutlined,
+  PsychologyOutlined,
+  TuneOutlined,
+  ExtensionOutlined,
+  CodeOutlined,
+  ExploreOutlined,
+  BugReportOutlined,
+  KeyboardArrowDownOutlined,
+  SpeedOutlined,
+  MemoryOutlined
+} from '@vicons/material'
 import { debounce, isEqual } from 'lodash-es'
 import { useSessionStore, useAppStore } from '@/store'
 import { fetchChatInstructions, fetchChatModel } from '@/api'
@@ -141,9 +167,13 @@ const showInstructionPanel = computed(() => {
 })
 
 const formRef = ref<FormInst | null>(null)
+const collapseRef = ref<CollapseInst | null>(null)
 
 // Flag to prevent circular updates
 let isUpdatingFromSession = false
+
+// Expand/collapse state - accordion mode, model section open by default
+const expandedNames = ref<string[]>(['model'])
 
 const debouneUpdate = debounce(async (model: ModelType) => {
   // Prevent update if we're currently updating from session
@@ -230,318 +260,740 @@ const defaultToken = computed(() => {
 </script>
 
 <template>
-  <!-- https://platform.openai.com/playground?mode=chat -->
-  <div>
-    <NForm ref="formRef" :model="modelRef" size="small" label-placement="top" :label-width="20">
-      <NFormItem :label="$t('chat.model')" path="chatModel">
-        <div v-if="isLoading">
+  <div class="session-config-container">
+    <!-- Collapsible Sections - Accordion -->
+    <NCollapse v-model:expanded-names="expandedNames" class="config-collapse" accordion>
+      <!-- Model Selection Section -->
+      <NCollapseItem name="model" class="collapse-item">
+        <template #header>
+          <div class="collapse-header">
+            <NIcon :component="PsychologyOutlined" size="18" />
+            <span>{{ $t('chat.model') }}</span>
+          </div>
+        </template>
+        <div v-if="isLoading" class="loading-container">
           <NSpin size="medium" />
+          <span class="loading-text">{{ $t('chat.loading_models') }}</span>
         </div>
         <NRadioGroup v-else v-model:value="modelRef.chatModel" class="model-radio-group">
-          <div v-for="providerGroup in chatModelOptionsByProvider" :key="providerGroup.type" class="model-provider-group">
-            <div class="provider-label">{{ providerGroup.label }}</div>
-            <NSpace vertical :size="2" class="model-options">
-              <NRadio v-for="model in providerGroup.models" :key="model.name" :value="model.name" size="small">
-                <div class="model-option">
-                  <span class="model-name">{{ model.label }}</span>
-                  <span class="model-timestamp">{{ formatTimestamp(model.lastUsageTime) }}</span>
+          <div v-for="providerGroup in chatModelOptionsByProvider" :key="providerGroup.type" class="provider-card">
+            <div class="provider-header">
+              <div class="provider-label">{{ providerGroup.label }}</div>
+              <div class="provider-count">{{ providerGroup.models.length }} {{ $t('chat.models') }}</div>
+            </div>
+            <div class="model-grid">
+              <div
+                v-for="model in providerGroup.models"
+                :key="model.name"
+                :class="['model-card', { active: modelRef.chatModel === model.name }]"
+                @click="modelRef.chatModel = model.name"
+              >
+                <NRadio :value="model.name" :checked="modelRef.chatModel === model.name" class="model-radio" />
+                <div class="model-info">
+                  <div class="model-name">{{ model.label }}</div>
+                  <div class="model-meta">
+                    <span class="model-timestamp">{{ formatTimestamp(model.lastUsageTime) }}</span>
+                  </div>
                 </div>
-              </NRadio>
-            </NSpace>
+              </div>
+            </div>
           </div>
         </NRadioGroup>
-      </NFormItem>
-      <!-- not implemented
-      <NFormItem :label="$t('chat.summarize_mode')" path="summarize_mode">
-        <NSwitch v-model:value="modelRef.summarizeMode" data-testid="summarize_mode">
-          <template #checked>
-            {{ $t('chat.is_summarize_mode') }}
-          </template>
-<template #unchecked>
-            {{ $t('chat.no_summarize_mode') }}
-          </template>
-</NSwitch>
-</NFormItem>
--->
-      <NFormItem :label="$t('chat.contextCount', { contextCount: modelRef.contextCount })" path="contextCount">
-        <NSlider v-model:value="modelRef.contextCount" :min="1" :max="40" :tooltip="false" show-tooltip />
-      </NFormItem>
-      <NFormItem :label="$t('chat.temperature', { temperature: modelRef.temperature })" path="temperature">
-        <NSlider v-model:value="modelRef.temperature" :min="0.1" :max="1" :step="0.01" :tooltip="false" />
-      </NFormItem>
-      <NFormItem :label="$t('chat.topP', { topP: modelRef.topP })" path="topP">
-        <NSlider v-model:value="modelRef.topP" :min="0" :max="1" :step="0.01" :tooltip="false" />
-      </NFormItem>
-      <NFormItem :label="$t('chat.maxTokens', { maxTokens: modelRef.maxTokens })" path="maxTokens">
-        <NSlider v-model:value="modelRef.maxTokens" :min="256" :max="tokenUpperLimit" :default-value="defaultToken"
-          :step="16" :tooltip="false" />
-      </NFormItem>
-      <NFormItem v-if="modelRef.chatModel.startsWith('gpt') || modelRef.chatModel.includes('davinci')"
-        :label="$t('chat.N', { n: modelRef.n })" path="n">
-        <NSlider v-model:value="modelRef.n" :min="1" :max="10" :step="1" :tooltip="false" />
-      </NFormItem>
+      </NCollapseItem>
 
-      <!-- Mode Switches in a Grid Layout -->
-      <NFormItem label="Modes">
-        <div class="mode-switches-grid">
-          <div class="mode-switch-item">
-            <div class="mode-switch-label">{{ $t('chat.artifactMode') }}</div>
-            <NSwitch v-model:value="modelRef.artifactEnabled" data-testid="artifact_mode" size="small">
-              <template #checked>
-                {{ $t('chat.enable_artifact') }}
-              </template>
-              <template #unchecked>
-                {{ $t('chat.disable_artifact') }}
-              </template>
-            </NSwitch>
+      <!-- Modes Section -->
+      <NCollapseItem name="modes" class="collapse-item">
+        <template #header>
+          <div class="collapse-header">
+            <NIcon :component="ExtensionOutlined" size="18" />
+            <span>{{ $t('chat.modes') }}</span>
+          </div>
+        </template>
+        <div class="modes-grid">
+          <!-- Artifact Mode -->
+          <div
+            :class="['mode-card', { enabled: modelRef.artifactEnabled }]"
+            @click="modelRef.artifactEnabled = !modelRef.artifactEnabled"
+          >
+            <div class="mode-header">
+              <NIcon :component="ExtensionOutlined" :size="24" class="mode-icon" />
+              <div class="mode-info">
+                <div class="mode-name">{{ $t('chat.artifactMode') }}</div>
+                <div class="mode-description">{{ $t('chat.artifactModeDescription') }}</div>
+              </div>
+            </div>
+            <NSwitch v-model:value="modelRef.artifactEnabled" data-testid="artifact_mode" size="medium" @click.stop />
           </div>
 
-          <div class="mode-switch-item">
-            <div class="mode-switch-label">{{ $t('chat.codeRunner') }}</div>
-            <NSwitch v-model:value="modelRef.codeRunnerEnabled" data-testid="code_runner_mode" size="small">
-              <template #checked>
-                {{ $t('chat.enable_code_runner') }}
-              </template>
-              <template #unchecked>
-                {{ $t('chat.disable_code_runner') }}
-              </template>
-            </NSwitch>
+          <!-- Code Runner Mode -->
+          <div
+            :class="['mode-card', { enabled: modelRef.codeRunnerEnabled }]"
+            @click="modelRef.codeRunnerEnabled = !modelRef.codeRunnerEnabled"
+          >
+            <div class="mode-header">
+              <NIcon :component="CodeOutlined" :size="24" class="mode-icon" />
+              <div class="mode-info">
+                <div class="mode-name">{{ $t('chat.codeRunner') }}</div>
+                <div class="mode-description">{{ $t('chat.codeRunnerDescription') }}</div>
+              </div>
+            </div>
+            <NSwitch v-model:value="modelRef.codeRunnerEnabled" data-testid="code_runner_mode" size="medium" @click.stop />
           </div>
 
-          <div class="mode-switch-item">
-            <div class="mode-switch-label">{{ $t('chat.exploreMode') }}</div>
-            <NSwitch v-model:value="modelRef.exploreMode" data-testid="explore_mode" size="small">
-              <template #checked>
-                {{ $t('chat.enable_explore') }}
-              </template>
-              <template #unchecked>
-                {{ $t('chat.disable_explore') }}
-              </template>
-            </NSwitch>
+          <!-- Explore Mode -->
+          <div
+            :class="['mode-card', { enabled: modelRef.exploreMode }]"
+            @click="modelRef.exploreMode = !modelRef.exploreMode"
+          >
+            <div class="mode-header">
+              <NIcon :component="ExploreOutlined" :size="24" class="mode-icon" />
+              <div class="mode-info">
+                <div class="mode-name">{{ $t('chat.exploreMode') }}</div>
+                <div class="mode-description">{{ $t('chat.exploreModeDescription') }}</div>
+              </div>
+            </div>
+            <NSwitch v-model:value="modelRef.exploreMode" data-testid="explore_mode" size="medium" @click.stop />
           </div>
         </div>
-      </NFormItem>
 
-      <NFormItem v-if="showInstructionPanel" :label="$t('chat.promptInstructions')">
-        <div class="instruction-panel">
+        <!-- Instructions Panel -->
+        <div v-if="showInstructionPanel" class="instructions-section">
+          <div class="instructions-header">
+            <NIcon :component="SettingsOutlined" size="16" />
+            <span>{{ $t('chat.promptInstructions') }}</span>
+          </div>
           <div v-if="isInstructionLoading" class="instruction-loading">
             <NSpin size="small" />
             <span>{{ $t('chat.loading_instructions') }}</span>
           </div>
           <template v-else>
             <!-- Artifact Instructions -->
-            <div v-if="modelRef.artifactEnabled" class="instruction-block">
-              <div class="instruction-title">{{ $t('chat.artifactInstructionTitle') }}</div>
+            <div v-if="modelRef.artifactEnabled && artifactInstruction" class="instruction-block">
+              <div class="instruction-label">{{ $t('chat.artifactInstructionTitle') }}</div>
               <NInput
-                v-if="artifactInstruction"
                 class="instruction-input"
                 :value="artifactInstruction"
                 type="textarea"
                 readonly
                 :autosize="{ minRows: 3, maxRows: 10 }"
               />
-              <div v-else class="instruction-empty">
-                No artifact instructions available
-              </div>
             </div>
-
-            <!-- Tool/Code Runner Instructions -->
-            <div v-if="modelRef.codeRunnerEnabled" class="instruction-block">
-              <div class="instruction-title">{{ $t('chat.toolInstructionTitle') }}</div>
+            <!-- Tool Instructions -->
+            <div v-if="modelRef.codeRunnerEnabled && toolInstruction" class="instruction-block">
+              <div class="instruction-label">{{ $t('chat.toolInstructionTitle') }}</div>
               <NInput
-                v-if="toolInstruction"
                 class="instruction-input"
                 :value="toolInstruction"
                 type="textarea"
                 readonly
                 :autosize="{ minRows: 3, maxRows: 10 }"
               />
-              <div v-else class="instruction-empty">
-                No code runner instructions available
-              </div>
             </div>
           </template>
         </div>
-      </NFormItem>
+      </NCollapseItem>
 
-      <NFormItem :label="$t('chat.debug')" path="debug">
-        <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode">
-          <template #checked>
-            {{ $t('chat.enable_debug') }}
-          </template>
-          <template #unchecked>
-            {{ $t('chat.disable_debug') }}
-          </template>
-        </NSwitch>
-      </NFormItem>
-    
-    </NForm>
-    <!--
-                                        <div class="center">
-                                          <pre>{{ JSON.stringify(modelRef, null, 2) }} </pre>
-                                        </div>
-                                        -->
+      <!-- Advanced Settings Section -->
+      <NCollapseItem name="advanced" class="collapse-item">
+        <template #header>
+          <div class="collapse-header">
+            <NIcon :component="TuneOutlined" size="18" />
+            <span>{{ $t('chat.advanced_settings') }}</span>
+          </div>
+        </template>
+        <div class="advanced-settings">
+          <!-- Context Count -->
+          <div class="slider-control">
+            <div class="slider-header">
+              <div class="slider-label-group">
+                <NIcon :component="MemoryOutlined" size="16" />
+                <span class="slider-label">{{ $t('chat.contextCount', { contextCount: modelRef.contextCount }) }}</span>
+              </div>
+              <div class="slider-value">{{ modelRef.contextCount }}</div>
+            </div>
+            <NSlider
+              v-model:value="modelRef.contextCount"
+              :min="1"
+              :max="40"
+              :step="1"
+              :tooltip="false"
+              class="config-slider"
+            />
+          </div>
+
+          <!-- Temperature -->
+          <div class="slider-control">
+            <div class="slider-header">
+              <div class="slider-label-group">
+                <NIcon :component="SpeedOutlined" size="16" />
+                <span class="slider-label">{{ $t('chat.temperature') }}</span>
+              </div>
+              <div class="slider-value">{{ modelRef.temperature.toFixed(2) }}</div>
+            </div>
+            <NSlider
+              v-model:value="modelRef.temperature"
+              :min="0.1"
+              :max="1"
+              :step="0.01"
+              :tooltip="false"
+              class="config-slider"
+            />
+          </div>
+
+          <!-- Top P -->
+          <div class="slider-control">
+            <div class="slider-header">
+              <div class="slider-label-group">
+                <NIcon :component="TuneOutlined" size="16" />
+                <span class="slider-label">{{ $t('chat.topP') }}</span>
+              </div>
+              <div class="slider-value">{{ modelRef.topP.toFixed(2) }}</div>
+            </div>
+            <NSlider
+              v-model:value="modelRef.topP"
+              :min="0"
+              :max="1"
+              :step="0.01"
+              :tooltip="false"
+              class="config-slider"
+            />
+          </div>
+
+          <!-- Max Tokens -->
+          <div class="slider-control">
+            <div class="slider-header">
+              <div class="slider-label-group">
+                <NIcon :component="MemoryOutlined" size="16" />
+                <span class="slider-label">{{ $t('chat.maxTokens') }}</span>
+              </div>
+              <div class="slider-value">{{ modelRef.maxTokens }}</div>
+            </div>
+            <NSlider
+              v-model:value="modelRef.maxTokens"
+              :min="256"
+              :max="tokenUpperLimit"
+              :default-value="defaultToken"
+              :step="16"
+              :tooltip="false"
+              class="config-slider"
+            />
+          </div>
+
+          <!-- N (only for GPT models) -->
+          <div v-if="modelRef.chatModel.startsWith('gpt') || modelRef.chatModel.includes('davinci')" class="slider-control">
+            <div class="slider-header">
+              <div class="slider-label-group">
+                <NIcon :component="PsychologyOutlined" size="16" />
+                <span class="slider-label">{{ $t('chat.N') }}</span>
+              </div>
+              <div class="slider-value">{{ modelRef.n }}</div>
+            </div>
+            <NSlider
+              v-model:value="modelRef.n"
+              :min="1"
+              :max="10"
+              :step="1"
+              :tooltip="false"
+              class="config-slider"
+            />
+          </div>
+
+          <!-- Debug Mode -->
+          <div class="debug-control">
+            <div class="debug-header">
+              <NIcon :component="BugReportOutlined" size="20" />
+              <div class="debug-info">
+                <div class="debug-label">{{ $t('chat.debug') }}</div>
+                <div class="debug-description">{{ $t('chat.debugDescription') }}</div>
+              </div>
+            </div>
+            <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode" size="medium" />
+          </div>
+        </div>
+      </NCollapseItem>
+    </NCollapse>
   </div>
 </template>
 
 <style scoped>
-.model-radio-group {
-  width: 100%;
-}
-
-.model-provider-group {
-  width: 100%;
-  margin-bottom: 8px;
-}
-
-.model-provider-group:last-child {
-  margin-bottom: 0;
-}
-
-.provider-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #666;
-  margin-bottom: 4px;
-  padding-bottom: 2px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-:deep(.dark) .provider-label {
-  color: #999;
-  border-bottom-color: #3a3a3a;
-}
-
-/* Model Options */
-.model-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: space-between;
-  min-width: 0;
-}
-
-.model-options :deep(.n-space) {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 8px;
-  width: 100%;
-}
-
-@media (min-width: 1200px) {
-  .model-options :deep(.n-space) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .model-options :deep(.n-space) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.model-options :deep(.n-radio) {
-  width: 100%;
-  margin-right: 0;
-}
-
-.model-options :deep(.n-space-item) {
-  min-width: 0;
-}
-
-.model-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.model-name {
-  font-size: 0.82rem;
-  line-height: 1.2;
-}
-
-.model-timestamp {
-  color: #999;
-  font-size: 0.7rem;
-}
-
-/* Mode Switches Grid Layout */
-.mode-switches-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px 12px;
-}
-
-@media (max-width: 768px) {
-  .mode-switches-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-}
-
-.mode-switch-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.02);
-}
-
-.mode-switch-label {
-  font-size: 0.8rem;
-  color: #666;
-  font-weight: 500;
-}
-
-:deep(.dark) .mode-switch-label {
-  color: #999;
-}
-
-:deep(.dark) .mode-switch-item {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.instruction-panel {
+/* Container - Compact */
+.session-config-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 2px;
+}
+
+/* Loading State - Compact */
+.loading-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  justify-content: center;
+}
+
+.loading-text {
+  font-size: 13px;
+  color: var(--n-text-color-3);
+}
+
+/* Ensure radio group doesn't constrain width */
+.model-radio-group {
+  width: 100%;
+  display: block;
+}
+
+/* Provider Card - Compact */
+.provider-card {
+  margin-bottom: 10px;
+  padding: 10px;
+  background: var(--n-color-modal);
+  border-radius: 8px;
+  border: 1px solid var(--n-border-color);
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 100%;
+}
+
+.provider-card:last-child {
+  margin-bottom: 0;
+}
+
+.provider-card:hover {
+  border-color: var(--n-border-color-hover);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+:deep(.dark) .provider-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.provider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.provider-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--n-text-color-1);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.provider-count {
+  font-size: 11px;
+  color: var(--n-text-color-3);
+  background: var(--n-color-target);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* Model Grid - Compact */
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .model-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .model-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 769px) {
+  .model-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .model-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Model Card - Compact */
+.model-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 2px solid var(--n-border-color);
+  background: var(--n-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.model-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--n-primary-color);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.model-card:hover {
+  border-color: var(--n-primary-color);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.model-card.active {
+  border-color: var(--n-primary-color);
+  background: var(--n-primary-color);
+}
+
+.model-card.active::before {
+  opacity: 0.1;
+}
+
+.model-card.active .model-name {
+  color: var(--n-text-color-1);
+  font-weight: 600;
+}
+
+.model-card.active .model-timestamp {
+  color: var(--n-text-color-2);
+}
+
+.model-radio {
+  pointer-events: none;
+}
+
+:deep(.model-radio .n-radio__dot) {
+  box-shadow: 0 0 0 2px var(--n-border-color);
+}
+
+.model-card.active :deep(.model-radio .n-radio__dot) {
+  box-shadow: 0 0 0 2px var(--n-primary-color);
+}
+
+.model-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.model-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--n-text-color-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 1px;
+}
+
+.model-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.model-timestamp {
+  font-size: 10px;
+  color: var(--n-text-color-3);
+}
+
+/* Collapse - Compact */
+.config-collapse {
+  border: none;
+}
+
+:deep(.config-collapse .n-collapse-item) {
+  margin-bottom: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--n-border-color);
+  background: var(--n-color);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+:deep(.config-collapse .n-collapse-item:hover) {
+  border-color: var(--n-border-color-hover);
+}
+
+:deep(.config-collapse .n-collapse-item__header) {
+  padding: 10px 14px;
+  background: var(--n-color-modal);
+  border: none;
+}
+
+:deep(.config-collapse .n-collapse-item__content-wrapper) {
+  padding: 0;
+  border: none;
+}
+
+:deep(.config-collapse .n-collapse-item__content-inner) {
+  padding: 12px;
+}
+
+.collapse-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--n-text-color-1);
+}
+
+.collapse-header .n-icon {
+  color: var(--n-text-color-2);
+}
+
+/* Modes Grid - Compact */
+.modes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+  .modes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mode Card - Compact */
+.mode-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--n-border-color);
+  background: var(--n-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-card:hover {
+  border-color: var(--n-border-color-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mode-card.enabled {
+  border-color: var(--n-primary-color);
+  background: var(--n-color-target);
+}
+
+.mode-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+}
+
+.mode-icon {
+  color: var(--n-text-color-2);
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+  font-size: 20px !important;
+}
+
+.mode-card.enabled .mode-icon {
+  color: var(--n-primary-color);
+}
+
+.mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--n-text-color-1);
+}
+
+.mode-description {
+  font-size: 11px;
+  color: var(--n-text-color-3);
+  line-height: 1.3;
+}
+
+/* Instructions Section - Compact */
+.instructions-section {
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--n-color-modal);
+  border-radius: 8px;
+  border: 1px solid var(--n-border-color);
+}
+
+.instructions-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--n-text-color-2);
 }
 
 .instruction-loading {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #666;
-  font-size: 0.85rem;
-}
-
-.instruction-title {
-  font-size: 0.85rem;
-  color: #666;
-  margin-bottom: 6px;
-}
-
-.instruction-input :deep(textarea) {
-  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.85rem;
-}
-
-.instruction-empty {
   padding: 12px;
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  color: #999;
-  font-size: 0.85rem;
-  font-style: italic;
-  text-align: center;
+  justify-content: center;
+  color: var(--n-text-color-3);
+  font-size: 12px;
 }
 
-:deep(.dark) .instruction-empty {
-  background-color: #2a2a2a;
-  color: #888;
+.instruction-block {
+  margin-bottom: 10px;
+}
+
+.instruction-block:last-child {
+  margin-bottom: 0;
+}
+
+.instruction-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--n-text-color-2);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.instruction-input :deep(.n-input__textarea) {
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Advanced Settings - Compact */
+.advanced-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Slider Control - Compact */
+.slider-control {
+  padding: 10px 12px;
+  background: var(--n-color-modal);
+  border-radius: 8px;
+  border: 1px solid var(--n-border-color);
+  transition: all 0.2s ease;
+}
+
+.slider-control:hover {
+  border-color: var(--n-border-color-hover);
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.slider-label-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slider-label-group .n-icon {
+  color: var(--n-text-color-2);
+}
+
+.slider-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--n-text-color-1);
+}
+
+.slider-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--n-primary-color);
+  background: var(--n-color-target);
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+
+.config-slider {
+  margin-top: 2px;
+}
+
+:deep(.config-slider .n-slider-rail) {
+  height: 4px;
+  border-radius: 2px;
+}
+
+:deep(.config-slider .n-slider-handle) {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--n-primary-color);
+}
+
+/* Debug Control - Compact */
+.debug-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--n-color-modal);
+  border-radius: 8px;
+  border: 1px solid var(--n-border-color);
+  transition: all 0.2s ease;
+}
+
+.debug-control:hover {
+  border-color: var(--n-border-color-hover);
+}
+
+.debug-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.debug-header .n-icon {
+  color: #f56c6c;
+}
+
+.debug-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.debug-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--n-text-color-1);
+}
+
+.debug-description {
+  font-size: 11px;
+  color: var(--n-text-color-3);
 }
 </style>
