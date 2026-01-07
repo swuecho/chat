@@ -200,17 +200,24 @@ const defaultToken = computed(() => {
         <div v-if="isLoading">
           <NSpin size="medium" />
         </div>
-        <NRadioGroup v-model:value="modelRef.chatModel">
-          <NSpace>
-            <NRadio v-for="model in chatModelOptions" :key="model.name" :value="model.name">
-              <div>
-                {{ model.label }}
-                <span style="color: #999; font-size: 0.8rem; margin-left: 4px">
-                  - {{ formatTimestamp(model.lastUsageTime) }}
-                </span>
-              </div>
-            </NRadio>
-          </NSpace>
+        <NRadioGroup v-else v-model:value="modelRef.chatModel" class="model-radio-group">
+          <div class="model-cards-container">
+            <div
+              v-for="model in chatModelOptions"
+              :key="model.name"
+              class="model-card"
+              :class="{ 'model-card--checked': modelRef.chatModel === model.name }"
+            >
+              <NRadio :value="model.name" class="model-card__radio">
+                <div class="model-card__content">
+                  <div class="model-card__label">{{ model.label }}</div>
+                  <div class="model-card__meta">
+                    {{ formatTimestamp(model.lastUsageTime) }}
+                  </div>
+                </div>
+              </NRadio>
+            </div>
+          </div>
         </NRadioGroup>
       </NFormItem>
       <!-- not implemented
@@ -321,6 +328,74 @@ const defaultToken = computed(() => {
 </template>
 
 <style scoped>
+.model-radio-group {
+  width: 100%;
+}
+
+.model-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-card {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--n-color);
+  position: relative;
+}
+
+.model-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--n-border-color);
+}
+
+.model-card--checked {
+  border-color: #18a058;
+  background: linear-gradient(135deg, rgba(24, 160, 88, 0.05) 0%, rgba(24, 160, 88, 0.02) 100%);
+}
+
+.model-card__radio {
+  width: 100%;
+}
+
+.model-card__radio :deep(.n-radio__dot) {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.model-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.model-card__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--n-text-color);
+}
+
+.model-card__meta {
+  font-size: 12px;
+  color: var(--n-text-color-disabled);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .model-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .model-card--checked {
+    background: linear-gradient(135deg, rgba(24, 160, 88, 0.1) 0%, rgba(24, 160, 88, 0.05) 100%);
+  }
+}
+
 .instruction-panel {
   display: flex;
   flex-direction: column;
