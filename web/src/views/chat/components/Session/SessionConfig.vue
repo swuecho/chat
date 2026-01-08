@@ -520,7 +520,7 @@ const defaultToken = computed(() => {
 .session-config-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   padding: 2px;
 }
 
@@ -546,8 +546,8 @@ const defaultToken = computed(() => {
 
 /* Provider Card - Compact */
 .provider-card {
-  margin-bottom: 10px;
-  padding: 10px;
+  margin-bottom: 8px;
+  padding: 8px;
   background: var(--n-color-modal);
   border-radius: 8px;
   border: 1px solid var(--n-border-color);
@@ -631,13 +631,17 @@ const defaultToken = computed(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 6px;
-  border: 2px solid var(--n-border-color);
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
   background: var(--n-color);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+}
+
+:deep(.dark) .model-card {
+  border-color: #373737;
 }
 
 .model-card::before {
@@ -647,29 +651,29 @@ const defaultToken = computed(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--n-primary-color);
+  background: #4b9e5f;
   opacity: 0;
   transition: opacity 0.2s ease;
   pointer-events: none;
 }
 
 .model-card:hover {
-  border-color: var(--n-primary-color);
+  border-color: #4b9e5f;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .model-card.active {
-  border-color: var(--n-primary-color);
-  background: var(--n-primary-color);
+  border-color: #4b9e5f;
+  background: var(--n-color);
 }
 
 .model-card.active::before {
-  opacity: 0.1;
+  opacity: 0.08;
 }
 
 .model-card.active .model-name {
-  color: var(--n-text-color-1);
+  color: #4b9e5f;
   font-weight: 600;
 }
 
@@ -682,11 +686,15 @@ const defaultToken = computed(() => {
 }
 
 :deep(.model-radio .n-radio__dot) {
-  box-shadow: 0 0 0 2px var(--n-border-color);
+  box-shadow: 0 0 0 2px #e5e7eb;
+}
+
+:deep(.dark) .model-radio .n-radio__dot {
+  box-shadow: 0 0 0 2px #373737;
 }
 
 .model-card.active :deep(.model-radio .n-radio__dot) {
-  box-shadow: 0 0 0 2px var(--n-primary-color);
+  box-shadow: 0 0 0 2px #4b9e5f;
 }
 
 .model-info {
@@ -721,7 +729,7 @@ const defaultToken = computed(() => {
 }
 
 :deep(.config-collapse .n-collapse-item) {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   border-radius: 10px;
   border: 1px solid var(--n-border-color);
   background: var(--n-color);
@@ -734,18 +742,18 @@ const defaultToken = computed(() => {
 }
 
 :deep(.config-collapse .n-collapse-item__header) {
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: var(--n-color-modal);
   border: none;
 }
 
 :deep(.config-collapse .n-collapse-item__content-wrapper) {
-  padding: 0;
+  padding: 0 !important;
   border: none;
 }
 
-:deep(.config-collapse .n-collapse-item__content-inner) {
-  padding: 12px;
+:deep(.config-collapse .n-collapse-item .n-collapse-item__content-wrapper .n-collapse-item__content-inner) {
+  padding: 6px !important;
 }
 
 .collapse-header {
@@ -780,23 +788,27 @@ const defaultToken = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 2px solid var(--n-border-color);
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
   background: var(--n-color);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
+:deep(.dark) .mode-card {
+  border-color: #373737;
+}
+
 .mode-card:hover {
-  border-color: var(--n-border-color-hover);
+  border-color: #4b9e5f;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .mode-card.enabled {
-  border-color: var(--n-primary-color);
-  background: var(--n-color-target);
+  border-color: #4b9e5f;
+  background: var(--n-color);
 }
 
 .mode-header {
@@ -814,7 +826,7 @@ const defaultToken = computed(() => {
 }
 
 .mode-card.enabled .mode-icon {
-  color: var(--n-primary-color);
+  color: #4b9e5f;
 }
 
 .mode-info {
@@ -829,6 +841,10 @@ const defaultToken = computed(() => {
   color: var(--n-text-color-1);
 }
 
+.mode-card.enabled .mode-name {
+  color: #4b9e5f;
+}
+
 .mode-description {
   font-size: 11px;
   color: var(--n-text-color-3);
@@ -837,8 +853,8 @@ const defaultToken = computed(() => {
 
 /* Instructions Section - Compact */
 .instructions-section {
-  margin-top: 12px;
-  padding: 10px;
+  margin-top: 8px;
+  padding: 8px;
   background: var(--n-color-modal);
   border-radius: 8px;
   border: 1px solid var(--n-border-color);
@@ -848,7 +864,7 @@ const defaultToken = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   font-size: 12px;
   font-weight: 600;
   color: var(--n-text-color-2);
@@ -858,14 +874,14 @@ const defaultToken = computed(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px;
+  padding: 8px;
   justify-content: center;
   color: var(--n-text-color-3);
   font-size: 12px;
 }
 
 .instruction-block {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .instruction-block:last-child {
@@ -891,12 +907,12 @@ const defaultToken = computed(() => {
 .advanced-settings {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* Slider Control - Compact */
 .slider-control {
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: var(--n-color-modal);
   border-radius: 8px;
   border: 1px solid var(--n-border-color);
@@ -959,7 +975,7 @@ const defaultToken = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: var(--n-color-modal);
   border-radius: 8px;
   border: 1px solid var(--n-border-color);
