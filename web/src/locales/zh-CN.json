@@ -135,6 +135,7 @@
     "codeRunner": "代码运行器",
     "artifactMode": "Artifacts",
     "toolDebug": "工具调试",
+    "toolDebugDescription": "显示详细的工具执行日志",
     "toolRunning": "工具运行中...",
     "sessionConfig": "会话设置",
     "enable_debug": "启用",

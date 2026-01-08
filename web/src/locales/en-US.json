@@ -172,6 +172,7 @@
         "summarize_mode": "Summary mode (supports longer context 20+)",
         "temperature": "Temperature : {temperature}",
         "toolDebug": "Tool Debug",
+        "toolDebugDescription": "Show detailed tool execution logs",
         "toolInstructionTitle": "Tool Instructions",
         "toolRunning": "Running tool...",
         "topP": "Top P: {topP}",

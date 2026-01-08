@@ -51,6 +51,7 @@ declare namespace Chat {
 		codeRunnerEnabled?: boolean
 		exploreMode?: boolean
 		artifactEnabled?: boolean
+		showToolDebug?: boolean
 		workspaceUuid?: string
 	}
 

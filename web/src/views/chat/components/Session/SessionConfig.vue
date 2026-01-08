@@ -133,6 +133,7 @@ interface ModelType {
   codeRunnerEnabled: boolean
   artifactEnabled: boolean
   exploreMode: boolean
+  showToolDebug: boolean
 }
 
 const defaultModel = computed(() => {
@@ -156,6 +157,7 @@ const modelRef: Ref<ModelType> = ref({
   exploreMode: session.value?.exploreMode ?? false,
   codeRunnerEnabled: session.value?.codeRunnerEnabled ?? false,
   artifactEnabled: session.value?.artifactEnabled ?? false,
+  showToolDebug: session.value?.showToolDebug ?? false,
 })
 
 const artifactInstruction = computed(() => instructionData.value?.artifactInstruction ?? '')
@@ -172,15 +174,15 @@ const collapseRef = ref<CollapseInst | null>(null)
 // Flag to prevent circular updates
 let isUpdatingFromSession = false
 
-// Expand/collapse state - accordion mode, model section open by default
-const expandedNames = ref<string[]>(['model'])
+// Expand/collapse state - accordion mode, modes section open by default
+const expandedNames = ref<string[]>(['modes'])
 
 const debouneUpdate = debounce(async (model: ModelType) => {
   // Prevent update if we're currently updating from session
   if (isUpdatingFromSession) {
     return
   }
-  
+
   sessionStore.updateSession(props.uuid, {
     maxLength: model.contextCount,
     temperature: model.temperature,
@@ -193,6 +195,7 @@ const debouneUpdate = debounce(async (model: ModelType) => {
     codeRunnerEnabled: model.codeRunnerEnabled,
     artifactEnabled: model.artifactEnabled,
     exploreMode: model.exploreMode,
+    showToolDebug: model.showToolDebug,
   })
 }, 200)
 
@@ -216,13 +219,14 @@ watch(session, (newSession) => {
       exploreMode: newSession.exploreMode ?? false,
       codeRunnerEnabled: newSession.codeRunnerEnabled ?? false,
       artifactEnabled: newSession.artifactEnabled ?? false,
+      showToolDebug: newSession.showToolDebug ?? false,
     }
-    
+
     // Only update if the values are actually different
     if (!isEqual(modelRef.value, newModelRef)) {
       isUpdatingFromSession = true
       modelRef.value = newModelRef
-      
+
       // Reset flag after Vue's next tick to allow reactivity to settle
       nextTick(() => {
         isUpdatingFromSession = false
@@ -508,6 +512,18 @@ const defaultToken = computed(() => {
               </div>
             </div>
             <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode" size="medium" />
+          </div>
+
+          <!-- Tool Debug Mode -->
+          <div v-if="modelRef.codeRunnerEnabled" class="debug-control">
+            <div class="debug-header">
+              <NIcon :component="SpeedOutlined" size="20" />
+              <div class="debug-info">
+                <div class="debug-label">{{ $t('chat.toolDebug') }}</div>
+                <div class="debug-description">{{ $t('chat.toolDebugDescription') }}</div>
+              </div>
+            </div>
+            <NSwitch v-model:value="modelRef.showToolDebug" data-testid="tool_debug_mode" size="medium" />
           </div>
         </div>
       </NCollapseItem>

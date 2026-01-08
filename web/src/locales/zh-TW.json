@@ -127,6 +127,7 @@
         "codeRunner": "程式執行器",
         "artifactMode": "Artifacts",
         "toolDebug": "工具除錯",
+        "toolDebugDescription": "顯示詳細的工具執行日誌",
         "toolRunning": "工具執行中...",
         "deleteChatSessionsConfirm": "確定刪除此記錄?",
         "deleteMessage": "刪除消息",

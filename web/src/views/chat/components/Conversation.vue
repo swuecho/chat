@@ -85,6 +85,12 @@ watch(sessionUuid, async (newSession, oldSession) => {
 const dataSources = computed(() => messageStore.getChatSessionDataByUuid(sessionUuid.value))
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(sessionUuid.value))
 
+// Check if code runner is enabled for the current session
+const isCodeRunnerEnabled = computed(() => chatSession.value?.codeRunnerEnabled ?? false)
+
+// Check if artifacts mode is enabled for the current session
+const isArtifactEnabled = computed(() => chatSession.value?.artifactEnabled ?? false)
+
 // Session loading state - combines message loading and session switching
 const isSessionLoading = computed(() => {
   return messageStore.getIsLoadingBySession(sessionUuid.value) || sessionStore.isSwitchingSession
@@ -105,7 +111,7 @@ const {
 // Use loading state from composables
 const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
 const toolRunning = computed(() => conversationFlow.toolRunning.value)
-const showToolDebug = ref(false)
+const showToolDebug = computed(() => chatSession.value?.showToolDebug ?? false)
 
 const openVfsAtPath = (path: string) => {
   if (vfsUploaderRef.value?.openFileManagerAt) {
@@ -258,10 +264,6 @@ function handleUseQuestion(question: string) {
               <NSpin size="small" />
               <span>{{ $t('chat.toolRunning') }}</span>
             </div>
-            <div class="flex items-center gap-2">
-              <NSwitch v-model:value="showToolDebug" size="small" data-testid="tool_debug_toggle" />
-              <span>{{ $t('chat.toolDebug') }}</span>
-            </div>
           </div>
         </div>
         <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
@@ -319,13 +321,13 @@ function handleUseQuestion(question: string) {
               </HoverButton>
             </NSpin>
 
-            <HoverButton v-if="!isMobile" tooltip="Upload files to VFS for code runners" @click="handleUpload">
+            <HoverButton v-if="!isMobile && isCodeRunnerEnabled" tooltip="Upload files to VFS for code runners" @click="handleUpload">
               <span class="text-xl text-[#4b9e5f] dark:text-white">
                 <SvgIcon icon="mdi:folder-open" />
               </span>
             </HoverButton>
 
-            <HoverButton v-if="!isMobile" @click="toggleArtifactGallery"
+            <HoverButton v-if="!isMobile && isArtifactEnabled" @click="toggleArtifactGallery"
               :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'">
               <span class="text-xl text-[#4b9e5f] dark:text-white">
                 <SvgIcon icon="ri:gallery-line" />
