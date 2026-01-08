@@ -28,6 +28,7 @@ interface Props {
   currentSuggestedQuestionsBatch?: number
   suggestedQuestionsGenerating?: boolean
   exploreMode?: boolean
+  isSticky?: boolean
 }
 
 interface Emit {
@@ -106,7 +107,7 @@ function handleNextSuggestionsBatch() {
 <template>
   <div class="chat-message">
     <p class="text-xs text-[#b4bbc4] text-center">{{ displayLocaleDate(dateTime) }}</p>
-    <div class="flex w-full mb-6" :class="[{ 'flex-row-reverse': inversion }]">
+    <div class="flex w-full" :class="[{ 'flex-row-reverse': inversion }, { 'mb-6': !isSticky }]">
       <div class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
         :class="[inversion ? 'ml-2' : 'mr-2']">
         <AvatarComponent :inversion="inversion" :model="model" />

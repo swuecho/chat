@@ -1,22 +1,25 @@
 <template>
         <template v-for="(item, index) of dataSources" :key="item.uuid || `message-${index}`">
-                <Message v-if="shouldShowMessage(item)" :date-time="item.dateTime"
-                        :model="item?.model || chatSession?.model" :text="getDisplayText(item.text)" :inversion="item.inversion" :error="item.error"
-                        :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :index="index"
-                        :artifacts="item.artifacts" :suggested-questions="item.suggestedQuestions" 
-                        :suggested-questions-loading="item.suggestedQuestionsLoading" 
-                        :suggested-questions-batches="item.suggestedQuestionsBatches"
-                        :current-suggested-questions-batch="item.currentSuggestedQuestionsBatch"
-                        :suggested-questions-generating="item.suggestedQuestionsGenerating"
-                        :explore-mode="chatSession?.exploreMode"
-                        @regenerate="onRegenerate(index)" 
-                        @toggle-pin="handleTogglePin(index)" 
-                        @delete="handleDelete(index)" 
-                        @after-edit="handleAfterEdit" 
-                        @use-question="handleUseQuestion"
-                        @generate-more-suggestions="handleGenerateMoreSuggestions(index)"
-                        @previous-suggestions-batch="handlePreviousSuggestionsBatch(index)"
-                        @next-suggestions-batch="handleNextSuggestionsBatch(index)" />
+                <div v-if="shouldShowMessage(item)" :class="['message-wrapper', { 'first-message-sticky': index === 0 }]">
+                        <Message :date-time="item.dateTime"
+                                :model="item?.model || chatSession?.model" :text="getDisplayText(item.text)" :inversion="item.inversion" :error="item.error"
+                                :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :index="index"
+                                :artifacts="item.artifacts" :suggested-questions="item.suggestedQuestions"
+                                :suggested-questions-loading="item.suggestedQuestionsLoading"
+                                :suggested-questions-batches="item.suggestedQuestionsBatches"
+                                :current-suggested-questions-batch="item.currentSuggestedQuestionsBatch"
+                                :suggested-questions-generating="item.suggestedQuestionsGenerating"
+                                :explore-mode="chatSession?.exploreMode"
+                                :is-sticky="index === 0"
+                                @regenerate="onRegenerate(index)"
+                                @toggle-pin="handleTogglePin(index)"
+                                @delete="handleDelete(index)"
+                                @after-edit="handleAfterEdit"
+                                @use-question="handleUseQuestion"
+                                @generate-more-suggestions="handleGenerateMoreSuggestions(index)"
+                                @previous-suggestions-batch="handlePreviousSuggestionsBatch(index)"
+                                @next-suggestions-batch="handleNextSuggestionsBatch(index)" />
+                </div>
         </template>
 </template>
 
@@ -163,3 +166,21 @@ function handleNextSuggestionsBatch(index: number) {
 
 
 </script>
+
+<style scoped>
+.message-wrapper {
+        width: 100%;
+}
+
+.first-message-sticky {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(8px);
+}
+
+.dark .first-message-sticky {
+        background-color: rgba(16, 16, 20, 0.95);
+}
+</style>
