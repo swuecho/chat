@@ -253,16 +253,17 @@ class MessageBubble extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Pin/Unpin option
-            ListTile(
-              leading: Icon(
-                message.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+            if (message.role != MessageRole.system)
+              ListTile(
+                leading: Icon(
+                  message.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                ),
+                title: Text(message.isPinned ? 'Unpin' : 'Pin'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  onTogglePin?.call();
+                },
               ),
-              title: Text(message.isPinned ? 'Unpin' : 'Pin'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                onTogglePin?.call();
-              },
-            ),
             // Copy option
             ListTile(
               leading: const Icon(Icons.copy),

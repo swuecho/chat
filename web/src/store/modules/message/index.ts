@@ -3,8 +3,12 @@ import {
   getChatMessagesBySessionUUID,
   clearSessionChatMessages,
   generateMoreSuggestions,
-  deleteChatMessage,
 } from '@/api'
+import { deleteChatData } from '@/api'
+import { createChatPrompt } from '@/api/chat_prompt'
+import { DEFAULT_SYSTEM_PROMPT } from '@/constants/chat'
+import { nowISO } from '@/utils/date'
+import { v7 as uuidv7 } from 'uuid'
 import { useSessionStore } from '../session'
 
 export interface MessageState {
@@ -85,6 +89,33 @@ export const useMessageStore = defineStore('message-store', {
           return message
         })
         
+        if (processedMessageData.length === 0) {
+          try {
+            const prompt = await createChatPrompt({
+              uuid: uuidv7(),
+              chatSessionUuid: sessionUuid,
+              role: 'system',
+              content: DEFAULT_SYSTEM_PROMPT,
+              tokenCount: 0,
+              userId: 0,
+              createdBy: 0,
+              updatedBy: 0,
+            })
+
+            processedMessageData.unshift({
+              uuid: prompt.uuid,
+              dateTime: prompt.updatedAt || nowISO(),
+              text: prompt.content || DEFAULT_SYSTEM_PROMPT,
+              inversion: true,
+              error: false,
+              loading: false,
+              isPrompt: true,
+            })
+          } catch (error) {
+            console.error(`Failed to create default system prompt for session ${sessionUuid}:`, error)
+          }
+        }
+
         this.chat[sessionUuid] = processedMessageData
 
         // Update active session if needed
@@ -131,8 +162,12 @@ export const useMessageStore = defineStore('message-store', {
 
     async removeMessage(sessionUuid: string, messageUuid: string) {
       try {
+        const message = this.chat[sessionUuid]?.find(msg => msg.uuid === messageUuid)
+        if (!message) {
+          return
+        }
         // Call the API to delete the message from the server
-        await deleteChatMessage(messageUuid)
+        await deleteChatData(message)
         // Remove the message from local state after successful API call
         if (this.chat[sessionUuid]) {
           this.chat[sessionUuid] = this.chat[sessionUuid].filter(

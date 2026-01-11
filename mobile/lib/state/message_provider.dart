@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'dart:convert';
 
 import '../api/chat_api.dart';
+import '../constants/chat.dart';
 import '../models/chat_message.dart';
 import 'auth_provider.dart';
 import '../utils/api_error.dart';
@@ -63,7 +64,20 @@ class MessageNotifier extends StateNotifier<MessageState> {
       return;
     }
     try {
-      final messages = await _api.fetchMessages(sessionId: sessionId);
+      var messages = await _api.fetchMessages(sessionId: sessionId);
+      if (messages.isEmpty) {
+        try {
+          final promptId = DateTime.now().microsecondsSinceEpoch.toString();
+          final prompt = await _api.createChatPrompt(
+            sessionId: sessionId,
+            promptId: promptId,
+            content: defaultSystemPrompt,
+          );
+          messages = [prompt];
+        } catch (error) {
+          // Keep loading messages even if the prompt creation fails.
+        }
+      }
       final remaining = state.messages
           .where((message) => message.sessionId != sessionId)
           .toList();
@@ -544,7 +558,21 @@ class MessageNotifier extends StateNotifier<MessageState> {
       if (!await _ensureAuth()) {
         return 'Please log in first.';
       }
-      await _api.deleteMessage(messageId);
+      final message = state.messages.firstWhere(
+        (message) => message.id == messageId,
+        orElse: () => ChatMessage(
+          id: messageId,
+          sessionId: '',
+          role: MessageRole.assistant,
+          content: '',
+          createdAt: DateTime.now(),
+        ),
+      );
+      if (message.role == MessageRole.system) {
+        await _api.deleteChatPrompt(messageId);
+      } else {
+        await _api.deleteMessage(messageId);
+      }
       final updatedMessages = state.messages
           .where((message) => message.id != messageId)
           .toList();
