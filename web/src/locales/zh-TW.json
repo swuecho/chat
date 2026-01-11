@@ -105,6 +105,7 @@
         "chatSettings": "對話設定",
         "codeRunnerDescription": "在沙盒環境中執行代碼片段",
         "debugDescription": "啟用調試模式用於故障排除和診斷",
+        "defaultSystemPrompt": "你是一個有幫助且簡明的助手。需要時先提出澄清問題。給出準確答案，並提供簡短理由和可執行步驟。不確定時要說明，並建議如何驗證。",
         "exploreModeDescription": "基於對話上下文獲取建議問題",
         "loading_models": "正在載入模型...",
         "modes": "模式",

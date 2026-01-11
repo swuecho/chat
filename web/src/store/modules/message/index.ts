@@ -6,7 +6,7 @@ import {
 } from '@/api'
 import { deleteChatData } from '@/api'
 import { createChatPrompt } from '@/api/chat_prompt'
-import { DEFAULT_SYSTEM_PROMPT } from '@/constants/chat'
+import { getDefaultSystemPrompt } from '@/constants/chat'
 import { nowISO } from '@/utils/date'
 import { v7 as uuidv7 } from 'uuid'
 import { useSessionStore } from '../session'
@@ -91,11 +91,12 @@ export const useMessageStore = defineStore('message-store', {
         
         if (processedMessageData.length === 0) {
           try {
+            const defaultPrompt = getDefaultSystemPrompt()
             const prompt = await createChatPrompt({
               uuid: uuidv7(),
               chatSessionUuid: sessionUuid,
               role: 'system',
-              content: DEFAULT_SYSTEM_PROMPT,
+              content: defaultPrompt,
               tokenCount: 0,
               userId: 0,
               createdBy: 0,
@@ -105,7 +106,7 @@ export const useMessageStore = defineStore('message-store', {
             processedMessageData.unshift({
               uuid: prompt.uuid,
               dateTime: prompt.updatedAt || nowISO(),
-              text: prompt.content || DEFAULT_SYSTEM_PROMPT,
+              text: prompt.content || defaultPrompt,
               inversion: true,
               error: false,
               loading: false,

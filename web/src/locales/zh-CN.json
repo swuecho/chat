@@ -86,6 +86,7 @@
     "artifactModeDescription": "启用代码、预览和可视化的 Artifact 渲染",
     "codeRunnerDescription": "在沙盒环境中执行代码片段",
     "debugDescription": "启用调试模式用于故障排除和诊断",
+    "defaultSystemPrompt": "你是一个有帮助且简明的助手。需要时先提出澄清问题。给出准确答案，并提供简短理由和可执行步骤。不确定时要说明，并建议如何验证。",
     "exploreModeDescription": "基于对话上下文获取建议问题",
     "loading_models": "正在加载模型...",
     "modes": "模式",

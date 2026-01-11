@@ -71,7 +71,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
           final prompt = await _api.createChatPrompt(
             sessionId: sessionId,
             promptId: promptId,
-            content: defaultSystemPrompt,
+            content: defaultSystemPromptForLocale(),
           );
           messages = [prompt];
         } catch (error) {
