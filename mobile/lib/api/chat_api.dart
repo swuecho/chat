@@ -129,6 +129,67 @@ class ChatApi {
         .toList();
   }
 
+  Future<ChatMessage> createChatPrompt({
+    required String sessionId,
+    required String promptId,
+    required String content,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/chat_prompts');
+    debugPrint('POST $uri');
+    final response = await _client.post(
+      uri,
+      headers: _defaultHeaders(),
+      body: jsonEncode({
+        'uuid': promptId,
+        'chatSessionUuid': sessionId,
+        'role': 'system',
+        'content': content,
+        'tokenCount': 0,
+        'userId': 0,
+        'createdBy': 0,
+        'updatedBy': 0,
+      }),
+    );
+    debugPrint('Create chat prompt response ${response.statusCode}: ${response.body}');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw _parseApiError(response.statusCode, response.body);
+    }
+
+    final payload = jsonDecode(response.body);
+    if (payload is Map<String, dynamic>) {
+      final createdId = _asString(payload['uuid']) ?? promptId;
+      final createdAt =
+          _asDateTime(payload['updatedAt'] ?? payload['createdAt']) ??
+              DateTime.now();
+      return ChatMessage(
+        id: createdId,
+        sessionId: sessionId,
+        role: MessageRole.system,
+        content: content,
+        createdAt: createdAt,
+      );
+    }
+    return ChatMessage(
+      id: promptId,
+      sessionId: sessionId,
+      role: MessageRole.system,
+      content: content,
+      createdAt: DateTime.now(),
+    );
+  }
+
+  Future<void> deleteChatPrompt(String promptId) async {
+    final uri = Uri.parse('$baseUrl/api/uuid/chat_prompts/$promptId');
+    debugPrint('DELETE $uri');
+    final response = await _client.delete(uri, headers: _defaultHeaders());
+    debugPrint('Delete chat prompt response ${response.statusCode}: ${response.body}');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw _parseApiError(response.statusCode, response.body);
+    }
+  }
+
   Future<void> streamChatResponse({
     required String sessionId,
     required String chatUuid,
@@ -505,6 +566,32 @@ class ChatApi {
     }
     if (value is String) {
       return int.tryParse(value);
+    }
+    return null;
+  }
+
+  String? _asString(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is String) {
+      return value;
+    }
+    return value.toString();
+  }
+
+  DateTime? _asDateTime(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is DateTime) {
+      return value;
+    }
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    if (value is String) {
+      return DateTime.tryParse(value);
     }
     return null;
   }
