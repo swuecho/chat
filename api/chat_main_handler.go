@@ -341,7 +341,78 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, chatMessage.SuggestedQuestions)
 	}
 
+	// Generate a better title using LLM for the first exchange
+	h.generateSessionTitle(ctx, chatSession, userID)
+
 	return true
+}
+
+// generateSessionTitle generates a better title using LLM for the first message exchange
+// It checks if this is the first assistant message in the session, and if so,
+// generates a more descriptive title using Gemini
+func (h *ChatHandler) generateSessionTitle(ctx context.Context, chatSession *sqlc_queries.ChatSession, userID int32) {
+	// Only generate title for the first assistant message
+	// Get all messages to check if this is the first exchange
+	messages, err := h.service.q.GetChatMessagesBySessionUUID(ctx, sqlc_queries.GetChatMessagesBySessionUUIDParams{
+		Uuid:   chatSession.Uuid,
+		Offset: 0,
+		Limit:  100,
+	})
+	if err != nil {
+		log.Printf("Warning: Failed to get messages for title generation: %v", err)
+		return
+	}
+
+	// Count user and assistant messages
+	var userCount, assistantCount int
+	var chatText string
+	for _, msg := range messages {
+		if msg.Role == "user" {
+			userCount++
+			chatText += "user: " + msg.Content + "\n"
+		} else if msg.Role == "assistant" {
+			assistantCount++
+			chatText += "assistant: " + msg.Content + "\n"
+		}
+	}
+
+	// Only generate title if we have exactly 1 user message and 1 assistant message (first exchange)
+	if userCount != 1 || assistantCount != 1 {
+		return
+	}
+
+	// Use the same approach as chat_snapshot_service.go - check if gemini-2.0-flash is available
+	model := "gemini-2.0-flash"
+	_, err = h.service.q.ChatModelByName(ctx, model)
+	if err != nil {
+		// Model not available, skip title generation
+		return
+	}
+
+	// Generate title using Gemini
+	genTitle, err := GenerateChatTitle(ctx, model, chatText)
+	if err != nil {
+		log.Printf("Warning: Failed to generate session title: %v", err)
+		return
+	}
+
+	if genTitle == "" {
+		return
+	}
+
+	// Update the session title
+	updateParams := sqlc_queries.UpdateChatSessionTopicByUUIDParams{
+		Uuid:   chatSession.Uuid,
+		UserID: userID,
+		Topic:  genTitle,
+	}
+	_, err = h.service.q.UpdateChatSessionTopicByUUID(ctx, updateParams)
+	if err != nil {
+		log.Printf("Warning: Failed to update session title: %v", err)
+		return
+	}
+
+	log.Printf("Generated LLM title for session %s: %s", chatSession.Uuid, genTitle)
 }
 
 // sendSuggestedQuestionsStream sends suggested questions as a separate streaming event
