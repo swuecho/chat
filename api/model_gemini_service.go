@@ -110,7 +110,7 @@ func GenerateChatTitle(ctx context.Context, model, chatText string) (string, err
 	messages := []models.Message{
 		{
 			Role:    "user",
-			Content: "Generate a concise and descriptive title (max 10 words) for this chat conversation, no special characters.",
+			Content: `Generate a short title (3-6 words) for this conversation. Output ONLY the title text, no quotes, no markdown, no prefixes like "Title:". Example: "Python list comprehension guide"`,
 		},
 		{
 			Role:    "user",
@@ -144,6 +144,18 @@ func GenerateChatTitle(ctx context.Context, model, chatText string) (string, err
 	title := strings.TrimSpace(answer.Answer)
 	title = strings.Trim(title, `"`)
 	title = strings.Trim(title, `*`)
+	title = strings.Trim(title, `#`)
+	// Remove common prefixes
+	title = strings.TrimPrefix(title, "Title:")
+	title = strings.TrimPrefix(title, "title:")
+	title = strings.TrimPrefix(title, "Title: ")
+	title = strings.TrimPrefix(title, "title: ")
+	title = strings.TrimSpace(title)
+	// Remove any remaining markdown or special characters at the start
+	for strings.HasPrefix(title, "#") || strings.HasPrefix(title, "-") || strings.HasPrefix(title, "*") {
+		title = strings.TrimLeft(title, "#-* ")
+		title = strings.TrimSpace(title)
+	}
 	if title == "" {
 		return "", ErrInternalUnexpected.WithMessage("Invalid title generated")
 	}
