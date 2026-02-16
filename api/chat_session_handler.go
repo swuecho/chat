@@ -98,15 +98,15 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		Uuid:          sessionParams.Uuid,
 		UserID:        userIDInt,
 		Topic:         sessionParams.Topic,
-		MaxLength:     10,
-		Temperature:   0.7, // Default values
+		MaxLength:     DefaultMaxLength,
+		Temperature:   DefaultTemperature,
 		Model:         sessionParams.Model,
-		MaxTokens:     4096, // Default values
-		TopP:          1.0,  // Default values
-		N:             1,    // Default values
+		MaxTokens:     DefaultMaxTokens,
+		TopP:          DefaultTopP,
+		N:             DefaultN,
 		Debug:         false,
 		SummarizeMode: false,
-		ExploreMode:   false, // Default values
+		ExploreMode:   false,
 		ArtifactEnabled: false,
 		WorkspaceID:   sql.NullInt32{Int32: defaultWorkspace.ID, Valid: true},
 	}
@@ -161,7 +161,7 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 		return
 	}
 	if sessionReq.MaxLength == 0 {
-		sessionReq.MaxLength = 10
+		sessionReq.MaxLength = DefaultMaxLength
 	}
 
 	ctx := r.Context()

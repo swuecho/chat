@@ -158,3 +158,9 @@ func getLimitParam(r *http.Request, defaultLimit int32) int32 {
 	}
 	return int32(limit)
 }
+
+// DecodeJSON decodes JSON from the request body into the target.
+// Target must be a pointer.
+func DecodeJSON(r *http.Request, target interface{}) error {
+	return json.NewDecoder(r.Body).Decode(target)
+}

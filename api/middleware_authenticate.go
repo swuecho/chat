@@ -163,7 +163,7 @@ func IsChatSnapshotUUID(r *http.Request) bool {
 	return false
 }
 
-func AdminOnlyHander(h http.Handler) http.Handler {
+func AdminOnlyHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		userRole, ok := ctx.Value(roleContextKey).(string)

@@ -461,7 +461,7 @@ func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, mo
 	// Create a simple chat completion request for generating suggestions
 	req := openai.ChatCompletionRequest{
 		Model:       model.Name,
-		Temperature: 0.7, // Slightly creative but not too random
+		Temperature: DefaultTemperature,
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    "user",
