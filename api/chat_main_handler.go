@@ -8,6 +8,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	openai "github.com/sashabaranov/go-openai"
@@ -341,8 +342,8 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, chatMessage.SuggestedQuestions)
 	}
 
-	// Generate a better title using LLM for the first exchange
-	h.generateSessionTitle(ctx, chatSession, userID)
+	// Generate a better title using LLM for the first exchange (async, non-blocking)
+	go h.generateSessionTitle(ctx, chatSession, userID)
 
 	return true
 }
@@ -351,6 +352,11 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 // It checks if this is the first assistant message in the session, and if so,
 // generates a more descriptive title using Gemini
 func (h *ChatHandler) generateSessionTitle(ctx context.Context, chatSession *sqlc_queries.ChatSession, userID int32) {
+	// Skip if topic is already set (non-empty and not default)
+	if chatSession.Topic != "" && !strings.HasPrefix(chatSession.Topic, "New Chat") {
+		return
+	}
+
 	// Only generate title for the first assistant message
 	// Get all messages to check if this is the first exchange
 	messages, err := h.service.q.GetChatMessagesBySessionUUID(ctx, sqlc_queries.GetChatMessagesBySessionUUIDParams{
