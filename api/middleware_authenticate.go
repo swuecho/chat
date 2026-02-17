@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,26 +11,7 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-func CheckPermission(userID int, ctx context.Context) bool {
-	contextUserID, ok := ctx.Value("user_id").(int)
-	if !ok {
-		return false
-	}
-	role, ok := ctx.Value("role").(string)
-	if !ok {
-		return false
-	}
-
-	switch role {
-	case "admin":
-		return true
-	case "member":
-		return userID == contextUserID
-	default:
-		return false
-	}
-}
-
+// AuthTokenResult holds the result of JWT token parsing and validation
 type AuthTokenResult struct {
 	Token     *jwt.Token
 	Claims    jwt.MapClaims
@@ -44,6 +24,8 @@ type AuthTokenResult struct {
 
 type contextKey string
 
+// Legacy context keys for request context (used by test helpers like getContextWithUser)
+// These differ from the Gin context keys in context.go which use "user_id" instead of "user"
 const (
 	roleContextKey contextKey = "role"
 	userContextKey contextKey = "user"

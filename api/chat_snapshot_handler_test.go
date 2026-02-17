@@ -26,6 +26,7 @@ func TestChatSnapshot(t *testing.T) {
 	// Register snapshot API routes using Gin
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+	router.Use(GinTestAuthMiddleware()) // Add test middleware to bridge context
 	h.GinRegister(router.Group(""))
 
 	// Add a test user

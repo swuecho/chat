@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/rotisserie/eris"
@@ -75,6 +76,21 @@ func getUserID(ctx context.Context) (int32, error) {
 
 func getContextWithUser(userID int) context.Context {
 	return context.WithValue(context.Background(), userContextKey, strconv.Itoa(userID))
+}
+
+// GinTestAuthMiddleware is a test middleware that extracts user info from request context
+// and sets it in Gin context. This allows tests to use r.WithContext() to set user info.
+func GinTestAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx := c.Request.Context()
+		if userID, ok := ctx.Value(userContextKey).(string); ok {
+			c.Set(ContextKeyUserID, userID)
+		}
+		if role, ok := ctx.Value(roleContextKey).(string); ok {
+			c.Set(ContextKeyRole, role)
+		}
+		c.Next()
+	}
 }
 
 func setSSEHeader(w http.ResponseWriter) {

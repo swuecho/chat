@@ -93,6 +93,7 @@ func TestChatModelTest(t *testing.T) {
 	h := NewChatModelHandler(q) // create a new ChatModelHandler instance for testing
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+	router.Use(GinTestAuthMiddleware()) // Add test middleware to bridge context
 	h.GinRegister(router.Group(""))
 	// delete all existing chat APIs
 	clearChatModelsIfExists(q)
