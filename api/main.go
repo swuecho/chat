@@ -12,8 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -82,9 +81,6 @@ func main() {
 	// Allow only 3000 requests per minute, with burst 500
 	openAIRateLimiter = rate.NewLimiter(rate.Every(time.Minute/3000), 500)
 
-	// A buffered channel with capacity 1
-	// This ensures only one API call can proceed at a time
-
 	lastRequest = time.Now()
 	// Configure viper to read environment variables
 	bindEnvironmentVariables()
@@ -136,12 +132,6 @@ func main() {
 	}
 	fmt.Println("SQL statements executed successfully")
 
-	// create a new Gorilla Mux router instance
-	// Create a new router
-	router := mux.NewRouter()
-
-	apiRouter := router.PathPrefix("/api").Subrouter()
-
 	sqlc_q := sqlc_queries.New(pgdb)
 	secretService := NewJWTSecretService(sqlc_q)
 	jwtSecretAndAud, err = secretService.GetOrCreateJwtSecret(context.Background(), "chat")
@@ -149,185 +139,79 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Create separate subrouters for admin and user routes
-	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
-	userRouter := apiRouter.NewRoute().Subrouter()
+	// Create services container
+	services := &Services{
+		SQLC:        sqlc_q,
+		SecretSvc:   secretService,
+		AuthUserSvc: NewAuthUserService(sqlc_q),
+	}
 
-	// Apply different middleware to admin and user routes
-	adminRouter.Use(AdminAuthMiddleware)
-	userRouter.Use(UserAuthMiddleware)
+	// Setup Gin router
+	ginRouter := SetupRouter(services, jwtSecretAndAud)
 
-	ChatModelHandler := NewChatModelHandler(sqlc_q)
-	ChatModelHandler.Register(userRouter) // Chat models for regular users
+	// Setup static file serving for Gin
+	setupGinStaticFiles(ginRouter)
 
-	// create a new AuthUserHandler instance for user routes
-	userHandler := NewAuthUserHandler(sqlc_q)
-	// register authenticated routes with the user router
-	userHandler.Register(userRouter)
-	// register public routes (login/signup) with the api router (no auth required)
-	userHandler.RegisterPublicRoutes(apiRouter)
+	// Print routes for debugging
+	PrintRoutes(ginRouter)
 
-	// create a new AdminHandler instance for admin-only routes
-	authUserService := NewAuthUserService(sqlc_q)
-	adminHandler := NewAdminHandler(authUserService)
-	// register the AdminHandler with the admin router (will remove /admin prefix automatically)
-	adminHandler.RegisterRoutes(adminRouter)
-
-	promptHandler := NewChatPromptHandler(sqlc_q)
-	promptHandler.Register(userRouter)
-
-	chatSessionHandler := NewChatSessionHandler(sqlc_q)
-	chatSessionHandler.Register(userRouter)
-
-	// Register active session handler before workspace handler to avoid route shadowing
-	activeSessionHandler := NewUserActiveChatSessionHandler(sqlc_q)
-	activeSessionHandler.Register(userRouter)
-
-	chatWorkspaceHandler := NewChatWorkspaceHandler(sqlc_q)
-	chatWorkspaceHandler.Register(userRouter)
-
-	chatMessageHandler := NewChatMessageHandler(sqlc_q)
-	chatMessageHandler.Register(userRouter)
-
-	chatSnapshotHandler := NewChatSnapshotHandler(sqlc_q)
-	chatSnapshotHandler.Register(userRouter)
-
-	// create a new ChatHandler instance
-	chatHandler := NewChatHandler(sqlc_q)
-	chatHandler.Register(userRouter)
-
-	user_model_privilege_handler := NewUserChatModelPrivilegeHandler(sqlc_q)
-	user_model_privilege_handler.Register(userRouter)
-
-	chatFileHandler := NewChatFileHandler(sqlc_q)
-	chatFileHandler.Register(userRouter)
-
-	chatCommentHandler := NewChatCommentHandler(sqlc_q)
-	chatCommentHandler.Register(userRouter)
-
-	botAnswerHistoryHandler := NewBotAnswerHistoryHandler(sqlc_q)
-	botAnswerHistoryHandler.Register(userRouter)
-
-	apiRouter.HandleFunc("/tts", handleTTSRequest)
-	apiRouter.HandleFunc("/errors", ErrorCatalogHandler)
-
-	// Embed static/* directory
-	fs := http.FileServer(http.FS(static.StaticFiles))
-
-	// Set cache headers for static/assets files
-	cacheHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/static/") {
-			w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
-		} else if r.URL.Path == "" {
-			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-			w.Header().Set("Pragma", "no-cache")
-			w.Header().Set("Expires", "0")
-		}
-		fs.ServeHTTP(w, r)
-	})
-
-	router.PathPrefix("/").Handler(makeGzipHandler(cacheHandler))
-
-	// fly.io
+	// Fly.io idle shutdown
 	if os.Getenv("FLY_APP_NAME") != "" {
-		router.Use(UpdateLastRequestTime)
+		setupFlyIdleShutdown()
 	}
 
-	// Apply rate limiting to authenticated routes only
-	limitedRouter := RateLimitByUserID(sqlc_q)
-	adminRouter.Use(limitedRouter)
-	userRouter.Use(limitedRouter)
-
-	// Public routes (apiRouter) don't need authentication or rate limiting
-	// TTS and errors endpoints are public
-	// Add CORS middleware to handle cross-origin requests
-	defaultOrigins := []string{"http://localhost:9002", "http://localhost:3000"}
-	allowedOrigins := append([]string{}, defaultOrigins...)
-	restrictToConfigured := false
-	if corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); corsOrigins != "" {
-		parts := strings.Split(corsOrigins, ",")
-		allowedOrigins = allowedOrigins[:0]
-		for _, origin := range parts {
-			trimmed := strings.TrimSpace(origin)
-			if trimmed == "" {
-				continue
-			}
-			allowedOrigins = append(allowedOrigins, trimmed)
-		}
-		restrictToConfigured = true
-	}
-
-	originValidator := func(origin string) bool {
-		if len(allowedOrigins) == 0 {
-			return true
-		}
-		for _, allowed := range allowedOrigins {
-			if allowed == "*" {
-				return true
-			}
-			if strings.EqualFold(origin, allowed) {
-				return true
-			}
-		}
-		if !restrictToConfigured {
-			if strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "http://127.0.0.1:") {
-				return true
-			}
-			if strings.HasPrefix(origin, "https://localhost:") || strings.HasPrefix(origin, "https://127.0.0.1:") {
-				return true
-			}
-		}
-		return false
-	}
-
-	corsOptions := handlers.CORS(
-		handlers.AllowedOriginValidator(originValidator),
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cache-Control", "Connection", "Pragma", "Accept", "Accept-Language", "Origin", "Referer"}),
-		handlers.AllowCredentials(),
-	)
-
-	// Wrap the router with CORS and logging middleware
-	corsRouter := corsOptions(router)
-	loggedRouter := handlers.LoggingHandler(logger.Out, corsRouter)
-
-	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-		tpl, err1 := route.GetPathTemplate()
-		met, err2 := route.GetMethods()
-		fmt.Println(tpl, err1, met, err2)
-		return nil
-	})
-	// fly.io
-
-	if os.Getenv("FLY_APP_NAME") != "" {
-		// read env var FLY_RESTART_INTERVAL_IF_IDLE if not set, set to 30 minutes
-		restartInterval := os.Getenv("FLY_RESTART_INTERVAL_IF_IDLE")
-
-		// If not set, default to 30 minutes
-		if restartInterval == "" {
-			restartInterval = "30m"
-		}
-
-		duration, err := time.ParseDuration(restartInterval)
-		if err != nil {
-			log.Println("Invalid FLY_RESTART_INTERVAL_IF_IDLE value. Exiting.")
-		}
-		// Use a goroutine to check for inactivity and exit
-		go func() {
-			for {
-				time.Sleep(1 * time.Minute) // Check every minute
-				if time.Since(lastRequest) > duration {
-					fmt.Printf("No activity for %s. Exiting.", restartInterval)
-					os.Exit(0)
-					return
-				}
-			}
-		}()
-
-	}
-
-	err = http.ListenAndServe(":8080", loggedRouter)
+	log.Println("Starting server on :8080")
+	err = http.ListenAndServe(":8080", ginRouter)
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// setupFlyIdleShutdown configures idle shutdown for Fly.io
+func setupFlyIdleShutdown() {
+	restartInterval := os.Getenv("FLY_RESTART_INTERVAL_IF_IDLE")
+
+	// If not set, default to 30 minutes
+	if restartInterval == "" {
+		restartInterval = "30m"
+	}
+
+	duration, err := time.ParseDuration(restartInterval)
+	if err != nil {
+		log.Println("Invalid FLY_RESTART_INTERVAL_IF_IDLE value. Exiting.")
+		return
+	}
+
+	// Use a goroutine to check for inactivity and exit
+	go func() {
+		for {
+			time.Sleep(1 * time.Minute) // Check every minute
+			if time.Since(lastRequest) > duration {
+				fmt.Printf("No activity for %s. Exiting.", restartInterval)
+				os.Exit(0)
+				return
+			}
+		}
+	}()
+}
+
+// setupGinStaticFiles configures static file serving for Gin router
+func setupGinStaticFiles(r *gin.Engine) {
+	// Static files are served from embedded FS
+	r.NoRoute(func(c *gin.Context) {
+		path := c.Request.URL.Path
+
+		// Check if it's a static asset request
+		if strings.HasPrefix(path, "/static/") {
+			c.Header("Cache-Control", "max-age=31536000") // 1 year
+		} else if path == "/" || path == "" {
+			c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+			c.Header("Pragma", "no-cache")
+			c.Header("Expires", "0")
+		}
+
+		// Serve from embedded static files
+		fs := http.FileServer(http.FS(static.StaticFiles))
+		fs.ServeHTTP(c.Writer, c.Request)
+	})
 }

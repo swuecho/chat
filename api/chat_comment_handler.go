@@ -1,11 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -20,32 +19,32 @@ func NewChatCommentHandler(sqlc_q *sqlc_queries.Queries) *ChatCommentHandler {
 	}
 }
 
-func (h *ChatCommentHandler) Register(router *mux.Router) {
-	router.HandleFunc("/uuid/chat_sessions/{sessionUUID}/chat_messages/{messageUUID}/comments", h.CreateChatComment).Methods(http.MethodPost)
-	router.HandleFunc("/uuid/chat_sessions/{sessionUUID}/comments", h.GetCommentsBySessionUUID).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/chat_messages/{messageUUID}/comments", h.GetCommentsByMessageUUID).Methods(http.MethodGet)
+// GinRegister registers routes with Gin router
+func (h *ChatCommentHandler) GinRegister(rg *gin.RouterGroup) {
+	rg.POST("/uuid/chat_sessions/:sessionUUID/chat_messages/:messageUUID/comments", h.GinCreateChatComment)
+	rg.GET("/uuid/chat_sessions/:sessionUUID/comments", h.GinGetCommentsBySessionUUID)
+	rg.GET("/uuid/chat_messages/:messageUUID/comments", h.GinGetCommentsByMessageUUID)
 }
 
-func (h *ChatCommentHandler) CreateChatComment(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	sessionUUID := vars["sessionUUID"]
-	messageUUID := vars["messageUUID"]
+func (h *ChatCommentHandler) GinCreateChatComment(c *gin.Context) {
+	sessionUUID := c.Param("sessionUUID")
+	messageUUID := c.Param("messageUUID")
 
 	var req struct {
 		Content string `json:"content"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()).GinResponse(c)
 		return
 	}
 
-	userID, err := getUserID(r.Context())
+	userID, err := GetUserID(c)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("unauthorized").WithDebugInfo(err.Error()))
+		ErrAuthInvalidCredentials.WithMessage("unauthorized").WithDebugInfo(err.Error()).GinResponse(c)
 		return
 	}
 
-	comment, err := h.service.CreateChatComment(r.Context(), sqlc_queries.CreateChatCommentParams{
+	comment, err := h.service.CreateChatComment(c.Request.Context(), sqlc_queries.CreateChatCommentParams{
 		Uuid:            uuid.New().String(),
 		ChatSessionUuid: sessionUUID,
 		ChatMessageUuid: messageUUID,
@@ -53,34 +52,33 @@ func (h *ChatCommentHandler) CreateChatComment(w http.ResponseWriter, r *http.Re
 		CreatedBy:       userID,
 	})
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to create chat comment"))
+		WrapError(MapDatabaseError(err), "Failed to create chat comment").GinResponse(c)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(comment)
+	c.JSON(http.StatusCreated, comment)
 }
 
-func (h *ChatCommentHandler) GetCommentsBySessionUUID(w http.ResponseWriter, r *http.Request) {
-	sessionUUID := mux.Vars(r)["sessionUUID"]
+func (h *ChatCommentHandler) GinGetCommentsBySessionUUID(c *gin.Context) {
+	sessionUUID := c.Param("sessionUUID")
 
-	comments, err := h.service.GetCommentsBySessionUUID(r.Context(), sessionUUID)
+	comments, err := h.service.GetCommentsBySessionUUID(c.Request.Context(), sessionUUID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get comments by session"))
+		WrapError(MapDatabaseError(err), "Failed to get comments by session").GinResponse(c)
 		return
 	}
 
-	json.NewEncoder(w).Encode(comments)
+	c.JSON(http.StatusOK, comments)
 }
 
-func (h *ChatCommentHandler) GetCommentsByMessageUUID(w http.ResponseWriter, r *http.Request) {
-	messageUUID := mux.Vars(r)["messageUUID"]
+func (h *ChatCommentHandler) GinGetCommentsByMessageUUID(c *gin.Context) {
+	messageUUID := c.Param("messageUUID")
 
-	comments, err := h.service.GetCommentsByMessageUUID(r.Context(), messageUUID)
+	comments, err := h.service.GetCommentsByMessageUUID(c.Request.Context(), messageUUID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get comments by message"))
+		WrapError(MapDatabaseError(err), "Failed to get comments by message").GinResponse(c)
 		return
 	}
 
-	json.NewEncoder(w).Encode(comments)
+	c.JSON(http.StatusOK, comments)
 }

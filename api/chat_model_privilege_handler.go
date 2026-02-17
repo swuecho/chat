@@ -2,14 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -26,12 +25,12 @@ func NewUserChatModelPrivilegeHandler(db *sqlc_queries.Queries) *UserChatModelPr
 	}
 }
 
-// Register sets up the handler routes
-func (h *UserChatModelPrivilegeHandler) Register(r *mux.Router) {
-	r.HandleFunc("/admin/user_chat_model_privilege", h.ListUserChatModelPrivileges).Methods(http.MethodGet)
-	r.HandleFunc("/admin/user_chat_model_privilege", h.CreateUserChatModelPrivilege).Methods(http.MethodPost)
-	r.HandleFunc("/admin/user_chat_model_privilege/{id}", h.DeleteUserChatModelPrivilege).Methods(http.MethodDelete)
-	r.HandleFunc("/admin/user_chat_model_privilege/{id}", h.UpdateUserChatModelPrivilege).Methods(http.MethodPut)
+// GinRegister registers routes with Gin router (note: these go under /admin)
+func (h *UserChatModelPrivilegeHandler) GinRegister(rg *gin.RouterGroup) {
+	rg.GET("/user_chat_model_privilege", h.GinListUserChatModelPrivileges)
+	rg.POST("/user_chat_model_privilege", h.GinCreateUserChatModelPrivilege)
+	rg.DELETE("/user_chat_model_privilege/:id", h.GinDeleteUserChatModelPrivilege)
+	rg.PUT("/user_chat_model_privilege/:id", h.GinUpdateUserChatModelPrivilege)
 }
 
 type ChatModelPrivilege struct {
@@ -42,12 +41,14 @@ type ChatModelPrivilege struct {
 	RateLimit     int32  `json:"rateLimit"`
 }
 
-// ListUserChatModelPrivileges handles GET requests to list all user chat model privileges
-func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivileges(w http.ResponseWriter, r *http.Request) {
-	// TODO: check user is super_user
-	userChatModelRows, err := h.db.ListUserChatModelPrivilegesRateLimit(r.Context())
+// =============================================================================
+// Gin Handlers
+// =============================================================================
+
+func (h *UserChatModelPrivilegeHandler) GinListUserChatModelPrivileges(c *gin.Context) {
+	userChatModelRows, err := h.db.ListUserChatModelPrivilegesRateLimit(c.Request.Context())
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to list user chat model privileges"))
+		WrapError(err, "failed to list user chat model privileges").GinResponse(c)
 		return
 	}
 
@@ -62,76 +63,55 @@ func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivileges(w http.Respo
 		}
 	})
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(output)
+	c.JSON(http.StatusOK, output)
 }
 
-func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("invalid user chat model privilege ID"))
-		return
-	}
-
-	userChatModelPrivilege, err := h.db.UserChatModelPrivilegeByID(r.Context(), int32(id))
-	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get user chat model privilege"))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(userChatModelPrivilege)
-}
-
-// CreateUserChatModelPrivilege handles POST requests to create a new user chat model privilege
-func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.ResponseWriter, r *http.Request) {
+func (h *UserChatModelPrivilegeHandler) GinCreateUserChatModelPrivilege(c *gin.Context) {
 	var input ChatModelPrivilege
-	err := json.NewDecoder(r.Body).Decode(&input)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse request body"))
+	if err := c.ShouldBindJSON(&input); err != nil {
+		ErrValidationInvalidInput("failed to parse request body").GinResponse(c)
 		return
 	}
 
-	// Validate input
 	if input.UserEmail == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("user email is required"))
+		ErrValidationInvalidInput("user email is required").GinResponse(c)
 		return
 	}
 	if input.ChatModelName == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("chat model name is required"))
+		ErrValidationInvalidInput("chat model name is required").GinResponse(c)
 		return
 	}
 	if input.RateLimit <= 0 {
-		RespondWithAPIError(w, ErrValidationInvalidInput("rate limit must be positive").WithMessage(
-			fmt.Sprintf("invalid rate limit: %d", input.RateLimit)))
+		ErrValidationInvalidInput("rate limit must be positive").WithMessage(
+			fmt.Sprintf("invalid rate limit: %d", input.RateLimit)).GinResponse(c)
 		return
 	}
 
 	log.Printf("Creating chat model privilege for user %s with model %s",
 		input.UserEmail, input.ChatModelName)
 
-	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
+	user, err := h.db.GetAuthUserByEmail(c.Request.Context(), input.UserEmail)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrResourceNotFound("user").WithMessage(
-				fmt.Sprintf("user with email %s not found", input.UserEmail)))
+			ErrResourceNotFound("user").WithMessage(
+				fmt.Sprintf("user with email %s not found", input.UserEmail)).GinResponse(c)
 		} else {
-			RespondWithAPIError(w, WrapError(err, "failed to get user by email"))
+			WrapError(err, "failed to get user by email").GinResponse(c)
 		}
 		return
 	}
 
-	chatModel, err := h.db.ChatModelByName(r.Context(), input.ChatModelName)
+	chatModel, err := h.db.ChatModelByName(c.Request.Context(), input.ChatModelName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrChatModelNotFound.WithMessage(fmt.Sprintf("chat model %s not found", input.ChatModelName)))
+			ErrChatModelNotFound.WithMessage(fmt.Sprintf("chat model %s not found", input.ChatModelName)).GinResponse(c)
 		} else {
-			RespondWithAPIError(w, WrapError(err, "failed to get chat model"))
+			WrapError(err, "failed to get chat model").GinResponse(c)
 		}
 		return
 	}
 
-	userChatModelPrivilege, err := h.db.CreateUserChatModelPrivilege(r.Context(), sqlc_queries.CreateUserChatModelPrivilegeParams{
+	userChatModelPrivilege, err := h.db.CreateUserChatModelPrivilege(c.Request.Context(), sqlc_queries.CreateUserChatModelPrivilegeParams{
 		UserID:      user.ID,
 		ChatModelID: chatModel.ID,
 		RateLimit:   input.RateLimit,
@@ -141,9 +121,9 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrResourceNotFound("chat model privilege"))
+			ErrResourceNotFound("chat model privilege").GinResponse(c)
 		} else {
-			RespondWithAPIError(w, WrapError(err, "failed to create user chat model privilege"))
+			WrapError(err, "failed to create user chat model privilege").GinResponse(c)
 		}
 		return
 	}
@@ -154,41 +134,37 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 		ChatModelName: chatModel.Name,
 		RateLimit:     userChatModelPrivilege.RateLimit,
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(output)
+	c.JSON(http.StatusOK, output)
 }
 
-// UpdateUserChatModelPrivilege handles PUT requests to update a user chat model privilege
-func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (h *UserChatModelPrivilegeHandler) GinUpdateUserChatModelPrivilege(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("invalid user chat model privilege ID"))
+		ErrValidationInvalidInput("invalid user chat model privilege ID").GinResponse(c)
 		return
 	}
 
-	userID, err := getUserID(r.Context())
+	userID, err := GetUserID(c)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID").GinResponse(c)
 		return
 	}
 
 	var input ChatModelPrivilege
-	err = json.NewDecoder(r.Body).Decode(&input)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse request body"))
+	if err := c.ShouldBindJSON(&input); err != nil {
+		ErrValidationInvalidInput("failed to parse request body").GinResponse(c)
 		return
 	}
 
-	// Validate input
 	if input.RateLimit <= 0 {
-		RespondWithAPIError(w, ErrValidationInvalidInput("rate limit must be positive"))
+		ErrValidationInvalidInput("rate limit must be positive").GinResponse(c)
 		return
 	}
 
 	log.Printf("Updating chat model privilege %d for user %d", id, userID)
 
-	userChatModelPrivilege, err := h.db.UpdateUserChatModelPrivilege(r.Context(), sqlc_queries.UpdateUserChatModelPrivilegeParams{
+	userChatModelPrivilege, err := h.db.UpdateUserChatModelPrivilege(c.Request.Context(), sqlc_queries.UpdateUserChatModelPrivilegeParams{
 		ID:        int32(id),
 		RateLimit: input.RateLimit,
 		UpdatedBy: userID,
@@ -196,9 +172,9 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrResourceNotFound("chat model privilege"))
+			ErrResourceNotFound("chat model privilege").GinResponse(c)
 		} else {
-			RespondWithAPIError(w, WrapError(err, "failed to update user chat model privilege"))
+			WrapError(err, "failed to update user chat model privilege").GinResponse(c)
 		}
 		return
 	}
@@ -208,76 +184,26 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 		ChatModelName: input.ChatModelName,
 		RateLimit:     userChatModelPrivilege.RateLimit,
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(output)
+	c.JSON(http.StatusOK, output)
 }
 
-func (h *UserChatModelPrivilegeHandler) DeleteUserChatModelPrivilege(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (h *UserChatModelPrivilegeHandler) GinDeleteUserChatModelPrivilege(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("invalid user chat model privilege ID"))
+		ErrValidationInvalidInput("invalid user chat model privilege ID").GinResponse(c)
 		return
 	}
 
-	err = h.db.DeleteUserChatModelPrivilege(r.Context(), int32(id))
+	err = h.db.DeleteUserChatModelPrivilege(c.Request.Context(), int32(id))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrResourceNotFound("chat model privilege"))
+			ErrResourceNotFound("chat model privilege").GinResponse(c)
 		} else {
-			RespondWithAPIError(w, WrapError(err, "failed to delete user chat model privilege"))
+			WrapError(err, "failed to delete user chat model privilege").GinResponse(c)
 		}
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *UserChatModelPrivilegeHandler) UserChatModelPrivilegeByUserAndModelID(w http.ResponseWriter, r *http.Request) {
-	_, err := getUserID(r.Context())
-	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
-		return
-	}
-
-	var input struct {
-		UserID      int32
-		ChatModelID int32
-	}
-	err = json.NewDecoder(r.Body).Decode(&input)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse request body"))
-		return
-	}
-
-	userChatModelPrivilege, err := h.db.UserChatModelPrivilegeByUserAndModelID(r.Context(),
-		sqlc_queries.UserChatModelPrivilegeByUserAndModelIDParams{
-			UserID:      input.UserID,
-			ChatModelID: input.ChatModelID,
-		})
-
-	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get user chat model privilege"))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(userChatModelPrivilege)
-}
-
-func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivilegesByUserID(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
-	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
-		return
-	}
-
-	privileges, err := h.db.ListUserChatModelPrivilegesByUserID(r.Context(), int32(userID))
-	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to list privileges for user"))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(privileges)
+	c.Status(http.StatusNoContent)
 }

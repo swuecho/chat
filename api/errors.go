@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgconn"
 )
 
@@ -53,6 +54,31 @@ func (e APIError) WithDebugInfo(debugInfo string) APIError {
 
 func (e APIError) Error() string {
 	return fmt.Sprintf("[%s] %s %s", e.Code, e.Message, e.Detail)
+}
+
+// GinResponse writes the APIError as a JSON response using Gin context
+// This is the Gin-compatible version of RespondWithAPIError
+func (e APIError) GinResponse(c *gin.Context) {
+	// Build response with combined detail and debug info
+	detail := e.Detail
+	if e.DebugInfo != "" {
+		if detail != "" {
+			detail = detail + " " + e.DebugInfo
+		} else {
+			detail = e.DebugInfo
+		}
+	}
+
+	// Log error with debug info if available
+	if e.DebugInfo != "" {
+		log.Printf("Error [%s]: %s - %s", e.Code, e.Message, e.DebugInfo)
+	}
+
+	c.JSON(e.HTTPCode, gin.H{
+		"code":    e.Code,
+		"message": e.Message,
+		"detail":  detail,
+	})
 }
 
 // Error code prefixes by domain

@@ -2,53 +2,53 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-// This function returns a middleware that limits requests from each user by their ID.
-func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// GinRateLimitByUserID - Gin middleware for rate limiting by user ID
+func GinRateLimitByUserID(q *sqlc_queries.Queries) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path := c.Request.URL.Path
 
-			// Get the user ID from the request, e.g. from a JWT token.
-			path := r.URL.Path
-			if strings.HasSuffix(path, "/chat") || strings.HasSuffix(path, "/chat_stream") || strings.HasSuffix(path, "/chatbot") {
-				ctx := r.Context()
-				userIDInt, err := getUserID(ctx)
-				// role := ctx.Value(roleContextKey).(string)
-
-				if err != nil {
-					apiErr := ErrAuthInvalidCredentials
-					apiErr.Detail = "User identification required for rate limiting"
-					apiErr.DebugInfo = err.Error()
-					RespondWithAPIError(w, apiErr)
-					return
-				}
-				messageCount, err := q.GetChatMessagesCount(r.Context(), int32(userIDInt))
-				if err != nil {
-					apiErr := ErrInternalUnexpected
-					apiErr.Detail = "Could not get message count for rate limiting"
-					apiErr.DebugInfo = err.Error()
-					RespondWithAPIError(w, apiErr)
-					return
-				}
-				maxRate, err := q.GetRateLimit(r.Context(), int32(userIDInt))
-				if err != nil {
-					maxRate = int32(appConfig.OPENAI.RATELIMIT)
-				}
-
-				if messageCount >= int64(maxRate) {
-					apiErr := ErrTooManyRequests
-					apiErr.Detail = fmt.Sprintf("Rate limit exceeded: messageCount=%d, maxRate=%d", messageCount, maxRate)
-					RespondWithAPIError(w, apiErr)
-					return
-				}
+		// Only apply rate limiting to chat endpoints
+		if strings.HasSuffix(path, "/chat") || strings.HasSuffix(path, "/chat_stream") || strings.HasSuffix(path, "/chatbot") {
+			userIDInt, err := GetUserID(c)
+			if err != nil {
+				apiErr := ErrAuthInvalidCredentials
+				apiErr.Detail = "User identification required for rate limiting"
+				apiErr.DebugInfo = err.Error()
+				apiErr.GinResponse(c)
+				c.Abort()
+				return
 			}
-			// Call the next handler.
-			next.ServeHTTP(w, r)
-		})
+
+			messageCount, err := q.GetChatMessagesCount(c.Request.Context(), userIDInt)
+			if err != nil {
+				apiErr := ErrInternalUnexpected
+				apiErr.Detail = "Could not get message count for rate limiting"
+				apiErr.DebugInfo = err.Error()
+				apiErr.GinResponse(c)
+				c.Abort()
+				return
+			}
+
+			maxRate, err := q.GetRateLimit(c.Request.Context(), userIDInt)
+			if err != nil {
+				maxRate = int32(appConfig.OPENAI.RATELIMIT)
+			}
+
+			if messageCount >= int64(maxRate) {
+				apiErr := ErrTooManyRequests
+				apiErr.Detail = fmt.Sprintf("Rate limit exceeded: messageCount=%d, maxRate=%d", messageCount, maxRate)
+				apiErr.GinResponse(c)
+				c.Abort()
+				return
+			}
+		}
+
+		c.Next()
 	}
 }

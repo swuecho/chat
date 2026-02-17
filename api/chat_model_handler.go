@@ -1,12 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -21,30 +20,24 @@ func NewChatModelHandler(db *sqlc_queries.Queries) *ChatModelHandler {
 	}
 }
 
-func (h *ChatModelHandler) Register(r *mux.Router) {
-
-	// Assuming db is an instance of the SQLC generated DB struct
-	//handler := NewChatModelHandler(db)
-	// r := mux.NewRouter()
-
-	// TODO: user can read, remove user_id field from the response
-	r.HandleFunc("/chat_model", h.ListSystemChatModels).Methods("GET")
-	r.HandleFunc("/chat_model/default", h.GetDefaultChatModel).Methods("GET")
-	r.HandleFunc("/chat_model/{id}", h.ChatModelByID).Methods("GET")
-	// create delete update self's chat model
-	r.HandleFunc("/chat_model", h.CreateChatModel).Methods("POST")
-	r.HandleFunc("/chat_model/{id}", h.UpdateChatModel).Methods("PUT")
-	r.HandleFunc("/chat_model/{id}", h.DeleteChatModel).Methods("DELETE")
+// GinRegister registers routes with Gin router
+func (h *ChatModelHandler) GinRegister(rg *gin.RouterGroup) {
+	rg.GET("/chat_model", h.GinListSystemChatModels)
+	rg.GET("/chat_model/default", h.GinGetDefaultChatModel)
+	rg.GET("/chat_model/:id", h.GinChatModelByID)
+	rg.POST("/chat_model", h.GinCreateChatModel)
+	rg.PUT("/chat_model/:id", h.GinUpdateChatModel)
+	rg.DELETE("/chat_model/:id", h.GinDeleteChatModel)
 }
 
-func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *ChatModelHandler) GinListSystemChatModels(c *gin.Context) {
+	ctx := c.Request.Context()
 	ChatModels, err := h.db.ListSystemChatModels(ctx)
 	if err != nil {
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to list chat models"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
@@ -53,9 +46,10 @@ func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.R
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to get model usage data"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
+
 	// create a map of model id to usage time
 	usageTimeMap := make(map[string]sqlc_queries.GetLatestUsageTimeOfModelRow)
 	for _, usageTime := range latestUsageTimeOfModels {
@@ -69,7 +63,7 @@ func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.R
 		MessageCount  int64     `json:"messageCount"`
 	}
 
-	// merge ChatModels and usageTimeMap with pre-allocated slice
+	// merge ChatModels and usageTimeMap
 	chatModelsWithUsage := lo.Map(ChatModels, func(model sqlc_queries.ChatModel, _ int) ChatModelWithUsage {
 		usage := usageTimeMap[model.Name]
 		return ChatModelWithUsage{
@@ -79,39 +73,36 @@ func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.R
 		}
 	})
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatModelsWithUsage)
+	c.JSON(http.StatusOK, chatModelsWithUsage)
 }
 
-func (h *ChatModelHandler) ChatModelByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	ctx := r.Context()
-	id, err := strconv.Atoi(vars["id"])
+func (h *ChatModelHandler) GinChatModelByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Invalid chat model ID")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	ChatModel, err := h.db.ChatModelByID(ctx, int32(id))
+	ChatModel, err := h.db.ChatModelByID(c.Request.Context(), int32(id))
 	if err != nil {
 		apiErr := ErrResourceNotFound("Chat model")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(ChatModel)
+	c.JSON(http.StatusOK, ChatModel)
 }
 
-func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *ChatModelHandler) GinCreateChatModel(c *gin.Context) {
+	userID, err := GetUserID(c)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
@@ -126,18 +117,17 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		ApiType                string `json:"apiType"`
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&input)
-	if err != nil {
+	if err := c.ShouldBindJSON(&input); err != nil {
 		apiErr := ErrValidationInvalidInput("Failed to parse request body")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
 	// Set default api_type if not provided
 	apiType := input.ApiType
 	if apiType == "" {
-		apiType = "openai" // default api type
+		apiType = "openai"
 	}
 
 	// Validate api_type
@@ -151,11 +141,11 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 
 	if !validApiTypes[apiType] {
 		apiErr := ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	ChatModel, err := h.db.CreateChatModel(r.Context(), sqlc_queries.CreateChatModelParams{
+	ChatModel, err := h.db.CreateChatModel(c.Request.Context(), sqlc_queries.CreateChatModelParams{
 		Name:                   input.Name,
 		Label:                  input.Label,
 		IsDefault:              input.IsDefault,
@@ -164,10 +154,10 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		ApiAuthKey:             input.ApiAuthKey,
 		UserID:                 userID,
 		EnablePerModeRatelimit: input.EnablePerModeRatelimit,
-		MaxToken:               4096, // default max token
-		DefaultToken:           2048, // default token
-		OrderNumber:            0,    // default order
-		HttpTimeOut:            120,  // default timeout
+		MaxToken:               4096,
+		DefaultToken:           2048,
+		OrderNumber:            0,
+		HttpTimeOut:            120,
 		ApiType:                apiType,
 	})
 
@@ -175,29 +165,28 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to create chat model"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(ChatModel)
+	c.JSON(http.StatusCreated, ChatModel)
 }
 
-func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (h *ChatModelHandler) GinUpdateChatModel(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Invalid chat model ID")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	userID, err := getUserID(r.Context())
+	userID, err := GetUserID(c)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
@@ -216,18 +205,18 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		IsEnable               bool   `json:"isEnable"`
 		ApiType                string `json:"apiType"`
 	}
-	err = json.NewDecoder(r.Body).Decode(&input)
-	if err != nil {
+
+	if err := c.ShouldBindJSON(&input); err != nil {
 		apiErr := ErrValidationInvalidInput("Failed to parse request body")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
 	// Set default api_type if not provided
 	apiType := input.ApiType
 	if apiType == "" {
-		apiType = "openai" // default api type
+		apiType = "openai"
 	}
 
 	// Validate api_type
@@ -241,11 +230,11 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 
 	if !validApiTypes[apiType] {
 		apiErr := ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	ChatModel, err := h.db.UpdateChatModel(r.Context(), sqlc_queries.UpdateChatModelParams{
+	ChatModel, err := h.db.UpdateChatModel(c.Request.Context(), sqlc_queries.UpdateChatModelParams{
 		ID:                     int32(id),
 		Name:                   input.Name,
 		Label:                  input.Label,
@@ -267,57 +256,55 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to update chat model"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(ChatModel)
+	c.JSON(http.StatusOK, ChatModel)
 }
 
-func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (h *ChatModelHandler) GinDeleteChatModel(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Invalid chat model ID")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	userID, err := getUserID(r.Context())
+	userID, err := GetUserID(c)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	err = h.db.DeleteChatModel(r.Context(),
-		sqlc_queries.DeleteChatModelParams{
-			ID:     int32(id),
-			UserID: userID,
-		})
+	err = h.db.DeleteChatModel(c.Request.Context(), sqlc_queries.DeleteChatModelParams{
+		ID:     int32(id),
+		UserID: userID,
+	})
 	if err != nil {
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to delete chat model"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	c.Status(http.StatusOK)
 }
 
-func (h *ChatModelHandler) GetDefaultChatModel(w http.ResponseWriter, r *http.Request) {
-	ChatModel, err := h.db.GetDefaultChatModel(r.Context())
+func (h *ChatModelHandler) GinGetDefaultChatModel(c *gin.Context) {
+	ChatModel, err := h.db.GetDefaultChatModel(c.Request.Context())
 	if err != nil {
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to retrieve default chat model"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(ChatModel)
+
+	c.JSON(http.StatusOK, ChatModel)
 }

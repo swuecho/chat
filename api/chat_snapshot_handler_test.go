@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"gotest.tools/v3/assert"
 )
@@ -23,9 +23,10 @@ func TestChatSnapshot(t *testing.T) {
 	q := sqlc_queries.New(db)
 	h := NewChatSnapshotHandler(q) // Create a ChatSnapshotHandler
 
-	// Register snapshot API routes
-	router := mux.NewRouter()
-	h.Register(router)
+	// Register snapshot API routes using Gin
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	h.GinRegister(router.Group(""))
 
 	// Add a test user
 	userID := 1

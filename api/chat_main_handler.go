@@ -13,7 +13,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	openai "github.com/sashabaranov/go-openai"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -36,13 +36,11 @@ func NewChatHandler(sqlc_q *sqlc_queries.Queries) *ChatHandler {
 	}
 }
 
-func (h *ChatHandler) Register(router *mux.Router) {
-	router.HandleFunc("/chat_stream", h.ChatCompletionHandler).Methods(http.MethodPost)
-	// for bot
-	// given a chat_uuid, a user message, return the answer
-	//
-	router.HandleFunc("/chatbot", h.ChatBotCompletionHandler).Methods(http.MethodPost)
-	router.HandleFunc("/chat_instructions", h.GetChatInstructions).Methods(http.MethodGet)
+// GinRegister registers routes with Gin router
+func (h *ChatHandler) GinRegister(rg *gin.RouterGroup) {
+	rg.POST("/chat_stream", h.GinChatCompletionHandler)
+	rg.POST("/chatbot", h.GinChatBotCompletionHandler)
+	rg.GET("/chat_instructions", h.GinGetChatInstructions)
 }
 
 type ChatRequest struct {
@@ -86,126 +84,6 @@ type BotRequest struct {
 type ChatInstructionResponse struct {
 	ArtifactInstruction string `json:"artifactInstruction"`
 	ToolInstruction     string `json:"toolInstruction"`
-}
-
-func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) {
-	artifactInstruction, err := loadArtifactInstruction()
-	if err != nil {
-		log.Printf("Warning: Failed to load artifact instruction: %v", err)
-		artifactInstruction = ""
-	}
-
-	toolInstruction, err := loadToolInstruction()
-	if err != nil {
-		log.Printf("Warning: Failed to load tool instruction: %v", err)
-		toolInstruction = ""
-	}
-
-	json.NewEncoder(w).Encode(ChatInstructionResponse{
-		ArtifactInstruction: artifactInstruction,
-		ToolInstruction:     toolInstruction,
-	})
-}
-
-// ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
-func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Request) {
-	var req BotRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
-	}
-
-	snapshotUuid := req.SnapshotUuid
-	newQuestion := req.Message
-
-	log.Printf("snapshotUuid: %s", snapshotUuid)
-	log.Printf("newQuestion: %s", newQuestion)
-
-	ctx := r.Context()
-
-	userID, err := getUserID(ctx)
-	if err != nil {
-		log.Printf("Error getting user ID: %v", err)
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-
-	fmt.Printf("userID: %d", userID)
-
-	chatSnapshot, err := h.service.q.ChatSnapshotByUserIdAndUuid(ctx, sqlc_queries.ChatSnapshotByUserIdAndUuidParams{
-		UserID: userID,
-		Uuid:   snapshotUuid,
-	})
-	if err != nil {
-		apiErr := ErrResourceNotFound("Chat snapshot")
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-
-	fmt.Printf("chatSnapshot: %+v", chatSnapshot)
-
-	var session sqlc_queries.ChatSession
-	err = json.Unmarshal(chatSnapshot.Session, &session)
-	if err != nil {
-		apiErr := ErrInternalUnexpected
-		apiErr.Detail = "Failed to deserialize chat session"
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-	var simpleChatMessages []SimpleChatMessage
-	err = json.Unmarshal(chatSnapshot.Conversation, &simpleChatMessages)
-	if err != nil {
-		apiErr := ErrInternalUnexpected
-		apiErr.Detail = "Failed to deserialize conversation"
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-
-	genBotAnswer(h, w, session, simpleChatMessages, snapshotUuid, newQuestion, userID, req.Stream)
-
-}
-
-// ChatCompletionHandler is an HTTP handler that sends the stream to the client as Server-Sent Events (SSE)
-func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
-	var req ChatRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding request: %v", err)
-		apiErr := ErrValidationInvalidInput("Invalid request format")
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-
-	chatSessionUuid := req.SessionUuid
-	chatUuid := req.ChatUuid
-	newQuestion := req.Prompt
-
-	log.Printf("chatSessionUuid: %s", chatSessionUuid)
-	log.Printf("chatUuid: %s", chatUuid)
-	log.Printf("newQuestion: %s", newQuestion)
-
-	ctx := r.Context()
-
-	userID, err := getUserID(ctx)
-	if err != nil {
-		log.Printf("Error getting user ID: %v", err)
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-
-	if req.Regenerate {
-		regenerateAnswer(h, w, ctx, chatSessionUuid, chatUuid, req.Stream)
-	} else {
-		genAnswer(h, w, ctx, chatSessionUuid, chatUuid, newQuestion, userID, req.Stream)
-	}
-
 }
 
 // validateChatSession validates the chat session and returns the session and model info.
@@ -673,6 +551,168 @@ func isTest(msgs []models.Message) bool {
 		(len(lastMsgs.Content) >= TestPrefixLength && lastMsgs.Content[:TestPrefixLength] == TestDemoPrefix)
 }
 
+// =============================================================================
+// Gin Handlers
+// =============================================================================
+
+// GinGetChatInstructions handles GET requests for chat instructions
+func (h *ChatHandler) GinGetChatInstructions(c *gin.Context) {
+	artifactInstruction, err := loadArtifactInstruction()
+	if err != nil {
+		log.Printf("Warning: Failed to load artifact instruction: %v", err)
+		artifactInstruction = ""
+	}
+
+	toolInstruction, err := loadToolInstruction()
+	if err != nil {
+		log.Printf("Warning: Failed to load tool instruction: %v", err)
+		toolInstruction = ""
+	}
+
+	c.JSON(http.StatusOK, ChatInstructionResponse{
+		ArtifactInstruction: artifactInstruction,
+		ToolInstruction:     toolInstruction,
+	})
+}
+
+// GinChatBotCompletionHandler handles POST requests for bot chat with SSE streaming
+func (h *ChatHandler) GinChatBotCompletionHandler(c *gin.Context) {
+	var req BotRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()).GinResponse(c)
+		return
+	}
+
+	snapshotUuid := req.SnapshotUuid
+	newQuestion := req.Message
+
+	log.Printf("snapshotUuid: %s", snapshotUuid)
+	log.Printf("newQuestion: %s", newQuestion)
+
+	ctx := c.Request.Context()
+
+	userID, err := GetUserID(c)
+	if err != nil {
+		log.Printf("Error getting user ID: %v", err)
+		ErrAuthInvalidCredentials.WithDebugInfo(err.Error()).GinResponse(c)
+		return
+	}
+
+	fmt.Printf("userID: %d", userID)
+
+	chatSnapshot, err := h.service.q.ChatSnapshotByUserIdAndUuid(ctx, sqlc_queries.ChatSnapshotByUserIdAndUuidParams{
+		UserID: userID,
+		Uuid:   snapshotUuid,
+	})
+	if err != nil {
+		ErrResourceNotFound("Chat snapshot").WithDebugInfo(err.Error()).GinResponse(c)
+		return
+	}
+
+	fmt.Printf("chatSnapshot: %+v", chatSnapshot)
+
+	var session sqlc_queries.ChatSession
+	err = json.Unmarshal(chatSnapshot.Session, &session)
+	if err != nil {
+		ErrInternalUnexpected.WithDetail("Failed to deserialize chat session").WithDebugInfo(err.Error()).GinResponse(c)
+		return
+	}
+	var simpleChatMessages []SimpleChatMessage
+	err = json.Unmarshal(chatSnapshot.Conversation, &simpleChatMessages)
+	if err != nil {
+		ErrInternalUnexpected.WithDetail("Failed to deserialize conversation").WithDebugInfo(err.Error()).GinResponse(c)
+		return
+	}
+
+	// Use c.Writer for SSE streaming (compatible with http.ResponseWriter)
+	genBotAnswer(h, c.Writer, session, simpleChatMessages, snapshotUuid, newQuestion, userID, req.Stream)
+}
+
+// GinChatCompletionHandler handles POST requests for chat with SSE streaming
+func (h *ChatHandler) GinChatCompletionHandler(c *gin.Context) {
+	var req ChatRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("Error decoding request: %v", err)
+		ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()).GinResponse(c)
+		return
+	}
+
+	chatSessionUuid := req.SessionUuid
+	chatUuid := req.ChatUuid
+	newQuestion := req.Prompt
+
+	log.Printf("chatSessionUuid: %s", chatSessionUuid)
+	log.Printf("chatUuid: %s", chatUuid)
+	log.Printf("newQuestion: %s", newQuestion)
+
+	ctx := c.Request.Context()
+
+	userID, err := GetUserID(c)
+	if err != nil {
+		log.Printf("Error getting user ID: %v", err)
+		ErrAuthInvalidCredentials.WithDebugInfo(err.Error()).GinResponse(c)
+		return
+	}
+
+	// Use c.Writer for SSE streaming (compatible with http.ResponseWriter)
+	if req.Regenerate {
+		regenerateAnswer(h, c.Writer, ctx, chatSessionUuid, chatUuid, req.Stream)
+	} else {
+		genAnswer(h, c.Writer, ctx, chatSessionUuid, chatUuid, newQuestion, userID, req.Stream)
+	}
+}
+
+// GinCheckModelAccess checks model access for Gin context (helper for future use)
+func (h *ChatHandler) GinCheckModelAccess(c *gin.Context, chatSessionUuid string, model string, userID int32) bool {
+	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
+	if err != nil {
+		log.WithError(err).WithField("model", model).Error("Chat model not found")
+		ErrResourceNotFound("chat model: " + model).GinResponse(c)
+		return true
+	}
+	log.Printf("%+v", chatModel)
+	if !chatModel.EnablePerModeRatelimit {
+		return false
+	}
+	ctx := context.Background()
+	rate, err := h.service.q.RateLimiteByUserAndSessionUUID(ctx,
+		sqlc_queries.RateLimiteByUserAndSessionUUIDParams{
+			Uuid:   chatSessionUuid,
+			UserID: userID,
+		})
+	log.Printf("%+v", rate)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("No rate limit found for user %d and session %s, using default", userID, chatSessionUuid)
+			return false
+		}
+
+		WrapError(MapDatabaseError(err), "Failed to get rate limit").GinResponse(c)
+		return true
+	}
+
+	usage10Min, err := h.service.q.GetChatMessagesCountByUserAndModel(ctx,
+		sqlc_queries.GetChatMessagesCountByUserAndModelParams{
+			UserID: userID,
+			Model:  rate.ChatModelName,
+		})
+
+	if err != nil {
+		ErrInternalUnexpected.WithDetail("Failed to get usage data").WithDebugInfo(err.Error()).GinResponse(c)
+		return true
+	}
+
+	log.Printf("%+v", usage10Min)
+
+	if int32(usage10Min) > rate.RateLimit {
+		ErrTooManyRequests.WithMessage(fmt.Sprintf("Rate limit exceeded for %s", rate.ChatModelName)).
+			WithDetail(fmt.Sprintf("Usage: %d, Limit: %d", usage10Min, rate.RateLimit)).GinResponse(c)
+		return true
+	}
+	return false
+}
+
+// CheckModelAccess checks model access using http.ResponseWriter (for use with SSE streaming)
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {
 	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
 	if err != nil {
@@ -693,17 +733,14 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	log.Printf("%+v", rate)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// If no rate limit is found, use a default value instead of returning an error
 			log.Printf("No rate limit found for user %d and session %s, using default", userID, chatSessionUuid)
 			return false
 		}
 
-		apiErr := WrapError(MapDatabaseError(err), "Failed to get rate limit")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get rate limit"))
 		return true
 	}
 
-	// get last model usage in 10min
 	usage10Min, err := h.service.q.GetChatMessagesCountByUserAndModel(ctx,
 		sqlc_queries.GetChatMessagesCountByUserAndModelParams{
 			UserID: userID,
@@ -711,20 +748,15 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 		})
 
 	if err != nil {
-		apiErr := ErrInternalUnexpected
-		apiErr.Detail = "Failed to get usage data"
-		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to get usage data").WithDebugInfo(err.Error()))
 		return true
 	}
 
 	log.Printf("%+v", usage10Min)
 
 	if int32(usage10Min) > rate.RateLimit {
-		apiErr := ErrTooManyRequests
-		apiErr.Message = fmt.Sprintf("Rate limit exceeded for %s", rate.ChatModelName)
-		apiErr.Detail = fmt.Sprintf("Usage: %d, Limit: %d", usage10Min, rate.RateLimit)
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIError(w, ErrTooManyRequests.WithMessage(fmt.Sprintf("Rate limit exceeded for %s", rate.ChatModelName)).
+			WithDetail(fmt.Sprintf("Usage: %d, Limit: %d", usage10Min, rate.RateLimit)))
 		return true
 	}
 	return false

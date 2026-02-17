@@ -1,17 +1,17 @@
 package main
 
 import (
-	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Middleware to update lastRequest time
-func UpdateLastRequestTime(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// GinUpdateLastRequestTime - Gin middleware to update last request time
+func GinUpdateLastRequestTime() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		// Update lastRequest time
 		lastRequest = time.Now()
 
-		// Call next middleware/handler
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }

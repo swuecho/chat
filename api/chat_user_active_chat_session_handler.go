@@ -2,14 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	sqlc "github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -26,213 +25,168 @@ func NewUserActiveChatSessionHandler(sqlc_q *sqlc.Queries) *UserActiveChatSessio
 	}
 }
 
-// Register sets up the handler routes
-func (h *UserActiveChatSessionHandler) Register(router *mux.Router) {
-	router.HandleFunc("/uuid/user_active_chat_session", h.GetUserActiveChatSessionHandler).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/user_active_chat_session", h.CreateOrUpdateUserActiveChatSessionHandler).Methods(http.MethodPut)
-
-	// Per-workspace active session endpoints
-	// Note: More specific routes must come before parameterized routes to avoid shadowing
-	router.HandleFunc("/workspaces/active-sessions", h.GetAllWorkspaceActiveSessionsHandler).Methods(http.MethodGet)
-	router.HandleFunc("/workspaces/{workspaceUuid}/active-session", h.GetWorkspaceActiveSessionHandler).Methods(http.MethodGet)
-	router.HandleFunc("/workspaces/{workspaceUuid}/active-session", h.SetWorkspaceActiveSessionHandler).Methods(http.MethodPut)
-}
-
-// GetUserActiveChatSessionHandler handles GET requests to get a session by user_id
-func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Get and validate user ID
-	userID, err := getUserID(ctx)
-	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
-		return
-	}
-
-	log.Printf("Getting active chat session for user %d", userID)
-
-	// Get session from service (use unified approach for global session)
-	session, err := h.service.GetActiveSession(r.Context(), userID, nil)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrChatSessionNotFound.WithMessage(fmt.Sprintf("no active session for user %d", userID)))
-		} else {
-			RespondWithAPIError(w, WrapError(err, "failed to get active chat session"))
-		}
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(session); err != nil {
-		log.Printf("Failed to encode response: %v", err)
-	}
+// GinRegister registers routes with Gin router
+func (h *UserActiveChatSessionHandler) GinRegister(rg *gin.RouterGroup) {
+	rg.GET("/uuid/user_active_chat_session", h.GinGetUserActiveChatSessionHandler)
+	rg.PUT("/uuid/user_active_chat_session", h.GinCreateOrUpdateUserActiveChatSessionHandler)
+	rg.GET("/workspaces/active-sessions", h.GinGetAllWorkspaceActiveSessionsHandler)
+	rg.GET("/workspaces/:workspaceUuid/active-session", h.GinGetWorkspaceActiveSessionHandler)
+	rg.PUT("/workspaces/:workspaceUuid/active-session", h.GinSetWorkspaceActiveSessionHandler)
 }
 
 // UUID validation regex
 var uuidRegex = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
-// CreateOrUpdateUserActiveChatSessionHandler handles PUT requests to create/update a session
-func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Get and validate user ID
-	userID, err := getUserID(ctx)
+func (h *UserActiveChatSessionHandler) GinGetUserActiveChatSessionHandler(c *gin.Context) {
+	userID, err := GetUserID(c)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID").GinResponse(c)
 		return
 	}
 
-	// Parse request body
+	log.Printf("Getting active chat session for user %d", userID)
+
+	session, err := h.service.GetActiveSession(c.Request.Context(), userID, nil)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ErrChatSessionNotFound.WithMessage(fmt.Sprintf("no active session for user %d", userID)).GinResponse(c)
+		} else {
+			WrapError(err, "failed to get active chat session").GinResponse(c)
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, session)
+}
+
+func (h *UserActiveChatSessionHandler) GinCreateOrUpdateUserActiveChatSessionHandler(c *gin.Context) {
+	userID, err := GetUserID(c)
+	if err != nil {
+		ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID").GinResponse(c)
+		return
+	}
+
 	var reqBody struct {
 		ChatSessionUuid string `json:"chatSessionUuid"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse request body"))
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		ErrValidationInvalidInput("failed to parse request body").GinResponse(c)
 		return
 	}
 
-	// Validate session UUID format
 	if !uuidRegex.MatchString(reqBody.ChatSessionUuid) {
-		RespondWithAPIError(w, ErrChatSessionInvalid.WithMessage(
-			fmt.Sprintf("invalid session UUID format: %s", reqBody.ChatSessionUuid)))
+		ErrChatSessionInvalid.WithMessage(
+			fmt.Sprintf("invalid session UUID format: %s", reqBody.ChatSessionUuid)).GinResponse(c)
 		return
 	}
 
 	log.Printf("Creating/updating active chat session for user %d", userID)
 
-	// Create/update session (use unified approach for global session)
-	session, err := h.service.UpsertActiveSession(r.Context(), userID, nil, reqBody.ChatSessionUuid)
+	session, err := h.service.UpsertActiveSession(c.Request.Context(), userID, nil, reqBody.ChatSessionUuid)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to create or update active chat session"))
+		WrapError(err, "failed to create or update active chat session").GinResponse(c)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(session); err != nil {
-		log.Printf("Failed to encode response: %v", err)
-	}
+	c.JSON(http.StatusOK, session)
 }
 
-// Per-workspace active session handlers
+func (h *UserActiveChatSessionHandler) GinGetWorkspaceActiveSessionHandler(c *gin.Context) {
+	workspaceUuid := c.Param("workspaceUuid")
 
-// GetWorkspaceActiveSessionHandler gets the active session for a specific workspace
-func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	workspaceUuid := mux.Vars(r)["workspaceUuid"]
-
-	// Get and validate user ID
-	userID, err := getUserID(ctx)
+	userID, err := GetUserID(c)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID").GinResponse(c)
 		return
 	}
 
-	// Get workspace to get its ID
 	workspaceService := NewChatWorkspaceService(h.service.q)
-	workspace, err := workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
+	workspace, err := workspaceService.GetWorkspaceByUUID(c.Request.Context(), workspaceUuid)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
+		ErrResourceNotFound("Workspace").WithMessage("workspace not found").GinResponse(c)
 		return
 	}
 
-	// Get workspace active session
-	session, err := h.service.GetActiveSession(ctx, userID, &workspace.ID)
+	session, err := h.service.GetActiveSession(c.Request.Context(), userID, &workspace.ID)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("Active Session").WithMessage("no active session for workspace"))
+		ErrResourceNotFound("Active Session").WithMessage("no active session for workspace").GinResponse(c)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(http.StatusOK, map[string]interface{}{
 		"chatSessionUuid": session.ChatSessionUuid,
 		"workspaceUuid":   workspaceUuid,
 		"updatedAt":       session.UpdatedAt,
 	})
 }
 
-// SetWorkspaceActiveSessionHandler sets the active session for a specific workspace
-func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	workspaceUuid := mux.Vars(r)["workspaceUuid"]
+func (h *UserActiveChatSessionHandler) GinSetWorkspaceActiveSessionHandler(c *gin.Context) {
+	workspaceUuid := c.Param("workspaceUuid")
 
-	// Get and validate user ID
-	userID, err := getUserID(ctx)
+	userID, err := GetUserID(c)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID").GinResponse(c)
 		return
 	}
 
-	// Parse request body
 	var requestBody struct {
 		ChatSessionUuid string `json:"chatSessionUuid"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse request body"))
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		ErrValidationInvalidInput("failed to parse request body").GinResponse(c)
 		return
 	}
 
-	// Validate session UUID format
 	if !uuidRegex.MatchString(requestBody.ChatSessionUuid) {
-		RespondWithAPIError(w, ErrChatSessionInvalid.WithMessage("invalid session UUID format"))
+		ErrChatSessionInvalid.WithMessage("invalid session UUID format").GinResponse(c)
 		return
 	}
 
-	// Get workspace to get its ID
 	workspaceService := NewChatWorkspaceService(h.service.q)
-	workspace, err := workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
+	workspace, err := workspaceService.GetWorkspaceByUUID(c.Request.Context(), workspaceUuid)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
+		ErrResourceNotFound("Workspace").WithMessage("workspace not found").GinResponse(c)
 		return
 	}
 
-	// Set workspace active session
-	session, err := h.service.UpsertActiveSession(ctx, userID, &workspace.ID, requestBody.ChatSessionUuid)
+	session, err := h.service.UpsertActiveSession(c.Request.Context(), userID, &workspace.ID, requestBody.ChatSessionUuid)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to set workspace active session"))
+		WrapError(err, "failed to set workspace active session").GinResponse(c)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(http.StatusOK, map[string]interface{}{
 		"chatSessionUuid": session.ChatSessionUuid,
 		"workspaceUuid":   workspaceUuid,
 		"updatedAt":       session.UpdatedAt,
 	})
 }
 
-// GetAllWorkspaceActiveSessionsHandler gets all workspace active sessions for a user
-func (h *UserActiveChatSessionHandler) GetAllWorkspaceActiveSessionsHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Get and validate user ID
-	userID, err := getUserID(ctx)
+func (h *UserActiveChatSessionHandler) GinGetAllWorkspaceActiveSessionsHandler(c *gin.Context) {
+	userID, err := GetUserID(c)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID").GinResponse(c)
 		return
 	}
 
-	// Get all workspace active sessions
-	sessions, err := h.service.GetAllActiveSessions(ctx, userID)
+	sessions, err := h.service.GetAllActiveSessions(c.Request.Context(), userID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get workspace active sessions"))
+		WrapError(err, "failed to get workspace active sessions").GinResponse(c)
 		return
 	}
 
-	// Convert to response format with workspace UUIDs
 	workspaceService := NewChatWorkspaceService(h.service.q)
-	workspaces, err := workspaceService.GetWorkspacesByUserID(ctx, userID)
+	workspaces, err := workspaceService.GetWorkspacesByUserID(c.Request.Context(), userID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get workspaces"))
+		WrapError(err, "failed to get workspaces").GinResponse(c)
 		return
 	}
 
-	// Create a map for workspace ID to UUID lookup
 	workspaceMap := make(map[int32]string)
 	for _, workspace := range workspaces {
 		workspaceMap[workspace.ID] = workspace.Uuid
 	}
 
-	// Build response
 	var response []map[string]interface{}
 	for _, session := range sessions {
 		if session.WorkspaceID.Valid {
@@ -246,6 +200,5 @@ func (h *UserActiveChatSessionHandler) GetAllWorkspaceActiveSessionsHandler(w ht
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, response)
 }

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -19,65 +18,89 @@ func NewAdminHandler(service *AuthUserService) *AdminHandler {
 	}
 }
 
-func (h *AdminHandler) RegisterRoutes(router *mux.Router) {
-	// admin routes (without /admin prefix since router already handles it)
-	router.HandleFunc("/users", h.CreateUser).Methods(http.MethodPost)
-	router.HandleFunc("/users", h.UpdateUser).Methods(http.MethodPut)
-	router.HandleFunc("/rate_limit", h.UpdateRateLimit).Methods(http.MethodPost)
-	router.HandleFunc("/user_stats", h.UserStatHandler).Methods(http.MethodPost)
-	router.HandleFunc("/user_analysis/{email}", h.UserAnalysisHandler).Methods(http.MethodGet)
-	router.HandleFunc("/user_session_history/{email}", h.UserSessionHistoryHandler).Methods(http.MethodGet)
-	router.HandleFunc("/session_messages/{sessionUuid}", h.SessionMessagesHandler).Methods(http.MethodGet)
+type SessionHistoryResponse struct {
+	Data  []SessionHistoryInfo `json:"data"`
+	Total int64                `json:"total"`
+	Page  int32                `json:"page"`
+	Size  int32                `json:"size"`
 }
 
-func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+// UserStat holds user statistics for admin dashboard
+type UserStat struct {
+	Email                            string `json:"email"`
+	FirstName                        string `json:"first_name"`
+	LastName                         string `json:"last_name"`
+	TotalChatMessages                int64  `json:"total_chat_messages"`
+	TotalChatMessages3Days           int64  `json:"total_chat_messages_3_days"`
+	RateLimit                        int32  `json:"rate_limit"`
+	TotalChatMessagesTokenCount      int64  `json:"total_chat_messages_token_count"`
+	TotalChatMessages3DaysTokenCount int64  `json:"total_chat_messages_3_days_token_count"`
+	AvgChatMessages3DaysTokenCount   int64  `json:"avg_chat_messages_3_days_token_count"`
+}
+
+// RateLimitRequest is the request body for updating user rate limits
+type RateLimitRequest struct {
+	Email     string `json:"email"`
+	RateLimit int32  `json:"rate_limit"`
+}
+
+// GinRegisterRoutes registers routes with Gin router
+func (h *AdminHandler) GinRegisterRoutes(rg *gin.RouterGroup) {
+	rg.POST("/users", h.GinCreateUser)
+	rg.PUT("/users", h.GinUpdateUser)
+	rg.POST("/rate_limit", h.GinUpdateRateLimit)
+	rg.POST("/user_stats", h.GinUserStatHandler)
+	rg.GET("/user_analysis/:email", h.GinUserAnalysisHandler)
+	rg.GET("/user_session_history/:email", h.GinUserSessionHistoryHandler)
+	rg.GET("/session_messages/:sessionUuid", h.GinSessionMessagesHandler)
+}
+
+// =============================================================================
+// Gin Handlers
+// =============================================================================
+
+func (h *AdminHandler) GinCreateUser(c *gin.Context) {
 	var userParams sqlc_queries.CreateAuthUserParams
-	err := json.NewDecoder(r.Body).Decode(&userParams)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
+	if err := c.ShouldBindJSON(&userParams); err != nil {
+		ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()).GinResponse(c)
 		return
 	}
-	user, err := h.service.CreateAuthUser(r.Context(), userParams)
+	user, err := h.service.CreateAuthUser(c.Request.Context(), userParams)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "Failed to create user"))
+		WrapError(err, "Failed to create user").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(user)
+	c.JSON(http.StatusOK, user)
 }
 
-func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) GinUpdateUser(c *gin.Context) {
 	var userParams sqlc_queries.UpdateAuthUserByEmailParams
-	err := json.NewDecoder(r.Body).Decode(&userParams)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
+	if err := c.ShouldBindJSON(&userParams); err != nil {
+		ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()).GinResponse(c)
 		return
 	}
-	user, err := h.service.q.UpdateAuthUserByEmail(r.Context(), userParams)
+	user, err := h.service.q.UpdateAuthUserByEmail(c.Request.Context(), userParams)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update user"))
+		WrapError(MapDatabaseError(err), "Failed to update user").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(user)
+	c.JSON(http.StatusOK, user)
 }
 
-func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) GinUserStatHandler(c *gin.Context) {
 	var pagination Pagination
-	err := json.NewDecoder(r.Body).Decode(&pagination)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
+	if err := c.ShouldBindJSON(&pagination); err != nil {
+		ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()).GinResponse(c)
 		return
 	}
 
-	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
+	userStatsRows, total, err := h.service.GetUserStats(c.Request.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get user stats"))
+		WrapError(MapDatabaseError(err), "Failed to get user stats").GinResponse(c)
 		return
 	}
 
-	// Create a new []interface{} slice with same length as userStatsRows
 	data := make([]interface{}, len(userStatsRows))
-
-	// Copy the contents of userStatsRows into data
 	for i, v := range userStatsRows {
 		divider := v.TotalChatMessages3Days
 		var avg int64
@@ -99,7 +122,7 @@ func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	json.NewEncoder(w).Encode(Pagination{
+	c.JSON(http.StatusOK, Pagination{
 		Page:  pagination.Page,
 		Size:  pagination.Size,
 		Total: total,
@@ -107,67 +130,53 @@ func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *AdminHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) GinUpdateRateLimit(c *gin.Context) {
 	var rateLimitRequest RateLimitRequest
-	err := json.NewDecoder(r.Body).Decode(&rateLimitRequest)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
+	if err := c.ShouldBindJSON(&rateLimitRequest); err != nil {
+		ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()).GinResponse(c)
 		return
 	}
-	rate, err := h.service.q.UpdateAuthUserRateLimitByEmail(r.Context(),
+	rate, err := h.service.q.UpdateAuthUserRateLimitByEmail(c.Request.Context(),
 		sqlc_queries.UpdateAuthUserRateLimitByEmailParams{
 			Email:     rateLimitRequest.Email,
 			RateLimit: rateLimitRequest.RateLimit,
 		})
 
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update rate limit"))
+		WrapError(MapDatabaseError(err), "Failed to update rate limit").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(
-		map[string]int32{
-			"rate": rate,
-		})
+	c.JSON(http.StatusOK, map[string]int32{"rate": rate})
 }
 
-func (h *AdminHandler) UserAnalysisHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	email := vars["email"]
+func (h *AdminHandler) GinUserAnalysisHandler(c *gin.Context) {
+	email := c.Param("email")
 
 	if email == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Email parameter is required"))
+		ErrValidationInvalidInput("Email parameter is required").GinResponse(c)
 		return
 	}
 
-	analysisData, err := h.service.GetUserAnalysis(r.Context(), email, int32(appConfig.OPENAI.RATELIMIT))
+	analysisData, err := h.service.GetUserAnalysis(c.Request.Context(), email, int32(appConfig.OPENAI.RATELIMIT))
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "Failed to get user analysis"))
+		WrapError(err, "Failed to get user analysis").GinResponse(c)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(analysisData)
+	c.JSON(http.StatusOK, analysisData)
 }
 
-type SessionHistoryResponse struct {
-	Data  []SessionHistoryInfo `json:"data"`
-	Total int64                `json:"total"`
-	Page  int32                `json:"page"`
-	Size  int32                `json:"size"`
-}
-
-func (h *AdminHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	email := vars["email"]
+func (h *AdminHandler) GinUserSessionHistoryHandler(c *gin.Context) {
+	email := c.Param("email")
 
 	if email == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Email parameter is required"))
+		ErrValidationInvalidInput("Email parameter is required").GinResponse(c)
 		return
 	}
 
 	// Parse pagination parameters
-	pageStr := r.URL.Query().Get("page")
-	sizeStr := r.URL.Query().Get("size")
+	pageStr := c.Query("page")
+	sizeStr := c.Query("size")
 
 	page := int32(1)
 	size := int32(10)
@@ -184,38 +193,33 @@ func (h *AdminHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.
 		}
 	}
 
-	sessionHistory, total, err := h.service.GetUserSessionHistory(r.Context(), email, page, size)
+	sessionHistory, total, err := h.service.GetUserSessionHistory(c.Request.Context(), email, page, size)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "Failed to get user session history"))
+		WrapError(err, "Failed to get user session history").GinResponse(c)
 		return
 	}
 
-	response := SessionHistoryResponse{
+	c.JSON(http.StatusOK, SessionHistoryResponse{
 		Data:  sessionHistory,
 		Total: total,
 		Page:  page,
 		Size:  size,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
-func (h *AdminHandler) SessionMessagesHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	sessionUuid := vars["sessionUuid"]
+func (h *AdminHandler) GinSessionMessagesHandler(c *gin.Context) {
+	sessionUuid := c.Param("sessionUuid")
 
 	if sessionUuid == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Session UUID parameter is required"))
+		ErrValidationInvalidInput("Session UUID parameter is required").GinResponse(c)
 		return
 	}
 
-	messages, err := h.service.q.GetChatMessagesBySessionUUIDForAdmin(r.Context(), sessionUuid)
+	messages, err := h.service.q.GetChatMessagesBySessionUUIDForAdmin(c.Request.Context(), sessionUuid)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "Failed to get session messages"))
+		WrapError(err, "Failed to get session messages").GinResponse(c)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(messages)
+	c.JSON(http.StatusOK, messages)
 }

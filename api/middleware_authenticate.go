@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/swuecho/chat_backend/auth"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 func CheckPermission(userID int, ctx context.Context) bool {
@@ -40,9 +42,17 @@ type AuthTokenResult struct {
 	Error     *APIError
 }
 
-func extractBearerToken(r *http.Request) string {
-	// Extract from Authorization header for access tokens
-	bearerToken := r.Header.Get("Authorization")
+type contextKey string
+
+const (
+	roleContextKey contextKey = "role"
+	userContextKey contextKey = "user"
+	guidContextKey contextKey = "guid"
+)
+
+// ginExtractBearerToken extracts bearer token from Gin context
+func ginExtractBearerToken(c *gin.Context) string {
+	bearerToken := c.GetHeader("Authorization")
 	tokenParts := strings.Split(bearerToken, " ")
 	if len(tokenParts) == 2 {
 		return tokenParts[1]
@@ -50,13 +60,8 @@ func extractBearerToken(r *http.Request) string {
 	return ""
 }
 
-func createUserContext(r *http.Request, userID, role string) *http.Request {
-	ctx := context.WithValue(r.Context(), userContextKey, userID)
-	ctx = context.WithValue(ctx, roleContextKey, role)
-	return r.WithContext(ctx)
-}
-
-func parseAndValidateJWT(bearerToken string, expectedTokenType string) *AuthTokenResult {
+// ginParseAndValidateJWT parses and validates JWT with provided secret
+func ginParseAndValidateJWT(bearerToken string, expectedTokenType string, jwtSecret sqlc_queries.JwtSecret) *AuthTokenResult {
 	result := &AuthTokenResult{}
 
 	if bearerToken == "" {
@@ -66,7 +71,7 @@ func parseAndValidateJWT(bearerToken string, expectedTokenType string) *AuthToke
 		return result
 	}
 
-	jwtSigningKey := []byte(jwtSecretAndAud.Secret)
+	jwtSigningKey := []byte(jwtSecret.Secret)
 	token, err := jwt.Parse(bearerToken, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("invalid JWT signing method")
@@ -142,16 +147,69 @@ func parseAndValidateJWT(bearerToken string, expectedTokenType string) *AuthToke
 	return result
 }
 
-type contextKey string
+// GinAdminAuthMiddleware - Gin middleware for admin authentication
+func GinAdminAuthMiddleware(jwtSecret sqlc_queries.JwtSecret) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bearerToken := ginExtractBearerToken(c)
+		result := ginParseAndValidateJWT(bearerToken, auth.TokenTypeAccess, jwtSecret)
 
-const (
-	roleContextKey contextKey = "role"
-	userContextKey contextKey = "user"
-	guidContextKey contextKey = "guid"
-)
-const snapshotPrefix = "/api/uuid/chat_snapshot/"
+		if result.Error != nil {
+			result.Error.GinResponse(c)
+			c.Abort()
+			return
+		}
 
+		// Admin-only check
+		if result.Role != "admin" {
+			apiErr := ErrAuthAdminRequired
+			apiErr.Detail = "Admin privileges required"
+			apiErr.GinResponse(c)
+			c.Abort()
+			return
+		}
+
+		// Set user context
+		SetUserContext(c, result.UserID, result.Role)
+		c.Next()
+	}
+}
+
+// GinUserAuthMiddleware - Gin middleware for user authentication
+func GinUserAuthMiddleware(jwtSecret sqlc_queries.JwtSecret) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bearerToken := ginExtractBearerToken(c)
+		result := ginParseAndValidateJWT(bearerToken, auth.TokenTypeAccess, jwtSecret)
+
+		if result.Error != nil {
+			result.Error.GinResponse(c)
+			c.Abort()
+			return
+		}
+
+		// Set user context
+		SetUserContext(c, result.UserID, result.Role)
+		c.Next()
+	}
+}
+
+// GinAdminOnlyMiddleware - Gin middleware that checks for admin role (use after auth middleware)
+func GinAdminOnlyMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role := GetUserRole(c)
+		if role != "admin" {
+			apiErr := ErrAuthAdminRequired
+			apiErr.Detail = "Admin privileges required for this endpoint"
+			apiErr.GinResponse(c)
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+// IsChatSnapshotUUID checks if the request is for a chat snapshot UUID (used for public access)
 func IsChatSnapshotUUID(r *http.Request) bool {
+	const snapshotPrefix = "/api/uuid/chat_snapshot/"
 	// Check http method is GET
 	if r.Method != http.MethodGet {
 		return false
@@ -161,149 +219,4 @@ func IsChatSnapshotUUID(r *http.Request) bool {
 		return true
 	}
 	return false
-}
-
-func AdminOnlyHandler(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		userRole, ok := ctx.Value(roleContextKey).(string)
-		if !ok {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "User role information not found"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		if userRole != "admin" {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "Current user does not have admin role"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		h.ServeHTTP(w, r)
-	})
-}
-
-func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		userRole, ok := ctx.Value(roleContextKey).(string)
-		if !ok {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "User role information not found"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		if userRole != "admin" {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "Current user does not have admin role"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		handlerFunc(w, r)
-	}
-}
-
-// AdminRouteMiddleware applies admin-only protection to all routes in a subrouter
-func AdminRouteMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		userRole, ok := ctx.Value(roleContextKey).(string)
-		if !ok {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "User role information not found"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		if userRole != "admin" {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "Admin privileges required for this endpoint"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-// AdminAuthMiddleware - Authentication middleware specifically for admin routes
-func AdminAuthMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bearerToken := extractBearerToken(r)
-		result := parseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
-
-		if result.Error != nil {
-			RespondWithAPIError(w, *result.Error)
-			return
-		}
-
-		// Admin-only check
-		if result.Role != "admin" {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "Admin privileges required"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-
-		// Add user context and proceed
-		handler.ServeHTTP(w, createUserContext(r, result.UserID, result.Role))
-	})
-}
-
-// UserAuthMiddleware - Authentication middleware for regular user routes
-func UserAuthMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bearerToken := extractBearerToken(r)
-		result := parseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
-
-		if result.Error != nil {
-			RespondWithAPIError(w, *result.Error)
-			return
-		}
-
-		// Add user context and proceed (no role restrictions for user middleware)
-		handler.ServeHTTP(w, createUserContext(r, result.UserID, result.Role))
-	})
-}
-
-func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
-	noAuthPaths := map[string]bool{
-		"/":            true,
-		"/favicon.ico": true,
-		"/api/login":   true,
-		"/api/signup":  true,
-		"/api/tts":     true,
-		"/api/errors":  true,
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := noAuthPaths[r.URL.Path]; ok || strings.HasPrefix(r.URL.Path, "/static") || IsChatSnapshotUUID(r) {
-			handler.ServeHTTP(w, r)
-			return
-		}
-
-		bearerToken := extractBearerToken(r)
-		result := parseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
-
-		if result.Error != nil {
-			RespondWithAPIError(w, *result.Error)
-			return
-		}
-
-		if result.Valid {
-			// superuser
-			if strings.HasPrefix(r.URL.Path, "/admin") && result.Role != "admin" {
-				apiErr := ErrAuthAdminRequired
-				apiErr.Detail = "This endpoint requires admin privileges"
-				RespondWithAPIError(w, apiErr)
-				return
-			}
-
-			// TODO: get trace id and add it to context
-			//traceID := r.Header.Get("X-Request-Id")
-			//if len(traceID) > 0 {
-			//ctx = context.WithValue(ctx, guidContextKey, traceID)
-			//}
-			// Store user ID and role in the request context
-			// pass token to request
-			handler.ServeHTTP(w, createUserContext(r, result.UserID, result.Role))
-		}
-	})
 }

@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/gorilla/mux"
 	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"gotest.tools/v3/assert"
@@ -91,8 +91,9 @@ func unmarshalResponseToChatModel(t *testing.T, rr *httptest.ResponseRecorder) [
 func TestChatModelTest(t *testing.T) {
 	q := sqlc_queries.New(db)
 	h := NewChatModelHandler(q) // create a new ChatModelHandler instance for testing
-	router := mux.NewRouter()
-	h.Register(router)
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	h.GinRegister(router.Group(""))
 	// delete all existing chat APIs
 	clearChatModelsIfExists(q)
 
@@ -143,7 +144,7 @@ func TestChatModelTest(t *testing.T) {
 	assert.Equal(t, len(results), 0)
 }
 
-func checkGetModels(t *testing.T, router *mux.Router, expectedResults []sqlc_queries.ChatModel) []sqlc_queries.ChatModel {
+func checkGetModels(t *testing.T, router http.Handler, expectedResults []sqlc_queries.ChatModel) []sqlc_queries.ChatModel {
 	req, _ := http.NewRequest("GET", "/chat_model", nil)
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -159,7 +160,7 @@ func checkGetModels(t *testing.T, router *mux.Router, expectedResults []sqlc_que
 	return results
 }
 
-func updateFirstRecord(t *testing.T, router *mux.Router, chatModelID int32, admin sqlc_queries.AuthUser, rec sqlc_queries.ChatModel) {
+func updateFirstRecord(t *testing.T, router http.Handler, chatModelID int32, admin sqlc_queries.AuthUser, rec sqlc_queries.ChatModel) {
 	rec.Name = "Test API 1 Updated"
 	rec.Label = "Test Label 1 Updated"
 

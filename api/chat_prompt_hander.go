@@ -1,11 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -20,129 +19,131 @@ func NewChatPromptHandler(sqlc_q *sqlc_queries.Queries) *ChatPromptHandler {
 	}
 }
 
-func (h *ChatPromptHandler) Register(router *mux.Router) {
-	router.HandleFunc("/chat_prompts", h.CreateChatPrompt).Methods(http.MethodPost)
-	router.HandleFunc("/chat_prompts/users", h.GetChatPromptsByUserID).Methods(http.MethodGet)
-	router.HandleFunc("/chat_prompts/{id}", h.GetChatPromptByID).Methods(http.MethodGet)
-	router.HandleFunc("/chat_prompts/{id}", h.UpdateChatPrompt).Methods(http.MethodPut)
-	router.HandleFunc("/chat_prompts/{id}", h.DeleteChatPrompt).Methods(http.MethodDelete)
-	router.HandleFunc("/chat_prompts", h.GetAllChatPrompts).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/chat_prompts/{uuid}", h.DeleteChatPromptByUUID).Methods(http.MethodDelete)
-	router.HandleFunc("/uuid/chat_prompts/{uuid}", h.UpdateChatPromptByUUID).Methods(http.MethodPut)
+// GinRegister is an alias for Register for consistency with other handlers
+func (h *ChatPromptHandler) GinRegister(rg *gin.RouterGroup) {
+	h.Register(rg)
 }
 
-func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Request) {
+func (h *ChatPromptHandler) Register(rg *gin.RouterGroup) {
+	rg.POST("/chat_prompts", h.CreateChatPrompt)
+	rg.GET("/chat_prompts/users", h.GetChatPromptsByUserID)
+	rg.GET("/chat_prompts/:id", h.GetChatPromptByID)
+	rg.PUT("/chat_prompts/:id", h.UpdateChatPrompt)
+	rg.DELETE("/chat_prompts/:id", h.DeleteChatPrompt)
+	rg.GET("/chat_prompts", h.GetAllChatPrompts)
+	rg.DELETE("/uuid/chat_prompts/:uuid", h.DeleteChatPromptByUUID)
+	rg.PUT("/uuid/chat_prompts/:uuid", h.UpdateChatPromptByUUID)
+}
+
+func (h *ChatPromptHandler) CreateChatPrompt(c *gin.Context) {
 	var promptParams sqlc_queries.CreateChatPromptParams
-	err := json.NewDecoder(r.Body).Decode(&promptParams)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
+	if err := c.ShouldBindJSON(&promptParams); err != nil {
+		ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()).GinResponse(c)
 		return
 	}
-	prompt, err := h.service.CreateChatPrompt(r.Context(), promptParams)
+	prompt, err := h.service.CreateChatPrompt(c.Request.Context(), promptParams)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to create chat prompt"))
+		WrapError(MapDatabaseError(err), "Failed to create chat prompt").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(prompt)
+	c.JSON(http.StatusOK, prompt)
 }
 
-func (h *ChatPromptHandler) GetChatPromptByID(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
+func (h *ChatPromptHandler) GetChatPromptByID(c *gin.Context) {
+	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("invalid chat prompt ID"))
+		ErrValidationInvalidInput("invalid chat prompt ID").GinResponse(c)
 		return
 	}
-	prompt, err := h.service.GetChatPromptByID(r.Context(), int32(id))
+	prompt, err := h.service.GetChatPromptByID(c.Request.Context(), int32(id))
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get chat prompt"))
+		WrapError(MapDatabaseError(err), "Failed to get chat prompt").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(prompt)
+	c.JSON(http.StatusOK, prompt)
 }
 
-func (h *ChatPromptHandler) UpdateChatPrompt(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
+func (h *ChatPromptHandler) UpdateChatPrompt(c *gin.Context) {
+	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("invalid chat prompt ID"))
+		ErrValidationInvalidInput("invalid chat prompt ID").GinResponse(c)
 		return
 	}
 	var promptParams sqlc_queries.UpdateChatPromptParams
-	err = json.NewDecoder(r.Body).Decode(&promptParams)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
+	if err := c.ShouldBindJSON(&promptParams); err != nil {
+		ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()).GinResponse(c)
 		return
 	}
 	promptParams.ID = int32(id)
-	prompt, err := h.service.UpdateChatPrompt(r.Context(), promptParams)
+	prompt, err := h.service.UpdateChatPrompt(c.Request.Context(), promptParams)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update chat prompt"))
+		WrapError(MapDatabaseError(err), "Failed to update chat prompt").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(prompt)
+	c.JSON(http.StatusOK, prompt)
 }
 
-func (h *ChatPromptHandler) DeleteChatPrompt(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
+func (h *ChatPromptHandler) DeleteChatPrompt(c *gin.Context) {
+	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("invalid chat prompt ID"))
+		ErrValidationInvalidInput("invalid chat prompt ID").GinResponse(c)
 		return
 	}
-	err = h.service.DeleteChatPrompt(r.Context(), int32(id))
+	err = h.service.DeleteChatPrompt(c.Request.Context(), int32(id))
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to delete chat prompt"))
+		WrapError(MapDatabaseError(err), "Failed to delete chat prompt").GinResponse(c)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	c.Status(http.StatusOK)
 }
 
-func (h *ChatPromptHandler) GetAllChatPrompts(w http.ResponseWriter, r *http.Request) {
-	prompts, err := h.service.GetAllChatPrompts(r.Context())
+func (h *ChatPromptHandler) GetAllChatPrompts(c *gin.Context) {
+	prompts, err := h.service.GetAllChatPrompts(c.Request.Context())
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get chat prompts"))
+		WrapError(MapDatabaseError(err), "Failed to get chat prompts").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(prompts)
+	c.JSON(http.StatusOK, prompts)
 }
 
-func (h *ChatPromptHandler) GetChatPromptsByUserID(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
+func (h *ChatPromptHandler) GetChatPromptsByUserID(c *gin.Context) {
+	idStr := c.Query("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("invalid user ID"))
+		ErrValidationInvalidInput("invalid user ID").GinResponse(c)
 		return
 	}
-	prompts, err := h.service.GetChatPromptsByUserID(r.Context(), int32(id))
+	prompts, err := h.service.GetChatPromptsByUserID(c.Request.Context(), int32(id))
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get chat prompts by user"))
+		WrapError(MapDatabaseError(err), "Failed to get chat prompts by user").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(prompts)
+	c.JSON(http.StatusOK, prompts)
 }
 
-func (h *ChatPromptHandler) DeleteChatPromptByUUID(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatPromptByUUID(r.Context(), idStr)
+func (h *ChatPromptHandler) DeleteChatPromptByUUID(c *gin.Context) {
+	uuid := c.Param("uuid")
+	err := h.service.DeleteChatPromptByUUID(c.Request.Context(), uuid)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to delete chat prompt"))
+		WrapError(MapDatabaseError(err), "Failed to delete chat prompt").GinResponse(c)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	c.Status(http.StatusOK)
 }
 
-func (h *ChatPromptHandler) UpdateChatPromptByUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatPromptHandler) UpdateChatPromptByUUID(c *gin.Context) {
 	var simple_msg SimpleChatMessage
-	err := json.NewDecoder(r.Body).Decode(&simple_msg)
-	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
+	if err := c.ShouldBindJSON(&simple_msg); err != nil {
+		ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()).GinResponse(c)
 		return
 	}
-	prompt, err := h.service.UpdateChatPromptByUUID(r.Context(), simple_msg.Uuid, simple_msg.Text)
+	prompt, err := h.service.UpdateChatPromptByUUID(c.Request.Context(), simple_msg.Uuid, simple_msg.Text)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update chat prompt"))
+		WrapError(MapDatabaseError(err), "Failed to update chat prompt").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(prompt)
+	c.JSON(http.StatusOK, prompt)
 }

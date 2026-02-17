@@ -1,11 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -21,91 +20,79 @@ func NewChatSnapshotHandler(sqlc_q *sqlc_queries.Queries) *ChatSnapshotHandler {
 	}
 }
 
-func (h *ChatSnapshotHandler) Register(router *mux.Router) {
-	router.HandleFunc("/uuid/chat_snapshot/all", h.ChatSnapshotMetaByUserID).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/chat_snapshot/{uuid}", h.GetChatSnapshot).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/chat_snapshot/{uuid}", h.CreateChatSnapshot).Methods(http.MethodPost)
-	router.HandleFunc("/uuid/chat_snapshot/{uuid}", h.UpdateChatSnapshotMetaByUUID).Methods(http.MethodPut)
-	router.HandleFunc("/uuid/chat_snapshot/{uuid}", h.DeleteChatSnapshot).Methods(http.MethodDelete)
-	router.HandleFunc("/uuid/chat_snapshot_search", h.ChatSnapshotSearch).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/chat_bot/{uuid}", h.CreateChatBot).Methods(http.MethodPost)
+// GinRegister registers routes with Gin router
+func (h *ChatSnapshotHandler) GinRegister(rg *gin.RouterGroup) {
+	rg.GET("/uuid/chat_snapshot/all", h.GinChatSnapshotMetaByUserID)
+	rg.GET("/uuid/chat_snapshot/:uuid", h.GinGetChatSnapshot)
+	rg.POST("/uuid/chat_snapshot/:uuid", h.GinCreateChatSnapshot)
+	rg.PUT("/uuid/chat_snapshot/:uuid", h.GinUpdateChatSnapshotMetaByUUID)
+	rg.DELETE("/uuid/chat_snapshot/:uuid", h.GinDeleteChatSnapshot)
+	rg.GET("/uuid/chat_snapshot_search", h.GinChatSnapshotSearch)
+	rg.POST("/uuid/chat_bot/:uuid", h.GinCreateChatBot)
 }
 
-func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.Request) {
-	chatSessionUuid := mux.Vars(r)["uuid"]
-	user_id, err := getUserID(r.Context())
+func (h *ChatSnapshotHandler) GinCreateChatSnapshot(c *gin.Context) {
+	chatSessionUuid := c.Param("uuid")
+	userID, err := GetUserID(c)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
-	uuid, err := h.service.CreateChatSnapshot(r.Context(), chatSessionUuid, user_id)
+	uuid, err := h.service.CreateChatSnapshot(c.Request.Context(), chatSessionUuid, userID)
 	if err != nil {
-		apiErr := WrapError(MapDatabaseError(err), "Failed to create chat snapshot")
-		RespondWithAPIError(w, apiErr)
+		WrapError(MapDatabaseError(err), "Failed to create chat snapshot").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(
-		map[string]interface{}{
-			"uuid": uuid,
-		})
-
+	c.JSON(http.StatusOK, map[string]interface{}{"uuid": uuid})
 }
 
-func (h *ChatSnapshotHandler) CreateChatBot(w http.ResponseWriter, r *http.Request) {
-	chatSessionUuid := mux.Vars(r)["uuid"]
-	user_id, err := getUserID(r.Context())
+func (h *ChatSnapshotHandler) GinCreateChatBot(c *gin.Context) {
+	chatSessionUuid := c.Param("uuid")
+	userID, err := GetUserID(c)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
-	uuid, err := h.service.CreateChatBot(r.Context(), chatSessionUuid, user_id)
+	uuid, err := h.service.CreateChatBot(c.Request.Context(), chatSessionUuid, userID)
 	if err != nil {
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to create chat bot"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(
-		map[string]interface{}{
-			"uuid": uuid,
-		})
-
+	c.JSON(http.StatusOK, map[string]interface{}{"uuid": uuid})
 }
 
-func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Request) {
-	uuidStr := mux.Vars(r)["uuid"]
-	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuidStr)
+func (h *ChatSnapshotHandler) GinGetChatSnapshot(c *gin.Context) {
+	uuidStr := c.Param("uuid")
+	snapshot, err := h.service.q.ChatSnapshotByUUID(c.Request.Context(), uuidStr)
 	if err != nil {
-		apiErr := WrapError(MapDatabaseError(err), "Failed to get chat snapshot")
-		RespondWithAPIError(w, apiErr)
+		WrapError(MapDatabaseError(err), "Failed to get chat snapshot").GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(snapshot)
-
+	c.JSON(http.StatusOK, snapshot)
 }
 
-func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *ChatSnapshotHandler) GinChatSnapshotMetaByUserID(c *gin.Context) {
+	userID, err := GetUserID(c)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
-	// get type from query
-	typ := r.URL.Query().Get("type")
 
-	// Parse pagination parameters
-	pageStr := r.URL.Query().Get("page")
-	pageSizeStr := r.URL.Query().Get("page_size")
+	typ := c.Query("type")
+	pageStr := c.Query("page")
+	pageSizeStr := c.Query("page_size")
 
-	page := int32(1)    // Default to page 1
-	pageSize := int32(20) // Default to 20 items per page
+	page := int32(1)
+	pageSize := int32(20)
 
 	if pageStr != "" {
 		parsedPage, err := strconv.Atoi(pageStr)
@@ -123,7 +110,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 
 	offset := (page - 1) * pageSize
 
-	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), sqlc_queries.ChatSnapshotMetaByUserIDParams{
+	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(c.Request.Context(), sqlc_queries.ChatSnapshotMetaByUserIDParams{
 		UserID: userID,
 		Typ:    typ,
 		Limit:  pageSize,
@@ -134,53 +121,51 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to retrieve chat snapshots"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	// Get total count for pagination
-	totalCount, err := h.service.q.ChatSnapshotCountByUserIDAndType(r.Context(), sqlc_queries.ChatSnapshotCountByUserIDAndTypeParams{
-		UserID: userID,
+	totalCount, err := h.service.q.ChatSnapshotCountByUserIDAndType(c.Request.Context(), sqlc_queries.ChatSnapshotCountByUserIDAndTypeParams{
+		UserID:  userID,
 		Column2: typ,
 	})
 	if err != nil {
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to retrieve snapshot count"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(http.StatusOK, map[string]interface{}{
 		"data":       chatSnapshots,
 		"page":       page,
 		"page_size":  pageSize,
 		"total":      totalCount,
 	})
 }
-func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter, r *http.Request) {
-	uuid := mux.Vars(r)["uuid"]
+
+func (h *ChatSnapshotHandler) GinUpdateChatSnapshotMetaByUUID(c *gin.Context) {
+	uuid := c.Param("uuid")
 	var input struct {
 		Title   string `json:"title"`
 		Summary string `json:"summary"`
 	}
-	err := json.NewDecoder(r.Body).Decode(&input)
-	if err != nil {
+	if err := c.ShouldBindJSON(&input); err != nil {
 		apiErr := ErrValidationInvalidInput("Failed to parse request body")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
-	userID, err := getUserID(r.Context())
+	userID, err := GetUserID(c)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	err = h.service.q.UpdateChatSnapshotMetaByUUID(r.Context(), sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{
+	err = h.service.q.UpdateChatSnapshotMetaByUUID(c.Request.Context(), sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{
 		Uuid:    uuid,
 		Title:   input.Title,
 		Summary: input.Summary,
@@ -190,33 +175,31 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to update chat snapshot metadata"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuid)
+	snapshot, err := h.service.q.ChatSnapshotByUUID(c.Request.Context(), uuid)
 	if err != nil {
 		apiErr := ErrResourceNotFound("Chat snapshot")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
-	json.NewEncoder(w).Encode(snapshot)
-
+	c.JSON(http.StatusOK, snapshot)
 }
 
-func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	uuid := vars["uuid"]
-	userID, err := getUserID(r.Context())
+func (h *ChatSnapshotHandler) GinDeleteChatSnapshot(c *gin.Context) {
+	uuid := c.Param("uuid")
+	userID, err := GetUserID(c)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	_, err = h.service.q.DeleteChatSnapshot(r.Context(), sqlc_queries.DeleteChatSnapshotParams{
+	_, err = h.service.q.DeleteChatSnapshot(c.Request.Context(), sqlc_queries.DeleteChatSnapshotParams{
 		Uuid:   uuid,
 		UserID: userID,
 	})
@@ -224,29 +207,27 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to delete chat snapshot"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
-
+	c.Status(http.StatusOK)
 }
 
-func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.Request) {
-	search := r.URL.Query().Get("search")
+func (h *ChatSnapshotHandler) GinChatSnapshotSearch(c *gin.Context) {
+	search := c.Query("search")
 	if search == "" {
-		w.WriteHeader(http.StatusOK)
-		var emptySlice []any // create an empty slice of integers
-		json.NewEncoder(w).Encode(emptySlice)
+		c.JSON(http.StatusOK, []any{})
 		return
 	}
-	userID, err := getUserID(r.Context())
+	userID, err := GetUserID(c)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	chatSnapshots, err := h.service.q.ChatSnapshotSearch(r.Context(), sqlc_queries.ChatSnapshotSearchParams{
+	chatSnapshots, err := h.service.q.ChatSnapshotSearch(c.Request.Context(), sqlc_queries.ChatSnapshotSearchParams{
 		UserID: userID,
 		Search: search,
 	})
@@ -254,10 +235,9 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to search chat snapshots"
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		apiErr.GinResponse(c)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatSnapshots)
+	c.JSON(http.StatusOK, chatSnapshots)
 }
