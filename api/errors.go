@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgconn"
 )
 
@@ -309,6 +310,27 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("Failed to write error response: %v", err)
 	}
+}
+
+// RespondWithAPIErrorGin writes an APIError response to a Gin context
+func RespondWithAPIErrorGin(c *gin.Context, err APIError) {
+	// Log error with debug info if available
+	if err.DebugInfo != "" {
+		log.Printf("Error [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
+	}
+
+	// Error response structure
+	response := struct {
+		Code    string `json:"code"`             // Application error code
+		Message string `json:"message"`          // Human-readable error message
+		Detail  string `json:"detail,omitempty"` // Additional error details
+	}{
+		Code:    err.Code,
+		Message: err.Message,
+		Detail:  err.Detail + " " + err.DebugInfo,
+	}
+
+	c.JSON(err.HTTPCode, response)
 }
 
 func MapDatabaseError(err error) error {

@@ -2,13 +2,12 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -23,18 +22,18 @@ func NewChatWorkspaceHandler(sqlc_q *sqlc_queries.Queries) *ChatWorkspaceHandler
 	}
 }
 
-func (h *ChatWorkspaceHandler) Register(router *mux.Router) {
-	router.HandleFunc("/workspaces", h.getWorkspacesByUserID).Methods(http.MethodGet)
-	router.HandleFunc("/workspaces", h.createWorkspace).Methods(http.MethodPost)
-	router.HandleFunc("/workspaces/{uuid}", h.getWorkspaceByUUID).Methods(http.MethodGet)
-	router.HandleFunc("/workspaces/{uuid}", h.updateWorkspace).Methods(http.MethodPut)
-	router.HandleFunc("/workspaces/{uuid}", h.deleteWorkspace).Methods(http.MethodDelete)
-	router.HandleFunc("/workspaces/{uuid}/reorder", h.updateWorkspaceOrder).Methods(http.MethodPut)
-	router.HandleFunc("/workspaces/{uuid}/set-default", h.setDefaultWorkspace).Methods(http.MethodPut)
-	router.HandleFunc("/workspaces/{uuid}/sessions", h.createSessionInWorkspace).Methods(http.MethodPost)
-	router.HandleFunc("/workspaces/{uuid}/sessions", h.getSessionsByWorkspace).Methods(http.MethodGet)
-	router.HandleFunc("/workspaces/default", h.ensureDefaultWorkspace).Methods(http.MethodPost)
-	router.HandleFunc("/workspaces/auto-migrate", h.autoMigrateLegacySessions).Methods(http.MethodPost)
+func (h *ChatWorkspaceHandler) Register(router *gin.RouterGroup) {
+	router.GET("/workspaces", h.getWorkspacesByUserID)
+	router.POST("/workspaces", h.createWorkspace)
+	router.GET("/workspaces/:uuid", h.getWorkspaceByUUID)
+	router.PUT("/workspaces/:uuid", h.updateWorkspace)
+	router.DELETE("/workspaces/:uuid", h.deleteWorkspace)
+	router.PUT("/workspaces/:uuid/reorder", h.updateWorkspaceOrder)
+	router.PUT("/workspaces/:uuid/set-default", h.setDefaultWorkspace)
+	router.POST("/workspaces/:uuid/sessions", h.createSessionInWorkspace)
+	router.GET("/workspaces/:uuid/sessions", h.getSessionsByWorkspace)
+	router.POST("/workspaces/default", h.ensureDefaultWorkspace)
+	router.POST("/workspaces/auto-migrate", h.autoMigrateLegacySessions)
 }
 
 type CreateWorkspaceRequest struct {
@@ -70,20 +69,20 @@ type WorkspaceResponse struct {
 }
 
 // createWorkspace creates a new workspace
-func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Request) {
+func (h *ChatWorkspaceHandler) createWorkspace(c *gin.Context) {
 	var req CreateWorkspaceRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Invalid request format")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
 	// Validate required fields
 	if req.Name == "" {
 		apiErr := ErrValidationInvalidInput("Workspace name is required")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -95,12 +94,12 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 		req.Icon = "folder"
 	}
 
-	ctx := r.Context()
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -119,7 +118,7 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 	workspace, err := h.service.CreateWorkspace(ctx, params)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to create workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -135,20 +134,20 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
-	json.NewEncoder(w).Encode(response)
+	c.JSON(200, response)
 }
 
 // getWorkspaceByUUID returns a workspace by its UUID
-func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http.Request) {
-	workspaceUUID := mux.Vars(r)["uuid"]
+func (h *ChatWorkspaceHandler) getWorkspaceByUUID(c *gin.Context) {
+	workspaceUUID := c.Param("uuid")
 	log.Printf("🔍 DEBUG: getWorkspaceByUUID called with UUID=%s", workspaceUUID)
 
-	ctx := r.Context()
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -158,13 +157,13 @@ func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to check workspace permission")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 	if !hasPermission {
 		apiErr := ErrAuthAccessDenied
 		apiErr.Message = "Access denied to workspace"
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -173,11 +172,11 @@ func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http
 		if err == sql.ErrNoRows {
 			apiErr := ErrResourceNotFound("Workspace")
 			apiErr.Message = "Workspace not found with UUID: " + workspaceUUID
-			RespondWithAPIError(w, apiErr)
+			RespondWithAPIErrorGin(c, apiErr)
 			return
 		}
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -193,24 +192,24 @@ func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http
 		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
-	json.NewEncoder(w).Encode(response)
+	c.JSON(200, response)
 }
 
 // getWorkspacesByUserID returns all workspaces for the authenticated user
-func (h *ChatWorkspaceHandler) getWorkspacesByUserID(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *ChatWorkspaceHandler) getWorkspacesByUserID(c *gin.Context) {
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
 	workspaces, err := h.service.GetWorkspaceWithSessionCount(ctx, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get workspaces")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -231,28 +230,28 @@ func (h *ChatWorkspaceHandler) getWorkspacesByUserID(w http.ResponseWriter, r *h
 		responses = append(responses, response)
 	}
 
-	json.NewEncoder(w).Encode(responses)
+	c.JSON(200, responses)
 }
 
 // updateWorkspace updates an existing workspace
-func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Request) {
-	workspaceUUID := mux.Vars(r)["uuid"]
+func (h *ChatWorkspaceHandler) updateWorkspace(c *gin.Context) {
+	workspaceUUID := c.Param("uuid")
 
 	var req UpdateWorkspaceRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Invalid request format")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
-	ctx := r.Context()
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -260,13 +259,13 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to check workspace permission")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 	if !hasPermission {
 		apiErr := ErrAuthAccessDenied
 		apiErr.Message = "Access denied to workspace"
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -281,7 +280,7 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 	workspace, err := h.service.UpdateWorkspace(ctx, params)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to update workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -297,28 +296,28 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
-	json.NewEncoder(w).Encode(response)
+	c.JSON(200, response)
 }
 
 // updateWorkspaceOrder updates the order position of a workspace
-func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *http.Request) {
-	workspaceUUID := mux.Vars(r)["uuid"]
+func (h *ChatWorkspaceHandler) updateWorkspaceOrder(c *gin.Context) {
+	workspaceUUID := c.Param("uuid")
 
 	var req UpdateWorkspaceOrderRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Invalid request format")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
-	ctx := r.Context()
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -326,13 +325,13 @@ func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *ht
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to check workspace permission")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 	if !hasPermission {
 		apiErr := ErrAuthAccessDenied
 		apiErr.Message = "Access denied to workspace"
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -344,7 +343,7 @@ func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *ht
 	workspace, err := h.service.UpdateWorkspaceOrder(ctx, params)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to update workspace order")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -360,19 +359,19 @@ func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *ht
 		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
-	json.NewEncoder(w).Encode(response)
+	c.JSON(200, response)
 }
 
 // deleteWorkspace deletes a workspace
-func (h *ChatWorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
-	workspaceUUID := mux.Vars(r)["uuid"]
+func (h *ChatWorkspaceHandler) deleteWorkspace(c *gin.Context) {
+	workspaceUUID := c.Param("uuid")
 
-	ctx := r.Context()
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -380,13 +379,13 @@ func (h *ChatWorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Re
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to check workspace permission")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 	if !hasPermission {
 		apiErr := ErrAuthAccessDenied
 		apiErr.Message = "Access denied to workspace"
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -394,38 +393,37 @@ func (h *ChatWorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Re
 	workspace, err := h.service.GetWorkspaceByUUID(ctx, workspaceUUID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
 	// Prevent deletion of default workspace
 	if workspace.IsDefault {
 		apiErr := ErrValidationInvalidInput("Cannot delete default workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
 	err = h.service.DeleteWorkspace(ctx, workspaceUUID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to delete workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Workspace deleted successfully"})
+	c.JSON(http.StatusOK, map[string]string{"message": "Workspace deleted successfully"})
 }
 
 // setDefaultWorkspace sets a workspace as the default
-func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
-	workspaceUUID := mux.Vars(r)["uuid"]
+func (h *ChatWorkspaceHandler) setDefaultWorkspace(c *gin.Context) {
+	workspaceUUID := c.Param("uuid")
 
-	ctx := r.Context()
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -433,13 +431,13 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to check workspace permission")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 	if !hasPermission {
 		apiErr := ErrAuthAccessDenied
 		apiErr.Message = "Access denied to workspace"
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -447,7 +445,7 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 	workspaces, err := h.service.GetWorkspacesByUserID(ctx, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get workspaces")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -459,7 +457,7 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 			})
 			if err != nil {
 				apiErr := WrapError(MapDatabaseError(err), "Failed to unset default workspace")
-				RespondWithAPIError(w, apiErr)
+				RespondWithAPIErrorGin(c, apiErr)
 				return
 			}
 		}
@@ -472,7 +470,7 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 	})
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to set default workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -488,24 +486,24 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
-	json.NewEncoder(w).Encode(response)
+	c.JSON(200, response)
 }
 
 // ensureDefaultWorkspace ensures the user has a default workspace
-func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(c *gin.Context) {
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
 	workspace, err := h.service.EnsureDefaultWorkspaceExists(ctx, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to ensure default workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -521,7 +519,7 @@ func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *
 		UpdatedAt:     workspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
-	json.NewEncoder(w).Encode(response)
+	c.JSON(200, response)
 }
 
 type CreateSessionInWorkspaceRequest struct {
@@ -530,24 +528,24 @@ type CreateSessionInWorkspaceRequest struct {
 }
 
 // createSessionInWorkspace creates a new session in a specific workspace
-func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r *http.Request) {
-	workspaceUUID := mux.Vars(r)["uuid"]
+func (h *ChatWorkspaceHandler) createSessionInWorkspace(c *gin.Context) {
+	workspaceUUID := c.Param("uuid")
 
 	var req CreateSessionInWorkspaceRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Invalid request format")
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
-	ctx := r.Context()
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -555,13 +553,13 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to check workspace permission")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 	if !hasPermission {
 		apiErr := ErrAuthAccessDenied
 		apiErr.Message = "Access denied to workspace"
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -569,7 +567,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 	workspace, err := h.service.GetWorkspaceByUUID(ctx, workspaceUUID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -592,7 +590,7 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 	session, err := sessionService.q.CreateChatSessionInWorkspace(ctx, sessionParams)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to create session in workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -600,11 +598,11 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 	_, err = activeSessionService.UpsertActiveSession(ctx, userID, &workspace.ID, sessionUUID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to set active session")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(200, map[string]interface{}{
 		"uuid":          session.Uuid,
 		"topic":         session.Topic,
 		"model":         session.Model,
@@ -616,15 +614,15 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 }
 
 // getSessionsByWorkspace returns all sessions in a specific workspace
-func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *http.Request) {
-	workspaceUUID := mux.Vars(r)["uuid"]
+func (h *ChatWorkspaceHandler) getSessionsByWorkspace(c *gin.Context) {
+	workspaceUUID := c.Param("uuid")
 
-	ctx := r.Context()
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrAuthInvalidCredentials
 		apiErr.DebugInfo = err.Error()
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -632,13 +630,13 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 	hasPermission, err := h.service.HasWorkspacePermission(ctx, workspaceUUID, userID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to check workspace permission")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 	if !hasPermission {
 		apiErr := ErrAuthAccessDenied
 		apiErr.Message = "Access denied to workspace"
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -646,7 +644,7 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 	workspace, err := h.service.GetWorkspaceByUUID(ctx, workspaceUUID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get workspace")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -655,7 +653,7 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 	sessions, err := sessionService.q.GetSessionsByWorkspaceID(ctx, sql.NullInt32{Int32: workspace.ID, Valid: true})
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get sessions")
-		RespondWithAPIError(w, apiErr)
+		RespondWithAPIErrorGin(c, apiErr)
 		return
 	}
 
@@ -683,15 +681,15 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 		sessionResponses = append(sessionResponses, sessionResponse)
 	}
 
-	json.NewEncoder(w).Encode(sessionResponses)
+	c.JSON(200, sessionResponses)
 }
 
 // autoMigrateLegacySessions automatically detects and migrates legacy sessions without workspace_id
-func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(c *gin.Context) {
+	ctx := c.Request.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		RespondWithAPIErrorGin(c, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
 
@@ -699,7 +697,7 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 	sessionService := NewChatSessionService(h.service.q)
 	legacySessions, err := sessionService.q.GetSessionsWithoutWorkspace(ctx, userID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to check for legacy sessions"))
+		RespondWithAPIErrorGin(c, WrapError(MapDatabaseError(err), "Failed to check for legacy sessions"))
 		return
 	}
 
@@ -710,22 +708,21 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 
 	// If no legacy sessions, return early
 	if len(legacySessions) == 0 {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		c.JSON(http.StatusOK, response)
 		return
 	}
 
 	// Ensure default workspace exists
 	defaultWorkspace, err := h.service.EnsureDefaultWorkspaceExists(ctx, userID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to ensure default workspace"))
+		RespondWithAPIErrorGin(c, WrapError(MapDatabaseError(err), "Failed to ensure default workspace"))
 		return
 	}
 
 	// Migrate all legacy sessions to default workspace
 	err = h.service.MigrateSessionsToDefaultWorkspace(ctx, userID, defaultWorkspace.ID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to migrate legacy sessions"))
+		RespondWithAPIErrorGin(c, WrapError(MapDatabaseError(err), "Failed to migrate legacy sessions"))
 		return
 	}
 
@@ -756,6 +753,5 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 		UpdatedAt:     defaultWorkspace.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, response)
 }

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -140,7 +141,16 @@ func main() {
 	// Create a new router
 	router := mux.NewRouter()
 
+	// Create gin engine for Gin-migrated handlers
+	gin.SetMode(gin.ReleaseMode)
+	ginRouter := gin.New()
+	ginRouter.Use(gin.Recovery())
+
 	apiRouter := router.PathPrefix("/api").Subrouter()
+
+	// Create Gin router groups (prefixed with /api/gin to match mux forwarding)
+	ginAPIRouter := ginRouter.Group("/api/gin")
+	ginUserRouter := ginAPIRouter.Group("")
 
 	sqlc_q := sqlc_queries.New(pgdb)
 	secretService := NewJWTSecretService(sqlc_q)
@@ -158,7 +168,7 @@ func main() {
 	userRouter.Use(UserAuthMiddleware)
 
 	ChatModelHandler := NewChatModelHandler(sqlc_q)
-	ChatModelHandler.Register(userRouter) // Chat models for regular users
+	ChatModelHandler.Register(ginUserRouter) // Chat models for regular users
 
 	// create a new AuthUserHandler instance for user routes
 	userHandler := NewAuthUserHandler(sqlc_q)
@@ -174,20 +184,20 @@ func main() {
 	adminHandler.RegisterRoutes(adminRouter)
 
 	promptHandler := NewChatPromptHandler(sqlc_q)
-	promptHandler.Register(userRouter)
+	promptHandler.Register(ginUserRouter)
 
 	chatSessionHandler := NewChatSessionHandler(sqlc_q)
-	chatSessionHandler.Register(userRouter)
+	chatSessionHandler.Register(ginUserRouter)
 
 	// Register active session handler before workspace handler to avoid route shadowing
 	activeSessionHandler := NewUserActiveChatSessionHandler(sqlc_q)
 	activeSessionHandler.Register(userRouter)
 
 	chatWorkspaceHandler := NewChatWorkspaceHandler(sqlc_q)
-	chatWorkspaceHandler.Register(userRouter)
+	chatWorkspaceHandler.Register(ginUserRouter)
 
 	chatMessageHandler := NewChatMessageHandler(sqlc_q)
-	chatMessageHandler.Register(userRouter)
+	chatMessageHandler.Register(ginUserRouter)
 
 	chatSnapshotHandler := NewChatSnapshotHandler(sqlc_q)
 	chatSnapshotHandler.Register(userRouter)
@@ -290,6 +300,12 @@ func main() {
 	// Wrap the router with CORS and logging middleware
 	corsRouter := corsOptions(router)
 	loggedRouter := handlers.LoggingHandler(logger.Out, corsRouter)
+
+	// Add Gin router to mux router for Gin-migrated endpoints
+	// Use /api/gin/ prefix to avoid conflicts with mux-routed /api/* routes
+	router.PathPrefix("/api/gin/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ginRouter.ServeHTTP(w, r)
+	}))
 
 	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		tpl, err1 := route.GetPathTemplate()

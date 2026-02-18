@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -27,11 +26,11 @@ func NewChatFileHandler(sqlc_q *sqlc_queries.Queries) *ChatFileHandler {
 	}
 }
 
-func (h *ChatFileHandler) Register(router *mux.Router) {
-	router.HandleFunc("/upload", h.ReceiveFile).Methods(http.MethodPost)
-	router.HandleFunc("/chat_file/{uuid}/list", h.ChatFilesBySessionUUID).Methods(http.MethodGet)
-	router.HandleFunc("/download/{id}", h.DownloadFile).Methods(http.MethodGet)
-	router.HandleFunc("/download/{id}", h.DeleteFile).Methods(http.MethodDelete)
+func (h *ChatFileHandler) Register(router *gin.RouterGroup) {
+	router.POST("/upload", h.ReceiveFile)
+	router.GET("/chat_file/:uuid/list", h.ChatFilesBySessionUUID)
+	router.GET("/download/:id", h.DownloadFile)
+	router.DELETE("/download/:id", h.DeleteFile)
 }
 
 const (
@@ -58,31 +57,31 @@ func isValidFileType(mimeType, fileName string) bool {
 	return strings.HasSuffix(strings.ToLower(fileName), expectedExt)
 }
 
-func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
+func (h *ChatFileHandler) ReceiveFile(c *gin.Context) {
 	// Parse multipart form with size limit
-	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput(fmt.Sprintf("file too large, max size is %d bytes", maxUploadSize)))
+	if err := c.Request.ParseMultipartForm(maxUploadSize); err != nil {
+		RespondWithAPIErrorGin(c, ErrValidationInvalidInput(fmt.Sprintf("file too large, max size is %d bytes", maxUploadSize)))
 		return
 	}
 
 	// Get session UUID
-	sessionUUID := r.FormValue("session-uuid")
+	sessionUUID := c.PostForm("session-uuid")
 	if sessionUUID == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("missing session UUID"))
+		RespondWithAPIErrorGin(c, ErrValidationInvalidInput("missing session UUID"))
 		return
 	}
 
 	// Get user ID
-	userID, err := getUserID(r.Context())
+	userID, err := getUserID(c.Request.Context())
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		RespondWithAPIErrorGin(c, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
 	// Get uploaded file
-	file, header, err := r.FormFile("file")
+	file, header, err := c.Request.FormFile("file")
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get uploaded file"))
+		RespondWithAPIErrorGin(c, WrapError(err, "failed to get uploaded file"))
 		return
 	}
 	defer func() {
@@ -94,7 +93,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	// Validate file type and extension
 	mimeType := header.Header.Get("Content-Type")
 	if !isValidFileType(mimeType, header.Filename) {
-		RespondWithAPIError(w, ErrChatFileInvalidType.WithMessage(
+		RespondWithAPIErrorGin(c, ErrChatFileInvalidType.WithMessage(
 			fmt.Sprintf("unsupported file type: %s or invalid extension for type", mimeType)))
 		return
 	}
@@ -104,7 +103,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 
 	// Validate file size
 	if header.Size > maxUploadSize {
-		RespondWithAPIError(w, ErrValidationInvalidInput(fmt.Sprintf("file too large, max size is %d bytes", maxUploadSize)))
+		RespondWithAPIErrorGin(c, ErrValidationInvalidInput(fmt.Sprintf("file too large, max size is %d bytes", maxUploadSize)))
 		return
 	}
 
@@ -112,18 +111,18 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	limitedReader := &io.LimitedReader{R: file, N: maxUploadSize}
 	if _, err := io.Copy(&buf, limitedReader); err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to read uploaded file"))
+		RespondWithAPIErrorGin(c, WrapError(err, "failed to read uploaded file"))
 		return
 	}
 
 	// Check if we hit the size limit
 	if limitedReader.N <= 0 {
-		RespondWithAPIError(w, ErrValidationInvalidInput(
+		RespondWithAPIErrorGin(c, ErrValidationInvalidInput(
 			fmt.Sprintf("file exceeds maximum size of %d bytes", maxUploadSize)))
 		return
 	}
 	// Create chat file record
-	chatFile, err := h.service.q.CreateChatFile(r.Context(), sqlc_queries.CreateChatFileParams{
+	chatFile, err := h.service.q.CreateChatFile(c.Request.Context(), sqlc_queries.CreateChatFileParams{
 		ChatSessionUuid: sessionUUID,
 		UserID:          userID,
 		Name:            header.Filename,
@@ -132,7 +131,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to create chat file record"))
+		RespondWithAPIErrorGin(c, WrapError(err, "failed to create chat file record"))
 		return
 	}
 
@@ -140,9 +139,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	buf.Reset()
 
 	// Return success response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
+	c.JSON(http.StatusCreated, map[string]string{
 		"url":  fmt.Sprintf("/download/%d", chatFile.ID),
 		"name": header.Filename,
 		"type": mimeType,
@@ -150,64 +147,60 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
-	fileID := mux.Vars(r)["id"]
+func (h *ChatFileHandler) DownloadFile(c *gin.Context) {
+	fileID := c.Param("id")
 	fileIdInt, err := strconv.ParseInt(fileID, 10, 32)
 	if err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("invalid file ID"))
+		RespondWithAPIErrorGin(c, ErrValidationInvalidInput("invalid file ID"))
 		return
 	}
 
-	file, err := h.service.q.GetChatFileByID(r.Context(), int32(fileIdInt))
+	file, err := h.service.q.GetChatFileByID(c.Request.Context(), int32(fileIdInt))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrChatFileNotFound.WithMessage(fmt.Sprintf("file ID %d not found", fileIdInt)))
+			RespondWithAPIErrorGin(c, ErrChatFileNotFound.WithMessage(fmt.Sprintf("file ID %d not found", fileIdInt)))
 		} else {
-			RespondWithAPIError(w, WrapError(err, "failed to get chat file"))
+			RespondWithAPIErrorGin(c, WrapError(err, "failed to get chat file"))
 		}
 		return
 	}
 
 	// Set proper content type from stored mime type
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
-	w.Header().Set("Content-Length", strconv.Itoa(len(file.Data)))
-
-	if _, err := w.Write(file.Data); err != nil {
-		log.Printf("Failed to write file data: %v", err)
-	}
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
+	c.Header("Content-Length", strconv.Itoa(len(file.Data)))
+	c.Data(200, file.MimeType, file.Data)
 }
 
-func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
-	fileID := mux.Vars(r)["id"]
+func (h *ChatFileHandler) DeleteFile(c *gin.Context) {
+	fileID := c.Param("id")
 	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
-	_, err := h.service.q.DeleteChatFile(r.Context(), int32(fileIdInt))
+	_, err := h.service.q.DeleteChatFile(c.Request.Context(), int32(fileIdInt))
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to delete chat file"))
+		RespondWithAPIErrorGin(c, WrapError(err, "failed to delete chat file"))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	c.Status(http.StatusOK)
 }
 
-func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.Request) {
-	sessionUUID := mux.Vars(r)["uuid"]
-	userID, err := getUserID(r.Context())
+func (h *ChatFileHandler) ChatFilesBySessionUUID(c *gin.Context) {
+	sessionUUID := c.Param("uuid")
+	userID, err := getUserID(c.Request.Context())
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		RespondWithAPIErrorGin(c, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
-	chatFiles, err := h.service.q.ListChatFilesBySessionUUID(r.Context(), sqlc_queries.ListChatFilesBySessionUUIDParams{
+	chatFiles, err := h.service.q.ListChatFilesBySessionUUID(c.Request.Context(), sqlc_queries.ListChatFilesBySessionUUIDParams{
 		ChatSessionUuid: sessionUUID,
 		UserID:          userID,
 	})
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to list chat files for session"))
+		RespondWithAPIErrorGin(c, WrapError(err, "failed to list chat files for session"))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 
 	if len(chatFiles) == 0 {
-		w.Write([]byte("[]"))
+		c.String(200, "[]")
 		return
 	}
-	json.NewEncoder(w).Encode(chatFiles)
+	c.JSON(200, chatFiles)
 }

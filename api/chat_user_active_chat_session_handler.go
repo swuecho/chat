@@ -2,14 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	sqlc "github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -27,58 +26,55 @@ func NewUserActiveChatSessionHandler(sqlc_q *sqlc.Queries) *UserActiveChatSessio
 }
 
 // Register sets up the handler routes
-func (h *UserActiveChatSessionHandler) Register(router *mux.Router) {
-	router.HandleFunc("/uuid/user_active_chat_session", h.GetUserActiveChatSessionHandler).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/user_active_chat_session", h.CreateOrUpdateUserActiveChatSessionHandler).Methods(http.MethodPut)
+func (h *UserActiveChatSessionHandler) Register(router *gin.RouterGroup) {
+	router.GET("/uuid/user_active_chat_session", h.GetUserActiveChatSessionHandler)
+	router.PUT("/uuid/user_active_chat_session", h.CreateOrUpdateUserActiveChatSessionHandler)
 
 	// Per-workspace active session endpoints
 	// Note: More specific routes must come before parameterized routes to avoid shadowing
-	router.HandleFunc("/workspaces/active-sessions", h.GetAllWorkspaceActiveSessionsHandler).Methods(http.MethodGet)
-	router.HandleFunc("/workspaces/{workspaceUuid}/active-session", h.GetWorkspaceActiveSessionHandler).Methods(http.MethodGet)
-	router.HandleFunc("/workspaces/{workspaceUuid}/active-session", h.SetWorkspaceActiveSessionHandler).Methods(http.MethodPut)
+	router.GET("/workspaces/active-sessions", h.GetAllWorkspaceActiveSessionsHandler)
+	router.GET("/workspaces/:workspaceUuid/active-session", h.GetWorkspaceActiveSessionHandler)
+	router.PUT("/workspaces/:workspaceUuid/active-session", h.SetWorkspaceActiveSessionHandler)
 }
 
 // GetUserActiveChatSessionHandler handles GET requests to get a session by user_id
-func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(c *gin.Context) {
+	ctx := c.Request.Context()
 
 	// Get and validate user ID
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		RespondWithAPIErrorGin(c, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
 	log.Printf("Getting active chat session for user %d", userID)
 
 	// Get session from service (use unified approach for global session)
-	session, err := h.service.GetActiveSession(r.Context(), userID, nil)
+	session, err := h.service.GetActiveSession(c.Request.Context(), userID, nil)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithAPIError(w, ErrChatSessionNotFound.WithMessage(fmt.Sprintf("no active session for user %d", userID)))
+			RespondWithAPIErrorGin(c, ErrChatSessionNotFound.WithMessage(fmt.Sprintf("no active session for user %d", userID)))
 		} else {
-			RespondWithAPIError(w, WrapError(err, "failed to get active chat session"))
+			RespondWithAPIErrorGin(c, WrapError(err, "failed to get active chat session"))
 		}
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(session); err != nil {
-		log.Printf("Failed to encode response: %v", err)
-	}
+	c.JSON(200, session)
 }
 
 // UUID validation regex
 var uuidRegex = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 // CreateOrUpdateUserActiveChatSessionHandler handles PUT requests to create/update a session
-func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandler(c *gin.Context) {
+	ctx := c.Request.Context()
 
 	// Get and validate user ID
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		RespondWithAPIErrorGin(c, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
@@ -86,14 +82,14 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 	var reqBody struct {
 		ChatSessionUuid string `json:"chatSessionUuid"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse request body"))
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		RespondWithAPIErrorGin(c, ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}
 
 	// Validate session UUID format
 	if !uuidRegex.MatchString(reqBody.ChatSessionUuid) {
-		RespondWithAPIError(w, ErrChatSessionInvalid.WithMessage(
+		RespondWithAPIErrorGin(c, ErrChatSessionInvalid.WithMessage(
 			fmt.Sprintf("invalid session UUID format: %s", reqBody.ChatSessionUuid)))
 		return
 	}
@@ -101,29 +97,26 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 	log.Printf("Creating/updating active chat session for user %d", userID)
 
 	// Create/update session (use unified approach for global session)
-	session, err := h.service.UpsertActiveSession(r.Context(), userID, nil, reqBody.ChatSessionUuid)
+	session, err := h.service.UpsertActiveSession(c.Request.Context(), userID, nil, reqBody.ChatSessionUuid)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to create or update active chat session"))
+		RespondWithAPIErrorGin(c, WrapError(err, "failed to create or update active chat session"))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(session); err != nil {
-		log.Printf("Failed to encode response: %v", err)
-	}
+	c.JSON(200, session)
 }
 
 // Per-workspace active session handlers
 
 // GetWorkspaceActiveSessionHandler gets the active session for a specific workspace
-func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	workspaceUuid := mux.Vars(r)["workspaceUuid"]
+func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	workspaceUuid := c.Param("workspaceUuid")
 
 	// Get and validate user ID
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		RespondWithAPIErrorGin(c, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
@@ -131,19 +124,18 @@ func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(w http.R
 	workspaceService := NewChatWorkspaceService(h.service.q)
 	workspace, err := workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
+		RespondWithAPIErrorGin(c, ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
 		return
 	}
 
 	// Get workspace active session
 	session, err := h.service.GetActiveSession(ctx, userID, &workspace.ID)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("Active Session").WithMessage("no active session for workspace"))
+		RespondWithAPIErrorGin(c, ErrResourceNotFound("Active Session").WithMessage("no active session for workspace"))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(200, map[string]interface{}{
 		"chatSessionUuid": session.ChatSessionUuid,
 		"workspaceUuid":   workspaceUuid,
 		"updatedAt":       session.UpdatedAt,
@@ -151,14 +143,14 @@ func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(w http.R
 }
 
 // SetWorkspaceActiveSessionHandler sets the active session for a specific workspace
-func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	workspaceUuid := mux.Vars(r)["workspaceUuid"]
+func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	workspaceUuid := c.Param("workspaceUuid")
 
 	// Get and validate user ID
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		RespondWithAPIErrorGin(c, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
@@ -166,14 +158,14 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 	var requestBody struct {
 		ChatSessionUuid string `json:"chatSessionUuid"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse request body"))
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		RespondWithAPIErrorGin(c, ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}
 
 	// Validate session UUID format
 	if !uuidRegex.MatchString(requestBody.ChatSessionUuid) {
-		RespondWithAPIError(w, ErrChatSessionInvalid.WithMessage("invalid session UUID format"))
+		RespondWithAPIErrorGin(c, ErrChatSessionInvalid.WithMessage("invalid session UUID format"))
 		return
 	}
 
@@ -181,19 +173,18 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 	workspaceService := NewChatWorkspaceService(h.service.q)
 	workspace, err := workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
 	if err != nil {
-		RespondWithAPIError(w, ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
+		RespondWithAPIErrorGin(c, ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
 		return
 	}
 
 	// Set workspace active session
 	session, err := h.service.UpsertActiveSession(ctx, userID, &workspace.ID, requestBody.ChatSessionUuid)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to set workspace active session"))
+		RespondWithAPIErrorGin(c, WrapError(err, "failed to set workspace active session"))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	c.JSON(200, map[string]interface{}{
 		"chatSessionUuid": session.ChatSessionUuid,
 		"workspaceUuid":   workspaceUuid,
 		"updatedAt":       session.UpdatedAt,
@@ -201,20 +192,20 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 }
 
 // GetAllWorkspaceActiveSessionsHandler gets all workspace active sessions for a user
-func (h *UserActiveChatSessionHandler) GetAllWorkspaceActiveSessionsHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *UserActiveChatSessionHandler) GetAllWorkspaceActiveSessionsHandler(c *gin.Context) {
+	ctx := c.Request.Context()
 
 	// Get and validate user ID
 	userID, err := getUserID(ctx)
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		RespondWithAPIErrorGin(c, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
 
 	// Get all workspace active sessions
 	sessions, err := h.service.GetAllActiveSessions(ctx, userID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get workspace active sessions"))
+		RespondWithAPIErrorGin(c, WrapError(err, "failed to get workspace active sessions"))
 		return
 	}
 
@@ -222,7 +213,7 @@ func (h *UserActiveChatSessionHandler) GetAllWorkspaceActiveSessionsHandler(w ht
 	workspaceService := NewChatWorkspaceService(h.service.q)
 	workspaces, err := workspaceService.GetWorkspacesByUserID(ctx, userID)
 	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get workspaces"))
+		RespondWithAPIErrorGin(c, WrapError(err, "failed to get workspaces"))
 		return
 	}
 
@@ -246,6 +237,5 @@ func (h *UserActiveChatSessionHandler) GetAllWorkspaceActiveSessionsHandler(w ht
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	c.JSON(200, response)
 }
