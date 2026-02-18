@@ -80,6 +80,16 @@ export function useConversationFlow(
       return
     }
 
+    const existingMessages = messageStore.getChatSessionDataByUuid(sessionUuid)
+    const onlySystemPromptPresent =
+      existingMessages.length === 1 && existingMessages[0]?.isPrompt === true
+
+    // For sessions that currently only have the system prompt, backend treats
+    // the first input as prompt content. Skip adding a duplicated user bubble.
+    if (onlySystemPromptPresent) {
+      return
+    }
+
     const chatMessage: ChatMessage = {
       uuid: chatUuid,
       dateTime: nowISO(),
