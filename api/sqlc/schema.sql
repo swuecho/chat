@@ -254,6 +254,25 @@ CREATE INDEX IF NOT EXISTS chat_prompt_chat_session_uuid_idx ON chat_prompt (cha
 -- add index on user_id
 CREATE INDEX IF NOT EXISTS chat_prompt_user_id_idx ON chat_prompt (user_id);
 
+-- Keep only one active system prompt per session.
+-- If historical duplicates exist, soft-delete newer duplicates first so
+-- unique index creation succeeds in existing databases.
+WITH duplicate_system_prompts AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (PARTITION BY chat_session_uuid ORDER BY id ASC) AS row_num
+    FROM chat_prompt
+    WHERE role = 'system' AND is_deleted = false
+)
+UPDATE chat_prompt cp
+SET is_deleted = true, updated_at = now()
+FROM duplicate_system_prompts dsp
+WHERE cp.id = dsp.id AND dsp.row_num > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS chat_prompt_unique_active_system_per_session_idx
+ON chat_prompt (chat_session_uuid)
+WHERE role = 'system' AND is_deleted = false;
+
 CREATE TABLE IF NOT EXISTS chat_logs (
 	id SERIAL PRIMARY KEY,  -- Auto-incrementing ID as primary key
 	session JSONB default '{}' NOT NULL,         -- JSONB column to store chat session info

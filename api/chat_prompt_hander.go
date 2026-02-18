@@ -1,11 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgconn"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -38,8 +41,47 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
+
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+
+	// Always trust authenticated user identity over client-provided values.
+	promptParams.UserID = userID
+	promptParams.CreatedBy = userID
+	promptParams.UpdatedBy = userID
+
+	// Idempotent creation for session system prompt:
+	// return existing prompt instead of inserting duplicates when concurrent
+	// frontend/backend requests race on a fresh session.
+	if promptParams.ChatSessionUuid != "" && promptParams.Role == "system" {
+		existingPrompt, getErr := h.service.q.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
+		if getErr == nil {
+			json.NewEncoder(w).Encode(existingPrompt)
+			return
+		}
+		if !errors.Is(getErr, sql.ErrNoRows) {
+			RespondWithAPIError(w, WrapError(MapDatabaseError(getErr), "Failed to check existing chat prompt"))
+			return
+		}
+	}
+
 	prompt, err := h.service.CreateChatPrompt(r.Context(), promptParams)
 	if err != nil {
+		// Handle race: another request inserted the same session system prompt
+		// between our read check and insert attempt.
+		var pgErr *pgconn.PgError
+		if promptParams.ChatSessionUuid != "" && promptParams.Role == "system" &&
+			errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			existingPrompt, getErr := h.service.q.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
+			if getErr == nil {
+				json.NewEncoder(w).Encode(existingPrompt)
+				return
+			}
+		}
+
 		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to create chat prompt"))
 		return
 	}
