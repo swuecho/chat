@@ -112,6 +112,7 @@ const {
 const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
 const toolRunning = computed(() => conversationFlow.toolRunning.value)
 const showToolDebug = computed(() => chatSession.value?.showToolDebug ?? false)
+const submitting = ref(false)
 
 const openVfsAtPath = (path: string) => {
   if (vfsUploaderRef.value?.openFileManagerAt) {
@@ -122,12 +123,24 @@ const openVfsAtPath = (path: string) => {
 provide('openVfsAtPath', openVfsAtPath)
 
 async function handleSubmit() {
+  if (submitting.value) {
+    return
+  }
+
   const message = prompt.value
   if (conversationFlow.validateConversationInput(message)) {
-    prompt.value = '' // Clear the input after validation passes
-    const chatUuid = uuidv7()
-    await conversationFlow.addUserMessage(chatUuid, message)
-    conversationFlow.startStream(message, dataSources.value, chatUuid)
+    submitting.value = true
+    try {
+      prompt.value = '' // Clear the input after validation passes
+      const chatUuid = uuidv7()
+      await conversationFlow.addUserMessage(chatUuid, message)
+      void conversationFlow.startStream(message, dataSources.value, chatUuid).finally(() => {
+        submitting.value = false
+      })
+    } catch (error) {
+      submitting.value = false
+      throw error
+    }
   }
 }
 
@@ -152,6 +165,10 @@ function handleClear() {
 }
 
 function handleEnter(event: KeyboardEvent) {
+  if (event.isComposing || event.repeat) {
+    return
+  }
+
   if (!isMobile.value) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
@@ -346,7 +363,7 @@ function handleUseQuestion(question: string) {
                 <NInput ref="searchInputRef" id="message_textarea" :value="prompt" type="textarea"
                   :placeholder="placeholder" data-testid="message_textarea"
                   :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
-                  @blur="handleBlur" @keypress="handleEnter" />
+                  @blur="handleBlur" @keydown="handleEnter" />
               </template>
             </NAutoComplete>
             <button class="!-ml-8 z-10" @click="showUploadModal = true">
