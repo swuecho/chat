@@ -685,6 +685,8 @@ func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msg
 		chatModelImpl = NewGeminiChatModel(h)
 	case "custom":
 		chatModelImpl = &CustomChatModel{h: h}
+	case "openclaw":
+		chatModelImpl = &OpenClawChatModel{h: h}
 	case "openai":
 		if isCompletion {
 			chatModelImpl = &CompletionChatModel{h: h}

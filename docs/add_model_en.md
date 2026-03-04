@@ -121,6 +121,21 @@ Here are example JSON configurations you can paste into the form:
   "defaultToken": 8192,
   "maxToken": 8192
 }
+
+# openclaw
+{
+  "name": "openclaw-default",
+  "label": "OpenClaw (Default)",
+  "url": "http://localhost:8080/v1/chat/completions",
+  "apiAuthHeader": "Authorization",
+  "apiAuthKey": "OPENCLAW_API_KEY",
+  "isDefault": false,
+  "enablePerModeRatelimit": false,
+  "isEnable": true,
+  "orderNumber": 10,
+  "defaultToken": 4096,
+  "maxToken": 8192
+}
 ```
 
 ## Troubleshooting

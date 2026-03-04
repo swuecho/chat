@@ -52,7 +52,8 @@ VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.co
         ('text-davinci-003', 'text-davinci-003', false, 'https://api.openai.com/v1/completions', 'Authorization', 'OPENAI_API_KEY', 4096, 2048, 7),
         ('echo','echo',false,'https://bestqa_workerd.bestqa.workers.dev/echo','Authorization','ECHO_API_KEY', 40960, 20480, 8),
         ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY', 40960, 2048, 9),
-        ('deepseek-reasoner','deepseek-reasoner',false,'https://api.deepseek.com/v1/chat/completions','Authorization','DEEPSEEK API KEY', 8192, 8192, 2)
+        ('deepseek-reasoner','deepseek-reasoner',false,'https://api.deepseek.com/v1/chat/completions','Authorization','DEEPSEEK API KEY', 8192, 8192, 2),
+        ('openclaw-default','openclaw-default',false,'http://localhost:8080/v1/chat/completions','Authorization','OPENCLAW_API_KEY', 8192, 4096, 10)
 ON CONFLICT(name) DO NOTHING;
 
 UPDATE chat_model SET enable_per_mode_ratelimit = true WHERE name = 'gpt-4';
@@ -67,6 +68,7 @@ UPDATE chat_model SET api_type = 'claude' WHERE name LIKE 'claude-%';
 UPDATE chat_model SET api_type = 'gemini' WHERE name LIKE 'gemini-%';
 UPDATE chat_model SET api_type = 'ollama' WHERE name LIKE 'ollama-%';
 UPDATE chat_model SET api_type = 'custom' WHERE name LIKE 'custom-%' OR name IN ('echo', 'debug');
+UPDATE chat_model SET api_type = 'openclaw' WHERE name LIKE 'openclaw-%';
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
 

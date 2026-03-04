@@ -137,6 +137,21 @@
   "defaultToken": 0,
   "maxToken": 0
 }
+
+# openclaw
+{
+  "name": "openclaw-default",
+  "label": "OpenClaw (默认)",
+  "url": "http://localhost:8080/v1/chat/completions",
+  "apiAuthHeader": "Authorization",
+  "apiAuthKey": "OPENCLAW_API_KEY",
+  "isDefault": false,
+  "enablePerModeRatelimit": false,
+  "isEnable": true,
+  "orderNumber": 10,
+  "defaultToken": 4096,
+  "maxToken": 8192
+}
 ```
 
 
