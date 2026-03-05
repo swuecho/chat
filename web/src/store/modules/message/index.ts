@@ -66,9 +66,10 @@ export const useMessageStore = defineStore('message-store', {
 
       try {
         const messageData = await getChatMessagesBySessionUUID(sessionUuid)
-        
+        const normalizedMessages = Array.isArray(messageData) ? messageData : []
+
         // Initialize batching structure for messages with suggested questions
-        const processedMessageData = messageData.map((message: Chat.Message) => {
+        const processedMessageData = normalizedMessages.map((message: Chat.Message) => {
           if (message.suggestedQuestions && message.suggestedQuestions.length > 0) {
             // If batches don't exist, create the first batch from existing questions
             if (!message.suggestedQuestionsBatches || message.suggestedQuestionsBatches.length === 0) {
@@ -88,8 +89,9 @@ export const useMessageStore = defineStore('message-store', {
           }
           return message
         })
-        
-        if (processedMessageData.length === 0) {
+
+        const hasSystemPrompt = processedMessageData.some((message: Chat.Message) => message.isPrompt)
+        if (!hasSystemPrompt) {
           try {
             const defaultPrompt = getDefaultSystemPrompt()
             const prompt = await createChatPrompt({
@@ -103,7 +105,7 @@ export const useMessageStore = defineStore('message-store', {
               updatedBy: 0,
             })
 
-            processedMessageData.unshift({
+            const promptMessage: Chat.Message = {
               uuid: prompt.uuid,
               dateTime: prompt.updatedAt || nowISO(),
               text: prompt.content || defaultPrompt,
@@ -111,7 +113,20 @@ export const useMessageStore = defineStore('message-store', {
               error: false,
               loading: false,
               isPrompt: true,
-            })
+            }
+
+            const existingPromptIndex = processedMessageData.findIndex(
+              (message: Chat.Message) => message.uuid === promptMessage.uuid || message.isPrompt,
+            )
+            if (existingPromptIndex === -1) {
+              processedMessageData.unshift(promptMessage)
+            } else {
+              processedMessageData[existingPromptIndex] = {
+                ...processedMessageData[existingPromptIndex],
+                ...promptMessage,
+                isPrompt: true,
+              }
+            }
           } catch (error) {
             console.error(`Failed to create default system prompt for session ${sessionUuid}:`, error)
           }
