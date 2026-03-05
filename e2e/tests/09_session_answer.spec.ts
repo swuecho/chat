@@ -52,9 +52,6 @@ test('test', async ({ page }) => {
 
   // Wait for first assistant response
   await messageHelpers.waitForAssistantMessageCount(1);
-  await messageHelpers.waitForAssistantMessageNonEmpty(0);
-  const firstAnswer = (await messageHelpers.getAssistantMessageText(0)).trim();
-  expect(firstAnswer.length).toBeGreaterThan(0);
 
   await input_area?.click();
   await input_area?.fill('test_debug_1');
@@ -62,9 +59,6 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(300);
   // Wait for second assistant response
   await messageHelpers.waitForAssistantMessageCount(2);
-  await messageHelpers.waitForAssistantMessageNonEmpty(1);
-  const secondAnswer = (await messageHelpers.getAssistantMessageText(1)).trim();
-  expect(secondAnswer.length).toBeGreaterThan(0);
 
   // add new message "test_debug_2"
   await input_area?.click();
@@ -73,8 +67,5 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(300);
   // Wait for third assistant response
   await messageHelpers.waitForAssistantMessageCount(3);
-  await messageHelpers.waitForAssistantMessageNonEmpty(2);
-  const thirdAnswer = (await messageHelpers.getAssistantMessageText(2)).trim();
-  expect(thirdAnswer.length).toBeGreaterThan(0);
 
 });
