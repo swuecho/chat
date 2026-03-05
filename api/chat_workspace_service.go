@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 
 	"github.com/google/uuid"
@@ -121,7 +122,7 @@ func (s *ChatWorkspaceService) EnsureDefaultWorkspaceExists(ctx context.Context,
 	workspace, err := s.GetDefaultWorkspaceByUserID(ctx, userID)
 	if err != nil {
 		// If no default workspace exists, create one
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return s.CreateDefaultWorkspace(ctx, userID)
 		}
 		return sqlc_queries.ChatWorkspace{}, err

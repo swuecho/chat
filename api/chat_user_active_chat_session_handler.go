@@ -127,8 +127,19 @@ func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
-	// Get workspace to get its ID
+	// Check workspace permission
 	workspaceService := NewChatWorkspaceService(h.service.q)
+	hasPermission, err := workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
+	if err != nil {
+		RespondWithAPIError(w, WrapError(err, "failed to check workspace permission"))
+		return
+	}
+	if !hasPermission {
+		RespondWithAPIError(w, ErrAuthAccessDenied.WithMessage("access denied to workspace"))
+		return
+	}
+
+	// Get workspace to get its ID
 	workspace, err := workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
 	if err != nil {
 		RespondWithAPIError(w, ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
@@ -162,6 +173,18 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
+	// Check workspace permission
+	workspaceService := NewChatWorkspaceService(h.service.q)
+	hasPermission, err := workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
+	if err != nil {
+		RespondWithAPIError(w, WrapError(err, "failed to check workspace permission"))
+		return
+	}
+	if !hasPermission {
+		RespondWithAPIError(w, ErrAuthAccessDenied.WithMessage("access denied to workspace"))
+		return
+	}
+
 	// Parse request body
 	var requestBody struct {
 		ChatSessionUuid string `json:"chatSessionUuid"`
@@ -178,15 +201,25 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 	}
 
 	// Get workspace to get its ID
-	workspaceService := NewChatWorkspaceService(h.service.q)
 	workspace, err := workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
 	if err != nil {
 		RespondWithAPIError(w, ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
 		return
 	}
 
+	sessionService := NewChatSessionService(h.service.q)
+	session, err := sessionService.GetChatSessionByUUID(ctx, requestBody.ChatSessionUuid)
+	if err != nil {
+		RespondWithAPIError(w, ErrResourceNotFound("Chat Session").WithMessage("chat session not found"))
+		return
+	}
+	if !session.WorkspaceID.Valid || session.WorkspaceID.Int32 != workspace.ID {
+		RespondWithAPIError(w, ErrValidationInvalidInput("session does not belong to workspace"))
+		return
+	}
+
 	// Set workspace active session
-	session, err := h.service.UpsertActiveSession(ctx, userID, &workspace.ID, requestBody.ChatSessionUuid)
+	activeSession, err := h.service.UpsertActiveSession(ctx, userID, &workspace.ID, requestBody.ChatSessionUuid)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to set workspace active session"))
 		return
@@ -194,9 +227,9 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"chatSessionUuid": session.ChatSessionUuid,
+		"chatSessionUuid": activeSession.ChatSessionUuid,
 		"workspaceUuid":   workspaceUuid,
-		"updatedAt":       session.UpdatedAt,
+		"updatedAt":       activeSession.UpdatedAt,
 	})
 }
 

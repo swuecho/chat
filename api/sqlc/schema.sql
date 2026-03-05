@@ -136,6 +136,24 @@ CREATE INDEX IF NOT EXISTS chat_workspace_user_id_idx ON chat_workspace (user_id
 -- add index on uuid for workspace
 CREATE INDEX IF NOT EXISTS chat_workspace_uuid_idx ON chat_workspace using hash (uuid);
 
+-- Keep exactly one default workspace per user.
+-- If duplicates exist in old data, keep the newest default and unset the rest.
+WITH ranked_default_workspaces AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY updated_at DESC, id DESC) AS row_num
+    FROM chat_workspace
+    WHERE is_default = true
+)
+UPDATE chat_workspace cw
+SET is_default = false, updated_at = now()
+FROM ranked_default_workspaces rdw
+WHERE cw.id = rdw.id AND rdw.row_num > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS chat_workspace_single_default_per_user_idx
+    ON chat_workspace (user_id)
+    WHERE is_default = true;
+
 CREATE TABLE IF NOT EXISTS chat_session (
     id SERIAL PRIMARY KEY,
     user_id integer NOT NULL,

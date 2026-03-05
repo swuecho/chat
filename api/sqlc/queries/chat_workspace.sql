@@ -57,5 +57,12 @@ RETURNING *;
 -- name: HasWorkspacePermission :one
 SELECT COUNT(*) > 0 as has_permission
 FROM chat_workspace w
-INNER JOIN auth_user au ON w.user_id = au.id
-WHERE w.uuid = $1 AND (w.user_id = $2 OR au.is_superuser);
+WHERE w.uuid = $1
+  AND (
+    w.user_id = $2
+    OR EXISTS (
+      SELECT 1
+      FROM auth_user request_user
+      WHERE request_user.id = $2 AND request_user.is_superuser = true
+    )
+  );

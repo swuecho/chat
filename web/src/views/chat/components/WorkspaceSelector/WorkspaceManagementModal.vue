@@ -154,15 +154,28 @@ function handleDragEnd() {
 async function reorderWorkspaces(fromIndex: number, toIndex: number) {
   try {
     console.log(`🔄 Reordering workspace from ${fromIndex} to ${toIndex}`)
-    
-    // Create a new array with reordered workspaces
-    const reorderedWorkspaces = [...filteredWorkspaces.value]
-    const [draggedItem] = reorderedWorkspaces.splice(fromIndex, 1)
-    reorderedWorkspaces.splice(toIndex, 0, draggedItem)
-    
+
+    const draggedWorkspace = filteredWorkspaces.value[fromIndex]
+    const targetWorkspace = filteredWorkspaces.value[toIndex]
+    if (!draggedWorkspace || !targetWorkspace) {
+      console.warn('Invalid drag target for workspace reorder')
+      return
+    }
+
+    // Reorder against the full workspace list so filtered views don't drop hidden workspaces.
+    const reorderedWorkspaces = [...workspaces.value]
+    const fromFullIndex = reorderedWorkspaces.findIndex(w => w.uuid === draggedWorkspace.uuid)
+    const toFullIndex = reorderedWorkspaces.findIndex(w => w.uuid === targetWorkspace.uuid)
+    if (fromFullIndex === -1 || toFullIndex === -1) {
+      console.warn('Failed to map filtered reorder to full workspace list')
+      return
+    }
+
+    const [draggedItem] = reorderedWorkspaces.splice(fromFullIndex, 1)
+    reorderedWorkspaces.splice(toFullIndex, 0, draggedItem)
+
     console.log('📋 New order:', reorderedWorkspaces.map((w, i) => `${i}: ${w.name}`))
-    
-    // Persist the new order (currently local-only; backend wiring TBD)
+
     await workspaceStore.updateWorkspaceOrder(reorderedWorkspaces.map(w => w.uuid))
     
     message.success(t('workspace.reorderSuccess'))

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"log"
@@ -105,14 +106,16 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 	}
 
 	workspaceUUID := uuid.New().String()
+	makeDefault := req.IsDefault
 	params := sqlc_queries.CreateWorkspaceParams{
-		Uuid:          workspaceUUID,
-		UserID:        userID,
-		Name:          req.Name,
-		Description:   req.Description,
-		Color:         req.Color,
-		Icon:          req.Icon,
-		IsDefault:     req.IsDefault,
+		Uuid:        workspaceUUID,
+		UserID:      userID,
+		Name:        req.Name,
+		Description: req.Description,
+		Color:       req.Color,
+		Icon:        req.Icon,
+		// Set default in a dedicated step to keep exactly one default per user.
+		IsDefault:     false,
 		OrderPosition: 0, // Will be updated if needed
 	}
 
@@ -121,6 +124,15 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 		apiErr := WrapError(MapDatabaseError(err), "Failed to create workspace")
 		RespondWithAPIError(w, apiErr)
 		return
+	}
+
+	if makeDefault {
+		workspace, err = h.setWorkspaceAsDefaultForUser(ctx, userID, workspace.Uuid)
+		if err != nil {
+			apiErr := WrapError(MapDatabaseError(err), "Failed to set default workspace")
+			RespondWithAPIError(w, apiErr)
+			return
+		}
 	}
 
 	response := WorkspaceResponse{
@@ -443,33 +455,7 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// First, unset all default workspaces for this user
-	workspaces, err := h.service.GetWorkspacesByUserID(ctx, userID)
-	if err != nil {
-		apiErr := WrapError(MapDatabaseError(err), "Failed to get workspaces")
-		RespondWithAPIError(w, apiErr)
-		return
-	}
-
-	for _, ws := range workspaces {
-		if ws.IsDefault {
-			_, err = h.service.SetDefaultWorkspace(ctx, sqlc_queries.SetDefaultWorkspaceParams{
-				Uuid:      ws.Uuid,
-				IsDefault: false,
-			})
-			if err != nil {
-				apiErr := WrapError(MapDatabaseError(err), "Failed to unset default workspace")
-				RespondWithAPIError(w, apiErr)
-				return
-			}
-		}
-	}
-
-	// Set the new default workspace
-	workspace, err := h.service.SetDefaultWorkspace(ctx, sqlc_queries.SetDefaultWorkspaceParams{
-		Uuid:      workspaceUUID,
-		IsDefault: true,
-	})
+	workspace, err := h.setWorkspaceAsDefaultForUser(ctx, userID, workspaceUUID)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to set default workspace")
 		RespondWithAPIError(w, apiErr)
@@ -489,6 +475,30 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 	}
 
 	json.NewEncoder(w).Encode(response)
+}
+
+func (h *ChatWorkspaceHandler) setWorkspaceAsDefaultForUser(ctx context.Context, userID int32, workspaceUUID string) (sqlc_queries.ChatWorkspace, error) {
+	workspaces, err := h.service.GetWorkspacesByUserID(ctx, userID)
+	if err != nil {
+		return sqlc_queries.ChatWorkspace{}, err
+	}
+
+	for _, ws := range workspaces {
+		if ws.IsDefault && ws.Uuid != workspaceUUID {
+			_, err = h.service.SetDefaultWorkspace(ctx, sqlc_queries.SetDefaultWorkspaceParams{
+				Uuid:      ws.Uuid,
+				IsDefault: false,
+			})
+			if err != nil {
+				return sqlc_queries.ChatWorkspace{}, err
+			}
+		}
+	}
+
+	return h.service.SetDefaultWorkspace(ctx, sqlc_queries.SetDefaultWorkspaceParams{
+		Uuid:      workspaceUUID,
+		IsDefault: true,
+	})
 }
 
 // ensureDefaultWorkspace ensures the user has a default workspace
