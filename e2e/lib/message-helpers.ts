@@ -163,28 +163,6 @@ export class MessageHelpers {
   }
 
   /**
-   * Wait until the assistant message at index has non-empty text
-   */
-  async waitForAssistantMessageNonEmpty(index: number, timeout: number = 15000): Promise<void> {
-    await this.page.waitForFunction(
-      ({ assistantIndex }) => {
-        const messages = Array.from(document.querySelectorAll('.chat-message'));
-        const assistantMessages = messages.filter((message) => {
-          const row = message.querySelector('.flex.w-full');
-          return row && !row.classList.contains('flex-row-reverse');
-        });
-        const target = assistantMessages[assistantIndex];
-        if (!target)
-          return false;
-        const messageText = target.querySelector('.message-text')?.textContent ?? '';
-        return messageText.trim().length > 0;
-      },
-      { assistantIndex: index },
-      { timeout }
-    );
-  }
-
-  /**
    * Click regenerate on assistant message by assistant index
    */
   async clickAssistantRegenerate(index: number): Promise<void> {
