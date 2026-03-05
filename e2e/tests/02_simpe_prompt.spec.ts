@@ -83,8 +83,9 @@ test('test', async ({ page }) => {
   // sleep 5 seconds
   await page.waitForTimeout(1000);;
   const messages = await selectChatMessagesBySessionUUID(pool, session.uuid)
-  expect(messages.length).toBe(1);
-  expect(messages[0].role).toBe('assistant');
+  expect(messages.length).toBe(2);
+  expect(messages[0].role).toBe('user');
+  expect(messages[1].role).toBe('assistant');
 
 
 });

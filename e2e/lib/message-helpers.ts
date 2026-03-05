@@ -42,6 +42,23 @@ export class MessageHelpers {
   }
 
   /**
+   * Wait for a message at index to contain expected text
+   */
+  async waitForMessageTextContains(index: number, expectedText: string, timeout: number = 15000): Promise<void> {
+    await this.page.waitForFunction(
+      ({ messageIndex, text }) => {
+        const messages = Array.from(document.querySelectorAll('.chat-message'));
+        const message = messages[messageIndex];
+        if (!message) return false;
+        const messageText = message.querySelector('.message-text')?.textContent ?? '';
+        return messageText.includes(text);
+      },
+      { messageIndex: index, text: expectedText },
+      { timeout }
+    );
+  }
+
+  /**
    * Get the regenerate button for a message by index
    */
   async getRegenerateButton(index: number): Promise<Locator> {

@@ -52,6 +52,7 @@ test('session answer regenerate - robust version', async ({ page }) => {
   
   // Wait for and verify first response
   await messageHelpers.waitForMessageCount(2); // User message + Bot response
+  await messageHelpers.waitForMessageTextContains(1, 'test_demo_bestqa');
   const firstAnswer = await messageHelpers.getMessageText(1); // Bot response is index 1
   expect(firstAnswer).toContain('test_demo_bestqa');
 
@@ -60,6 +61,7 @@ test('session answer regenerate - robust version', async ({ page }) => {
   
   // Wait for and verify second response
   await messageHelpers.waitForMessageCount(4); // 2 previous + user message + bot response
+  await messageHelpers.waitForMessageTextContains(3, 'test_debug_1');
   const secondAnswer = await messageHelpers.getMessageText(3); // Bot response is index 3
   expect(secondAnswer).toContain('test_debug_1');
 
@@ -68,7 +70,8 @@ test('session answer regenerate - robust version', async ({ page }) => {
   expect(isRegenerateVisible).toBe(true);
   
   await messageHelpers.clickRegenerate(3);
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(300);
+  await messageHelpers.waitForMessageTextContains(3, 'test_debug_1');
 
   // Verify regenerated response still contains the expected text
   const secondAnswerRegen = await messageHelpers.getMessageText(3);
@@ -79,19 +82,22 @@ test('session answer regenerate - robust version', async ({ page }) => {
   
   // Wait for and verify third response
   await messageHelpers.waitForMessageCount(6); // Previous + user message + bot response
+  await messageHelpers.waitForMessageTextContains(5, 'test_debug_2');
   const thirdAnswer = await messageHelpers.getMessageText(5); // Bot response is index 5
   expect(thirdAnswer).toContain('test_debug_2');
 
   // Test regenerate on third response
   await messageHelpers.clickRegenerate(5);
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(300);
+  await messageHelpers.waitForMessageTextContains(5, 'test_debug_2');
 
   const thirdAnswerRegen = await messageHelpers.getMessageText(5);
   expect(thirdAnswerRegen).toContain('test_debug_2');
 
   // Regenerate the second answer again
   await messageHelpers.clickRegenerate(3);
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(300);
+  await messageHelpers.waitForMessageTextContains(3, 'test_debug_1');
 
   // Verify the second answer regeneration
   const secondAnswerRegen2 = await messageHelpers.getMessageText(3);

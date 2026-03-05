@@ -50,21 +50,27 @@ test('test', async ({ page }) => {
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(300);
 
   // Wait for response and get the text more reliably
-  await page.waitForSelector('.message-wrapper:nth-of-type(2) .message-text', { timeout: 10000 });
-  const first_answer = await page.$eval('.message-wrapper:nth-of-type(2) .message-text', (el: HTMLElement) => el.innerText);
+  await expect.poll(
+    async () => await page.locator('.message-wrapper:nth-of-type(2) .message-text').innerText(),
+    { timeout: 15000 }
+  ).toContain('test_demo_bestqa');
+  const first_answer = await page.locator('.message-wrapper:nth-of-type(2) .message-text').innerText();
   // check the answer return by the server
   expect(first_answer).toContain('test_demo_bestqa');
 
   await input_area?.click();
   await input_area?.fill('test_debug_1');
   await input_area?.press('Enter');
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(300);
   // check the answer return by the server
-  await page.waitForSelector('.message-wrapper:nth-of-type(4) .message-text', { timeout: 10000 });
-  const sec_answer = await page.$eval('.message-wrapper:nth-of-type(4) .message-text', (el: HTMLElement) => el.innerText);
+  await expect.poll(
+    async () => await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText(),
+    { timeout: 15000 }
+  ).toContain('test_debug_1');
+  const sec_answer = await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText();
   // check the sec_answer has the debug message
   expect(sec_answer).toContain('test_debug_1');
 
@@ -72,9 +78,12 @@ test('test', async ({ page }) => {
   const regenerateButton = page.locator('.message-wrapper:nth-of-type(4) .chat-message-regenerate');
   await regenerateButton.waitFor({ state: 'visible', timeout: 5000 });
   await regenerateButton.click();
-  await page.waitForTimeout(1000);
-
-  const sec_answer_regen = await page.$eval('.message-wrapper:nth-of-type(4) .message-text', (el: HTMLElement) => el.innerText);
+  await page.waitForTimeout(300);
+  await expect.poll(
+    async () => await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText(),
+    { timeout: 15000 }
+  ).toContain('test_debug_1');
+  const sec_answer_regen = await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText();
   // check the sec_answer has the debug message
   expect(sec_answer_regen).toContain('test_debug_1');
 
@@ -82,19 +91,25 @@ test('test', async ({ page }) => {
   await input_area?.click();
   await input_area?.fill('test_debug_2');
   await input_area?.press('Enter');
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(300);
   // check the answer return by the server
-  await page.waitForSelector('.message-wrapper:nth-of-type(6) .message-text', { timeout: 10000 });
-  const third_answer = await page.$eval('.message-wrapper:nth-of-type(6) .message-text', (el: HTMLElement) => el.innerText);
+  await expect.poll(
+    async () => await page.locator('.message-wrapper:nth-of-type(6) .message-text').innerText(),
+    { timeout: 15000 }
+  ).toContain('test_debug_2');
+  const third_answer = await page.locator('.message-wrapper:nth-of-type(6) .message-text').innerText();
   // check the third_answer has the debug message
   expect(third_answer).toContain('test_debug_2');
 
   const thirdRegenerateButton = page.locator('.message-wrapper:nth-of-type(6) .chat-message-regenerate');
   await thirdRegenerateButton.waitFor({ state: 'visible', timeout: 5000 });
   await thirdRegenerateButton.click();
-  await page.waitForTimeout(1000);
-
-  const third_answer_regen = await page.$eval('.message-wrapper:nth-of-type(6) .message-text', (el: HTMLElement) => el.innerText);
+  await page.waitForTimeout(300);
+  await expect.poll(
+    async () => await page.locator('.message-wrapper:nth-of-type(6) .message-text').innerText(),
+    { timeout: 15000 }
+  ).toContain('test_debug_2');
+  const third_answer_regen = await page.locator('.message-wrapper:nth-of-type(6) .message-text').innerText();
   // check the third_answer has the debug message
   expect(third_answer_regen).toContain('test_debug_2');
 
@@ -102,16 +117,20 @@ test('test', async ({ page }) => {
   const secondRegenerateButton2 = page.locator('.message-wrapper:nth-of-type(4) .chat-message-regenerate');
   await secondRegenerateButton2.waitFor({ state: 'visible', timeout: 5000 });
   await secondRegenerateButton2.click();
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(300);
+  await expect.poll(
+    async () => await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText(),
+    { timeout: 15000 }
+  ).toContain('test_debug_1');
 
   // check the second answer has been regenerated
-  const sec_answer_regen_2 = await page.$eval('.message-wrapper:nth-of-type(4) .message-text', (el: HTMLElement) => el.innerText);
+  const sec_answer_regen_2 = await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText();
   // check the sec_answer has the debug message
   expect(sec_answer_regen_2).toContain('test_debug_1');
   expect(sec_answer_regen_2).not.toContain('test_debug_2')
 
   // check the second answer has been regenerated
-  const sec_answer_regen_3 = await page.$eval('.message-wrapper:nth-of-type(4) .message-text', (el: HTMLElement) => el.innerText);
+  const sec_answer_regen_3 = await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText();
   // check the sec_answer has the debug message
   expect(sec_answer_regen_3).toContain('test_debug_1');
   expect(sec_answer_regen_2).not.toContain('test_debug_2')

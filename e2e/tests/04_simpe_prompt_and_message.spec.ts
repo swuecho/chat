@@ -65,7 +65,7 @@ test('test', async ({ page }) => {
   // sleep 5 seconds
   await page.waitForTimeout(1000);;
   const messages = await selectChatMessagesBySessionUUID(pool, session.uuid)
-  expect(messages.length).toBe(3);
+  expect(messages.length).toBe(4);
 
   // test edit session topic
   await page.getByTestId('edit_session_topic').click();
@@ -85,6 +85,6 @@ test('test', async ({ page }) => {
   // sleep 5 seconds
   await page.waitForTimeout(1000);;
   const messages_1 = await selectChatMessagesBySessionUUID(pool, session_1.uuid)
-  expect(messages_1.length).toBe(5);
+  expect(messages_1.length).toBe(6);
 
 });
