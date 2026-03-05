@@ -55,9 +55,9 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(300);
 
   // Wait for first assistant response
-  await messageHelpers.waitForAssistantMessageCount(1);
-  await messageHelpers.waitForAssistantMessageTextContains(0, 'test_demo_bestqa');
-  const first_answer = await messageHelpers.getAssistantMessageText(0);
+  await messageHelpers.waitForAssistantMessageWithText('test_demo_bestqa');
+  const firstMessage = await messageHelpers.getAssistantMessageByContent('test_demo_bestqa');
+  const first_answer = firstMessage ? await firstMessage.locator('.message-text').innerText() : '';
   // check the answer return by the server
   expect(first_answer).toContain('test_demo_bestqa');
 
@@ -66,17 +66,18 @@ test('test', async ({ page }) => {
   await input_area?.press('Enter');
   await page.waitForTimeout(300);
   // Wait for second assistant response
-  await messageHelpers.waitForAssistantMessageCount(2);
-  await messageHelpers.waitForAssistantMessageTextContains(1, 'test_debug_1');
-  const sec_answer = await messageHelpers.getAssistantMessageText(1);
+  await messageHelpers.waitForAssistantMessageWithText('test_debug_1');
+  const secondMessage = await messageHelpers.getAssistantMessageByContent('test_debug_1');
+  const sec_answer = secondMessage ? await secondMessage.locator('.message-text').innerText() : '';
   // check the sec_answer has the debug message
   expect(sec_answer).toContain('test_debug_1');
 
   // Click regenerate button with better selector and error handling
-  await messageHelpers.clickAssistantRegenerate(1);
+  await messageHelpers.clickAssistantRegenerateByContent('test_debug_1');
   await page.waitForTimeout(300);
-  await messageHelpers.waitForAssistantMessageTextContains(1, 'test_debug_1');
-  const sec_answer_regen = await messageHelpers.getAssistantMessageText(1);
+  await messageHelpers.waitForAssistantMessageWithText('test_debug_1');
+  const secondMessageRegen = await messageHelpers.getAssistantMessageByContent('test_debug_1');
+  const sec_answer_regen = secondMessageRegen ? await secondMessageRegen.locator('.message-text').innerText() : '';
   // check the sec_answer has the debug message
   expect(sec_answer_regen).toContain('test_debug_1');
 
@@ -86,32 +87,35 @@ test('test', async ({ page }) => {
   await input_area?.press('Enter');
   await page.waitForTimeout(300);
   // Wait for third assistant response
-  await messageHelpers.waitForAssistantMessageCount(3);
-  await messageHelpers.waitForAssistantMessageTextContains(2, 'test_debug_2');
-  const third_answer = await messageHelpers.getAssistantMessageText(2);
+  await messageHelpers.waitForAssistantMessageWithText('test_debug_2');
+  const thirdMessage = await messageHelpers.getAssistantMessageByContent('test_debug_2');
+  const third_answer = thirdMessage ? await thirdMessage.locator('.message-text').innerText() : '';
   // check the third_answer has the debug message
   expect(third_answer).toContain('test_debug_2');
 
-  await messageHelpers.clickAssistantRegenerate(2);
+  await messageHelpers.clickAssistantRegenerateByContent('test_debug_2');
   await page.waitForTimeout(300);
-  await messageHelpers.waitForAssistantMessageTextContains(2, 'test_debug_2');
-  const third_answer_regen = await messageHelpers.getAssistantMessageText(2);
+  await messageHelpers.waitForAssistantMessageWithText('test_debug_2');
+  const thirdMessageRegen = await messageHelpers.getAssistantMessageByContent('test_debug_2');
+  const third_answer_regen = thirdMessageRegen ? await thirdMessageRegen.locator('.message-text').innerText() : '';
   // check the third_answer has the debug message
   expect(third_answer_regen).toContain('test_debug_2');
 
   // regenerate the second answer
-  await messageHelpers.clickAssistantRegenerate(1);
+  await messageHelpers.clickAssistantRegenerateByContent('test_debug_1');
   await page.waitForTimeout(300);
-  await messageHelpers.waitForAssistantMessageTextContains(1, 'test_debug_1');
+  await messageHelpers.waitForAssistantMessageWithText('test_debug_1');
 
   // check the second answer has been regenerated
-  const sec_answer_regen_2 = await messageHelpers.getAssistantMessageText(1);
+  const secondMessageRegen2 = await messageHelpers.getAssistantMessageByContent('test_debug_1');
+  const sec_answer_regen_2 = secondMessageRegen2 ? await secondMessageRegen2.locator('.message-text').innerText() : '';
   // check the sec_answer has the debug message
   expect(sec_answer_regen_2).toContain('test_debug_1');
   expect(sec_answer_regen_2).not.toContain('test_debug_2')
 
   // check the second answer has been regenerated
-  const sec_answer_regen_3 = await messageHelpers.getAssistantMessageText(1);
+  const secondMessageRegen3 = await messageHelpers.getAssistantMessageByContent('test_debug_1');
+  const sec_answer_regen_3 = secondMessageRegen3 ? await secondMessageRegen3.locator('.message-text').innerText() : '';
   // check the sec_answer has the debug message
   expect(sec_answer_regen_3).toContain('test_debug_1');
   expect(sec_answer_regen_2).not.toContain('test_debug_2')

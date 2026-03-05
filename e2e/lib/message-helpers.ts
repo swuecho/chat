@@ -75,6 +75,22 @@ export class MessageHelpers {
   }
 
   /**
+   * Get the first assistant message that contains text
+   */
+  async getAssistantMessageByContent(partialText: string): Promise<Locator | null> {
+    const assistantMessages = await this.getAssistantMessages();
+    for (const message of assistantMessages) {
+      const textElement = message.locator('.message-text');
+      if (!(await textElement.count()))
+        continue;
+      const text = await textElement.innerText();
+      if (text.includes(partialText))
+        return message;
+    }
+    return null;
+  }
+
+  /**
    * Wait until assistant message count reaches expected value
    */
   async waitForAssistantMessageCount(count: number, timeout: number = 15000): Promise<void> {
@@ -114,6 +130,26 @@ export class MessageHelpers {
   }
 
   /**
+   * Wait until any assistant message contains expected text
+   */
+  async waitForAssistantMessageWithText(expectedText: string, timeout: number = 15000): Promise<void> {
+    await this.page.waitForFunction(
+      (text) => {
+        const messages = Array.from(document.querySelectorAll('.chat-message'));
+        return messages.some((message) => {
+          const row = message.querySelector('.flex.w-full');
+          if (!row || row.classList.contains('flex-row-reverse'))
+            return false;
+          const messageText = message.querySelector('.message-text')?.textContent ?? '';
+          return messageText.includes(text);
+        });
+      },
+      expectedText,
+      { timeout }
+    );
+  }
+
+  /**
    * Read assistant message text by assistant index
    */
   async getAssistantMessageText(index: number): Promise<string> {
@@ -140,6 +176,18 @@ export class MessageHelpers {
   }
 
   /**
+   * Click regenerate button on assistant message matched by content
+   */
+  async clickAssistantRegenerateByContent(partialText: string): Promise<void> {
+    const message = await this.getAssistantMessageByContent(partialText);
+    if (!message)
+      throw new Error(`Assistant message containing "${partialText}" not found`);
+    const button = message.locator('.chat-message-regenerate');
+    await button.waitFor({ state: 'visible', timeout: 5000 });
+    await button.click();
+  }
+
+  /**
    * Check assistant regenerate button visibility by assistant index
    */
   async isAssistantRegenerateButtonVisible(index: number): Promise<boolean> {
@@ -147,6 +195,21 @@ export class MessageHelpers {
       const assistantMessages = await this.getAssistantMessages();
       if (index >= assistantMessages.length) return false;
       const button = assistantMessages[index].locator('.chat-message-regenerate');
+      return await button.isVisible();
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Check assistant regenerate visibility by message content
+   */
+  async isAssistantRegenerateButtonVisibleByContent(partialText: string): Promise<boolean> {
+    try {
+      const message = await this.getAssistantMessageByContent(partialText);
+      if (!message)
+        return false;
+      const button = message.locator('.chat-message-regenerate');
       return await button.isVisible();
     } catch (error) {
       return false;
