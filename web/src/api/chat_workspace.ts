@@ -18,6 +18,7 @@ export interface UpdateWorkspaceRequest {
 export interface CreateSessionInWorkspaceRequest {
   topic: string
   model?: string
+  defaultSystemPrompt?: string
 }
 
 // Get all workspaces for the current user

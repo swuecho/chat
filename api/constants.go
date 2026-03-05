@@ -29,14 +29,15 @@ const (
 	TestDemoPrefix = "test_demo_bestqa"
 
 	// Service constants
-	DefaultMaxLength      = 10
-	DefaultTemperature    = 0.7
-	DefaultMaxTokens       = 4096
-	DefaultTopP            = 1.0
-	DefaultN               = 1
-	RequestTimeoutSeconds = 10
-	TokenEstimateRatio    = 4
-	SummarizeThreshold    = 300
+	DefaultMaxLength        = 10
+	DefaultTemperature      = 0.7
+	DefaultMaxTokens        = 4096
+	DefaultTopP             = 1.0
+	DefaultN                = 1
+	RequestTimeoutSeconds   = 10
+	TokenEstimateRatio      = 4
+	SummarizeThreshold      = 300
+	DefaultSystemPromptText = "You are a helpful, concise assistant. Ask clarifying questions when needed. Provide accurate answers with short reasoning and actionable steps. If unsure, say so and suggest how to verify."
 )
 
 // Error message constants

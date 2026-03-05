@@ -264,62 +264,31 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 
 	if existingPrompt {
 		if newQuestion != "" {
-			// Preserve first-turn behavior when a frontend-created placeholder
-			// system prompt already exists: upgrade prompt content instead of
-			// creating an extra user chat_message row.
-			if prompt.TokenCount == 0 {
-				existingMessages, msgErr := h.service.q.GetChatMessagesBySessionUUID(ctx, sqlc_queries.GetChatMessagesBySessionUUIDParams{
-					Uuid:   chatSession.Uuid,
-					Offset: 0,
-					Limit:  1,
-				})
-				if msgErr != nil {
-					RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to check existing messages", msgErr.Error()))
-					return false
-				}
-
-				if len(existingMessages) == 0 {
-					tokenCount, tokenErr := getTokenCount(newQuestion)
-					if tokenErr != nil {
-						log.Printf("Warning: Failed to get token count for prompt update: %v", tokenErr)
-						tokenCount = len(newQuestion) / TokenEstimateRatio
-					}
-
-					_, updateErr := h.service.q.UpdateChatPromptByUUID(ctx, sqlc_queries.UpdateChatPromptByUUIDParams{
-						Uuid:       prompt.Uuid,
-						Content:    newQuestion,
-						TokenCount: int32(tokenCount),
-					})
-					if updateErr != nil {
-						RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to update prompt", updateErr.Error()))
-						return false
-					}
-				} else {
-					_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
-					if err != nil {
-						RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to create message", err.Error()))
-						return false
-					}
-				}
-			} else {
-				_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
-				if err != nil {
-					RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to create message", err.Error()))
-					return false
-				}
+			_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
+			if err != nil {
+				RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to create message", err.Error()))
+				return false
 			}
 		} else {
 			log.Println("no new question, regenerate answer")
 		}
 	} else {
-		chatPrompt, err := h.service.CreateChatPromptSimple(ctx, chatSession.Uuid, newQuestion, userID)
+		chatPrompt, err := h.service.CreateChatPromptSimple(ctx, chatSession.Uuid, DefaultSystemPromptText, userID)
 		if err != nil {
 			RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to create prompt", err.Error()))
 			return false
 		}
 		log.Printf("%+v\n", chatPrompt)
 
-		// Update session title with first 10 words of the prompt
+		if newQuestion != "" {
+			_, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode)
+			if err != nil {
+				RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to create message", err.Error()))
+				return false
+			}
+		}
+
+		// Update session title with first 10 words of the first user message.
 		if newQuestion != "" {
 			sessionTitle := firstNWords(newQuestion, 10)
 			if sessionTitle != "" {

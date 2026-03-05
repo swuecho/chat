@@ -8,6 +8,7 @@ import {
   getSessionsByWorkspace,
   createSessionInWorkspace,
 } from '@/api'
+import { getDefaultSystemPrompt } from '@/constants/chat'
 import { useWorkspaceStore } from '../workspace'
 
 export interface SessionState {
@@ -187,6 +188,7 @@ export const useSessionStore = defineStore('session-store', {
         const newSession = await createSessionInWorkspace(targetWorkspaceUuid, {
           topic: title,
           model: sessionModel,
+          defaultSystemPrompt: getDefaultSystemPrompt(),
         })
 
         // Map topic to title for frontend compatibility
@@ -216,7 +218,7 @@ export const useSessionStore = defineStore('session-store', {
 
     async createLegacySession(session: Chat.Session) {
       try {
-        await createChatSession(session.uuid, session.title, session.model)
+        await createChatSession(session.uuid, session.title, session.model, getDefaultSystemPrompt())
 
         // Refresh workspace sessions to get updated list from backend
         const workspaceUuid = session.workspaceUuid

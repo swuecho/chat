@@ -525,8 +525,9 @@ func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *
 }
 
 type CreateSessionInWorkspaceRequest struct {
-	Topic string `json:"topic"`
-	Model string `json:"model"`
+	Topic               string `json:"topic"`
+	Model               string `json:"model"`
+	DefaultSystemPrompt string `json:"defaultSystemPrompt"`
 }
 
 // createSessionInWorkspace creates a new session in a specific workspace
@@ -596,6 +597,13 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 		return
 	}
 
+	_, err = sessionService.EnsureDefaultSystemPrompt(ctx, session.Uuid, userID, req.DefaultSystemPrompt)
+	if err != nil {
+		apiErr := WrapError(MapDatabaseError(err), "Failed to create default system prompt")
+		RespondWithAPIError(w, apiErr)
+		return
+	}
+
 	// Set as active session (use unified approach)
 	_, err = activeSessionService.UpsertActiveSession(ctx, userID, &workspace.ID, sessionUUID)
 	if err != nil {
@@ -605,13 +613,13 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"uuid":          session.Uuid,
-		"topic":         session.Topic,
-		"model":         session.Model,
+		"uuid":              session.Uuid,
+		"topic":             session.Topic,
+		"model":             session.Model,
 		"codeRunnerEnabled": session.CodeRunnerEnabled,
-		"artifactEnabled": session.ArtifactEnabled,
-		"workspaceUuid": workspaceUUID,
-		"createdAt":     session.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		"artifactEnabled":   session.ArtifactEnabled,
+		"workspaceUuid":     workspaceUUID,
+		"createdAt":         session.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	})
 }
 
@@ -662,23 +670,23 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 	sessionResponses := make([]map[string]interface{}, 0)
 	for _, session := range sessions {
 		sessionResponse := map[string]interface{}{
-			"uuid":          session.Uuid,
-			"title":         session.Topic, // Use "title" to match the original API
-			"isEdit":        false,
-			"model":         session.Model,
-			"workspaceUuid": workspaceUUID,
-			"maxLength":     session.MaxLength,
-			"temperature":   session.Temperature,
-			"maxTokens":     session.MaxTokens,
-			"topP":          session.TopP,
-			"n":             session.N,
-			"debug":         session.Debug,
-			"summarizeMode": session.SummarizeMode,
-			"exploreMode":   session.ExploreMode,
+			"uuid":              session.Uuid,
+			"title":             session.Topic, // Use "title" to match the original API
+			"isEdit":            false,
+			"model":             session.Model,
+			"workspaceUuid":     workspaceUUID,
+			"maxLength":         session.MaxLength,
+			"temperature":       session.Temperature,
+			"maxTokens":         session.MaxTokens,
+			"topP":              session.TopP,
+			"n":                 session.N,
+			"debug":             session.Debug,
+			"summarizeMode":     session.SummarizeMode,
+			"exploreMode":       session.ExploreMode,
 			"codeRunnerEnabled": session.CodeRunnerEnabled,
-			"artifactEnabled": session.ArtifactEnabled,
-			"createdAt":     session.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			"updatedAt":     session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+			"artifactEnabled":   session.ArtifactEnabled,
+			"createdAt":         session.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			"updatedAt":         session.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 		}
 		sessionResponses = append(sessionResponses, sessionResponse)
 	}

@@ -99,7 +99,7 @@ export const useMessageStore = defineStore('message-store', {
               chatSessionUuid: sessionUuid,
               role: 'system',
               content: defaultPrompt,
-              tokenCount: 0,
+              tokenCount: Math.max(1, Math.ceil(defaultPrompt.length / 4)),
               userId: 0,
               createdBy: 0,
               updatedBy: 0,

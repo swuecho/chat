@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"strings"
 
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
@@ -84,20 +87,20 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 		}
 
 		return SimpleChatSession{
-			Uuid:          session.Uuid,
-			IsEdit:        false,
-			Title:         session.Topic,
-			MaxLength:     int(session.MaxLength),
-			Temperature:   float64(session.Temperature),
-			TopP:          float64(session.TopP),
-			N:             session.N,
-			MaxTokens:     session.MaxTokens,
-			Debug:         session.Debug,
-			Model:         session.Model,
-			SummarizeMode: session.SummarizeMode,
+			Uuid:              session.Uuid,
+			IsEdit:            false,
+			Title:             session.Topic,
+			MaxLength:         int(session.MaxLength),
+			Temperature:       float64(session.Temperature),
+			TopP:              float64(session.TopP),
+			N:                 session.N,
+			MaxTokens:         session.MaxTokens,
+			Debug:             session.Debug,
+			Model:             session.Model,
+			SummarizeMode:     session.SummarizeMode,
 			CodeRunnerEnabled: session.CodeRunnerEnabled,
-			ArtifactEnabled: session.ArtifactEnabled,
-			WorkspaceUuid: workspaceUuid,
+			ArtifactEnabled:   session.ArtifactEnabled,
+			WorkspaceUuid:     workspaceUuid,
 		}
 	})
 	return simple_sessions, nil
@@ -156,4 +159,51 @@ func (s *ChatSessionService) UpdateSessionMaxLength(ctx context.Context, session
 		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session, ")
 	}
 	return session_u, nil
+}
+
+// EnsureDefaultSystemPrompt ensures a session has exactly one active system prompt.
+// It is safe to call repeatedly and tolerates concurrent callers.
+func (s *ChatSessionService) EnsureDefaultSystemPrompt(ctx context.Context, chatSessionUUID string, userID int32, systemPrompt string) (sqlc_queries.ChatPrompt, error) {
+	existingPrompt, err := s.q.GetOneChatPromptBySessionUUID(ctx, chatSessionUUID)
+	if err == nil {
+		return existingPrompt, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return sqlc_queries.ChatPrompt{}, eris.Wrap(err, "failed to check existing session prompt")
+	}
+
+	promptText := strings.TrimSpace(systemPrompt)
+	if promptText == "" {
+		promptText = DefaultSystemPromptText
+	}
+
+	tokenCount, tokenErr := getTokenCount(promptText)
+	if tokenErr != nil {
+		tokenCount = len(promptText) / TokenEstimateRatio
+	}
+	if tokenCount <= 0 {
+		tokenCount = 1
+	}
+
+	prompt, createErr := s.q.CreateChatPrompt(ctx, sqlc_queries.CreateChatPromptParams{
+		Uuid:            NewUUID(),
+		ChatSessionUuid: chatSessionUUID,
+		Role:            "system",
+		Content:         promptText,
+		TokenCount:      int32(tokenCount),
+		UserID:          userID,
+		CreatedBy:       userID,
+		UpdatedBy:       userID,
+	})
+	if createErr == nil {
+		return prompt, nil
+	}
+
+	// Handle concurrent creation race by returning the now-existing prompt.
+	existingPrompt, err = s.q.GetOneChatPromptBySessionUUID(ctx, chatSessionUUID)
+	if err == nil {
+		return existingPrompt, nil
+	}
+
+	return sqlc_queries.ChatPrompt{}, eris.Wrap(createErr, "failed to create default system prompt")
 }
