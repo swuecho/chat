@@ -49,6 +49,7 @@ test('session answer regenerate - robust version', async ({ page }) => {
   
   // Wait for and verify first response
   await messageHelpers.waitForAssistantMessageCount(1);
+  await messageHelpers.waitForAssistantMessageNonEmpty(0);
   const firstAnswer = (await messageHelpers.getAssistantMessageText(0)).trim();
   expect(firstAnswer.length).toBeGreaterThan(0);
 
@@ -57,6 +58,7 @@ test('session answer regenerate - robust version', async ({ page }) => {
   
   // Wait for and verify second response
   await messageHelpers.waitForAssistantMessageCount(2);
+  await messageHelpers.waitForAssistantMessageNonEmpty(1);
   const secondAnswer = (await messageHelpers.getAssistantMessageText(1)).trim();
   expect(secondAnswer.length).toBeGreaterThan(0);
 
@@ -67,6 +69,7 @@ test('session answer regenerate - robust version', async ({ page }) => {
   await messageHelpers.clickAssistantRegenerate(1);
   await page.waitForTimeout(300);
   await messageHelpers.waitForAssistantMessageCount(2);
+  await messageHelpers.waitForAssistantMessageNonEmpty(1);
 
   // Verify regenerated response still contains the expected text
   const secondAnswerRegen = (await messageHelpers.getAssistantMessageText(1)).trim();
@@ -77,6 +80,7 @@ test('session answer regenerate - robust version', async ({ page }) => {
   
   // Wait for and verify third response
   await messageHelpers.waitForAssistantMessageCount(3);
+  await messageHelpers.waitForAssistantMessageNonEmpty(2);
   const thirdAnswer = (await messageHelpers.getAssistantMessageText(2)).trim();
   expect(thirdAnswer.length).toBeGreaterThan(0);
 
@@ -84,6 +88,7 @@ test('session answer regenerate - robust version', async ({ page }) => {
   await messageHelpers.clickAssistantRegenerate(2);
   await page.waitForTimeout(300);
   await messageHelpers.waitForAssistantMessageCount(3);
+  await messageHelpers.waitForAssistantMessageNonEmpty(2);
 
   const thirdAnswerRegen = (await messageHelpers.getAssistantMessageText(2)).trim();
   expect(thirdAnswerRegen.length).toBeGreaterThan(0);
@@ -93,6 +98,8 @@ test('session answer regenerate - robust version', async ({ page }) => {
   await messageHelpers.clickAssistantRegenerate(1);
   await page.waitForTimeout(300);
   await messageHelpers.waitForAssistantMessageCount(3);
+  await messageHelpers.waitForAssistantMessageNonEmpty(1);
+  await messageHelpers.waitForAssistantMessageNonEmpty(2);
 
   // Verify the second answer regeneration
   const secondAnswerRegen2 = (await messageHelpers.getAssistantMessageText(1)).trim();
