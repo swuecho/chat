@@ -59,6 +59,101 @@ export class MessageHelpers {
   }
 
   /**
+   * Get assistant messages only (non-inversion message blocks)
+   */
+  async getAssistantMessages(): Promise<Locator[]> {
+    await this.page.waitForSelector('.chat-message', { timeout: 5000 });
+    const all = await this.page.locator('.chat-message').all();
+    const assistantMessages: Locator[] = [];
+    for (const message of all) {
+      const row = message.locator('.flex.w-full').first();
+      if (!(await row.count())) continue;
+      const isUser = await row.evaluate((el) => el.classList.contains('flex-row-reverse'));
+      if (!isUser) assistantMessages.push(message);
+    }
+    return assistantMessages;
+  }
+
+  /**
+   * Wait until assistant message count reaches expected value
+   */
+  async waitForAssistantMessageCount(count: number, timeout: number = 15000): Promise<void> {
+    await this.page.waitForFunction(
+      (expectedCount) => {
+        const messages = Array.from(document.querySelectorAll('.chat-message'));
+        const assistantCount = messages.filter((message) => {
+          const row = message.querySelector('.flex.w-full');
+          return row && !row.classList.contains('flex-row-reverse');
+        }).length;
+        return assistantCount >= expectedCount;
+      },
+      count,
+      { timeout }
+    );
+  }
+
+  /**
+   * Wait until the assistant message at index contains expected text
+   */
+  async waitForAssistantMessageTextContains(index: number, expectedText: string, timeout: number = 15000): Promise<void> {
+    await this.page.waitForFunction(
+      ({ assistantIndex, text }) => {
+        const messages = Array.from(document.querySelectorAll('.chat-message'));
+        const assistantMessages = messages.filter((message) => {
+          const row = message.querySelector('.flex.w-full');
+          return row && !row.classList.contains('flex-row-reverse');
+        });
+        const target = assistantMessages[assistantIndex];
+        if (!target) return false;
+        const messageText = target.querySelector('.message-text')?.textContent ?? '';
+        return messageText.includes(text);
+      },
+      { assistantIndex: index, text: expectedText },
+      { timeout }
+    );
+  }
+
+  /**
+   * Read assistant message text by assistant index
+   */
+  async getAssistantMessageText(index: number): Promise<string> {
+    const assistantMessages = await this.getAssistantMessages();
+    if (index >= assistantMessages.length) {
+      throw new Error(`Assistant message index ${index} not found. Only ${assistantMessages.length} assistant messages exist.`);
+    }
+    const textElement = assistantMessages[index].locator('.message-text');
+    await textElement.waitFor({ timeout: 5000 });
+    return await textElement.innerText();
+  }
+
+  /**
+   * Click regenerate on assistant message by assistant index
+   */
+  async clickAssistantRegenerate(index: number): Promise<void> {
+    const assistantMessages = await this.getAssistantMessages();
+    if (index >= assistantMessages.length) {
+      throw new Error(`Assistant message index ${index} not found. Only ${assistantMessages.length} assistant messages exist.`);
+    }
+    const button = assistantMessages[index].locator('.chat-message-regenerate');
+    await button.waitFor({ state: 'visible', timeout: 5000 });
+    await button.click();
+  }
+
+  /**
+   * Check assistant regenerate button visibility by assistant index
+   */
+  async isAssistantRegenerateButtonVisible(index: number): Promise<boolean> {
+    try {
+      const assistantMessages = await this.getAssistantMessages();
+      if (index >= assistantMessages.length) return false;
+      const button = assistantMessages[index].locator('.chat-message-regenerate');
+      return await button.isVisible();
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
    * Get the regenerate button for a message by index
    */
   async getRegenerateButton(index: number): Promise<Locator> {

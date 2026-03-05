@@ -51,61 +51,61 @@ test('session answer regenerate - robust version', async ({ page }) => {
   await inputHelpers.sendMessage('test_demo_bestqa');
   
   // Wait for and verify first response
-  await messageHelpers.waitForMessageCount(2); // User message + Bot response
-  await messageHelpers.waitForMessageTextContains(1, 'test_demo_bestqa');
-  const firstAnswer = await messageHelpers.getMessageText(1); // Bot response is index 1
+  await messageHelpers.waitForAssistantMessageCount(1);
+  await messageHelpers.waitForAssistantMessageTextContains(0, 'test_demo_bestqa');
+  const firstAnswer = await messageHelpers.getAssistantMessageText(0);
   expect(firstAnswer).toContain('test_demo_bestqa');
 
   // Send second message
   await inputHelpers.sendMessage('test_debug_1');
   
   // Wait for and verify second response
-  await messageHelpers.waitForMessageCount(4); // 2 previous + user message + bot response
-  await messageHelpers.waitForMessageTextContains(3, 'test_debug_1');
-  const secondAnswer = await messageHelpers.getMessageText(3); // Bot response is index 3
+  await messageHelpers.waitForAssistantMessageCount(2);
+  await messageHelpers.waitForAssistantMessageTextContains(1, 'test_debug_1');
+  const secondAnswer = await messageHelpers.getAssistantMessageText(1);
   expect(secondAnswer).toContain('test_debug_1');
 
   // Test regenerate functionality on second response
-  const isRegenerateVisible = await messageHelpers.isRegenerateButtonVisible(3);
+  const isRegenerateVisible = await messageHelpers.isAssistantRegenerateButtonVisible(1);
   expect(isRegenerateVisible).toBe(true);
   
-  await messageHelpers.clickRegenerate(3);
+  await messageHelpers.clickAssistantRegenerate(1);
   await page.waitForTimeout(300);
-  await messageHelpers.waitForMessageTextContains(3, 'test_debug_1');
+  await messageHelpers.waitForAssistantMessageTextContains(1, 'test_debug_1');
 
   // Verify regenerated response still contains the expected text
-  const secondAnswerRegen = await messageHelpers.getMessageText(3);
+  const secondAnswerRegen = await messageHelpers.getAssistantMessageText(1);
   expect(secondAnswerRegen).toContain('test_debug_1');
 
   // Send third message
   await inputHelpers.sendMessage('test_debug_2');
   
   // Wait for and verify third response
-  await messageHelpers.waitForMessageCount(6); // Previous + user message + bot response
-  await messageHelpers.waitForMessageTextContains(5, 'test_debug_2');
-  const thirdAnswer = await messageHelpers.getMessageText(5); // Bot response is index 5
+  await messageHelpers.waitForAssistantMessageCount(3);
+  await messageHelpers.waitForAssistantMessageTextContains(2, 'test_debug_2');
+  const thirdAnswer = await messageHelpers.getAssistantMessageText(2);
   expect(thirdAnswer).toContain('test_debug_2');
 
   // Test regenerate on third response
-  await messageHelpers.clickRegenerate(5);
+  await messageHelpers.clickAssistantRegenerate(2);
   await page.waitForTimeout(300);
-  await messageHelpers.waitForMessageTextContains(5, 'test_debug_2');
+  await messageHelpers.waitForAssistantMessageTextContains(2, 'test_debug_2');
 
-  const thirdAnswerRegen = await messageHelpers.getMessageText(5);
+  const thirdAnswerRegen = await messageHelpers.getAssistantMessageText(2);
   expect(thirdAnswerRegen).toContain('test_debug_2');
 
   // Regenerate the second answer again
-  await messageHelpers.clickRegenerate(3);
+  await messageHelpers.clickAssistantRegenerate(1);
   await page.waitForTimeout(300);
-  await messageHelpers.waitForMessageTextContains(3, 'test_debug_1');
+  await messageHelpers.waitForAssistantMessageTextContains(1, 'test_debug_1');
 
   // Verify the second answer regeneration
-  const secondAnswerRegen2 = await messageHelpers.getMessageText(3);
+  const secondAnswerRegen2 = await messageHelpers.getAssistantMessageText(1);
   expect(secondAnswerRegen2).toContain('test_debug_1');
   expect(secondAnswerRegen2).not.toContain('test_debug_2');
 
   // Final verification
-  const secondAnswerRegen3 = await messageHelpers.getMessageText(3);
+  const secondAnswerRegen3 = await messageHelpers.getAssistantMessageText(1);
   expect(secondAnswerRegen3).toContain('test_debug_1');
   expect(secondAnswerRegen3).not.toContain('test_debug_2');
 });

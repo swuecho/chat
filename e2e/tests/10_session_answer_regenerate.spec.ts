@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { Pool } from 'pg';
 import { randomEmail } from '../lib/sample';
 import { db_config } from '../lib/db/config';
+import { MessageHelpers } from '../lib/message-helpers';
 
 const test_email = randomEmail();
 
@@ -9,6 +10,7 @@ const pool = new Pool(db_config);
 
 
 test('test', async ({ page }) => {
+  const messageHelpers = new MessageHelpers(page);
   await page.goto('/');
   await page.getByTitle('signuptab').click();
   await page.getByTestId('signup_email').click();
@@ -52,12 +54,10 @@ test('test', async ({ page }) => {
   await input_area?.press('Enter');
   await page.waitForTimeout(300);
 
-  // Wait for response and get the text more reliably
-  await expect.poll(
-    async () => await page.locator('.message-wrapper:nth-of-type(2) .message-text').innerText(),
-    { timeout: 15000 }
-  ).toContain('test_demo_bestqa');
-  const first_answer = await page.locator('.message-wrapper:nth-of-type(2) .message-text').innerText();
+  // Wait for first assistant response
+  await messageHelpers.waitForAssistantMessageCount(1);
+  await messageHelpers.waitForAssistantMessageTextContains(0, 'test_demo_bestqa');
+  const first_answer = await messageHelpers.getAssistantMessageText(0);
   // check the answer return by the server
   expect(first_answer).toContain('test_demo_bestqa');
 
@@ -65,25 +65,18 @@ test('test', async ({ page }) => {
   await input_area?.fill('test_debug_1');
   await input_area?.press('Enter');
   await page.waitForTimeout(300);
-  // check the answer return by the server
-  await expect.poll(
-    async () => await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText(),
-    { timeout: 15000 }
-  ).toContain('test_debug_1');
-  const sec_answer = await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText();
+  // Wait for second assistant response
+  await messageHelpers.waitForAssistantMessageCount(2);
+  await messageHelpers.waitForAssistantMessageTextContains(1, 'test_debug_1');
+  const sec_answer = await messageHelpers.getAssistantMessageText(1);
   // check the sec_answer has the debug message
   expect(sec_answer).toContain('test_debug_1');
 
   // Click regenerate button with better selector and error handling
-  const regenerateButton = page.locator('.message-wrapper:nth-of-type(4) .chat-message-regenerate');
-  await regenerateButton.waitFor({ state: 'visible', timeout: 5000 });
-  await regenerateButton.click();
+  await messageHelpers.clickAssistantRegenerate(1);
   await page.waitForTimeout(300);
-  await expect.poll(
-    async () => await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText(),
-    { timeout: 15000 }
-  ).toContain('test_debug_1');
-  const sec_answer_regen = await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText();
+  await messageHelpers.waitForAssistantMessageTextContains(1, 'test_debug_1');
+  const sec_answer_regen = await messageHelpers.getAssistantMessageText(1);
   // check the sec_answer has the debug message
   expect(sec_answer_regen).toContain('test_debug_1');
 
@@ -92,45 +85,33 @@ test('test', async ({ page }) => {
   await input_area?.fill('test_debug_2');
   await input_area?.press('Enter');
   await page.waitForTimeout(300);
-  // check the answer return by the server
-  await expect.poll(
-    async () => await page.locator('.message-wrapper:nth-of-type(6) .message-text').innerText(),
-    { timeout: 15000 }
-  ).toContain('test_debug_2');
-  const third_answer = await page.locator('.message-wrapper:nth-of-type(6) .message-text').innerText();
+  // Wait for third assistant response
+  await messageHelpers.waitForAssistantMessageCount(3);
+  await messageHelpers.waitForAssistantMessageTextContains(2, 'test_debug_2');
+  const third_answer = await messageHelpers.getAssistantMessageText(2);
   // check the third_answer has the debug message
   expect(third_answer).toContain('test_debug_2');
 
-  const thirdRegenerateButton = page.locator('.message-wrapper:nth-of-type(6) .chat-message-regenerate');
-  await thirdRegenerateButton.waitFor({ state: 'visible', timeout: 5000 });
-  await thirdRegenerateButton.click();
+  await messageHelpers.clickAssistantRegenerate(2);
   await page.waitForTimeout(300);
-  await expect.poll(
-    async () => await page.locator('.message-wrapper:nth-of-type(6) .message-text').innerText(),
-    { timeout: 15000 }
-  ).toContain('test_debug_2');
-  const third_answer_regen = await page.locator('.message-wrapper:nth-of-type(6) .message-text').innerText();
+  await messageHelpers.waitForAssistantMessageTextContains(2, 'test_debug_2');
+  const third_answer_regen = await messageHelpers.getAssistantMessageText(2);
   // check the third_answer has the debug message
   expect(third_answer_regen).toContain('test_debug_2');
 
   // regenerate the second answer
-  const secondRegenerateButton2 = page.locator('.message-wrapper:nth-of-type(4) .chat-message-regenerate');
-  await secondRegenerateButton2.waitFor({ state: 'visible', timeout: 5000 });
-  await secondRegenerateButton2.click();
+  await messageHelpers.clickAssistantRegenerate(1);
   await page.waitForTimeout(300);
-  await expect.poll(
-    async () => await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText(),
-    { timeout: 15000 }
-  ).toContain('test_debug_1');
+  await messageHelpers.waitForAssistantMessageTextContains(1, 'test_debug_1');
 
   // check the second answer has been regenerated
-  const sec_answer_regen_2 = await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText();
+  const sec_answer_regen_2 = await messageHelpers.getAssistantMessageText(1);
   // check the sec_answer has the debug message
   expect(sec_answer_regen_2).toContain('test_debug_1');
   expect(sec_answer_regen_2).not.toContain('test_debug_2')
 
   // check the second answer has been regenerated
-  const sec_answer_regen_3 = await page.locator('.message-wrapper:nth-of-type(4) .message-text').innerText();
+  const sec_answer_regen_3 = await messageHelpers.getAssistantMessageText(1);
   // check the sec_answer has the debug message
   expect(sec_answer_regen_3).toContain('test_debug_1');
   expect(sec_answer_regen_2).not.toContain('test_debug_2')
