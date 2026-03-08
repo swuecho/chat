@@ -1,6 +1,6 @@
 <script lang='ts' setup>
-import { computed, onMounted, onUnmounted, provide, ref, toRef, watch } from 'vue'
-import { NAutoComplete, NButton, NInput, NModal, NSpin, NSwitch } from 'naive-ui'
+import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
+import { NAutoComplete, NButton, NInput, NModal, NSpin } from 'naive-ui'
 import  { v7 as uuidv7 } from 'uuid'
 import { useScroll } from '@/views/chat/hooks/useScroll'
 import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'
@@ -17,9 +17,6 @@ import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import ArtifactGallery from '@/views/chat/components/ArtifactGallery.vue'
 import { useSlashToFocus } from '../hooks/useSlashToFocus'
 import JumpToBottom from './JumpToBottom.vue'
-import ChatVFSUploader from '@/components/ChatVFSUploader.vue'
-import VFSProvider from '@/components/VFSProvider.vue'
-
 // Import extracted composables
 import { useConversationFlow } from '../composables/useConversationFlow'
 import { useRegenerate } from '../composables/useRegenerate'
@@ -50,17 +47,8 @@ const sessionUuid = toRef(props, 'sessionUuid')
 
 const { isMobile } = useBasicLayout()
 const { scrollRef, scrollToBottom, smoothScrollToBottomIfAtBottom } = useScroll()
-const vfsUploaderRef = ref(null)
-const vfsProviderRef = ref<any>(null)
-
-const vfsInstance = computed(() => vfsProviderRef.value?.vfs?.value ?? null)
-const isVFSReady = computed(() => vfsProviderRef.value?.isVFSReady?.value ?? false)
-
 // Initialize composables
-const conversationFlow = useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom, {
-  vfsInstance,
-  isVFSReady
-})
+const conversationFlow = useConversationFlow(sessionUuid, scrollToBottom, smoothScrollToBottomIfAtBottom)
 const regenerate = useRegenerate(sessionUuid)
 const searchAndPrompts = useSearchAndPrompts()
 const chatActions = useChatActions(sessionUuid)
@@ -85,9 +73,6 @@ watch(sessionUuid, async (newSession, oldSession) => {
 const dataSources = computed(() => messageStore.getChatSessionDataByUuid(sessionUuid.value))
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(sessionUuid.value))
 
-// Check if code runner is enabled for the current session
-const isCodeRunnerEnabled = computed(() => chatSession.value?.codeRunnerEnabled ?? false)
-
 // Check if artifacts mode is enabled for the current session
 const isArtifactEnabled = computed(() => chatSession.value?.artifactEnabled ?? false)
 
@@ -110,17 +95,7 @@ const {
 
 // Use loading state from composables
 const loading = computed(() => conversationFlow.loading.value || regenerate.loading.value)
-const toolRunning = computed(() => conversationFlow.toolRunning.value)
-const showToolDebug = computed(() => chatSession.value?.showToolDebug ?? false)
 const submitting = ref(false)
-
-const openVfsAtPath = (path: string) => {
-  if (vfsUploaderRef.value?.openFileManagerAt) {
-    vfsUploaderRef.value.openFileManagerAt(path)
-  }
-}
-
-provide('openVfsAtPath', openVfsAtPath)
 
 async function handleSubmit() {
   if (submitting.value) {
@@ -216,20 +191,6 @@ onUnmounted(() => {
     controller.abort()
 })
 
-// VFS event handlers with stream response functionality
-const handleCodeExampleAddedWithStream = async (codeInfo: any) => {
-  await chatActions.handleCodeExampleAdded(codeInfo, (chatUuid: string, message: string) => {
-    return conversationFlow.startStream(message, dataSources.value, chatUuid)
-  })
-}
-
-// VFS Upload Modal state and handler
-const showVFSUploadModal = ref(false)
-
-function handleUpload() {
-  showVFSUploadModal.value = true
-}
-
 function handleUseQuestion(question: string) {
   prompt.value = question
   // Auto-submit the question
@@ -238,7 +199,6 @@ function handleUseQuestion(question: string) {
 </script>
 
 <template>
-  <VFSProvider ref="vfsProviderRef" :session-uuid="sessionUuid">
     <div class="flex flex-col w-full h-full">
       <!-- Session Loading Modal -->
       <NModal
@@ -256,9 +216,6 @@ function handleUseQuestion(question: string) {
 
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />
-      <ChatVFSUploader ref="vfsUploaderRef" :session-uuid="sessionUuid" :showUploadModal="showVFSUploadModal"
-        @update:showUploadModal="showVFSUploadModal = $event" @file-uploaded="handleVFSFileUploaded"
-        @code-example-added="handleCodeExampleAddedWithStream" />
       <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
       <main class="flex-1 overflow-hidden flex flex-col">
         <NModal
@@ -273,14 +230,6 @@ function handleUseQuestion(question: string) {
         <div class="flex items-center justify-center mt-2 mb-2">
           <div class="w-4/5 md:w-1/3">
             <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
-          </div>
-        </div>
-        <div v-if="chatSession?.codeRunnerEnabled" class="flex items-center justify-center mb-2">
-          <div class="flex items-center gap-3 text-sm text-gray-500">
-            <div v-if="toolRunning" class="flex items-center gap-2">
-              <NSpin size="small" />
-              <span>{{ $t('chat.toolRunning') }}</span>
-            </div>
           </div>
         </div>
         <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
@@ -298,7 +247,7 @@ function handleUseQuestion(question: string) {
             <template v-else>
               <div>
                 <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate"
-                  :show-tool-debug="showToolDebug" @use-question="handleUseQuestion" />
+                  @use-question="handleUseQuestion" />
               </div>
             </template>
           </div>
@@ -337,12 +286,6 @@ function handleUseQuestion(question: string) {
                 </span>
               </HoverButton>
             </NSpin>
-
-            <HoverButton v-if="!isMobile && isCodeRunnerEnabled" tooltip="Upload files to VFS for code runners" @click="handleUpload">
-              <span class="text-xl text-[#4b9e5f] dark:text-white">
-                <SvgIcon icon="mdi:folder-open" />
-              </span>
-            </HoverButton>
 
             <HoverButton v-if="!isMobile && isArtifactEnabled" @click="toggleArtifactGallery"
               :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'">
@@ -391,7 +334,6 @@ function handleUseQuestion(question: string) {
         </div>
       </footer>
     </div>
-  </VFSProvider>
 </template>
 
 <style scoped>

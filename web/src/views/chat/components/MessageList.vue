@@ -32,9 +32,6 @@ import { updateChatData } from '@/api'
 import { useDialog } from 'naive-ui'
 import { useCopyCode } from '@/views/chat/hooks/useCopyCode'
 import { useErrorHandling } from '../composables/useErrorHandling'
-import { isToolResultMessage, stripToolBlocks } from '@/utils/tooling'
-
-
 import { t } from '@/locales'
 const dialog = useDialog()
 const { updateChatText, updateChat } = useChat()
@@ -52,11 +49,6 @@ const props = defineProps({
                 type: Function,
                 required: true
         },
-        showToolDebug: {
-                type: Boolean,
-                required: false,
-                default: false
-        },
 });
 
 const emit = defineEmits(['useQuestion']);
@@ -66,15 +58,8 @@ const sessionStore = useSessionStore()
 const dataSources = computed(() => messageStore.getChatSessionDataByUuid(props.sessionUuid))
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(props.sessionUuid))
 
-const shouldShowMessage = (message: Chat.Message) => {
-        if (props.showToolDebug) return true
-        return !isToolResultMessage(message.text || '')
-}
-
-const getDisplayText = (text: string) => {
-        if (props.showToolDebug) return text
-        return stripToolBlocks(text || '')
-}
+const shouldShowMessage = (_message: Chat.Message) => true
+const getDisplayText = (text: string) => text || ''
 
 // The user wants to delete the message with the given index.
 // If the message is already being deleted, we ignore the request.

@@ -2,20 +2,10 @@ declare namespace Chat {
 
 	interface Artifact {
 		uuid: string
-		type: string // 'code', 'html', 'svg', 'mermaid', 'json', 'markdown', 'executable-code'
+		type: string // 'code', 'html', 'svg', 'mermaid', 'json', 'markdown'
 		title: string
 		content: string
 		language?: string // for code artifacts
-		isExecutable?: boolean // for executable code artifacts
-		executionResults?: ExecutionResult[]
-	}
-
-	interface ExecutionResult {
-		id: string
-		type: 'log' | 'error' | 'return' | 'stdout' | 'warn' | 'info' | 'debug' | 'canvas' | 'matplotlib'
-		content: string
-		timestamp: string
-		execution_time_ms?: number
 	}
 
 	interface Message {
@@ -48,10 +38,8 @@ declare namespace Chat {
 		maxTokens?: number
 		debug?: boolean
 		summarizeMode?: boolean
-		codeRunnerEnabled?: boolean
 		exploreMode?: boolean
 		artifactEnabled?: boolean
-		showToolDebug?: boolean
 		workspaceUuid?: string
 	}
 

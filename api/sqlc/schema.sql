@@ -170,13 +170,13 @@ CREATE TABLE IF NOT EXISTS chat_session (
     max_tokens int DEFAULT 4096 NOT NULL,
     n  integer DEFAULT 1 NOT NULL,
     summarize_mode boolean DEFAULT false NOT NULL,
-    code_runner_enabled boolean DEFAULT false NOT NULL,
     workspace_id INTEGER REFERENCES chat_workspace(id) ON DELETE SET NULL,
     artifact_enabled boolean DEFAULT false NOT NULL
 );
 
 
 -- chat_session
+ALTER TABLE chat_session DROP COLUMN IF EXISTS code_runner_enabled;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 4096 NOT NULL; 
@@ -185,7 +185,6 @@ ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS explore_mode boolean DEFAULT f
 ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS n INTEGER DEFAULT 1 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS summarize_mode boolean DEFAULT false NOT NULL;
-ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS code_runner_enabled boolean DEFAULT false NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS workspace_id INTEGER REFERENCES chat_workspace(id) ON DELETE SET NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS artifact_enabled boolean DEFAULT false NOT NULL;
 

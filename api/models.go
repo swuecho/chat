@@ -56,20 +56,19 @@ func (msg SimpleChatMessage) GetRole() string {
 }
 
 type SimpleChatSession struct {
-	Uuid          string  `json:"uuid"`
-	IsEdit        bool    `json:"isEdit"`
-	Title         string  `json:"title"`
-	MaxLength     int     `json:"maxLength"`
-	Temperature   float64 `json:"temperature"`
-	TopP          float64 `json:"topP"`
-	N             int32   `json:"n"`
-	MaxTokens     int32   `json:"maxTokens"`
-	Debug         bool    `json:"debug"`
-	Model         string  `json:"model"`
-	SummarizeMode bool    `json:"summarizeMode"`
-	CodeRunnerEnabled bool `json:"codeRunnerEnabled"`
-	ArtifactEnabled bool `json:"artifactEnabled"`
-	WorkspaceUuid string  `json:"workspaceUuid"`
+	Uuid           string  `json:"uuid"`
+	IsEdit         bool    `json:"isEdit"`
+	Title          string  `json:"title"`
+	MaxLength      int     `json:"maxLength"`
+	Temperature    float64 `json:"temperature"`
+	TopP           float64 `json:"topP"`
+	N              int32   `json:"n"`
+	MaxTokens      int32   `json:"maxTokens"`
+	Debug          bool    `json:"debug"`
+	Model          string  `json:"model"`
+	SummarizeMode  bool    `json:"summarizeMode"`
+	ArtifactEnabled bool   `json:"artifactEnabled"`
+	WorkspaceUuid  string  `json:"workspaceUuid"`
 }
 
 type ChatMessageResponse struct {
@@ -87,13 +86,12 @@ type ChatMessageResponse struct {
 }
 
 type ChatSessionResponse struct {
-	Uuid      string    `json:"uuid"`
-	Topic     string    `json:"topic"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	MaxLength int32     `json:"maxLength"`
-	CodeRunnerEnabled bool `json:"codeRunnerEnabled"`
-	ArtifactEnabled bool `json:"artifactEnabled"`
+	Uuid            string    `json:"uuid"`
+	Topic           string    `json:"topic"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+	MaxLength       int32     `json:"maxLength"`
+	ArtifactEnabled bool      `json:"artifactEnabled"`
 }
 
 type Pagination struct {

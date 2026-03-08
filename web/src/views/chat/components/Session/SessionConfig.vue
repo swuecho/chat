@@ -22,10 +22,8 @@ import {
   PsychologyOutlined,
   TuneOutlined,
   ExtensionOutlined,
-  CodeOutlined,
   ExploreOutlined,
   BugReportOutlined,
-  KeyboardArrowDownOutlined,
   SpeedOutlined,
   MemoryOutlined
 } from '@vicons/material'
@@ -130,10 +128,8 @@ interface ModelType {
   n: number
   debug: boolean
   summarizeMode: boolean
-  codeRunnerEnabled: boolean
   artifactEnabled: boolean
   exploreMode: boolean
-  showToolDebug: boolean
 }
 
 const defaultModel = computed(() => {
@@ -155,18 +151,11 @@ const modelRef: Ref<ModelType> = ref({
   n: session.value?.n ?? 1,
   debug: session.value?.debug ?? false,
   exploreMode: session.value?.exploreMode ?? false,
-  codeRunnerEnabled: session.value?.codeRunnerEnabled ?? false,
   artifactEnabled: session.value?.artifactEnabled ?? false,
-  showToolDebug: session.value?.showToolDebug ?? false,
 })
 
 const artifactInstruction = computed(() => instructionData.value?.artifactInstruction ?? '')
-const toolInstruction = computed(() => instructionData.value?.toolInstruction ?? '')
-const showInstructionPanel = computed(() => {
-  // Show panel if either artifact or code runner mode is enabled
-  // The individual instruction blocks will handle showing/hiding based on data availability
-  return modelRef.value.artifactEnabled || modelRef.value.codeRunnerEnabled
-})
+const showInstructionPanel = computed(() => modelRef.value.artifactEnabled)
 
 const formRef = ref<FormInst | null>(null)
 const collapseRef = ref<CollapseInst | null>(null)
@@ -192,10 +181,8 @@ const debouneUpdate = debounce(async (model: ModelType) => {
     debug: model.debug,
     model: model.chatModel,
     summarizeMode: model.summarizeMode,
-    codeRunnerEnabled: model.codeRunnerEnabled,
     artifactEnabled: model.artifactEnabled,
     exploreMode: model.exploreMode,
-    showToolDebug: model.showToolDebug,
   })
 }, 200)
 
@@ -217,9 +204,7 @@ watch(session, (newSession) => {
       n: newSession.n ?? 1,
       debug: newSession.debug ?? false,
       exploreMode: newSession.exploreMode ?? false,
-      codeRunnerEnabled: newSession.codeRunnerEnabled ?? false,
       artifactEnabled: newSession.artifactEnabled ?? false,
-      showToolDebug: newSession.showToolDebug ?? false,
     }
 
     // Only update if the values are actually different
@@ -329,21 +314,6 @@ const defaultToken = computed(() => {
             <NSwitch v-model:value="modelRef.artifactEnabled" data-testid="artifact_mode" size="medium" @click.stop />
           </div>
 
-          <!-- Code Runner Mode -->
-          <div
-            :class="['mode-card', { enabled: modelRef.codeRunnerEnabled }]"
-            @click="modelRef.codeRunnerEnabled = !modelRef.codeRunnerEnabled"
-          >
-            <div class="mode-header">
-              <NIcon :component="CodeOutlined" :size="24" class="mode-icon" />
-              <div class="mode-info">
-                <div class="mode-name">{{ $t('chat.codeRunner') }}</div>
-                <div class="mode-description">{{ $t('chat.codeRunnerDescription') }}</div>
-              </div>
-            </div>
-            <NSwitch v-model:value="modelRef.codeRunnerEnabled" data-testid="code_runner_mode" size="medium" @click.stop />
-          </div>
-
           <!-- Explore Mode -->
           <div
             :class="['mode-card', { enabled: modelRef.exploreMode }]"
@@ -377,17 +347,6 @@ const defaultToken = computed(() => {
               <NInput
                 class="instruction-input"
                 :value="artifactInstruction"
-                type="textarea"
-                readonly
-                :autosize="{ minRows: 3, maxRows: 10 }"
-              />
-            </div>
-            <!-- Tool Instructions -->
-            <div v-if="modelRef.codeRunnerEnabled && toolInstruction" class="instruction-block">
-              <div class="instruction-label">{{ $t('chat.toolInstructionTitle') }}</div>
-              <NInput
-                class="instruction-input"
-                :value="toolInstruction"
                 type="textarea"
                 readonly
                 :autosize="{ minRows: 3, maxRows: 10 }"
@@ -514,17 +473,6 @@ const defaultToken = computed(() => {
             <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode" size="medium" />
           </div>
 
-          <!-- Tool Debug Mode -->
-          <div v-if="modelRef.codeRunnerEnabled" class="debug-control">
-            <div class="debug-header">
-              <NIcon :component="SpeedOutlined" size="20" />
-              <div class="debug-info">
-                <div class="debug-label">{{ $t('chat.toolDebug') }}</div>
-                <div class="debug-description">{{ $t('chat.toolDebugDescription') }}</div>
-              </div>
-            </div>
-            <NSwitch v-model:value="modelRef.showToolDebug" data-testid="tool_debug_mode" size="medium" />
-          </div>
         </div>
       </NCollapseItem>
     </NCollapse>

@@ -146,7 +146,6 @@ type ChatSession struct {
 	MaxTokens         int32         `json:"maxTokens"`
 	N                 int32         `json:"n"`
 	SummarizeMode     bool          `json:"summarizeMode"`
-	CodeRunnerEnabled bool          `json:"codeRunnerEnabled"`
 	WorkspaceID       sql.NullInt32 `json:"workspaceId"`
 	ArtifactEnabled   bool          `json:"artifactEnabled"`
 	Debug             bool          `json:"debug"`

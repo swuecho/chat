@@ -8,50 +8,6 @@ function generateUUID(): string {
   return uuid()
 }
 
-// Check if a language is supported for code execution
-function isExecutableLanguage(language: string): boolean {
-  const executableLanguages = [
-    'javascript', 'js', 'typescript', 'ts',
-    'python', 'py'
-  ]
-
-  const normalizedLanguage = language.toLowerCase().trim()
-  return executableLanguages.includes(normalizedLanguage)
-}
-
-// Check if code contains patterns that suggest it should be executable
-function containsExecutablePatterns(content: string): boolean {
-  // Patterns that suggest the code is meant to be executed
-  const executablePatterns = [
-    // JavaScript patterns
-    'console.log',
-    'console.error',
-    'console.warn',
-    'function',
-    'const ',
-    'let ',
-    'var ',
-    '=>',
-    'if (',
-    'for (',
-    'while (',
-    'return ',
-
-    // Python patterns
-    'print(',
-    'import ',
-    'from ',
-    'def ',
-    'if __name__',
-    'class ',
-    'for ',
-    'while '
-  ]
-
-  const contentLower = content.toLowerCase()
-  return executablePatterns.some(pattern => contentLower.includes(pattern))
-}
-
 // Extract artifacts from message content (mirrors backend logic)
 export function extractArtifacts(content: string): Artifact[] {
   const artifacts: Artifact[] = []
@@ -128,8 +84,7 @@ export function extractArtifacts(content: string): Artifact[] {
     artifacts.push(artifact)
   }
 
-  // Pattern for executable code artifacts
-  // Example: ```javascript <!-- executable: Calculator -->
+  // Backward-compatible parsing for legacy executable markers.
   const executableArtifactRegex = /```(\w+)?\s*<!--\s*executable:\s*([^>]+?)\s*-->\s*\n(.*?)\n```/gs
   const executableMatches = content.matchAll(executableArtifactRegex)
 
@@ -143,17 +98,14 @@ export function extractArtifacts(content: string): Artifact[] {
       continue
     }
 
-    // Only create executable artifacts for supported languages
-    if (isExecutableLanguage(language)) {
-      const artifact: Artifact = {
-        uuid: generateUUID(),
-        type: 'executable-code',
-        title,
-        content: artifactContent,
-        language
-      }
-      artifacts.push(artifact)
+    const artifact: Artifact = {
+      uuid: generateUUID(),
+      type: 'code',
+      title,
+      content: artifactContent,
+      language
     }
+    artifacts.push(artifact)
   }
 
   // Pattern for general code artifacts (exclude html, svg, mermaid, json which are handled above)
@@ -170,18 +122,9 @@ export function extractArtifacts(content: string): Artifact[] {
       continue
     }
 
-    // Check if this should be an executable artifact for supported languages
-    let artifactType = 'code'
-    if (isExecutableLanguage(language)) {
-      // For supported languages, make them executable by default if they contain certain patterns
-      if (containsExecutablePatterns(artifactContent)) {
-        artifactType = 'executable-code'
-      }
-    }
-
     const artifact: Artifact = {
       uuid: generateUUID(),
-      type: artifactType,
+      type: 'code',
       title,
       content: artifactContent,
       language

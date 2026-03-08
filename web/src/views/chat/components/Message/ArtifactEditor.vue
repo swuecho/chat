@@ -169,27 +169,24 @@
           </div>
         </div>
 
-        <!-- History panel -->
+        <!-- Draft history panel -->
         <div v-if="showHistoryPanel" class="panel history-panel">
           <div class="panel-header">
-            <h3>Execution History</h3>
+            <h3>Draft History</h3>
             <NButton size="tiny" text @click="showHistoryPanel = false">
               <Icon icon="ri:close-line" />
             </NButton>
           </div>
           <div class="panel-content">
             <div class="history-search">
-              <NInput v-model:value="historySearch" placeholder="Search history..." size="small">
+              <NInput v-model:value="historySearch" placeholder="Search drafts..." size="small">
                 <template #prefix>
                   <Icon icon="ri:search-line" />
                 </template>
               </NInput>
             </div>
-            <div class="history-filters">
-              <NSelect v-model:value="historyFilter" :options="historyFilterOptions" size="small" />
-            </div>
             <div class="history-list">
-              <div v-for="entry in filteredHistory" :key="entry.id" 
+              <div v-for="entry in filteredHistory" :key="entry.id"
                    class="history-item"
                    @click="loadFromHistory(entry)">
                 <div class="history-info">
@@ -197,13 +194,8 @@
                   <div class="history-preview">{{ entry.code.substring(0, 60) }}...</div>
                   <div class="history-meta">
                     <NBadge :value="entry.language" size="small" />
-                    <NBadge :value="entry.success ? 'success' : 'error'" 
-                           :type="entry.success ? 'success' : 'error'" size="small" />
-                    <span class="execution-time">{{ entry.executionTime }}ms</span>
+                    <NBadge value="draft" type="info" size="small" />
                   </div>
-                </div>
-                <div class="history-tags">
-                  <NBadge v-for="tag in entry.tags.slice(0, 2)" :key="tag" :value="tag" size="small" />
                 </div>
               </div>
             </div>
@@ -248,7 +240,6 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { NButton, NInput, NSelect, NModal, NCard, NFormItem, NBadge, useMessage } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { useCodeTemplates } from '@/services/codeTemplates'
-import { useExecutionHistory } from '@/services/executionHistory'
 
 interface Props {
   modelValue: string
@@ -265,7 +256,6 @@ const emit = defineEmits<{
 
 const message = useMessage()
 const { categories, searchTemplates, addTemplate, incrementUsage } = useCodeTemplates()
-const { getArtifactHistory, searchHistory } = useExecutionHistory()
 
 // Editor state
 const code = ref(props.modelValue)
@@ -288,7 +278,6 @@ const expandedCategories = ref<Set<string>>(new Set())
 // Search and filter state
 const templateSearch = ref('')
 const historySearch = ref('')
-const historyFilter = ref('all')
 
 // Cursor state
 const cursorLine = ref(1)
@@ -328,41 +317,18 @@ const filteredCategories = computed(() => {
 })
 
 const filteredHistory = computed(() => {
-  if (!props.artifactId) return []
-  
-  let entries = getArtifactHistory(props.artifactId, 50)
-  
-  if (historySearch.value) {
-    entries = entries.filter(entry => 
-      entry.code.toLowerCase().includes(historySearch.value.toLowerCase()) ||
-      entry.tags.some(tag => tag.toLowerCase().includes(historySearch.value.toLowerCase()))
-    )
-  }
-  
-  if (historyFilter.value !== 'all') {
-    entries = entries.filter(entry => {
-      switch (historyFilter.value) {
-        case 'success':
-          return entry.success
-        case 'error':
-          return !entry.success
-        case 'recent':
-          return new Date(entry.timestamp).getTime() > Date.now() - 24 * 60 * 60 * 1000
-        default:
-          return true
-      }
-    })
-  }
-  
-  return entries
-})
+  const entries = history.value.map((entry, index) => ({
+    id: `${props.artifactId || 'draft'}-${index}`,
+    code: entry,
+    timestamp: new Date(Date.now() - index * 1000).toISOString(),
+    language: props.language,
+  }))
 
-const historyFilterOptions = [
-  { label: 'All', value: 'all' },
-  { label: 'Successful', value: 'success' },
-  { label: 'Errors', value: 'error' },
-  { label: 'Recent (24h)', value: 'recent' }
-]
+  if (!historySearch.value) return entries
+
+  const query = historySearch.value.toLowerCase()
+  return entries.filter(entry => entry.code.toLowerCase().includes(query))
+})
 
 const categoryOptions = computed(() => 
   categories.value.map(cat => ({ label: cat.name, value: cat.id }))
