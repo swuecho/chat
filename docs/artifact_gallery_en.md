@@ -233,20 +233,12 @@ The gallery integrates with the chat application's API:
 
 ```javascript
 // Example: Getting artifacts from a specific session
-const artifacts = await fetch(`/api/chat/sessions/${sessionId}/artifacts`);
+const messages = await fetch(`/api/uuid/chat_messages/chat_sessions/${sessionId}`);
+// Artifacts are included in each message payload as the `artifacts` field
 
 // Example: Executing code artifact
-const result = await fetch(`/api/artifacts/${artifactId}/execute`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify({
-    code: artifactContent,
-    language: 'javascript'
-  })
-});
+// Code execution is handled client-side in Artifact Editor/Sandbox components,
+// not by a dedicated backend `/api/artifacts/:id/execute` endpoint.
 ```
 
 ## Future Enhancements
