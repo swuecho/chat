@@ -233,20 +233,12 @@
 
 ```javascript
 // 示例：从特定会话获取制品
-const artifacts = await fetch(`/api/chat/sessions/${sessionId}/artifacts`);
+const messages = await fetch(`/api/uuid/chat_messages/chat_sessions/${sessionId}`);
+// 制品包含在每条消息的 `artifacts` 字段中
 
 // 示例：执行代码制品
-const result = await fetch(`/api/artifacts/${artifactId}/execute`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify({
-    code: artifactContent,
-    language: 'javascript'
-  })
-});
+// 代码执行由前端的 Artifact Editor/Sandbox 组件处理，
+// 后端没有独立的 `/api/artifacts/:id/execute` 接口。
 ```
 
 ## 未来增强

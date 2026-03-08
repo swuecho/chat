@@ -83,11 +83,13 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 
 	llmAnswer, err := gemini.HandleRegularResponse(*m.client.client, req)
 	if err != nil {
-		return nil, ErrInternalUnexpected.WithMessage("Failed to generate regular resposne").WithDebugInfo(err.Error())
+		return nil, ErrInternalUnexpected.WithMessage("Failed to generate regular response").WithDebugInfo(err.Error())
 	}
-	if llmAnswer != nil {
-		llmAnswer.AnswerId = answerID
+	if llmAnswer == nil {
+		return nil, ErrInternalUnexpected.WithMessage("Empty response from Gemini")
 	}
+
+	llmAnswer.AnswerId = answerID
 	response := constructChatCompletionStreamResponse(answerID, llmAnswer.Answer)
 	data, _ := json.Marshal(response)
 	fmt.Fprint(w, string(data))
