@@ -87,13 +87,13 @@ function openAllSnapshot() {
     :style="getMobileClass" @update-collapsed="handleUpdateCollapsed">
     <div class="flex flex-col h-full" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
-        <div class="p-2 space-y-2">
+        <div class="px-3 pt-3 pb-2 space-y-3">
           <NButton dashed block @click="handleAdd">
             <SvgIcon icon="material-symbols:add-circle-outline" /> {{ $t('chat.new') }}
           </NButton>
           <WorkspaceSelector />
         </div>
-        <div class="flex-1 min-h-0 pb-4 overflow-hidden">
+        <div class="flex-1 min-h-0 px-2 pb-3 overflow-hidden">
           <List />
         </div>
         <div class="px-2 pb-2">

@@ -227,15 +227,15 @@ function handleUseQuestion(question: string) {
         >
           <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
         </NModal>
-        <div class="flex items-center justify-center mt-2 mb-2">
-          <div class="w-4/5 md:w-1/3">
+        <div class="flex items-center justify-center px-3 pt-3 pb-2">
+          <div class="w-full md:w-1/3 max-w-[22rem]">
             <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
           </div>
         </div>
         <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
         </UploaderReadOnly>
         <div id="scrollRef" ref="scrollRef" class="flex-1 overflow-hidden overflow-y-auto">
-          <div v-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014] "
+          <div v-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
             <template v-if="!dataSources.length">
               <div class="flex items-center justify-center m-4 text-center text-neutral-300">
@@ -261,7 +261,7 @@ function handleUseQuestion(question: string) {
       </main>
       <footer :class="footerClass">
         <div class="w-full max-w-screen-xl m-auto">
-          <div class="flex items-center justify-between space-x-1">
+          <div class="flex items-end justify-between gap-1">
             <HoverButton data-testid="clear-conversation-button" :tooltip="$t('chat.clearChat')" @click="handleClear">
               <span class="text-xl text-[#4b9e5f] dark:text-white">
                 <SvgIcon icon="icon-park-outline:clear" />
@@ -309,7 +309,7 @@ function handleUseQuestion(question: string) {
                   @blur="handleBlur" @keydown="handleEnter" />
               </template>
             </NAutoComplete>
-            <button class="!-ml-8 z-10" @click="showUploadModal = true">
+            <button class="!-ml-8 z-10 pb-1" @click="showUploadModal = true">
               <span class="text-xl text-[#4b9e5f]">
                 <SvgIcon icon="clarity:attachment-line" />
               </span>
