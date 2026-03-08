@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
+	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	openai "github.com/sashabaranov/go-openai"
@@ -24,6 +25,8 @@ type ChatHandler struct {
 	chatfileService *ChatFileService
 	requestCtx      context.Context // Store the request context for streaming
 }
+
+const sessionTitleGenerationTimeout = 30 * time.Second
 
 func NewChatHandler(sqlc_q *sqlc_queries.Queries) *ChatHandler {
 	// create a new ChatService instance
@@ -342,8 +345,10 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, chatMessage.SuggestedQuestions)
 	}
 
-	// Generate a better title using LLM for the first exchange (async, non-blocking)
-	go h.generateSessionTitle(ctx, chatSession, userID)
+	// Generate a better title using LLM for the first exchange (async, non-blocking).
+	// Detach from the request context so the follow-up DB/model call can finish
+	// after the streaming response closes.
+	go h.generateSessionTitle(chatSession, userID)
 
 	return true
 }
@@ -351,7 +356,10 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 // generateSessionTitle generates a better title using LLM for the first message exchange
 // It checks if this is the first assistant message in the session, and if so,
 // generates a more descriptive title using Gemini
-func (h *ChatHandler) generateSessionTitle(ctx context.Context, chatSession *sqlc_queries.ChatSession, userID int32) {
+func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession, userID int32) {
+	ctx, cancel := context.WithTimeout(context.Background(), sessionTitleGenerationTimeout)
+	defer cancel()
+
 	// Skip if topic is already set (non-empty and not default)
 	if chatSession.Topic != "" && !strings.HasPrefix(chatSession.Topic, "New Chat") {
 		return

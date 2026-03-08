@@ -1,12 +1,11 @@
-import { inject, ref, type Ref } from 'vue'
+import { type Ref, ref } from 'vue'
 import { v7 as uuidv7 } from 'uuid'
-import { nowISO } from '@/utils/date'
-import { useChat } from '@/views/chat/hooks/useChat'
 import { useStreamHandling } from './useStreamHandling'
 import { useErrorHandling } from './useErrorHandling'
 import { useValidation } from './useValidation'
+import { useChat } from '@/views/chat/hooks/useChat'
+import { nowISO } from '@/utils/date'
 import { useMessageStore, useSessionStore } from '@/store'
-import { extractArtifacts } from '@/utils/artifacts'
 
 interface ChatMessage {
   uuid: string
@@ -21,7 +20,7 @@ interface ChatMessage {
 export function useConversationFlow(
   sessionUuidRef: Ref<string>,
   scrollToBottom: () => Promise<void>,
-  smoothScrollToBottomIfAtBottom: () => Promise<void>
+  smoothScrollToBottomIfAtBottom: () => Promise<void>,
 ) {
   const loading = ref<boolean>(false)
   const abortController = ref<AbortController | null>(null)
@@ -31,6 +30,34 @@ export function useConversationFlow(
   const { validateChatMessage } = useValidation()
   const sessionStore = useSessionStore()
   const messageStore = useMessageStore()
+
+  async function refreshSessionTitle(sessionUuid: string): Promise<void> {
+    const session = sessionStore.getChatSessionByUuid(sessionUuid)
+    const workspaceUuid = session?.workspaceUuid
+
+    if (!workspaceUuid)
+      return
+
+    const maxAttempts = 4
+    const retryDelayMs = 1500
+    let lastSeenTitle = session.title
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0)
+        await new Promise(resolve => setTimeout(resolve, retryDelayMs))
+
+      await sessionStore.syncWorkspaceSessions(workspaceUuid)
+
+      const refreshedSession = sessionStore.getChatSessionByUuid(sessionUuid)
+      if (!refreshedSession?.title)
+        return
+
+      if (refreshedSession.title !== lastSeenTitle)
+        return
+
+      lastSeenTitle = refreshedSession.title
+    }
+  }
 
   function validateConversationInput(message: string): boolean {
     if (loading.value) {
@@ -55,19 +82,17 @@ export function useConversationFlow(
 
   async function addUserMessage(chatUuid: string, message: string): Promise<void> {
     const sessionUuid = sessionUuidRef.value
-    if (!sessionUuid) {
+    if (!sessionUuid)
       return
-    }
 
     const existingMessages = messageStore.getChatSessionDataByUuid(sessionUuid)
-    const onlySystemPromptPresent =
-      existingMessages.length === 1 && existingMessages[0]?.isPrompt === true
+    const onlySystemPromptPresent
+      = existingMessages.length === 1 && existingMessages[0]?.isPrompt === true
 
     // For sessions that currently only have the system prompt, backend treats
     // the first input as prompt content. Skip adding a duplicated user bubble.
-    if (onlySystemPromptPresent) {
+    if (onlySystemPromptPresent)
       return
-    }
 
     const chatMessage: ChatMessage = {
       uuid: chatUuid,
@@ -76,16 +101,15 @@ export function useConversationFlow(
       inversion: true,
       error: false,
     }
-    
+
     addChat(sessionUuid, chatMessage)
     await scrollToBottom()
   }
 
   async function initializeChatResponse(dataSources: any[]): Promise<number> {
     const sessionUuid = sessionUuidRef.value
-    if (!sessionUuid) {
+    if (!sessionUuid)
       return dataSources.length - 1
-    }
 
     addChat(sessionUuid, {
       uuid: '',
@@ -104,9 +128,8 @@ export function useConversationFlow(
 
     const lastMessage = dataSources[responseIndex]
     const sessionUuid = sessionUuidRef.value
-    if (!sessionUuid) {
+    if (!sessionUuid)
       return
-    }
 
     if (lastMessage) {
       const errorMessage: ChatMessage = {
@@ -117,7 +140,7 @@ export function useConversationFlow(
         error: true,
         loading: false,
       }
-      
+
       updateChat(sessionUuid, responseIndex, errorMessage)
     }
   }
@@ -133,7 +156,7 @@ export function useConversationFlow(
   async function startStream(
     message: string,
     dataSources: any[],
-    chatUuid: string
+    chatUuid: string,
   ): Promise<void> {
     const sessionUuid = sessionUuidRef.value
     if (!sessionUuid) {
@@ -144,7 +167,7 @@ export function useConversationFlow(
 
     loading.value = true
     abortController.value = new AbortController()
-    let responseIndex = await initializeChatResponse(dataSources)
+    const responseIndex = await initializeChatResponse(dataSources)
 
     try {
       await streamChatResponse(
@@ -156,23 +179,32 @@ export function useConversationFlow(
           processStreamChunk(chunk, index, sessionUuid)
           await smoothScrollToBottomIfAtBottom()
         },
-        abortController.value.signal
+        abortController.value.signal,
       )
-    } catch (error) {
+    }
+    catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         // Stream was cancelled, no need to show error
         return
       }
       handleStreamingError(error, responseIndex, dataSources)
-    } finally {
+    }
+    finally {
       loading.value = false
       abortController.value = null
-      
+
+      try {
+        await refreshSessionTitle(sessionUuid)
+      }
+      catch (error) {
+        console.error('Failed to refresh session title:', error)
+      }
+
       // For sessions in exploreMode, set suggested questions loading state
       const session = sessionStore.getChatSessionByUuid(sessionUuid)
       if (session?.exploreMode && dataSources[responseIndex] && !dataSources[responseIndex].inversion) {
         updateChatPartial(sessionUuid, responseIndex, {
-          suggestedQuestionsLoading: true
+          suggestedQuestionsLoading: true,
         })
       }
     }
@@ -185,6 +217,6 @@ export function useConversationFlow(
     initializeChatResponse,
     handleStreamingError,
     startStream,
-    stopStream
+    stopStream,
   }
 }
