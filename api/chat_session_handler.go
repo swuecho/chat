@@ -54,13 +54,12 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 	}
 
 	session_resp := &ChatSessionResponse{
-		Uuid:              session.Uuid,
-		Topic:             session.Topic,
-		MaxLength:         session.MaxLength,
-		CreatedAt:         session.CreatedAt,
-		UpdatedAt:         session.UpdatedAt,
-		CodeRunnerEnabled: session.CodeRunnerEnabled,
-		ArtifactEnabled:   session.ArtifactEnabled,
+		Uuid:            session.Uuid,
+		Topic:           session.Topic,
+		MaxLength:       session.MaxLength,
+		CreatedAt:       session.CreatedAt,
+		UpdatedAt:       session.UpdatedAt,
+		ArtifactEnabled: session.ArtifactEnabled,
 	}
 	json.NewEncoder(w).Encode(session_resp)
 }
@@ -146,20 +145,19 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 }
 
 type UpdateChatSessionRequest struct {
-	Uuid              string  `json:"uuid"`
-	Topic             string  `json:"topic"`
-	MaxLength         int32   `json:"maxLength"`
-	Temperature       float64 `json:"temperature"`
-	Model             string  `json:"model"`
-	TopP              float64 `json:"topP"`
-	N                 int32   `json:"n"`
-	MaxTokens         int32   `json:"maxTokens"`
-	Debug             bool    `json:"debug"`
-	SummarizeMode     bool    `json:"summarizeMode"`
-	CodeRunnerEnabled bool    `json:"codeRunnerEnabled"`
-	ArtifactEnabled   bool    `json:"artifactEnabled"`
-	ExploreMode       bool    `json:"exploreMode"`
-	WorkspaceUUID     string  `json:"workspaceUuid,omitempty"`
+	Uuid            string  `json:"uuid"`
+	Topic           string  `json:"topic"`
+	MaxLength       int32   `json:"maxLength"`
+	Temperature     float64 `json:"temperature"`
+	Model           string  `json:"model"`
+	TopP            float64 `json:"topP"`
+	N               int32   `json:"n"`
+	MaxTokens       int32   `json:"maxTokens"`
+	Debug           bool    `json:"debug"`
+	SummarizeMode   bool    `json:"summarizeMode"`
+	ArtifactEnabled bool    `json:"artifactEnabled"`
+	ExploreMode     bool    `json:"exploreMode"`
+	WorkspaceUUID   string  `json:"workspaceUuid,omitempty"`
 }
 
 // UpdateChatSessionByUUID updates a chat session by its UUID
@@ -197,7 +195,6 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	sessionParams.MaxTokens = sessionReq.MaxTokens
 	sessionParams.Debug = sessionReq.Debug
 	sessionParams.SummarizeMode = sessionReq.SummarizeMode
-	sessionParams.CodeRunnerEnabled = sessionReq.CodeRunnerEnabled
 	sessionParams.ArtifactEnabled = sessionReq.ArtifactEnabled
 	sessionParams.ExploreMode = sessionReq.ExploreMode
 
@@ -377,20 +374,19 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	sessionUUID := uuid.New().String()
 
 	session, err := h.service.q.CreateOrUpdateChatSessionByUUID(r.Context(), sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
-		Uuid:              sessionUUID,
-		UserID:            userID,
-		Topic:             sessionTitle,
-		MaxLength:         originSession.MaxLength,
-		Temperature:       originSession.Temperature,
-		Model:             originSession.Model,
-		MaxTokens:         originSession.MaxTokens,
-		TopP:              originSession.TopP,
-		Debug:             originSession.Debug,
-		SummarizeMode:     originSession.SummarizeMode,
-		CodeRunnerEnabled: originSession.CodeRunnerEnabled,
-		ExploreMode:       originSession.ExploreMode,
-		WorkspaceID:       originSession.WorkspaceID,
-		N:                 1,
+		Uuid:          sessionUUID,
+		UserID:        userID,
+		Topic:         sessionTitle,
+		MaxLength:     originSession.MaxLength,
+		Temperature:   originSession.Temperature,
+		Model:         originSession.Model,
+		MaxTokens:     originSession.MaxTokens,
+		TopP:          originSession.TopP,
+		Debug:         originSession.Debug,
+		SummarizeMode: originSession.SummarizeMode,
+		ExploreMode:   originSession.ExploreMode,
+		WorkspaceID:   originSession.WorkspaceID,
+		N:             1,
 	})
 	if err != nil {
 		apiErr := ErrInternalUnexpected

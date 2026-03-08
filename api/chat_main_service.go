@@ -27,9 +27,6 @@ type ChatService struct {
 //go:embed artifact_instruction.txt
 var artifactInstructionText string
 
-//go:embed tool_instruction.txt
-var toolInstructionText string
-
 // NewChatService creates a new ChatService with database queries.
 func NewChatService(q *sqlc_queries.Queries) *ChatService {
 	return &ChatService{q: q}
@@ -42,15 +39,6 @@ func loadArtifactInstruction() (string, error) {
 		return "", eris.New("artifact instruction text is empty")
 	}
 	return artifactInstructionText, nil
-}
-
-// loadToolInstruction loads the tool-use instruction from file.
-// Returns the instruction content or an error if the file cannot be read.
-func loadToolInstruction() (string, error) {
-	if toolInstructionText == "" {
-		return "", eris.New("tool instruction text is empty")
-	}
-	return toolInstructionText, nil
 }
 
 func appendInstructionToSystemMessage(msgs []models.Message, instruction string) {
@@ -137,16 +125,6 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 		}
 
 		appendInstructionToSystemMessage(msgs, artifactInstruction)
-	}
-
-	if chatSession.CodeRunnerEnabled {
-		toolInstruction, err := loadToolInstruction()
-		if err != nil {
-			log.Printf("Warning: Failed to load tool instruction: %v", err)
-			toolInstruction = ""
-		}
-
-		appendInstructionToSystemMessage(msgs, toolInstruction)
 	}
 
 	return msgs, nil

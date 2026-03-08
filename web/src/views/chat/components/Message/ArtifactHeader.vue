@@ -10,40 +10,17 @@
         <span class="hidden sm:inline">{{ isExpanded ? 'Collapse' : 'Expand' }}</span>
         <Icon :icon="isExpanded ? 'ri:arrow-up-line' : 'ri:arrow-down-line'" class="sm:hidden" />
       </NButton>
-      
-      <NButton 
-        v-if="artifact.type === 'html'" 
-        size="small" 
+
+      <NButton
+        v-if="artifact.type === 'html'"
+        size="small"
         @click="$emit('open-in-new-window', artifact.content)"
-        title="Open in new window for debugging">
+        title="Open in new window">
         <Icon icon="ri:external-link-line" />
       </NButton>
-      
+
       <NButton size="small" @click="$emit('copy-content', artifact.content)">
         <Icon icon="ri:file-copy-line" />
-      </NButton>
-      
-      <NButton 
-        v-if="isExecutable(artifact)" 
-        size="small" 
-        type="primary" 
-        @click="$emit('run-code', artifact)"
-        :disabled="isRunning"
-        :loading="isRunning">
-        <template #icon>
-          <Icon icon="ri:play-line" />
-        </template>
-        {{ isRunning ? 'Running...' : 'Run Code' }}
-      </NButton>
-      
-      <NButton 
-        v-if="isExecutable && hasOutput" 
-        size="small" 
-        @click="$emit('clear-output', artifact.uuid)">
-        <template #icon>
-          <Icon icon="ri:delete-bin-line" />
-        </template>
-        Clear Output
       </NButton>
     </div>
   </div>
@@ -57,34 +34,24 @@ import { type Artifact } from '@/typings/chat'
 interface Props {
   artifact: Artifact
   isExpanded: boolean
-  isRunning: boolean
-  hasOutput: boolean
 }
 
 defineProps<Props>()
 
 defineEmits<{
   'toggle-expand': [uuid: string]
-  'run-code': [artifact: Artifact]
-  'clear-output': [uuid: string]
   'copy-content': [content: string]
   'open-in-new-window': [content: string]
 }>()
 
-// Artifact type utilities
-const isExecutable = (artifact: Artifact) => {
-  return artifact.type === 'executable-code'
-}
-
 const getArtifactIcon = (type: string) => {
   const iconMap: Record<string, string> = {
-    'code': 'ri:code-line',
-    'executable-code': 'ri:code-s-slash-line',
-    'html': 'ri:html5-line',
-    'svg': 'ri:svg-line',
-    'mermaid': 'ri:git-branch-line',
-    'json': 'ri:json-line',
-    'markdown': 'ri:markdown-line',
+    code: 'ri:code-line',
+    html: 'ri:html5-line',
+    svg: 'ri:svg-line',
+    mermaid: 'ri:git-branch-line',
+    json: 'ri:json-line',
+    markdown: 'ri:markdown-line',
   }
   return iconMap[type] || 'ri:file-line'
 }

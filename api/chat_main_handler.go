@@ -85,7 +85,6 @@ type BotRequest struct {
 
 type ChatInstructionResponse struct {
 	ArtifactInstruction string `json:"artifactInstruction"`
-	ToolInstruction     string `json:"toolInstruction"`
 }
 
 func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) {
@@ -95,15 +94,8 @@ func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request
 		artifactInstruction = ""
 	}
 
-	toolInstruction, err := loadToolInstruction()
-	if err != nil {
-		log.Printf("Warning: Failed to load tool instruction: %v", err)
-		toolInstruction = ""
-	}
-
 	json.NewEncoder(w).Encode(ChatInstructionResponse{
 		ArtifactInstruction: artifactInstruction,
-		ToolInstruction:     toolInstruction,
 	})
 }
 

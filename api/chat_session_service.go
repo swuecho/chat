@@ -87,20 +87,19 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 		}
 
 		return SimpleChatSession{
-			Uuid:              session.Uuid,
-			IsEdit:            false,
-			Title:             session.Topic,
-			MaxLength:         int(session.MaxLength),
-			Temperature:       float64(session.Temperature),
-			TopP:              float64(session.TopP),
-			N:                 session.N,
-			MaxTokens:         session.MaxTokens,
-			Debug:             session.Debug,
-			Model:             session.Model,
-			SummarizeMode:     session.SummarizeMode,
-			CodeRunnerEnabled: session.CodeRunnerEnabled,
-			ArtifactEnabled:   session.ArtifactEnabled,
-			WorkspaceUuid:     workspaceUuid,
+			Uuid:            session.Uuid,
+			IsEdit:          false,
+			Title:           session.Topic,
+			MaxLength:       int(session.MaxLength),
+			Temperature:     float64(session.Temperature),
+			TopP:            float64(session.TopP),
+			N:               session.N,
+			MaxTokens:       session.MaxTokens,
+			Debug:           session.Debug,
+			Model:           session.Model,
+			SummarizeMode:   session.SummarizeMode,
+			ArtifactEnabled: session.ArtifactEnabled,
+			WorkspaceUuid:   workspaceUuid,
 		}
 	})
 	return simple_sessions, nil
