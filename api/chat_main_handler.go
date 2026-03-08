@@ -353,20 +353,12 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	return true
 }
 
-// generateSessionTitle generates a better title using LLM for the first message exchange
-// It checks if this is the first assistant message in the session, and if so,
-// generates a more descriptive title using Gemini
+// generateSessionTitle regenerates the session title from the latest conversation state.
 func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession, userID int32) {
 	ctx, cancel := context.WithTimeout(context.Background(), sessionTitleGenerationTimeout)
 	defer cancel()
 
-	// Skip if topic is already set (non-empty and not default)
-	if chatSession.Topic != "" && !strings.HasPrefix(chatSession.Topic, "New Chat") {
-		return
-	}
-
-	// Only generate title for the first assistant message
-	// Get all messages to check if this is the first exchange
+	// Regenerate from the latest conversation after each assistant response.
 	messages, err := h.service.q.GetChatMessagesBySessionUUID(ctx, sqlc_queries.GetChatMessagesBySessionUUIDParams{
 		Uuid:   chatSession.Uuid,
 		Offset: 0,
@@ -377,21 +369,16 @@ func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession
 		return
 	}
 
-	// Count user and assistant messages
-	var userCount, assistantCount int
 	var chatText string
 	for _, msg := range messages {
 		if msg.Role == "user" {
-			userCount++
 			chatText += "user: " + msg.Content + "\n"
 		} else if msg.Role == "assistant" {
-			assistantCount++
 			chatText += "assistant: " + msg.Content + "\n"
 		}
 	}
 
-	// Only generate title if we have exactly 1 user message and 1 assistant message (first exchange)
-	if userCount != 1 || assistantCount != 1 {
+	if strings.TrimSpace(chatText) == "" {
 		return
 	}
 

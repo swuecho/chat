@@ -38,8 +38,8 @@ export function useConversationFlow(
     if (!workspaceUuid)
       return
 
-    const maxAttempts = 4
-    const retryDelayMs = 1500
+    const maxAttempts = 8
+    const retryDelayMs = 2000
     let lastSeenTitle = session.title
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
