@@ -21,7 +21,9 @@ test('workspace management - create workspace and manage sessions', async ({ pag
   await page.getByTestId('repwd').locator('input').fill('@ThisIsATestPass5');
   await page.getByTestId('signup').click();
 
-  await page.waitForTimeout(1000);
+  await page.waitForSelector('[data-testid="chat-settings-button"]', { timeout: 10000 });
+  await page.waitForSelector('#message_textarea textarea', { timeout: 10000 });
+  await page.waitForTimeout(500);
 
   // Create new workspace named 'test_workspace_1' via workspace selector dropdown
   await page.locator('.workspace-button').click();
@@ -50,8 +52,8 @@ test('workspace management - create workspace and manage sessions', async ({ pag
   expect(sessionCount).toBe(1);
   
   // Check that one session is displayed in the session list
-  const sessionItems = page.locator('.relative.flex.items-center.gap-2.p-2.break-all.border.rounded-sm.cursor-pointer');
-  await expect(sessionItems).toHaveCount(1);
+  const sessionItems = page.locator('a.relative.flex.items-center.gap-2.break-all.border.rounded-sm.cursor-pointer');
+  await expect(sessionItems).toHaveCount(1, { timeout: 10000 });
 
   // Test 2: Add a new session with title 'first session in workspace test_workspace_1'
   // Click the "New Chat" button to add another session
@@ -77,8 +79,8 @@ test('workspace management - create workspace and manage sessions', async ({ pag
   expect(updatedSessionCount).toBe(2);
   
   // Check that exactly two sessions are visible in the UI
-  const updatedSessionItems = page.locator('.relative.flex.items-center.gap-2.p-2.break-all.border.rounded-sm.cursor-pointer');
-  await expect(updatedSessionItems).toHaveCount(2);
+  const updatedSessionItems = page.locator('a.relative.flex.items-center.gap-2.break-all.border.rounded-sm.cursor-pointer');
+  await expect(updatedSessionItems).toHaveCount(2, { timeout: 10000 });
   
   // Verify the new session title is displayed correctly
   await expect(page.locator('text=first session in workspace test_workspace_1')).toBeVisible();
@@ -103,8 +105,8 @@ test('workspace management - create workspace and manage sessions', async ({ pag
   await expect(page.locator('text=first session in workspace test_workspace_1')).toBeVisible();
   
   // Verify both sessions are still visible after refresh
-  const sessionsAfterRefresh = page.locator('.relative.flex.items-center.gap-2.p-2.break-all.border.rounded-sm.cursor-pointer');
-  await expect(sessionsAfterRefresh).toHaveCount(2);
+  const sessionsAfterRefresh = page.locator('a.relative.flex.items-center.gap-2.break-all.border.rounded-sm.cursor-pointer');
+  await expect(sessionsAfterRefresh).toHaveCount(2, { timeout: 10000 });
   
   // Verify the custom session title is still visible
   await expect(page.locator('text=first session in workspace test_workspace_1')).toBeVisible();

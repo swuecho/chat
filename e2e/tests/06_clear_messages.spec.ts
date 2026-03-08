@@ -34,8 +34,9 @@ test('after clear conversation, only system message remains', async ({ page }) =
     // Modal might already be gone
   }
   
-  // sleep 1 second
-  await page.waitForTimeout(1000);
+  await page.waitForSelector('[data-testid="chat-settings-button"]', { timeout: 10000 });
+  await page.waitForSelector('#message_textarea textarea', { timeout: 10000 });
+  await page.waitForTimeout(500);
   let input_area = await page.$("#message_textarea textarea")
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
@@ -76,4 +77,3 @@ test('after clear conversation, only system message remains', async ({ page }) =
   expect(messages.length).toBe(0);
 
 });
-

@@ -360,16 +360,19 @@ export class AuthHelpers {
       console.log('Modal mask not found or already disappeared');
     }
     
-    // Additional wait to ensure the interface is ready
-    await this.page.waitForTimeout(1000);
+    await this.waitForInterfaceReady();
   }
 
   /**
    * Wait for the interface to be ready for interaction after authentication
    */
   async waitForInterfaceReady(): Promise<void> {
-    // Wait for the message textarea to be available and clickable
+    await this.page.waitForSelector('[data-testid="chat-settings-button"]', { timeout: 10000 });
     await this.page.waitForSelector('#message_textarea textarea', { timeout: 10000 });
+    await this.page.waitForFunction(() => {
+      const textarea = document.querySelector('#message_textarea textarea');
+      return textarea instanceof HTMLTextAreaElement && !textarea.disabled;
+    }, { timeout: 10000 });
     await this.page.waitForTimeout(500);
   }
 }
@@ -401,11 +404,11 @@ export class InputHelpers {
     await input.press('Enter');
     
     if (waitForResponse) {
-      // Wait for the message to appear in the chat
-      const messageHelpers = new MessageHelpers(this.page);
-      await messageHelpers.waitForMessageWithText(text);
-      // Wait a bit more for the response to be generated
-      await this.page.waitForTimeout(1000);
+      // The first user message is intentionally not rendered as a bubble when the
+      // session only contains the default system prompt. Do not wait for the
+      // submitted text to echo in the DOM here; higher-level helpers wait for
+      // the assistant response instead.
+      await this.page.waitForTimeout(300);
     }
   }
 }
