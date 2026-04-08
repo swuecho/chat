@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, nextTick } from 'vue'
+import { NTooltip } from 'naive-ui'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useAppStore, useSessionStore } from '@/store'
 
@@ -50,10 +51,15 @@ function handleAdd() {
           <SvgIcon v-else class="text-2xl" icon="ri:align-right" />
         </button>
       </div>
-      <h1 class="flex-1 px-3 pr-5 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap"
-        @dblclick="onScrollToTop">
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <h1 class="flex-1 px-3 pr-5 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap"
+            @dblclick="onScrollToTop">
+            {{ currentChatSession?.title ?? '' }}
+          </h1>
+        </template>
         {{ currentChatSession?.title ?? '' }}
-      </h1>
+      </NTooltip>
       <div class="flex items-center space-x-2">
         <HoverButton :tooltip="$t('chat.chatSnapshot')" @click="handleSnapshot">
           <span class="text-xl text-[#4b9e5f] dark:text-white">

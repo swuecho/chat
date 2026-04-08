@@ -19,13 +19,21 @@ export function useTheme() {
     return isDark.value ? darkTheme : undefined
   })
 
+  const tooltipOverrides = {
+    Tooltip: {
+      color: '#4b9e5f',
+      textColor: '#fff',
+    },
+  }
+
   const themeOverrides = computed<GlobalThemeOverrides>(() => {
     if (isDark.value) {
       return {
         common: {},
+        ...tooltipOverrides,
       }
     }
-    return {}
+    return { ...tooltipOverrides }
   })
 
   watch(
