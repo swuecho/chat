@@ -41,12 +41,36 @@ test('after clear conversation, only system message remains', async ({ page }) =
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
-  // Wait for the first response to finish streaming
-  await page.waitForSelector('#send_message_button', { state: 'visible', timeout: 10000 });
+
+  // Wait for first assistant response to appear
+  await page.waitForFunction(
+    () => {
+      const messages = Array.from(document.querySelectorAll('.chat-message'));
+      const assistantCount = messages.filter((message) => {
+        const row = message.querySelector('.flex.w-full');
+        return row && !row.classList.contains('flex-row-reverse');
+      }).length;
+      return assistantCount >= 1;
+    },
+    { timeout: 15000 }
+  );
+
+  // Send second message
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
-  // Wait for the second response to finish streaming
-  await page.waitForSelector('#send_message_button', { state: 'visible', timeout: 10000 });
+
+  // Wait for second assistant response to appear
+  await page.waitForFunction(
+    () => {
+      const messages = Array.from(document.querySelectorAll('.chat-message'));
+      const assistantCount = messages.filter((message) => {
+        const row = message.querySelector('.flex.w-full');
+        return row && !row.classList.contains('flex-row-reverse');
+      }).length;
+      return assistantCount >= 2;
+    },
+    { timeout: 15000 }
+  );
 
   const message_counts = await page.$$eval('.message-text', (messages) => messages.length);
   expect(message_counts).toBe(4);
