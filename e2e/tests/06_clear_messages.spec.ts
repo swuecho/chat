@@ -41,12 +41,12 @@ test('after clear conversation, only system message remains', async ({ page }) =
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
-  await page.waitForTimeout(1000);
+  // Wait for the first response to finish streaming
+  await page.waitForSelector('#send_message_button', { state: 'visible', timeout: 10000 });
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
-  // get message counts in the conversation
-
-  await page.waitForTimeout(1000);
+  // Wait for the second response to finish streaming
+  await page.waitForSelector('#send_message_button', { state: 'visible', timeout: 10000 });
 
   const message_counts = await page.$$eval('.message-text', (messages) => messages.length);
   expect(message_counts).toBe(4);

@@ -48,13 +48,14 @@ test('test', async ({ page }) => {
   // await page.fill("#message_textarea", 'test_demo_bestqa');
   //await page.getByPlaceholder('来说点什么吧...（Shift + Enter = 换行）').press('Enter');
   await input_area?.press('Enter');
-  // sleep 500ms
-  await page.waitForTimeout(1000);
+  // Wait for the first response to finish streaming
+  await page.waitForSelector('#send_message_button', { state: 'visible', timeout: 10000 });
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
 
-  await page.waitForTimeout(1000);
+  // Wait for the second response to finish streaming
+  await page.waitForSelector('#send_message_button', { state: 'visible', timeout: 10000 });
 
   const user = await selectUserByEmail(pool, test_email);
   expect(user.email).toBe(test_email);
@@ -64,8 +65,7 @@ test('test', async ({ page }) => {
   const prompts = await selectChatPromptsBySessionUUID(pool, session.uuid)
   expect(prompts.length).toBe(1);
   expect(prompts[0].updated_by).toBe(user.id);
-  // sleep 5 seconds
-  await page.waitForTimeout(1000);;
+  await page.waitForTimeout(500);
   const messages = await selectChatMessagesBySessionUUID(pool, session.uuid)
   expect(messages.length).toBe(4);
 
@@ -76,7 +76,8 @@ test('test', async ({ page }) => {
   await input_area?.click();
   await input_area?.fill('test_demo_bestqa');
   await input_area?.press('Enter');
-  await page.waitForTimeout(1000);;
+  // Wait for the third response to finish streaming
+  await page.waitForSelector('#send_message_button', { state: 'visible', timeout: 10000 });
 
   const sessions_1 = await selectChatSessionsByUserId(pool, user.id);
   const session_1 = sessions_1[0];
@@ -84,8 +85,7 @@ test('test', async ({ page }) => {
   const prompts_1 = await selectChatPromptsBySessionUUID(pool, session_1.uuid)
   expect(prompts_1.length).toBe(1);
   expect(prompts_1[0].updated_by).toBe(user.id);
-  // sleep 5 seconds
-  await page.waitForTimeout(1000);;
+  await page.waitForTimeout(500);
   const messages_1 = await selectChatMessagesBySessionUUID(pool, session_1.uuid)
   expect(messages_1.length).toBe(6);
 
