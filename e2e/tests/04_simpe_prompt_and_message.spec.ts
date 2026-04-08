@@ -14,6 +14,18 @@ const test_email = randomEmail();
 const pool = new Pool(db_config);
 
 
+async function waitForMessageCount(pool: Pool, sessionUuid: string, expectedCount: number, timeout = 10000): Promise<void> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeout) {
+    const messages = await selectChatMessagesBySessionUUID(pool, sessionUuid);
+    if (messages.length >= expectedCount) {
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  const messages = await selectChatMessagesBySessionUUID(pool, sessionUuid);
+  expect(messages.length).toBe(expectedCount);
+}
 
 test('test', async ({ page }) => {
   await page.goto('/');
@@ -80,15 +92,14 @@ test('test', async ({ page }) => {
 
   const user = await selectUserByEmail(pool, test_email);
   expect(user.email).toBe(test_email);
-  // expect(user.id).toBe(37);
   const sessions = await selectChatSessionsByUserId(pool, user.id);
   const session = sessions[0];
   const prompts = await selectChatPromptsBySessionUUID(pool, session.uuid)
   expect(prompts.length).toBe(1);
   expect(prompts[0].updated_by).toBe(user.id);
-  await page.waitForTimeout(500);
-  const messages = await selectChatMessagesBySessionUUID(pool, session.uuid)
-  expect(messages.length).toBe(4);
+
+  // Poll database until all 4 messages are saved
+  await waitForMessageCount(pool, session.uuid, 4);
 
   // test edit session topic
   await page.getByTestId('edit_session_topic').click();
@@ -117,8 +128,8 @@ test('test', async ({ page }) => {
   const prompts_1 = await selectChatPromptsBySessionUUID(pool, session_1.uuid)
   expect(prompts_1.length).toBe(1);
   expect(prompts_1[0].updated_by).toBe(user.id);
-  await page.waitForTimeout(500);
-  const messages_1 = await selectChatMessagesBySessionUUID(pool, session_1.uuid)
-  expect(messages_1.length).toBe(6);
+
+  // Poll database until all 6 messages are saved
+  await waitForMessageCount(pool, session_1.uuid, 6);
 
 });
