@@ -200,20 +200,6 @@ function handleUseQuestion(question: string) {
 
 <template>
     <div class="flex flex-col w-full h-full">
-      <!-- Session Loading Modal -->
-      <NModal
-        :show="isSessionLoading"
-        :mask-closable="false"
-        :close-on-esc="false"
-        :show-icon="false"
-        class="session-loading-modal"
-      >
-        <div class="session-loading-content">
-          <NSpin size="large" />
-          <div class="loading-text">{{ $t('chat.loadingSession') }}</div>
-        </div>
-      </NModal>
-
       <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
         @update:showUploadModal="showUploadModal = $event" />
       <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
@@ -235,7 +221,10 @@ function handleUseQuestion(question: string) {
         <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
         </UploaderReadOnly>
         <div id="scrollRef" ref="scrollRef" class="flex-1 overflow-hidden overflow-y-auto">
-          <div v-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014]"
+          <div v-if="isSessionLoading" class="flex items-center justify-center h-full">
+            <NSpin size="large" />
+          </div>
+          <div v-else-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']">
             <template v-if="!dataSources.length">
               <div class="flex items-center justify-center m-4 text-center text-neutral-300">
@@ -387,37 +376,4 @@ function handleUseQuestion(question: string) {
   }
 }
 
-/* Session Loading Modal */
-.session-loading-modal :deep(.n-modal) {
-  background: transparent !important;
-  box-shadow: none !important;
-  max-width: 300px;
-}
-
-.session-loading-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 32px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.dark .session-loading-content {
-  background: rgba(30, 30, 30, 0.95);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-.loading-text {
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
-}
-
-.dark .loading-text {
-  color: #999;
-}
 </style>
