@@ -1,6 +1,6 @@
 <script setup lang='ts'>
 import { computed, onMounted } from 'vue'
-import { NInput, NPopconfirm, NScrollbar, useMessage } from 'naive-ui'
+import { NInput, NPopconfirm, NScrollbar, NTooltip, useMessage } from 'naive-ui'
 import { renameChatSession } from '@/api'
 import { SvgIcon } from '@/components/common'
 import { useAppStore, useAuthStore, useSessionStore, useWorkspaceStore } from '@/store'
@@ -138,7 +138,12 @@ function isActive(uuid: string) {
             <div class="relative flex-1 overflow-hidden break-all text-ellipsis whitespace-nowrap">
               <NInput v-if="item.isEdit" v-model:value="item.title" data-testid="edit_session_topic_input" size="tiny"
                 @keypress="handleEnter(item, false, $event)" />
-              <span v-else>{{ item.title }}</span>
+              <NTooltip v-else placement="top" :style="{ maxWidth: '400px' }">
+                <template #trigger>
+                  <span>{{ item.title }}</span>
+                </template>
+                {{ item.title }}
+              </NTooltip>
             </div>
             <div v-if="isActive(item.uuid)" class="absolute z-10 flex visible right-1">
               <template v-if="item.isEdit">
