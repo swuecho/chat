@@ -5,7 +5,7 @@ import { useErrorHandling } from './useErrorHandling'
 import { useValidation } from './useValidation'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { nowISO } from '@/utils/date'
-import { useMessageStore, useSessionStore } from '@/store'
+import { useSessionStore } from '@/store'
 
 interface ChatMessage {
   uuid: string
@@ -29,7 +29,6 @@ export function useConversationFlow(
   const { handleApiError, showErrorNotification } = useErrorHandling()
   const { validateChatMessage } = useValidation()
   const sessionStore = useSessionStore()
-  const messageStore = useMessageStore()
 
   async function refreshSessionTitle(sessionUuid: string): Promise<void> {
     const session = sessionStore.getChatSessionByUuid(sessionUuid)
@@ -83,15 +82,6 @@ export function useConversationFlow(
   async function addUserMessage(chatUuid: string, message: string): Promise<void> {
     const sessionUuid = sessionUuidRef.value
     if (!sessionUuid)
-      return
-
-    const existingMessages = messageStore.getChatSessionDataByUuid(sessionUuid)
-    const onlySystemPromptPresent
-      = existingMessages.length === 1 && existingMessages[0]?.isPrompt === true
-
-    // For sessions that currently only have the system prompt, backend treats
-    // the first input as prompt content. Skip adding a duplicated user bubble.
-    if (onlySystemPromptPresent)
       return
 
     const chatMessage: ChatMessage = {
