@@ -24,7 +24,7 @@ export function useConversationFlow(
 ) {
   const loading = ref<boolean>(false)
   const abortController = ref<AbortController | null>(null)
-  const { addChat, updateChat, updateChatPartial } = useChat()
+  const { addChat, updateChat, updateChatPartial, getChatByUuidAndIndex } = useChat()
   const { streamChatResponse, processStreamChunk } = useStreamHandling()
   const { handleApiError, showErrorNotification } = useErrorHandling()
   const { validateChatMessage } = useValidation()
@@ -117,10 +117,10 @@ export function useConversationFlow(
   function handleStreamingError(error: any, responseIndex: number, dataSources: any[]): void {
     handleApiError(error, 'conversation-stream')
 
-    const lastMessage = dataSources[responseIndex]
     const sessionUuid = sessionUuidRef.value
     if (!sessionUuid)
       return
+    const lastMessage = getChatByUuidAndIndex(sessionUuid, responseIndex) || dataSources[responseIndex]
 
     if (lastMessage) {
       const errorMessage: ChatMessage = {
@@ -190,7 +190,8 @@ export function useConversationFlow(
 
       // For sessions in exploreMode, set suggested questions loading state
       const session = sessionStore.getChatSessionByUuid(sessionUuid)
-      if (session?.exploreMode && dataSources[responseIndex] && !dataSources[responseIndex].inversion) {
+      const responseMessage = getChatByUuidAndIndex(sessionUuid, responseIndex) || dataSources[responseIndex]
+      if (session?.exploreMode && responseMessage && !responseMessage.inversion) {
         updateChatPartial(sessionUuid, responseIndex, {
           suggestedQuestionsLoading: true,
         })
