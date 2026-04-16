@@ -96,9 +96,14 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
       content: t('chat.clearChatConfirm'),
       positiveText: t('common.yes'),
       negativeText: t('common.no'),
-      onPositiveClick: () => {
+      onPositiveClick: async () => {
         console.log('🔄 Clearing messages for sessionUuid:', sessionUuid)
-        messageStore.clearSessionMessages(sessionUuid)
+        try {
+          await messageStore.clearSessionMessages(sessionUuid)
+        } catch (error) {
+          console.error('Failed to clear messages:', error)
+          nui_msg.error(t('common.wrong'))
+        }
       },
     })
   }

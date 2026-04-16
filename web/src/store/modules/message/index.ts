@@ -176,6 +176,24 @@ export const useMessageStore = defineStore('message-store', {
       }
     },
 
+    removeMessageLocally(sessionUuid: string, messageUuid: string) {
+      if (!this.chat[sessionUuid]) {
+        return
+      }
+
+      this.chat[sessionUuid] = this.chat[sessionUuid].filter(
+        msg => msg.uuid !== messageUuid,
+      )
+    },
+
+    removeMessageAtIndexLocally(sessionUuid: string, index: number) {
+      if (!this.chat[sessionUuid]) {
+        return
+      }
+
+      this.chat[sessionUuid] = this.chat[sessionUuid].filter((_, msgIndex) => msgIndex !== index)
+    },
+
     async removeMessage(sessionUuid: string, messageUuid: string) {
       try {
         const message = this.chat[sessionUuid]?.find(msg => msg.uuid === messageUuid)
@@ -185,20 +203,16 @@ export const useMessageStore = defineStore('message-store', {
         // Call the API to delete the message from the server
         await deleteChatData(message)
         // Remove the message from local state after successful API call
-        if (this.chat[sessionUuid]) {
-          this.chat[sessionUuid] = this.chat[sessionUuid].filter(
-            msg => msg.uuid !== messageUuid
-          )
-        }
+        this.removeMessageLocally(sessionUuid, messageUuid)
       } catch (error) {
         console.error(`Failed to delete message ${messageUuid}:`, error)
         throw error
       }
     },
 
-    clearSessionMessages(sessionUuid: string) {
+    async clearSessionMessages(sessionUuid: string) {
       try {
-        clearSessionChatMessages(sessionUuid)
+        await clearSessionChatMessages(sessionUuid)
         // Keep the first message (system prompt) and clear the rest
         const messages = this.chat[sessionUuid] || []
         if (messages.length > 0) {

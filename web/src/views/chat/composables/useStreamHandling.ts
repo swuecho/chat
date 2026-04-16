@@ -1,10 +1,8 @@
-import { useMessage } from 'naive-ui'
 import { useAuthStore, useMessageStore } from '@/store'
 import { extractStreamingData } from '@/utils/string'
 import { extractArtifacts } from '@/utils/artifacts'
 import { nowISO } from '@/utils/date'
 import { useChat } from '@/views/chat/hooks/useChat'
-import renderMessage from '../components/RenderMessage.vue'
 import { t } from '@/locales'
 import { getStreamingUrl } from '@/config/api'
 
@@ -25,31 +23,18 @@ interface StreamChunkData {
 }
 
 export function useStreamHandling() {
-  const nui_msg = useMessage()
   const messageStore = useMessageStore()
   const { updateChat } = useChat()
 
-
-
-  function handleStreamError(responseText: string, responseIndex: number, sessionUuid: string): void {
+  function handleStreamError(responseText: string): string {
     try {
       const errorJson: ErrorResponse = JSON.parse(responseText)
       console.error('Stream error:', errorJson)
-
-      const errorMessage = formatErr(errorJson)
-      nui_msg.error(errorMessage, {
-        duration: 5000,
-        closable: true,
-        render: renderMessage
-      })
-
-      const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
-      if (messages && messages[responseIndex]) {
-        messageStore.removeMessage(sessionUuid, messages[responseIndex].uuid)
-      }
+      return formatErr(errorJson)
     } catch (parseError) {
       console.error('Failed to parse error response:', parseError)
-      nui_msg.error('An unexpected error occurred')
+      const trimmedText = responseText.trim()
+      return trimmedText || 'An unexpected error occurred'
     }
   }
 
@@ -121,19 +106,14 @@ export function useStreamHandling() {
   ): Promise<void> {
     const authStore = useAuthStore()
     console.log('authStore', authStore.isValid)
-    await authStore.initializeAuth()
+      await authStore.initializeAuth()
     if (!authStore.isValid || authStore.needsRefresh) {
       try {
         await authStore.refreshToken()
       } catch (error) {
         authStore.removeToken()
         authStore.removeExpiresIn()
-        nui_msg.error(t('error.NotAuthorized') || 'Please log in first', {
-          duration: 5000,
-          closable: true,
-          render: renderMessage
-        })
-        return
+        throw new Error(t('error.NotAuthorized') || 'Please log in first')
       }
     }
     const token = authStore.getToken
@@ -159,8 +139,7 @@ export function useStreamHandling() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        handleStreamError(errorText, responseIndex, sessionUuid)
-        return
+        throw new Error(handleStreamError(errorText))
       }
 
       if (!response.body) {
@@ -209,7 +188,6 @@ export function useStreamHandling() {
         return
       }
       console.error('Stream error:', error)
-      handleStreamError(error instanceof Error ? error.message : 'Unknown error', responseIndex, sessionUuid)
       throw error
     }
   }
@@ -230,12 +208,7 @@ export function useStreamHandling() {
       } catch (error) {
         authStore.removeToken()
         authStore.removeExpiresIn()
-        nui_msg.error(t('error.NotAuthorized') || 'Please log in first', {
-          duration: 5000,
-          closable: true,
-          render: renderMessage
-        })
-        return
+        throw new Error(t('error.NotAuthorized') || 'Please log in first')
       }
     }
     const token = authStore.getToken
@@ -261,8 +234,7 @@ export function useStreamHandling() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        handleStreamError(errorText, updateIndex, sessionUuid)
-        return
+        throw new Error(handleStreamError(errorText))
       }
 
       if (!response.body) {
@@ -310,7 +282,6 @@ export function useStreamHandling() {
         return
       }
       console.error('Stream error:', error)
-      handleStreamError(error instanceof Error ? error.message : 'Unknown error', updateIndex, sessionUuid)
       throw error
     }
   }

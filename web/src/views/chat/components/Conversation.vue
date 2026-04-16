@@ -27,9 +27,6 @@ import { useErrorHandling } from '../composables/useErrorHandling'
 // Create a ref for the input element
 const searchInputRef = ref(null);
 useSlashToFocus(searchInputRef);
-
-let controller = new AbortController()
-
 const messageStore = useMessageStore()
 const sessionStore = useSessionStore()
 const promptStore = usePromptStore()
@@ -187,8 +184,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (loading.value)
-    controller.abort()
+  conversationFlow.stopStream()
+  regenerate.stopRegenerate()
 })
 
 function handleUseQuestion(question: string) {
