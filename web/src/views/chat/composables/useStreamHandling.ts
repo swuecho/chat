@@ -31,7 +31,8 @@ export function useStreamHandling() {
       const errorJson: ErrorResponse = JSON.parse(responseText)
       console.error('Stream error:', errorJson)
       return formatErr(errorJson)
-    } catch (parseError) {
+    }
+    catch (parseError) {
       console.error('Failed to parse error response:', parseError)
       const trimmedText = responseText.trim()
       return trimmedText || 'An unexpected error occurred'
@@ -41,7 +42,8 @@ export function useStreamHandling() {
   function processStreamChunk(chunk: string, responseIndex: number, sessionUuid: string): void {
     const data = extractStreamingData(chunk)
 
-    if (!data) return
+    if (!data)
+      return
 
     try {
       const parsedData: StreamChunkData = JSON.parse(data)
@@ -61,7 +63,7 @@ export function useStreamHandling() {
 
       // Get current message
       const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
-      const currentMessage = messages && messages[responseIndex] ? messages[responseIndex] : null
+      const currentMessage = messages ? (messages[responseIndex] || null) : null
 
       // Process content if present
       let newText = currentMessage?.text || ''
@@ -80,18 +82,18 @@ export function useStreamHandling() {
         inversion: false,
         error: false,
         loading: false,
-        artifacts: artifacts,
+        artifacts,
       }
 
       // Add suggested questions if present
       if (suggestedQuestions && Array.isArray(suggestedQuestions) && suggestedQuestions.length > 0) {
         updateData.suggestedQuestions = suggestedQuestions
         updateData.suggestedQuestionsLoading = false // Clear loading state when questions are received
-        console.log('Received suggested questions via stream:', suggestedQuestions)
       }
 
       updateChat(sessionUuid, responseIndex, updateData)
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to parse stream chunk:', error)
     }
   }
@@ -102,15 +104,15 @@ export function useStreamHandling() {
     message: string,
     responseIndex: number,
     onStreamChunk: (chunk: string, responseIndex: number) => void,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<void> {
     const authStore = useAuthStore()
-    console.log('authStore', authStore.isValid)
-      await authStore.initializeAuth()
+    await authStore.initializeAuth()
     if (!authStore.isValid || authStore.needsRefresh) {
       try {
         await authStore.refreshToken()
-      } catch (error) {
+      }
+      catch (error) {
         authStore.removeToken()
         authStore.removeExpiresIn()
         throw new Error(t('error.NotAuthorized') || 'Please log in first')
@@ -125,7 +127,7 @@ export function useStreamHandling() {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
           regenerate: false,
@@ -142,9 +144,8 @@ export function useStreamHandling() {
         throw new Error(handleStreamError(errorText))
       }
 
-      if (!response.body) {
+      if (!response.body)
         throw new Error('Response body is null')
-      }
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -154,12 +155,10 @@ export function useStreamHandling() {
         while (true) {
           const { done, value } = await reader.read()
 
-          if (done) {
+          if (done)
             break
-          }
 
           const chunk = decoder.decode(value, { stream: true })
-          console.log('chunk', chunk)
           buffer += chunk
 
           // Process complete SSE messages
@@ -168,26 +167,22 @@ export function useStreamHandling() {
           buffer = lines.pop() || ''
 
           for (const line of lines) {
-            if (line.trim()) {
+            if (line.trim())
               onStreamChunk(line, responseIndex)
-            }
           }
-
         }
 
         // Process any remaining data in buffer
-        if (buffer.trim()) {
+        if (buffer.trim())
           onStreamChunk(buffer, responseIndex)
-        }
-      } finally {
+      }
+      finally {
         reader.releaseLock()
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Stream was cancelled by user')
+    }
+    catch (error) {
+      if (error instanceof Error && error.name === 'AbortError')
         return
-      }
-      console.error('Stream error:', error)
       throw error
     }
   }
@@ -198,14 +193,15 @@ export function useStreamHandling() {
     updateIndex: number,
     isRegenerate: boolean,
     onStreamChunk: (chunk: string, updateIndex: number) => void,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
   ): Promise<void> {
     const authStore = useAuthStore()
     await authStore.initializeAuth()
     if (!authStore.isValid || authStore.needsRefresh) {
       try {
         await authStore.refreshToken()
-      } catch (error) {
+      }
+      catch (error) {
         authStore.removeToken()
         authStore.removeExpiresIn()
         throw new Error(t('error.NotAuthorized') || 'Please log in first')
@@ -220,11 +216,11 @@ export function useStreamHandling() {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
           regenerate: isRegenerate,
-          prompt: "",
+          prompt: '',
           sessionUuid,
           chatUuid,
           stream: true,
@@ -237,9 +233,8 @@ export function useStreamHandling() {
         throw new Error(handleStreamError(errorText))
       }
 
-      if (!response.body) {
+      if (!response.body)
         throw new Error('Response body is null')
-      }
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -249,9 +244,8 @@ export function useStreamHandling() {
         while (true) {
           const { done, value } = await reader.read()
 
-          if (done) {
+          if (done)
             break
-          }
 
           const chunk = decoder.decode(value, { stream: true })
           buffer += chunk
@@ -262,26 +256,22 @@ export function useStreamHandling() {
           buffer = lines.pop() || ''
 
           for (const line of lines) {
-            if (line.trim()) {
+            if (line.trim())
               onStreamChunk(line, updateIndex)
-            }
           }
-
         }
 
         // Process any remaining data in buffer
-        if (buffer.trim()) {
+        if (buffer.trim())
           onStreamChunk(buffer, updateIndex)
-        }
-      } finally {
+      }
+      finally {
         reader.releaseLock()
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Regenerate stream was cancelled by user')
+    }
+    catch (error) {
+      if (error instanceof Error && error.name === 'AbortError')
         return
-      }
-      console.error('Stream error:', error)
       throw error
     }
   }
@@ -296,6 +286,6 @@ export function useStreamHandling() {
     processStreamChunk,
     streamChatResponse,
     streamRegenerateResponse,
-    formatErr
+    formatErr,
   }
 }

@@ -1,15 +1,15 @@
 import { defineStore } from 'pinia'
+import { v7 as uuidv7 } from 'uuid'
+import { useSessionStore } from '../session'
 import {
-  getChatMessagesBySessionUUID,
   clearSessionChatMessages,
+  deleteChatData,
   generateMoreSuggestions,
+  getChatMessagesBySessionUUID,
 } from '@/api'
-import { deleteChatData } from '@/api'
 import { createChatPrompt } from '@/api/chat_prompt'
 import { getDefaultSystemPrompt } from '@/constants/chat'
 import { nowISO } from '@/utils/date'
-import { v7 as uuidv7 } from 'uuid'
-import { useSessionStore } from '../session'
 
 export interface MessageState {
   chat: Record<string, Chat.Message[]> // sessionUuid -> messages
@@ -25,9 +25,9 @@ export const useMessageStore = defineStore('message-store', {
   getters: {
     getChatSessionDataByUuid(state) {
       return (uuid?: string) => {
-        if (uuid) {
+        if (uuid)
           return state.chat[uuid] || []
-        }
+
         return []
       }
     },
@@ -49,18 +49,17 @@ export const useMessageStore = defineStore('message-store', {
     // Get all messages for active session
     activeSessionMessages(state) {
       const sessionStore = useSessionStore()
-      if (sessionStore.activeSessionUuid) {
+      if (sessionStore.activeSessionUuid)
         return state.chat[sessionStore.activeSessionUuid] || []
-      }
+
       return []
     },
   },
 
   actions: {
     async syncChatMessages(sessionUuid: string) {
-      if (!sessionUuid) {
+      if (!sessionUuid)
         return
-      }
 
       this.isLoading[sessionUuid] = true
 
@@ -75,10 +74,9 @@ export const useMessageStore = defineStore('message-store', {
             if (!message.suggestedQuestionsBatches || message.suggestedQuestionsBatches.length === 0) {
               // Split suggestions into batches of 3 (assuming original suggestions come in groups of 3)
               const batches: string[][] = []
-              for (let i = 0; i < message.suggestedQuestions.length; i += 3) {
+              for (let i = 0; i < message.suggestedQuestions.length; i += 3)
                 batches.push(message.suggestedQuestions.slice(i, i + 3))
-              }
-              
+
               return {
                 ...message,
                 suggestedQuestionsBatches: batches,
@@ -120,49 +118,44 @@ export const useMessageStore = defineStore('message-store', {
             )
             if (existingPromptIndex === -1) {
               processedMessageData.unshift(promptMessage)
-            } else {
+            }
+            else {
               processedMessageData[existingPromptIndex] = {
                 ...processedMessageData[existingPromptIndex],
                 ...promptMessage,
                 isPrompt: true,
               }
             }
-          } catch (error) {
+          }
+          catch (error) {
             console.error(`Failed to create default system prompt for session ${sessionUuid}:`, error)
           }
         }
 
         this.chat[sessionUuid] = processedMessageData
 
-        // Update active session if needed
-        const sessionStore = useSessionStore()
-        if (sessionStore.activeSessionUuid !== sessionUuid) {
-          const session = sessionStore.getChatSessionByUuid(sessionUuid)
-          if (session?.workspaceUuid) {
-            await sessionStore.setActiveSession(session.workspaceUuid, sessionUuid)
-          }
-        }
-
         return processedMessageData
-      } catch (error) {
+      }
+      catch (error) {
         console.error(`Failed to sync messages for session ${sessionUuid}:`, error)
         throw error
-      } finally {
+      }
+      finally {
         this.isLoading[sessionUuid] = false
       }
     },
 
     addMessage(sessionUuid: string, message: Chat.Message) {
-      if (!this.chat[sessionUuid]) {
+      if (!this.chat[sessionUuid])
         this.chat[sessionUuid] = []
-      }
+
       this.chat[sessionUuid].push(message)
     },
 
     addMessages(sessionUuid: string, messages: Chat.Message[]) {
-      if (!this.chat[sessionUuid]) {
+      if (!this.chat[sessionUuid])
         this.chat[sessionUuid] = []
-      }
+
       this.chat[sessionUuid].push(...messages)
     },
 
@@ -170,16 +163,14 @@ export const useMessageStore = defineStore('message-store', {
       const messages = this.chat[sessionUuid]
       if (messages) {
         const index = messages.findIndex(msg => msg.uuid === messageUuid)
-        if (index !== -1) {
+        if (index !== -1)
           messages[index] = { ...messages[index], ...updates }
-        }
       }
     },
 
     removeMessageLocally(sessionUuid: string, messageUuid: string) {
-      if (!this.chat[sessionUuid]) {
+      if (!this.chat[sessionUuid])
         return
-      }
 
       this.chat[sessionUuid] = this.chat[sessionUuid].filter(
         msg => msg.uuid !== messageUuid,
@@ -187,9 +178,8 @@ export const useMessageStore = defineStore('message-store', {
     },
 
     removeMessageAtIndexLocally(sessionUuid: string, index: number) {
-      if (!this.chat[sessionUuid]) {
+      if (!this.chat[sessionUuid])
         return
-      }
 
       this.chat[sessionUuid] = this.chat[sessionUuid].filter((_, msgIndex) => msgIndex !== index)
     },
@@ -197,14 +187,15 @@ export const useMessageStore = defineStore('message-store', {
     async removeMessage(sessionUuid: string, messageUuid: string) {
       try {
         const message = this.chat[sessionUuid]?.find(msg => msg.uuid === messageUuid)
-        if (!message) {
+        if (!message)
           return
-        }
+
         // Call the API to delete the message from the server
         await deleteChatData(message)
         // Remove the message from local state after successful API call
         this.removeMessageLocally(sessionUuid, messageUuid)
-      } catch (error) {
+      }
+      catch (error) {
         console.error(`Failed to delete message ${messageUuid}:`, error)
         throw error
       }
@@ -215,12 +206,12 @@ export const useMessageStore = defineStore('message-store', {
         await clearSessionChatMessages(sessionUuid)
         // Keep the first message (system prompt) and clear the rest
         const messages = this.chat[sessionUuid] || []
-        if (messages.length > 0) {
+        if (messages.length > 0)
           this.chat[sessionUuid] = [messages[0]] // Keep only the first message
-        } else {
+        else
           this.chat[sessionUuid] = []
-        }
-      } catch (error) {
+      }
+      catch (error) {
         console.error(`Failed to clear messages for session ${sessionUuid}:`, error)
         throw error
       }
@@ -264,10 +255,10 @@ export const useMessageStore = defineStore('message-store', {
     // Helper method to get messages by type
     getMessagesByType(sessionUuid: string, type: 'user' | 'assistant') {
       const messages = this.chat[sessionUuid] || []
-      return messages.filter(msg => {
-        if (type === 'user') {
+      return messages.filter((msg) => {
+        if (type === 'user')
           return msg.inversion
-        }
+
         return !msg.inversion
       })
     },
@@ -287,7 +278,7 @@ export const useMessageStore = defineStore('message-store', {
     // Helper method to get messages by date range
     getMessagesByDateRange(sessionUuid: string, startDate: string, endDate: string) {
       const messages = this.chat[sessionUuid] || []
-      return messages.filter(msg => {
+      return messages.filter((msg) => {
         const messageDate = new Date(msg.dateTime)
         return messageDate >= new Date(startDate) && messageDate <= new Date(endDate)
       })
@@ -298,7 +289,7 @@ export const useMessageStore = defineStore('message-store', {
       const messages = this.chat[sessionUuid] || []
       const lowercaseQuery = query.toLowerCase()
       return messages.filter(msg =>
-        msg.text.toLowerCase().includes(lowercaseQuery)
+        msg.text.toLowerCase().includes(lowercaseQuery),
       )
     },
 
@@ -327,26 +318,25 @@ export const useMessageStore = defineStore('message-store', {
         this.updateMessage(sessionUuid, messageUuid, { suggestedQuestionsGenerating: true })
 
         const response = await generateMoreSuggestions(messageUuid)
-        const { newSuggestions, allSuggestions } = response
+        const { newSuggestions } = response
 
         // Get existing message
         const messages = this.chat[sessionUuid] || []
         const messageIndex = messages.findIndex(msg => msg.uuid === messageUuid)
-        
+
         if (messageIndex !== -1) {
           const message = messages[messageIndex]
-          
+
           // Initialize batches if they don't exist
-          let suggestedQuestionsBatches = message.suggestedQuestionsBatches || []
-          
+          const suggestedQuestionsBatches = message.suggestedQuestionsBatches || []
+
           // If this is the first time, create the first batch from existing questions
-          if (suggestedQuestionsBatches.length === 0 && message.suggestedQuestions) {
+          if (suggestedQuestionsBatches.length === 0 && message.suggestedQuestions)
             suggestedQuestionsBatches.push(message.suggestedQuestions)
-          }
-          
+
           // Add the new suggestions as a new batch
           suggestedQuestionsBatches.push(newSuggestions)
-          
+
           // Update the message with new data - show the new batch, not all suggestions
           this.updateMessage(sessionUuid, messageUuid, {
             suggestedQuestions: newSuggestions, // Show only the new batch
@@ -357,7 +347,8 @@ export const useMessageStore = defineStore('message-store', {
         }
 
         return response
-      } catch (error) {
+      }
+      catch (error) {
         // Clear generating state on error
         this.updateMessage(sessionUuid, messageUuid, { suggestedQuestionsGenerating: false })
         console.error('Failed to generate more suggestions:', error)
@@ -369,12 +360,12 @@ export const useMessageStore = defineStore('message-store', {
     previousSuggestedQuestionsBatch(sessionUuid: string, messageUuid: string) {
       const messages = this.chat[sessionUuid] || []
       const messageIndex = messages.findIndex(msg => msg.uuid === messageUuid)
-      
+
       if (messageIndex !== -1) {
         const message = messages[messageIndex]
         const batches = message.suggestedQuestionsBatches || []
         const currentBatch = message.currentSuggestedQuestionsBatch || 0
-        
+
         if (currentBatch > 0 && batches.length > 0) {
           const newBatchIndex = currentBatch - 1
           this.updateMessage(sessionUuid, messageUuid, {
@@ -389,12 +380,12 @@ export const useMessageStore = defineStore('message-store', {
     nextSuggestedQuestionsBatch(sessionUuid: string, messageUuid: string) {
       const messages = this.chat[sessionUuid] || []
       const messageIndex = messages.findIndex(msg => msg.uuid === messageUuid)
-      
+
       if (messageIndex !== -1) {
         const message = messages[messageIndex]
         const batches = message.suggestedQuestionsBatches || []
         const currentBatch = message.currentSuggestedQuestionsBatch || 0
-        
+
         if (currentBatch < batches.length - 1) {
           const newBatchIndex = currentBatch + 1
           this.updateMessage(sessionUuid, messageUuid, {

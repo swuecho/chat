@@ -1,8 +1,8 @@
-import { ref, type Ref } from 'vue'
+import { type Ref, ref } from 'vue'
 import { useDialog, useMessage } from 'naive-ui'
 import { v4 as uuidv4 } from 'uuid'
-import { createChatBot, createChatSnapshot, getChatSessionDefault } from '@/api'
-import { useAppStore, useSessionStore, useMessageStore } from '@/store'
+import { createChatBot, createChatSnapshot } from '@/api'
+import { useAppStore, useMessageStore, useSessionStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { nowISO } from '@/utils/date'
@@ -31,10 +31,12 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
         await sessionStore.createNewSession(new_chat_text)
         if (isMobile.value)
           appStore.setSiderCollapsed(true)
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to create new session:', error)
       }
-    } else {
+    }
+    else {
       nui_msg.warning(t('chat.alreadyInNewChat'))
     }
   }
@@ -52,9 +54,11 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
       const snapshot_uuid = snapshot.uuid
       window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
       nui_msg.success(t('chat.snapshotSuccess'))
-    } catch (error) {
+    }
+    catch (error) {
       nui_msg.error(t('chat.snapshotFailed'))
-    } finally {
+    }
+    finally {
       snapshotLoading.value = false
     }
   }
@@ -72,9 +76,11 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
       const snapshot_uuid = snapshot.uuid
       window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
       nui_msg.success(t('chat.botSuccess'))
-    } catch (error) {
+    }
+    catch (error) {
       nui_msg.error(t('chat.botFailed'))
-    } finally {
+    }
+    finally {
       botLoading.value = false
     }
   }
@@ -89,19 +95,16 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
       return
     }
 
-    console.log('🔄 handleClear called with sessionUuid:', sessionUuid)
-
     dialog.warning({
       title: t('chat.clearChat'),
       content: t('chat.clearChatConfirm'),
       positiveText: t('common.yes'),
       negativeText: t('common.no'),
       onPositiveClick: async () => {
-        console.log('🔄 Clearing messages for sessionUuid:', sessionUuid)
         try {
           await messageStore.clearSessionMessages(sessionUuid)
-        } catch (error) {
-          console.error('Failed to clear messages:', error)
+        }
+        catch (error) {
           nui_msg.error(t('common.wrong'))
         }
       },
@@ -154,7 +157,8 @@ Your files are now available in the Virtual File System! 🚀`
     try {
       await streamResponse(chatUuid, exampleMessage)
       nui_msg.success('Files uploaded! Code examples added to chat.')
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to stream code example response:', error)
     }
   }
@@ -171,6 +175,6 @@ Your files are now available in the Virtual File System! 🚀`
     handleClear,
     toggleArtifactGallery,
     handleVFSFileUploaded,
-    handleCodeExampleAdded
+    handleCodeExampleAdded,
   }
 }

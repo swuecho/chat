@@ -1,13 +1,12 @@
 <script setup lang='ts'>
 import { computed, onMounted } from 'vue'
 import { NInput, NPopconfirm, NScrollbar, NTooltip, useMessage } from 'naive-ui'
-import { renameChatSession } from '@/api'
+import { debounce } from 'lodash'
 import { SvgIcon } from '@/components/common'
 import { useAppStore, useAuthStore, useSessionStore, useWorkspaceStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import ModelAvatar from '@/views/components/Avatar/ModelAvatar.vue'
 import { t } from '@/locales'
-import { debounce } from 'lodash'
 
 const { isMobile } = useBasicLayout()
 const nui_msg = useMessage()
@@ -19,10 +18,9 @@ const authStore = useAuthStore()
 
 const dataSources = computed(() => {
   // If no active workspace, show sessions from all workspaces
-  if (!workspaceStore.activeWorkspace) {
+  if (!workspaceStore.activeWorkspace)
     return sessionStore.getAllSessions()
-  }
-  
+
   // Filter sessions by active workspace - show only sessions belonging to this workspace
   const workspaceSessions = sessionStore.getSessionsByWorkspace(workspaceStore.activeWorkspace.uuid)
   return workspaceSessions
@@ -30,29 +28,16 @@ const dataSources = computed(() => {
 const isLogined = computed(() => Boolean(authStore.token))
 
 onMounted(async () => {
-  console.log('Sider List component mounted, isLogined:', isLogined.value)
-  if (isLogined.value) {
-    console.log('User is logged in, syncing chat sessions...')
+  if (isLogined.value)
     await handleSyncChat()
-  } else {
-    console.log('User is not logged in, skipping chat session sync')
-  }
 })
 async function handleSyncChat() {
-  const totalSessions = sessionStore.getAllSessions().length
-  console.log('handleSyncChat called, current total sessions:', totalSessions)
   try {
-    console.log('Calling sessionStore.syncAllWorkspaceSessions()...')
     await sessionStore.syncAllWorkspaceSessions()
-    const newTotalSessions = sessionStore.getAllSessions().length
-    console.log('Chat sessions synced successfully, new total sessions:', newTotalSessions)
   }
   catch (error: any) {
-    console.error('Error syncing chat sessions:', error)
     if (error.response?.status === 500)
       nui_msg.error(t('error.syncChatSession'))
-    // eslint-disable-next-line no-console
-    console.log(error)
   }
 }
 
@@ -66,13 +51,13 @@ async function handleSelect(uuid: string) {
 
   try {
     const session = sessionStore.getChatSessionByUuid(uuid)
-    if (session && session.workspaceUuid) {
+    if (session && session.workspaceUuid)
       await sessionStore.setActiveSession(session.workspaceUuid, uuid)
-    }
 
     if (isMobile.value)
       appStore.setSiderCollapsed(true)
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error handling session select:', error)
   }
 }
@@ -82,8 +67,8 @@ async function handleSelect(uuid: string) {
 const debouncedHandleSelect = debounce((uuid: string) => {
   handleSelect(uuid)
 }, 200, {
-  leading: true,  // Execute immediately on first call
-  trailing: false // Don't execute again after delay
+  leading: true, // Execute immediately on first call
+  trailing: false, // Don't execute again after delay
 })
 
 function handleEdit({ uuid }: Chat.Session, isEdit: boolean, event?: MouseEvent) {
@@ -92,25 +77,20 @@ function handleEdit({ uuid }: Chat.Session, isEdit: boolean, event?: MouseEvent)
 }
 function handleSave({ uuid, title }: Chat.Session, isEdit: boolean, event?: MouseEvent) {
   event?.stopPropagation()
-  sessionStore.updateSession(uuid, { isEdit })
-  // should move to store
-  renameChatSession(uuid, title)
+  sessionStore.updateSession(uuid, { isEdit, title })
 }
 
 function handleDelete(index: number, event?: MouseEvent | TouchEvent) {
   event?.stopPropagation()
   const session = dataSources.value[index]
-  if (session) {
+  if (session)
     sessionStore.deleteSession(session.uuid)
-  }
 }
 
 function handleEnter({ uuid, title }: Chat.Session, isEdit: boolean, event: KeyboardEvent) {
   event?.stopPropagation()
-  if (event.key === 'Enter') {
-    sessionStore.updateSession(uuid, { isEdit })
-    renameChatSession(uuid, title)
-  }
+  if (event.key === 'Enter')
+    sessionStore.updateSession(uuid, { isEdit, title })
 }
 
 function isActive(uuid: string) {
@@ -129,15 +109,19 @@ function isActive(uuid: string) {
       </template>
       <template v-else>
         <div v-for="(item, index) of dataSources" :key="index">
-          <a class="relative flex items-center gap-2 px-3 py-2 break-all border rounded-sm cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
+          <a
+            class="relative flex items-center gap-2 px-3 py-2 break-all border rounded-sm cursor-pointer hover:bg-neutral-100 group dark:border-neutral-800 dark:hover:bg-[#24272e]"
             :class="isActive(item.uuid) && ['border-[#4b9e5f]', 'bg-neutral-100', 'text-[#4b9e5f]', 'dark:bg-[#24272e]', 'dark:border-[#4b9e5f]', 'pr-14']"
-            @click="debouncedHandleSelect(item.uuid)">
+            @click="debouncedHandleSelect(item.uuid)"
+          >
             <span>
               <ModelAvatar :model="item.model" />
             </span>
             <div class="relative flex-1 overflow-hidden break-all text-ellipsis whitespace-nowrap">
-              <NInput v-if="item.isEdit" v-model:value="item.title" data-testid="edit_session_topic_input" size="tiny"
-                @keypress="handleEnter(item, false, $event)" />
+              <NInput
+                v-if="item.isEdit" v-model:value="item.title" data-testid="edit_session_topic_input" size="tiny"
+                @keypress="handleEnter(item, false, $event)"
+              />
               <NTooltip v-else placement="top" :style="{ maxWidth: '400px' }">
                 <template #trigger>
                   <span>{{ item.title }}</span>
@@ -156,8 +140,10 @@ function isActive(uuid: string) {
                   <SvgIcon icon="ri:edit-line" @click="handleEdit(item, true, $event)" />
                 </button>
                 <div v-if="dataSources.length > 1">
-                  <NPopconfirm placement="bottom" data-testid="confirm_delete_session"
-                    @positive-click="handleDelete(index, $event)">
+                  <NPopconfirm
+                    placement="bottom" data-testid="confirm_delete_session"
+                    @positive-click="handleDelete(index, $event)"
+                  >
                     <template #trigger>
                       <button class="p-1">
                         <SvgIcon icon="ri:delete-bin-line" />

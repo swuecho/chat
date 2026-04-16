@@ -1,13 +1,20 @@
 <script lang='ts' setup>
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { NAutoComplete, NButton, NInput, NModal, NSpin } from 'naive-ui'
-import  { v7 as uuidv7 } from 'uuid'
+import { v7 as uuidv7 } from 'uuid'
+import { useSlashToFocus } from '../hooks/useSlashToFocus'
+import { useConversationFlow } from '../composables/useConversationFlow'
+import { useRegenerate } from '../composables/useRegenerate'
+import { useSearchAndPrompts } from '../composables/useSearchAndPrompts'
+import { useChatActions } from '../composables/useChatActions'
+import { useErrorHandling } from '../composables/useErrorHandling'
+import JumpToBottom from './JumpToBottom.vue'
 import { useScroll } from '@/views/chat/hooks/useScroll'
 import HeaderMobile from '@/views/chat/components/HeaderMobile/index.vue'
 import SessionConfig from '@/views/chat/components/Session/SessionConfig.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useMessageStore, useSessionStore, usePromptStore } from '@/store'
+import { useMessageStore, usePromptStore, useSessionStore } from '@/store'
 import { t } from '@/locales'
 import UploadModal from '@/views/chat/components/UploadModal.vue'
 import UploaderReadOnly from '@/views/chat/components/UploaderReadOnly.vue'
@@ -15,30 +22,22 @@ import ModelSelector from '@/views/chat/components/ModelSelector.vue'
 import MessageList from '@/views/chat/components/MessageList.vue'
 import PromptGallery from '@/views/chat/components/PromptGallery/index.vue'
 import ArtifactGallery from '@/views/chat/components/ArtifactGallery.vue'
-import { useSlashToFocus } from '../hooks/useSlashToFocus'
-import JumpToBottom from './JumpToBottom.vue'
 // Import extracted composables
-import { useConversationFlow } from '../composables/useConversationFlow'
-import { useRegenerate } from '../composables/useRegenerate'
-import { useSearchAndPrompts } from '../composables/useSearchAndPrompts'
-import { useChatActions } from '../composables/useChatActions'
-import { useErrorHandling } from '../composables/useErrorHandling'
-
-// Create a ref for the input element
-const searchInputRef = ref(null);
-useSlashToFocus(searchInputRef);
-const messageStore = useMessageStore()
-const sessionStore = useSessionStore()
-const promptStore = usePromptStore()
-const { handleApiError } = useErrorHandling()
 
 const props = defineProps({
   sessionUuid: {
     type: String,
     required: false,
-    default: ''
+    default: '',
   },
 })
+// Create a ref for the input element
+const searchInputRef = ref(null)
+useSlashToFocus(searchInputRef)
+const messageStore = useMessageStore()
+const sessionStore = useSessionStore()
+const promptStore = usePromptStore()
+const { handleApiError } = useErrorHandling()
 
 const sessionUuid = toRef(props, 'sessionUuid')
 
@@ -51,9 +50,8 @@ const searchAndPrompts = useSearchAndPrompts()
 const chatActions = useChatActions(sessionUuid)
 
 watch(sessionUuid, async (newSession, oldSession) => {
-  if (!newSession) {
+  if (!newSession)
     return
-  }
 
   if (oldSession && oldSession !== newSession) {
     conversationFlow.stopStream()
@@ -62,7 +60,8 @@ watch(sessionUuid, async (newSession, oldSession) => {
 
   try {
     await messageStore.syncChatMessages(newSession)
-  } catch (error) {
+  }
+  catch (error) {
     handleApiError(error, 'sync-chat-messages')
   }
 }, { immediate: true })
@@ -87,7 +86,6 @@ const {
   showModal,
   showArtifactGallery,
   toggleArtifactGallery,
-  handleVFSFileUploaded
 } = chatActions
 
 // Use loading state from composables
@@ -95,9 +93,8 @@ const loading = computed(() => conversationFlow.loading.value || regenerate.load
 const submitting = ref(false)
 
 async function handleSubmit() {
-  if (submitting.value) {
+  if (submitting.value)
     return
-  }
 
   const message = prompt.value
   if (conversationFlow.validateConversationInput(message)) {
@@ -106,10 +103,11 @@ async function handleSubmit() {
       prompt.value = '' // Clear the input after validation passes
       const chatUuid = uuidv7()
       await conversationFlow.addUserMessage(chatUuid, message)
-      void conversationFlow.startStream(message, dataSources.value, chatUuid).finally(() => {
+      await conversationFlow.startStream(message, dataSources.value, chatUuid).finally(() => {
         submitting.value = false
       })
-    } catch (error) {
+    }
+    catch (error) {
       submitting.value = false
       throw error
     }
@@ -137,9 +135,8 @@ function handleClear() {
 }
 
 function handleEnter(event: KeyboardEvent) {
-  if (event.isComposing || event.repeat) {
+  if (event.isComposing || event.repeat)
     return
-  }
 
   if (!isMobile.value) {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -196,130 +193,151 @@ function handleUseQuestion(question: string) {
 </script>
 
 <template>
-    <div class="flex flex-col w-full h-full">
-      <UploadModal :sessionUuid="sessionUuid" :showUploadModal="showUploadModal"
-        @update:showUploadModal="showUploadModal = $event" />
-      <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
-      <main class="flex-1 overflow-hidden flex flex-col">
-        <NModal
-          ref="sessionConfigModal"
-          v-model:show="showModal"
-          :title="$t('chat.sessionConfig')"
-          preset="dialog"
-          :style="{ maxWidth: '800px', width: '90%' }"
+  <div class="flex flex-col w-full h-full">
+    <UploadModal
+      :session-uuid="sessionUuid" :show-upload-modal="showUploadModal"
+      @update:show-upload-modal="showUploadModal = $event"
+    />
+    <HeaderMobile v-if="isMobile" @add-chat="handleAdd" @snapshot="handleSnapshot" @toggle="showModal = true" />
+    <main class="flex-1 overflow-hidden flex flex-col">
+      <NModal
+        ref="sessionConfigModal"
+        v-model:show="showModal"
+        :title="$t('chat.sessionConfig')"
+        preset="dialog"
+        :style="{ maxWidth: '800px', width: '90%' }"
+      >
+        <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
+      </NModal>
+      <div class="flex items-center justify-center px-3 pt-3 pb-2">
+        <div class="w-full md:w-1/3 max-w-[22rem]">
+          <ModelSelector :uuid="sessionUuid" :model="chatSession?.model" />
+        </div>
+      </div>
+      <UploaderReadOnly v-if="!!sessionUuid" :session-uuid="sessionUuid" :show-uploader-button="false" />
+      <div id="scrollRef" ref="scrollRef" class="flex-1 overflow-hidden overflow-y-auto">
+        <div v-if="isSessionLoading" class="flex items-center justify-center h-full">
+          <NSpin size="large" />
+        </div>
+        <div
+          v-else-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014]"
+          :class="[isMobile ? 'p-2' : 'p-4']"
         >
-          <SessionConfig id="session-config" ref="sessionConfig" :uuid="sessionUuid" />
-        </NModal>
-        <div class="flex items-center justify-center px-3 pt-3 pb-2">
-          <div class="w-full md:w-1/3 max-w-[22rem]">
-            <ModelSelector :uuid="sessionUuid" :model="chatSession?.model"></ModelSelector>
-          </div>
+          <template v-if="!dataSources.length">
+            <div class="flex items-center justify-center m-4 text-center text-neutral-300">
+              <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
+              <span>{{ $t('common.help') }}</span>
+            </div>
+            <PromptGallery @use-prompt="handleUsePrompt" />
+          </template>
+          <template v-else>
+            <div>
+              <MessageList
+                :session-uuid="sessionUuid" :on-regenerate="onRegenerate"
+                @use-question="handleUseQuestion"
+              />
+            </div>
+          </template>
         </div>
-        <UploaderReadOnly v-if="!!sessionUuid" :sessionUuid="sessionUuid" :showUploaderButton="false">
-        </UploaderReadOnly>
-        <div id="scrollRef" ref="scrollRef" class="flex-1 overflow-hidden overflow-y-auto">
-          <div v-if="isSessionLoading" class="flex items-center justify-center h-full">
-            <NSpin size="large" />
-          </div>
-          <div v-else-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014]"
-            :class="[isMobile ? 'p-2' : 'p-4']">
-            <template v-if="!dataSources.length">
-              <div class="flex items-center justify-center m-4 text-center text-neutral-300">
-                <SvgIcon icon="ri:bubble-chart-fill" class="mr-2 text-3xl" />
-                <span>{{ $t('common.help') }}</span>
-              </div>
-              <PromptGallery @usePrompt="handleUsePrompt"></PromptGallery>
-            </template>
-            <template v-else>
-              <div>
-                <MessageList :session-uuid="sessionUuid" :on-regenerate="onRegenerate"
-                  @use-question="handleUseQuestion" />
-              </div>
-            </template>
-          </div>
-          <div v-else class="h-full">
-            <ArtifactGallery />
-          </div>
-          <JumpToBottom v-if="dataSources.length > 1 && !showArtifactGallery" targetSelector="#scrollRef"
-            :scrollThresholdShow="200" />
+        <div v-else class="h-full">
+          <ArtifactGallery />
+        </div>
+        <JumpToBottom
+          v-if="dataSources.length > 1 && !showArtifactGallery" target-selector="#scrollRef"
+          :scroll-threshold-show="200"
+        />
+      </div>
+    </main>
+    <footer :class="footerClass">
+      <div class="w-full max-w-screen-xl m-auto">
+        <div class="flex items-end justify-between gap-1">
+          <HoverButton data-testid="clear-conversation-button" :tooltip="$t('chat.clearChat')" @click="handleClear">
+            <span class="text-xl text-[#4b9e5f] dark:text-white">
+              <SvgIcon icon="icon-park-outline:clear" />
+            </span>
+          </HoverButton>
 
-        </div>
-      </main>
-      <footer :class="footerClass">
-        <div class="w-full max-w-screen-xl m-auto">
-          <div class="flex items-end justify-between gap-1">
-            <HoverButton data-testid="clear-conversation-button" :tooltip="$t('chat.clearChat')" @click="handleClear">
+          <NSpin :show="botLoading">
+            <HoverButton
+              v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
+              @click="handleCreateBot"
+            >
               <span class="text-xl text-[#4b9e5f] dark:text-white">
-                <SvgIcon icon="icon-park-outline:clear" />
+                <SvgIcon icon="fluent:bot-add-24-regular" />
               </span>
             </HoverButton>
+          </NSpin>
 
-
-            <NSpin :show="botLoading">
-              <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.createBot')"
-                @click="handleCreateBot">
-                <span class="text-xl text-[#4b9e5f] dark:text-white">
-                  <SvgIcon icon="fluent:bot-add-24-regular" />
-                </span>
-              </HoverButton>
-            </NSpin>
-
-            <NSpin :show="snapshotLoading">
-              <HoverButton v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
-                @click="handleSnapshot">
-                <span class="text-xl text-[#4b9e5f] dark:text-white">
-                  <SvgIcon icon="ic:twotone-ios-share" />
-                </span>
-              </HoverButton>
-            </NSpin>
-
-            <HoverButton v-if="!isMobile && isArtifactEnabled" @click="toggleArtifactGallery"
-              :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'">
+          <NSpin :show="snapshotLoading">
+            <HoverButton
+              v-if="!isMobile" data-testid="snpashot-button" :tooltip="$t('chat.chatSnapshot')"
+              @click="handleSnapshot"
+            >
               <span class="text-xl text-[#4b9e5f] dark:text-white">
-                <SvgIcon icon="ri:gallery-line" />
+                <SvgIcon icon="ic:twotone-ios-share" />
               </span>
             </HoverButton>
+          </NSpin>
 
-            <HoverButton v-if="!isMobile" data-testid="chat-settings-button" @click="showModal = true"
-              :tooltip="$t('chat.chatSettings')">
-              <span class="text-xl text-[#4b9e5f]">
-                <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
+          <HoverButton
+            v-if="!isMobile && isArtifactEnabled" :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'"
+            @click="toggleArtifactGallery"
+          >
+            <span class="text-xl text-[#4b9e5f] dark:text-white">
+              <SvgIcon icon="ri:gallery-line" />
+            </span>
+          </HoverButton>
+
+          <HoverButton
+            v-if="!isMobile" data-testid="chat-settings-button" :tooltip="$t('chat.chatSettings')"
+            @click="showModal = true"
+          >
+            <span class="text-xl text-[#4b9e5f]">
+              <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
+            </span>
+          </HoverButton>
+          <NAutoComplete
+            v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
+            :on-select="handleSelectAutoComplete"
+          >
+            <template #default="{ handleInput, handleBlur, handleFocus }">
+              <NInput
+                id="message_textarea" ref="searchInputRef" :value="prompt" type="textarea"
+                :placeholder="placeholder" data-testid="message_textarea"
+                :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
+                @blur="handleBlur" @keydown="handleEnter"
+              />
+            </template>
+          </NAutoComplete>
+          <button class="!-ml-8 z-10 pb-1" @click="showUploadModal = true">
+            <span class="text-xl text-[#4b9e5f]">
+              <SvgIcon icon="clarity:attachment-line" />
+            </span>
+          </button>
+          <NButton
+            v-if="!loading" id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
+            :disabled="sendButtonDisabled" @click="handleSubmit"
+          >
+            <template #icon>
+              <span class="dark:text-black">
+                <SvgIcon icon="ri:send-plane-fill" />
               </span>
-            </HoverButton>
-            <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
-              :on-select="handleSelectAutoComplete">
-              <template #default="{ handleInput, handleBlur, handleFocus }">
-                <NInput ref="searchInputRef" id="message_textarea" :value="prompt" type="textarea"
-                  :placeholder="placeholder" data-testid="message_textarea"
-                  :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
-                  @blur="handleBlur" @keydown="handleEnter" />
-              </template>
-            </NAutoComplete>
-            <button class="!-ml-8 z-10 pb-1" @click="showUploadModal = true">
-              <span class="text-xl text-[#4b9e5f]">
-                <SvgIcon icon="clarity:attachment-line" />
+            </template>
+          </NButton>
+          <NButton
+            v-else id="stop_stream_button" class="!ml-4" data-testid="stop_stream_button" type="error"
+            @click="handleStopStream"
+          >
+            <template #icon>
+              <span class="dark:text-white">
+                <SvgIcon icon="ri:stop-fill" />
               </span>
-            </button>
-            <NButton v-if="!loading" id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
-              :disabled="sendButtonDisabled" @click="handleSubmit">
-              <template #icon>
-                <span class="dark:text-black">
-                  <SvgIcon icon="ri:send-plane-fill" />
-                </span>
-              </template>
-            </NButton>
-            <NButton v-else id="stop_stream_button" class="!ml-4" data-testid="stop_stream_button" type="error"
-              @click="handleStopStream">
-              <template #icon>
-                <span class="dark:text-white">
-                  <SvgIcon icon="ri:stop-fill" />
-                </span>
-              </template>
-            </NButton>
-          </div>
+            </template>
+          </NButton>
         </div>
-      </footer>
-    </div>
+      </div>
+    </footer>
+  </div>
 </template>
 
 <style scoped>
@@ -372,5 +390,4 @@ function handleUseQuestion(question: string) {
     width: 4px;
   }
 }
-
 </style>

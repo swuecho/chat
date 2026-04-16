@@ -1,7 +1,7 @@
-import { ref, type Ref } from 'vue'
+import { type Ref, ref } from 'vue'
+import { useStreamHandling } from './useStreamHandling'
 import { nowISO } from '@/utils/date'
 import { useChat } from '@/views/chat/hooks/useChat'
-import { useStreamHandling } from './useStreamHandling'
 import { t } from '@/locales'
 
 export function useRegenerate(sessionUuidRef: Ref<string>) {
@@ -10,7 +10,6 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
   const { addChat, updateChat, updateChatPartial } = useChat()
   const { streamRegenerateResponse, processStreamChunk } = useStreamHandling()
 
-
   function validateRegenerateInput(): boolean {
     return !loading.value
   }
@@ -18,12 +17,11 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
   async function prepareRegenerateContext(
     index: number,
     chat: any,
-    dataSources: any[]
+    dataSources: any[],
   ): Promise<{ updateIndex: number; isRegenerate: boolean; targetChatUuid: string }> {
     const sessionUuid = sessionUuidRef.value
-    if (!sessionUuid) {
+    if (!sessionUuid)
       return { updateIndex: index, isRegenerate: true, targetChatUuid: chat.uuid }
-    }
 
     loading.value = true
 
@@ -36,7 +34,8 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
       updateIndex = result.updateIndex
       isRegenerate = result.isRegenerate
       targetChatUuid = result.targetChatUuid
-    } else {
+    }
+    else {
       updateChat(sessionUuid, index, {
         uuid: chat.uuid,
         dateTime: nowISO(),
@@ -53,12 +52,11 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
 
   async function handleUserMessageRegenerate(
     index: number,
-    dataSources: any[]
+    dataSources: any[],
   ): Promise<{ updateIndex: number; isRegenerate: boolean; targetChatUuid: string }> {
     const sessionUuid = sessionUuidRef.value
-    if (!sessionUuid) {
+    if (!sessionUuid)
       return { updateIndex: index, isRegenerate: false, targetChatUuid: dataSources[index]?.uuid || '' }
-    }
 
     const chatNext = dataSources[index + 1]
     let updateIndex = index + 1
@@ -77,7 +75,8 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
       })
       isRegenerate = true
       targetChatUuid = chatNext.uuid
-    } else {
+    }
+    else {
       updateIndex = dataSources.length
       addChat(sessionUuid, {
         uuid: '',
@@ -95,9 +94,8 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
 
   function handleRegenerateError(error: any, chatUuid: string, index: number): void {
     const sessionUuid = sessionUuidRef.value
-    if (!sessionUuid) {
+    if (!sessionUuid)
       return
-    }
 
     console.error('Regenerate error:', error)
 
@@ -129,12 +127,12 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
   }
 
   async function onRegenerate(index: number, dataSources: any[]): Promise<void> {
-    if (!validateRegenerateInput()) return
+    if (!validateRegenerateInput())
+      return
 
     const sessionUuid = sessionUuidRef.value
-    if (!sessionUuid) {
+    if (!sessionUuid)
       return
-    }
 
     const chat = dataSources[index]
     abortController.value = new AbortController()
@@ -149,15 +147,17 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
         (chunk: string, updateIdx: number) => {
           processStreamChunk(chunk, updateIdx, sessionUuid)
         },
-        abortController.value.signal
+        abortController.value.signal,
       )
-    } catch (error) {
+    }
+    catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         // Stream was cancelled, no need to show error
         return
       }
       handleRegenerateError(error, targetChatUuid, updateIndex)
-    } finally {
+    }
+    finally {
       loading.value = false
       abortController.value = null
     }
@@ -170,6 +170,6 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
     handleUserMessageRegenerate,
     handleRegenerateError,
     onRegenerate,
-    stopRegenerate
+    stopRegenerate,
   }
 }
