@@ -395,9 +395,24 @@ export class InputHelpers {
   }
 
   /**
+   * Wait until the composer is idle and ready to send another message.
+   */
+  async waitForComposerReady(timeout: number = 15000): Promise<void> {
+    await this.page.waitForFunction(
+      () => {
+        const stopButton = document.querySelector('[data-testid="stop_stream_button"]');
+        const sendButton = document.querySelector('[data-testid="send_message_button"]');
+        return !stopButton && !!sendButton;
+      },
+      { timeout }
+    );
+  }
+
+  /**
    * Send a message and wait for response
    */
   async sendMessage(text: string, waitForResponse: boolean = true): Promise<void> {
+    await this.waitForComposerReady();
     const input = await this.getInputArea();
     await input.click();
     await input.fill(text);

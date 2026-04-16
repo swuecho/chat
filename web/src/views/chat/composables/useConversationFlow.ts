@@ -101,6 +101,7 @@ export function useConversationFlow(
     if (!sessionUuid)
       return dataSources.length - 1
 
+    const responseIndex = dataSources.length
     addChat(sessionUuid, {
       uuid: '',
       dateTime: nowISO(),
@@ -110,7 +111,7 @@ export function useConversationFlow(
       error: false,
     })
     await smoothScrollToBottomIfAtBottom()
-    return dataSources.length - 1
+    return responseIndex
   }
 
   function handleStreamingError(error: any, responseIndex: number, dataSources: any[]): void {
@@ -183,12 +184,9 @@ export function useConversationFlow(
       loading.value = false
       abortController.value = null
 
-      try {
-        await refreshSessionTitle(sessionUuid)
-      }
-      catch (error) {
+      void refreshSessionTitle(sessionUuid).catch((error) => {
         console.error('Failed to refresh session title:', error)
-      }
+      })
 
       // For sessions in exploreMode, set suggested questions loading state
       const session = sessionStore.getChatSessionByUuid(sessionUuid)

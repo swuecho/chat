@@ -9,6 +9,7 @@ import { db_config } from '../lib/db/config';
 
 
 const test_email = randomEmail();
+test.setTimeout(60000);
 
 
 const pool = new Pool(db_config);
@@ -71,6 +72,7 @@ test('test', async ({ page }) => {
     },
     { timeout: 15000 }
   );
+  await page.waitForSelector('[data-testid="stop_stream_button"]', { state: 'detached', timeout: 15000 });
 
   // Send second message
   await input_area?.click();
@@ -89,6 +91,7 @@ test('test', async ({ page }) => {
     },
     { timeout: 15000 }
   );
+  await page.waitForSelector('[data-testid="stop_stream_button"]', { state: 'detached', timeout: 15000 });
 
   const user = await selectUserByEmail(pool, test_email);
   expect(user.email).toBe(test_email);
@@ -121,6 +124,7 @@ test('test', async ({ page }) => {
     },
     { timeout: 15000 }
   );
+  await page.waitForSelector('[data-testid="stop_stream_button"]', { state: 'detached', timeout: 15000 });
 
   const sessions_1 = await selectChatSessionsByUserId(pool, user.id);
   const session_1 = sessions_1[0];

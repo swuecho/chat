@@ -656,16 +656,12 @@ func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msg
 
 // isTest determines if the chat messages indicate this is a test scenario
 func isTest(msgs []models.Message) bool {
-	if len(msgs) == 0 {
-		return false
+	for _, msg := range msgs {
+		if len(msg.Content) >= TestPrefixLength && msg.Content[:TestPrefixLength] == TestDemoPrefix {
+			return true
+		}
 	}
-
-	lastMsgs := msgs[len(msgs)-1]
-	promptMsg := msgs[0]
-
-	// Check if either first or last message contains test demo marker
-	return (len(promptMsg.Content) >= TestPrefixLength && promptMsg.Content[:TestPrefixLength] == TestDemoPrefix) ||
-		(len(lastMsgs.Content) >= TestPrefixLength && lastMsgs.Content[:TestPrefixLength] == TestDemoPrefix)
+	return false
 }
 
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {

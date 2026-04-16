@@ -29,4 +29,5 @@ export async function sendMessageAndWaitAssistantCount(
 ) {
   await inputHelpers.sendMessage(text)
   await messageHelpers.waitForAssistantMessageCount(assistantCount)
+  await inputHelpers.waitForComposerReady()
 }

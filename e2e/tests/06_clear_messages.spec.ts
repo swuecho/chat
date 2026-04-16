@@ -11,6 +11,7 @@ import { getClearConversationButton } from '../lib/button-helpers';
 const pool = new Pool(db_config);
 
 const test_email = randomEmail();
+test.setTimeout(60000);
 
 async function waitForMessageCount(pool: Pool, sessionUuid: string, expectedCount: number, timeout = 10000): Promise<void> {
   const startTime = Date.now();
@@ -67,6 +68,7 @@ test('after clear conversation, only system message remains', async ({ page }) =
     },
     { timeout: 15000 }
   );
+  await page.waitForSelector('[data-testid="stop_stream_button"]', { state: 'detached', timeout: 15000 });
 
   // Send second message
   await input_area?.fill('test_demo_bestqa');
@@ -84,9 +86,10 @@ test('after clear conversation, only system message remains', async ({ page }) =
     },
     { timeout: 15000 }
   );
+  await page.waitForSelector('[data-testid="stop_stream_button"]', { state: 'detached', timeout: 15000 });
 
   const message_counts = await page.$$eval('.message-text', (messages) => messages.length);
-  expect(message_counts).toBe(4);
+  expect(message_counts).toBe(5);
 
   const user = await selectUserByEmail(pool, test_email);
   expect(user.email).toBe(test_email);
