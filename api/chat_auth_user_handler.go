@@ -17,9 +17,12 @@ import (
 
 // Constants for token management
 const (
-	AccessTokenLifetime  = 30 * time.Minute
-	RefreshTokenLifetime = 7 * 24 * time.Hour // 7 days
-	RefreshTokenName     = "refresh_token"
+	AccessTokenLifetime       = 30 * time.Minute
+	DefaultRefreshTokenLifetime = 7 * 24 * time.Hour  // 7 days
+	MobileRefreshTokenLifetime  = 90 * 24 * time.Hour // 90 days
+	RefreshTokenName           = "refresh_token"
+	MobileClientHeader         = "X-Chat-Client"
+	MobileClientValue          = "mobile"
 )
 
 type AuthUserHandler struct {
@@ -95,6 +98,13 @@ func createSecureRefreshCookie(name, value string, maxAge int, r *http.Request) 
 func NewAuthUserHandler(sqlc_q *sqlc_queries.Queries) *AuthUserHandler {
 	userService := NewAuthUserService(sqlc_q)
 	return &AuthUserHandler{service: userService}
+}
+
+func refreshTokenLifetimeForRequest(r *http.Request) time.Duration {
+	if strings.EqualFold(r.Header.Get(MobileClientHeader), MobileClientValue) {
+		return MobileRefreshTokenLifetime
+	}
+	return DefaultRefreshTokenLifetime
 }
 
 func (h *AuthUserHandler) Register(router *mux.Router) {
@@ -241,8 +251,8 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate refresh token using constant
-	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, RefreshTokenLifetime, auth.TokenTypeRefresh)
+	refreshTokenLifetime := refreshTokenLifetimeForRequest(r)
+	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, refreshTokenLifetime, auth.TokenTypeRefresh)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"user_id": user.ID,
@@ -253,7 +263,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Use helper function to create refresh token cookie
-	refreshCookie := createSecureRefreshCookie(RefreshTokenName, refreshToken, int(RefreshTokenLifetime.Seconds()), r)
+	refreshCookie := createSecureRefreshCookie(RefreshTokenName, refreshToken, int(refreshTokenLifetime.Seconds()), r)
 	http.SetCookie(w, refreshCookie)
 
 	log.WithFields(log.Fields{
@@ -310,8 +320,8 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate refresh token using constant
-	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, RefreshTokenLifetime, auth.TokenTypeRefresh)
+	refreshTokenLifetime := refreshTokenLifetimeForRequest(r)
+	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, refreshTokenLifetime, auth.TokenTypeRefresh)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"user_id": user.ID,
@@ -322,7 +332,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Use helper function to create refresh token cookie
-	refreshCookie := createSecureRefreshCookie(RefreshTokenName, refreshToken, int(RefreshTokenLifetime.Seconds()), r)
+	refreshCookie := createSecureRefreshCookie(RefreshTokenName, refreshToken, int(refreshTokenLifetime.Seconds()), r)
 	http.SetCookie(w, refreshCookie)
 
 	// Debug: Log cookie details

@@ -55,15 +55,16 @@ class ModelState {
 const _unset = Object();
 
 class ModelNotifier extends StateNotifier<ModelState> {
-  ModelNotifier(this._api, this._authNotifier)
+  ModelNotifier(this._ref, this._authNotifier)
       : super(const ModelState(
           models: [],
           activeModelName: null,
           isLoading: false,
         ));
 
-  final ChatApi _api;
+  final Ref _ref;
   final AuthNotifier _authNotifier;
+  ChatApi get _api => _ref.read(authedApiProvider);
 
   Future<bool> _ensureAuth() async {
     final ok = await _authNotifier.ensureFreshToken();
@@ -123,7 +124,7 @@ class ModelNotifier extends StateNotifier<ModelState> {
 
 final modelProvider = StateNotifierProvider<ModelNotifier, ModelState>(
   (ref) => ModelNotifier(
-    ref.watch(authedApiProvider),
+    ref,
     ref.read(authProvider.notifier),
   ),
 );

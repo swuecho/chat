@@ -4,7 +4,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../models/chat_snapshot.dart';
 import '../state/auth_provider.dart';
+import '../theme/app_theme.dart';
 import '../utils/api_error.dart';
+import '../widgets/ui_primitives.dart';
 import 'snapshot_screen.dart';
 
 class SnapshotListScreen extends HookConsumerWidget {
@@ -68,105 +70,111 @@ class SnapshotListScreen extends HookConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () => loadSnapshots(),
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
           children: [
+            const AppSectionLabel(text: 'Saved conversations'),
+            const SizedBox(height: 6),
+            Text(
+              'Keep polished copies of important chats for reference and sharing.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 18),
             if (isLoading.value && snapshots.value.isEmpty)
               const Center(child: CircularProgressIndicator()),
             if (errorMessage.value != null && snapshots.value.isEmpty)
-              _buildEmptyState(
-                context,
+              AppEmptyState(
+                title: 'Unable to load snapshots',
                 message: errorMessage.value!,
-                onRetry: () => loadSnapshots(),
+                actionLabel: 'Retry',
+                onAction: () => loadSnapshots(),
               ),
             if (!isLoading.value &&
                 errorMessage.value == null &&
                 snapshots.value.isEmpty)
-              _buildEmptyState(
-                context,
-                message: 'No snapshots yet.',
-                onRetry: () => loadSnapshots(),
+              AppEmptyState(
+                title: 'No snapshots yet',
+                message: 'Create a snapshot from a chat to collect it here.',
+                actionLabel: 'Refresh',
+                onAction: () => loadSnapshots(),
               ),
             for (final snapshot in snapshots.value)
-              Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  title: Text(snapshot.title),
-                  subtitle: Text(
-                    snapshot.summary.isNotEmpty
-                        ? snapshot.summary
-                        : _formatDate(snapshot.createdAt),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: AppQuietPanel(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SnapshotScreen(snapshotId: snapshot.uuid),
+                        ),
+                      );
+                    },
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                snapshot.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 6),
+                              AppMetaText(
+                                text: snapshot.summary.isNotEmpty
+                                    ? snapshot.summary
+                                    : _formatDate(snapshot.createdAt),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: AppTheme.mutedColor,
+                          size: 14,
+                        ),
+                      ],
+                    ),
                   ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            SnapshotScreen(snapshotId: snapshot.uuid),
-                      ),
-                    );
-                  },
                 ),
               ),
-            // Load More Button
             if (!isLoading.value &&
                 snapshots.value.isNotEmpty &&
                 hasMore.value)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Center(
                   child: isLoadingMore.value
                       ? const CircularProgressIndicator()
-                      : ElevatedButton.icon(
+                      : OutlinedButton.icon(
                           onPressed: () {
                             currentPage.value = currentPage.value + 1;
                             loadSnapshots(loadMore: true);
                           },
                           icon: const Icon(Icons.add_circle_outline),
-                          label: const Text('Load More'),
+                          label: const Text('Load more'),
                         ),
                 ),
               ),
-            // End of list indicator
             if (!isLoading.value &&
                 snapshots.value.isNotEmpty &&
                 !hasMore.value)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Center(
                   child: Text(
-                    'You\'ve reached the end',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey,
-                        ),
+                    'End of snapshots',
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(
-    BuildContext context, {
-    required String message,
-    required Future<void> Function() onRetry,
-  }) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: onRetry,
-            child: const Text('Retry'),
-          ),
-        ],
       ),
     );
   }

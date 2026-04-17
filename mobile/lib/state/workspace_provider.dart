@@ -51,15 +51,16 @@ class WorkspaceState {
 const _unset = Object();
 
 class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
-  WorkspaceNotifier(this._api, this._authNotifier)
+  WorkspaceNotifier(this._ref, this._authNotifier)
       : super(WorkspaceState(
           workspaces: const [],
           activeWorkspaceId: null,
           isLoading: false,
         ));
 
-  final ChatApi _api;
+  final Ref _ref;
   final AuthNotifier _authNotifier;
+  ChatApi get _api => _ref.read(authedApiProvider);
 
   Future<bool> _ensureAuth() async {
     final ok = await _authNotifier.ensureFreshToken();
@@ -127,7 +128,7 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
 final workspaceProvider =
     StateNotifierProvider<WorkspaceNotifier, WorkspaceState>(
   (ref) => WorkspaceNotifier(
-    ref.watch(authedApiProvider),
+    ref,
     ref.read(authProvider.notifier),
   ),
 );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
+import '../theme/app_theme.dart';
+
 class ThinkingSection extends StatefulWidget {
   const ThinkingSection({
     super.key,
@@ -66,11 +68,9 @@ class _ThinkingSectionState extends State<ThinkingSection> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: const Border(
-          left: BorderSide(color: Color(0xFF84CC16), width: 3),
-        ),
+        color: const Color(0xFFF8F4EC),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,9 +78,9 @@ class _ThinkingSectionState extends State<ThinkingSection> {
           Row(
             children: [
               Text(
-                '💭 Thinking',
+                'Thinking',
                 style: theme.textTheme.labelLarge?.copyWith(
-                  color: const Color(0xFF475569),
+                  color: AppTheme.mutedColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),

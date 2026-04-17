@@ -24,6 +24,8 @@ class ChatApi {
   final String? accessToken;
   final String? refreshCookie;
   final http.Client _client;
+  static const String _clientHeaderName = 'X-Chat-Client';
+  static const String _clientHeaderValue = 'mobile';
 
   Future<AuthTokenResult> login({
     required String email,
@@ -456,6 +458,7 @@ class ChatApi {
     final headers = <String, String>{
       'Accept': 'application/json',
       'Content-Type': 'application/json',
+      _clientHeaderName: _clientHeaderValue,
     };
     final token = accessToken;
     if (token != null && token.isNotEmpty) {

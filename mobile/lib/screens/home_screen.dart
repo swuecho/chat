@@ -9,6 +9,7 @@ import '../state/model_provider.dart';
 import '../state/session_provider.dart';
 import '../state/workspace_provider.dart';
 import '../widgets/session_tile.dart';
+import '../widgets/ui_primitives.dart';
 import '../widgets/workspace_selector.dart';
 import 'chat_screen.dart';
 import 'snapshot_list_screen.dart';
@@ -57,10 +58,9 @@ class HomeScreen extends HookConsumerWidget {
       appBar: AppBar(
         title: const Text('Chats'),
         actions: [
-          IconButton(
-            onPressed: () => ref.read(authProvider.notifier).logout(),
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: WorkspaceSelector(),
           ),
           IconButton(
             onPressed: () {
@@ -73,14 +73,26 @@ class HomeScreen extends HookConsumerWidget {
             icon: const Icon(Icons.photo_library_outlined),
             tooltip: 'Snapshots',
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: WorkspaceSelector(),
+          IconButton(
+            onPressed: () => _createSession(context, ref),
+            icon: const Icon(Icons.add),
+            tooltip: 'New chat',
           ),
+          PopupMenuButton<_HomeMenuAction>(
+            tooltip: 'More',
+            onSelected: (action) => _handleMenuAction(context, ref, action),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: _HomeMenuAction.logout,
+                child: Text('Logout'),
+              ),
+            ],
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
         child: _buildBody(
           context,
           ref,
@@ -106,51 +118,18 @@ class HomeScreen extends HookConsumerWidget {
     }
 
     if (activeWorkspace == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'No workspaces yet.',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            if (workspaceState.errorMessage != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                workspaceState.errorMessage!,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () =>
-                  ref.read(workspaceProvider.notifier).loadWorkspaces(),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      return AppEmptyState(
+        title: 'No workspaces yet',
+        message: workspaceState.errorMessage ??
+            'Create or load a workspace to start organizing chats.',
+        actionLabel: 'Retry',
+        onAction: () => ref.read(workspaceProvider.notifier).loadWorkspaces(),
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Sessions',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            TextButton.icon(
-              onPressed: () => _createSession(context, ref),
-              icon: const Icon(Icons.add),
-              label: const Text('New'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
         Expanded(
           child: _buildSessions(
             context,
@@ -174,44 +153,26 @@ class HomeScreen extends HookConsumerWidget {
     }
 
     if (sessionState.errorMessage != null && sessions.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Unable to load sessions.',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              sessionState.errorMessage!,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () {
-                final workspaceId =
-                    ref.read(workspaceProvider).activeWorkspaceId;
-                ref.read(sessionProvider.notifier).loadSessions(workspaceId);
-              },
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      return AppEmptyState(
+        title: 'Unable to load sessions',
+        message: sessionState.errorMessage!,
+        actionLabel: 'Retry',
+        onAction: () async {
+          final workspaceId = ref.read(workspaceProvider).activeWorkspaceId;
+          await ref.read(sessionProvider.notifier).loadSessions(workspaceId);
+        },
       );
     }
 
     if (sessions.isEmpty) {
-      return Center(
-        child: Text(
-          'No sessions yet. Start a new one.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+      return const AppEmptyState(
+        title: 'No sessions yet',
+        message: 'Start a new chat to begin building this workspace.',
       );
     }
 
     return ListView.builder(
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
       itemCount: sessions.length,
       itemBuilder: (context, index) {
         final session = sessions[index];
@@ -275,6 +236,17 @@ class HomeScreen extends HookConsumerWidget {
     return result ?? false;
   }
 
+  void _handleMenuAction(
+    BuildContext context,
+    WidgetRef ref,
+    _HomeMenuAction action,
+  ) {
+    switch (action) {
+      case _HomeMenuAction.logout:
+        ref.read(authProvider.notifier).logout();
+    }
+  }
+
   Future<void> _createSession(BuildContext context, WidgetRef ref) async {
     final workspaceId = ref.read(workspaceProvider).activeWorkspaceId;
     if (workspaceId == null) {
@@ -326,4 +298,8 @@ class HomeScreen extends HookConsumerWidget {
       );
     }
   }
+}
+
+enum _HomeMenuAction {
+  logout,
 }

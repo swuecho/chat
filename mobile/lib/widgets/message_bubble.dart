@@ -4,6 +4,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 
 import '../models/chat_message.dart';
+import '../theme/app_theme.dart';
 import '../utils/thinking_parser.dart';
 import 'thinking_section.dart';
 
@@ -24,15 +25,16 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUser = message.role == MessageRole.user;
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     final alignment = isUser ? Alignment.centerRight : Alignment.centerLeft;
-    final color = isUser ? scheme.primary : const Color(0xFFE2E8F0);
-    final textColor = isUser ? Colors.white : const Color(0xFF0F172A);
+    final color = isUser ? scheme.primary : AppTheme.panelColor;
+    final textColor = isUser ? Colors.white : AppTheme.inkColor;
     final codeBackground =
-        isUser ? Colors.white.withOpacity(0.2) : const Color(0xFFE2E8F0);
+        isUser ? Colors.white.withValues(alpha: 0.18) : const Color(0xFFF3ECE2);
     final blockquoteBorder =
-        isUser ? Colors.white.withOpacity(0.4) : const Color(0xFF94A3B8);
+        isUser ? Colors.white.withValues(alpha: 0.35) : const Color(0xFFB8AA96);
     final styleSheet = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
       p: TextStyle(color: textColor, height: 1.4),
       a: TextStyle(color: textColor, decoration: TextDecoration.underline),
@@ -87,12 +89,13 @@ class MessageBubble extends StatelessWidget {
         children: [
           // Timestamp - centered above message
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             child: Text(
               _formatTimestamp(message.createdAt),
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.grey[600],
+                color: AppTheme.mutedColor,
+                letterSpacing: 0.2,
               ),
               textAlign: TextAlign.center,
             ),
@@ -117,15 +120,14 @@ class MessageBubble extends StatelessWidget {
                           Icon(
                             Icons.push_pin,
                             size: 12,
-                            color: isUser ? Colors.white70 : Colors.black54,
+                            color: isUser ? Colors.white70 : AppTheme.mutedColor,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             'Pinned',
                             style: TextStyle(
                               fontSize: 11,
-                              color: isUser ? Colors.white70 : Colors.black54,
-                              fontStyle: FontStyle.italic,
+                              color: isUser ? Colors.white70 : AppTheme.mutedColor,
                             ),
                           ),
                         ],
@@ -141,12 +143,12 @@ class MessageBubble extends StatelessWidget {
                         GestureDetector(
                           onTap: () => _showMessageMenu(context),
                           child: Container(
-                            margin: const EdgeInsets.only(top: 6, right: 4),
+                            margin: const EdgeInsets.only(top: 10, right: 4),
                             padding: const EdgeInsets.all(4),
                             child: Icon(
                               Icons.more_vert,
-                              size: 20,
-                              color: Colors.grey[600],
+                              size: 18,
+                              color: AppTheme.mutedColor,
                             ),
                           ),
                         ),
@@ -157,7 +159,7 @@ class MessageBubble extends StatelessWidget {
                         children: [
                           if (!isUser && hasThinking)
                             ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 280),
+                              constraints: const BoxConstraints(maxWidth: 304),
                               child: ThinkingSection(
                                 content: parsed?.thinkingContent ?? '',
                                 styleSheet: thinkingStyleSheet,
@@ -165,12 +167,27 @@ class MessageBubble extends StatelessWidget {
                             ),
                           if (hasAnswerContent)
                             Container(
-                              margin: const EdgeInsets.symmetric(vertical: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              constraints: const BoxConstraints(maxWidth: 280),
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              constraints: const BoxConstraints(maxWidth: 304),
                               decoration: BoxDecoration(
                                 color: color,
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(10),
+                                  topRight: const Radius.circular(10),
+                                  bottomLeft: Radius.circular(isUser ? 10 : 4),
+                                  bottomRight: Radius.circular(isUser ? 4 : 10),
+                                ),
+                                border: isUser
+                                    ? null
+                                    : Border.all(color: AppTheme.borderColor),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x12000000),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 5),
+                                  ),
+                                ],
                               ),
                               child: MarkdownBody(
                                 data: displayContent,
@@ -186,12 +203,12 @@ class MessageBubble extends StatelessWidget {
                         GestureDetector(
                           onTap: () => _showMessageMenu(context),
                           child: Container(
-                            margin: const EdgeInsets.only(top: 6, left: 4),
+                            margin: const EdgeInsets.only(top: 10, left: 4),
                             padding: const EdgeInsets.all(4),
                             child: Icon(
                               Icons.more_vert,
-                              size: 20,
-                              color: Colors.grey[600],
+                              size: 18,
+                              color: AppTheme.mutedColor,
                             ),
                           ),
                         ),
@@ -217,7 +234,7 @@ class MessageBubble extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       'Generating...',
-                      style: Theme.of(context).textTheme.labelSmall,
+                      style: theme.textTheme.labelSmall,
                     ),
                   ],
                 ),
