@@ -8,6 +8,7 @@ import '../state/auth_provider.dart';
 import '../state/message_provider.dart';
 import '../state/model_provider.dart';
 import '../state/session_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/message_composer.dart';
 import '../widgets/suggested_questions.dart';
@@ -101,7 +102,7 @@ class ChatScreen extends HookConsumerWidget {
                 style: Theme.of(context)
                     .textTheme
                     .labelMedium
-                    ?.copyWith(color: Colors.grey[600]),
+                    ?.copyWith(color: AppTheme.mutedColor, letterSpacing: 0.5),
               ),
             ],
           ),
@@ -131,6 +132,30 @@ class ChatScreen extends HookConsumerWidget {
       ),
       body: Column(
         children: [
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.panelColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.borderColor),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.auto_awesome_rounded, size: 16, color: AppTheme.secondaryAccent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    activeSession.exploreMode
+                        ? 'Explore mode is on for richer follow-ups.'
+                        : 'Explore mode is off for a cleaner thread.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: _buildMessageList(
               context,
@@ -199,7 +224,7 @@ class ChatScreen extends HookConsumerWidget {
 
     return ListView.builder(
       controller: scrollController,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final message = messages[index];

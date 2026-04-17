@@ -37,15 +37,16 @@ class MessageState {
 }
 
 class MessageNotifier extends StateNotifier<MessageState> {
-  MessageNotifier(this._api, this._authNotifier)
+  MessageNotifier(this._ref, this._authNotifier)
       : super(const MessageState(
           messages: [],
           isLoading: false,
           sendingSessionIds: {},
         ));
 
-  final ChatApi _api;
+  final Ref _ref;
   final AuthNotifier _authNotifier;
+  ChatApi get _api => _ref.read(authedApiProvider);
 
   Future<bool> _ensureAuth() async {
     final ok = await _authNotifier.ensureFreshToken();
@@ -179,14 +180,24 @@ class MessageNotifier extends StateNotifier<MessageState> {
   Future<String?> regenerateMessage({
     required String messageId,
   }) async {
-    final index = state.messages.indexWhere((message) => message.id == messageId);
-    if (index == -1) {
+    final targetMessage = state.messages.where((message) => message.id == messageId);
+    if (targetMessage.isEmpty) {
       return 'Message not found.';
     }
 
-    final message = state.messages[index];
+    final message = targetMessage.first;
     if (message.role != MessageRole.assistant) {
       return 'Can only regenerate assistant messages.';
+    }
+
+    final sessionMessages = state.messages
+        .where((item) => item.sessionId == message.sessionId)
+        .toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final index =
+        sessionMessages.indexWhere((item) => item.id == messageId);
+    if (index == -1) {
+      return 'Message not found.';
     }
 
     // Find the user message before this assistant message
@@ -195,7 +206,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
       return 'No user message found to regenerate from.';
     }
 
-    final userMessage = state.messages[userMessageIndex];
+    final userMessage = sessionMessages[userMessageIndex];
     if (userMessage.role != MessageRole.user) {
       return 'Previous message is not a user message.';
     }
@@ -640,7 +651,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
 
 final messageProvider = StateNotifierProvider<MessageNotifier, MessageState>(
   (ref) => MessageNotifier(
-    ref.watch(authedApiProvider),
+    ref,
     ref.read(authProvider.notifier),
   ),
 );

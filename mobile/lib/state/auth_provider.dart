@@ -59,7 +59,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       : super(const AuthState(
           accessToken: null,
           isLoading: false,
-          isHydrating: false,
+          isHydrating: true,
           expiresIn: null,
           refreshCookie: null,
         ));
@@ -79,7 +79,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         accessToken: token,
         expiresIn: expiresIn,
         refreshCookie: refreshCookie,
-        isHydrating: false,
       );
       if ((token == null || _needsRefresh(expiresIn)) && refreshCookie != null) {
         await refreshToken();
@@ -87,9 +86,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (error) {
       final errorMessage = formatApiError(error);
       state = state.copyWith(
-        isHydrating: false,
         errorMessage: errorMessage,
       );
+    } finally {
+      state = state.copyWith(isHydrating: false);
     }
   }
 
@@ -184,6 +184,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       accessToken: null,
       refreshCookie: null,
       expiresIn: null,
+      isHydrating: false,
       errorMessage: null,
     );
   }

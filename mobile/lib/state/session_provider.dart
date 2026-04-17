@@ -30,14 +30,15 @@ class SessionState {
 }
 
 class SessionNotifier extends StateNotifier<SessionState> {
-  SessionNotifier(this._api, this._authNotifier)
+  SessionNotifier(this._ref, this._authNotifier)
       : super(const SessionState(
           sessions: [],
           isLoading: false,
         ));
 
-  final ChatApi _api;
+  final Ref _ref;
   final AuthNotifier _authNotifier;
+  ChatApi get _api => _ref.read(authedApiProvider);
 
   Future<bool> _ensureAuth() async {
     final ok = await _authNotifier.ensureFreshToken();
@@ -115,11 +116,16 @@ class SessionNotifier extends StateNotifier<SessionState> {
   }
 
   void updateSession(ChatSession updated) {
-    state = state.copyWith(
-      sessions: state.sessions
-          .map((session) => session.id == updated.id ? updated : session)
-          .toList(),
-    );
+    final existingIndex =
+        state.sessions.indexWhere((session) => session.id == updated.id);
+    if (existingIndex == -1) {
+      state = state.copyWith(sessions: [updated, ...state.sessions]);
+      return;
+    }
+
+    final updatedSessions = [...state.sessions];
+    updatedSessions[existingIndex] = updated;
+    state = state.copyWith(sessions: updatedSessions);
   }
 
   Future<String?> deleteSession(String sessionId) async {
@@ -207,28 +213,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
     }
     try {
       final fetched = await _api.fetchSessionById(sessionId);
-      final existing = state.sessions.firstWhere(
-        (session) => session.id == sessionId,
-        orElse: () => fetched,
-      );
-      final merged = ChatSession(
-        id: fetched.id.isNotEmpty ? fetched.id : existing.id,
-        workspaceId: fetched.workspaceId.isNotEmpty
-            ? fetched.workspaceId
-            : existing.workspaceId,
-        title: fetched.title.isNotEmpty ? fetched.title : existing.title,
-        model: fetched.model != 'Default' ? fetched.model : existing.model,
-        updatedAt: fetched.updatedAt,
-        maxLength: fetched.maxLength != 0 ? fetched.maxLength : existing.maxLength,
-        temperature: fetched.temperature != 0 ? fetched.temperature : existing.temperature,
-        topP: fetched.topP != 0 ? fetched.topP : existing.topP,
-        n: fetched.n != 0 ? fetched.n : existing.n,
-        maxTokens: fetched.maxTokens != 0 ? fetched.maxTokens : existing.maxTokens,
-        debug: fetched.debug || existing.debug,
-        summarizeMode: fetched.summarizeMode || existing.summarizeMode,
-        exploreMode: fetched.exploreMode || existing.exploreMode,
-      );
-      updateSession(merged);
+      updateSession(fetched);
       state = state.copyWith(isLoading: false);
       return null;
     } catch (error) {
@@ -354,7 +339,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
 
 final sessionProvider = StateNotifierProvider<SessionNotifier, SessionState>(
   (ref) => SessionNotifier(
-    ref.watch(authedApiProvider),
+    ref,
     ref.read(authProvider.notifier),
   ),
 );

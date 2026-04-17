@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../state/workspace_provider.dart';
+import '../theme/app_theme.dart';
 import '../theme/color_utils.dart';
 import 'icon_map.dart';
 
@@ -30,28 +31,44 @@ class WorkspaceSelector extends HookConsumerWidget {
     final color = colorFromHex(active.colorHex);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(22),
       onTap: () => _openWorkspaceSheet(context, ref),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(24),
+          color: AppTheme.panelColor,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppTheme.borderColor),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 14,
+              offset: Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(iconForName(active.iconName), color: color),
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(iconForName(active.iconName), color: color, size: 17),
+            ),
             const SizedBox(width: 8),
             Text(
               active.name,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
-                  ?.copyWith(color: color),
+                  ?.copyWith(fontSize: 14),
             ),
-            const SizedBox(width: 4),
-            Icon(Icons.expand_more, color: color),
+            const SizedBox(width: 6),
+            const Icon(Icons.expand_more, color: AppTheme.mutedColor, size: 18),
           ],
         ),
       ),
@@ -85,7 +102,7 @@ class WorkspaceSelector extends HookConsumerWidget {
                   subtitle:
                       workspace.description.isNotEmpty ? Text(workspace.description) : null,
                   trailing: workspace.id == workspaceState.activeWorkspaceId
-                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      ? const Icon(Icons.check_circle, color: AppTheme.accentColor)
                       : null,
                   onTap: () {
                     ref

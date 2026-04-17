@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class SuggestedQuestions extends StatelessWidget {
   const SuggestedQuestions({
     super.key,
@@ -30,19 +32,19 @@ class SuggestedQuestions extends StatelessWidget {
     final hasPreviousBatch = batches.length > 1 && currentBatch > 0;
     final hasNextBatch = batches.length > 1 && currentBatch < batches.length - 1;
     return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(top: 10, left: 10, right: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: AppTheme.panelColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.lightbulb_outline, size: 16, color: Color(0xFF2563EB)),
+              const Icon(Icons.auto_awesome_rounded, size: 16, color: AppTheme.secondaryAccent),
               const SizedBox(width: 6),
               Text(
                 'Suggested questions',
@@ -101,9 +103,9 @@ class SuggestedQuestions extends StatelessWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        color: const Color(0xFFF8F4EC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppTheme.borderColor),
                       ),
                       child: Text(
                         question,
