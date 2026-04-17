@@ -38,7 +38,7 @@ class LoginScreen extends HookConsumerWidget {
                   height: 66,
                   decoration: BoxDecoration(
                     color: AppTheme.panelColor,
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppTheme.borderColor),
                   ),
                   child: const Icon(
@@ -64,7 +64,7 @@ class LoginScreen extends HookConsumerWidget {
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: AppTheme.panelColor,
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppTheme.borderColor),
                   ),
                   child: Column(
@@ -91,7 +91,7 @@ class LoginScreen extends HookConsumerWidget {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF1EE),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             authState.errorMessage!,

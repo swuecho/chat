@@ -69,7 +69,7 @@ class _ThinkingSectionState extends State<ThinkingSection> {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFF8F4EC),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppTheme.borderColor),
       ),
       child: Column(

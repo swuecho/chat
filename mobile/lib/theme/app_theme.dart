@@ -42,14 +42,14 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: borderColor),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(10),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: inkColor,
         contentTextStyle: const TextStyle(color: Colors.white),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -58,15 +58,15 @@ class AppTheme {
         hintStyle: const TextStyle(color: mutedColor),
         border: OutlineInputBorder(
           borderSide: const BorderSide(color: borderColor),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(8),
         ),
         enabledBorder: OutlineInputBorder(
           borderSide: const BorderSide(color: borderColor),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(8),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: const BorderSide(color: accentColor, width: 1.6),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(8),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       ),
@@ -77,7 +77,7 @@ class AppTheme {
           backgroundColor: accentColor,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(8),
           ),
           textStyle: const TextStyle(
             fontSize: 15,
@@ -92,7 +92,7 @@ class AppTheme {
           side: const BorderSide(color: borderColor),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
       ),
@@ -100,7 +100,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: accentColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(6),
           ),
         ),
       ),

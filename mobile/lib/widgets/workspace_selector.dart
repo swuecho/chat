@@ -3,8 +3,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../state/workspace_provider.dart';
 import '../theme/app_theme.dart';
-import '../theme/color_utils.dart';
-import 'icon_map.dart';
 
 class WorkspaceSelector extends HookConsumerWidget {
   const WorkspaceSelector({super.key});
@@ -28,48 +26,35 @@ class WorkspaceSelector extends HookConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final color = colorFromHex(active.colorHex);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onTap: () => _openWorkspaceSheet(context, ref),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppTheme.panelColor,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppTheme.borderColor),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x14000000),
-              blurRadius: 14,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(10),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => _openWorkspaceSheet(context, ref),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  active.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
               ),
-              child: Icon(iconForName(active.iconName), color: color, size: 17),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              active.name,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontSize: 14),
-            ),
-            const SizedBox(width: 6),
-            const Icon(Icons.expand_more, color: AppTheme.mutedColor, size: 18),
-          ],
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: AppTheme.mutedColor,
+                size: 18,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -86,32 +71,28 @@ class WorkspaceSelector extends HookConsumerWidget {
       showDragHandle: true,
       builder: (context) {
         return SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            children: [
-              for (final workspace in workspaceState.workspaces)
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: colorFromHex(workspace.colorHex),
-                    child: Icon(
-                      iconForName(workspace.iconName),
-                      color: Colors.white,
-                    ),
-                  ),
-                  title: Text(workspace.name),
-                  subtitle:
-                      workspace.description.isNotEmpty ? Text(workspace.description) : null,
-                  trailing: workspace.id == workspaceState.activeWorkspaceId
-                      ? const Icon(Icons.check_circle, color: AppTheme.accentColor)
-                      : null,
-                  onTap: () {
-                    ref
-                        .read(workspaceProvider.notifier)
-                        .setActiveWorkspace(workspace.id);
-                    Navigator.pop(context);
-                  },
-                ),
-            ],
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            itemCount: workspaceState.workspaces.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final workspace = workspaceState.workspaces[index];
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                title: Text(workspace.name),
+                subtitle:
+                    workspace.description.isNotEmpty ? Text(workspace.description) : null,
+                trailing: workspace.id == workspaceState.activeWorkspaceId
+                    ? const Icon(Icons.check, color: AppTheme.inkColor, size: 18)
+                    : null,
+                onTap: () {
+                  ref
+                      .read(workspaceProvider.notifier)
+                      .setActiveWorkspace(workspace.id);
+                  Navigator.pop(context);
+                },
+              );
+            },
           ),
         );
       },

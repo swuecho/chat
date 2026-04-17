@@ -35,7 +35,7 @@ class MessageComposer extends HookWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: AppTheme.panelColor,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: TextField(
@@ -62,7 +62,7 @@ class MessageComposer extends HookWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(8),
                 gradient: const LinearGradient(
                   colors: [
                     AppTheme.accentColor,

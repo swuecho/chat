@@ -36,7 +36,7 @@ class SuggestedQuestions extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppTheme.panelColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppTheme.borderColor),
       ),
       child: Column(
@@ -104,7 +104,7 @@ class SuggestedQuestions extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8F4EC),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: AppTheme.borderColor),
                       ),
                       child: Text(

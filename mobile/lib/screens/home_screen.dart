@@ -56,21 +56,11 @@ class HomeScreen extends HookConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Workspace',
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-            const Text('Chats'),
-          ],
-        ),
+        title: const Text('Chats'),
         actions: [
-          IconButton(
-            onPressed: () => ref.read(authProvider.notifier).logout(),
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: WorkspaceSelector(),
           ),
           IconButton(
             onPressed: () {
@@ -83,10 +73,22 @@ class HomeScreen extends HookConsumerWidget {
             icon: const Icon(Icons.photo_library_outlined),
             tooltip: 'Snapshots',
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: WorkspaceSelector(),
+          IconButton(
+            onPressed: () => _createSession(context, ref),
+            icon: const Icon(Icons.add),
+            tooltip: 'New chat',
           ),
+          PopupMenuButton<_HomeMenuAction>(
+            tooltip: 'More',
+            onSelected: (action) => _handleMenuAction(context, ref, action),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: _HomeMenuAction.logout,
+                child: Text('Logout'),
+              ),
+            ],
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Padding(
@@ -146,73 +148,6 @@ class HomeScreen extends HookConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppTheme.panelColor,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: AppTheme.borderColor),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFFFFCF7),
-                Color(0xFFF3ECE2),
-              ],
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                activeWorkspace.name,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 24),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                activeWorkspace.description.isNotEmpty
-                    ? activeWorkspace.description
-                    : 'Keep sessions grouped, tidy, and easy to continue.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.mutedColor,
-                    ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _createSession(context, ref),
-                      icon: const Icon(Icons.add),
-                      label: const Text('New chat'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentSoft,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      '${sessions.length} sessions',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppTheme.accentColor,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        Text(
-          'Recent conversations',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 12),
         Expanded(
           child: _buildSessions(
             context,
@@ -313,7 +248,6 @@ class HomeScreen extends HookConsumerWidget {
           },
           child: SessionTile(
             session: session,
-            index: index,
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -346,6 +280,17 @@ class HomeScreen extends HookConsumerWidget {
       ),
     );
     return result ?? false;
+  }
+
+  void _handleMenuAction(
+    BuildContext context,
+    WidgetRef ref,
+    _HomeMenuAction action,
+  ) {
+    switch (action) {
+      case _HomeMenuAction.logout:
+        ref.read(authProvider.notifier).logout();
+    }
   }
 
   Future<void> _createSession(BuildContext context, WidgetRef ref) async {
@@ -399,4 +344,8 @@ class HomeScreen extends HookConsumerWidget {
       );
     }
   }
+}
+
+enum _HomeMenuAction {
+  logout,
 }

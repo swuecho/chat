@@ -132,30 +132,6 @@ class ChatScreen extends HookConsumerWidget {
       ),
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppTheme.panelColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.borderColor),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.auto_awesome_rounded, size: 16, color: AppTheme.secondaryAccent),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    activeSession.exploreMode
-                        ? 'Explore mode is on for richer follow-ups.'
-                        : 'Explore mode is off for a cleaner thread.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ),
           Expanded(
             child: _buildMessageList(
               context,
