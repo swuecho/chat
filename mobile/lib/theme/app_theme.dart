@@ -37,6 +37,17 @@ class AppTheme {
           letterSpacing: -0.4,
         ),
       ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: panelColor,
+        surfaceTintColor: panelColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        ),
+      ),
+      listTileTheme: const ListTileThemeData(
+        iconColor: mutedColor,
+        contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      ),
       cardTheme: CardThemeData(
         color: panelColor,
         elevation: 0,

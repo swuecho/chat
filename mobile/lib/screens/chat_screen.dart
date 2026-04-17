@@ -11,6 +11,7 @@ import '../state/session_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/message_composer.dart';
+import '../widgets/ui_primitives.dart';
 import '../widgets/suggested_questions.dart';
 import '../utils/api_error.dart';
 
@@ -89,12 +90,6 @@ class ChatScreen extends HookConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.edit,
-                    size: 14,
-                    color: Colors.grey[600],
-                  ),
                 ],
               ),
               Text(
@@ -114,19 +109,18 @@ class ChatScreen extends HookConsumerWidget {
                 : () => _openModelSheet(context, ref, activeSession),
             icon: const Icon(Icons.tune),
           ),
-          IconButton(
-            onPressed: () => _confirmClearConversation(context, ref),
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Clear conversation',
-          ),
-          IconButton(
-            onPressed: () => _createSnapshot(context, ref),
-            icon: const Icon(Icons.camera_alt_outlined),
-            tooltip: 'Create snapshot',
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_horiz),
+          PopupMenuButton<_ChatMenuAction>(
+            onSelected: (action) => _handleMenuAction(context, ref, action),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: _ChatMenuAction.snapshot,
+                child: Text('Create snapshot'),
+              ),
+              PopupMenuItem(
+                value: _ChatMenuAction.clear,
+                child: Text('Clear conversation'),
+              ),
+            ],
           ),
         ],
       ),
@@ -164,37 +158,18 @@ class ChatScreen extends HookConsumerWidget {
     }
 
     if (messageState.errorMessage != null && messages.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Unable to load messages.',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              messageState.errorMessage!,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () =>
-                  ref.read(messageProvider.notifier).loadMessages(session.id),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      return AppEmptyState(
+        title: 'Unable to load messages',
+        message: messageState.errorMessage!,
+        actionLabel: 'Retry',
+        onAction: () => ref.read(messageProvider.notifier).loadMessages(session.id),
       );
     }
 
     if (messages.isEmpty) {
-      return Center(
-        child: Text(
-          'No messages yet.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+      return const AppEmptyState(
+        title: 'No messages yet',
+        message: 'Start the conversation to populate this thread.',
       );
     }
 
@@ -282,6 +257,21 @@ class ChatScreen extends HookConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error)),
       );
+    }
+  }
+
+  void _handleMenuAction(
+    BuildContext context,
+    WidgetRef ref,
+    _ChatMenuAction action,
+  ) {
+    switch (action) {
+      case _ChatMenuAction.snapshot:
+        _createSnapshot(context, ref);
+        return;
+      case _ChatMenuAction.clear:
+        _confirmClearConversation(context, ref);
+        return;
     }
   }
 
@@ -536,4 +526,9 @@ class ChatScreen extends HookConsumerWidget {
       ),
     );
   }
+}
+
+enum _ChatMenuAction {
+  snapshot,
+  clear,
 }

@@ -6,6 +6,7 @@ import '../models/chat_snapshot.dart';
 import '../state/auth_provider.dart';
 import '../utils/api_error.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/ui_primitives.dart';
 
 class SnapshotScreen extends HookConsumerWidget {
   const SnapshotScreen({super.key, required this.snapshotId});
@@ -46,7 +47,7 @@ class SnapshotScreen extends HookConsumerWidget {
         title: Text(snapshot.value?.title ?? 'Snapshot'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: _buildBody(
           context,
           snapshot.value,
@@ -70,40 +71,27 @@ class SnapshotScreen extends HookConsumerWidget {
     }
 
     if (errorMessage != null && snapshot == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              errorMessage,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      return AppEmptyState(
+        title: 'Unable to load snapshot',
+        message: errorMessage,
+        actionLabel: 'Retry',
+        onAction: onRetry,
       );
     }
 
     if (snapshot == null) {
-      return const Center(child: Text('Snapshot not found.'));
+      return const AppEmptyState(
+        title: 'Snapshot not found',
+        message: 'This saved conversation is unavailable right now.',
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (snapshot.summary.isNotEmpty)
-          Text(
-            snapshot.summary,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        if (snapshot.summary.isNotEmpty) const SizedBox(height: 12),
         Expanded(
           child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 12),
             itemCount: snapshot.conversation.length,
             itemBuilder: (context, index) {
               return MessageBubble(message: snapshot.conversation[index]);

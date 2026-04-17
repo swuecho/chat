@@ -8,8 +8,8 @@ import '../state/auth_provider.dart';
 import '../state/model_provider.dart';
 import '../state/session_provider.dart';
 import '../state/workspace_provider.dart';
-import '../theme/app_theme.dart';
 import '../widgets/session_tile.dart';
+import '../widgets/ui_primitives.dart';
 import '../widgets/workspace_selector.dart';
 import 'chat_screen.dart';
 import 'snapshot_list_screen.dart';
@@ -118,30 +118,12 @@ class HomeScreen extends HookConsumerWidget {
     }
 
     if (activeWorkspace == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'No workspaces yet.',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            if (workspaceState.errorMessage != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                workspaceState.errorMessage!,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () =>
-                  ref.read(workspaceProvider.notifier).loadWorkspaces(),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      return AppEmptyState(
+        title: 'No workspaces yet',
+        message: workspaceState.errorMessage ??
+            'Create or load a workspace to start organizing chats.',
+        actionLabel: 'Retry',
+        onAction: () => ref.read(workspaceProvider.notifier).loadWorkspaces(),
       );
     }
 
@@ -171,49 +153,21 @@ class HomeScreen extends HookConsumerWidget {
     }
 
     if (sessionState.errorMessage != null && sessions.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Unable to load sessions.',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              sessionState.errorMessage!,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () {
-                final workspaceId =
-                    ref.read(workspaceProvider).activeWorkspaceId;
-                ref.read(sessionProvider.notifier).loadSessions(workspaceId);
-              },
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+      return AppEmptyState(
+        title: 'Unable to load sessions',
+        message: sessionState.errorMessage!,
+        actionLabel: 'Retry',
+        onAction: () async {
+          final workspaceId = ref.read(workspaceProvider).activeWorkspaceId;
+          await ref.read(sessionProvider.notifier).loadSessions(workspaceId);
+        },
       );
     }
 
     if (sessions.isEmpty) {
-      return Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppTheme.panelColor,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppTheme.borderColor),
-          ),
-          child: Text(
-            'No sessions yet. Start a new one.',
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ),
+      return const AppEmptyState(
+        title: 'No sessions yet',
+        message: 'Start a new chat to begin building this workspace.',
       );
     }
 
