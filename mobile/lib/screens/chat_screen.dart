@@ -34,12 +34,41 @@ class ChatScreen extends HookConsumerWidget {
     // Create and manage scroll controller
     final scrollController = useMemoized(() => ScrollController());
     final previousMessagesLength = useRef<int>(0);
+    final previousLastMessageId = useRef<String?>(null);
+    final previousLastMessageContent = useRef<String?>(null);
+    final previousLastMessageLoading = useRef<bool>(false);
+    final isPinnedToBottom = useRef<bool>(true);
 
-    // Auto-scroll to bottom when new messages are added
     useEffect(() {
-      final shouldScroll = messages.length > previousMessagesLength.value &&
-          messages.isNotEmpty &&
-          scrollController.hasClients;
+      void handleScroll() {
+        if (!scrollController.hasClients) {
+          return;
+        }
+        final position = scrollController.position;
+        final distanceToBottom = position.maxScrollExtent - position.pixels;
+        isPinnedToBottom.value = distanceToBottom <= 80;
+      }
+
+      scrollController.addListener(handleScroll);
+      return () => scrollController.removeListener(handleScroll);
+    }, [scrollController]);
+
+    // Keep the viewport pinned while new messages arrive or the latest
+    // assistant reply continues streaming, but avoid yanking the user down
+    // once they have manually scrolled away from the bottom.
+    useEffect(() {
+      final lastMessage = messages.isNotEmpty ? messages.last : null;
+      final hasNewMessage = messages.length > previousMessagesLength.value;
+      final lastMessageChanged = lastMessage != null &&
+          (lastMessage.id != previousLastMessageId.value ||
+              lastMessage.content != previousLastMessageContent.value ||
+              lastMessage.loading != previousLastMessageLoading.value);
+      final shouldScroll = messages.isNotEmpty &&
+          scrollController.hasClients &&
+          (hasNewMessage ||
+              (isPinnedToBottom.value &&
+                  lastMessage?.role == MessageRole.assistant &&
+                  lastMessageChanged));
 
       if (shouldScroll) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -54,8 +83,16 @@ class ChatScreen extends HookConsumerWidget {
       }
 
       previousMessagesLength.value = messages.length;
+      previousLastMessageId.value = lastMessage?.id;
+      previousLastMessageContent.value = lastMessage?.content;
+      previousLastMessageLoading.value = lastMessage?.loading ?? false;
       return null;
-    }, [messages.length]);
+    }, [
+      messages.length,
+      messages.isNotEmpty ? messages.last.id : null,
+      messages.isNotEmpty ? messages.last.content : null,
+      messages.isNotEmpty ? messages.last.loading : null,
+    ]);
 
     // Dispose scroll controller when done
     useEffect(() {

@@ -1,13 +1,7 @@
 <template>
         <div>
                 <NModal :show="showUploadModal">
-                        <!--he { width: ['100vw', '600px'] } syntax is using Naive UI's responsive array notation for styles. Here's what it means:                                                              
-
- • ['100vw', '600px'] is an array where:                                                                                                                                              
-    • The first value 100vw applies to the smallest screen size (mobile)                                                                                                              
-    • The second value 600px applies to screens at the sm breakpoint and larger 
-     -->
-                        <NCard :style="{ width: ['100vw', '600px'] }" :title="$t('chat.uploader_title')"
+                        <NCard :style="{ width: 'min(100vw, 600px)' }" :title="$t('chat.uploader_title')"
                                 :bordered="false" size="huge" role="dialog" aria-modal="true">
                                 <template #header-extra>
                                         <span class="hidden sm:inline">{{ $t('chat.uploader_help_text') }}</span>

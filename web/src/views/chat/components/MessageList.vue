@@ -1,6 +1,6 @@
 <template>
         <template v-for="(item, index) of dataSources" :key="item.uuid || `message-${index}`">
-                <div v-if="shouldShowMessage(item)" :class="['message-wrapper', { 'first-message-sticky': index === 0 }]">
+                <div v-if="shouldShowMessage(item)" :class="['message-wrapper', { 'first-message-sticky': index === 0 && !isMobile }]">
                         <Message :date-time="item.dateTime"
                                 :model="item?.model || chatSession?.model" :text="getDisplayText(item.text)" :inversion="item.inversion" :error="item.error"
                                 :is-prompt="item.isPrompt" :is-pin="item.isPin" :loading="item.loading" :index="index"
@@ -32,10 +32,12 @@ import { updateChatData } from '@/api'
 import { useDialog } from 'naive-ui'
 import { useCopyCode } from '@/views/chat/hooks/useCopyCode'
 import { useErrorHandling } from '../composables/useErrorHandling'
+import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 const dialog = useDialog()
 const { updateChatText, updateChat } = useChat()
 const { handleApiError } = useErrorHandling()
+const { isMobile } = useBasicLayout()
 
 useCopyCode()
 
