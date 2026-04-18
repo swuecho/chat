@@ -88,30 +88,38 @@ func byteToImageURL(mimeType string, data []byte) string {
 }
 
 func getModelBaseUrl(apiUrl string) (string, error) {
-	if apiUrl == "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions" {
-		return "https://dashscope.aliyuncs.com/compatible-mode/v1", nil
-	}
-	// open router
-	// https://openrouter.ai/api/v1
-	if strings.Contains(apiUrl, "openrouter") {
-		// keep the url until /v1
-		slashIndex := strings.Index(apiUrl, "/v1")
-		if slashIndex > 0 {
-			return apiUrl[:slashIndex] + "/v1", nil
-		}
-		return apiUrl, nil
-	}
 	parsedUrl, err := url.Parse(apiUrl)
 	if err != nil {
 		return "", err
 	}
-	slashIndex := strings.Index(parsedUrl.Path[1:], "/")
-	version := ""
-	// https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
-	if slashIndex > 0 {
-		version = parsedUrl.Path[1 : slashIndex+1]
+
+	if parsedUrl.Path == "" || parsedUrl.Path == "/" {
+		return fmt.Sprintf("%s://%s/", parsedUrl.Scheme, parsedUrl.Host), nil
 	}
-	return fmt.Sprintf("%s://%s/%s", parsedUrl.Scheme, parsedUrl.Host, version), nil
+
+	basePath := strings.TrimSuffix(parsedUrl.Path, "/")
+	for _, suffix := range []string{"/chat/completions", "/completions"} {
+		if strings.HasSuffix(basePath, suffix) {
+			basePath = strings.TrimSuffix(basePath, suffix)
+			break
+		}
+	}
+
+	if basePath == "" {
+		basePath = "/chat"
+	}
+	return fmt.Sprintf("%s://%s%s", parsedUrl.Scheme, parsedUrl.Host, basePath), nil
+}
+
+func normalizeOpenAIModelName(chatModel sqlc_queries.ChatModel, modelName string) string {
+	if strings.Contains(chatModel.Url, "open.bigmodel.cn") {
+		normalized := strings.ToLower(modelName)
+		if normalized != modelName {
+			log.Printf("Normalizing BigModel model name from %q to %q", modelName, normalized)
+		}
+		return normalized
+	}
+	return modelName
 }
 
 func configOpenAIProxy(config *openai.ClientConfig) {
@@ -134,10 +142,10 @@ func configOpenAIProxy(config *openai.ClientConfig) {
 func genOpenAIConfig(chatModel sqlc_queries.ChatModel) (openai.ClientConfig, error) {
 	token := os.Getenv(chatModel.ApiAuthKey)
 	baseUrl, err := getModelBaseUrl(chatModel.Url)
-	log.Printf("baseUrl: %s\n", baseUrl)
 	if err != nil {
 		return openai.ClientConfig{}, err
 	}
+	log.Printf("OpenAI-compatible URL resolved - Model: %s, ConfiguredURL: %s, BaseURL: %s", chatModel.Name, chatModel.Url, baseUrl)
 
 	var config openai.ClientConfig
 	if os.Getenv("AZURE_RESOURCE_NAME") != "" {

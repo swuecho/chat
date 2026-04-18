@@ -49,6 +49,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 
 	openaiReq := NewChatCompletionRequest(chatSession, chatCompletionMessages, chatFiles, streamOutput)
+	openaiReq.Model = normalizeOpenAIModelName(*chatModel, openaiReq.Model)
 	if len(openaiReq.Messages) <= 1 {
 		return nil, ErrSystemMessageError
 	}
@@ -56,21 +57,21 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		openaiReq.Model, len(openaiReq.Messages), openaiReq.Temperature)
 	client := openai.NewClientWithConfig(config)
 	if streamOutput {
-		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate, m.h)
+		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate, m.h, chatModel.Url, config.BaseURL)
 	} else {
-		return handleRegularResponse(w, client, openaiReq)
+		return handleRegularResponse(w, client, openaiReq, chatModel.Url, config.BaseURL)
 	}
 
 }
 
-func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest) (*models.LLMAnswer, error) {
+func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
 	// check per chat_model limit
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		log.Printf("fail to do request: %+v", err)
+		log.Printf("OpenAI request failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
 		return nil, ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())
 	}
 	log.Printf("completion: %+v", completion)
@@ -81,7 +82,7 @@ func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req ope
 
 // doChatStream handles streaming chat completion responses from OpenAI
 // It properly manages thinking tags for models that support reasoning content
-func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, handler *ChatHandler) (*models.LLMAnswer, error) {
+func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, handler *ChatHandler, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
 	// Use request context with timeout, but prioritize client cancellation
 	baseCtx := context.Background()
 	if handler != nil {
@@ -94,7 +95,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 	stream, err := client.CreateChatCompletionStream(ctx, req)
 
 	if err != nil {
-		log.Printf("fail to do request: %+v", err)
+		log.Printf("OpenAI stream setup failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
 		return nil, ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())
 	}
 	defer func() {
@@ -147,8 +148,13 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 		rawLine, err := stream.RecvRaw()
 		if err != nil {
-			log.Printf("stream error: %+v", err)
+			log.Printf("OpenAI stream receive error - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
 			if errors.Is(err, io.EOF) {
+				if textBuffer.String("\n") == "" && reasonBuffer.String("\n") == "" {
+					errMsg := fmt.Sprintf("stream closed without content; verify configured URL %q resolves to a valid OpenAI-compatible base URL %q and that model %q is valid", configuredURL, baseURL, req.Model)
+					log.Print(errMsg)
+					return nil, ErrOpenAIStreamFailed.WithMessage("Stream closed without content").WithDebugInfo(errMsg)
+				}
 				// Stream ended successfully - return accumulated content
 				llmAnswer := models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id}
 				if hasReason {
