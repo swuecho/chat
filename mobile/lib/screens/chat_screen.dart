@@ -108,9 +108,7 @@ class ChatScreen extends HookConsumerWidget {
         ),
         actions: [
           IconButton(
-            onPressed: modelState.models.isEmpty
-                ? null
-                : () => _openModelSheet(context, ref, activeSession),
+            onPressed: () => _openModelSheet(context, ref, activeSession),
             icon: const Icon(Icons.tune),
           ),
           PopupMenuButton<_ChatMenuAction>(
@@ -280,13 +278,23 @@ class ChatScreen extends HookConsumerWidget {
     }
   }
 
-  void _openModelSheet(
+  Future<void> _openModelSheet(
     BuildContext context,
     WidgetRef ref,
     ChatSession activeSession,
-  ) {
+  ) async {
+    await ref.read(modelProvider.notifier).loadModels();
+    if (!context.mounted) {
+      return;
+    }
+
     final modelState = ref.read(modelProvider);
     if (modelState.models.isEmpty) {
+      final errorMessage = modelState.errorMessage ??
+          'No models available. Please configure models in the backend.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
       return;
     }
     var exploreMode = activeSession.exploreMode;

@@ -7,6 +7,7 @@ import 'package:chat_mobile/models/chat_model.dart';
 import 'package:chat_mobile/models/chat_session.dart';
 import 'package:chat_mobile/models/workspace.dart';
 import 'package:chat_mobile/screens/auth_gate.dart';
+import 'package:chat_mobile/screens/chat_screen.dart';
 import 'package:chat_mobile/screens/home_screen.dart';
 import 'package:chat_mobile/state/auth_provider.dart';
 import 'package:chat_mobile/state/message_provider.dart';
@@ -346,6 +347,130 @@ void main() {
 
       expect(find.text('Chat Mobile'), findsNothing);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets('opening model sheet refreshes models before showing options',
+        (WidgetTester tester) async {
+      var modelFetchCount = 0;
+      final client = _TestHttpClient((request) async {
+        if (request.method == 'GET' &&
+            request.url.path == '/api/uuid/chat_messages/chat_sessions/s1') {
+          return _jsonResponse(
+            200,
+            [
+              {
+                'uuid': 'm1',
+                'text': 'hello',
+                'inversion': true,
+                'createdAt': '2025-01-01T12:00:00Z',
+              },
+            ],
+          );
+        }
+        if (request.method == 'GET' && request.url.path == '/api/chat_model') {
+          modelFetchCount += 1;
+          return _jsonResponse(
+            200,
+            [
+              {
+                'id': 1,
+                'name': 'gpt-4',
+                'label': 'GPT-4',
+                'api_type': 'openai',
+                'is_default': true,
+                'is_enable': true,
+                'order_number': 1,
+              },
+              {
+                'id': 2,
+                'name': 'glm-5.1',
+                'label': 'GLM-5.1',
+                'api_type': 'openai',
+                'is_default': false,
+                'is_enable': true,
+                'order_number': 2,
+              },
+            ],
+          );
+        }
+        return _jsonResponse(404, {'message': 'not found'});
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          baseApiProvider.overrideWithValue(
+            ChatApi(
+              baseUrl: 'https://example.com',
+              client: client,
+            ),
+          ),
+          authedApiProvider.overrideWithValue(
+            ChatApi(
+              baseUrl: 'https://example.com',
+              accessToken: 'token',
+              refreshCookie: 'refresh_token=abc',
+              client: client,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(authProvider.notifier).state = AuthState(
+            accessToken: 'token',
+            isLoading: false,
+            isHydrating: false,
+            expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
+            refreshCookie: 'refresh_token=abc',
+          );
+      container.read(sessionProvider.notifier).state = SessionState(
+            sessions: [
+              ChatSession(
+                id: 's1',
+                workspaceId: 'w1',
+                title: 'Session A',
+                model: 'gpt-4',
+                updatedAt: DateTime(2025),
+              ),
+            ],
+            isLoading: false,
+          );
+      container.read(modelProvider.notifier).state = const ModelState(
+            models: [
+              ChatModel(
+                id: 1,
+                name: 'gpt-4',
+                label: 'GPT-4',
+                apiType: 'openai',
+                isDefault: true,
+                isEnabled: true,
+                orderNumber: 1,
+              ),
+            ],
+            activeModelName: 'gpt-4',
+            isLoading: false,
+          );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: ChatScreen(
+              session: container.read(sessionProvider).sessions.first,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('GLM-5.1'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pumpAndSettle();
+
+      expect(modelFetchCount, 1);
+      expect(find.text('GLM-5.1'), findsOneWidget);
     });
   });
 }
