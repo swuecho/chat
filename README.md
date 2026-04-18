@@ -55,6 +55,7 @@
 ## 开发指南
 
 - [本地开发指南](https://github.com/swuecho/chat/blob/master/docs/dev_locally_zh.md)
+- 移动端聊天应用使用 Flutter， 见 [mobile/README.md](/Users/hwu/dev/chat/mobile/README.md)
 
 ## 部署指南
 
@@ -93,6 +94,7 @@
 ## Development Guide
 
 - [Local Development Guide](https://github.com/swuecho/chat/blob/master/docs/dev_locally_en.md)
+- The mobile chat app is built with Flutter. See [mobile/README.md](/Users/hwu/dev/chat/mobile/README.md).
 
 ## Deployment Guide
 
