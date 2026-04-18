@@ -194,14 +194,13 @@ class MessageNotifier extends StateNotifier<MessageState> {
         .where((item) => item.sessionId == message.sessionId)
         .toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    final index =
-        sessionMessages.indexWhere((item) => item.id == messageId);
-    if (index == -1) {
+    final sessionIndex = sessionMessages.indexWhere((item) => item.id == messageId);
+    if (sessionIndex == -1) {
       return 'Message not found.';
     }
 
     // Find the user message before this assistant message
-    final userMessageIndex = index - 1;
+    final userMessageIndex = sessionIndex - 1;
     if (userMessageIndex < 0) {
       return 'No user message found to regenerate from.';
     }
@@ -229,10 +228,14 @@ class MessageNotifier extends StateNotifier<MessageState> {
       suggestedQuestionsLoading: message.suggestedQuestionsLoading,
     );
 
-    // Remove the old assistant message and add the new one
+    final globalIndex = state.messages.indexWhere((item) => item.id == messageId);
+    if (globalIndex == -1) {
+      return 'Message not found.';
+    }
+
+    // Replace the target assistant message in the global message list.
     final updatedMessages = [...state.messages];
-    updatedMessages.removeAt(index);
-    updatedMessages.insert(index, newAssistantMessage);
+    updatedMessages[globalIndex] = newAssistantMessage;
 
     final sendingSessions = {...state.sendingSessionIds, sessionId};
     state = state.copyWith(

@@ -179,7 +179,11 @@ class HomeScreen extends HookConsumerWidget {
         return Dismissible(
           key: ValueKey(session.id),
           direction: DismissDirection.endToStart,
-          confirmDismiss: (_) => _confirmDeleteSession(context),
+          confirmDismiss: (_) => _confirmDeleteSession(
+            context,
+            ref,
+            session.id,
+          ),
           background: Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -190,16 +194,6 @@ class HomeScreen extends HookConsumerWidget {
             ),
             child: const Icon(Icons.delete, color: Colors.white),
           ),
-          onDismissed: (_) async {
-            final error = await ref
-                .read(sessionProvider.notifier)
-                .deleteSession(session.id);
-            if (error != null && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(error)),
-              );
-            }
-          },
           child: SessionTile(
             session: session,
             onTap: () {
@@ -215,8 +209,12 @@ class HomeScreen extends HookConsumerWidget {
     );
   }
 
-  Future<bool> _confirmDeleteSession(BuildContext context) async {
-    final result = await showDialog<bool>(
+  Future<bool> _confirmDeleteSession(
+    BuildContext context,
+    WidgetRef ref,
+    String sessionId,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete session?'),
@@ -233,7 +231,18 @@ class HomeScreen extends HookConsumerWidget {
         ],
       ),
     );
-    return result ?? false;
+    if (shouldDelete != true) {
+      return false;
+    }
+
+    final error = await ref.read(sessionProvider.notifier).deleteSession(sessionId);
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+      return false;
+    }
+    return true;
   }
 
   void _handleMenuAction(

@@ -10,7 +10,7 @@ class MessageComposer extends HookWidget {
     required this.isSending,
   });
 
-  final ValueChanged<String> onSend;
+  final Future<bool> Function(String text) onSend;
   final bool isSending;
 
   @override
@@ -43,6 +43,17 @@ class MessageComposer extends HookWidget {
                   enabled: !isSending,
                   minLines: 1,
                   maxLines: 5,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: isSending
+                      ? null
+                      : (_) async {
+                          final text = controller.text.trim();
+                          if (text.isEmpty) return;
+                          final sent = await onSend(text);
+                          if (sent) {
+                            controller.clear();
+                          }
+                        },
                   style: theme.textTheme.bodyMedium,
                   decoration: const InputDecoration(
                     hintText: 'Ask something thoughtful...',
@@ -80,11 +91,13 @@ class MessageComposer extends HookWidget {
               child: IconButton(
                 onPressed: isSending
                     ? null
-                    : () {
+                    : () async {
                         final text = controller.text.trim();
                         if (text.isEmpty) return;
-                        controller.clear();
-                        onSend(text);
+                        final sent = await onSend(text);
+                        if (sent) {
+                          controller.clear();
+                        }
                       },
                 icon: Icon(
                   isSending ? Icons.hourglass_top_rounded : Icons.arrow_upward_rounded,

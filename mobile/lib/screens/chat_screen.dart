@@ -66,13 +66,17 @@ class ChatScreen extends HookConsumerWidget {
       Future.microtask(
         () => ref.read(messageProvider.notifier).loadMessages(session.id),
       );
+      return null;
+    }, [session.id]);
+
+    useEffect(() {
       if (modelState.models.isEmpty && !modelState.isLoading) {
         Future.microtask(
           () => ref.read(modelProvider.notifier).loadModels(),
         );
       }
       return null;
-    }, [session.id, modelState.models.length, modelState.isLoading]);
+    }, [modelState.models.length, modelState.isLoading]);
 
     return Scaffold(
       appBar: AppBar(
@@ -234,7 +238,7 @@ class ChatScreen extends HookConsumerWidget {
     );
   }
 
-  Future<void> _sendMessage(
+  Future<bool> _sendMessage(
     BuildContext context,
     WidgetRef ref,
     String text,
@@ -251,13 +255,14 @@ class ChatScreen extends HookConsumerWidget {
         );
     if (error == null) {
       await ref.read(sessionProvider.notifier).refreshSession(session.id);
-      return;
+      return true;
     }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error)),
       );
     }
+    return false;
   }
 
   void _handleMenuAction(

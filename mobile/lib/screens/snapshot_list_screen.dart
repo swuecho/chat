@@ -20,15 +20,15 @@ class SnapshotListScreen extends HookConsumerWidget {
     final errorMessage = useState<String?>(null);
     final currentPage = useState(1);
     final hasMore = useState(true);
-    final pageSize = 20;
+    const pageSize = 20;
 
     Future<void> loadSnapshots({bool loadMore = false}) async {
+      final pageToLoad = loadMore ? currentPage.value + 1 : 1;
       if (loadMore) {
         isLoadingMore.value = true;
       } else {
         isLoading.value = true;
         errorMessage.value = null;
-        currentPage.value = 1;
       }
 
       try {
@@ -38,7 +38,7 @@ class SnapshotListScreen extends HookConsumerWidget {
           return;
         }
         final items = await ref.read(authedApiProvider).fetchSnapshots(
-          page: currentPage.value,
+          page: pageToLoad,
           pageSize: pageSize,
         );
 
@@ -47,6 +47,7 @@ class SnapshotListScreen extends HookConsumerWidget {
         } else {
           snapshots.value = items;
         }
+        currentPage.value = pageToLoad;
 
         // Check if there might be more items
         hasMore.value = items.length >= pageSize;
@@ -153,7 +154,6 @@ class SnapshotListScreen extends HookConsumerWidget {
                       ? const CircularProgressIndicator()
                       : OutlinedButton.icon(
                           onPressed: () {
-                            currentPage.value = currentPage.value + 1;
                             loadSnapshots(loadMore: true);
                           },
                           icon: const Icon(Icons.add_circle_outline),

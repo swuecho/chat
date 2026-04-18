@@ -52,8 +52,8 @@ const _unset = Object();
 
 class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
   WorkspaceNotifier(this._ref, this._authNotifier)
-      : super(WorkspaceState(
-          workspaces: const [],
+      : super(const WorkspaceState(
+          workspaces: [],
           activeWorkspaceId: null,
           isLoading: false,
         ));

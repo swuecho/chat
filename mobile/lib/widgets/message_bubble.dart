@@ -59,7 +59,7 @@ class MessageBubble extends StatelessWidget {
       listBullet: TextStyle(color: textColor),
     );
     final thinkingStyleSheet = styleSheet.copyWith(
-      p: TextStyle(color: const Color(0xFF1F2937), height: 1.4),
+      p: const TextStyle(color: Color(0xFF1F2937), height: 1.4),
       a: const TextStyle(
         color: Color(0xFF1D4ED8),
         decoration: TextDecoration.underline,
@@ -92,7 +92,7 @@ class MessageBubble extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             child: Text(
               _formatTimestamp(message.createdAt),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 10,
                 color: AppTheme.mutedColor,
                 letterSpacing: 0.2,
@@ -145,7 +145,7 @@ class MessageBubble extends StatelessWidget {
                           child: Container(
                             margin: const EdgeInsets.only(top: 10, right: 4),
                             padding: const EdgeInsets.all(4),
-                            child: Icon(
+                            child: const Icon(
                               Icons.more_vert,
                               size: 18,
                               color: AppTheme.mutedColor,
@@ -205,7 +205,7 @@ class MessageBubble extends StatelessWidget {
                           child: Container(
                             margin: const EdgeInsets.only(top: 10, left: 4),
                             padding: const EdgeInsets.all(4),
-                            child: Icon(
+                            child: const Icon(
                               Icons.more_vert,
                               size: 18,
                               color: AppTheme.mutedColor,

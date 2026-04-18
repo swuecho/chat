@@ -25,12 +25,12 @@ class AppTheme {
       scaffoldBackgroundColor: canvasColor,
       fontFamily: 'Georgia',
       dividerColor: borderColor,
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         foregroundColor: inkColor,
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           color: inkColor,
           fontSize: 21,
           fontWeight: FontWeight.w600,
@@ -115,7 +115,7 @@ class AppTheme {
           ),
         ),
       ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: accentColor,
         foregroundColor: Colors.white,
       ),

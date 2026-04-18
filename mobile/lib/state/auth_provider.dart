@@ -3,7 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_config.dart';
 import '../api/chat_api.dart';
+import 'message_provider.dart';
+import 'model_provider.dart';
+import 'session_provider.dart';
 import '../utils/api_error.dart';
+import 'workspace_provider.dart';
 
 class AuthState {
   const AuthState({
@@ -55,7 +59,7 @@ class AuthState {
 const _unset = Object();
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(this._api)
+  AuthNotifier(this._ref, this._api)
       : super(const AuthState(
           accessToken: null,
           isLoading: false,
@@ -64,6 +68,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           refreshCookie: null,
         ));
 
+  final Ref _ref;
   final ChatApi _api;
   bool _isRefreshing = false;
   Future<void>? _refreshFuture;
@@ -187,6 +192,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isHydrating: false,
       errorMessage: null,
     );
+    Future.microtask(() {
+      _ref.invalidate(authedApiProvider);
+      _ref.invalidate(workspaceProvider);
+      _ref.invalidate(sessionProvider);
+      _ref.invalidate(messageProvider);
+      _ref.invalidate(modelProvider);
+    });
   }
 }
 
@@ -207,7 +219,7 @@ final baseApiProvider = Provider<ChatApi>(
 );
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
-  (ref) => AuthNotifier(ref.read(baseApiProvider)),
+  (ref) => AuthNotifier(ref, ref.read(baseApiProvider)),
 );
 
 final authedApiProvider = Provider<ChatApi>(

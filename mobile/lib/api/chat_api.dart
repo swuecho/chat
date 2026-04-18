@@ -218,7 +218,7 @@ class ChatApi {
       throw _parseApiError(status, body);
     }
 
-    final decoder = const Utf8Decoder();
+    const decoder = Utf8Decoder();
     var buffer = '';
     await for (final chunk in response.stream.transform(decoder)) {
       buffer += chunk;
