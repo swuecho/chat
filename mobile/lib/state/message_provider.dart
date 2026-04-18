@@ -291,6 +291,14 @@ class MessageNotifier extends StateNotifier<MessageState> {
     state = state.copyWith(messages: [...state.messages, message]);
   }
 
+  void reset() {
+    state = const MessageState(
+      messages: [],
+      isLoading: false,
+      sendingSessionIds: {},
+    );
+  }
+
   void _handleStreamChunk(String sessionId, String tempId, String chunk) {
     final data = _extractStreamingData(chunk);
     if (data.isEmpty) {

@@ -115,6 +115,13 @@ class SessionNotifier extends StateNotifier<SessionState> {
     state = state.copyWith(sessions: [session, ...state.sessions]);
   }
 
+  void reset() {
+    state = const SessionState(
+      sessions: [],
+      isLoading: false,
+    );
+  }
+
   void updateSession(ChatSession updated) {
     final existingIndex =
         state.sessions.indexWhere((session) => session.id == updated.id);

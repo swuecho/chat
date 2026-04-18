@@ -6,6 +6,7 @@ import 'package:chat_mobile/models/chat_message.dart';
 import 'package:chat_mobile/models/chat_model.dart';
 import 'package:chat_mobile/models/chat_session.dart';
 import 'package:chat_mobile/models/workspace.dart';
+import 'package:chat_mobile/screens/auth_gate.dart';
 import 'package:chat_mobile/screens/home_screen.dart';
 import 'package:chat_mobile/state/auth_provider.dart';
 import 'package:chat_mobile/state/message_provider.dart';
@@ -21,7 +22,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('mobile regressions', () {
-    test('logout clears cached provider state', () async {
+    testWidgets('logout clears cached provider state',
+        (WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({
         'chat_access_token': 'token',
         'chat_access_expires_in': 9999999999,
@@ -92,8 +94,19 @@ void main() {
             isLoading: false,
           );
 
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: AuthGate(),
+          ),
+        ),
+      );
+      await tester.pump();
+
       await container.read(authProvider.notifier).logout();
-      await Future<void>.microtask(() {});
+      await tester.pump();
+      await tester.pump();
 
       final auth = container.read(authProvider);
       final workspaceState = container.read(workspaceProvider);

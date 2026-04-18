@@ -108,6 +108,14 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
     );
   }
 
+  void reset() {
+    state = const WorkspaceState(
+      workspaces: [],
+      activeWorkspaceId: null,
+      isLoading: false,
+    );
+  }
+
   String? _resolveActiveWorkspaceId(List<Workspace> workspaces) {
     if (workspaces.isEmpty) {
       return null;

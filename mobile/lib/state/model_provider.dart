@@ -105,6 +105,14 @@ class ModelNotifier extends StateNotifier<ModelState> {
     state = state.copyWith(activeModelName: modelName);
   }
 
+  void reset() {
+    state = const ModelState(
+      models: [],
+      activeModelName: null,
+      isLoading: false,
+    );
+  }
+
   String? _resolveActiveModelName(List<ChatModel> models) {
     if (models.isEmpty) {
       return null;
