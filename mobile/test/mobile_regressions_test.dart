@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:chat_mobile/api/chat_api.dart';
@@ -210,6 +211,103 @@ void main() {
       expect(sessionOneAssistants, hasLength(1));
       expect(sessionOneAssistants.single.content, 'new reply');
       expect(messages.where((message) => message.id == 'a1'), isEmpty);
+    });
+
+    test('create session refresh beats a stale earlier session fetch', () async {
+      final fetchCompleter = Completer<http.StreamedResponse>();
+      var fetchCount = 0;
+      final client = _TestHttpClient((request) async {
+        if (request.method == 'GET' &&
+            request.url.path == '/api/workspaces/w1/sessions') {
+          fetchCount += 1;
+          if (fetchCount == 1) {
+            return fetchCompleter.future;
+          }
+          return _jsonResponse(
+            200,
+            [
+              {
+                'uuid': 's-new',
+                'workspaceUuid': 'w1',
+                'title': 'New Chat',
+                'model': 'gpt-4',
+                'updatedAt': '2025-01-01T12:00:01Z',
+              },
+            ],
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/workspaces/w1/sessions') {
+          return _jsonResponse(
+            200,
+            {
+              'uuid': 's-new',
+              'workspaceUuid': 'w1',
+              'topic': 'New Chat',
+              'model': 'gpt-4',
+              'createdAt': '2025-01-01T12:00:00Z',
+            },
+          );
+        }
+        if (request.method == 'PUT' &&
+            request.url.path == '/api/uuid/chat_sessions/s-new') {
+          return _jsonResponse(200, {});
+        }
+        return _jsonResponse(404, {'message': 'not found'});
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          baseApiProvider.overrideWithValue(
+            ChatApi(
+              baseUrl: 'https://example.com',
+              client: client,
+            ),
+          ),
+          authedApiProvider.overrideWithValue(
+            ChatApi(
+              baseUrl: 'https://example.com',
+              accessToken: 'token',
+              refreshCookie: 'refresh_token=abc',
+              client: client,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(authProvider.notifier).state = AuthState(
+            accessToken: 'token',
+            isLoading: false,
+            isHydrating: false,
+            expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
+            refreshCookie: 'refresh_token=abc',
+          );
+
+      final loadFuture =
+          container.read(sessionProvider.notifier).loadSessions('w1');
+
+      final created = await container.read(sessionProvider.notifier).createSession(
+            workspaceId: 'w1',
+            title: 'New Chat',
+            model: 'gpt-4',
+          );
+
+      expect(created, isNotNull);
+      expect(
+        container.read(sessionProvider).sessions.where((session) => session.id == 's-new'),
+        hasLength(1),
+      );
+
+      fetchCompleter.complete(_jsonResponse(200, const []));
+      await loadFuture;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        container.read(sessionProvider).sessions.where((session) => session.id == 's-new'),
+        hasLength(1),
+      );
+      expect(fetchCount, 2);
     });
 
     testWidgets('message composer preserves draft when send fails',

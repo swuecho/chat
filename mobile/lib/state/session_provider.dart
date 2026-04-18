@@ -38,6 +38,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
 
   final Ref _ref;
   final AuthNotifier _authNotifier;
+  int _latestLoadRequestId = 0;
   ChatApi get _api => _ref.read(authedApiProvider);
 
   Future<bool> _ensureAuth() async {
@@ -56,6 +57,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
       state = state.copyWith(sessions: const [], isLoading: false);
       return;
     }
+    final requestId = ++_latestLoadRequestId;
     state = state.copyWith(
       sessions: const [],
       isLoading: true,
@@ -66,9 +68,15 @@ class SessionNotifier extends StateNotifier<SessionState> {
     }
     try {
       final sessions = await _api.fetchSessions(workspaceId: workspaceId);
+      if (requestId != _latestLoadRequestId) {
+        return;
+      }
       sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       state = state.copyWith(sessions: sessions, isLoading: false);
     } catch (error) {
+      if (requestId != _latestLoadRequestId) {
+        return;
+      }
       final errorMessage = formatApiError(error);
       state = state.copyWith(
         isLoading: false,
@@ -100,6 +108,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
         session: session,
         exploreMode: true,
       );
+      await loadSessions(workspaceId);
       return session;
     } catch (error) {
       final errorMessage = formatApiError(error);
