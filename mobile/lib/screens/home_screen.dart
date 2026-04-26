@@ -196,13 +196,7 @@ class HomeScreen extends HookConsumerWidget {
           ),
           child: SessionTile(
             session: session,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ChatScreen(session: session),
-                ),
-              );
-            },
+            onTap: () => _openSession(context, ref, session),
           ),
         );
       },
@@ -256,6 +250,23 @@ class HomeScreen extends HookConsumerWidget {
     }
   }
 
+  Future<void> _openSession(
+    BuildContext context,
+    WidgetRef ref,
+    ChatSession session,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(session: session),
+      ),
+    );
+    if (!context.mounted) {
+      return;
+    }
+    final workspaceId = ref.read(workspaceProvider).activeWorkspaceId;
+    await ref.read(sessionProvider.notifier).loadSessions(workspaceId);
+  }
+
   Future<void> _createSession(BuildContext context, WidgetRef ref) async {
     final workspaceId = ref.read(workspaceProvider).activeWorkspaceId;
     if (workspaceId == null) {
@@ -300,11 +311,7 @@ class HomeScreen extends HookConsumerWidget {
     }
 
     if (context.mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ChatScreen(session: created),
-        ),
-      );
+      await _openSession(context, ref, created);
     }
   }
 }
