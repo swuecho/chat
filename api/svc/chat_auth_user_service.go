@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -101,7 +100,7 @@ func (s *AuthUserService) GetUserStats(ctx context.Context, p dto.Pagination, de
 			DefaultRateLimit: defaultRateLimit,
 		})
 	if err != nil {
-		return nil, 0, eris.Wrap(err, "failed to retrieve user stats ")
+		return nil, 0, fmt.Errorf("failed to retrieve user stats : %w", err)
 	}
 	total, err := s.q.GetTotalActiveUserCount(ctx)
 	if err != nil {
@@ -208,13 +207,13 @@ func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string, def
 		DefaultRateLimit: defaultRateLimit,
 	})
 	if err != nil {
-		return nil, eris.Wrap(err, "failed to get user analysis")
+		return nil, fmt.Errorf("failed to get user analysis: %w", err)
 	}
 
 	// Get model usage
 	modelUsageRows, err := s.q.GetUserModelUsageByEmail(ctx, email)
 	if err != nil {
-		return nil, eris.Wrap(err, "failed to get user model usage")
+		return nil, fmt.Errorf("failed to get user model usage: %w", err)
 	}
 
 	// Calculate total tokens for percentage calculation
@@ -253,7 +252,7 @@ func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string, def
 	// Get recent activity
 	activityRows, err := s.q.GetUserRecentActivityByEmail(ctx, email)
 	if err != nil {
-		return nil, eris.Wrap(err, "failed to get user recent activity")
+		return nil, fmt.Errorf("failed to get user recent activity: %w", err)
 	}
 
 	recentActivity := make([]ActivityInfo, len(activityRows))
@@ -302,13 +301,13 @@ func (s *AuthUserService) GetUserSessionHistory(ctx context.Context, email strin
 		Offset: offset,
 	})
 	if err != nil {
-		return nil, 0, eris.Wrap(err, "failed to get user session history")
+		return nil, 0, fmt.Errorf("failed to get user session history: %w", err)
 	}
 
 	// Get total count
 	totalCount, err := s.q.GetUserSessionHistoryCountByEmail(ctx, email)
 	if err != nil {
-		return nil, 0, eris.Wrap(err, "failed to get user session history count")
+		return nil, 0, fmt.Errorf("failed to get user session history count: %w", err)
 	}
 
 	sessionHistory := make([]SessionHistoryInfo, len(sessionRows))

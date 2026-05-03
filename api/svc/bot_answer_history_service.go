@@ -1,9 +1,9 @@
 package svc
 
 import (
+	"fmt"
 	"context"
 
-	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -23,7 +23,7 @@ func (s *BotAnswerHistoryService) Q() *sqlc_queries.Queries { return s.q }
 func (s *BotAnswerHistoryService) CreateBotAnswerHistory(ctx context.Context, params sqlc_queries.CreateBotAnswerHistoryParams) (sqlc_queries.BotAnswerHistory, error) {
 	history, err := s.q.CreateBotAnswerHistory(ctx, params)
 	if err != nil {
-		return sqlc_queries.BotAnswerHistory{}, eris.Wrap(err, "failed to create bot answer history")
+		return sqlc_queries.BotAnswerHistory{}, fmt.Errorf("failed to create bot answer history: %w", err)
 	}
 	return history, nil
 }
@@ -32,7 +32,7 @@ func (s *BotAnswerHistoryService) CreateBotAnswerHistory(ctx context.Context, pa
 func (s *BotAnswerHistoryService) GetBotAnswerHistoryByID(ctx context.Context, id int32) (sqlc_queries.GetBotAnswerHistoryByIDRow, error) {
 	history, err := s.q.GetBotAnswerHistoryByID(ctx, id)
 	if err != nil {
-		return sqlc_queries.GetBotAnswerHistoryByIDRow{}, eris.Wrap(err, "failed to get bot answer history by ID")
+		return sqlc_queries.GetBotAnswerHistoryByIDRow{}, fmt.Errorf("failed to get bot answer history by ID: %w", err)
 	}
 	return history, nil
 }
@@ -46,7 +46,7 @@ func (s *BotAnswerHistoryService) GetBotAnswerHistoryByBotUUID(ctx context.Conte
 	}
 	history, err := s.q.GetBotAnswerHistoryByBotUUID(ctx, params)
 	if err != nil {
-		return nil, eris.Wrap(err, "failed to get bot answer history by bot UUID")
+		return nil, fmt.Errorf("failed to get bot answer history by bot UUID: %w", err)
 	}
 	return history, nil
 }
@@ -60,7 +60,7 @@ func (s *BotAnswerHistoryService) GetBotAnswerHistoryByUserID(ctx context.Contex
 	}
 	history, err := s.q.GetBotAnswerHistoryByUserID(ctx, params)
 	if err != nil {
-		return nil, eris.Wrap(err, "failed to get bot answer history by user ID")
+		return nil, fmt.Errorf("failed to get bot answer history by user ID: %w", err)
 	}
 	return history, nil
 }
@@ -74,7 +74,7 @@ func (s *BotAnswerHistoryService) UpdateBotAnswerHistory(ctx context.Context, id
 	}
 	history, err := s.q.UpdateBotAnswerHistory(ctx, params)
 	if err != nil {
-		return sqlc_queries.BotAnswerHistory{}, eris.Wrap(err, "failed to update bot answer history")
+		return sqlc_queries.BotAnswerHistory{}, fmt.Errorf("failed to update bot answer history: %w", err)
 	}
 	return history, nil
 }
@@ -83,7 +83,7 @@ func (s *BotAnswerHistoryService) UpdateBotAnswerHistory(ctx context.Context, id
 func (s *BotAnswerHistoryService) DeleteBotAnswerHistory(ctx context.Context, id int32) error {
 	err := s.q.DeleteBotAnswerHistory(ctx, id)
 	if err != nil {
-		return eris.Wrap(err, "failed to delete bot answer history")
+		return fmt.Errorf("failed to delete bot answer history: %w", err)
 	}
 	return nil
 }
@@ -92,7 +92,7 @@ func (s *BotAnswerHistoryService) DeleteBotAnswerHistory(ctx context.Context, id
 func (s *BotAnswerHistoryService) GetBotAnswerHistoryCountByBotUUID(ctx context.Context, botUUID string) (int64, error) {
 	count, err := s.q.GetBotAnswerHistoryCountByBotUUID(ctx, botUUID)
 	if err != nil {
-		return 0, eris.Wrap(err, "failed to get bot answer history count by bot UUID")
+		return 0, fmt.Errorf("failed to get bot answer history count by bot UUID: %w", err)
 	}
 	return count, nil
 }
@@ -101,7 +101,7 @@ func (s *BotAnswerHistoryService) GetBotAnswerHistoryCountByBotUUID(ctx context.
 func (s *BotAnswerHistoryService) GetBotAnswerHistoryCountByUserID(ctx context.Context, userID int32) (int64, error) {
 	count, err := s.q.GetBotAnswerHistoryCountByUserID(ctx, userID)
 	if err != nil {
-		return 0, eris.Wrap(err, "failed to get bot answer history count by user ID")
+		return 0, fmt.Errorf("failed to get bot answer history count by user ID: %w", err)
 	}
 	return count, nil
 }
@@ -114,7 +114,7 @@ func (s *BotAnswerHistoryService) GetLatestBotAnswerHistoryByBotUUID(ctx context
 	}
 	history, err := s.q.GetLatestBotAnswerHistoryByBotUUID(ctx, params)
 	if err != nil {
-		return nil, eris.Wrap(err, "failed to get latest bot answer history by bot UUID")
+		return nil, fmt.Errorf("failed to get latest bot answer history by bot UUID: %w", err)
 	}
 	return history, nil
 }

@@ -1,9 +1,9 @@
 package svc
 
 import (
+	"fmt"
 	"context"
 	"database/sql"
-	"github.com/rotisserie/eris"
 	sqlc "github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -33,7 +33,7 @@ func (s *UserActiveChatSessionService) UpsertActiveSession(ctx context.Context, 
 		ChatSessionUuid: sessionUUID,
 	})
 	if err != nil {
-		return sqlc.UserActiveChatSession{}, eris.Wrap(err, "failed to upsert active session")
+		return sqlc.UserActiveChatSession{}, fmt.Errorf("failed to upsert active session: %w", err)
 	}
 	return session, nil
 }
@@ -50,7 +50,7 @@ func (s *UserActiveChatSessionService) GetActiveSession(ctx context.Context, use
 		Column2: workspaceParam, // SQLC generated this awkward name due to the complex WHERE clause
 	})
 	if err != nil {
-		return sqlc.UserActiveChatSession{}, eris.Wrap(err, "failed to get active session")
+		return sqlc.UserActiveChatSession{}, fmt.Errorf("failed to get active session: %w", err)
 	}
 	return session, nil
 }
@@ -59,7 +59,7 @@ func (s *UserActiveChatSessionService) GetActiveSession(ctx context.Context, use
 func (s *UserActiveChatSessionService) GetAllActiveSessions(ctx context.Context, userID int32) ([]sqlc.UserActiveChatSession, error) {
 	sessions, err := s.q.GetAllUserActiveSessions(ctx, userID)
 	if err != nil {
-		return nil, eris.Wrap(err, "failed to get all active sessions")
+		return nil, fmt.Errorf("failed to get all active sessions: %w", err)
 	}
 	return sessions, nil
 }
@@ -76,7 +76,7 @@ func (s *UserActiveChatSessionService) DeleteActiveSession(ctx context.Context, 
 		Column2: workspaceParam, // SQLC generated this awkward name
 	})
 	if err != nil {
-		return eris.Wrap(err, "failed to delete active session")
+		return fmt.Errorf("failed to delete active session: %w", err)
 	}
 	return nil
 }

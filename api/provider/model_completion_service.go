@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,7 +10,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/rotisserie/eris"
 	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/swuecho/chat_backend/models"
@@ -37,11 +37,11 @@ func (m *CompletionChatModel) Stream(w http.ResponseWriter, chatSession sqlc_que
 // completionStream handles streaming for OpenAI completion models
 func (m *CompletionChatModel) completionStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, _ bool) (*models.LLMAnswer, error) {
 	// Check per chat_model rate limit
-	m.h.Config().RateLimiter.Wait(context.Background())
+	m.h.Config().RateLimiter.Wait(m.h.RequestContext())
 
 	exceedPerModeRateLimitOrError := m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
 	if exceedPerModeRateLimitOrError {
-		return nil, eris.New("exceed per mode rate limit")
+		return nil, fmt.Errorf("exceed per mode rate limit")
 	}
 
 	// Get chat model configuration
@@ -75,7 +75,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 	}
 
 	// Create completion stream with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), dto.DefaultRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, dto.DefaultRequestTimeout)
 	defer cancel()
 
 	stream, err := client.CreateCompletionStream(ctx, req)

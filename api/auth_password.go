@@ -2,7 +2,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 
@@ -51,7 +50,7 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err := h.service.UpdateUserPassword(context.Background(), sqlc_queries.UpdateUserPasswordParams{
+	if err := h.service.UpdateUserPassword(r.Context(), sqlc_queries.UpdateUserPasswordParams{
 		Email: req.Email, Password: hashedPassword,
 	}); err != nil {
 		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to update password").WithDebugInfo(err.Error()))
@@ -85,7 +84,7 @@ func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := h.service.UpdateUserPassword(context.Background(), sqlc_queries.UpdateUserPasswordParams{
+	if err := h.service.UpdateUserPassword(r.Context(), sqlc_queries.UpdateUserPasswordParams{
 		Email: req.Email, Password: string(hashedPassword),
 	}); err != nil {
 		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update password"))

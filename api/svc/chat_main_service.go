@@ -12,7 +12,6 @@ import (
 	"time"
 
 	_ "embed"
-	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chat_backend/llm/gemini"
@@ -41,7 +40,7 @@ func (s *ChatService) Q() *sqlc_queries.Queries { return s.q }
 // Returns the instruction content or an error if the file cannot be read.
 func LoadArtifactInstruction() (string, error) {
 	if artifactInstructionText == "" {
-		return "", eris.New("artifact instruction text is empty")
+		return "", fmt.Errorf("artifact instruction text is empty")
 	}
 	return artifactInstructionText, nil
 }
@@ -75,8 +74,8 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 //   - regenerate: If true, excludes the target message from history
 //
 // Returns combined message array or error.
-func (s *ChatService) GetAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*dto.RequestTimeoutSeconds)
+func (s *ChatService) GetAskMessages(ctx context.Context, chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*dto.RequestTimeoutSeconds)
 	defer cancel()
 
 	chatSessionUuid := chatSession.Uuid
@@ -89,7 +88,7 @@ func (s *ChatService) GetAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	chat_prompts, err := s.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
 
 	if err != nil {
-		return nil, eris.Wrap(err, "fail to get prompt: ")
+		return nil, fmt.Errorf("fail to get prompt: : %w", err)
 	}
 
 	var chatMessages []sqlc_queries.ChatMessage
@@ -107,7 +106,7 @@ func (s *ChatService) GetAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	}
 
 	if err != nil {
-		return nil, eris.Wrap(err, "fail to get messages: ")
+		return nil, fmt.Errorf("fail to get messages: : %w", err)
 	}
 	chatPromptMsgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) models.Message {
 		msg := models.Message{Role: m.Role, Content: m.Content}
@@ -211,7 +210,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	}
 	message, err := s.q.CreateChatMessage(ctx, chatMessage)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
+		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message : %w", err)
 	}
 	return message, nil
 }
@@ -242,7 +241,7 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 	// Generate suggested questions if explore mode is enabled and role is assistant
 	suggestedQuestions := json.RawMessage([]byte("[]"))
 	if exploreMode && role == "assistant" && messages != nil {
-		questions := s.GenerateSuggestedQuestions(content, messages)
+		questions := s.GenerateSuggestedQuestions(ctx, content, messages)
 		if questionsJSON, err := json.Marshal(questions); err == nil {
 			suggestedQuestions = questionsJSON
 		} else {
@@ -268,13 +267,13 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 	}
 	message, err := s.q.CreateChatMessage(ctx, chatMessage)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
+		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message : %w", err)
 	}
 	return message, nil
 }
 
 // generateSuggestedQuestions generates follow-up questions based on the conversation context
-func (s *ChatService) GenerateSuggestedQuestions(content string, messages []models.Message) []string {
+func (s *ChatService) GenerateSuggestedQuestions(ctx context.Context, content string, messages []models.Message) []string {
 	// Create a simplified prompt to generate follow-up questions
 	prompt := `Based on the following conversation, generate 3 thoughtful follow-up questions that would help explore the topic further. Return only the questions, one per line, without numbering or bullet points.
 
@@ -294,7 +293,7 @@ Conversation context:
 	prompt += fmt.Sprintf("assistant: %s\n\nGenerate 3 follow-up questions:", content)
 
 	// Use the preferred models (deepseek-chat or gemini-2.0-flash) to generate suggestions
-	questions := s.callLLMForSuggestions(prompt)
+	questions := s.callLLMForSuggestions(ctx, prompt)
 
 	// Parse the response into individual questions
 	lines := strings.Split(strings.TrimSpace(questions), "\n")
@@ -316,8 +315,7 @@ Conversation context:
 }
 
 // callLLMForSuggestions makes a simple API call to generate suggested questions
-func (s *ChatService) callLLMForSuggestions(prompt string) string {
-	ctx := context.Background()
+func (s *ChatService) callLLMForSuggestions(ctx context.Context, prompt string) string {
 
 	// Get all models and find preferred models for suggestions
 	allModels, err := s.q.ListChatModels(ctx)

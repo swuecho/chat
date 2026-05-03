@@ -183,7 +183,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		return
 	}
 
-	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, true)
+	msgs, err := h.service.GetAskMessages(ctx, *chatSession, chatUuid, true)
 	if err != nil {
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to get chat messages"
@@ -208,7 +208,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 	}
 
 	if chatSession.ExploreMode {
-		suggested := h.service.GenerateSuggestedQuestions(LLMAnswer.Answer, msgs)
+		suggested := h.service.GenerateSuggestedQuestions(ctx, LLMAnswer.Answer, msgs)
 		if len(suggested) > 0 {
 			if questionsJSON, err := json.Marshal(suggested); err == nil {
 				h.service.UpdateChatMessageSuggestions(ctx, chatUuid, questionsJSON)

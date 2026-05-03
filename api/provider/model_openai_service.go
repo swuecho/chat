@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rotisserie/eris"
 	openai "github.com/sashabaranov/go-openai"
 	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/models"
@@ -30,11 +29,11 @@ func NewOpenAIChatModel(h Handler) *OpenAIChatModel {
 }
 
 func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
-	m.h.Config().RateLimiter.Wait(context.Background())
+	m.h.Config().RateLimiter.Wait(m.h.RequestContext())
 
 	exceedPerModeRateLimitOrError := m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
 	if exceedPerModeRateLimitOrError {
-		return nil, eris.New("exceed per mode rate limit")
+		return nil, fmt.Errorf("exceed per mode rate limit")
 	}
 
 	chatModel, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
@@ -65,14 +64,14 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	if streamOutput {
 		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate, m.h, chatModel.Url, config.BaseURL)
 	} else {
-		return handleRegularResponse(w, client, openaiReq, chatModel.Url, config.BaseURL)
+		return handleRegularResponse(m.h.RequestContext(), w, client, openaiReq, chatModel.Url, config.BaseURL)
 	}
 
 }
 
-func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
+func handleRegularResponse(ctx context.Context, w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
 	// check per chat_model limit
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
 	completion, err := client.CreateChatCompletion(ctx, req)
@@ -89,12 +88,8 @@ func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req ope
 // doChatStream handles streaming chat completion responses from OpenAI
 // It properly manages thinking tags for models that support reasoning content
 func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, handler Handler, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
-	// Use request context with timeout, but prioritize client cancellation
-	baseCtx := context.Background()
-	if handler != nil {
-		baseCtx = handler.RequestContext()
-	}
-	ctx, cancel := context.WithTimeout(baseCtx, 5*time.Minute)
+	// Use request context with timeout
+	ctx, cancel := context.WithTimeout(handler.RequestContext(), 5*time.Minute)
 	defer cancel()
 
 	log.Print("Creating OpenAI stream")

@@ -4,11 +4,11 @@ package svc
 // if not, create them
 
 import (
+	"fmt"
 	"context"
 	"database/sql"
 	"errors"
 
-	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -29,7 +29,7 @@ func (s *JWTSecretService) Q() *sqlc_queries.Queries { return s.q }
 func (s *JWTSecretService) GetJwtSecret(ctx context.Context, name string) (sqlc_queries.JwtSecret, error) {
 	secret, err := s.q.GetJwtSecret(ctx, name)
 	if err != nil {
-		return sqlc_queries.JwtSecret{}, eris.Wrap(err, "failed to get secret ")
+		return sqlc_queries.JwtSecret{}, fmt.Errorf("failed to get secret : %w", err)
 	}
 	return secret, nil
 }
@@ -48,10 +48,10 @@ func (s *JWTSecretService) GetOrCreateJwtSecret(ctx context.Context, name string
 				Audience: aud_str,
 			})
 			if err != nil {
-				return sqlc_queries.JwtSecret{}, eris.Wrap(err, "failed to create secret ")
+				return sqlc_queries.JwtSecret{}, fmt.Errorf("failed to create secret : %w", err)
 			}
 		} else {
-			return sqlc_queries.JwtSecret{}, eris.Wrap(err, "failed to create secret ")
+			return sqlc_queries.JwtSecret{}, fmt.Errorf("failed to create secret : %w", err)
 		}
 	}
 	return secret, nil
