@@ -1,7 +1,6 @@
 package svc
 
 import (
-	"context"
 	"errors"
 	"testing"
 )
