@@ -18,6 +18,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/swuecho/chat_backend/config"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/handler"
 	"github.com/swuecho/chat_backend/middleware"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -48,14 +49,15 @@ func main() {
 
 func run() error {
 	// --- Configuration ---
-	appConfig = config.Load()
-	cfg := appConfig
+	appCfg = config.Load()
+	cfg := appCfg
 
 	// Initialize package-level configs
 	provider.OpenAIToken = cfg.OPENAI.API_KEY
 	svc.Cfg.OpenAIKey = cfg.OPENAI.API_KEY
 	svc.Cfg.OpenAIProxy = cfg.OPENAI.PROXY_URL
 	svc.Cfg.DefaultLimit = int32(cfg.OPENAI.RATELIMIT)
+	appCfg = cfg
 
 	// --- Database ---
 	pgdb, err := openDB(cfg)
@@ -80,8 +82,8 @@ func run() error {
 	}
 
 	// JWT secret
-	secretSvc := NewJWTSecretService(srv.q)
-	jwtSecretAndAud, err = secretSvc.GetOrCreateJwtSecret(context.Background(), "chat")
+	secretSvc := svc.NewJWTSecretService(srv.q)
+	jwtSecretAndAud, err := secretSvc.GetOrCreateJwtSecret(context.Background(), "chat")
 	if err != nil {
 		return fmt.Errorf("jwt secret: %w", err)
 	}
@@ -210,54 +212,55 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 // registerRoutes wires all HTTP handlers.
 func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) {
 	q := s.q
+	rateLimit := int32(s.cfg.OPENAI.RATELIMIT)
 
 	// Public
-	apiRouter.HandleFunc("/tts", handleTTSRequest)
+	apiRouter.HandleFunc("/tts", handler.HandleTTSRequest)
 	apiRouter.HandleFunc("/errors", dto.ErrorCatalogHandler)
 
 	// Chat models
-	NewChatModelHandler(q).Register(userRouter)
+	handler.NewChatModelHandler(q).Register(userRouter)
 
 	// Auth
-	authHandler := NewAuthUserHandler(q)
+	authHandler := handler.NewAuthUserHandler(q, s.jwtSecret.Secret, s.jwtSecret.Audience, rateLimit)
 	authHandler.Register(userRouter)
 	authHandler.RegisterPublicRoutes(apiRouter)
 
 	// Admin
-	NewAdminHandler(NewAuthUserService(q)).RegisterRoutes(adminRouter)
+	handler.NewAdminHandler(svc.NewAuthUserService(q), rateLimit).RegisterRoutes(adminRouter)
 
 	// Prompts
-	NewChatPromptHandler(q).Register(userRouter)
+	handler.NewChatPromptHandler(q).Register(userRouter)
 
 	// Sessions
-	NewChatSessionHandler(q).Register(userRouter)
+	handler.NewChatSessionHandler(q).Register(userRouter)
 
 	// Active sessions
-	NewUserActiveChatSessionHandler(q).Register(userRouter)
+	handler.NewUserActiveChatSessionHandler(q).Register(userRouter)
 
 	// Workspaces
-	NewChatWorkspaceHandler(q).Register(userRouter)
+	handler.NewChatWorkspaceHandler(q).Register(userRouter)
 
 	// Messages
-	NewChatMessageHandler(q).Register(userRouter)
+	handler.NewChatMessageHandler(q).Register(userRouter)
 
 	// Snapshots
-	NewChatSnapshotHandler(q).Register(userRouter)
+	handler.NewChatSnapshotHandler(q).Register(userRouter)
 
 	// Chat stream
-	NewChatHandler(q).Register(userRouter)
+	handler.NewChatHandler(q, s.rateLimiter).Register(userRouter)
 
 	// Model privileges
-	NewUserChatModelPrivilegeHandler(q).Register(userRouter)
+	handler.NewUserChatModelPrivilegeHandler(q).Register(userRouter)
 
 	// Files
-	NewChatFileHandler(q).Register(userRouter)
+	handler.NewChatFileHandler(q).Register(userRouter)
 
 	// Comments
-	NewChatCommentHandler(q).Register(userRouter)
+	handler.NewChatCommentHandler(q).Register(userRouter)
 
 	// Bot history
-	NewBotAnswerHistoryHandler(q).Register(userRouter)
+	handler.NewBotAnswerHistoryHandler(q).Register(userRouter)
 }
 
 // healthCheck returns server health status.
@@ -351,14 +354,6 @@ func (s *server) idleMonitor() {
 	}
 }
 
-// Package-level vars retained for backward compatibility with existing handler/provider code.
-// These will be eliminated when handlers are refactored to use dependency injection.
-var (
-	appConfig        config.AppConfig
-	jwtSecretAndAud  sqlc_queries.JwtSecret
-	openAIRateLimiter *rate.Limiter
-)
-
-func init() {
-	openAIRateLimiter = rate.NewLimiter(rate.Every(time.Minute/3000), 500)
-}
+// Package-level var for the application config, used where dependency injection
+// is not yet feasible (e.g., during initialization order).
+var appCfg config.AppConfig

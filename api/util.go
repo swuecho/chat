@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/middleware"
 )
 
 func NewUUID() string {
@@ -114,6 +116,12 @@ func getLimitParam(r *http.Request, defaultLimit int32) int32 {
 
 func DecodeJSON(r *http.Request, target interface{}) error {
 	return json.NewDecoder(r.Body).Decode(target)
+}
+
+// getContextWithUser creates a background context with the given user ID.
+// Used by test helpers.
+func getContextWithUser(userID int) context.Context {
+	return context.WithValue(context.Background(), middleware.UserContextKey, strconv.Itoa(userID))
 }
 
 
