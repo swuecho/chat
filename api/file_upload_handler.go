@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -36,9 +35,15 @@ const maxUploadSize = 32 << 20 // 32MB
 func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 
-	sessionUUID := r.Header.Get("X-Session-Uuid")
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		RespondWithAPIError(w, ErrValidationInvalidInput(
+			fmt.Sprintf("file too large, max size is %d bytes", maxUploadSize)))
+		return
+	}
+
+	sessionUUID := r.FormValue("session-uuid")
 	if sessionUUID == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("missing X-Session-Uuid header"))
+		RespondWithAPIError(w, ErrValidationInvalidInput("missing session UUID"))
 		return
 	}
 
@@ -48,48 +53,30 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mimeType := r.Header.Get("Content-Type")
-	var data []byte
-	var filename string
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		RespondWithAPIError(w, ErrValidationInvalidInput("failed to read uploaded file").WithDebugInfo(err.Error()))
+		return
+	}
+	defer file.Close()
 
-	if strings.HasPrefix(mimeType, "multipart/form-data") {
-		reader, err := r.MultipartReader()
-		if err != nil {
-			RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse multipart form").WithDebugInfo(err.Error()))
-			return
-		}
-		part, err := reader.NextPart()
-		if err != nil {
-			RespondWithAPIError(w, ErrValidationInvalidInput("failed to read form part").WithDebugInfo(err.Error()))
-			return
-		}
-		filename = part.FileName()
-		mimeType = part.Header.Get("Content-Type")
-		var buf bytes.Buffer
-		if _, err := io.Copy(&buf, part); err != nil {
-			RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("failed to read file data").WithDebugInfo(err.Error()))
-			return
-		}
-		data = buf.Bytes()
-	} else {
-		filename = r.Header.Get("X-File-Name")
-		limitedReader := io.LimitReader(r.Body, maxUploadSize+1)
-		var buf bytes.Buffer
-		n, err := io.CopyN(&buf, limitedReader, maxUploadSize+1)
-		if err != nil && err != io.EOF {
-			RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("failed to read request body").WithDebugInfo(err.Error()))
-			return
-		}
-		if n > maxUploadSize {
-			RespondWithAPIError(w, ErrValidationInvalidInput(fmt.Sprintf("file exceeds maximum size of %d bytes", maxUploadSize)))
-			return
-		}
-		data = buf.Bytes()
+	mimeType := header.Header.Get("Content-Type")
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
 	}
 
-	file, err := h.service.CreateChatUpload(r.Context(), sqlc_queries.CreateChatFileParams{
-		ChatSessionUuid: sessionUUID, UserID: userID,
-		Name: filename, Data: data, MimeType: mimeType,
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, file); err != nil {
+		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("failed to read file data").WithDebugInfo(err.Error()))
+		return
+	}
+
+	chatFile, err := h.service.CreateChatUpload(r.Context(), sqlc_queries.CreateChatFileParams{
+		ChatSessionUuid: sessionUUID,
+		UserID:          userID,
+		Name:            header.Filename,
+		Data:            buf.Bytes(),
+		MimeType:        mimeType,
 	})
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to create chat file record"))
@@ -99,8 +86,10 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
-		"url": fmt.Sprintf("/download/%d", file.ID), "name": filename,
-		"type": mimeType, "size": fmt.Sprintf("%d", len(data)),
+		"url":  fmt.Sprintf("/download/%d", chatFile.ID),
+		"name": header.Filename,
+		"type": mimeType,
+		"size": fmt.Sprintf("%d", header.Size),
 	})
 }
 
@@ -153,7 +142,6 @@ func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Return only safe metadata (not raw file data)
 	type fileMeta struct {
 		ID   int32  `json:"id"`
 		Name string `json:"name"`
@@ -164,5 +152,3 @@ func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.
 	}
 	json.NewEncoder(w).Encode(meta)
 }
-
-

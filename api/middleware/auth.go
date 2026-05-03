@@ -257,13 +257,18 @@ func GetRequestID(ctx context.Context) string {
 const MaxBodySize = 1 << 20
 
 // BodyLimitMiddleware limits request body size to prevent DoS.
+// Routes with their own size limits (e.g., /api/upload) are excluded.
 func BodyLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Body != nil {
+		if r.Body != nil && !isUploadRoute(r.URL.Path) {
 			r.Body = http.MaxBytesReader(w, r.Body, MaxBodySize)
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func isUploadRoute(path string) bool {
+	return strings.HasPrefix(path, "/api/upload") || strings.HasPrefix(path, "/api/download")
 }
 
 // RecoveryMiddleware recovers from panics and returns a 500 error.
