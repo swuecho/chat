@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -92,15 +93,15 @@ func (s *AuthUserService) Logout(tokenString string) (*http.Cookie, error) {
 // GetUserStat(page, page_size) -> {data: [{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}], total: 100}
 // GetTotalUserCount
 // GetUserStat(page, page_size) ->[{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}]
-func (s *AuthUserService) GetUserStats(ctx context.Context, p dto.Pagination) ([]sqlc_queries.GetUserStatsRow, int64, error) {
+func (s *AuthUserService) GetUserStats(ctx context.Context, p dto.Pagination, defaultRateLimit int32) ([]sqlc_queries.GetUserStatsRow, int64, error) {
 	auth_users_stat, err := s.q.GetUserStats(ctx,
 		sqlc_queries.GetUserStatsParams{
 			Offset:           p.Offset(),
 			Limit:            p.Size,
-			DefaultRateLimit: s.defaultLimit,
+			DefaultRateLimit: defaultRateLimit,
 		})
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to retrieve user stats : %w", err)
+		return nil, 0, eris.Wrap(err, "failed to retrieve user stats ")
 	}
 	total, err := s.q.GetTotalActiveUserCount(ctx)
 	if err != nil {
@@ -200,20 +201,20 @@ type SessionHistoryInfo struct {
 }
 
 // GetUserAnalysis retrieves comprehensive user analysis data
-func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string) (*UserAnalysisData, error) {
+func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string, defaultRateLimit int32) (*UserAnalysisData, error) {
 	// Get basic user info
 	userInfo, err := s.q.GetUserAnalysisByEmail(ctx, sqlc_queries.GetUserAnalysisByEmailParams{
 		Email:            email,
-		DefaultRateLimit: s.defaultLimit,
+		DefaultRateLimit: defaultRateLimit,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user analysis: %w", err)
+		return nil, eris.Wrap(err, "failed to get user analysis")
 	}
 
 	// Get model usage
 	modelUsageRows, err := s.q.GetUserModelUsageByEmail(ctx, email)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user model usage: %w", err)
+		return nil, eris.Wrap(err, "failed to get user model usage")
 	}
 
 	// Calculate total tokens for percentage calculation
@@ -252,7 +253,7 @@ func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string) (*U
 	// Get recent activity
 	activityRows, err := s.q.GetUserRecentActivityByEmail(ctx, email)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user recent activity: %w", err)
+		return nil, eris.Wrap(err, "failed to get user recent activity")
 	}
 
 	recentActivity := make([]ActivityInfo, len(activityRows))
@@ -301,13 +302,13 @@ func (s *AuthUserService) GetUserSessionHistory(ctx context.Context, email strin
 		Offset: offset,
 	})
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to get user session history: %w", err)
+		return nil, 0, eris.Wrap(err, "failed to get user session history")
 	}
 
 	// Get total count
 	totalCount, err := s.q.GetUserSessionHistoryCountByEmail(ctx, email)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to get user session history count: %w", err)
+		return nil, 0, eris.Wrap(err, "failed to get user session history count")
 	}
 
 	sessionHistory := make([]SessionHistoryInfo, len(sessionRows))

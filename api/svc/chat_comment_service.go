@@ -1,10 +1,10 @@
 package svc
 
 import (
-	"fmt"
 	"context"
 	"time"
 
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -23,7 +23,7 @@ func (s *ChatCommentService) Q() *sqlc_queries.Queries { return s.q }
 func (s *ChatCommentService) CreateChatComment(ctx context.Context, params sqlc_queries.CreateChatCommentParams) (sqlc_queries.ChatComment, error) {
 	comment, err := s.q.CreateChatComment(ctx, params)
 	if err != nil {
-		return sqlc_queries.ChatComment{}, fmt.Errorf("failed to create comment: %w", err)
+		return sqlc_queries.ChatComment{}, eris.Wrap(err, "failed to create comment")
 	}
 	return comment, nil
 }
@@ -32,7 +32,7 @@ func (s *ChatCommentService) CreateChatComment(ctx context.Context, params sqlc_
 func (s *ChatCommentService) GetCommentsBySessionUUID(ctx context.Context, sessionUUID string) ([]sqlc_queries.GetCommentsBySessionUUIDRow, error) {
 	comments, err := s.q.GetCommentsBySessionUUID(ctx, sessionUUID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get comments by session UUID: %w", err)
+		return nil, eris.Wrap(err, "failed to get comments by session UUID")
 	}
 	return comments, nil
 }
@@ -41,7 +41,7 @@ func (s *ChatCommentService) GetCommentsBySessionUUID(ctx context.Context, sessi
 func (s *ChatCommentService) GetCommentsByMessageUUID(ctx context.Context, messageUUID string) ([]sqlc_queries.GetCommentsByMessageUUIDRow, error) {
 	comments, err := s.q.GetCommentsByMessageUUID(ctx, messageUUID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get comments by message UUID: %w", err)
+		return nil, eris.Wrap(err, "failed to get comments by message UUID")
 	}
 	return comments, nil
 }
@@ -59,7 +59,7 @@ type CommentWithAuthor struct {
 func (s *ChatCommentService) GetCommentsBySession(ctx context.Context, sessionUUID string) ([]CommentWithAuthor, error) {
 	comments, err := s.q.GetCommentsBySessionUUID(ctx, sessionUUID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get comments by session: %w", err)
+		return nil, eris.Wrap(err, "failed to get comments by session")
 	}
 
 	result := make([]CommentWithAuthor, len(comments))
@@ -79,7 +79,7 @@ func (s *ChatCommentService) GetCommentsBySession(ctx context.Context, sessionUU
 func (s *ChatCommentService) GetCommentsByMessage(ctx context.Context, messageUUID string) ([]CommentWithAuthor, error) {
 	comments, err := s.q.GetCommentsByMessageUUID(ctx, messageUUID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get comments by message: %w", err)
+		return nil, eris.Wrap(err, "failed to get comments by message")
 	}
 
 	result := make([]CommentWithAuthor, len(comments))

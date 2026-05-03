@@ -70,7 +70,7 @@ func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination)
+	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
 	if err != nil {
 		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get user stats"))
 		return
@@ -141,7 +141,7 @@ func (h *AdminHandler) UserAnalysisHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	analysisData, err := h.service.GetUserAnalysis(r.Context(), email)
+	analysisData, err := h.service.GetUserAnalysis(r.Context(), email, int32(appConfig.OPENAI.RATELIMIT))
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "Failed to get user analysis"))
 		return

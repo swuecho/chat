@@ -1,13 +1,13 @@
 package svc
 
 import (
-	"fmt"
 	"context"
 	"database/sql"
 	"errors"
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -28,55 +28,55 @@ func (s *ChatWorkspaceService) Q() *sqlc_queries.Queries { return s.q }
 
 func (s *ChatWorkspaceService) CreateWorkspace(ctx context.Context, params sqlc_queries.CreateWorkspaceParams) (sqlc_queries.ChatWorkspace, error) {
 	w, err := s.q.CreateWorkspace(ctx, params)
-	return w, fmt.Errorf("failed to create workspace: %w", err)
+	return w, eris.Wrap(err, "failed to create workspace")
 }
 
 func (s *ChatWorkspaceService) GetWorkspaceByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatWorkspace, error) {
 	w, err := s.q.GetWorkspaceByUUID(ctx, uuid)
-	return w, fmt.Errorf("failed to retrieve workspace: %w", err)
+	return w, eris.Wrap(err, "failed to retrieve workspace")
 }
 
 func (s *ChatWorkspaceService) GetWorkspacesByUserID(ctx context.Context, userID int32) ([]sqlc_queries.ChatWorkspace, error) {
 	ws, err := s.q.GetWorkspacesByUserID(ctx, userID)
-	return ws, fmt.Errorf("failed to retrieve workspaces: %w", err)
+	return ws, eris.Wrap(err, "failed to retrieve workspaces")
 }
 
 func (s *ChatWorkspaceService) GetWorkspaceWithSessionCount(ctx context.Context, userID int32) ([]sqlc_queries.GetWorkspaceWithSessionCountRow, error) {
 	ws, err := s.q.GetWorkspaceWithSessionCount(ctx, userID)
-	return ws, fmt.Errorf("failed to retrieve workspaces with session count: %w", err)
+	return ws, eris.Wrap(err, "failed to retrieve workspaces with session count")
 }
 
 func (s *ChatWorkspaceService) UpdateWorkspace(ctx context.Context, params sqlc_queries.UpdateWorkspaceParams) (sqlc_queries.ChatWorkspace, error) {
 	w, err := s.q.UpdateWorkspace(ctx, params)
-	return w, fmt.Errorf("failed to update workspace: %w", err)
+	return w, eris.Wrap(err, "failed to update workspace")
 }
 
 func (s *ChatWorkspaceService) UpdateWorkspaceOrder(ctx context.Context, params sqlc_queries.UpdateWorkspaceOrderParams) (sqlc_queries.ChatWorkspace, error) {
 	w, err := s.q.UpdateWorkspaceOrder(ctx, params)
-	return w, fmt.Errorf("failed to update workspace order: %w", err)
+	return w, eris.Wrap(err, "failed to update workspace order")
 }
 
 func (s *ChatWorkspaceService) DeleteWorkspace(ctx context.Context, uuid string) error {
-	return fmt.Errorf("failed to delete workspace: %w", s.q.DeleteWorkspace(ctx, uuid))
+	return eris.Wrap(s.q.DeleteWorkspace(ctx, uuid), "failed to delete workspace")
 }
 
 // --- Default workspace ---
 
 func (s *ChatWorkspaceService) GetDefaultWorkspaceByUserID(ctx context.Context, userID int32) (sqlc_queries.ChatWorkspace, error) {
 	w, err := s.q.GetDefaultWorkspaceByUserID(ctx, userID)
-	return w, fmt.Errorf("failed to retrieve default workspace: %w", err)
+	return w, eris.Wrap(err, "failed to retrieve default workspace")
 }
 
 func (s *ChatWorkspaceService) SetDefaultWorkspace(ctx context.Context, params sqlc_queries.SetDefaultWorkspaceParams) (sqlc_queries.ChatWorkspace, error) {
 	w, err := s.q.SetDefaultWorkspace(ctx, params)
-	return w, fmt.Errorf("failed to set default workspace: %w", err)
+	return w, eris.Wrap(err, "failed to set default workspace")
 }
 
 func (s *ChatWorkspaceService) CreateDefaultWorkspace(ctx context.Context, userID int32) (sqlc_queries.ChatWorkspace, error) {
 	w, err := s.q.CreateDefaultWorkspace(ctx, sqlc_queries.CreateDefaultWorkspaceParams{
 		Uuid: uuid.New().String(), UserID: userID,
 	})
-	return w, fmt.Errorf("failed to create default workspace: %w", err)
+	return w, eris.Wrap(err, "failed to create default workspace")
 }
 
 func (s *ChatWorkspaceService) EnsureDefaultWorkspaceExists(ctx context.Context, userID int32) (sqlc_queries.ChatWorkspace, error) {
@@ -121,7 +121,7 @@ func (s *ChatWorkspaceService) HasWorkspacePermission(ctx context.Context, uuid 
 		Uuid: uuid, UserID: userID,
 	})
 	if err != nil {
-		return false, fmt.Errorf("failed to check workspace permission: %w", err)
+		return false, eris.Wrap(err, "failed to check workspace permission")
 	}
 	return result, nil
 }
@@ -142,7 +142,7 @@ func (s *ChatWorkspaceService) CreateSessionInWorkspace(ctx context.Context, use
 		WorkspaceID: sql.NullInt32{Int32: workspaceID, Valid: true},
 	})
 	if err != nil {
-		return sqlc_queries.ChatSession{}, fmt.Errorf("failed to create session in workspace: %w", err)
+		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to create session in workspace")
 	}
 
 	return session, nil
@@ -151,7 +151,7 @@ func (s *ChatWorkspaceService) CreateSessionInWorkspace(ctx context.Context, use
 // GetSessionsByWorkspaceID returns all sessions in a workspace.
 func (s *ChatWorkspaceService) GetSessionsByWorkspaceID(ctx context.Context, workspaceID int32) ([]sqlc_queries.ChatSession, error) {
 	sessions, err := s.q.GetSessionsByWorkspaceID(ctx, sql.NullInt32{Int32: workspaceID, Valid: true})
-	return sessions, fmt.Errorf("failed to get sessions by workspace: %w", err)
+	return sessions, eris.Wrap(err, "failed to get sessions by workspace")
 }
 
 // --- Legacy migration ---
@@ -167,7 +167,7 @@ type AutoMigrateLegacySessionsResult struct {
 func (s *ChatWorkspaceService) AutoMigrateLegacySessions(ctx context.Context, userID int32) (*AutoMigrateLegacySessionsResult, error) {
 	legacySessions, err := s.q.GetSessionsWithoutWorkspace(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check for legacy sessions: %w", err)
+		return nil, eris.Wrap(err, "failed to check for legacy sessions")
 	}
 
 	result := &AutoMigrateLegacySessionsResult{
@@ -180,7 +180,7 @@ func (s *ChatWorkspaceService) AutoMigrateLegacySessions(ctx context.Context, us
 
 	defaultWS, err := s.EnsureDefaultWorkspaceExists(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to ensure default workspace: %w", err)
+		return nil, eris.Wrap(err, "failed to ensure default workspace")
 	}
 	result.DefaultWorkspace = defaultWS
 
@@ -188,7 +188,7 @@ func (s *ChatWorkspaceService) AutoMigrateLegacySessions(ctx context.Context, us
 		UserID:      userID,
 		WorkspaceID: sql.NullInt32{Int32: defaultWS.ID, Valid: true},
 	}); err != nil {
-		return nil, fmt.Errorf("failed to migrate legacy sessions: %w", err)
+		return nil, eris.Wrap(err, "failed to migrate legacy sessions")
 	}
 
 	result.MigratedCount = len(legacySessions)
@@ -199,7 +199,7 @@ func (s *ChatWorkspaceService) AutoMigrateLegacySessions(ctx context.Context, us
 func (s *ChatWorkspaceService) MigrateLegacyActiveSessions(ctx context.Context, userID int32, defaultWorkspaceID int32) error {
 	activeSessions, err := s.q.GetAllUserActiveSessions(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to get legacy active sessions: %w", err)
+		return eris.Wrap(err, "failed to get legacy active sessions")
 	}
 
 	for _, session := range activeSessions {

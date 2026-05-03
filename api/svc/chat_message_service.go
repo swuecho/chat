@@ -1,11 +1,11 @@
 package svc
 
 import (
-	"fmt"
 	"context"
 	"encoding/json"
 	"errors"
 
+	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/ai"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -26,7 +26,7 @@ func (s *ChatMessageService) Q() *sqlc_queries.Queries { return s.q }
 func (s *ChatMessageService) CreateChatMessage(ctx context.Context, message_params sqlc_queries.CreateChatMessageParams) (sqlc_queries.ChatMessage, error) {
 	message, err := s.q.CreateChatMessage(ctx, message_params)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message : %w", err)
+		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
 	}
 	return message, nil
 }
@@ -35,7 +35,7 @@ func (s *ChatMessageService) CreateChatMessage(ctx context.Context, message_para
 func (s *ChatMessageService) GetChatMessageByID(ctx context.Context, id int32) (sqlc_queries.ChatMessage, error) {
 	message, err := s.q.GetChatMessageByID(ctx, id)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message : %w", err)
+		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
 	}
 	return message, nil
 }
@@ -44,7 +44,7 @@ func (s *ChatMessageService) GetChatMessageByID(ctx context.Context, id int32) (
 func (s *ChatMessageService) UpdateChatMessage(ctx context.Context, message_params sqlc_queries.UpdateChatMessageParams) (sqlc_queries.ChatMessage, error) {
 	message_u, err := s.q.UpdateChatMessage(ctx, message_params)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to update message : %w", err)
+		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to update message ")
 	}
 	return message_u, nil
 }
@@ -53,7 +53,7 @@ func (s *ChatMessageService) UpdateChatMessage(ctx context.Context, message_para
 func (s *ChatMessageService) DeleteChatMessage(ctx context.Context, id int32) error {
 	err := s.q.DeleteChatMessage(ctx, id)
 	if err != nil {
-		return fmt.Errorf("failed to delete message : %w", err)
+		return eris.Wrap(err, "failed to delete message ")
 	}
 	return nil
 }
@@ -62,7 +62,7 @@ func (s *ChatMessageService) DeleteChatMessage(ctx context.Context, id int32) er
 func (s *ChatMessageService) DeleteChatMessageByUUID(ctx context.Context, uuid string) error {
 	err := s.q.DeleteChatMessageByUUID(ctx, uuid)
 	if err != nil {
-		return fmt.Errorf("failed to delete message : %w", err)
+		return eris.Wrap(err, "failed to delete message ")
 	}
 	return nil
 }
@@ -71,7 +71,7 @@ func (s *ChatMessageService) DeleteChatMessageByUUID(ctx context.Context, uuid s
 func (s *ChatMessageService) GetAllChatMessages(ctx context.Context) ([]sqlc_queries.ChatMessage, error) {
 	messages, err := s.q.GetAllChatMessages(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve messages : %w", err)
+		return nil, eris.Wrap(err, "failed to retrieve messages ")
 	}
 	return messages, nil
 }
@@ -121,7 +121,7 @@ func (s *ChatMessageService) GetChatMessageByUUID(ctx context.Context, uuid stri
 func (s *ChatMessageService) UpdateChatMessageByUUID(ctx context.Context, message_params sqlc_queries.UpdateChatMessageByUUIDParams) (sqlc_queries.ChatMessage, error) {
 	message_u, err := s.q.UpdateChatMessageByUUID(ctx, message_params)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to update message : %w", err)
+		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to update message ")
 	}
 	return message_u, nil
 }
@@ -135,7 +135,7 @@ func (s *ChatMessageService) GetChatMessagesBySessionUUID(ctx context.Context, u
 	}
 	message, err := s.q.GetChatMessagesBySessionUUID(ctx, param)
 	if err != nil {
-		return []sqlc_queries.ChatMessage{}, fmt.Errorf("failed to retrieve message : %w", err)
+		return []sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to retrieve message ")
 	}
 	return message, nil
 }
