@@ -57,7 +57,7 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 	// return existing prompt instead of inserting duplicates when concurrent
 	// frontend/backend requests race on a fresh session.
 	if promptParams.ChatSessionUuid != "" && promptParams.Role == "system" {
-		existingPrompt, getErr := h.service.q.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
+		existingPrompt, getErr := h.service.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
 		if getErr == nil {
 			json.NewEncoder(w).Encode(existingPrompt)
 			return
@@ -75,7 +75,7 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 		var pgErr *pgconn.PgError
 		if promptParams.ChatSessionUuid != "" && promptParams.Role == "system" &&
 			errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			existingPrompt, getErr := h.service.q.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
+			existingPrompt, getErr := h.service.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
 			if getErr == nil {
 				json.NewEncoder(w).Encode(existingPrompt)
 				return

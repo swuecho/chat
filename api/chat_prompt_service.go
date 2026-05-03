@@ -88,6 +88,11 @@ func (s *ChatPromptService) GetChatPromptsBySessionUUID(ctx context.Context, ses
 	return prompts, nil
 }
 
+// GetOneChatPromptBySessionUUID returns the first prompt for a session.
+func (s *ChatPromptService) GetOneChatPromptBySessionUUID(ctx context.Context, uuid string) (sqlc_queries.ChatPrompt, error) {
+	return s.q.GetOneChatPromptBySessionUUID(ctx, uuid)
+}
+
 // DeleteChatPromptByUUID
 func (s *ChatPromptService) DeleteChatPromptByUUID(ctx context.Context, uuid string) error {
 	err := s.q.DeleteChatPromptByUUID(ctx, uuid)

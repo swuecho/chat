@@ -160,6 +160,98 @@ func (s *ChatSessionService) UpdateSessionMaxLength(ctx context.Context, session
 	return session_u, nil
 }
 
+// ChatModelByName returns a chat model by name.
+func (s *ChatSessionService) ChatModelByName(ctx context.Context, name string) (sqlc_queries.ChatModel, error) {
+	m, err := s.q.ChatModelByName(ctx, name)
+	return m, eris.Wrap(err, "failed to get chat model")
+}
+
+// GetChatSessionByUUIDWithInActive returns a session by UUID including inactive ones.
+func (s *ChatSessionService) GetChatSessionByUUIDWithInActive(ctx context.Context, uuid string) (sqlc_queries.ChatSession, error) {
+	session, err := s.q.GetChatSessionByUUIDWithInActive(ctx, uuid)
+	return session, eris.Wrap(err, "failed to get session with inactive")
+}
+
+// GetOneChatPromptBySessionUUID returns the single prompt for a session.
+func (s *ChatSessionService) GetOneChatPromptBySessionUUID(ctx context.Context, uuid string) (sqlc_queries.ChatPrompt, error) {
+	p, err := s.q.GetOneChatPromptBySessionUUID(ctx, uuid)
+	return p, eris.Wrap(err, "failed to get chat prompt")
+}
+
+// GetChatMessagesBySessionUUID returns paginated messages for a session.
+func (s *ChatSessionService) GetChatMessagesBySessionUUID(ctx context.Context, params sqlc_queries.GetChatMessagesBySessionUUIDParams) ([]sqlc_queries.ChatMessage, error) {
+	msgs, err := s.q.GetChatMessagesBySessionUUID(ctx, params)
+	return msgs, eris.Wrap(err, "failed to get chat messages")
+}
+
+// RateLimitByUserAndSessionUUID checks per-model rate limits.
+func (s *ChatSessionService) RateLimitByUserAndSessionUUID(ctx context.Context, params sqlc_queries.RateLimiteByUserAndSessionUUIDParams) (sqlc_queries.RateLimiteByUserAndSessionUUIDRow, error) {
+	r, err := s.q.RateLimiteByUserAndSessionUUID(ctx, params)
+	return r, err
+}
+
+// GetChatMessagesCountByUserAndModel returns message count for rate limiting.
+func (s *ChatSessionService) GetChatMessagesCountByUserAndModel(ctx context.Context, params sqlc_queries.GetChatMessagesCountByUserAndModelParams) (int64, error) {
+	return s.q.GetChatMessagesCountByUserAndModel(ctx, params)
+}
+
+// ChatSnapshotByUUID returns a snapshot by UUID.
+func (s *ChatSessionService) ChatSnapshotByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatSnapshot, error) {
+	sn, err := s.q.ChatSnapshotByUUID(ctx, uuid)
+	return sn, eris.Wrap(err, "failed to get snapshot")
+}
+
+// ChatSnapshotByUserIdAndUuid returns a user's snapshot by UUID.
+func (s *ChatSessionService) ChatSnapshotByUserIdAndUuid(ctx context.Context, params sqlc_queries.ChatSnapshotByUserIdAndUuidParams) (sqlc_queries.ChatSnapshot, error) {
+	sn, err := s.q.ChatSnapshotByUserIdAndUuid(ctx, params)
+	return sn, eris.Wrap(err, "failed to get snapshot")
+}
+
+// GetChatPromptByUUID returns a prompt by UUID.
+func (s *ChatSessionService) GetChatPromptByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatPrompt, error) {
+	p, err := s.q.GetChatPromptByUUID(ctx, uuid)
+	return p, eris.Wrap(err, "failed to get chat prompt")
+}
+
+// CreateChatPrompt creates a new chat prompt.
+func (s *ChatSessionService) CreateChatPrompt(ctx context.Context, params sqlc_queries.CreateChatPromptParams) (sqlc_queries.ChatPrompt, error) {
+	p, err := s.q.CreateChatPrompt(ctx, params)
+	return p, eris.Wrap(err, "failed to create chat prompt")
+}
+
+// CreateChatMessage creates a new chat message.
+func (s *ChatSessionService) CreateChatMessage(ctx context.Context, params sqlc_queries.CreateChatMessageParams) (sqlc_queries.ChatMessage, error) {
+	m, err := s.q.CreateChatMessage(ctx, params)
+	return m, eris.Wrap(err, "failed to create chat message")
+}
+
+// CreateBotAnswerHistory creates a bot answer history entry.
+func (s *ChatSessionService) CreateBotAnswerHistory(ctx context.Context, params sqlc_queries.CreateBotAnswerHistoryParams) (sqlc_queries.BotAnswerHistory, error) {
+	h, err := s.q.CreateBotAnswerHistory(ctx, params)
+	return h, eris.Wrap(err, "failed to create bot answer history")
+}
+
+// UpdateChatMessageSuggestions updates suggested questions.
+func (s *ChatSessionService) UpdateChatMessageSuggestions(ctx context.Context, params sqlc_queries.UpdateChatMessageSuggestionsParams) (sqlc_queries.ChatMessage, error) {
+	return s.q.UpdateChatMessageSuggestions(ctx, params)
+}
+
+// UpsertUserActiveSession creates or updates an active session.
+func (s *ChatSessionService) UpsertUserActiveSession(ctx context.Context, params sqlc_queries.UpsertUserActiveSessionParams) (sqlc_queries.UserActiveChatSession, error) {
+	sess, err := s.q.UpsertUserActiveSession(ctx, params)
+	return sess, err
+}
+
+// GetChatMessagesBySessionUUIDForAdmin returns messages for admin view.
+func (s *ChatSessionService) GetChatMessagesBySessionUUIDForAdmin(ctx context.Context, uuid string) ([]sqlc_queries.GetChatMessagesBySessionUUIDForAdminRow, error) {
+	return s.q.GetChatMessagesBySessionUUIDForAdmin(ctx, uuid)
+}
+
+// GetChatHistoryBySessionUUID returns chat history as simple messages.
+func (s *ChatSessionService) GetChatHistoryBySessionUUID(ctx context.Context, uuid string, pageNum, pageSize int32) ([]sqlc_queries.SimpleChatMessage, error) {
+	return s.q.GetChatHistoryBySessionUUID(ctx, uuid, pageNum, pageSize)
+}
+
 // EnsureDefaultSystemPrompt ensures a session has exactly one active system prompt.
 // It is safe to call repeatedly and tolerates concurrent callers.
 func (s *ChatSessionService) EnsureDefaultSystemPrompt(ctx context.Context, chatSessionUUID string, userID int32, systemPrompt string) (sqlc_queries.ChatPrompt, error) {

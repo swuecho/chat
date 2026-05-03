@@ -21,10 +21,7 @@ type ChatFileHandler struct {
 }
 
 func NewChatFileHandler(sqlc_q *sqlc_queries.Queries) *ChatFileHandler {
-	ChatFileService := NewChatFileService(sqlc_q)
-	return &ChatFileHandler{
-		service: ChatFileService,
-	}
+	return &ChatFileHandler{service: NewChatFileService(sqlc_q)}
 }
 
 func (h *ChatFileHandler) Register(router *mux.Router) {
@@ -34,119 +31,76 @@ func (h *ChatFileHandler) Register(router *mux.Router) {
 	router.HandleFunc("/download/{id}", h.DeleteFile).Methods(http.MethodDelete)
 }
 
-const (
-	maxUploadSize = 32 << 20 // 32 MB
-)
-
-var allowedTypes = map[string]string{
-	"image/jpeg":       ".jpg",
-	"image/png":        ".png",
-	"application/pdf":  ".pdf",
-	"text/plain":       ".txt",
-	"application/json": ".json",
-}
-
-// isValidFileType checks if the file type is allowed and matches the extension
-func isValidFileType(mimeType, fileName string) bool {
-	// Get expected extension for mime type
-	expectedExt, ok := allowedTypes[mimeType]
-	if !ok {
-		return false
-	}
-
-	// Check if file has the expected extension
-	return strings.HasSuffix(strings.ToLower(fileName), expectedExt)
-}
+const maxUploadSize = 32 << 20 // 32MB
 
 func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
-	// Parse multipart form with size limit
-	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-		RespondWithAPIError(w, ErrValidationInvalidInput(fmt.Sprintf("file too large, max size is %d bytes", maxUploadSize)))
-		return
-	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 
-	// Get session UUID
-	sessionUUID := r.FormValue("session-uuid")
+	sessionUUID := r.Header.Get("X-Session-Uuid")
 	if sessionUUID == "" {
-		RespondWithAPIError(w, ErrValidationInvalidInput("missing session UUID"))
+		RespondWithAPIError(w, ErrValidationInvalidInput("missing X-Session-Uuid header"))
 		return
 	}
 
-	// Get user ID
 	userID, err := getUserID(r.Context())
 	if err != nil {
-		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
+		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
 
-	// Get uploaded file
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to get uploaded file"))
-		return
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Printf("Error closing uploaded file: %v", err)
+	mimeType := r.Header.Get("Content-Type")
+	var data []byte
+	var filename string
+
+	if strings.HasPrefix(mimeType, "multipart/form-data") {
+		reader, err := r.MultipartReader()
+		if err != nil {
+			RespondWithAPIError(w, ErrValidationInvalidInput("failed to parse multipart form").WithDebugInfo(err.Error()))
+			return
 		}
-	}()
-
-	// Validate file type and extension
-	mimeType := header.Header.Get("Content-Type")
-	if !isValidFileType(mimeType, header.Filename) {
-		RespondWithAPIError(w, ErrChatFileInvalidType.WithMessage(
-			fmt.Sprintf("unsupported file type: %s or invalid extension for type", mimeType)))
-		return
+		part, err := reader.NextPart()
+		if err != nil {
+			RespondWithAPIError(w, ErrValidationInvalidInput("failed to read form part").WithDebugInfo(err.Error()))
+			return
+		}
+		filename = part.FileName()
+		mimeType = part.Header.Get("Content-Type")
+		var buf bytes.Buffer
+		if _, err := io.Copy(&buf, part); err != nil {
+			RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("failed to read file data").WithDebugInfo(err.Error()))
+			return
+		}
+		data = buf.Bytes()
+	} else {
+		filename = r.Header.Get("X-File-Name")
+		limitedReader := io.LimitReader(r.Body, maxUploadSize+1)
+		var buf bytes.Buffer
+		n, err := io.CopyN(&buf, limitedReader, maxUploadSize+1)
+		if err != nil && err != io.EOF {
+			RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("failed to read request body").WithDebugInfo(err.Error()))
+			return
+		}
+		if n > maxUploadSize {
+			RespondWithAPIError(w, ErrValidationInvalidInput(fmt.Sprintf("file exceeds maximum size of %d bytes", maxUploadSize)))
+			return
+		}
+		data = buf.Bytes()
 	}
 
-	log.Printf("Uploading file: %s (%s, %d bytes)",
-		header.Filename, mimeType, header.Size)
-
-	// Validate file size
-	if header.Size > maxUploadSize {
-		RespondWithAPIError(w, ErrValidationInvalidInput(fmt.Sprintf("file too large, max size is %d bytes", maxUploadSize)))
-		return
-	}
-
-	// Read file into buffer with size limit
-	var buf bytes.Buffer
-	limitedReader := &io.LimitedReader{R: file, N: maxUploadSize}
-	if _, err := io.Copy(&buf, limitedReader); err != nil {
-		RespondWithAPIError(w, WrapError(err, "failed to read uploaded file"))
-		return
-	}
-
-	// Check if we hit the size limit
-	if limitedReader.N <= 0 {
-		RespondWithAPIError(w, ErrValidationInvalidInput(
-			fmt.Sprintf("file exceeds maximum size of %d bytes", maxUploadSize)))
-		return
-	}
-	// Create chat file record
-	chatFile, err := h.service.q.CreateChatFile(r.Context(), sqlc_queries.CreateChatFileParams{
-		ChatSessionUuid: sessionUUID,
-		UserID:          userID,
-		Name:            header.Filename,
-		Data:            buf.Bytes(),
-		MimeType:        mimeType,
+	file, err := h.service.CreateChatUpload(r.Context(), sqlc_queries.CreateChatFileParams{
+		ChatSessionUuid: sessionUUID, UserID: userID,
+		Name: filename, Data: data, MimeType: mimeType,
 	})
-
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to create chat file record"))
 		return
 	}
 
-	// Clean up buffer
-	buf.Reset()
-
-	// Return success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
-		"url":  fmt.Sprintf("/download/%d", chatFile.ID),
-		"name": header.Filename,
-		"type": mimeType,
-		"size": fmt.Sprintf("%d", header.Size),
+		"url": fmt.Sprintf("/download/%d", file.ID), "name": filename,
+		"type": mimeType, "size": fmt.Sprintf("%d", len(data)),
 	})
 }
 
@@ -158,7 +112,7 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := h.service.q.GetChatFileByID(r.Context(), int32(fileIdInt))
+	file, err := h.service.GetChatFile(r.Context(), int32(fileIdInt))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithAPIError(w, ErrChatFileNotFound.WithMessage(fmt.Sprintf("file ID %d not found", fileIdInt)))
@@ -168,10 +122,8 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set proper content type from stored mime type
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
 	w.Header().Set("Content-Length", strconv.Itoa(len(file.Data)))
-
 	if _, err := w.Write(file.Data); err != nil {
 		log.Printf("Failed to write file data: %v", err)
 	}
@@ -180,8 +132,7 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	fileID := mux.Vars(r)["id"]
 	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
-	_, err := h.service.q.DeleteChatFile(r.Context(), int32(fileIdInt))
-	if err != nil {
+	if err := h.service.DeleteChatFile(r.Context(), int32(fileIdInt)); err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to delete chat file"))
 		return
 	}
@@ -195,19 +146,23 @@ func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.
 		RespondWithAPIError(w, ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
 		return
 	}
-	chatFiles, err := h.service.q.ListChatFilesBySessionUUID(r.Context(), sqlc_queries.ListChatFilesBySessionUUIDParams{
-		ChatSessionUuid: sessionUUID,
-		UserID:          userID,
-	})
+
+	files, err := h.service.ListChatFilesBySession(r.Context(), sessionUUID, userID)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to list chat files for session"))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 
-	if len(chatFiles) == 0 {
-		w.Write([]byte("[]"))
-		return
+	// Return only safe metadata (not raw file data)
+	type fileMeta struct {
+		ID   int32  `json:"id"`
+		Name string `json:"name"`
 	}
-	json.NewEncoder(w).Encode(chatFiles)
+	meta := make([]fileMeta, 0, len(files))
+	for _, f := range files {
+		meta = append(meta, fileMeta{ID: f.ID, Name: f.Name})
+	}
+	json.NewEncoder(w).Encode(meta)
 }
+
+

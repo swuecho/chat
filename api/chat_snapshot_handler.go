@@ -79,7 +79,7 @@ func (h *ChatSnapshotHandler) CreateChatBot(w http.ResponseWriter, r *http.Reque
 
 func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuidStr)
+	snapshot, err := h.service.ChatSnapshotByUUID(r.Context(), uuidStr)
 	if err != nil {
 		apiErr := WrapError(MapDatabaseError(err), "Failed to get chat snapshot")
 		RespondWithAPIError(w, apiErr)
@@ -123,7 +123,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 
 	offset := (page - 1) * pageSize
 
-	chatSnapshots, err := h.service.q.ChatSnapshotMetaByUserID(r.Context(), sqlc_queries.ChatSnapshotMetaByUserIDParams{
+	chatSnapshots, err := h.service.ChatSnapshotMetaByUserID(r.Context(), sqlc_queries.ChatSnapshotMetaByUserIDParams{
 		UserID: userID,
 		Typ:    typ,
 		Limit:  pageSize,
@@ -139,7 +139,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 	}
 
 	// Get total count for pagination
-	totalCount, err := h.service.q.ChatSnapshotCountByUserIDAndType(r.Context(), sqlc_queries.ChatSnapshotCountByUserIDAndTypeParams{
+	totalCount, err := h.service.ChatSnapshotCountByUserIDAndType(r.Context(), sqlc_queries.ChatSnapshotCountByUserIDAndTypeParams{
 		UserID: userID,
 		Column2: typ,
 	})
@@ -180,7 +180,7 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		return
 	}
 
-	err = h.service.q.UpdateChatSnapshotMetaByUUID(r.Context(), sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{
+	err = h.service.UpdateChatSnapshotMetaByUUID(r.Context(), sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{
 		Uuid:    uuid,
 		Title:   input.Title,
 		Summary: input.Summary,
@@ -194,7 +194,7 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		return
 	}
 
-	snapshot, err := h.service.q.ChatSnapshotByUUID(r.Context(), uuid)
+	snapshot, err := h.service.ChatSnapshotByUUID(r.Context(), uuid)
 	if err != nil {
 		apiErr := ErrResourceNotFound("Chat snapshot")
 		apiErr.DebugInfo = err.Error()
@@ -216,7 +216,7 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 		return
 	}
 
-	_, err = h.service.q.DeleteChatSnapshot(r.Context(), sqlc_queries.DeleteChatSnapshotParams{
+	err = h.service.DeleteChatSnapshot(r.Context(), sqlc_queries.DeleteChatSnapshotParams{
 		Uuid:   uuid,
 		UserID: userID,
 	})
@@ -246,7 +246,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 		return
 	}
 
-	chatSnapshots, err := h.service.q.ChatSnapshotSearch(r.Context(), sqlc_queries.ChatSnapshotSearchParams{
+	chatSnapshots, err := h.service.ChatSnapshotSearch(r.Context(), sqlc_queries.ChatSnapshotSearchParams{
 		UserID: userID,
 		Search: search,
 	})

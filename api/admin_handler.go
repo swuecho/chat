@@ -10,12 +10,14 @@ import (
 )
 
 type AdminHandler struct {
-	service *AuthUserService
+	service    *AuthUserService
+	sessionSvc *ChatSessionService
 }
 
 func NewAdminHandler(service *AuthUserService) *AdminHandler {
 	return &AdminHandler{
-		service: service,
+		service:    service,
+		sessionSvc: NewChatSessionService(service.q),
 	}
 }
 
@@ -52,7 +54,7 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	user, err := h.service.q.UpdateAuthUserByEmail(r.Context(), userParams)
+	user, err := h.service.UpdateAuthUserByEmail(r.Context(), userParams)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update user"))
 		return
@@ -114,7 +116,7 @@ func (h *AdminHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
 		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	rate, err := h.service.q.UpdateAuthUserRateLimitByEmail(r.Context(),
+	rate, err := h.service.UpdateAuthUserRateLimitByEmail(r.Context(),
 		sqlc_queries.UpdateAuthUserRateLimitByEmailParams{
 			Email:     rateLimitRequest.Email,
 			RateLimit: rateLimitRequest.RateLimit,
@@ -210,7 +212,7 @@ func (h *AdminHandler) SessionMessagesHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	messages, err := h.service.q.GetChatMessagesBySessionUUIDForAdmin(r.Context(), sessionUuid)
+	messages, err := h.sessionSvc.GetChatMessagesBySessionUUIDForAdmin(r.Context(), sessionUuid)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "Failed to get session messages"))
 		return
