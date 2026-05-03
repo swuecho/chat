@@ -9,6 +9,7 @@ import (
 
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 // ChatHandler handles chat completion and streaming requests.
@@ -44,8 +45,8 @@ func (h *ChatHandler) RequestContext() context.Context  { return h.requestCtx }
 func (h *ChatHandler) Queries() *sqlc_queries.Queries   { return h.service.Q() }
 func (h *ChatHandler) Config() provider.Config {
 	return provider.Config{
-		OpenAIKey:   appConfig.OPENAI.API_KEY,
-		OpenAIProxy: appConfig.OPENAI.PROXY_URL,
+		OpenAIKey:   svc.Cfg.OpenAIKey,
+		OpenAIProxy: svc.Cfg.OpenAIProxy,
 		RateLimiter: openAIRateLimiter,
 	}
 }

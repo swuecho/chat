@@ -147,7 +147,14 @@ func openDB(cfg config.AppConfig) (*sql.DB, error) {
 	} else {
 		connStr = dbURL
 	}
-	return sql.Open("postgres", connStr)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	return db, nil
 }
 
 // buildRouter constructs the HTTP router and returns both the CORS-wrapped handler

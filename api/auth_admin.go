@@ -37,7 +37,7 @@ func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination, int32(appConfig.OPENAI.RATELIMIT))
+	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get user stats"))
 		return

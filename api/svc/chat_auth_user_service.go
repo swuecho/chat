@@ -92,12 +92,12 @@ func (s *AuthUserService) Logout(tokenString string) (*http.Cookie, error) {
 // GetUserStat(page, page_size) -> {data: [{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}], total: 100}
 // GetTotalUserCount
 // GetUserStat(page, page_size) ->[{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}]
-func (s *AuthUserService) GetUserStats(ctx context.Context, p dto.Pagination, defaultRateLimit int32) ([]sqlc_queries.GetUserStatsRow, int64, error) {
+func (s *AuthUserService) GetUserStats(ctx context.Context, p dto.Pagination) ([]sqlc_queries.GetUserStatsRow, int64, error) {
 	auth_users_stat, err := s.q.GetUserStats(ctx,
 		sqlc_queries.GetUserStatsParams{
 			Offset:           p.Offset(),
 			Limit:            p.Size,
-			DefaultRateLimit: defaultRateLimit,
+			DefaultRateLimit: s.defaultLimit,
 		})
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to retrieve user stats : %w", err)
@@ -200,11 +200,11 @@ type SessionHistoryInfo struct {
 }
 
 // GetUserAnalysis retrieves comprehensive user analysis data
-func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string, defaultRateLimit int32) (*UserAnalysisData, error) {
+func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string) (*UserAnalysisData, error) {
 	// Get basic user info
 	userInfo, err := s.q.GetUserAnalysisByEmail(ctx, sqlc_queries.GetUserAnalysisByEmailParams{
 		Email:            email,
-		DefaultRateLimit: defaultRateLimit,
+		DefaultRateLimit: s.defaultLimit,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user analysis: %w", err)

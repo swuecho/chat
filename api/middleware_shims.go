@@ -12,7 +12,6 @@ import (
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/middleware"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // --- Re-exported middleware constructors ---
@@ -72,12 +71,6 @@ func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 
 func IsChatSnapshotUUID(r *http.Request) bool {
 	return middleware.IsChatSnapshotUUID(r)
-}
-
-// --- Rate limiting shim ---
-
-func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler {
-	return middleware.RateLimitByUserID(q, appConfig.OPENAI.RATELIMIT)
 }
 
 // --- Gzip shim ---
