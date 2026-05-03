@@ -2,6 +2,7 @@ package svc
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -45,12 +46,13 @@ func erisWrapTest(err error) error {
 	return wrapErr(err, "test operation")
 }
 
-// wrapErr is a helper that mimics the eris.Wrap behavior we depend on.
+// wrapErr mimics the eris.Wrap behavior: returns nil for nil input,
+// wraps non-nil errors preserving the chain via fmt.Errorf("%w").
 func wrapErr(err error, msg string) error {
 	if err == nil {
 		return nil
 	}
-	return errors.New(msg + ": " + err.Error())
+	return fmt.Errorf("%s: %w", msg, err)
 }
 
 // TestLoadArtifactInstruction verifies error handling in the artifact loader.
