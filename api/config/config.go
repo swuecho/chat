@@ -2,7 +2,6 @@
 package config
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"reflect"
@@ -36,23 +35,19 @@ func Load() AppConfig {
 	for _, key := range flattenKeys("", reflect.ValueOf(cfg)) {
 		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
 		if err := viper.BindEnv(key, envKey); err != nil {
-			fatal("config: unable to bind env", "key", key, "error", err)
+			slog.Error("config: unable to bind env", "key", key, "error", err)
+			os.Exit(1)
 		}
 	}
 	viper.AutomaticEnv()
 	if err := viper.Unmarshal(&cfg); err != nil {
-		fatal("config: unable to decode", "error", err)
+		slog.Error("config: unable to decode", "error", err)
+		os.Exit(1)
 	}
 	if cfg.OPENAI.RATELIMIT == 0 {
 		cfg.OPENAI.RATELIMIT = 100
 	}
 	return cfg
-}
-
-func fatal(msg string, args ...any) {
-	slog.Error(msg, args...)
-	fmt.Fprintln(os.Stderr, "FATAL:", msg, args)
-	os.Exit(1)
 }
 
 func flattenKeys(prefix string, v reflect.Value) []string {
