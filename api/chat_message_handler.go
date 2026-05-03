@@ -295,7 +295,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 	chatService := NewChatService(h.service.Q())
 
 	// Generate new suggested questions
-	newSuggestions := chatService.GenerateSuggestedQuestions(r.Context(), message.Content, msgs)
+	newSuggestions := chatService.GenerateSuggestedQuestions( message.Content, msgs)
 	if len(newSuggestions) == 0 {
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to generate suggestions", "no suggestions returned"))
 		return
