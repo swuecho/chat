@@ -362,7 +362,7 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 
 	lifetime := time.Duration(10*365*24) * time.Hour
 	userId, _ := getUserID(r.Context())
-	userRole := r.Context().Value(userContextKey).(string)
+	userRole, _ := r.Context().Value(userContextKey).(string)
 	token, err := auth.GenerateToken(userId, userRole, jwtSecretAndAud.Secret, jwtSecretAndAud.Audience, lifetime, auth.TokenTypeAccess)
 
 	if err != nil {

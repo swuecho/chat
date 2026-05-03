@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/google/uuid"
 
@@ -231,8 +230,7 @@ func (h *ChatSessionHandler) deleteChatSessionByUUID(w http.ResponseWriter, r *h
 // getSimpleChatSessionsByUserID returns a list of simple chat sessions by user ID
 func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	idStr := ctx.Value(userContextKey).(string)
-	id, err := strconv.Atoi(idStr)
+	id, err := getUserID(ctx)
 	if err != nil {
 		apiErr := ErrValidationInvalidInput("Invalid user ID")
 		apiErr.DebugInfo = err.Error()
@@ -240,7 +238,7 @@ func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter
 		return
 	}
 
-	sessions, err := h.service.GetSimpleChatSessionsByUserID(ctx, int32(id))
+	sessions, err := h.service.GetSimpleChatSessionsByUserID(ctx, id)
 	if err != nil {
 		apiErr := ErrResourceNotFound("Chat sessions")
 		apiErr.DebugInfo = err.Error()

@@ -217,11 +217,14 @@ var (
 		Code:     ErrModel + "_004",
 		Message:  "Invalid response from Claude API",
 	}
-	ErrClaudeResponseFaild = APIError{
+	ErrClaudeResponseFailed = APIError{
 		HTTPCode: http.StatusInternalServerError,
 		Code:     ErrModel + "_005",
 		Message:  "Failed to stream Claude response",
 	}
+
+	// Deprecated: use ErrClaudeResponseFailed instead.
+	ErrClaudeResponseFaild = ErrClaudeResponseFailed
 	ErrOpenAIStreamFailed = APIError{
 		HTTPCode: http.StatusInternalServerError,
 		Code:     ErrModel + "_006",
@@ -446,7 +449,7 @@ var ErrorCatalog = map[string]APIError{
 	ErrClaudeStreamFailed.Code:           ErrClaudeStreamFailed,
 	ErrClaudeRequestFailed.Code:          ErrClaudeRequestFailed,
 	ErrClaudeInvalidResponse.Code:        ErrClaudeInvalidResponse,
-	ErrClaudeResponseFaild.Code:          ErrClaudeResponseFaild,
+	ErrClaudeResponseFailed.Code:        ErrClaudeResponseFailed,
 	ErrOpenAIStreamFailed.Code:           ErrOpenAIStreamFailed,
 	ErrOpenAIRequestFailed.Code:          ErrOpenAIRequestFailed,
 	ErrOpenAIInvalidResponse.Code:        ErrOpenAIInvalidResponse,

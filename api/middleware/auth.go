@@ -151,7 +151,11 @@ func GetUserID(ctx context.Context) (int32, error) {
 	if userIdValue == nil {
 		return 0, fmt.Errorf("no user ID in context")
 	}
-	return parseInt32(userIdValue.(string))
+	userIDStr, ok := userIdValue.(string)
+	if !ok {
+		return 0, fmt.Errorf("user ID in context is not a string")
+	}
+	return parseInt32(userIDStr)
 }
 
 func parseInt32(s string) (int32, error) {
@@ -247,6 +251,19 @@ func GetRequestID(ctx context.Context) string {
 		return id
 	}
 	return ""
+}
+
+// MaxBodySize is the default maximum request body size (1MB).
+const MaxBodySize = 1 << 20
+
+// BodyLimitMiddleware limits request body size to prevent DoS.
+func BodyLimitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Body != nil {
+			r.Body = http.MaxBytesReader(w, r.Body, MaxBodySize)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // RecoveryMiddleware recovers from panics and returns a 500 error.

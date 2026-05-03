@@ -129,7 +129,7 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 		}
 
 		if _, err := fmt.Fprint(w, string(data)); err != nil {
-			return nil, ErrClaudeResponseFaild.WithDetail("failed to write response").WithDebugInfo(err.Error())
+			return nil, ErrClaudeResponseFailed.WithDetail("failed to write response").WithDebugInfo(err.Error())
 		}
 
 		return llmAnswer, nil

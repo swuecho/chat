@@ -62,7 +62,8 @@ var (
 	ErrClaudeStreamFailed           = dto.ErrClaudeStreamFailed
 	ErrClaudeRequestFailed          = dto.ErrClaudeRequestFailed
 	ErrClaudeInvalidResponse        = dto.ErrClaudeInvalidResponse
-	ErrClaudeResponseFaild          = dto.ErrClaudeResponseFaild
+	ErrClaudeResponseFailed         = dto.ErrClaudeResponseFailed
+	ErrClaudeResponseFaild          = dto.ErrClaudeResponseFailed // Deprecated: use ErrClaudeResponseFailed
 	ErrOpenAIStreamFailed           = dto.ErrOpenAIStreamFailed
 	ErrOpenAIRequestFailed          = dto.ErrOpenAIRequestFailed
 	ErrOpenAIInvalidResponse        = dto.ErrOpenAIInvalidResponse

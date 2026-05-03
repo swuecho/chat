@@ -43,6 +43,6 @@ func llm_summarize(ctx context.Context, baseURL string, doc string) string {
 		log.Printf("failed to call chain: %s, %v", baseURL, err)
 		return ""
 	}
-	out := outputValues["text"].(string)
+	out, _ := outputValues["text"].(string)
 	return out
 }
