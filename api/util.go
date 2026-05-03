@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkoukk/tiktoken-go"
-	"github.com/rotisserie/eris"
+	"github.com/swuecho/chat_backend/dto"
 )
 
 func NewUUID() string {
@@ -22,18 +20,15 @@ func NewUUID() string {
 	}
 	return uuidv7.String()
 }
+
 func getTokenCount(content string) (int, error) {
-	encoding := "cl100k_base"
-	tke, err := tiktoken.GetEncoding(encoding)
+	tke, err := tiktoken.GetEncoding("cl100k_base")
 	if err != nil {
 		return 0, err
 	}
-	token := tke.Encode(content, nil, nil)
-	num_tokens := len(token)
-	return num_tokens, nil
+	return len(tke.Encode(content, nil, nil)), nil
 }
 
-// allocation free version
 func firstN(s string, n int) string {
 	i := 0
 	for j := range s {
@@ -45,36 +40,15 @@ func firstN(s string, n int) string {
 	return s
 }
 
-// firstNWords extracts the first n words from a string
 func firstNWords(s string, n int) string {
 	if s == "" {
 		return ""
 	}
-
 	words := strings.Fields(s)
 	if len(words) <= n {
 		return s
 	}
-
 	return strings.Join(words[:n], " ")
-}
-
-func getUserID(ctx context.Context) (int32, error) {
-	userIdValue := ctx.Value(userContextKey)
-	if userIdValue == nil {
-		return 0, eris.New("no user Id in context")
-	}
-	userIDStr := ctx.Value(userContextKey).(string)
-	userIDInt, err := strconv.ParseInt(userIDStr, 10, 32)
-	if err != nil {
-		return 0, eris.Wrap(err, "Error: '"+userIDStr+"' is not a valid user ID. should be a numeric value: ")
-	}
-	userID := int32(userIDInt)
-	return userID, nil
-}
-
-func getContextWithUser(userID int) context.Context {
-	return context.WithValue(context.Background(), userContextKey, strconv.Itoa(userID))
 }
 
 func setSSEHeader(w http.ResponseWriter) {
@@ -83,67 +57,46 @@ func setSSEHeader(w http.ResponseWriter) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("X-Accel-Buffering", "no")
-	// Remove any content-length to enable streaming
 	w.Header().Del("Content-Length")
-	// Prevent compression
 	w.Header().Del("Content-Encoding")
 }
 
-// setupSSEStream configures the response writer for Server-Sent Events and returns the flusher
 func setupSSEStream(w http.ResponseWriter) (http.Flusher, error) {
 	setSSEHeader(w)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		return nil, errors.New("streaming unsupported by client")
+		return nil, errors.New(dto.ErrorStreamUnsupported)
 	}
 	return flusher, nil
 }
 
 func getPerWordStreamLimit() int {
 	perWordStreamLimitStr := os.Getenv("PER_WORD_STREAM_LIMIT")
-
 	if perWordStreamLimitStr == "" {
-		perWordStreamLimitStr = "200"
-	}
-
-	perWordStreamLimit, err := strconv.Atoi(perWordStreamLimitStr)
-	if err != nil {
-		log.Printf("get per word stream limit: %v", eris.Wrap(err, "get per word stream limit").Error())
 		return 200
 	}
-
-	return perWordStreamLimit
-}
-
-func RespondWithJSON(w http.ResponseWriter, status int, payload interface{}) {
-	response, err := json.Marshal(payload)
+	perWordStreamLimit, err := strconv.Atoi(perWordStreamLimitStr)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return 200
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	w.Write(response)
+	return perWordStreamLimit
 }
 
 func getPaginationParams(r *http.Request) (limit int32, offset int32) {
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
-
-	limit = 100 // default limit
+	limit = 100
 	if limitStr != "" {
 		if l, err := strconv.ParseInt(limitStr, 10, 32); err == nil {
 			limit = int32(l)
 		}
 	}
-
-	offset = 0 // default offset
+	offset = 0
 	if offsetStr != "" {
 		if o, err := strconv.ParseInt(offsetStr, 10, 32); err == nil {
 			offset = int32(o)
 		}
 	}
-
 	return limit, offset
 }
 
@@ -159,8 +112,8 @@ func getLimitParam(r *http.Request, defaultLimit int32) int32 {
 	return int32(limit)
 }
 
-// DecodeJSON decodes JSON from the request body into the target.
-// Target must be a pointer.
 func DecodeJSON(r *http.Request, target interface{}) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
+
+

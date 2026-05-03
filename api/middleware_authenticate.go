@@ -4,306 +4,64 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
+	"strconv"
 
-	jwt "github.com/golang-jwt/jwt/v5"
-	"github.com/swuecho/chat_backend/auth"
+	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/middleware"
 )
 
-func CheckPermission(userID int, ctx context.Context) bool {
-	contextUserID, ok := ctx.Value("user_id").(int)
-	if !ok {
-		return false
-	}
-	role, ok := ctx.Value("role").(string)
-	if !ok {
-		return false
-	}
+// Re-export middleware functions for backward compatibility.
+var (
+	AdminAuthMiddleware  = middleware.AdminAuthMiddleware
+	UserAuthMiddleware   = middleware.UserAuthMiddleware
+	parseAndValidateJWT  = middleware.ParseAndValidateJWT
+)
 
-	switch role {
-	case "admin":
-		return true
-	case "member":
-		return userID == contextUserID
-	default:
-		return false
-	}
-}
-
-type AuthTokenResult struct {
-	Token     *jwt.Token
-	Claims    jwt.MapClaims
-	UserID    string
-	Role      string
-	TokenType string
-	Valid     bool
-	Error     *APIError
-}
-
-func extractBearerToken(r *http.Request) string {
-	// Extract from Authorization header for access tokens
-	bearerToken := r.Header.Get("Authorization")
-	tokenParts := strings.Split(bearerToken, " ")
-	if len(tokenParts) == 2 {
-		return tokenParts[1]
-	}
-	return ""
-}
-
-func createUserContext(r *http.Request, userID, role string) *http.Request {
-	ctx := context.WithValue(r.Context(), userContextKey, userID)
-	ctx = context.WithValue(ctx, roleContextKey, role)
-	return r.WithContext(ctx)
-}
-
-func parseAndValidateJWT(bearerToken string, expectedTokenType string) *AuthTokenResult {
-	result := &AuthTokenResult{}
-
-	if bearerToken == "" {
-		err := ErrAuthInvalidCredentials
-		err.Detail = "Authorization token required"
-		result.Error = &err
-		return result
-	}
-
-	jwtSigningKey := []byte(jwtSecretAndAud.Secret)
-	token, err := jwt.Parse(bearerToken, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("invalid JWT signing method")
-		}
-		return jwtSigningKey, nil
-	})
-
-	if err != nil {
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.Detail = "Invalid authorization token"
-		result.Error = &apiErr
-		return result
-	}
-
-	if !token.Valid {
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.Detail = "Token is not valid"
-		result.Error = &apiErr
-		return result
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.Detail = "Cannot parse token claims"
-		result.Error = &apiErr
-		return result
-	}
-
-	userID, ok := claims["user_id"].(string)
-	if !ok {
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.Detail = "User ID not found in token"
-		result.Error = &apiErr
-		return result
-	}
-
-	role, ok := claims["role"].(string)
-	if !ok {
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.Detail = "User role not found in token"
-		result.Error = &apiErr
-		return result
-	}
-
-	tokenType, ok := claims["token_type"].(string)
-	if !ok {
-		// Legacy forever tokens were generated before the token_type claim existed.
-		// Treat them as access tokens so they remain usable.
-		if expectedTokenType == "" || expectedTokenType == auth.TokenTypeAccess {
-			tokenType = auth.TokenTypeAccess
-		} else {
-			apiErr := ErrAuthInvalidCredentials
-			apiErr.Detail = "Token type not found in token"
-			result.Error = &apiErr
-			return result
-		}
-	}
-
-	if expectedTokenType != "" && tokenType != expectedTokenType {
-		apiErr := ErrAuthInvalidCredentials
-		apiErr.Detail = "Token type is not valid for this operation"
-		result.Error = &apiErr
-		return result
-	}
-
-	result.Token = token
-	result.Claims = claims
-	result.UserID = userID
-	result.Role = role
-	result.TokenType = tokenType
-	result.Valid = true
-	return result
-}
-
-type contextKey string
-
+// Context key constants matching middleware package.
 const (
-	roleContextKey contextKey = "role"
-	userContextKey contextKey = "user"
-	guidContextKey contextKey = "guid"
+	roleContextKey = middleware.RoleContextKey
+	userContextKey = middleware.UserContextKey
+	guidContextKey = middleware.GuidContextKey
 )
-const snapshotPrefix = "/api/uuid/chat_snapshot/"
 
-func IsChatSnapshotUUID(r *http.Request) bool {
-	// Check http method is GET
-	if r.Method != http.MethodGet {
-		return false
+// getUserID extracts the user ID from context.
+func getUserID(ctx context.Context) (int32, error) {
+	userIdValue := ctx.Value(userContextKey)
+	if userIdValue == nil {
+		return 0, fmt.Errorf("no user Id in context")
 	}
-	// Check if request url path has the required prefix and does not have "/all" suffix
-	if strings.HasPrefix(r.URL.Path, snapshotPrefix) && !strings.HasSuffix(r.URL.Path, "/all") {
-		return true
+	userIDStr := userIdValue.(string)
+	userIDInt, err := strconv.ParseInt(userIDStr, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("invalid user ID: %s", userIDStr)
 	}
-	return false
+	return int32(userIDInt), nil
 }
 
+func getContextWithUser(userID int) context.Context {
+	return context.WithValue(context.Background(), userContextKey, strconv.Itoa(userID))
+}
+
+// AdminOnlyHandler wraps a handler to require admin role.
 func AdminOnlyHandler(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		userRole, ok := ctx.Value(roleContextKey).(string)
-		if !ok {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "User role information not found"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		if userRole != "admin" {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "Current user does not have admin role"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		h.ServeHTTP(w, r)
-	})
+	return middleware.AdminOnlyHandler(h)
 }
 
+// AdminOnlyHandlerFunc wraps a handler func to require admin role.
 func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		userRole, ok := ctx.Value(roleContextKey).(string)
-		if !ok {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "User role information not found"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		if userRole != "admin" {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "Current user does not have admin role"
-			RespondWithAPIError(w, apiErr)
+		if !ok || userRole != "admin" {
+			apiErr := dto.ErrAuthAdminRequired
+			apiErr.Detail = "Admin privileges required"
+			dto.RespondWithAPIError(w, apiErr)
 			return
 		}
 		handlerFunc(w, r)
 	}
 }
 
-// AdminRouteMiddleware applies admin-only protection to all routes in a subrouter
-func AdminRouteMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		userRole, ok := ctx.Value(roleContextKey).(string)
-		if !ok {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "User role information not found"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		if userRole != "admin" {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "Admin privileges required for this endpoint"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-// AdminAuthMiddleware - Authentication middleware specifically for admin routes
-func AdminAuthMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bearerToken := extractBearerToken(r)
-		result := parseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
-
-		if result.Error != nil {
-			RespondWithAPIError(w, *result.Error)
-			return
-		}
-
-		// Admin-only check
-		if result.Role != "admin" {
-			apiErr := ErrAuthAdminRequired
-			apiErr.Detail = "Admin privileges required"
-			RespondWithAPIError(w, apiErr)
-			return
-		}
-
-		// Add user context and proceed
-		handler.ServeHTTP(w, createUserContext(r, result.UserID, result.Role))
-	})
-}
-
-// UserAuthMiddleware - Authentication middleware for regular user routes
-func UserAuthMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bearerToken := extractBearerToken(r)
-		result := parseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
-
-		if result.Error != nil {
-			RespondWithAPIError(w, *result.Error)
-			return
-		}
-
-		// Add user context and proceed (no role restrictions for user middleware)
-		handler.ServeHTTP(w, createUserContext(r, result.UserID, result.Role))
-	})
-}
-
-func IsAuthorizedMiddleware(handler http.Handler) http.Handler {
-	noAuthPaths := map[string]bool{
-		"/":            true,
-		"/favicon.ico": true,
-		"/api/login":   true,
-		"/api/signup":  true,
-		"/api/tts":     true,
-		"/api/errors":  true,
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := noAuthPaths[r.URL.Path]; ok || strings.HasPrefix(r.URL.Path, "/static") || IsChatSnapshotUUID(r) {
-			handler.ServeHTTP(w, r)
-			return
-		}
-
-		bearerToken := extractBearerToken(r)
-		result := parseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
-
-		if result.Error != nil {
-			RespondWithAPIError(w, *result.Error)
-			return
-		}
-
-		if result.Valid {
-			// superuser
-			if strings.HasPrefix(r.URL.Path, "/admin") && result.Role != "admin" {
-				apiErr := ErrAuthAdminRequired
-				apiErr.Detail = "This endpoint requires admin privileges"
-				RespondWithAPIError(w, apiErr)
-				return
-			}
-
-			// TODO: get trace id and add it to context
-			//traceID := r.Header.Get("X-Request-Id")
-			//if len(traceID) > 0 {
-			//ctx = context.WithValue(ctx, guidContextKey, traceID)
-			//}
-			// Store user ID and role in the request context
-			// pass token to request
-			handler.ServeHTTP(w, createUserContext(r, result.UserID, result.Role))
-		}
-	})
+func IsChatSnapshotUUID(r *http.Request) bool {
+	return middleware.IsChatSnapshotUUID(r)
 }

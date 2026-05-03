@@ -144,22 +144,6 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 	json.NewEncoder(w).Encode(session)
 }
 
-type UpdateChatSessionRequest struct {
-	Uuid            string  `json:"uuid"`
-	Topic           string  `json:"topic"`
-	MaxLength       int32   `json:"maxLength"`
-	Temperature     float64 `json:"temperature"`
-	Model           string  `json:"model"`
-	TopP            float64 `json:"topP"`
-	N               int32   `json:"n"`
-	MaxTokens       int32   `json:"maxTokens"`
-	Debug           bool    `json:"debug"`
-	SummarizeMode   bool    `json:"summarizeMode"`
-	ArtifactEnabled bool    `json:"artifactEnabled"`
-	ExploreMode     bool    `json:"exploreMode"`
-	WorkspaceUUID   string  `json:"workspaceUuid,omitempty"`
-}
-
 // UpdateChatSessionByUUID updates a chat session by its UUID
 func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	var sessionReq UpdateChatSessionRequest

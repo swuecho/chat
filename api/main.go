@@ -5,219 +5,155 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
-	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"github.com/swuecho/chat_backend/config"
+	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/middleware"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/static"
 	"golang.org/x/time/rate"
 )
 
-var logger *log.Logger
-
-type AppConfig struct {
-	OPENAI struct {
-		API_KEY   string
-		RATELIMIT int
-		PROXY_URL string
-	}
-	CLAUDE struct {
-		API_KEY string
-	}
-	PG struct {
-		HOST string
-		PORT int
-		USER string
-		PASS string
-		DB   string
-	}
-}
-
-var appConfig AppConfig
-var jwtSecretAndAud sqlc_queries.JwtSecret
-
-func getFlattenKeys(prefix string, v reflect.Value) (keys []string) {
-	switch v.Kind() {
-	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Field(i)
-			name := v.Type().Field(i).Name
-			keys = append(keys, getFlattenKeys(prefix+name+".", field)...)
-		}
-	default:
-		keys = append(keys, prefix[:len(prefix)-1])
-	}
-	return keys
-}
-
-func bindEnvironmentVariables() {
-	appConfig = AppConfig{}
-	for _, key := range getFlattenKeys("", reflect.ValueOf(appConfig)) {
-		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
-		err := viper.BindEnv(key, envKey)
-		if err != nil {
-			logger.Fatal("config: unable to bind env: " + err.Error())
-		}
-	}
-}
-
 //go:embed sqlc/schema.sql
 var schemaBytes []byte
 
-// lastRequest tracks the last time a request was received
-var lastRequest time.Time
+var appConfig config.AppConfig
+var jwtSecretAndAud sqlc_queries.JwtSecret
 var openAIRateLimiter *rate.Limiter
 
 func main() {
-
-	// Allow only 3000 requests per minute, with burst 500
+	// Rate limiter: 3000 requests per minute, burst 500
 	openAIRateLimiter = rate.NewLimiter(rate.Every(time.Minute/3000), 500)
 
-	// A buffered channel with capacity 1
-	// This ensures only one API call can proceed at a time
-
-	lastRequest = time.Now()
-	// Configure viper to read environment variables
-	bindEnvironmentVariables()
-	viper.AutomaticEnv()
-
-	if err := viper.Unmarshal(&appConfig); err != nil {
-		logger.Fatal("config: unable to decode into struct: " + err.Error())
-	}
+	// Load configuration from environment variables
+	appConfig = config.Load(log.Default())
 
 	log.Printf("%+v", appConfig)
-	logger = log.New()
-	logger.Formatter = &log.JSONFormatter{}
 
-	// Establish a database connection
+	// Database connection
 	dbURL := os.Getenv("DATABASE_URL")
 	var connStr string
 	if dbURL == "" {
 		pg := appConfig.PG
 		connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 			pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
-		print(connStr)
 	} else {
 		connStr = dbURL
 	}
+
 	pgdb, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer pgdb.Close()
 
-	// Get current executable file path
-	ex, err := os.Executable()
-	if err != nil {
-		log.WithError(err).Fatal("Failed to get executable path")
-	}
-
-	// Get current project directory
-	projectDir := filepath.Dir(ex)
-
-	// Print project directory
-	fmt.Println(projectDir)
-
-	sqlStatements := string(schemaBytes)
-
-	// Execute SQL statements
-	_, err = pgdb.Exec(sqlStatements)
-	if err != nil {
-		log.WithError(err).Fatal("Failed to execute SQL schema statements")
+	// Run schema
+	if _, err := pgdb.Exec(string(schemaBytes)); err != nil {
+		log.Fatal("Failed to execute SQL schema: ", err)
 	}
 	fmt.Println("SQL statements executed successfully")
 
-	// create a new Gorilla Mux router instance
-	// Create a new router
+	// Router setup
 	router := mux.NewRouter()
-
 	apiRouter := router.PathPrefix("/api").Subrouter()
-
 	sqlc_q := sqlc_queries.New(pgdb)
+
+	// JWT secret
 	secretService := NewJWTSecretService(sqlc_q)
 	jwtSecretAndAud, err = secretService.GetOrCreateJwtSecret(context.Background(), "chat")
 	if err != nil {
 		log.Fatal(err)
 	}
+	middleware.SetJWTSecret(jwtSecretAndAud.Secret)
 
-	// Create separate subrouters for admin and user routes
+	// Subrouters
 	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
 	userRouter := apiRouter.NewRoute().Subrouter()
 
-	// Apply different middleware to admin and user routes
-	adminRouter.Use(AdminAuthMiddleware)
-	userRouter.Use(UserAuthMiddleware)
+	// Auth middleware
+	adminRouter.Use(middleware.AdminAuthMiddleware)
+	userRouter.Use(middleware.UserAuthMiddleware)
 
+	// Rate limiting
+	adminRouter.Use(middleware.RateLimitByUserID(sqlc_q, appConfig.OPENAI.RATELIMIT))
+	userRouter.Use(middleware.RateLimitByUserID(sqlc_q, appConfig.OPENAI.RATELIMIT))
+
+	// --- Route registration ---
+	// Chat models
 	ChatModelHandler := NewChatModelHandler(sqlc_q)
-	ChatModelHandler.Register(userRouter) // Chat models for regular users
+	ChatModelHandler.Register(userRouter)
 
-	// create a new AuthUserHandler instance for user routes
+	// Auth
 	userHandler := NewAuthUserHandler(sqlc_q)
-	// register authenticated routes with the user router
 	userHandler.Register(userRouter)
-	// register public routes (login/signup) with the api router (no auth required)
 	userHandler.RegisterPublicRoutes(apiRouter)
 
-	// create a new AdminHandler instance for admin-only routes
+	// Admin
 	authUserService := NewAuthUserService(sqlc_q)
 	adminHandler := NewAdminHandler(authUserService)
-	// register the AdminHandler with the admin router (will remove /admin prefix automatically)
 	adminHandler.RegisterRoutes(adminRouter)
 
+	// Prompts
 	promptHandler := NewChatPromptHandler(sqlc_q)
 	promptHandler.Register(userRouter)
 
+	// Sessions (register before workspaces to avoid route shadowing)
 	chatSessionHandler := NewChatSessionHandler(sqlc_q)
 	chatSessionHandler.Register(userRouter)
 
-	// Register active session handler before workspace handler to avoid route shadowing
+	// Active sessions
 	activeSessionHandler := NewUserActiveChatSessionHandler(sqlc_q)
 	activeSessionHandler.Register(userRouter)
 
+	// Workspaces
 	chatWorkspaceHandler := NewChatWorkspaceHandler(sqlc_q)
 	chatWorkspaceHandler.Register(userRouter)
 
+	// Messages
 	chatMessageHandler := NewChatMessageHandler(sqlc_q)
 	chatMessageHandler.Register(userRouter)
 
+	// Snapshots
 	chatSnapshotHandler := NewChatSnapshotHandler(sqlc_q)
 	chatSnapshotHandler.Register(userRouter)
 
-	// create a new ChatHandler instance
+	// Chat stream
 	chatHandler := NewChatHandler(sqlc_q)
 	chatHandler.Register(userRouter)
 
+	// Model privileges
 	user_model_privilege_handler := NewUserChatModelPrivilegeHandler(sqlc_q)
 	user_model_privilege_handler.Register(userRouter)
 
+	// Files
 	chatFileHandler := NewChatFileHandler(sqlc_q)
 	chatFileHandler.Register(userRouter)
 
+	// Comments
 	chatCommentHandler := NewChatCommentHandler(sqlc_q)
 	chatCommentHandler.Register(userRouter)
 
+	// Bot history
 	botAnswerHistoryHandler := NewBotAnswerHistoryHandler(sqlc_q)
 	botAnswerHistoryHandler.Register(userRouter)
 
+	// Public endpoints
 	apiRouter.HandleFunc("/tts", handleTTSRequest)
-	apiRouter.HandleFunc("/errors", ErrorCatalogHandler)
+	apiRouter.HandleFunc("/errors", dto.ErrorCatalogHandler)
 
-	// Embed static/* directory
+	// Static files
 	fs := http.FileServer(http.FS(static.StaticFiles))
-
-	// Set cache headers for static/assets files
 	cacheHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/static/") {
-			w.Header().Set("Cache-Control", "max-age=31536000") // 1 year
+			w.Header().Set("Cache-Control", "max-age=31536000")
 		} else if r.URL.Path == "" {
 			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 			w.Header().Set("Pragma", "no-cache")
@@ -225,34 +161,41 @@ func main() {
 		}
 		fs.ServeHTTP(w, r)
 	})
+	router.PathPrefix("/").Handler(middleware.MakeGzipHandler(cacheHandler))
 
-	router.PathPrefix("/").Handler(makeGzipHandler(cacheHandler))
-
-	// fly.io
+	// Fly.io idle monitor
+	requestTracker := middleware.NewLastRequestTracker()
 	if os.Getenv("FLY_APP_NAME") != "" {
-		router.Use(UpdateLastRequestTime)
+		router.Use(middleware.UpdateLastRequestTime(requestTracker))
+		go func() {
+			restartInterval := os.Getenv("FLY_RESTART_INTERVAL_IF_IDLE")
+			if restartInterval == "" {
+				restartInterval = "30m"
+			}
+			duration, err := time.ParseDuration(restartInterval)
+			if err != nil {
+				return
+			}
+			for {
+				time.Sleep(1 * time.Minute)
+				if requestTracker.Since() > duration {
+					fmt.Printf("No activity for %s. Exiting.\n", restartInterval)
+					os.Exit(0)
+				}
+			}
+		}()
 	}
 
-	// Apply rate limiting to authenticated routes only
-	limitedRouter := RateLimitByUserID(sqlc_q)
-	adminRouter.Use(limitedRouter)
-	userRouter.Use(limitedRouter)
-
-	// Public routes (apiRouter) don't need authentication or rate limiting
-	// TTS and errors endpoints are public
-	// Add CORS middleware to handle cross-origin requests
+	// CORS
 	defaultOrigins := []string{"http://localhost:9002", "http://localhost:3000"}
 	allowedOrigins := append([]string{}, defaultOrigins...)
 	restrictToConfigured := false
 	if corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); corsOrigins != "" {
-		parts := strings.Split(corsOrigins, ",")
 		allowedOrigins = allowedOrigins[:0]
-		for _, origin := range parts {
-			trimmed := strings.TrimSpace(origin)
-			if trimmed == "" {
-				continue
+		for _, origin := range strings.Split(corsOrigins, ",") {
+			if trimmed := strings.TrimSpace(origin); trimmed != "" {
+				allowedOrigins = append(allowedOrigins, trimmed)
 			}
-			allowedOrigins = append(allowedOrigins, trimmed)
 		}
 		restrictToConfigured = true
 	}
@@ -262,10 +205,7 @@ func main() {
 			return true
 		}
 		for _, allowed := range allowedOrigins {
-			if allowed == "*" {
-				return true
-			}
-			if strings.EqualFold(origin, allowed) {
+			if allowed == "*" || strings.EqualFold(origin, allowed) {
 				return true
 			}
 		}
@@ -280,53 +220,24 @@ func main() {
 		return false
 	}
 
-	corsOptions := handlers.CORS(
+	corsRouter := handlers.CORS(
 		handlers.AllowedOriginValidator(originValidator),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cache-Control", "Connection", "Pragma", "Accept", "Accept-Language", "Origin", "Referer"}),
 		handlers.AllowCredentials(),
-	)
+	)(router)
 
-	// Wrap the router with CORS and logging middleware
-	corsRouter := corsOptions(router)
-	loggedRouter := handlers.LoggingHandler(logger.Out, corsRouter)
-
+	// Log routes
 	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		tpl, err1 := route.GetPathTemplate()
 		met, err2 := route.GetMethods()
 		fmt.Println(tpl, err1, met, err2)
 		return nil
 	})
-	// fly.io
 
-	if os.Getenv("FLY_APP_NAME") != "" {
-		// read env var FLY_RESTART_INTERVAL_IF_IDLE if not set, set to 30 minutes
-		restartInterval := os.Getenv("FLY_RESTART_INTERVAL_IF_IDLE")
-
-		// If not set, default to 30 minutes
-		if restartInterval == "" {
-			restartInterval = "30m"
-		}
-
-		duration, err := time.ParseDuration(restartInterval)
-		if err != nil {
-			log.Println("Invalid FLY_RESTART_INTERVAL_IF_IDLE value. Exiting.")
-		}
-		// Use a goroutine to check for inactivity and exit
-		go func() {
-			for {
-				time.Sleep(1 * time.Minute) // Check every minute
-				if time.Since(lastRequest) > duration {
-					fmt.Printf("No activity for %s. Exiting.", restartInterval)
-					os.Exit(0)
-					return
-				}
-			}
-		}()
-
-	}
-
-	err = http.ListenAndServe(":8080", loggedRouter)
+	// Start server
+	log.Println("Starting server on :8080")
+	err = http.ListenAndServe(":8080", corsRouter)
 	if err != nil {
 		log.Fatal(err)
 	}

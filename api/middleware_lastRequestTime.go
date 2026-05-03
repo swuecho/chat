@@ -3,15 +3,16 @@ package main
 import (
 	"net/http"
 	"time"
+
+	"github.com/swuecho/chat_backend/middleware"
 )
 
-// Middleware to update lastRequest time
-func UpdateLastRequestTime(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Update lastRequest time
-		lastRequest = time.Now()
+var requestTracker = middleware.NewLastRequestTracker()
 
-		// Call next middleware/handler
-		next.ServeHTTP(w, r)
-	})
+// UpdateLastRequestTime middleware for Fly.io idle detection.
+func UpdateLastRequestTime(next http.Handler) http.Handler {
+	return middleware.UpdateLastRequestTime(requestTracker)(next)
 }
+
+// lastRequest is kept for backward compatibility with existing code.
+var lastRequest time.Time

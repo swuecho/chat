@@ -86,10 +86,6 @@ type BotRequest struct {
 	Stream       bool   `json:"stream"`
 }
 
-type ChatInstructionResponse struct {
-	ArtifactInstruction string `json:"artifactInstruction"`
-}
-
 func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) {
 	artifactInstruction, err := loadArtifactInstruction()
 	if err != nil {

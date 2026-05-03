@@ -38,38 +38,6 @@ func (h *ChatWorkspaceHandler) Register(router *mux.Router) {
 	router.HandleFunc("/workspaces/auto-migrate", h.autoMigrateLegacySessions).Methods(http.MethodPost)
 }
 
-type CreateWorkspaceRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Color       string `json:"color"`
-	Icon        string `json:"icon"`
-	IsDefault   bool   `json:"isDefault"`
-}
-
-type UpdateWorkspaceRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Color       string `json:"color"`
-	Icon        string `json:"icon"`
-}
-
-type UpdateWorkspaceOrderRequest struct {
-	OrderPosition int32 `json:"orderPosition"`
-}
-
-type WorkspaceResponse struct {
-	Uuid          string `json:"uuid"`
-	Name          string `json:"name"`
-	Description   string `json:"description"`
-	Color         string `json:"color"`
-	Icon          string `json:"icon"`
-	IsDefault     bool   `json:"isDefault"`
-	OrderPosition int32  `json:"orderPosition"`
-	SessionCount  int64  `json:"sessionCount,omitempty"`
-	CreatedAt     string `json:"createdAt"`
-	UpdatedAt     string `json:"updatedAt"`
-}
-
 // createWorkspace creates a new workspace
 func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	var req CreateWorkspaceRequest
@@ -532,12 +500,6 @@ func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *
 	}
 
 	json.NewEncoder(w).Encode(response)
-}
-
-type CreateSessionInWorkspaceRequest struct {
-	Topic               string `json:"topic"`
-	Model               string `json:"model"`
-	DefaultSystemPrompt string `json:"defaultSystemPrompt"`
 }
 
 // createSessionInWorkspace creates a new session in a specific workspace
