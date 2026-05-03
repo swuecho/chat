@@ -19,6 +19,7 @@ import (
 	"github.com/swuecho/chat_backend/config"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/middleware"
+	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/static"
 	"golang.org/x/time/rate"
@@ -48,6 +49,9 @@ func run() error {
 	// --- Configuration ---
 	appConfig = config.Load()
 	cfg := appConfig
+
+	// Initialize provider globals
+	provider.OpenAIToken = cfg.OPENAI.API_KEY
 
 	// --- Database ---
 	pgdb, err := openDB(cfg)
@@ -337,8 +341,8 @@ func (s *server) idleMonitor() {
 // Package-level vars retained for backward compatibility with existing handler/provider code.
 // These will be eliminated when handlers are refactored to use dependency injection.
 var (
-	appConfig       config.AppConfig
-	jwtSecretAndAud sqlc_queries.JwtSecret
+	appConfig        config.AppConfig
+	jwtSecretAndAud  sqlc_queries.JwtSecret
 	openAIRateLimiter *rate.Limiter
 )
 

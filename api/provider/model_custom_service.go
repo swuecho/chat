@@ -1,4 +1,4 @@
-package main
+package provider
 
 import (
 	"bufio"
@@ -16,6 +16,7 @@ import (
 	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/dto"
 )
 
 // CustomModelResponse represents the response structure for custom models
@@ -31,22 +32,27 @@ type CustomModelResponse struct {
 
 // CustomChatModel implements ChatModel interface for custom model providers
 type CustomChatModel struct {
-	h *ChatHandler
+	h Handler
+}
+
+// NewCustomChatModel creates a new CustomChatModel.
+func NewCustomChatModel(h Handler) *CustomChatModel {
+	return &CustomChatModel{h: h}
 }
 
 // Stream implements the ChatModel interface for custom model scenarios
 func (m *CustomChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	// Get request context for cancellation support
-	ctx := m.h.GetRequestContext()
+	ctx := m.h.RequestContext()
 	return m.customChatStream(ctx, w, chatSession, chat_completion_messages, chatUuid, regenerate)
 }
 
 // customChatStream handles streaming for custom model providers
 func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// Get chat model configuration
-	chat_model, err := GetChatModel(m.h.GetRequestContext(), m.h.service.q, chatSession.Model)
+	chat_model, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
 	if err != nil {
-		RespondWithAPIError(w, createAPIError(ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
+		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
 		return nil, err
 	}
 
@@ -73,7 +79,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 	// Create HTTP request with context
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		RespondWithAPIError(w, createAPIError(ErrChatRequestFailed, "Failed to create custom model request", err.Error()))
+		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrChatRequestFailed, "Failed to create custom model request", err.Error()))
 		return nil, err
 	}
 
@@ -90,16 +96,16 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithAPIError(w, createAPIError(ErrChatRequestFailed, "Failed to send custom model request", err.Error()))
+		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrChatRequestFailed, "Failed to send custom model request", err.Error()))
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	// Setup streaming response
 	ioreader := bufio.NewReader(resp.Body)
-	flusher, err := setupSSEStream(w)
+	flusher, err := SetupSSEStream(w)
 	if err != nil {
-		RespondWithAPIError(w, createAPIError(APIError{
+		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.APIError{
 			HTTPCode: http.StatusInternalServerError,
 			Code:     "STREAM_UNSUPPORTED",
 			Message:  "Streaming unsupported by client",
@@ -110,7 +116,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 	var answer string
 	var answer_id string
 	var lastFlushLength int
-	answer_id = GenerateAnswerID(chatUuid, regenerate)
+	answer_id = generateAnswerID(chatUuid, regenerate)
 
 	headerData := []byte("data: ")
 	count := 0
@@ -128,14 +134,14 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 
 		count++
 		// Prevent infinite loop
-		if count > MaxStreamingLoopIterations {
+		if count > 10000 {
 			break
 		}
 
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				fmt.Println(ErrorEndOfStream)
+				fmt.Println("End of stream reached")
 				break
 			}
 			return nil, err
@@ -147,7 +153,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 		line = bytes.TrimPrefix(line, headerData)
 
 		if bytes.HasPrefix(line, []byte("[DONE]")) {
-			fmt.Println(ErrorDoneBreak)
+			fmt.Println("DONE break")
 
 			break
 		}
@@ -162,8 +168,8 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 
 		// Determine when to flush the response
 		shouldFlush := strings.Contains(answer, "\n") ||
-			len(answer) < SmallAnswerThreshold ||
-			(len(answer)-lastFlushLength) >= FlushCharacterThreshold
+			len(answer) < 200 ||
+			(len(answer)-lastFlushLength) >= 500
 
 		if shouldFlush {
 			err := FlushResponse(w, flusher, StreamingResponse{

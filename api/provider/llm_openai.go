@@ -1,4 +1,4 @@
-package main
+package provider
 
 import (
 	"encoding/base64"
@@ -87,7 +87,8 @@ func byteToImageURL(mimeType string, data []byte) string {
 	return b64
 }
 
-func getModelBaseUrl(apiUrl string) (string, error) {
+// GetModelBaseURL extracts the base URL from an API endpoint.
+func GetModelBaseURL(apiUrl string) (string, error) {
 	parsedUrl, err := url.Parse(apiUrl)
 	if err != nil {
 		return "", err
@@ -111,7 +112,8 @@ func getModelBaseUrl(apiUrl string) (string, error) {
 	return fmt.Sprintf("%s://%s%s", parsedUrl.Scheme, parsedUrl.Host, basePath), nil
 }
 
-func normalizeOpenAIModelName(chatModel sqlc_queries.ChatModel, modelName string) string {
+// NormalizeOpenAIModelName normalizes model names for specific providers like BigModel.
+func NormalizeOpenAIModelName(chatModel sqlc_queries.ChatModel, modelName string) string {
 	if strings.Contains(chatModel.Url, "open.bigmodel.cn") {
 		normalized := strings.ToLower(modelName)
 		if normalized != modelName {
@@ -122,8 +124,8 @@ func normalizeOpenAIModelName(chatModel sqlc_queries.ChatModel, modelName string
 	return modelName
 }
 
-func configOpenAIProxy(config *openai.ClientConfig) {
-	proxyUrlStr := appConfig.OPENAI.PROXY_URL
+func configOpenAIProxy(clientCfg *openai.ClientConfig, proxyURL string) {
+	proxyUrlStr := proxyURL
 	if proxyUrlStr != "" {
 		proxyUrl, err := url.Parse(proxyUrlStr)
 		if err != nil {
@@ -132,16 +134,17 @@ func configOpenAIProxy(config *openai.ClientConfig) {
 		transport := &http.Transport{
 			Proxy: http.ProxyURL(proxyUrl),
 		}
-		config.HTTPClient = &http.Client{
+		clientCfg.HTTPClient = &http.Client{
 			Transport: transport,
 			Timeout:   120 * time.Second,
 		}
 	}
 }
 
-func genOpenAIConfig(chatModel sqlc_queries.ChatModel) (openai.ClientConfig, error) {
+// GenOpenAIConfig creates an OpenAI client configuration from a chat model.
+func GenOpenAIConfig(chatModel sqlc_queries.ChatModel, cfg Config) (openai.ClientConfig, error) {
 	token := os.Getenv(chatModel.ApiAuthKey)
-	baseUrl, err := getModelBaseUrl(chatModel.Url)
+	baseUrl, err := GetModelBaseURL(chatModel.Url)
 	if err != nil {
 		return openai.ClientConfig{}, err
 	}
@@ -161,7 +164,7 @@ func genOpenAIConfig(chatModel sqlc_queries.ChatModel) (openai.ClientConfig, err
 		config.BaseURL = baseUrl
 		// two minutes timeout
 		// config.HTTPClient.Timeout = 120 * time.Second
-		configOpenAIProxy(&config)
+		configOpenAIProxy(&config, cfg.OpenAIProxy)
 	}
 	return config, err
 }

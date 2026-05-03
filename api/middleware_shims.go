@@ -1,3 +1,6 @@
+// Package main — Middleware shims that re-export from the middleware package.
+// These exist for backward compatibility with handler code that uses the
+// un-prefixed function names. New code should import middleware/ directly.
 package main
 
 import (
@@ -5,32 +8,37 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/middleware"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-// Re-export middleware functions for backward compatibility.
+// --- Re-exported middleware constructors ---
+
 var (
-	AdminAuthMiddleware  = middleware.AdminAuthMiddleware
-	UserAuthMiddleware   = middleware.UserAuthMiddleware
-	parseAndValidateJWT  = middleware.ParseAndValidateJWT
+	AdminAuthMiddleware = middleware.AdminAuthMiddleware
+	UserAuthMiddleware  = middleware.UserAuthMiddleware
+	parseAndValidateJWT = middleware.ParseAndValidateJWT
 )
 
-// Context key constants matching middleware package.
+// --- Context key constants ---
+
 const (
 	roleContextKey = middleware.RoleContextKey
 	userContextKey = middleware.UserContextKey
 	guidContextKey = middleware.GuidContextKey
 )
 
-// getUserID extracts the user ID from context.
+// --- Auth helpers (kept in main because they use strconv for parsing) ---
+
 func getUserID(ctx context.Context) (int32, error) {
 	userIdValue := ctx.Value(userContextKey)
 	if userIdValue == nil {
 		return 0, fmt.Errorf("no user Id in context")
 	}
-	userIDStr := userIdValue.(string)
+	userIDStr, _ := userIdValue.(string)
 	userIDInt, err := strconv.ParseInt(userIDStr, 10, 32)
 	if err != nil {
 		return 0, fmt.Errorf("invalid user ID: %s", userIDStr)
@@ -42,12 +50,12 @@ func getContextWithUser(userID int) context.Context {
 	return context.WithValue(context.Background(), userContextKey, strconv.Itoa(userID))
 }
 
-// AdminOnlyHandler wraps a handler to require admin role.
+// --- Admin-only wrappers ---
+
 func AdminOnlyHandler(h http.Handler) http.Handler {
 	return middleware.AdminOnlyHandler(h)
 }
 
-// AdminOnlyHandlerFunc wraps a handler func to require admin role.
 func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -65,3 +73,26 @@ func AdminOnlyHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
 func IsChatSnapshotUUID(r *http.Request) bool {
 	return middleware.IsChatSnapshotUUID(r)
 }
+
+// --- Rate limiting shim ---
+
+func RateLimitByUserID(q *sqlc_queries.Queries) func(http.Handler) http.Handler {
+	return middleware.RateLimitByUserID(q, appConfig.OPENAI.RATELIMIT)
+}
+
+// --- Gzip shim ---
+
+func makeGzipHandler(next http.Handler) http.Handler {
+	return middleware.MakeGzipHandler(next)
+}
+
+// --- Request time tracking shim ---
+
+var requestTracker = middleware.NewLastRequestTracker()
+
+func UpdateLastRequestTime(next http.Handler) http.Handler {
+	return middleware.UpdateLastRequestTime(requestTracker)(next)
+}
+
+// lastRequest retained for backward compatibility.
+var lastRequest time.Time

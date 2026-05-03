@@ -140,7 +140,7 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	params.ID = userID
-	user, err := h.service.q.UpdateAuthUser(r.Context(), params)
+	user, err := h.service.UpdateAuthUser(r.Context(), params)
 	if err != nil {
 		log.WithError(err).Error("Failed to update user")
 		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to update user").WithDebugInfo(err.Error()))
@@ -155,7 +155,7 @@ func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		RespondWithAPIError(w, ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	user, err := h.service.q.UpdateAuthUserByEmail(r.Context(), params)
+	user, err := h.service.UpdateAuthUserByEmail(r.Context(), params)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to update user"))
 		return

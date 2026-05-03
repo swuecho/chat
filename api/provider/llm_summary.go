@@ -1,4 +1,4 @@
-package main
+package provider
 
 import (
 	"context"
@@ -12,7 +12,11 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-func llm_summarize_with_timeout(baseURL, content string) string {
+// OpenAIToken is set during initialization to avoid importing main package globals.
+var OpenAIToken string
+
+// SummarizeWithTimeout generates a summary with a 20-second timeout.
+func SummarizeWithTimeout(baseURL, content string) string {
 	// Create a context with a 20 second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -26,7 +30,7 @@ func llm_summarize_with_timeout(baseURL, content string) string {
 func llm_summarize(ctx context.Context, baseURL string, doc string) string {
 	baseURL = strings.TrimSuffix(baseURL, "/v1")
 	llm, err := openai.New(
-		openai.WithToken(appConfig.OPENAI.API_KEY),
+		openai.WithToken(OpenAIToken),
 		openai.WithBaseURL(baseURL),
 	)
 	if err != nil {

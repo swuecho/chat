@@ -1,4 +1,4 @@
-package main
+package provider
 
 import (
 	"context"
@@ -15,43 +15,49 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // OpenAI ChatModel implementation
 type OpenAIChatModel struct {
-	h *ChatHandler
+	h Handler
+}
+
+// NewOpenAIChatModel creates a new OpenAIChatModel.
+func NewOpenAIChatModel(h Handler) *OpenAIChatModel {
+	return &OpenAIChatModel{h: h}
 }
 
 func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
-	openAIRateLimiter.Wait(context.Background())
+	m.h.Config().RateLimiter.Wait(context.Background())
 
 	exceedPerModeRateLimitOrError := m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
 	if exceedPerModeRateLimitOrError {
 		return nil, eris.New("exceed per mode rate limit")
 	}
 
-	chatModel, err := GetChatModel(m.h.GetRequestContext(), m.h.service.q, chatSession.Model)
+	chatModel, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
 	if err != nil {
 		return nil, err
 	}
 
-	config, err := genOpenAIConfig(*chatModel)
+	config, err := GenOpenAIConfig(*chatModel, m.h.Config())
 	log.Printf("%+v", config.String())
 	// print all config details
 	if err != nil {
-		return nil, ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
+		return nil, dto.ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
 	}
 
-	chatFiles, err := GetChatFiles(m.h.GetRequestContext(), m.h.chatfileService.q, chatSession.Uuid)
+	chatFiles, err := GetChatFiles(m.h.RequestContext(), m.h.Queries(), chatSession.Uuid)
 	if err != nil {
 		return nil, err
 	}
 
 	openaiReq := NewChatCompletionRequest(chatSession, chatCompletionMessages, chatFiles, streamOutput)
-	openaiReq.Model = normalizeOpenAIModelName(*chatModel, openaiReq.Model)
+	openaiReq.Model = NormalizeOpenAIModelName(*chatModel, openaiReq.Model)
 	if len(openaiReq.Messages) <= 1 {
-		return nil, ErrSystemMessageError
+		return nil, dto.ErrSystemMessageError
 	}
 	log.Printf("OpenAI request prepared - Model: %s, MessageCount: %d, Temperature: %.2f",
 		openaiReq.Model, len(openaiReq.Messages), openaiReq.Temperature)
@@ -72,7 +78,7 @@ func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req ope
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		log.Printf("OpenAI request failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
-		return nil, ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())
+		return nil, dto.ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())
 	}
 	log.Printf("completion: %+v", completion)
 	data, _ := json.Marshal(completion)
@@ -82,11 +88,11 @@ func handleRegularResponse(w http.ResponseWriter, client *openai.Client, req ope
 
 // doChatStream handles streaming chat completion responses from OpenAI
 // It properly manages thinking tags for models that support reasoning content
-func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, handler *ChatHandler, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
+func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, handler Handler, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
 	// Use request context with timeout, but prioritize client cancellation
 	baseCtx := context.Background()
 	if handler != nil {
-		baseCtx = handler.GetRequestContext()
+		baseCtx = handler.RequestContext()
 	}
 	ctx, cancel := context.WithTimeout(baseCtx, 5*time.Minute)
 	defer cancel()
@@ -96,7 +102,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	if err != nil {
 		log.Printf("OpenAI stream setup failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
-		return nil, ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())
+		return nil, dto.ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())
 	}
 	defer func() {
 		if err := stream.Close(); err != nil {
@@ -105,9 +111,9 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 	}()
 
 	// Setup Server-Sent Events (SSE) streaming
-	flusher, err := setupSSEStream(w)
+	flusher, err := SetupSSEStream(w)
 	if err != nil {
-		return nil, APIError{
+		return nil, dto.APIError{
 			HTTPCode: http.StatusInternalServerError,
 			Code:     "STREAM_UNSUPPORTED",
 			Message:  "Streaming unsupported by client",
@@ -128,9 +134,9 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 	}
 
 	// Initialize buffers for accumulating content
-	textBuffer := newTextBuffer(bufferLen, "", "")
-	reasonBuffer := newTextBuffer(bufferLen, "<think>\n\n", "\n\n</think>\n\n")
-	answer_id = GenerateAnswerID(chatUuid, regenerate)
+	TextBuffer := NewTextBuffer(bufferLen, "", "")
+	reasonBuffer := NewTextBuffer(bufferLen, "<think>\n\n", "\n\n</think>\n\n")
+	answer_id = generateAnswerID(chatUuid, regenerate)
 	// Main streaming loop
 	for {
 		// Check if client disconnected or context was cancelled
@@ -138,7 +144,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		case <-ctx.Done():
 			log.Printf("Stream cancelled by client: %v", ctx.Err())
 			// Return current accumulated content when cancelled
-			llmAnswer := models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id}
+			llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answer_id}
 			if hasReason {
 				llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 			}
@@ -150,20 +156,20 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		if err != nil {
 			log.Printf("OpenAI stream receive error - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
 			if errors.Is(err, io.EOF) {
-				if textBuffer.String("\n") == "" && reasonBuffer.String("\n") == "" {
+				if TextBuffer.String("\n") == "" && reasonBuffer.String("\n") == "" {
 					errMsg := fmt.Sprintf("stream closed without content; verify configured URL %q resolves to a valid OpenAI-compatible base URL %q and that model %q is valid", configuredURL, baseURL, req.Model)
 					log.Print(errMsg)
-					return nil, ErrOpenAIStreamFailed.WithMessage("Stream closed without content").WithDebugInfo(errMsg)
+					return nil, dto.ErrOpenAIStreamFailed.WithMessage("Stream closed without content").WithDebugInfo(errMsg)
 				}
 				// Stream ended successfully - return accumulated content
-				llmAnswer := models.LLMAnswer{Answer: textBuffer.String("\n"), AnswerId: answer_id}
+				llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answer_id}
 				if hasReason {
 					llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 				}
 				return &llmAnswer, nil
 			} else {
 				log.Printf("Stream error: %v", err)
-				return nil, ErrOpenAIStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())
+				return nil, dto.ErrOpenAIStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())
 			}
 		}
 		// Parse the streaming response
@@ -179,10 +185,10 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		delta := response.Choices[0].Delta
 
 		// Accumulate content in buffers (for final answer construction)
-		textBuffer.appendByIndex(textIdx, delta.Content)
+		TextBuffer.AppendByIndex(textIdx, delta.Content)
 		if len(delta.ReasoningContent) > 0 {
 			hasReason = true
-			reasonBuffer.appendByIndex(textIdx, delta.ReasoningContent)
+			reasonBuffer.AppendByIndex(textIdx, delta.ReasoningContent)
 		}
 
 		// Set answer ID from response if not already set

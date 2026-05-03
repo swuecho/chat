@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -29,7 +30,7 @@ func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWr
 		return nil, nil, "", false
 	}
 
-	baseURL, _ := getModelBaseUrl(chatModel.Url)
+	baseURL, _ := provider.GetModelBaseURL(chatModel.Url)
 
 	if chatSession.Uuid == "" {
 		RespondWithAPIError(w, ErrValidationInvalidInput("Invalid session UUID"))
@@ -153,7 +154,7 @@ func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession
 		return
 	}
 
-	genTitle, err := GenerateChatTitle(ctx, model, chatText.String())
+	genTitle, err := provider.GenerateChatTitle(ctx, model, chatText.String())
 	if err != nil || genTitle == "" {
 		return
 	}

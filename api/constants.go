@@ -1,12 +1,8 @@
+// Package main — Re-exports commonly used constants from the dto package.
 package main
 
-import (
-	"time"
+import "github.com/swuecho/chat_backend/dto"
 
-	"github.com/swuecho/chat_backend/dto"
-)
-
-// Re-export commonly used constants from dto for backward compatibility.
 const (
 	DefaultRequestTimeout      = dto.DefaultRequestTimeout
 	MaxStreamingLoopIterations = dto.MaxStreamingLoopIterations
@@ -35,5 +31,3 @@ const (
 	CacheControlNoCache        = dto.CacheControlNoCache
 	ConnectionKeepAlive        = dto.ConnectionKeepAlive
 )
-
-var _ = time.Now // keep time import

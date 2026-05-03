@@ -17,6 +17,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chat_backend/llm/gemini"
 	models "github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -176,7 +177,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 
 	if is_summarize_mode && numTokens > SummarizeThreshold {
 		log.Println("summarizing")
-		summary = llm_summarize_with_timeout(baseURL, content)
+		summary = provider.SummarizeWithTimeout(baseURL, content)
 		log.Println("summarizing: " + summary)
 	}
 
@@ -222,7 +223,7 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 	summary := ""
 	if is_summarize_mode && numTokens > SummarizeThreshold {
 		log.Println("summarizing")
-		summary = llm_summarize_with_timeout(baseURL, content)
+		summary = provider.SummarizeWithTimeout(baseURL, content)
 		log.Println("summarizing: " + summary)
 	}
 
@@ -428,7 +429,7 @@ func (s *ChatService) callGeminiForSuggestions(ctx context.Context, model sqlc_q
 // callOpenAICompatibleForSuggestions makes an OpenAI-compatible API call for suggestions (including deepseek)
 func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, model sqlc_queries.ChatModel, prompt string) string {
 	// Generate OpenAI client configuration
-	config, err := genOpenAIConfig(model)
+	config, err := provider.GenOpenAIConfig(model, provider.Config{OpenAIKey: appConfig.OPENAI.API_KEY, OpenAIProxy: appConfig.OPENAI.PROXY_URL})
 	if err != nil {
 		log.Printf("Warning: Failed to generate OpenAI configuration for suggestions: %v", err)
 		return ""

@@ -1,14 +1,16 @@
+// Package main — Core interfaces and type aliases for backward compatibility.
 package main
 
 import (
-	"net/http"
-
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/provider"
 )
 
-// Re-export commonly used DTOs for backward compatibility within package main.
+// ChatModel is an alias for provider.ChatModel.
+type ChatModel = provider.ChatModel
+
+// --- DTO type aliases for backward compatibility ---
+
 type (
 	TokenResult                    = dto.TokenResult
 	ConversationRequest            = dto.ConversationRequest
@@ -27,8 +29,3 @@ type (
 	CreateSessionInWorkspaceRequest = dto.CreateSessionInWorkspaceRequest
 	ChatInstructionResponse        = dto.ChatInstructionResponse
 )
-
-// ChatModel interface - used by all LLM providers.
-type ChatModel interface {
-	Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chatMessages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error)
-}

@@ -1,4 +1,4 @@
-package main
+package provider
 
 import (
 	"bufio"
@@ -16,6 +16,7 @@ import (
 
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/dto"
 )
 
 // OllamaResponse represents the response structure from Ollama API
@@ -34,20 +35,25 @@ type OllamaResponse struct {
 
 // Ollama ChatModel implementation
 type OllamaChatModel struct {
-	h *ChatHandler
+	h Handler
+}
+
+// NewOllamaChatModel creates a new OllamaChatModel.
+func NewOllamaChatModel(h Handler) *OllamaChatModel {
+	return &OllamaChatModel{h: h}
 }
 
 func (m *OllamaChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	// Get request context for cancellation support
-	ctx := m.h.GetRequestContext()
-	return m.h.chatOllamStream(ctx, w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
+	ctx := m.h.RequestContext()
+	return chatOllamStream(m.h, ctx, w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
 
-func (h *ChatHandler) chatOllamStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
+func chatOllamStream(h Handler, ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// set the api key
-	chatModel, err := GetChatModel(ctx, h.service.q, chatSession.Model)
+	chatModel, err := GetChatModel(ctx, h.Queries(), chatSession.Model)
 	if err != nil {
-		RespondWithAPIError(w, createAPIError(ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
+		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
 		return nil, err
 	}
 	jsonData := map[string]any{
@@ -60,7 +66,7 @@ func (h *ChatHandler) chatOllamStream(ctx context.Context, w http.ResponseWriter
 	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to make request").WithDebugInfo(err.Error()))
+		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to make request").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -85,7 +91,7 @@ func (h *ChatHandler) chatOllamStream(ctx context.Context, w http.ResponseWriter
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithAPIError(w, ErrInternalUnexpected.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error()))
+		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error()))
 		return nil, err
 	}
 
@@ -95,9 +101,9 @@ func (h *ChatHandler) chatOllamStream(ctx context.Context, w http.ResponseWriter
 	defer resp.Body.Close()
 	// loop over the response body and print data
 
-	flusher, err := setupSSEStream(w)
+	flusher, err := SetupSSEStream(w)
 	if err != nil {
-		RespondWithAPIError(w, APIError{
+		dto.RespondWithAPIError(w, dto.APIError{
 			HTTPCode: http.StatusInternalServerError,
 			Code:     "STREAM_UNSUPPORTED",
 			Message:  "Streaming unsupported by client",
@@ -106,7 +112,7 @@ func (h *ChatHandler) chatOllamStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	var answer string
-	answer_id := GenerateAnswerID(chatUuid, regenerate)
+	answer_id := generateAnswerID(chatUuid, regenerate)
 
 	count := 0
 	for {

@@ -1,4 +1,3 @@
-// Package main — Chat model selection and rate-limit access checks.
 package main
 
 import (
@@ -10,18 +9,19 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // chooseChatModel returns the appropriate ChatModel implementation based on session config.
-func (h *ChatHandler) chooseChatModel(session sqlc_queries.ChatSession, msgs []models.Message) ChatModel {
+func (h *ChatHandler) chooseChatModel(session sqlc_queries.ChatSession, msgs []models.Message) provider.ChatModel {
 	if isTest(msgs) {
-		return &TestChatModel{h: h}
+		return provider.NewTestChatModel(h)
 	}
 
-	chatModel, err := GetChatModel(h.GetRequestContext(), h.service.q, session.Model)
+	chatModel, err := provider.GetChatModel(h.RequestContext(), h.Queries(), session.Model)
 	if err != nil {
-		return &OpenAIChatModel{h: h} // fallback
+		return provider.NewOpenAIChatModel(h) // fallback
 	}
 
 	completionModels := mapset.NewSet[string]()
@@ -29,20 +29,20 @@ func (h *ChatHandler) chooseChatModel(session sqlc_queries.ChatSession, msgs []m
 
 	switch chatModel.ApiType {
 	case "claude":
-		return &Claude3ChatModel{h: h}
+		return provider.NewClaude3ChatModel(h)
 	case "ollama":
-		return &OllamaChatModel{h: h}
+		return provider.NewOllamaChatModel(h)
 	case "gemini":
-		return NewGeminiChatModel(h)
+		return provider.NewGeminiChatModel(h)
 	case "custom":
-		return &CustomChatModel{h: h}
+		return provider.NewCustomChatModel(h)
 	case "openai":
 		if isCompletion {
-			return &CompletionChatModel{h: h}
+			return provider.NewCompletionChatModel(h)
 		}
-		return &OpenAIChatModel{h: h}
+		return provider.NewOpenAIChatModel(h)
 	default:
-		return &OpenAIChatModel{h: h}
+		return provider.NewOpenAIChatModel(h)
 	}
 }
 
@@ -57,9 +57,8 @@ func isTest(msgs []models.Message) bool {
 }
 
 // CheckModelAccess verifies the user hasn't exceeded per-model rate limits.
-// Returns true if rate limit is exceeded (caller should abort).
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid, model string, userID int32) bool {
-	ctx := h.GetRequestContext()
+	ctx := h.RequestContext()
 
 	chatModel, err := h.sessionSvc.ChatModelByName(ctx, model)
 	if err != nil {

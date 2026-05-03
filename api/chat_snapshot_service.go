@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/samber/lo"
+	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -88,7 +89,7 @@ func GenTitle(q *sqlc_queries.Queries, ctx context.Context, chatSession sqlc_que
 	model := "gemini-2.0-flash"
 	_, err := q.ChatModelByName(ctx, model)
 	if err == nil {
-		genTitle, err := GenerateChatTitle(ctx, model, text)
+		genTitle, err := provider.GenerateChatTitle(ctx, model, text)
 		if err != nil {
 			log.Println(err)
 		}

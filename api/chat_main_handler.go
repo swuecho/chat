@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -37,7 +38,19 @@ func (h *ChatHandler) Register(router *mux.Router) {
 	router.HandleFunc("/chat_instructions", h.GetChatInstructions).Methods(http.MethodGet)
 }
 
-// GetRequestContext returns the current request context for streaming operations.
+// --- provider.Handler implementation ---
+
+func (h *ChatHandler) RequestContext() context.Context  { return h.requestCtx }
+func (h *ChatHandler) Queries() *sqlc_queries.Queries   { return h.service.q }
+func (h *ChatHandler) Config() provider.Config {
+	return provider.Config{
+		OpenAIKey:   appConfig.OPENAI.API_KEY,
+		OpenAIProxy: appConfig.OPENAI.PROXY_URL,
+		RateLimiter: openAIRateLimiter,
+	}
+}
+
+// GetRequestContext is a legacy alias for RequestContext.
 func (h *ChatHandler) GetRequestContext() context.Context {
 	return h.requestCtx
 }
