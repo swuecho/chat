@@ -1,519 +1,65 @@
 package main
 
-import (
-	"context"
-	"database/sql"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"log"
-	"net/http"
-	"sort"
-	"strings"
+import "github.com/swuecho/chat_backend/dto"
 
-	"github.com/jackc/pgconn"
+// Re-export all error types and functions from dto for backward compatibility.
+type APIError = dto.APIError
+
+var (
+	NewAPIError              = dto.CreateAPIError
+	RespondWithAPIError      = dto.RespondWithAPIError
+	RespondWithJSON          = dto.RespondWithJSON
+	MapDatabaseError         = dto.MapDatabaseError
+	WrapError                = dto.WrapError
+	createAPIError           = dto.CreateAPIError
+	ErrResourceNotFound      = dto.ErrResourceNotFound
+	ErrResourceAlreadyExists = dto.ErrResourceAlreadyExists
+	ErrValidationInvalidInput = dto.ErrValidationInvalidInput
 )
 
-// APIError represents a standardized error response for the API
-// It includes both user-facing and internal debugging information
-type APIError struct {
-	HTTPCode  int    `json:"-"`                // HTTP status code (not exposed in response)
-	Code      string `json:"code"`             // Application-specific error code following format: DOMAIN_NNN
-	Message   string `json:"message"`          // Human-readable message for end users
-	Detail    string `json:"detail,omitempty"` // Optional error details for debugging
-	DebugInfo string `json:"-"`                // Internal debugging info (not exposed in responses)
-}
-
-// NewAPIError creates a new APIError with the given parameters
-func NewAPIError(httpCode int, code, message string) APIError {
-	return APIError{
-		HTTPCode: httpCode,
-		Code:     code,
-		Message:  message,
-	}
-}
-
-// withMessage adds a message to an APIError
-func (e APIError) WithMessage(message string) APIError {
-	e.Message = message
-	return e
-}
-
-// WithMessage adds detail to an APIError
-func (e APIError) WithDetail(detail string) APIError {
-	e.Detail = detail
-	return e
-}
-
-// WithDebugInfo adds debug info to an APIError
-func (e APIError) WithDebugInfo(debugInfo string) APIError {
-	e.DebugInfo = debugInfo
-	return e
-}
-
-func (e APIError) Error() string {
-	return fmt.Sprintf("[%s] %s %s", e.Code, e.Message, e.Detail)
-}
-
-// Error code prefixes by domain
 const (
-	ErrAuth       = "AUTH"  // Authentication/Authorization errors (100-199)
-	ErrValidation = "VALD"  // Validation errors (200-299)
-	ErrResource   = "RES"   // Resource-related errors (300-399)
-	ErrDatabase   = "DB"    // Database errors (400-499)
-	ErrExternal   = "EXT"   // External service errors (500-599)
-	ErrInternal   = "INTN"  // Internal application errors (600-699)
-	ErrModel      = "MODEL" // Model related errors (700-799)
+	ErrAuth       = dto.ErrAuth
+	ErrValidation = dto.ErrValidation
+	ErrResource   = dto.ErrResource
+	ErrDatabase   = dto.ErrDatabase
+	ErrExternal   = dto.ErrExternal
+	ErrInternal   = dto.ErrInternal
+	ErrModel      = dto.ErrModel
 )
 
-// Error code ranges:
-// - Each domain has 100 codes available (000-099)
-// - Codes should be sequential within each domain
-// - New errors should use the next available code in their domain
-
-// Define external service errors
 var (
-	ErrExternalTimeout = APIError{
-		HTTPCode: http.StatusGatewayTimeout,
-		Code:     ErrExternal + "_001",
-		Message:  "External service timed out",
-	}
-
-	ErrExternalUnavailable = APIError{
-		HTTPCode: http.StatusServiceUnavailable,
-		Code:     ErrExternal + "_002",
-		Message:  "External service unavailable",
-	}
+	ErrAuthInvalidCredentials       = dto.ErrAuthInvalidCredentials
+	ErrAuthExpiredToken             = dto.ErrAuthExpiredToken
+	ErrAuthAdminRequired            = dto.ErrAuthAdminRequired
+	ErrAuthInvalidEmailOrPassword   = dto.ErrAuthInvalidEmailOrPassword
+	ErrAuthAccessDenied             = dto.ErrAuthAccessDenied
+	ErrTooManyRequests              = dto.ErrTooManyRequests
+	ErrChatSessionNotFound          = dto.ErrChatSessionNotFound
+	ErrChatFileNotFound             = dto.ErrChatFileNotFound
+	ErrChatModelNotFound            = dto.ErrChatModelNotFound
+	ErrChatMessageNotFound          = dto.ErrChatMessageNotFound
+	ErrChatFileTooLarge             = dto.ErrChatFileTooLarge
+	ErrChatFileInvalidType          = dto.ErrChatFileInvalidType
+	ErrChatSessionInvalid           = dto.ErrChatSessionInvalid
+	ErrDatabaseQuery                = dto.ErrDatabaseQuery
+	ErrDatabaseConnection           = dto.ErrDatabaseConnection
+	ErrDatabaseForeignKey           = dto.ErrDatabaseForeignKey
+	ErrExternalTimeout              = dto.ErrExternalTimeout
+	ErrExternalUnavailable          = dto.ErrExternalUnavailable
+	ErrInternalUnexpected           = dto.ErrInternalUnexpected
+	ErrChatStreamFailed             = dto.ErrChatStreamFailed
+	ErrChatRequestFailed            = dto.ErrChatRequestFailed
+	ErrSystemMessageError           = dto.ErrSystemMessageError
+	ErrClaudeStreamFailed           = dto.ErrClaudeStreamFailed
+	ErrClaudeRequestFailed          = dto.ErrClaudeRequestFailed
+	ErrClaudeInvalidResponse        = dto.ErrClaudeInvalidResponse
+	ErrClaudeResponseFailed         = dto.ErrClaudeResponseFailed
+	ErrClaudeResponseFaild          = dto.ErrClaudeResponseFailed
+	ErrOpenAIStreamFailed           = dto.ErrOpenAIStreamFailed
+	ErrOpenAIRequestFailed          = dto.ErrOpenAIRequestFailed
+	ErrOpenAIInvalidResponse        = dto.ErrOpenAIInvalidResponse
+	ErrOpenAIConfigFailed           = dto.ErrOpenAIConfigFailed
+	ErrResourceNotFoundGeneric      = dto.ErrResourceNotFoundGeneric
+	ErrResourceAlreadyExistsGeneric = dto.ErrResourceAlreadyExistsGeneric
+	ErrValidationInvalidInputGeneric = dto.ErrValidationInvalidInputGeneric
 )
-
-// Define all API errors
-var (
-	// Auth errors
-	ErrAuthInvalidCredentials = APIError{
-		HTTPCode: http.StatusUnauthorized,
-		Code:     ErrAuth + "_001",
-		Message:  "Invalid credentials",
-	}
-	ErrAuthExpiredToken = APIError{
-		HTTPCode: http.StatusUnauthorized,
-		Code:     ErrAuth + "_002",
-		Message:  "Token has expired",
-	}
-	ErrAuthAdminRequired = APIError{
-		HTTPCode: http.StatusForbidden,
-		Code:     ErrAuth + "_003",
-		Message:  "Admin privileges required",
-	}
-	ErrAuthInvalidEmailOrPassword = APIError{
-		HTTPCode: http.StatusForbidden,
-		Code:     ErrAuth + "_004",
-		Message:  "invalid email or password",
-	}
-	ErrAuthAccessDenied = APIError{
-		HTTPCode: http.StatusForbidden,
-		Code:     ErrAuth + "_005",
-		Message:  "Access denied",
-	}
-	// Resource errors
-	ErrResourceNotFoundGeneric = APIError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrResource + "_001",
-		Message:  "Resource not found",
-	}
-	ErrResourceAlreadyExistsGeneric = APIError{
-		HTTPCode: http.StatusConflict,
-		Code:     ErrResource + "_002",
-		Message:  "Resource already exists",
-	}
-	ErrChatSessionNotFound = APIError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrResource + "_004",
-		Message:  "Chat session not found",
-	}
-	ErrChatMessageNotFound = APIError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrResource + "_007",
-		Message:  "Chat message not found",
-	}
-	ErrChatStreamFailed = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrInternal + "_004",
-		Message:  "Failed to stream chat response",
-	}
-	ErrChatRequestFailed = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrInternal + "_005",
-		Message:  "Failed to make chat request",
-	}
-	ErrChatFileNotFound = APIError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrResource + "_005",
-		Message:  "Chat file not found",
-	}
-	ErrChatModelNotFound = APIError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrResource + "_006",
-		Message:  "Chat model not found",
-	}
-	ErrChatFileTooLarge = APIError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrValidation + "_002",
-		Message:  "File too large",
-	}
-	ErrChatFileInvalidType = APIError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrValidation + "_003",
-		Message:  "Invalid file type",
-	}
-	ErrChatSessionInvalid = APIError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrValidation + "_004",
-		Message:  "Invalid chat session",
-	}
-	ErrTooManyRequests = APIError{
-		HTTPCode: http.StatusTooManyRequests,
-		Code:     ErrResource + "_003",
-		Message:  "Rate limit exceeded",
-		Detail:   "Too many requests in the given time period",
-	}
-
-	// Validation errors
-	ErrValidationInvalidInputGeneric = APIError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrValidation + "_001",
-		Message:  "Invalid input",
-	}
-
-	// Database errors
-	ErrDatabaseQuery = APIError{
-		HTTPCode:  http.StatusInternalServerError,
-		Code:      ErrDatabase + "_001",
-		Message:   "Database query failed",
-		DebugInfo: "Database operation failed - check logs for details",
-	}
-	ErrDatabaseConnection = APIError{
-		HTTPCode:  http.StatusServiceUnavailable,
-		Code:      ErrDatabase + "_002",
-		Message:   "Database connection failed",
-		DebugInfo: "Could not connect to database - check connection settings",
-	}
-	ErrDatabaseForeignKey = APIError{
-		HTTPCode:  http.StatusBadRequest,
-		Code:      ErrDatabase + "_003",
-		Message:   "Referenced resource does not exist",
-		DebugInfo: "Foreign key violation",
-	}
-	// model related errors
-	ErrSystemMessageError = APIError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrModel + "_001",
-		Message:  "Usage error, system message input, not user input",
-	}
-	ErrClaudeStreamFailed = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_002",
-		Message:  "Failed to stream Claude response",
-	}
-	ErrClaudeRequestFailed = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_003",
-		Message:  "Failed to make Claude request",
-	}
-	ErrClaudeInvalidResponse = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_004",
-		Message:  "Invalid response from Claude API",
-	}
-	ErrClaudeResponseFaild = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_005",
-		Message:  "Failed to stream Claude response",
-	}
-
-	// OpenAI specific errors
-	ErrOpenAIStreamFailed = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_006",
-		Message:  "Failed to stream OpenAI response",
-	}
-	ErrOpenAIRequestFailed = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_007",
-		Message:  "Failed to make OpenAI request",
-	}
-	ErrOpenAIInvalidResponse = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_008",
-		Message:  "Invalid response from OpenAI API",
-	}
-	ErrOpenAIConfigFailed = APIError{
-		HTTPCode: http.StatusInternalServerError,
-		Code:     ErrModel + "_009",
-		Message:  "Failed to configure OpenAI client",
-	}
-
-	// Internal errors
-	ErrInternalUnexpected = APIError{
-		HTTPCode:  http.StatusInternalServerError,
-		Code:      ErrInternal + "_001",
-		Message:   "An unexpected error occurred",
-		DebugInfo: "Unexpected internal error - check logs for stack trace",
-	}
-)
-
-// Helper functions to create specific errors with dynamic content
-func ErrResourceNotFound(resource string) APIError {
-	err := ErrResourceNotFoundGeneric
-	err.Message = resource + " not found"
-	return err
-}
-
-func ErrResourceAlreadyExists(resource string) APIError {
-	err := ErrResourceAlreadyExistsGeneric
-	err.Message = resource + " already exists"
-	return err
-}
-
-func ErrValidationInvalidInput(detail string) APIError {
-	err := ErrValidationInvalidInputGeneric
-	err.Detail = detail
-	return err
-}
-
-// RespondWithAPIError writes an APIError response to the client
-// It:
-// - Sets the appropriate HTTP status code
-// - Returns a JSON response with error details
-// - Logs the error with debug info
-func RespondWithAPIError(w http.ResponseWriter, err APIError) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(err.HTTPCode)
-
-	// Error response structure
-	response := struct {
-		Code    string `json:"code"`             // Application error code
-		Message string `json:"message"`          // Human-readable error message
-		Detail  string `json:"detail,omitempty"` // Additional error details
-	}{
-		Code:    err.Code,
-		Message: err.Message,
-		Detail:  err.Detail + " " + err.DebugInfo,
-	}
-
-	// Log error with debug info if available
-	if err.DebugInfo != "" {
-		log.Printf("Error [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
-	}
-
-	// Write JSON response
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Failed to write error response: %v", err)
-	}
-}
-
-func MapDatabaseError(err error) error {
-	// Map common database errors to appropriate application errors
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrResourceNotFound("Record")
-	}
-
-	// Check for connection errors
-	if strings.Contains(err.Error(), "connection refused") ||
-		strings.Contains(err.Error(), "no such host") ||
-		strings.Contains(err.Error(), "connection reset by peer") {
-		dbErr := ErrDatabaseConnection
-		dbErr.DebugInfo = err.Error()
-		return dbErr
-	}
-
-	// Check for other specific database errors
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		switch pgErr.Code {
-		case "23505": // Unique violation
-			return ErrResourceAlreadyExists("Record")
-		case "23503": // Foreign key violation
-			dbErr := ErrDatabaseForeignKey
-			dbErr.DebugInfo = fmt.Sprintf("Foreign key violation: %s", pgErr.Detail)
-			return dbErr
-		case "42P01": // Undefined table
-			dbErr := ErrDatabaseQuery
-			dbErr.Message = "Database schema error"
-			dbErr.DebugInfo = fmt.Sprintf("Table does not exist: %s", pgErr.Detail)
-			return dbErr
-		case "42703": // Undefined column
-			dbErr := ErrDatabaseQuery
-			dbErr.Message = "Database schema error"
-			dbErr.DebugInfo = fmt.Sprintf("Column does not exist: %s", pgErr.Detail)
-			return dbErr
-		case "53300": // Too many connections
-			dbErr := ErrDatabaseConnection
-			dbErr.Message = "Database connection limit reached"
-			dbErr.DebugInfo = pgErr.Detail
-			return dbErr
-		}
-	}
-
-	// Log the unhandled database error
-	log.Printf("Unhandled database error: %v", err)
-
-	// Return generic database error
-	dbErr := ErrDatabaseQuery
-	dbErr.DebugInfo = err.Error()
-	return dbErr
-}
-
-// ErrorCatalog holds all error codes for documentation purposes
-var ErrorCatalog = map[string]APIError{
-	// Auth errors
-	ErrAuthInvalidCredentials.Code: ErrAuthInvalidCredentials,
-	ErrAuthExpiredToken.Code:       ErrAuthExpiredToken,
-	ErrAuthAdminRequired.Code:      ErrAuthAdminRequired,
-
-	// Resource errors
-	ErrResourceNotFoundGeneric.Code:      ErrResourceNotFoundGeneric,
-	ErrResourceAlreadyExistsGeneric.Code: ErrResourceAlreadyExistsGeneric,
-	ErrTooManyRequests.Code:              ErrTooManyRequests,
-
-	// Validation errors
-	ErrValidationInvalidInputGeneric.Code: ErrValidationInvalidInputGeneric,
-
-	// Database errors
-	ErrDatabaseQuery.Code:      ErrDatabaseQuery,
-	ErrDatabaseConnection.Code: ErrDatabaseConnection,
-	ErrDatabaseForeignKey.Code: ErrDatabaseForeignKey,
-
-	// External service errors
-	ErrExternalTimeout.Code:     ErrExternalTimeout,
-	ErrExternalUnavailable.Code: ErrExternalUnavailable,
-
-	// External service errors
-	ErrExternalTimeout.Code:     ErrExternalTimeout,
-	ErrExternalUnavailable.Code: ErrExternalUnavailable,
-
-	// Internal errors
-	ErrInternalUnexpected.Code: ErrInternalUnexpected,
-	ErrInternal + "_002":       {HTTPCode: http.StatusGatewayTimeout, Code: ErrInternal + "_002", Message: "Request timed out"},
-	ErrInternal + "_003":       {HTTPCode: http.StatusRequestTimeout, Code: ErrInternal + "_003", Message: "Request was canceled"},
-	ErrInternal + "_004":       ErrChatStreamFailed,
-	ErrInternal + "_005":       ErrChatRequestFailed,
-	ErrResource + "_004":       ErrChatSessionNotFound,
-	ErrResource + "_005":       ErrChatFileNotFound,
-	ErrResource + "_006":       ErrChatModelNotFound,
-	ErrResource + "_007":       ErrChatMessageNotFound,
-
-	// model related errors
-	ErrModel + "_001": ErrSystemMessageError,
-	ErrModel + "_002": ErrClaudeStreamFailed,
-	ErrModel + "_003": ErrClaudeRequestFailed,
-	ErrModel + "_004": ErrClaudeInvalidResponse,
-	ErrModel + "_005": ErrClaudeResponseFaild,
-	ErrModel + "_006": ErrOpenAIStreamFailed,
-	ErrModel + "_007": ErrOpenAIRequestFailed,
-	ErrModel + "_008": ErrOpenAIInvalidResponse,
-	ErrModel + "_009": ErrOpenAIConfigFailed,
-}
-
-// WrapError converts a standard error into an APIError
-// It handles:
-// - Context cancellation/timeout errors
-// - Existing APIErrors (preserves original error details)
-// - Unknown errors (converts to internal server error)
-// Parameters:
-//   - err: The original error to wrap
-//   - detail: Additional context about where the error occurred
-//
-// Returns:
-//   - APIError: A standardized error response
-func WrapError(err error, detail string) APIError {
-	var apiErr APIError
-
-	// Handle context errors
-	switch {
-	case errors.Is(err, context.DeadlineExceeded):
-		apiErr = APIError{
-			HTTPCode:  http.StatusGatewayTimeout,
-			Code:      ErrInternal + "_002",
-			Message:   "Request timed out",
-			Detail:    detail,
-			DebugInfo: "Context deadline exceeded",
-		}
-		return apiErr
-	case errors.Is(err, context.Canceled):
-		apiErr = APIError{
-			HTTPCode:  http.StatusRequestTimeout,
-			Code:      ErrInternal + "_003",
-			Message:   "Request was canceled",
-			Detail:    detail,
-			DebugInfo: "Context was canceled",
-		}
-		return apiErr
-	}
-
-	// Handle APIError types
-	switch e := err.(type) {
-	case APIError:
-		apiErr = e
-		if detail != "" {
-			if apiErr.Detail != "" {
-				apiErr.Detail = fmt.Sprintf("%s: %s", detail, apiErr.Detail)
-			} else {
-				apiErr.Detail = detail
-			}
-		}
-	default:
-		// Convert unknown errors to internal server error
-		apiErr = ErrInternalUnexpected
-		apiErr.Detail = detail
-		apiErr.DebugInfo = err.Error()
-	}
-
-	return apiErr
-}
-
-// IsErrorCode checks if an error is an APIError with the specified code
-func IsErrorCode(err error, code string) bool {
-	if apiErr, ok := err.(APIError); ok {
-		return apiErr.Code == code
-	}
-	return false
-}
-
-// Add a handler to serve the error catalog
-func ErrorCatalogHandler(w http.ResponseWriter, r *http.Request) {
-	type ErrorDoc struct {
-		Code     string `json:"code"`
-		HTTPCode int    `json:"http_code"`
-		Message  string `json:"message"`
-	}
-
-	docs := make([]ErrorDoc, 0, len(ErrorCatalog))
-	for code, info := range ErrorCatalog {
-		docs = append(docs, ErrorDoc{
-			Code:     code,
-			HTTPCode: info.HTTPCode,
-			Message:  info.Message,
-		})
-	}
-
-	// Sort by error code
-	sort.Slice(docs, func(i, j int) bool {
-		return docs[i].Code < docs[j].Code
-	})
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(docs)
-}
-
-// createAPIError creates a consistent API error with optional debug info
-func createAPIError(baseErr APIError, detail string, debugInfo string) APIError {
-	apiErr := baseErr
-	if detail != "" {
-		apiErr.Detail = detail
-	}
-	if debugInfo != "" {
-		apiErr.DebugInfo = debugInfo
-	}
-	return apiErr
-}

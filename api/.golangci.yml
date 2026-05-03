@@ -1,0 +1,30 @@
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - unconvert
+    - prealloc
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+    - path: sqlc_queries/
+      linters:
+        - errcheck
+        - unused
+        - misspell
+    - path: llm/
+      linters:
+        - errcheck
+
+run:
+  timeout: 3m

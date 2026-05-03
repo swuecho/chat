@@ -15,13 +15,14 @@ import (
 )
 
 type ChatMessageHandler struct {
-	service *ChatMessageService
+	service    *ChatMessageService
+	sessionSvc *ChatSessionService
 }
 
 func NewChatMessageHandler(sqlc_q *sqlc_queries.Queries) *ChatMessageHandler {
-	chatMessageService := NewChatMessageService(sqlc_q)
 	return &ChatMessageHandler{
-		service: chatMessageService,
+		service:    NewChatMessageService(sqlc_q),
+		sessionSvc: NewChatSessionService(sqlc_q),
 	}
 }
 
@@ -217,7 +218,7 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 	if err != nil {
 		pageSize = 200
 	}
-	simple_msgs, err := h.service.q.GetChatHistoryBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
+	simple_msgs, err := h.sessionSvc.GetChatHistoryBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
 	if err != nil {
 		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get chat history"))
 		return
@@ -241,7 +242,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 	messageUUID := mux.Vars(r)["uuid"]
 
 	// Get the existing message
-	message, err := h.service.q.GetChatMessageByUUID(r.Context(), messageUUID)
+	message, err := h.service.GetChatMessageByUUID(r.Context(), messageUUID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithAPIError(w, ErrChatMessageNotFound.WithMessage("Message not found").WithDebugInfo(err.Error()))
@@ -258,7 +259,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 	}
 
 	// Get the session to check if explore mode is enabled
-	session, err := h.service.q.GetChatSessionByUUID(r.Context(), message.ChatSessionUuid)
+	session, err := h.sessionSvc.GetChatSessionByUUID(r.Context(), message.ChatSessionUuid)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithAPIError(w, ErrChatSessionNotFound.WithMessage("Session not found").WithDebugInfo(err.Error()))
@@ -275,11 +276,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 	}
 
 	// Get conversation context - last 6 messages
-	contextMessages, err := h.service.q.GetLatestMessagesBySessionUUID(r.Context(),
-		sqlc_queries.GetLatestMessagesBySessionUUIDParams{
-			ChatSessionUuid: session.Uuid,
-			Limit:           6,
-		})
+	contextMessages, err := h.service.GetLatestMessagesBySessionID(r.Context(), session.Uuid, 6)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(MapDatabaseError(err), "Failed to get conversation context"))
 		return
@@ -295,10 +292,10 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 	}
 
 	// Create a new ChatService to access suggestion generation methods
-	chatService := NewChatService(h.service.q)
+	chatService := NewChatService(h.service.Q())
 
 	// Generate new suggested questions
-	newSuggestions := chatService.generateSuggestedQuestions(message.Content, msgs)
+	newSuggestions := chatService.GenerateSuggestedQuestions( message.Content, msgs)
 	if len(newSuggestions) == 0 {
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to generate suggestions", "no suggestions returned"))
 		return
@@ -333,7 +330,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 		return
 	}
 
-	_, err = h.service.q.UpdateChatMessageSuggestions(r.Context(),
+	_, err = h.sessionSvc.UpdateChatMessageSuggestions(r.Context(),
 		sqlc_queries.UpdateChatMessageSuggestionsParams{
 			Uuid:               messageUUID,
 			SuggestedQuestions: suggestionsJSON,
