@@ -102,9 +102,10 @@ func run() error {
 	httpServer := &http.Server{
 		Addr:         ":8080",
 		Handler:      router,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 5 * time.Minute, // Long write timeout for streaming
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 30 * time.Second,
+		WriteTimeout:      10 * time.Minute, // Long write timeout for streaming
+		IdleTimeout:       120 * time.Second,
 	}
 
 	// --- Graceful shutdown ---
