@@ -1,6 +1,3 @@
-// Package main provides streaming utilities for chat responses.
-// This file contains common streaming functionality to reduce code duplication
-// across different model service implementations.
 package main
 
 import (
@@ -14,9 +11,9 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-// constructChatCompletionStreamResponse creates an OpenAI chat completion stream response
+// constructChatCompletionStreamResponse creates an OpenAI chat completion stream response.
 func constructChatCompletionStreamResponse(answerID string, content string) openai.ChatCompletionStreamResponse {
-	resp := openai.ChatCompletionStreamResponse{
+	return openai.ChatCompletionStreamResponse{
 		ID: answerID,
 		Choices: []openai.ChatCompletionStreamChoice{
 			{
@@ -27,20 +24,19 @@ func constructChatCompletionStreamResponse(answerID string, content string) open
 			},
 		},
 	}
-	return resp
 }
 
-// StreamingResponse represents a common streaming response structure
+// StreamingResponse represents a common streaming response structure.
 type StreamingResponse struct {
 	AnswerID string
 	Content  string
 	IsFinal  bool
 }
 
-// FlushResponse sends a streaming response to the client
+// FlushResponse sends a streaming response to the client.
 func FlushResponse(w http.ResponseWriter, flusher http.Flusher, response StreamingResponse) error {
 	if response.Content == "" && !response.IsFinal {
-		return nil // Skip empty non-final responses
+		return nil
 	}
 
 	streamResponse := constructChatCompletionStreamResponse(response.AnswerID, response.Content)
@@ -54,14 +50,14 @@ func FlushResponse(w http.ResponseWriter, flusher http.Flusher, response Streami
 	return nil
 }
 
-// ShouldFlushContent determines when to flush content based on common rules
+// ShouldFlushContent determines when to flush content based on common rules.
 func ShouldFlushContent(content string, lastFlushLength int, isSmallContent bool) bool {
 	return strings.Contains(content, "\n") ||
 		(isSmallContent && len(content) < SmallAnswerThreshold) ||
 		(len(content)-lastFlushLength) >= FlushCharacterThreshold
 }
 
-// SetStreamingHeaders sets common headers for streaming responses
+// SetStreamingHeaders sets common headers for streaming responses.
 func SetStreamingHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", ContentTypeJSON)
 	req.Header.Set("Accept", AcceptEventStream)
@@ -69,7 +65,7 @@ func SetStreamingHeaders(req *http.Request) {
 	req.Header.Set("Connection", ConnectionKeepAlive)
 }
 
-// GenerateAnswerID creates a new answer ID if not provided in regenerate mode
+// GenerateAnswerID creates a new answer ID or reuses chatUuid in regenerate mode.
 func GenerateAnswerID(chatUuid string, regenerate bool) string {
 	if regenerate {
 		return chatUuid
@@ -77,18 +73,20 @@ func GenerateAnswerID(chatUuid string, regenerate bool) string {
 	return NewUUID()
 }
 
-// GetChatModel retrieves a chat model by name with consistent error handling
-func GetChatModel(queries *sqlc_queries.Queries, modelName string) (*sqlc_queries.ChatModel, error) {
-	chatModel, err := queries.ChatModelByName(context.Background(), modelName)
+// GetChatModel retrieves a chat model by name.
+// Accepts a context to avoid context.Background() in request paths.
+func GetChatModel(ctx context.Context, queries *sqlc_queries.Queries, modelName string) (*sqlc_queries.ChatModel, error) {
+	chatModel, err := queries.ChatModelByName(ctx, modelName)
 	if err != nil {
 		return nil, ErrResourceNotFound("chat model: " + modelName)
 	}
 	return &chatModel, nil
 }
 
-// GetChatFiles retrieves chat files for a session with consistent error handling
-func GetChatFiles(queries *sqlc_queries.Queries, sessionUUID string) ([]sqlc_queries.ChatFile, error) {
-	chatFiles, err := queries.ListChatFilesWithContentBySessionUUID(context.Background(), sessionUUID)
+// GetChatFiles retrieves chat files for a session.
+// Accepts a context to avoid context.Background() in request paths.
+func GetChatFiles(ctx context.Context, queries *sqlc_queries.Queries, sessionUUID string) ([]sqlc_queries.ChatFile, error) {
+	chatFiles, err := queries.ListChatFilesWithContentBySessionUUID(ctx, sessionUUID)
 	if err != nil {
 		return nil, ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())
 	}

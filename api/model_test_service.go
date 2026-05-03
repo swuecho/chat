@@ -21,7 +21,7 @@ func (m *TestChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.C
 
 // chatStreamTest handles test chat streaming with mock responses
 func (m *TestChatModel) chatStreamTest(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
-	chatFiles, err := GetChatFiles(m.h.chatfileService.q, chatSession.Uuid)
+	chatFiles, err := GetChatFiles(m.h.GetRequestContext(), m.h.chatfileService.q, chatSession.Uuid)
 	if err != nil {
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to get chat files", err.Error()))
 		return nil, err

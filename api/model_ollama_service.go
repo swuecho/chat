@@ -45,7 +45,7 @@ func (m *OllamaChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 
 func (h *ChatHandler) chatOllamStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// set the api key
-	chatModel, err := GetChatModel(h.service.q, chatSession.Model)
+	chatModel, err := GetChatModel(ctx, h.service.q, chatSession.Model)
 	if err != nil {
 		RespondWithAPIError(w, createAPIError(ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
 		return nil, err

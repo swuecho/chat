@@ -4,9 +4,12 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"strings"
 
+	"github.com/google/uuid"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
@@ -215,4 +218,57 @@ func IsChatSnapshotUUID(r *http.Request) bool {
 		return false
 	}
 	return strings.HasPrefix(r.URL.Path, snapshotPrefix) && !strings.HasSuffix(r.URL.Path, "/all")
+}
+
+// RequestIDHeader is the header name for request IDs.
+const RequestIDHeader = "X-Request-Id"
+
+type requestIDKeyType struct{}
+
+// RequestIDKey is the context key for request IDs.
+var RequestIDKey = requestIDKeyType{}
+
+// RequestIDMiddleware injects a unique request ID into every request.
+func RequestIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.Header.Get(RequestIDHeader)
+		if id == "" {
+			id = uuid.New().String()
+		}
+		w.Header().Set(RequestIDHeader, id)
+		ctx := context.WithValue(r.Context(), RequestIDKey, id)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetRequestID extracts the request ID from context.
+func GetRequestID(ctx context.Context) string {
+	if id, ok := ctx.Value(RequestIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
+
+// RecoveryMiddleware recovers from panics and returns a 500 error.
+func RecoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				stack := debug.Stack()
+				slog.Error("panic recovered",
+					"request_id", GetRequestID(r.Context()),
+					"method", r.Method,
+					"path", r.URL.Path,
+					"panic", rec,
+					"stack", string(stack),
+				)
+				dto.RespondWithAPIError(w, dto.APIError{
+					HTTPCode: http.StatusInternalServerError,
+					Code:     dto.ErrInternal + "_000",
+					Message:  "Internal server error",
+				})
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
 }

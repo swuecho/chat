@@ -484,7 +484,8 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, chatS
 }
 
 func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, simpleChatMessages []SimpleChatMessage, snapshotUuid, newQuestion string, userID int32, streamOutput bool) {
-	_, err := h.service.q.ChatModelByName(context.Background(), session.Model)
+	ctx := h.GetRequestContext()
+	_, err := h.service.q.ChatModelByName(ctx, session.Model)
 	if err != nil {
 		apiErr := ErrResourceNotFound("Chat model: " + session.Model)
 		apiErr.DebugInfo = err.Error()
@@ -504,8 +505,6 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 		RespondWithAPIError(w, WrapError(err, "Failed to generate answer"))
 		return
 	}
-
-	ctx := context.Background()
 
 	// Save to bot answer history
 	historyParams := sqlc_queries.CreateBotAnswerHistoryParams{
@@ -614,7 +613,7 @@ func (h *ChatHandler) chooseChatModel(chat_session sqlc_queries.ChatSession, msg
 	}
 
 	// Get the chat model from database to access api_type field
-	chatModel, err := GetChatModel(h.service.q, model)
+	chatModel, err := GetChatModel(h.GetRequestContext(), h.service.q, model)
 	if err != nil {
 		// Fallback to OpenAI if model not found in database
 		return &OpenAIChatModel{h: h}
@@ -661,7 +660,8 @@ func isTest(msgs []models.Message) bool {
 }
 
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid string, model string, userID int32) bool {
-	chatModel, err := h.service.q.ChatModelByName(context.Background(), model)
+	ctx := h.GetRequestContext()
+	chatModel, err := h.service.q.ChatModelByName(ctx, model)
 	if err != nil {
 		log.WithError(err).WithField("model", model).Error("Chat model not found")
 		RespondWithAPIError(w, ErrResourceNotFound("chat model: "+model))
@@ -671,7 +671,6 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid st
 	if !chatModel.EnablePerModeRatelimit {
 		return false
 	}
-	ctx := context.Background()
 	rate, err := h.service.q.RateLimiteByUserAndSessionUUID(ctx,
 		sqlc_queries.RateLimiteByUserAndSessionUUIDParams{
 			Uuid:   chatSessionUuid,

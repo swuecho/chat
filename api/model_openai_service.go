@@ -31,7 +31,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		return nil, eris.New("exceed per mode rate limit")
 	}
 
-	chatModel, err := GetChatModel(m.h.service.q, chatSession.Model)
+	chatModel, err := GetChatModel(m.h.GetRequestContext(), m.h.service.q, chatSession.Model)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		return nil, ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
 	}
 
-	chatFiles, err := GetChatFiles(m.h.chatfileService.q, chatSession.Uuid)
+	chatFiles, err := GetChatFiles(m.h.GetRequestContext(), m.h.chatfileService.q, chatSession.Uuid)
 	if err != nil {
 		return nil, err
 	}

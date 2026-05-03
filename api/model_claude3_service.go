@@ -37,13 +37,13 @@ type Claude3ChatModel struct {
 
 func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	// Get chat model configuration
-	chatModel, err := GetChatModel(m.h.service.q, chatSession.Model)
+	chatModel, err := GetChatModel(m.h.GetRequestContext(), m.h.service.q, chatSession.Model)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get chat files if any
-	chatFiles, err := GetChatFiles(m.h.chatfileService.q, chatSession.Uuid)
+	chatFiles, err := GetChatFiles(m.h.GetRequestContext(), m.h.chatfileService.q, chatSession.Uuid)
 	if err != nil {
 		return nil, err
 	}

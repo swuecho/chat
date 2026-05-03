@@ -44,7 +44,7 @@ func (m *CustomChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 // customChatStream handles streaming for custom model providers
 func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// Get chat model configuration
-	chat_model, err := GetChatModel(m.h.service.q, chatSession.Model)
+	chat_model, err := GetChatModel(m.h.GetRequestContext(), m.h.service.q, chatSession.Model)
 	if err != nil {
 		RespondWithAPIError(w, createAPIError(ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
 		return nil, err

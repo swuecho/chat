@@ -57,7 +57,7 @@ func NewGeminiChatModel(h *ChatHandler) *GeminiChatModel {
 func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	answerID := GenerateAnswerID(chatUuid, regenerate)
 
-	chatFiles, err := GetChatFiles(m.h.chatfileService.q, chatSession.Uuid)
+	chatFiles, err := GetChatFiles(m.h.GetRequestContext(), m.h.chatfileService.q, chatSession.Uuid)
 	if err != nil {
 		return nil, err
 	}

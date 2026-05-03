@@ -39,7 +39,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 	}
 
 	// Get chat model configuration
-	chatModel, err := GetChatModel(m.h.service.q, chatSession.Model)
+	chatModel, err := GetChatModel(m.h.GetRequestContext(), m.h.service.q, chatSession.Model)
 	if err != nil {
 		RespondWithAPIError(w, createAPIError(ErrResourceNotFound(""), "chat model "+chatSession.Model, ""))
 		return nil, err

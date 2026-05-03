@@ -2,6 +2,9 @@
 package config
 
 import (
+	"fmt"
+	"log/slog"
+	"os"
 	"reflect"
 	"strings"
 
@@ -27,20 +30,29 @@ type AppConfig struct {
 	}
 }
 
-// Load loads configuration from environment variables into AppConfig.
-func Load(logger interface{ Fatal(...interface{}) }) AppConfig {
+// Load reads configuration from environment variables into AppConfig.
+func Load() AppConfig {
 	cfg := AppConfig{}
 	for _, key := range flattenKeys("", reflect.ValueOf(cfg)) {
 		envKey := strings.ToUpper(strings.ReplaceAll(key, ".", "_"))
 		if err := viper.BindEnv(key, envKey); err != nil {
-			logger.Fatal("config: unable to bind env: " + err.Error())
+			fatal("config: unable to bind env", "key", key, "error", err)
 		}
 	}
 	viper.AutomaticEnv()
 	if err := viper.Unmarshal(&cfg); err != nil {
-		logger.Fatal("config: unable to decode into struct: " + err.Error())
+		fatal("config: unable to decode", "error", err)
+	}
+	if cfg.OPENAI.RATELIMIT == 0 {
+		cfg.OPENAI.RATELIMIT = 100
 	}
 	return cfg
+}
+
+func fatal(msg string, args ...any) {
+	slog.Error(msg, args...)
+	fmt.Fprintln(os.Stderr, "FATAL:", msg, args)
+	os.Exit(1)
 }
 
 func flattenKeys(prefix string, v reflect.Value) []string {

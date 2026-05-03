@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/handlers"
@@ -25,56 +27,134 @@ import (
 //go:embed sqlc/schema.sql
 var schemaBytes []byte
 
-var appConfig config.AppConfig
-var jwtSecretAndAud sqlc_queries.JwtSecret
-var openAIRateLimiter *rate.Limiter
+// server holds all application dependencies, avoiding package-level globals.
+type server struct {
+	cfg            config.AppConfig
+	db             *sql.DB
+	q              *sqlc_queries.Queries
+	jwtSecret      sqlc_queries.JwtSecret
+	rateLimiter    *rate.Limiter
+	requestTracker *middleware.LastRequestTracker
+}
 
 func main() {
-	// Rate limiter: 3000 requests per minute, burst 500
-	openAIRateLimiter = rate.NewLimiter(rate.Every(time.Minute/3000), 500)
-
-	// Load configuration from environment variables
-	appConfig = config.Load(log.Default())
-
-	log.Printf("%+v", appConfig)
-
-	// Database connection
-	dbURL := os.Getenv("DATABASE_URL")
-	var connStr string
-	if dbURL == "" {
-		pg := appConfig.PG
-		connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-			pg.HOST, pg.PORT, pg.USER, pg.PASS, pg.DB)
-	} else {
-		connStr = dbURL
+	if err := run(); err != nil {
+		slog.Error("server error", "error", err)
+		os.Exit(1)
 	}
+}
 
-	pgdb, err := sql.Open("postgres", connStr)
+func run() error {
+	// --- Configuration ---
+	appConfig = config.Load()
+	cfg := appConfig
+
+	// --- Database ---
+	pgdb, err := openDB(cfg)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("database: %w", err)
 	}
 	defer pgdb.Close()
 
-	// Run schema
+	// Run schema migrations
 	if _, err := pgdb.Exec(string(schemaBytes)); err != nil {
-		log.Fatal("Failed to execute SQL schema: ", err)
+		return fmt.Errorf("schema migration: %w", err)
 	}
-	fmt.Println("SQL statements executed successfully")
+	slog.Info("schema migration complete")
 
-	// Router setup
-	router := mux.NewRouter()
-	apiRouter := router.PathPrefix("/api").Subrouter()
-	sqlc_q := sqlc_queries.New(pgdb)
+	// --- Build server ---
+	srv := &server{
+		cfg:            cfg,
+		db:             pgdb,
+		q:              sqlc_queries.New(pgdb),
+		rateLimiter:    rate.NewLimiter(rate.Every(time.Minute/3000), 500),
+		requestTracker: middleware.NewLastRequestTracker(),
+	}
 
 	// JWT secret
-	secretService := NewJWTSecretService(sqlc_q)
-	jwtSecretAndAud, err = secretService.GetOrCreateJwtSecret(context.Background(), "chat")
+	secretSvc := NewJWTSecretService(srv.q)
+	jwtSecretAndAud, err = secretSvc.GetOrCreateJwtSecret(context.Background(), "chat")
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("jwt secret: %w", err)
 	}
+	srv.jwtSecret = jwtSecretAndAud
 	middleware.SetJWTSecret(jwtSecretAndAud.Secret)
 
-	// Subrouters
+	// --- Router ---
+	router, rawRouter := srv.buildRouter()
+
+	// --- Fly.io idle monitor (before wrapping in CORS) ---
+	if os.Getenv("FLY_APP_NAME") != "" {
+		rawRouter.Use(middleware.UpdateLastRequestTime(srv.requestTracker))
+		go srv.idleMonitor()
+	}
+
+	// --- HTTP Server ---
+	httpServer := &http.Server{
+		Addr:         ":8080",
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 5 * time.Minute, // Long write timeout for streaming
+		IdleTimeout:  120 * time.Second,
+	}
+
+	// --- Graceful shutdown ---
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+		sig := <-sigCh
+		slog.Info("shutting down", "signal", sig.String())
+
+		// Drain the rate limiter
+		srv.rateLimiter.SetLimit(0)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := httpServer.Shutdown(ctx); err != nil {
+			slog.Error("shutdown error", "error", err)
+		}
+		close(idleConnsClosed)
+	}()
+
+	slog.Info("server starting", "addr", ":8080")
+	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
+		return fmt.Errorf("listen: %w", err)
+	}
+
+	<-idleConnsClosed
+	slog.Info("server stopped")
+	return nil
+}
+
+// openDB creates a database connection from the given config.
+func openDB(cfg config.AppConfig) (*sql.DB, error) {
+	dbURL := os.Getenv("DATABASE_URL")
+	var connStr string
+	if dbURL == "" {
+		connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+			cfg.PG.HOST, cfg.PG.PORT, cfg.PG.USER, cfg.PG.PASS, cfg.PG.DB)
+	} else {
+		connStr = dbURL
+	}
+	return sql.Open("postgres", connStr)
+}
+
+// buildRouter constructs the HTTP router and returns both the CORS-wrapped handler
+// and the raw mux router (for applying middleware after construction).
+func (s *server) buildRouter() (http.Handler, *mux.Router) {
+	router := mux.NewRouter()
+	apiRouter := router.PathPrefix("/api").Subrouter()
+
+	// --- Global middleware ---
+	router.Use(middleware.RecoveryMiddleware)
+	router.Use(middleware.RequestIDMiddleware)
+
+	// --- Health check (public, before auth) ---
+	apiRouter.HandleFunc("/health", s.healthCheck).Methods(http.MethodGet)
+
+	// --- Subrouters ---
 	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
 	userRouter := apiRouter.NewRoute().Subrouter()
 
@@ -83,162 +163,184 @@ func main() {
 	userRouter.Use(middleware.UserAuthMiddleware)
 
 	// Rate limiting
-	adminRouter.Use(middleware.RateLimitByUserID(sqlc_q, appConfig.OPENAI.RATELIMIT))
-	userRouter.Use(middleware.RateLimitByUserID(sqlc_q, appConfig.OPENAI.RATELIMIT))
+	rateLimitMW := middleware.RateLimitByUserID(s.q, s.cfg.OPENAI.RATELIMIT)
+	adminRouter.Use(rateLimitMW)
+	userRouter.Use(rateLimitMW)
 
 	// --- Route registration ---
-	// Chat models
-	ChatModelHandler := NewChatModelHandler(sqlc_q)
-	ChatModelHandler.Register(userRouter)
+	s.registerRoutes(apiRouter, adminRouter, userRouter)
 
-	// Auth
-	userHandler := NewAuthUserHandler(sqlc_q)
-	userHandler.Register(userRouter)
-	userHandler.RegisterPublicRoutes(apiRouter)
+	// --- Static files ---
+	fs := http.FileServer(http.FS(static.StaticFiles))
+	router.PathPrefix("/").Handler(middleware.MakeGzipHandler(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, "/static/") {
+				w.Header().Set("Cache-Control", "max-age=31536000")
+			} else if r.URL.Path == "" {
+				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+				w.Header().Set("Pragma", "no-cache")
+				w.Header().Set("Expires", "0")
+			}
+			fs.ServeHTTP(w, r)
+		}),
+	))
 
-	// Admin
-	authUserService := NewAuthUserService(sqlc_q)
-	adminHandler := NewAdminHandler(authUserService)
-	adminHandler.RegisterRoutes(adminRouter)
+	// --- CORS ---
+	return s.corsMiddleware(router), router
+}
 
-	// Prompts
-	promptHandler := NewChatPromptHandler(sqlc_q)
-	promptHandler.Register(userRouter)
+// registerRoutes wires all HTTP handlers.
+func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) {
+	q := s.q
 
-	// Sessions (register before workspaces to avoid route shadowing)
-	chatSessionHandler := NewChatSessionHandler(sqlc_q)
-	chatSessionHandler.Register(userRouter)
-
-	// Active sessions
-	activeSessionHandler := NewUserActiveChatSessionHandler(sqlc_q)
-	activeSessionHandler.Register(userRouter)
-
-	// Workspaces
-	chatWorkspaceHandler := NewChatWorkspaceHandler(sqlc_q)
-	chatWorkspaceHandler.Register(userRouter)
-
-	// Messages
-	chatMessageHandler := NewChatMessageHandler(sqlc_q)
-	chatMessageHandler.Register(userRouter)
-
-	// Snapshots
-	chatSnapshotHandler := NewChatSnapshotHandler(sqlc_q)
-	chatSnapshotHandler.Register(userRouter)
-
-	// Chat stream
-	chatHandler := NewChatHandler(sqlc_q)
-	chatHandler.Register(userRouter)
-
-	// Model privileges
-	user_model_privilege_handler := NewUserChatModelPrivilegeHandler(sqlc_q)
-	user_model_privilege_handler.Register(userRouter)
-
-	// Files
-	chatFileHandler := NewChatFileHandler(sqlc_q)
-	chatFileHandler.Register(userRouter)
-
-	// Comments
-	chatCommentHandler := NewChatCommentHandler(sqlc_q)
-	chatCommentHandler.Register(userRouter)
-
-	// Bot history
-	botAnswerHistoryHandler := NewBotAnswerHistoryHandler(sqlc_q)
-	botAnswerHistoryHandler.Register(userRouter)
-
-	// Public endpoints
+	// Public
 	apiRouter.HandleFunc("/tts", handleTTSRequest)
 	apiRouter.HandleFunc("/errors", dto.ErrorCatalogHandler)
 
-	// Static files
-	fs := http.FileServer(http.FS(static.StaticFiles))
-	cacheHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/static/") {
-			w.Header().Set("Cache-Control", "max-age=31536000")
-		} else if r.URL.Path == "" {
-			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-			w.Header().Set("Pragma", "no-cache")
-			w.Header().Set("Expires", "0")
-		}
-		fs.ServeHTTP(w, r)
-	})
-	router.PathPrefix("/").Handler(middleware.MakeGzipHandler(cacheHandler))
+	// Chat models
+	NewChatModelHandler(q).Register(userRouter)
 
-	// Fly.io idle monitor
-	requestTracker := middleware.NewLastRequestTracker()
-	if os.Getenv("FLY_APP_NAME") != "" {
-		router.Use(middleware.UpdateLastRequestTime(requestTracker))
-		go func() {
-			restartInterval := os.Getenv("FLY_RESTART_INTERVAL_IF_IDLE")
-			if restartInterval == "" {
-				restartInterval = "30m"
-			}
-			duration, err := time.ParseDuration(restartInterval)
-			if err != nil {
-				return
-			}
-			for {
-				time.Sleep(1 * time.Minute)
-				if requestTracker.Since() > duration {
-					fmt.Printf("No activity for %s. Exiting.\n", restartInterval)
-					os.Exit(0)
-				}
-			}
-		}()
+	// Auth
+	authHandler := NewAuthUserHandler(q)
+	authHandler.Register(userRouter)
+	authHandler.RegisterPublicRoutes(apiRouter)
+
+	// Admin
+	NewAdminHandler(NewAuthUserService(q)).RegisterRoutes(adminRouter)
+
+	// Prompts
+	NewChatPromptHandler(q).Register(userRouter)
+
+	// Sessions
+	NewChatSessionHandler(q).Register(userRouter)
+
+	// Active sessions
+	NewUserActiveChatSessionHandler(q).Register(userRouter)
+
+	// Workspaces
+	NewChatWorkspaceHandler(q).Register(userRouter)
+
+	// Messages
+	NewChatMessageHandler(q).Register(userRouter)
+
+	// Snapshots
+	NewChatSnapshotHandler(q).Register(userRouter)
+
+	// Chat stream
+	NewChatHandler(q).Register(userRouter)
+
+	// Model privileges
+	NewUserChatModelPrivilegeHandler(q).Register(userRouter)
+
+	// Files
+	NewChatFileHandler(q).Register(userRouter)
+
+	// Comments
+	NewChatCommentHandler(q).Register(userRouter)
+
+	// Bot history
+	NewBotAnswerHistoryHandler(q).Register(userRouter)
+}
+
+// healthCheck returns server health status.
+func (s *server) healthCheck(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	healthy := true
+	checks := map[string]string{}
+
+	if err := s.db.PingContext(ctx); err != nil {
+		healthy = false
+		checks["database"] = "unhealthy: " + err.Error()
+	} else {
+		checks["database"] = "healthy"
 	}
 
-	// CORS
-	defaultOrigins := []string{"http://localhost:9002", "http://localhost:3000"}
-	allowedOrigins := append([]string{}, defaultOrigins...)
-	restrictToConfigured := false
+	checks["version"] = "1.0.0"
+
+	status := http.StatusOK
+	if !healthy {
+		status = http.StatusServiceUnavailable
+	}
+
+	dto.RespondWithJSON(w, status, map[string]interface{}{
+		"status":  statusToText(healthy),
+		"checks":  checks,
+	})
+}
+
+func statusToText(healthy bool) string {
+	if healthy {
+		return "ok"
+	}
+	return "degraded"
+}
+
+// corsMiddleware configures CORS for the router.
+func (s *server) corsMiddleware(router *mux.Router) http.Handler {
+	allowedOrigins := []string{"http://localhost:9002", "http://localhost:3000"}
+	restrict := false
+
 	if corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); corsOrigins != "" {
-		allowedOrigins = allowedOrigins[:0]
+		allowedOrigins = nil
 		for _, origin := range strings.Split(corsOrigins, ",") {
 			if trimmed := strings.TrimSpace(origin); trimmed != "" {
 				allowedOrigins = append(allowedOrigins, trimmed)
 			}
 		}
-		restrictToConfigured = true
+		restrict = true
 	}
 
-	originValidator := func(origin string) bool {
-		if len(allowedOrigins) == 0 {
-			return true
-		}
-		for _, allowed := range allowedOrigins {
-			if allowed == "*" || strings.EqualFold(origin, allowed) {
-				return true
+	return handlers.CORS(
+		handlers.AllowedOriginValidator(func(origin string) bool {
+			for _, allowed := range allowedOrigins {
+				if allowed == "*" || strings.EqualFold(origin, allowed) {
+					return true
+				}
 			}
-		}
-		if !restrictToConfigured {
-			if strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "http://127.0.0.1:") {
-				return true
+			if !restrict {
+				return strings.HasPrefix(origin, "http://localhost:") ||
+					strings.HasPrefix(origin, "http://127.0.0.1:") ||
+					strings.HasPrefix(origin, "https://localhost:") ||
+					strings.HasPrefix(origin, "https://127.0.0.1:")
 			}
-			if strings.HasPrefix(origin, "https://localhost:") || strings.HasPrefix(origin, "https://127.0.0.1:") {
-				return true
-			}
-		}
-		return false
-	}
-
-	corsRouter := handlers.CORS(
-		handlers.AllowedOriginValidator(originValidator),
+			return false
+		}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cache-Control", "Connection", "Pragma", "Accept", "Accept-Language", "Origin", "Referer"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Cache-Control", "Connection", "Pragma", "Accept", "Accept-Language", "Origin", "Referer", "X-Request-Id"}),
 		handlers.AllowCredentials(),
 	)(router)
+}
 
-	// Log routes
-	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-		tpl, err1 := route.GetPathTemplate()
-		met, err2 := route.GetMethods()
-		fmt.Println(tpl, err1, met, err2)
-		return nil
-	})
-
-	// Start server
-	log.Println("Starting server on :8080")
-	err = http.ListenAndServe(":8080", corsRouter)
-	if err != nil {
-		log.Fatal(err)
+// idleMonitor periodically checks for inactivity and exits on Fly.io.
+func (s *server) idleMonitor() {
+	interval := os.Getenv("FLY_RESTART_INTERVAL_IF_IDLE")
+	if interval == "" {
+		interval = "30m"
 	}
+	duration, err := time.ParseDuration(interval)
+	if err != nil {
+		slog.Warn("invalid FLY_RESTART_INTERVAL_IF_IDLE, disabling idle monitor", "value", interval)
+		return
+	}
+	for {
+		time.Sleep(1 * time.Minute)
+		if s.requestTracker.Since() > duration {
+			slog.Info("idle timeout reached, exiting", "duration", duration)
+			os.Exit(0)
+		}
+	}
+}
+
+// Package-level vars retained for backward compatibility with existing handler/provider code.
+// These will be eliminated when handlers are refactored to use dependency injection.
+var (
+	appConfig       config.AppConfig
+	jwtSecretAndAud sqlc_queries.JwtSecret
+	openAIRateLimiter *rate.Limiter
+)
+
+func init() {
+	openAIRateLimiter = rate.NewLimiter(rate.Every(time.Minute/3000), 500)
 }
