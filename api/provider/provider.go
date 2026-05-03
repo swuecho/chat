@@ -1,4 +1,10 @@
 // Package provider defines LLM provider interfaces and shared configuration.
+//
+// Providers implement the ChatModel interface to support different LLM backends:
+// OpenAI, Claude, Gemini, Ollama, and custom API-compatible models.
+//
+// The Handler interface decouples providers from the HTTP layer,
+// allowing them to be tested independently.
 package provider
 
 import (

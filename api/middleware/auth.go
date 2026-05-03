@@ -1,4 +1,11 @@
 // Package middleware provides HTTP middleware for the chat application.
+//
+// Middleware components handle cross-cutting concerns:
+//   - JWT authentication and admin authorization
+//   - Per-user rate limiting
+//   - Request ID injection for tracing
+//   - Panic recovery with structured logging
+//   - Request body size limits (DoS protection)
 package middleware
 
 import (

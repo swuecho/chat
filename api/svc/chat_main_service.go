@@ -12,6 +12,7 @@ import (
 	"time"
 
 	_ "embed"
+	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chat_backend/llm/gemini"
@@ -40,7 +41,7 @@ func (s *ChatService) Q() *sqlc_queries.Queries { return s.q }
 // Returns the instruction content or an error if the file cannot be read.
 func LoadArtifactInstruction() (string, error) {
 	if artifactInstructionText == "" {
-		return "", fmt.Errorf("artifact instruction text is empty")
+		return "", eris.New("artifact instruction text is empty")
 	}
 	return artifactInstructionText, nil
 }
@@ -88,7 +89,7 @@ func (s *ChatService) GetAskMessages(ctx context.Context, chatSession sqlc_queri
 	chat_prompts, err := s.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
 
 	if err != nil {
-		return nil, fmt.Errorf("fail to get prompt: : %w", err)
+		return nil, eris.Wrap(err, "fail to get prompt: ")
 	}
 
 	var chatMessages []sqlc_queries.ChatMessage
@@ -106,7 +107,7 @@ func (s *ChatService) GetAskMessages(ctx context.Context, chatSession sqlc_queri
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("fail to get messages: : %w", err)
+		return nil, eris.Wrap(err, "fail to get messages: ")
 	}
 	chatPromptMsgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) models.Message {
 		msg := models.Message{Role: m.Role, Content: m.Content}
@@ -210,7 +211,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	}
 	message, err := s.q.CreateChatMessage(ctx, chatMessage)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message : %w", err)
+		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
 	}
 	return message, nil
 }
@@ -267,7 +268,7 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 	}
 	message, err := s.q.CreateChatMessage(ctx, chatMessage)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, fmt.Errorf("failed to create message : %w", err)
+		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
 	}
 	return message, nil
 }
@@ -316,6 +317,7 @@ Conversation context:
 
 // callLLMForSuggestions makes a simple API call to generate suggested questions
 func (s *ChatService) callLLMForSuggestions(ctx context.Context, prompt string) string {
+	
 
 	// Get all models and find preferred models for suggestions
 	allModels, err := s.q.ListChatModels(ctx)

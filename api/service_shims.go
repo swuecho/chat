@@ -8,6 +8,7 @@ import (
 )
 
 // Service type aliases point to the svc package implementations.
+// Each alias allows existing handler code to reference svc types without import changes.
 type (
 	ChatSessionService           = svc.ChatSessionService
 	ChatWorkspaceService         = svc.ChatWorkspaceService
