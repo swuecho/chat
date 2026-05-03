@@ -1,4 +1,4 @@
-package main
+package svc
 
 import (
 	"context"
@@ -20,6 +20,9 @@ type ChatSnapshotService struct {
 func NewChatSnapshotService(q *sqlc_queries.Queries) *ChatSnapshotService {
 	return &ChatSnapshotService{q: q}
 }
+
+// Q returns the underlying queries.
+func (s *ChatSnapshotService) Q() *sqlc_queries.Queries { return s.q }
 
 // --- Query wrappers ---
 
@@ -85,7 +88,7 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 }
 
 func GenTitle(q *sqlc_queries.Queries, ctx context.Context, chatSession sqlc_queries.ChatSession, text string) string {
-	title := firstN(chatSession.Topic, 100)
+	title := provider.FirstN(chatSession.Topic, 100)
 	model := "gemini-2.0-flash"
 	_, err := q.ChatModelByName(ctx, model)
 	if err == nil {

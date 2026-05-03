@@ -1,4 +1,4 @@
-package main
+package svc
 
 import (
 	"context"
@@ -20,6 +20,9 @@ type ChatWorkspaceService struct {
 func NewChatWorkspaceService(q *sqlc_queries.Queries) *ChatWorkspaceService {
 	return &ChatWorkspaceService{q: q}
 }
+
+// Q returns the underlying queries.
+func (s *ChatWorkspaceService) Q() *sqlc_queries.Queries { return s.q }
 
 // --- Workspace CRUD ---
 

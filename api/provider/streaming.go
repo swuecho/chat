@@ -154,7 +154,8 @@ func buildStreamResponse(answerID, content string) openai.ChatCompletionStreamRe
 }
 
 // firstN returns the first n runes of s.
-func firstN(s string, n int) string {
+// FirstN returns the first n characters of s.
+func FirstN(s string, n int) string {
 	i := 0
 	for j := range s {
 		if i == n {

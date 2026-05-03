@@ -1,27 +1,22 @@
 package main
 
-import (
-	"github.com/swuecho/chat_backend/dto"
-)
+import "github.com/swuecho/chat_backend/dto"
 
 // Re-export all error types and functions from dto for backward compatibility.
 type APIError = dto.APIError
 
 var (
-	NewAPIError                 = dto.CreateAPIError
-	RespondWithAPIError         = dto.RespondWithAPIError
-	MapDatabaseError            = dto.MapDatabaseError
-	WrapError                   = dto.WrapError
-	IsErrorCode                 = dto.IsErrorCode
-	createAPIError              = dto.CreateAPIError
-	ErrorCatalogHandler         = dto.ErrorCatalogHandler
-	ErrResourceNotFound         = dto.ErrResourceNotFound
-	ErrResourceAlreadyExists    = dto.ErrResourceAlreadyExists
-	ErrValidationInvalidInput   = dto.ErrValidationInvalidInput
-	RespondWithJSON             = dto.RespondWithJSON
+	NewAPIError              = dto.CreateAPIError
+	RespondWithAPIError      = dto.RespondWithAPIError
+	RespondWithJSON          = dto.RespondWithJSON
+	MapDatabaseError         = dto.MapDatabaseError
+	WrapError                = dto.WrapError
+	createAPIError           = dto.CreateAPIError
+	ErrResourceNotFound      = dto.ErrResourceNotFound
+	ErrResourceAlreadyExists = dto.ErrResourceAlreadyExists
+	ErrValidationInvalidInput = dto.ErrValidationInvalidInput
 )
 
-// Re-export error code prefixes.
 const (
 	ErrAuth       = dto.ErrAuth
 	ErrValidation = dto.ErrValidation
@@ -32,21 +27,17 @@ const (
 	ErrModel      = dto.ErrModel
 )
 
-// Re-export all pre-defined errors.
 var (
 	ErrAuthInvalidCredentials       = dto.ErrAuthInvalidCredentials
 	ErrAuthExpiredToken             = dto.ErrAuthExpiredToken
 	ErrAuthAdminRequired            = dto.ErrAuthAdminRequired
 	ErrAuthInvalidEmailOrPassword   = dto.ErrAuthInvalidEmailOrPassword
 	ErrAuthAccessDenied             = dto.ErrAuthAccessDenied
-	ErrResourceNotFoundGeneric      = dto.ErrResourceNotFoundGeneric
-	ErrResourceAlreadyExistsGeneric = dto.ErrResourceAlreadyExistsGeneric
 	ErrTooManyRequests              = dto.ErrTooManyRequests
 	ErrChatSessionNotFound          = dto.ErrChatSessionNotFound
 	ErrChatFileNotFound             = dto.ErrChatFileNotFound
 	ErrChatModelNotFound            = dto.ErrChatModelNotFound
 	ErrChatMessageNotFound          = dto.ErrChatMessageNotFound
-	ErrValidationInvalidInputGeneric = dto.ErrValidationInvalidInputGeneric
 	ErrChatFileTooLarge             = dto.ErrChatFileTooLarge
 	ErrChatFileInvalidType          = dto.ErrChatFileInvalidType
 	ErrChatSessionInvalid           = dto.ErrChatSessionInvalid
@@ -63,9 +54,12 @@ var (
 	ErrClaudeRequestFailed          = dto.ErrClaudeRequestFailed
 	ErrClaudeInvalidResponse        = dto.ErrClaudeInvalidResponse
 	ErrClaudeResponseFailed         = dto.ErrClaudeResponseFailed
-	ErrClaudeResponseFaild          = dto.ErrClaudeResponseFailed // Deprecated: use ErrClaudeResponseFailed
+	ErrClaudeResponseFaild          = dto.ErrClaudeResponseFailed
 	ErrOpenAIStreamFailed           = dto.ErrOpenAIStreamFailed
 	ErrOpenAIRequestFailed          = dto.ErrOpenAIRequestFailed
 	ErrOpenAIInvalidResponse        = dto.ErrOpenAIInvalidResponse
 	ErrOpenAIConfigFailed           = dto.ErrOpenAIConfigFailed
+	ErrResourceNotFoundGeneric      = dto.ErrResourceNotFoundGeneric
+	ErrResourceAlreadyExistsGeneric = dto.ErrResourceAlreadyExistsGeneric
+	ErrValidationInvalidInputGeneric = dto.ErrValidationInvalidInputGeneric
 )

@@ -12,6 +12,7 @@ import (
 
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 // --- Request types used by chat handlers ---
@@ -53,7 +54,7 @@ type Choice struct {
 
 // GetChatInstructions returns artifact instruction text.
 func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) {
-	artifactInstruction, err := loadArtifactInstruction()
+	artifactInstruction, err := svc.LoadArtifactInstruction()
 	if err != nil {
 		log.Printf("Warning: Failed to load artifact instruction: %v", err)
 		artifactInstruction = ""
@@ -171,7 +172,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	}
 
 	if !isTest(msgs) {
-		h.service.logChat(session, msgs, LLMAnswer.Answer)
+		h.service.LogChat(session, msgs, LLMAnswer.Answer)
 	}
 }
 
@@ -182,7 +183,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		return
 	}
 
-	msgs, err := h.service.getAskMessages(*chatSession, chatUuid, true)
+	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, true)
 	if err != nil {
 		apiErr := ErrInternalUnexpected
 		apiErr.Detail = "Failed to get chat messages"
@@ -199,7 +200,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		return
 	}
 
-	h.service.logChat(*chatSession, msgs, LLMAnswer.Answer)
+	h.service.LogChat(*chatSession, msgs, LLMAnswer.Answer)
 
 	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, LLMAnswer.Answer); err != nil {
 		RespondWithAPIError(w, ErrInternalUnexpected.WithDetail("Failed to update message").WithDebugInfo(err.Error()))
@@ -207,7 +208,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 	}
 
 	if chatSession.ExploreMode {
-		suggested := h.service.generateSuggestedQuestions(LLMAnswer.Answer, msgs)
+		suggested := h.service.GenerateSuggestedQuestions(LLMAnswer.Answer, msgs)
 		if len(suggested) > 0 {
 			if questionsJSON, err := json.Marshal(suggested); err == nil {
 				h.service.UpdateChatMessageSuggestions(ctx, chatUuid, questionsJSON)

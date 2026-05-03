@@ -1,4 +1,4 @@
-package main
+package svc
 
 import (
 	"context"
@@ -8,7 +8,9 @@ import (
 
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
+	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/dto"
 )
 
 // ChatSessionService provides methods for interacting with chat sessions.
@@ -20,6 +22,9 @@ type ChatSessionService struct {
 func NewChatSessionService(q *sqlc_queries.Queries) *ChatSessionService {
 	return &ChatSessionService{q: q}
 }
+
+// Q returns the underlying queries.
+func (s *ChatSessionService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateChatSession creates a new chat session.
 func (s *ChatSessionService) CreateChatSession(ctx context.Context, session_params sqlc_queries.CreateChatSessionParams) (sqlc_queries.ChatSession, error) {
@@ -74,19 +79,19 @@ func (s *ChatSessionService) GetChatSessionsByUserID(ctx context.Context, userID
 	return sessions, nil
 }
 
-func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, userID int32) ([]SimpleChatSession, error) {
+func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, userID int32) ([]dto.SimpleChatSession, error) {
 	sessions, err := s.q.GetSessionsGroupedByWorkspace(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	simple_sessions := lo.Map(sessions, func(session sqlc_queries.GetSessionsGroupedByWorkspaceRow, _idx int) SimpleChatSession {
+	simple_sessions := lo.Map(sessions, func(session sqlc_queries.GetSessionsGroupedByWorkspaceRow, _idx int) dto.SimpleChatSession {
 		workspaceUuid := ""
 		if session.WorkspaceUuid.Valid {
 			workspaceUuid = session.WorkspaceUuid.String
 		}
 
-		return SimpleChatSession{
+		return dto.SimpleChatSession{
 			Uuid:            session.Uuid,
 			IsEdit:          false,
 			Title:           session.Topic,
@@ -265,19 +270,19 @@ func (s *ChatSessionService) EnsureDefaultSystemPrompt(ctx context.Context, chat
 
 	promptText := strings.TrimSpace(systemPrompt)
 	if promptText == "" {
-		promptText = DefaultSystemPromptText
+		promptText = dto.DefaultSystemPromptText
 	}
 
-	tokenCount, tokenErr := getTokenCount(promptText)
+	tokenCount, tokenErr := provider.GetTokenCount(promptText)
 	if tokenErr != nil {
-		tokenCount = len(promptText) / TokenEstimateRatio
+		tokenCount = len(promptText) / dto.TokenEstimateRatio
 	}
 	if tokenCount <= 0 {
 		tokenCount = 1
 	}
 
 	prompt, createErr := s.q.CreateChatPrompt(ctx, sqlc_queries.CreateChatPromptParams{
-		Uuid:            NewUUID(),
+		Uuid:            provider.NewUUID(),
 		ChatSessionUuid: chatSessionUUID,
 		Role:            "system",
 		Content:         promptText,

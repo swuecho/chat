@@ -1,4 +1,4 @@
-package main
+package svc
 
 import (
 	"context"
@@ -10,17 +10,27 @@ import (
 
 	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/auth"
+	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type AuthUserService struct {
-	q *sqlc_queries.Queries
+	q            *sqlc_queries.Queries
+	jwtSecret    string
+	defaultLimit int32
 }
 
 // NewAuthUserService creates a new AuthUserService.
 func NewAuthUserService(q *sqlc_queries.Queries) *AuthUserService {
-	return &AuthUserService{q: q}
+	return &AuthUserService{
+		q:            q,
+		jwtSecret:    Cfg.JWTSecret,
+		defaultLimit: Cfg.DefaultLimit,
+	}
 }
+
+// Q returns the underlying queries for use by other services during initialization.
+func (s *AuthUserService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateAuthUser creates a new authentication user record.
 func (s *AuthUserService) CreateAuthUser(ctx context.Context, auth_user_params sqlc_queries.CreateAuthUserParams) (sqlc_queries.AuthUser, error) {
@@ -63,13 +73,13 @@ func (s *AuthUserService) Authenticate(ctx context.Context, email, password stri
 		return sqlc_queries.AuthUser{}, err
 	}
 	if !auth.ValidatePassword(password, user.Password) {
-		return sqlc_queries.AuthUser{}, ErrAuthInvalidCredentials
+		return sqlc_queries.AuthUser{}, dto.ErrAuthInvalidCredentials
 	}
 	return user, nil
 }
 
 func (s *AuthUserService) Logout(tokenString string) (*http.Cookie, error) {
-	userID, err := auth.ValidateToken(tokenString, jwtSecretAndAud.Secret, auth.TokenTypeAccess)
+	userID, err := auth.ValidateToken(tokenString, s.jwtSecret, auth.TokenTypeAccess)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +93,7 @@ func (s *AuthUserService) Logout(tokenString string) (*http.Cookie, error) {
 // GetUserStat(page, page_size) -> {data: [{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}], total: 100}
 // GetTotalUserCount
 // GetUserStat(page, page_size) ->[{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}]
-func (s *AuthUserService) GetUserStats(ctx context.Context, p Pagination, defaultRateLimit int32) ([]sqlc_queries.GetUserStatsRow, int64, error) {
+func (s *AuthUserService) GetUserStats(ctx context.Context, p dto.Pagination, defaultRateLimit int32) ([]sqlc_queries.GetUserStatsRow, int64, error) {
 	auth_users_stat, err := s.q.GetUserStats(ctx,
 		sqlc_queries.GetUserStatsParams{
 			Offset:           p.Offset(),

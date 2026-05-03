@@ -128,7 +128,7 @@ func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(w http.R
 	}
 
 	// Check workspace permission
-	workspaceService := NewChatWorkspaceService(h.service.q)
+	workspaceService := NewChatWorkspaceService(h.service.Q())
 	hasPermission, err := workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to check workspace permission"))
@@ -174,7 +174,7 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 	}
 
 	// Check workspace permission
-	workspaceService := NewChatWorkspaceService(h.service.q)
+	workspaceService := NewChatWorkspaceService(h.service.Q())
 	hasPermission, err := workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to check workspace permission"))
@@ -207,7 +207,7 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
-	sessionService := NewChatSessionService(h.service.q)
+	sessionService := NewChatSessionService(h.service.Q())
 	session, err := sessionService.GetChatSessionByUUID(ctx, requestBody.ChatSessionUuid)
 	if err != nil {
 		RespondWithAPIError(w, ErrResourceNotFound("Chat Session").WithMessage("chat session not found"))
@@ -252,7 +252,7 @@ func (h *UserActiveChatSessionHandler) GetAllWorkspaceActiveSessionsHandler(w ht
 	}
 
 	// Convert to response format with workspace UUIDs
-	workspaceService := NewChatWorkspaceService(h.service.q)
+	workspaceService := NewChatWorkspaceService(h.service.Q())
 	workspaces, err := workspaceService.GetWorkspacesByUserID(ctx, userID)
 	if err != nil {
 		RespondWithAPIError(w, WrapError(err, "failed to get workspaces"))

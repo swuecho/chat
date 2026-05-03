@@ -164,7 +164,7 @@ func GenerateChatTitle(ctx context.Context, model, chatText string) (string, err
 	}
 
 	// Truncate and return
-	return firstN(title, 100), nil
+	return FirstN(title, 100), nil
 }
 
 func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, w http.ResponseWriter, req *http.Request, answerID string) (*models.LLMAnswer, error) {

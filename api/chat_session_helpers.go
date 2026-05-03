@@ -88,7 +88,7 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 
 // generateAndSaveAnswer calls the LLM, streams the response, and persists the answer.
 func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.ResponseWriter, chatSession *sqlc_queries.ChatSession, chatUuid string, userID int32, baseURL string, streamOutput bool) bool {
-	msgs, err := h.service.getAskMessages(*chatSession, chatUuid, false)
+	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, false)
 	if err != nil {
 		log.Printf("Error collecting messages for session %s: %v", chatSession.Uuid, err)
 		RespondWithAPIError(w, createAPIError(ErrInternalUnexpected, "Failed to collect messages", err.Error()))
@@ -110,7 +110,7 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	}
 
 	if !isTest(msgs) {
-		h.service.logChat(*chatSession, msgs, LLMAnswer.ReasoningContent+LLMAnswer.Answer)
+		h.service.LogChat(*chatSession, msgs, LLMAnswer.ReasoningContent+LLMAnswer.Answer)
 	}
 
 	chatMessage, err := h.service.CreateChatMessageWithSuggestedQuestions(ctx, chatSession.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs)

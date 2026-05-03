@@ -17,7 +17,7 @@ type AdminHandler struct {
 func NewAdminHandler(service *AuthUserService) *AdminHandler {
 	return &AdminHandler{
 		service:    service,
-		sessionSvc: NewChatSessionService(service.q),
+		sessionSvc: NewChatSessionService(service.Q()),
 	}
 }
 

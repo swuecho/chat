@@ -1,10 +1,11 @@
-package main
+package svc
 
 import (
 	"context"
 	"errors"
 
 	"github.com/rotisserie/eris"
+	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -16,6 +17,9 @@ type ChatPromptService struct {
 func NewChatPromptService(q *sqlc_queries.Queries) *ChatPromptService {
 	return &ChatPromptService{q: q}
 }
+
+// Q returns the underlying queries.
+func (s *ChatPromptService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateChatPrompt creates a new chat prompt.
 func (s *ChatPromptService) CreateChatPrompt(ctx context.Context, prompt_params sqlc_queries.CreateChatPromptParams) (sqlc_queries.ChatPrompt, error) {
@@ -104,7 +108,7 @@ func (s *ChatPromptService) DeleteChatPromptByUUID(ctx context.Context, uuid str
 
 // UpdateChatPromptByUUID
 func (s *ChatPromptService) UpdateChatPromptByUUID(ctx context.Context, uuid string, content string) (sqlc_queries.ChatPrompt, error) {
-	tokenCount, _ := getTokenCount(content)
+	tokenCount, _ := provider.GetTokenCount(content)
 	params := sqlc_queries.UpdateChatPromptByUUIDParams{
 		Uuid:       uuid,
 		Content:    content,

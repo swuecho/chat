@@ -1,4 +1,4 @@
-package main
+package svc
 
 import (
 	"context"
@@ -15,6 +15,9 @@ type BotAnswerHistoryService struct {
 func NewBotAnswerHistoryService(q *sqlc_queries.Queries) *BotAnswerHistoryService {
 	return &BotAnswerHistoryService{q: q}
 }
+
+// Q returns the underlying queries.
+func (s *BotAnswerHistoryService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateBotAnswerHistory creates a new bot answer history entry
 func (s *BotAnswerHistoryService) CreateBotAnswerHistory(ctx context.Context, params sqlc_queries.CreateBotAnswerHistoryParams) (sqlc_queries.BotAnswerHistory, error) {

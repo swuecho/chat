@@ -1,4 +1,4 @@
-package main
+package svc
 
 import (
 	"bytes"
@@ -19,6 +19,7 @@ import (
 	models "github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/dto"
 )
 
 type ChatService struct {
@@ -33,9 +34,12 @@ func NewChatService(q *sqlc_queries.Queries) *ChatService {
 	return &ChatService{q: q}
 }
 
+// Q returns the underlying queries.
+func (s *ChatService) Q() *sqlc_queries.Queries { return s.q }
+
 // loadArtifactInstruction loads the artifact instruction from file.
 // Returns the instruction content or an error if the file cannot be read.
-func loadArtifactInstruction() (string, error) {
+func LoadArtifactInstruction() (string, error) {
 	if artifactInstructionText == "" {
 		return "", eris.New("artifact instruction text is empty")
 	}
@@ -51,7 +55,7 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 	for i, msg := range msgs {
 		if msg.Role == "system" {
 			msgs[i].Content = msg.Content + "\n" + instruction
-			msgs[i].SetTokenCount(int32(len(msgs[i].Content) / TokenEstimateRatio))
+			msgs[i].SetTokenCount(int32(len(msgs[i].Content) / dto.TokenEstimateRatio))
 			systemMsgFound = true
 			break
 		}
@@ -59,7 +63,7 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 
 	if !systemMsgFound {
 		msgs[0].Content = msgs[0].Content + "\n" + instruction
-		msgs[0].SetTokenCount(int32(len(msgs[0].Content) / TokenEstimateRatio))
+		msgs[0].SetTokenCount(int32(len(msgs[0].Content) / dto.TokenEstimateRatio))
 	}
 }
 
@@ -71,15 +75,15 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 //   - regenerate: If true, excludes the target message from history
 //
 // Returns combined message array or error.
-func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*RequestTimeoutSeconds)
+func (s *ChatService) GetAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*dto.RequestTimeoutSeconds)
 	defer cancel()
 
 	chatSessionUuid := chatSession.Uuid
 
 	lastN := chatSession.MaxLength
 	if chatSession.MaxLength == 0 {
-		lastN = DefaultMaxLength
+		lastN = dto.DefaultMaxLength
 	}
 
 	chat_prompts, err := s.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
@@ -119,7 +123,7 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 
 	// Add artifact instruction to system messages only if artifact mode is enabled
 	if chatSession.ArtifactEnabled {
-		artifactInstruction, err := loadArtifactInstruction()
+		artifactInstruction, err := LoadArtifactInstruction()
 		if err != nil {
 			log.Printf("Warning: Failed to load artifact instruction: %v", err)
 			artifactInstruction = "" // Use empty string if file can't be loaded
@@ -134,14 +138,14 @@ func (s *ChatService) getAskMessages(chatSession sqlc_queries.ChatSession, chatU
 // CreateChatPromptSimple creates a new chat prompt for a session.
 // This is typically used to start a new conversation with a system message.
 func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUuid string, newQuestion string, userID int32) (sqlc_queries.ChatPrompt, error) {
-	tokenCount, err := getTokenCount(newQuestion)
+	tokenCount, err := provider.GetTokenCount(newQuestion)
 	if err != nil {
 		log.Printf("Warning: Failed to get token count for prompt: %v", err)
-		tokenCount = len(newQuestion) / TokenEstimateRatio // Fallback estimate
+		tokenCount = len(newQuestion) / dto.TokenEstimateRatio // Fallback estimate
 	}
 	chatPrompt, err := s.q.CreateChatPrompt(ctx,
 		sqlc_queries.CreateChatPromptParams{
-			Uuid:            NewUUID(),
+			Uuid:            provider.NewUUID(),
 			ChatSessionUuid: chatSessionUuid,
 			Role:            "system",
 			Content:         newQuestion,
@@ -167,15 +171,15 @@ func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUui
 //
 // Returns created message or error.
 func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode bool) (sqlc_queries.ChatMessage, error) {
-	numTokens, err := getTokenCount(content)
+	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		log.Printf("Warning: Failed to get token count: %v", err)
-		numTokens = len(content) / TokenEstimateRatio // Fallback estimate
+		numTokens = len(content) / dto.TokenEstimateRatio // Fallback estimate
 	}
 
 	summary := ""
 
-	if is_summarize_mode && numTokens > SummarizeThreshold {
+	if is_summarize_mode && numTokens > dto.SummarizeThreshold {
 		log.Println("summarizing")
 		summary = provider.SummarizeWithTimeout(baseURL, content)
 		log.Println("summarizing: " + summary)
@@ -214,14 +218,14 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 
 // CreateChatMessageWithSuggestedQuestions creates a chat message with optional suggested questions for explore mode
 func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode, exploreMode bool, messages []models.Message) (sqlc_queries.ChatMessage, error) {
-	numTokens, err := getTokenCount(content)
+	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		log.Printf("Warning: Failed to get token count: %v", err)
-		numTokens = len(content) / TokenEstimateRatio // Fallback estimate
+		numTokens = len(content) / dto.TokenEstimateRatio // Fallback estimate
 	}
 
 	summary := ""
-	if is_summarize_mode && numTokens > SummarizeThreshold {
+	if is_summarize_mode && numTokens > dto.SummarizeThreshold {
 		log.Println("summarizing")
 		summary = provider.SummarizeWithTimeout(baseURL, content)
 		log.Println("summarizing: " + summary)
@@ -238,7 +242,7 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 	// Generate suggested questions if explore mode is enabled and role is assistant
 	suggestedQuestions := json.RawMessage([]byte("[]"))
 	if exploreMode && role == "assistant" && messages != nil {
-		questions := s.generateSuggestedQuestions(content, messages)
+		questions := s.GenerateSuggestedQuestions(content, messages)
 		if questionsJSON, err := json.Marshal(questions); err == nil {
 			suggestedQuestions = questionsJSON
 		} else {
@@ -270,7 +274,7 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 }
 
 // generateSuggestedQuestions generates follow-up questions based on the conversation context
-func (s *ChatService) generateSuggestedQuestions(content string, messages []models.Message) []string {
+func (s *ChatService) GenerateSuggestedQuestions(content string, messages []models.Message) []string {
 	// Create a simplified prompt to generate follow-up questions
 	prompt := `Based on the following conversation, generate 3 thoughtful follow-up questions that would help explore the topic further. Return only the questions, one per line, without numbering or bullet points.
 
@@ -429,7 +433,7 @@ func (s *ChatService) callGeminiForSuggestions(ctx context.Context, model sqlc_q
 // callOpenAICompatibleForSuggestions makes an OpenAI-compatible API call for suggestions (including deepseek)
 func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, model sqlc_queries.ChatModel, prompt string) string {
 	// Generate OpenAI client configuration
-	config, err := provider.GenOpenAIConfig(model, provider.Config{OpenAIKey: appConfig.OPENAI.API_KEY, OpenAIProxy: appConfig.OPENAI.PROXY_URL})
+	config, err := provider.GenOpenAIConfig(model, provider.Config{OpenAIKey: Cfg.OpenAIKey, OpenAIProxy: Cfg.OpenAIProxy})
 	if err != nil {
 		log.Printf("Warning: Failed to generate OpenAI configuration for suggestions: %v", err)
 		return ""
@@ -440,7 +444,7 @@ func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, mo
 	// Create a simple chat completion request for generating suggestions
 	req := openai.ChatCompletionRequest{
 		Model:       model.Name,
-		Temperature: DefaultTemperature,
+		Temperature: 0.7,
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    "user",
@@ -473,10 +477,10 @@ func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, mo
 func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, content string) error {
 	// encode
 	// num_tokens
-	num_tokens, err := getTokenCount(content)
+	num_tokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		log.Printf("Warning: Failed to get token count for update: %v", err)
-		num_tokens = len(content) / TokenEstimateRatio // Fallback estimate
+		num_tokens = len(content) / dto.TokenEstimateRatio // Fallback estimate
 	}
 
 	err = s.q.UpdateChatMessageContent(ctx, sqlc_queries.UpdateChatMessageContentParams{
@@ -498,7 +502,7 @@ func (s *ChatService) UpdateChatMessageSuggestions(ctx context.Context, uuid str
 
 // logChat creates a chat log entry for analytics and debugging.
 // Logs the session, messages, and LLM response for audit purposes.
-func (s *ChatService) logChat(chatSession sqlc_queries.ChatSession, msgs []models.Message, answerText string) {
+func (s *ChatService) LogChat(chatSession sqlc_queries.ChatSession, msgs []models.Message, answerText string) {
 	// log chat
 	sessionRaw := chatSession.ToRawMessage()
 	if sessionRaw == nil {

@@ -57,7 +57,7 @@ func TestChatPromptService(t *testing.T) {
 		t.Error("expected error due to missing chat prompt, but got no error or different error")
 	}
 
-	_, err = service.q.GetChatPromptsBySessionUUID(context.Background(), "12324")
+	_, err = service.Q().GetChatPromptsBySessionUUID(context.Background(), "12324")
 
 	if err != nil {
 		t.Error("expected error due to missing chat prompt, but got no error or different error")

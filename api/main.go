@@ -22,6 +22,7 @@ import (
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/static"
+	"github.com/swuecho/chat_backend/svc"
 	"golang.org/x/time/rate"
 )
 
@@ -50,8 +51,11 @@ func run() error {
 	appConfig = config.Load()
 	cfg := appConfig
 
-	// Initialize provider globals
+	// Initialize package-level configs
 	provider.OpenAIToken = cfg.OPENAI.API_KEY
+	svc.Cfg.OpenAIKey = cfg.OPENAI.API_KEY
+	svc.Cfg.OpenAIProxy = cfg.OPENAI.PROXY_URL
+	svc.Cfg.DefaultLimit = int32(cfg.OPENAI.RATELIMIT)
 
 	// --- Database ---
 	pgdb, err := openDB(cfg)
@@ -83,6 +87,7 @@ func run() error {
 	}
 	srv.jwtSecret = jwtSecretAndAud
 	middleware.SetJWTSecret(jwtSecretAndAud.Secret)
+	svc.Cfg.JWTSecret = jwtSecretAndAud.Secret
 
 	// --- Router ---
 	router, rawRouter := srv.buildRouter()

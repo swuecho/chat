@@ -41,7 +41,7 @@ func (h *ChatHandler) Register(router *mux.Router) {
 // --- provider.Handler implementation ---
 
 func (h *ChatHandler) RequestContext() context.Context  { return h.requestCtx }
-func (h *ChatHandler) Queries() *sqlc_queries.Queries   { return h.service.q }
+func (h *ChatHandler) Queries() *sqlc_queries.Queries   { return h.service.Q() }
 func (h *ChatHandler) Config() provider.Config {
 	return provider.Config{
 		OpenAIKey:   appConfig.OPENAI.API_KEY,

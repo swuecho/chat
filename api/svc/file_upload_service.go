@@ -1,9 +1,10 @@
-package main
+package svc
 
 import (
 	"context"
 	"log"
 
+	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -17,20 +18,23 @@ func NewChatFileService(q *sqlc_queries.Queries) *ChatFileService {
 	return &ChatFileService{q: q}
 }
 
+// Q returns the underlying queries.
+func (s *ChatFileService) Q() *sqlc_queries.Queries { return s.q }
+
 // CreateChatUpload handles creating a new chat file upload
 func (s *ChatFileService) CreateChatUpload(ctx context.Context, params sqlc_queries.CreateChatFileParams) (sqlc_queries.ChatFile, error) {
 	// Validate input
 	if params.ChatSessionUuid == "" {
-		return sqlc_queries.ChatFile{}, ErrValidationInvalidInput("missing session UUID")
+		return sqlc_queries.ChatFile{}, dto.ErrValidationInvalidInput("missing session UUID")
 	}
 	if params.UserID <= 0 {
-		return sqlc_queries.ChatFile{}, ErrValidationInvalidInput("invalid user ID")
+		return sqlc_queries.ChatFile{}, dto.ErrValidationInvalidInput("invalid user ID")
 	}
 	if params.Name == "" {
-		return sqlc_queries.ChatFile{}, ErrValidationInvalidInput("missing file name")
+		return sqlc_queries.ChatFile{}, dto.ErrValidationInvalidInput("missing file name")
 	}
 	if len(params.Data) == 0 {
-		return sqlc_queries.ChatFile{}, ErrValidationInvalidInput("empty file data")
+		return sqlc_queries.ChatFile{}, dto.ErrValidationInvalidInput("empty file data")
 	}
 
 	log.Printf("Creating chat file upload for session %s, user %d",
@@ -38,7 +42,7 @@ func (s *ChatFileService) CreateChatUpload(ctx context.Context, params sqlc_quer
 
 	upload, err := s.q.CreateChatFile(ctx, params)
 	if err != nil {
-		return sqlc_queries.ChatFile{}, WrapError(err, "failed to create chat file")
+		return sqlc_queries.ChatFile{}, dto.WrapError(err, "failed to create chat file")
 	}
 
 	log.Printf("Created chat file upload ID %d", upload.ID)
@@ -48,14 +52,14 @@ func (s *ChatFileService) CreateChatUpload(ctx context.Context, params sqlc_quer
 // GetChatFile retrieves a chat file by ID
 func (s *ChatFileService) GetChatFile(ctx context.Context, id int32) (sqlc_queries.GetChatFileByIDRow, error) {
 	if id <= 0 {
-		return sqlc_queries.GetChatFileByIDRow{}, ErrValidationInvalidInput("invalid file ID")
+		return sqlc_queries.GetChatFileByIDRow{}, dto.ErrValidationInvalidInput("invalid file ID")
 	}
 
 	log.Printf("Retrieving chat file ID %d", id)
 
 	file, err := s.q.GetChatFileByID(ctx, id)
 	if err != nil {
-		return sqlc_queries.GetChatFileByIDRow{}, WrapError(err, "failed to get chat file")
+		return sqlc_queries.GetChatFileByIDRow{}, dto.WrapError(err, "failed to get chat file")
 	}
 
 	return file, nil
@@ -64,14 +68,14 @@ func (s *ChatFileService) GetChatFile(ctx context.Context, id int32) (sqlc_queri
 // DeleteChatFile deletes a chat file by ID
 func (s *ChatFileService) DeleteChatFile(ctx context.Context, id int32) error {
 	if id <= 0 {
-		return ErrValidationInvalidInput("invalid file ID")
+		return dto.ErrValidationInvalidInput("invalid file ID")
 	}
 
 	log.Printf("Deleting chat file ID %d", id)
 
 	_, err := s.q.DeleteChatFile(ctx, id)
 	if err != nil {
-		return WrapError(err, "failed to delete chat file")
+		return dto.WrapError(err, "failed to delete chat file")
 	}
 
 	return nil
@@ -80,10 +84,10 @@ func (s *ChatFileService) DeleteChatFile(ctx context.Context, id int32) error {
 // ListChatFilesBySession retrieves chat files for a session
 func (s *ChatFileService) ListChatFilesBySession(ctx context.Context, sessionUUID string, userID int32) ([]sqlc_queries.ListChatFilesBySessionUUIDRow, error) {
 	if sessionUUID == "" {
-		return nil, ErrValidationInvalidInput("missing session UUID")
+		return nil, dto.ErrValidationInvalidInput("missing session UUID")
 	}
 	if userID <= 0 {
-		return nil, ErrValidationInvalidInput("invalid user ID")
+		return nil, dto.ErrValidationInvalidInput("invalid user ID")
 	}
 
 	log.Printf("Listing chat files for session %s, user %d", sessionUUID, userID)
@@ -93,7 +97,7 @@ func (s *ChatFileService) ListChatFilesBySession(ctx context.Context, sessionUUI
 		UserID:          userID,
 	})
 	if err != nil {
-		return nil, WrapError(err, "failed to list chat files")
+		return nil, dto.WrapError(err, "failed to list chat files")
 	}
 
 	return files, nil

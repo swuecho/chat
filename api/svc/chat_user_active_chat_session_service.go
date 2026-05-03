@@ -1,4 +1,4 @@
-package main
+package svc
 
 import (
 	"context"
@@ -14,6 +14,9 @@ type UserActiveChatSessionService struct {
 func NewUserActiveChatSessionService(q *sqlc.Queries) *UserActiveChatSessionService {
 	return &UserActiveChatSessionService{q: q}
 }
+
+// Q returns the underlying queries.
+func (s *UserActiveChatSessionService) Q() *sqlc.Queries { return s.q }
 
 // Simplified unified methods
 
