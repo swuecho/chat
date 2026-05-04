@@ -141,7 +141,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	msgs = append(msgs, models.Message{Role: "user", Content: question})
 
 	model := h.chooseChatModel(ctx, session, msgs)
-	LLMAnswer, err := model.Stream(ctx, w, session, msgs, "", false, streamOutput)
+	LLMAnswer, err := streamFromModel(model, ctx, w, session, msgs, "", false, streamOutput)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return
@@ -177,9 +177,10 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 	}
 
 	model := h.chooseChatModel(ctx, *chatSession, msgs)
-	LLMAnswer, err := model.Stream(ctx, w, *chatSession, msgs, chatUuid, true, stream)
+	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, true, stream)
 	if err != nil {
 		slog.Error("error: regenerating answer: %v", err)
+		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to regenerate answer"))
 		return
 	}
 

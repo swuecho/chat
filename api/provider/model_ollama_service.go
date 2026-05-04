@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
-	"github.com/swuecho/chat_backend/dto"
 )
 
 // OllamaResponse represents the response structure from Ollama API
@@ -43,32 +43,34 @@ func NewOllamaChatModel(h Handler) *OllamaChatModel {
 	return &OllamaChatModel{h: h}
 }
 
-func (m *OllamaChatModel) Stream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	return chatOllamStream(m.h, ctx, w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
+func (m *OllamaChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
+	ch := make(chan StreamChunk, 10)
+	go func() {
+		defer close(ch)
+		chatOllamStream(ctx, ch, m.h, chatSession, chatCompletionMessages, chatUuid, regenerate)
+	}()
+	return ch, nil
 }
 
-func chatOllamStream(h Handler, ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
-	// set the api key
+func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, h Handler, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool) {
 	chatModel, err := GetChatModel(ctx, h.Queries(), chatSession.Model)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
-		return nil, err
+		ch <- StreamChunk{Err: dto.ErrResourceNotFound("chat model: " + chatSession.Model)}
+		return
 	}
+
 	jsonData := map[string]any{
 		"model":    strings.Replace(chatSession.Model, "ollama-", "", 1),
-		"messages": chat_compeletion_messages,
+		"messages": chatCompletionMessages,
 	}
-	// convert data to json format
 	jsonValue, _ := json.Marshal(jsonData)
-	// create the request with context
-	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 
+	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to make request").WithDebugInfo(err.Error()))
-		return nil, err
+		ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Failed to make request").WithDebugInfo(err.Error())}
+		return
 	}
 
-	// add headers to the request
 	apiKey := os.Getenv(chatModel.ApiAuthKey)
 	authHeaderName := chatModel.ApiAuthHeader
 	if authHeaderName != "" {
@@ -76,55 +78,35 @@ func chatOllamStream(h Handler, ctx context.Context, w http.ResponseWriter, chat
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-
-	// set the streaming flag
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Access-Control-Allow-Origin", "*")
 
-	// create the http client and send the request
-	client := &http.Client{
-		Timeout: 5 * time.Minute,
-	}
+	client := &http.Client{Timeout: 5 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error()))
-		return nil, err
+		ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())}
+		return
 	}
 
 	ioreader := bufio.NewReader(resp.Body)
-
-	// read the response body
 	defer resp.Body.Close()
-	// loop over the response body and print data
-
-	flusher, err := SetupSSEStream(w)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.APIError{
-			HTTPCode: http.StatusInternalServerError,
-			Code:     "STREAM_UNSUPPORTED",
-			Message:  "Streaming unsupported by client",
-		})
-		return nil, err
-	}
 
 	var answer string
-	answer_id := generateAnswerID(chatUuid, regenerate)
+	answerID := generateAnswerID(chatUuid, regenerate)
 
 	count := 0
 	for {
-		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
 			slog.Info("Ollama stream cancelled by client: %v", ctx.Err())
-			// Return current accumulated content when cancelled
-			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
+			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
+			return
 		default:
 		}
 
 		count++
-		// prevent infinite loop
 		if count > 10000 {
 			break
 		}
@@ -132,43 +114,38 @@ func chatOllamStream(h Handler, ctx context.Context, w http.ResponseWriter, chat
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				fmt.Println("End of stream reached")
-				break // Exit loop if end of stream
+				break
 			}
-			return nil, err
+			ch <- StreamChunk{Err: err}
+			return
 		}
 		var streamResp OllamaResponse
-		err = json.Unmarshal(line, &streamResp)
-		if err != nil {
-			return nil, err
+		if err := json.Unmarshal(line, &streamResp); err != nil {
+			ch <- StreamChunk{Err: err}
+			return
 		}
 		delta := strings.ReplaceAll(streamResp.Message.Content, "<0x0A>", "\n")
-		answer += delta // Still accumulate for final answer storage
+		answer += delta
 
 		if streamResp.Done {
-			// stream.isFinished = true
 			fmt.Println("DONE break")
-			// No need to send full content at the end since we're sending deltas
 			break
 		}
-		if answer_id == "" {
-			answer_id = NewUUID()
+		if answerID == "" {
+			answerID = NewUUID()
 		}
 
-		// Send delta content immediately when available
 		if len(delta) > 0 {
-			err := FlushResponse(w, flusher, StreamingResponse{
-				AnswerID: answer_id,
-				Content:  delta,
-				IsFinal:  false,
-			})
-			if err != nil {
-				slog.Info("Failed to flush response: %v", err)
-			}
+			ch <- StreamChunk{ID: answerID, Content: delta}
 		}
 	}
 
-	return &models.LLMAnswer{
-		Answer:   answer,
-		AnswerId: answer_id,
-	}, nil
+	ch <- StreamChunk{
+		ID:   answerID,
+		Done: true,
+		FinalAnswer: &models.LLMAnswer{
+			Answer:   answer,
+			AnswerId: answerID,
+		},
+	}
 }

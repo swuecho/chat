@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/http"
 
 	"log/slog"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -60,18 +59,17 @@ func isTest(msgs []models.Message) bool {
 }
 
 // CheckModelAccess verifies the user hasn't exceeded per-model rate limits.
-func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid, model string, userID int32) bool {
-	ctx := context.Background()
-
+// Returns nil if access is allowed, or an error (dto.APIError) if denied.
+func (h *ChatHandler) CheckModelAccess(ctx context.Context, chatSessionUuid, model string, userID int32) error {
 	chatModel, err := h.sessionSvc.ChatModelByName(ctx, model)
 	if err != nil {
 		slog.Error("Chat model not found", "error", err, "model", model)
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat model: "+model))
-		return true
+		apiErr := dto.ErrResourceNotFound("chat model: " + model)
+		return apiErr
 	}
 
 	if !chatModel.EnablePerModeRatelimit {
-		return false
+		return nil
 	}
 
 	rate, err := h.sessionSvc.RateLimitByUserAndSessionUUID(ctx, sqlc_queries.RateLimiteByUserAndSessionUUIDParams{
@@ -79,27 +77,24 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid, m
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false
+			return nil
 		}
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get rate limit"))
-		return true
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to get rate limit")
 	}
 
 	usage10Min, err := h.sessionSvc.GetChatMessagesCountByUserAndModel(ctx, sqlc_queries.GetChatMessagesCountByUserAndModelParams{
 		UserID: userID, Model: rate.ChatModelName,
 	})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to get usage data").WithDebugInfo(err.Error()))
-		return true
+		return dto.ErrInternalUnexpected.WithDetail("Failed to get usage data").WithDebugInfo(err.Error())
 	}
 
 	if int32(usage10Min) > rate.RateLimit {
 		apiErr := dto.ErrTooManyRequests
 		apiErr.Message = fmt.Sprintf("Rate limit exceeded for %s", rate.ChatModelName)
 		apiErr.Detail = fmt.Sprintf("Usage: %d, Limit: %d", usage10Min, rate.RateLimit)
-		dto.RespondWithAPIError(w, apiErr)
-		return true
+		return apiErr
 	}
 
-	return false
+	return nil
 }

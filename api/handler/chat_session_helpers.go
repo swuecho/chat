@@ -10,8 +10,10 @@ import (
 	"strings"
 
 	"log/slog"
+	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -98,7 +100,7 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	slog.Info("Collected messages - SessionUUID: %s, Count: %d, Model: %s", chatSession.Uuid, len(msgs), chatSession.Model)
 
 	model := h.chooseChatModel(ctx, *chatSession, msgs)
-	LLMAnswer, err := model.Stream(ctx, w, *chatSession, msgs, chatUuid, false, streamOutput)
+	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
 		slog.Error("error: generating answer: %v", err)
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
@@ -125,6 +127,62 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 
 	go h.generateSessionTitle(chatSession, userID)
 	return true
+}
+
+// streamFromModel calls model.Stream() and consumes the channel, writing SSE or JSON to w.
+// Returns the final answer or an error.
+func streamFromModel(model provider.ChatModel, ctx context.Context, w http.ResponseWriter, session sqlc_queries.ChatSession, msgs []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
+	ch, err := model.Stream(ctx, session, msgs, chatUuid, regenerate, streamOutput)
+	if err != nil {
+		return nil, err
+	}
+
+	var lastAnswer *models.LLMAnswer
+
+	if streamOutput {
+		flusher, err := setupSSEStream(w)
+		if err != nil {
+			return nil, err
+		}
+		for chunk := range ch {
+			if chunk.Err != nil {
+				return nil, chunk.Err
+			}
+			if chunk.Done {
+				lastAnswer = chunk.FinalAnswer
+				break
+			}
+			if chunk.Content != "" {
+				provider.FlushResponse(w, flusher, provider.StreamingResponse{
+					AnswerID: chunk.ID,
+					Content:  chunk.Content,
+					IsFinal:  false,
+				})
+			}
+		}
+	} else {
+		for chunk := range ch {
+			if chunk.Err != nil {
+				return nil, chunk.Err
+			}
+			if chunk.Done {
+				lastAnswer = chunk.FinalAnswer
+				break
+			}
+		}
+		// Write non-streaming JSON response
+		if lastAnswer != nil {
+			json.NewEncoder(w).Encode(ChatCompletionResponse{
+				ID:     lastAnswer.AnswerId,
+				Object: "chat.completion",
+				Choices: []Choice{{
+					Message: openai.ChatCompletionMessage{Content: lastAnswer.Answer},
+				}},
+			})
+		}
+	}
+
+	return lastAnswer, nil
 }
 
 // generateSessionTitle asynchronously updates the session topic using an LLM.

@@ -401,6 +401,15 @@ func WrapError(err error, detail string) APIError {
 				apiErr.Detail = detail
 			}
 		}
+	case *APIError:
+		apiErr = *e
+		if detail != "" {
+			if apiErr.Detail != "" {
+				apiErr.Detail = fmt.Sprintf("%s: %s", detail, apiErr.Detail)
+			} else {
+				apiErr.Detail = detail
+			}
+		}
 	default:
 		apiErr = ErrInternalUnexpected
 		apiErr.Detail = detail

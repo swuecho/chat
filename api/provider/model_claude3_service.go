@@ -13,11 +13,10 @@ import (
 	"os"
 	"time"
 
-	openai "github.com/sashabaranov/go-openai"
 	claude "github.com/swuecho/chat_backend/llm/claude"
+	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
-	"github.com/swuecho/chat_backend/dto"
 )
 
 // ClaudeResponse represents the response structure from Claude API
@@ -41,45 +40,31 @@ func NewClaude3ChatModel(h Handler) *Claude3ChatModel {
 	return &Claude3ChatModel{h: h}
 }
 
-func (m *Claude3ChatModel) Stream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	// Get chat model configuration
+func (m *Claude3ChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
 	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get chat files if any
 	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), chatSession.Uuid)
 	if err != nil {
 		return nil, err
 	}
 
-	// create a new strings.Builder
-	// iterate through the messages and format them
-	// print the user's question
-	// convert assistant's response to json format
-	//     "messages": [
-	//	{"role": "user", "content": "Hello, world"}
-	//	]
-	// first message is user instead of system
-	var messages []openai.ChatCompletionMessage
-	if len(chat_compeletion_messages) > 1 {
-		// first message used as system message
-		// messages start with second message
-		// drop the first assistant message if it is an assistant message
-		claude_messages := chat_compeletion_messages[1:]
-
-		if len(claude_messages) > 0 && claude_messages[0].Role == "assistant" {
-			claude_messages = claude_messages[1:]
+	var claudeMessages []models.Message
+	if len(chatCompletionMessages) > 1 {
+		claudeMessages = chatCompletionMessages[1:]
+		if len(claudeMessages) > 0 && claudeMessages[0].Role == "assistant" {
+			claudeMessages = claudeMessages[1:]
 		}
-		messages = messagesToOpenAIMesages(claude_messages, chatFiles)
 	} else {
-		// only system message, return and do nothing
 		return nil, dto.ErrSystemMessageError
 	}
-	// Prepare request payload
+
+	messages := messagesToOpenAIMesages(claudeMessages, chatFiles)
+
 	jsonData := map[string]any{
-		"system":      chat_compeletion_messages[0].Content,
+		"system":      chatCompletionMessages[0].Content,
 		"model":       chatSession.Model,
 		"messages":    messages,
 		"max_tokens":  chatSession.MaxTokens,
@@ -93,15 +78,12 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, w http.ResponseWriter, ch
 		return nil, dto.ErrValidationInvalidInputGeneric.WithDetail("failed to marshal request payload").WithDebugInfo(err.Error())
 	}
 
-	// Create HTTP request with context
 	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		return nil, dto.ErrClaudeRequestFailed.WithDetail("failed to create HTTP request").WithDebugInfo(err.Error())
 	}
 
-	// add headers to the request
 	apiKey := os.Getenv(chatModel.ApiAuthKey)
-
 	if apiKey == "" {
 		return nil, dto.ErrAuthInvalidCredentials.WithDetail(fmt.Sprintf("missing API key for model %s", chatSession.Model))
 	}
@@ -114,40 +96,38 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, w http.ResponseWriter, ch
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("anthropic-version", "2023-06-01")
 
+	ch := make(chan StreamChunk, 10)
+
 	if !stream {
-		req.Header.Set("Accept", "application/json")
-		client := http.Client{
-			Timeout: 5 * time.Minute,
-		}
-
-		llmAnswer, err := doGenerateClaude3(ctx, client, req)
-		if err != nil {
-			return nil, dto.ErrClaudeRequestFailed.WithDetail("failed to generate response").WithDebugInfo(err.Error())
-		}
-
-		answerResponse := buildStreamResponse(llmAnswer.AnswerId, llmAnswer.Answer)
-		data, err := json.Marshal(answerResponse)
-		if err != nil {
-			return nil, dto.ErrInternalUnexpected.WithDetail("failed to marshal response").WithDebugInfo(err.Error())
-		}
-
-		if _, err := fmt.Fprint(w, string(data)); err != nil {
-			return nil, dto.ErrClaudeResponseFailed.WithDetail("failed to write response").WithDebugInfo(err.Error())
-		}
-
-		return llmAnswer, nil
+		go func() {
+			defer close(ch)
+			req.Header.Set("Accept", "application/json")
+			client := http.Client{Timeout: 5 * time.Minute}
+			llmAnswer, err := doGenerateClaude3(ctx, client, req)
+			if err != nil {
+				ch <- StreamChunk{Err: err}
+				return
+			}
+			ch <- StreamChunk{
+				ID:   llmAnswer.AnswerId,
+				Done: true,
+				FinalAnswer: &models.LLMAnswer{
+					Answer:   llmAnswer.Answer,
+					AnswerId: llmAnswer.AnswerId,
+				},
+			}
+		}()
+		return ch, nil
 	}
 
-	// Handle streaming response
-	req.Header.Set("Accept", "text/event-stream")
-	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Connection", "keep-alive")
-
-	llmAnswer, err := chatStreamClaude3(ctx, w, req, chatUuid, regenerate)
-	if err != nil {
-		return nil, dto.ErrClaudeStreamFailed.WithDetail("failed to stream response").WithDebugInfo(err.Error())
-	}
-	return llmAnswer, nil
+	go func() {
+		defer close(ch)
+		req.Header.Set("Accept", "text/event-stream")
+		req.Header.Set("Cache-Control", "no-cache")
+		req.Header.Set("Connection", "keep-alive")
+		chatStreamClaude3(ctx, ch, req, chatUuid, regenerate)
+	}()
+	return ch, nil
 }
 
 func doGenerateClaude3(ctx context.Context, client http.Client, req *http.Request) (*models.LLMAnswer, error) {
@@ -155,140 +135,99 @@ func doGenerateClaude3(ctx context.Context, client http.Client, req *http.Reques
 	if err != nil {
 		return nil, dto.ErrClaudeRequestFailed.WithMessage("Failed to process Claude request").WithDebugInfo(err.Error())
 	}
-	// Unmarshal directly from resp.Body
 	var message claude.Response
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
+		resp.Body.Close()
 		return nil, dto.ErrClaudeInvalidResponse.WithMessage("Failed to unmarshal Claude response").WithDebugInfo(err.Error())
 	}
-	defer resp.Body.Close()
-	uuid := message.ID
+	resp.Body.Close()
 	firstMessage := message.Content[0].Text
 
 	return &models.LLMAnswer{
-		AnswerId: uuid,
+		AnswerId: message.ID,
 		Answer:   firstMessage,
 	}, nil
 }
 
-// claude-3-opus-20240229
-// claude-3-sonnet-20240229
-// claude-3-haiku-20240307
-func chatStreamClaude3(ctx context.Context, w http.ResponseWriter, req *http.Request, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
-
-	// create the http client and send the request
-	client := &http.Client{
-		Timeout: 5 * time.Minute,
-	}
+func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Request, chatUuid string, regenerate bool) {
+	client := &http.Client{Timeout: 5 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, dto.ErrClaudeRequestFailed.WithMessage("Failed to process Claude streaming request").WithDebugInfo(err.Error())
+		ch <- StreamChunk{Err: dto.ErrClaudeRequestFailed.WithMessage("Failed to process Claude streaming request").WithDebugInfo(err.Error())}
+		return
 	}
 
-	// Use smaller buffer for more responsive streaming
 	ioreader := bufio.NewReaderSize(resp.Body, 1024)
-
-	// read the response body
 	defer resp.Body.Close()
-	// loop over the response body and print data
-
-	flusher, err := SetupSSEStream(w)
-	if err != nil {
-		return nil, dto.APIError{
-			HTTPCode: http.StatusInternalServerError,
-			Code:     "STREAM_UNSUPPORTED",
-			Message:  "Streaming unsupported by client",
-		}
-	}
-
-	// Flush immediately to establish connection
-	flusher.Flush()
 
 	var answer string
-	answer_id := generateAnswerID(chatUuid, regenerate)
-
+	answerID := generateAnswerID(chatUuid, regenerate)
 	var headerData = []byte("data: ")
 	count := 0
+
 	for {
-		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
 			slog.Info("Claude stream cancelled by client: %v", ctx.Err())
-			// Return current accumulated content when cancelled
-			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
+			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
+			return
 		default:
 		}
 
 		count++
-		// prevent infinite loop
 		if count > 10000 {
 			break
 		}
 		line, err := ioreader.ReadBytes('\n')
-		slog.Info("%+v", string(line))
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
-					slog.Info(string(line))
-					err := FlushResponse(w, flusher, StreamingResponse{
-						AnswerID: NewUUID(),
-						Content:  string(line),
-						IsFinal:  true,
-					})
-					if err != nil {
-						slog.Info("Failed to flush error response: %v", err)
+					ch <- StreamChunk{
+						ID:   NewUUID(),
+						Done: true,
+						FinalAnswer: &models.LLMAnswer{Answer: string(line), AnswerId: answerID},
 					}
 				}
 				fmt.Println("End of stream reached")
-				return nil, err
+				break
 			}
-			return nil, err
+			ch <- StreamChunk{Err: err}
+			return
 		}
 		line = bytes.TrimPrefix(line, headerData)
 
 		if bytes.HasPrefix(line, []byte("event: message_stop")) {
-			// stream.isFinished = true
-			// No need to send full content at the end since we're sending deltas
 			break
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
-			slog.Info(string(line))
-			return nil, dto.ErrClaudeStreamFailed.WithMessage("Error in Claude API response").WithDebugInfo(string(line))
+			ch <- StreamChunk{Err: dto.ErrClaudeStreamFailed.WithMessage("Error in Claude API response").WithDebugInfo(string(line))}
+			return
 		}
-		if answer_id == "" {
-			answer_id = NewUUID()
+		if answerID == "" {
+			answerID = NewUUID()
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
-			answer = claude.AnswerFromBlockStart(line)
-			err := FlushResponse(w, flusher, StreamingResponse{
-				AnswerID: answer_id,
-				Content:  answer,
-				IsFinal:  false,
-			})
-			if err != nil {
-				slog.Info("Failed to flush content block start: %v", err)
+			delta := claude.AnswerFromBlockStart(line)
+			answer = delta
+			if len(delta) > 0 {
+				ch <- StreamChunk{ID: answerID, Content: delta}
 			}
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
 			delta := claude.AnswerFromBlockDelta(line)
-			answer += delta // Still accumulate for final answer storage
-			// Send only the delta content
-			err := FlushResponse(w, flusher, StreamingResponse{
-				AnswerID: answer_id,
-				Content:  delta,
-				IsFinal:  false,
-			})
-			if err != nil {
-				slog.Info("Failed to flush content block delta: %v", err)
+			answer += delta
+			if len(delta) > 0 {
+				ch <- StreamChunk{ID: answerID, Content: delta}
 			}
 		}
-		// Flush after every iteration to ensure immediate delivery
-		// This prevents data from being held in buffers
-		if count%3 == 0 {
-			flusher.Flush()
-		}
 	}
-	return &models.LLMAnswer{
-		Answer:   answer,
-		AnswerId: answer_id,
-	}, nil
+
+	ch <- StreamChunk{
+		ID:   answerID,
+		Done: true,
+		FinalAnswer: &models.LLMAnswer{
+			Answer:   answer,
+			AnswerId: answerID,
+		},
+	}
 }
