@@ -8,15 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
-	"strings"
 
+	"github.com/swuecho/chat_backend/dto"
 	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
-	"github.com/swuecho/chat_backend/dto"
 )
 
 // CustomModelResponse represents the response structure for custom models
@@ -40,30 +39,27 @@ func NewCustomChatModel(h Handler) *CustomChatModel {
 	return &CustomChatModel{h: h}
 }
 
-// Stream implements the ChatModel interface for custom model scenarios
-func (m *CustomChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	// Get request context for cancellation support
-	ctx := m.h.RequestContext()
-	return m.customChatStream(ctx, w, chatSession, chat_completion_messages, chatUuid, regenerate)
+func (m *CustomChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
+	ch := make(chan StreamChunk, 10)
+	go func() {
+		defer close(ch)
+		m.customChatStream(ctx, ch, chatSession, chatCompletionMessages, chatUuid, regenerate)
+	}()
+	return ch, nil
 }
 
-// customChatStream handles streaming for custom model providers
-func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
-	// Get chat model configuration
-	chat_model, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
+func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- StreamChunk, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool) {
+	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
-		return nil, err
+		ch <- StreamChunk{Err: err}
+		return
 	}
 
-	// Get API key from environment
-	apiKey := os.Getenv(chat_model.ApiAuthKey)
-	url := chat_model.Url
+	apiKey := os.Getenv(chatModel.ApiAuthKey)
+	url := chatModel.Url
 
-	// Format messages for the custom model
-	prompt := claude.FormatClaudePrompt(chat_completion_messages)
+	prompt := claude.FormatClaudePrompt(chatCompletionMessages)
 
-	// Create request payload
 	jsonData := map[string]any{
 		"prompt":               prompt,
 		"model":                chatSession.Model,
@@ -73,67 +69,47 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 		"stream":               true,
 	}
 
-	// Marshal request data
 	jsonValue, _ := json.Marshal(jsonData)
 
-	// Create HTTP request with context
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrChatRequestFailed, "Failed to create custom model request", err.Error()))
-		return nil, err
+		ch <- StreamChunk{Err: dto.ErrChatRequestFailed.WithMessage("Failed to create custom model request").WithDebugInfo(err.Error())}
+		return
 	}
 
-	// Set authentication header if configured
-	authHeaderName := chat_model.ApiAuthHeader
+	authHeaderName := chatModel.ApiAuthHeader
 	if authHeaderName != "" {
 		req.Header.Set(authHeaderName, apiKey)
 	}
 
-	// Set request headers
 	SetStreamingHeaders(req)
 
-	// Send HTTP request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrChatRequestFailed, "Failed to send custom model request", err.Error()))
-		return nil, err
+		ch <- StreamChunk{Err: dto.ErrChatRequestFailed.WithMessage("Failed to send custom model request").WithDebugInfo(err.Error())}
+		return
 	}
 	defer resp.Body.Close()
 
-	// Setup streaming response
 	ioreader := bufio.NewReader(resp.Body)
-	flusher, err := SetupSSEStream(w)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.APIError{
-			HTTPCode: http.StatusInternalServerError,
-			Code:     "STREAM_UNSUPPORTED",
-			Message:  "Streaming unsupported by client",
-		}, "", err.Error()))
-		return nil, err
-	}
 
 	var answer string
-	var answer_id string
+	answerID := generateAnswerID(chatUuid, regenerate)
 	var lastFlushLength int
-	answer_id = generateAnswerID(chatUuid, regenerate)
-
 	headerData := []byte("data: ")
 	count := 0
 
-	// Process streaming response
 	for {
-		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
-			log.Printf("Custom model stream cancelled by client: %v", ctx.Err())
-			// Return current accumulated content when cancelled
-			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
+			slog.Info("Custom model stream cancelled by client", "error", ctx.Err())
+			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
+			return
 		default:
 		}
 
 		count++
-		// Prevent infinite loop
 		if count > 10000 {
 			break
 		}
@@ -144,7 +120,8 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 				fmt.Println("End of stream reached")
 				break
 			}
-			return nil, err
+			ch <- StreamChunk{Err: err}
+			return
 		}
 
 		if !bytes.HasPrefix(line, headerData) {
@@ -154,38 +131,38 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 
 		if bytes.HasPrefix(line, []byte("[DONE]")) {
 			fmt.Println("DONE break")
-
 			break
 		}
 
-		if answer_id == "" {
-			answer_id = NewUUID()
+		if answerID == "" {
+			answerID = NewUUID()
 		}
 
 		var response CustomModelResponse
 		_ = json.Unmarshal(line, &response)
 		answer = response.Completion
 
-		// Determine when to flush the response
-		shouldFlush := strings.Contains(answer, "\n") ||
-			len(answer) < 200 ||
-			(len(answer)-lastFlushLength) >= 500
-
+		shouldFlush := len(answer) < 200 || (len(answer)-lastFlushLength) >= 500
 		if shouldFlush {
-			err := FlushResponse(w, flusher, StreamingResponse{
-				AnswerID: answer_id,
-				Content:  answer,
-				IsFinal:  false,
-			})
-			if err != nil {
-				log.Printf("Failed to flush response: %v", err)
+			delta := answer[lastFlushLength:]
+			if len(delta) > 0 {
+				ch <- StreamChunk{ID: answerID, Content: delta}
 			}
 			lastFlushLength = len(answer)
 		}
 	}
 
-	return &models.LLMAnswer{
-		Answer:   answer,
-		AnswerId: answer_id,
-	}, nil
+	// Send remaining content
+	if len(answer) > lastFlushLength {
+		ch <- StreamChunk{ID: answerID, Content: answer[lastFlushLength:]}
+	}
+
+	ch <- StreamChunk{
+		ID:   answerID,
+		Done: true,
+		FinalAnswer: &models.LLMAnswer{
+			Answer:   answer,
+			AnswerId: answerID,
+		},
+	}
 }

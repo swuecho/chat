@@ -1,7 +1,7 @@
 package models
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/pkoukk/tiktoken-go"
 )
@@ -29,7 +29,7 @@ func (m Message) TokenCount() int32 {
 	} else {
 		tokenCount, err := getTokenCount(m.Content)
 		if err != nil {
-			log.Println(err)
+			slog.Info("token count failed", "error", err)
 		}
 		return int32(tokenCount) + 1
 	}

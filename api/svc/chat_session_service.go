@@ -8,9 +8,9 @@ import (
 
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
+	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
-	"github.com/swuecho/chat_backend/dto"
 )
 
 // ChatSessionService provides methods for interacting with chat sessions.

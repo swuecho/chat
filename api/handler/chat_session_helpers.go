@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	openai "github.com/sashabaranov/go-openai"
+	"log/slog"
 
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -20,7 +22,7 @@ import (
 func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string) (*sqlc_queries.ChatSession, *sqlc_queries.ChatModel, string, bool) {
 	chatSession, err := h.sessionSvc.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
-		log.Printf("Invalid session UUID: %s, error: %v", chatSessionUuid, err)
+		slog.Info("Invalid session UUID", "uuid", chatSessionUuid, "error", err)
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat session").WithMessage(chatSessionUuid))
 		return nil, nil, "", false
 	}
@@ -49,7 +51,7 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 		if errors.Is(err, sql.ErrNoRows) {
 			existingPrompt = false
 		} else {
-			log.Printf("Error checking prompt for session %s: %v", chatSession.Uuid, err)
+			slog.Error("error checking prompt", "session", chatSession.Uuid, "error", err)
 			dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to get prompt", err.Error()))
 			return false
 		}
@@ -79,7 +81,7 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 					Uuid: chatSession.Uuid, UserID: userID, Topic: title,
 				}
 				if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, params); err != nil {
-					log.Printf("Warning: Failed to update session title: %v", err)
+					slog.Warn("Failed to update session title", "error", err)
 				}
 			}
 		}
@@ -91,17 +93,16 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.ResponseWriter, chatSession *sqlc_queries.ChatSession, chatUuid string, userID int32, baseURL string, streamOutput bool) bool {
 	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, false)
 	if err != nil {
-		log.Printf("Error collecting messages for session %s: %v", chatSession.Uuid, err)
+		slog.Error("error collecting messages", "session", chatSession.Uuid, "error", err)
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to collect messages", err.Error()))
 		return false
 	}
-	log.Printf("Collected messages - SessionUUID: %s, Count: %d, Model: %s", chatSession.Uuid, len(msgs), chatSession.Model)
+	slog.Info("Collected messages", "sessionUUID", chatSession.Uuid, "count", len(msgs), "model", chatSession.Model)
 
-	h.requestCtx = ctx
-	model := h.chooseChatModel(*chatSession, msgs)
-	LLMAnswer, err := model.Stream(w, *chatSession, msgs, chatUuid, false, streamOutput)
+	model := h.chooseChatModel(ctx, *chatSession, msgs)
+	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
-		log.Printf("Error generating answer: %v", err)
+		slog.Error("error generating answer", "error", err)
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return false
 	}
@@ -128,6 +129,62 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	return true
 }
 
+// streamFromModel calls model.Stream() and consumes the channel, writing SSE or JSON to w.
+// Returns the final answer or an error.
+func streamFromModel(model provider.ChatModel, ctx context.Context, w http.ResponseWriter, session sqlc_queries.ChatSession, msgs []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
+	ch, err := model.Stream(ctx, session, msgs, chatUuid, regenerate, streamOutput)
+	if err != nil {
+		return nil, err
+	}
+
+	var lastAnswer *models.LLMAnswer
+
+	if streamOutput {
+		flusher, err := setupSSEStream(w)
+		if err != nil {
+			return nil, err
+		}
+		for chunk := range ch {
+			if chunk.Err != nil {
+				return nil, chunk.Err
+			}
+			if chunk.Done {
+				lastAnswer = chunk.FinalAnswer
+				break
+			}
+			if chunk.Content != "" {
+				provider.FlushResponse(w, flusher, provider.StreamingResponse{
+					AnswerID: chunk.ID,
+					Content:  chunk.Content,
+					IsFinal:  false,
+				})
+			}
+		}
+	} else {
+		for chunk := range ch {
+			if chunk.Err != nil {
+				return nil, chunk.Err
+			}
+			if chunk.Done {
+				lastAnswer = chunk.FinalAnswer
+				break
+			}
+		}
+		// Write non-streaming JSON response
+		if lastAnswer != nil {
+			json.NewEncoder(w).Encode(ChatCompletionResponse{
+				ID:     lastAnswer.AnswerId,
+				Object: "chat.completion",
+				Choices: []Choice{{
+					Message: openai.ChatCompletionMessage{Content: lastAnswer.Answer},
+				}},
+			})
+		}
+	}
+
+	return lastAnswer, nil
+}
+
 // generateSessionTitle asynchronously updates the session topic using an LLM.
 func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession, userID int32) {
 	ctx, cancel := context.WithTimeout(context.Background(), sessionTitleGenerationTimeout)
@@ -137,7 +194,7 @@ func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession
 		Uuid: chatSession.Uuid, Offset: 0, Limit: 100,
 	})
 	if err != nil {
-		log.Printf("Warning: Failed to get messages for title generation: %v", err)
+		slog.Warn("Failed to get messages for title generation", "error", err)
 		return
 	}
 
@@ -163,11 +220,11 @@ func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession
 	if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, sqlc_queries.UpdateChatSessionTopicByUUIDParams{
 		Uuid: chatSession.Uuid, UserID: userID, Topic: genTitle,
 	}); err != nil {
-		log.Printf("Warning: Failed to update session title: %v", err)
+		slog.Warn("Failed to update session title", "error", err)
 		return
 	}
 
-	log.Printf("Generated LLM title for session %s: %s", chatSession.Uuid, genTitle)
+	slog.Info("Generated LLM title", "sessionUUID", chatSession.Uuid, "title", genTitle)
 }
 
 // sendSuggestedQuestionsStream sends suggested questions as an SSE event.

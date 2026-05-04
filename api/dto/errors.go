@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strings"
@@ -225,7 +225,7 @@ var (
 
 	// Deprecated: use ErrClaudeResponseFailed instead.
 	ErrClaudeResponseFaild = ErrClaudeResponseFailed
-	ErrOpenAIStreamFailed = APIError{
+	ErrOpenAIStreamFailed  = APIError{
 		HTTPCode: http.StatusInternalServerError,
 		Code:     ErrModel + "_006",
 		Message:  "Failed to stream OpenAI response",
@@ -297,11 +297,11 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	}
 
 	if err.DebugInfo != "" {
-		log.Printf("Error [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
+		slog.Error("api error", "code", err.Code, "message", err.Message, "debug", err.DebugInfo)
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Failed to write error response: %v", err)
+		slog.Info("Failed to write error response", "error", err)
 	}
 }
 
@@ -359,7 +359,7 @@ func MapDatabaseError(err error) error {
 		}
 	}
 
-	log.Printf("Unhandled database error: %v", err)
+	slog.Info("Unhandled database error", "error", err)
 
 	dbErr := ErrDatabaseQuery
 	dbErr.DebugInfo = err.Error()
@@ -401,6 +401,15 @@ func WrapError(err error, detail string) APIError {
 				apiErr.Detail = detail
 			}
 		}
+	case *APIError:
+		apiErr = *e
+		if detail != "" {
+			if apiErr.Detail != "" {
+				apiErr.Detail = fmt.Sprintf("%s: %s", detail, apiErr.Detail)
+			} else {
+				apiErr.Detail = detail
+			}
+		}
 	default:
 		apiErr = ErrInternalUnexpected
 		apiErr.Detail = detail
@@ -421,39 +430,39 @@ func IsErrorCode(err error, code string) bool {
 // --- Error catalog (for documentation) ---
 
 var ErrorCatalog = map[string]APIError{
-	ErrAuthInvalidCredentials.Code:       ErrAuthInvalidCredentials,
-	ErrAuthExpiredToken.Code:             ErrAuthExpiredToken,
-	ErrAuthAdminRequired.Code:            ErrAuthAdminRequired,
-	ErrAuthInvalidEmailOrPassword.Code:   ErrAuthInvalidEmailOrPassword,
-	ErrAuthAccessDenied.Code:             ErrAuthAccessDenied,
-	ErrResourceNotFoundGeneric.Code:      ErrResourceNotFoundGeneric,
-	ErrResourceAlreadyExistsGeneric.Code: ErrResourceAlreadyExistsGeneric,
-	ErrTooManyRequests.Code:              ErrTooManyRequests,
-	ErrChatSessionNotFound.Code:          ErrChatSessionNotFound,
-	ErrChatFileNotFound.Code:             ErrChatFileNotFound,
-	ErrChatModelNotFound.Code:            ErrChatModelNotFound,
-	ErrChatMessageNotFound.Code:          ErrChatMessageNotFound,
+	ErrAuthInvalidCredentials.Code:        ErrAuthInvalidCredentials,
+	ErrAuthExpiredToken.Code:              ErrAuthExpiredToken,
+	ErrAuthAdminRequired.Code:             ErrAuthAdminRequired,
+	ErrAuthInvalidEmailOrPassword.Code:    ErrAuthInvalidEmailOrPassword,
+	ErrAuthAccessDenied.Code:              ErrAuthAccessDenied,
+	ErrResourceNotFoundGeneric.Code:       ErrResourceNotFoundGeneric,
+	ErrResourceAlreadyExistsGeneric.Code:  ErrResourceAlreadyExistsGeneric,
+	ErrTooManyRequests.Code:               ErrTooManyRequests,
+	ErrChatSessionNotFound.Code:           ErrChatSessionNotFound,
+	ErrChatFileNotFound.Code:              ErrChatFileNotFound,
+	ErrChatModelNotFound.Code:             ErrChatModelNotFound,
+	ErrChatMessageNotFound.Code:           ErrChatMessageNotFound,
 	ErrValidationInvalidInputGeneric.Code: ErrValidationInvalidInputGeneric,
-	ErrChatFileTooLarge.Code:             ErrChatFileTooLarge,
-	ErrChatFileInvalidType.Code:          ErrChatFileInvalidType,
-	ErrChatSessionInvalid.Code:           ErrChatSessionInvalid,
-	ErrDatabaseQuery.Code:                ErrDatabaseQuery,
-	ErrDatabaseConnection.Code:           ErrDatabaseConnection,
-	ErrDatabaseForeignKey.Code:           ErrDatabaseForeignKey,
-	ErrExternalTimeout.Code:              ErrExternalTimeout,
-	ErrExternalUnavailable.Code:          ErrExternalUnavailable,
-	ErrInternalUnexpected.Code:           ErrInternalUnexpected,
-	ErrChatStreamFailed.Code:             ErrChatStreamFailed,
-	ErrChatRequestFailed.Code:            ErrChatRequestFailed,
-	ErrSystemMessageError.Code:           ErrSystemMessageError,
-	ErrClaudeStreamFailed.Code:           ErrClaudeStreamFailed,
-	ErrClaudeRequestFailed.Code:          ErrClaudeRequestFailed,
-	ErrClaudeInvalidResponse.Code:        ErrClaudeInvalidResponse,
-	ErrClaudeResponseFailed.Code:        ErrClaudeResponseFailed,
-	ErrOpenAIStreamFailed.Code:           ErrOpenAIStreamFailed,
-	ErrOpenAIRequestFailed.Code:          ErrOpenAIRequestFailed,
-	ErrOpenAIInvalidResponse.Code:        ErrOpenAIInvalidResponse,
-	ErrOpenAIConfigFailed.Code:           ErrOpenAIConfigFailed,
+	ErrChatFileTooLarge.Code:              ErrChatFileTooLarge,
+	ErrChatFileInvalidType.Code:           ErrChatFileInvalidType,
+	ErrChatSessionInvalid.Code:            ErrChatSessionInvalid,
+	ErrDatabaseQuery.Code:                 ErrDatabaseQuery,
+	ErrDatabaseConnection.Code:            ErrDatabaseConnection,
+	ErrDatabaseForeignKey.Code:            ErrDatabaseForeignKey,
+	ErrExternalTimeout.Code:               ErrExternalTimeout,
+	ErrExternalUnavailable.Code:           ErrExternalUnavailable,
+	ErrInternalUnexpected.Code:            ErrInternalUnexpected,
+	ErrChatStreamFailed.Code:              ErrChatStreamFailed,
+	ErrChatRequestFailed.Code:             ErrChatRequestFailed,
+	ErrSystemMessageError.Code:            ErrSystemMessageError,
+	ErrClaudeStreamFailed.Code:            ErrClaudeStreamFailed,
+	ErrClaudeRequestFailed.Code:           ErrClaudeRequestFailed,
+	ErrClaudeInvalidResponse.Code:         ErrClaudeInvalidResponse,
+	ErrClaudeResponseFailed.Code:          ErrClaudeResponseFailed,
+	ErrOpenAIStreamFailed.Code:            ErrOpenAIStreamFailed,
+	ErrOpenAIRequestFailed.Code:           ErrOpenAIRequestFailed,
+	ErrOpenAIInvalidResponse.Code:         ErrOpenAIInvalidResponse,
+	ErrOpenAIConfigFailed.Code:            ErrOpenAIConfigFailed,
 }
 
 // ErrorCatalogHandler serves the error catalog as JSON.

@@ -17,14 +17,18 @@ import (
 )
 
 type ChatMessageHandler struct {
-	service    *svc.ChatMessageService
-	sessionSvc *svc.ChatSessionService
+	service     *svc.ChatMessageService
+	sessionSvc  *svc.ChatSessionService
+	openAIKey   string
+	openAIProxy string
 }
 
-func NewChatMessageHandler(sqlc_q *sqlc_queries.Queries) *ChatMessageHandler {
+func NewChatMessageHandler(sqlc_q *sqlc_queries.Queries, openAIKey, openAIProxy string) *ChatMessageHandler {
 	return &ChatMessageHandler{
-		service:    svc.NewChatMessageService(sqlc_q),
-		sessionSvc: svc.NewChatSessionService(sqlc_q),
+		service:     svc.NewChatMessageService(sqlc_q),
+		sessionSvc:  svc.NewChatSessionService(sqlc_q),
+		openAIKey:   openAIKey,
+		openAIProxy: openAIProxy,
 	}
 }
 
@@ -273,7 +277,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 		})
 	}
 
-	chatService := svc.NewChatService(h.service.Q())
+	chatService := svc.NewChatService(h.service.Q(), h.openAIKey, h.openAIProxy)
 
 	newSuggestions := chatService.GenerateSuggestedQuestions(message.Content, msgs)
 	if len(newSuggestions) == 0 {

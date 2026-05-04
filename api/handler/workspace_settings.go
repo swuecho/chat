@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -100,7 +100,7 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 
 	if result.HasLegacySessions {
 		if err := h.wsService.MigrateLegacyActiveSessions(ctx, userID, result.DefaultWorkspace.ID); err != nil {
-			log.Printf("Warning: failed to migrate legacy active sessions: %v", err)
+			slog.Warn("failed to migrate legacy active sessions", "error", err)
 		}
 		response["defaultWorkspace"] = workspaceToResponse(result.DefaultWorkspace)
 	}

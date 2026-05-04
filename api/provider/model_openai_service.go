@@ -6,15 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
-	"net/http"
+	"log/slog"
 	"strings"
 	"time"
 
 	openai "github.com/sashabaranov/go-openai"
+	"github.com/swuecho/chat_backend/dto"
 	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -28,27 +27,24 @@ func NewOpenAIChatModel(h Handler) *OpenAIChatModel {
 	return &OpenAIChatModel{h: h}
 }
 
-func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
-	m.h.Config().RateLimiter.Wait(m.h.RequestContext())
+func (m *OpenAIChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (<-chan StreamChunk, error) {
+	m.h.Config().RateLimiter.Wait(ctx)
 
-	exceedPerModeRateLimitOrError := m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
-	if exceedPerModeRateLimitOrError {
-		return nil, fmt.Errorf("exceed per mode rate limit")
+	if err := m.h.CheckModelAccess(ctx, chatSession.Uuid, chatSession.Model, chatSession.UserID); err != nil {
+		return nil, err
 	}
 
-	chatModel, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
+	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
 	if err != nil {
 		return nil, err
 	}
 
 	config, err := GenOpenAIConfig(*chatModel, m.h.Config())
-	log.Printf("%+v", config.String())
-	// print all config details
 	if err != nil {
 		return nil, dto.ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
 	}
 
-	chatFiles, err := GetChatFiles(m.h.RequestContext(), m.h.Queries(), chatSession.Uuid)
+	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), chatSession.Uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -58,152 +54,134 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	if len(openaiReq.Messages) <= 1 {
 		return nil, dto.ErrSystemMessageError
 	}
-	log.Printf("OpenAI request prepared - Model: %s, MessageCount: %d, Temperature: %.2f",
-		openaiReq.Model, len(openaiReq.Messages), openaiReq.Temperature)
+	slog.Info("OpenAI request prepared", "model", openaiReq.Model, "messageCount", len(openaiReq.Messages), "temperature", openaiReq.Temperature)
 	client := openai.NewClientWithConfig(config)
-	if streamOutput {
-		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate, m.h, chatModel.Url, config.BaseURL)
-	} else {
-		return handleRegularResponse(m.h.RequestContext(), w, client, openaiReq, chatModel.Url, config.BaseURL)
-	}
 
+	ch := make(chan StreamChunk, 10)
+	go func() {
+		defer close(ch)
+		if streamOutput {
+			doChatStream(ctx, ch, client, openaiReq, chatSession.N, chatUuid, regenerate, chatModel.Url, config.BaseURL)
+		} else {
+			handleRegularResponse(ctx, ch, client, openaiReq, chatModel.Url, config.BaseURL)
+		}
+	}()
+	return ch, nil
 }
 
-func handleRegularResponse(ctx context.Context, w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
-	// check per chat_model limit
+func handleRegularResponse(ctx context.Context, ch chan<- StreamChunk, client *openai.Client, req openai.ChatCompletionRequest, configuredURL string, baseURL string) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		log.Printf("OpenAI request failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
-		return nil, dto.ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())
+		slog.Info("OpenAI request failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
+		ch <- StreamChunk{Err: dto.ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())}
+		return
 	}
-	log.Printf("completion: %+v", completion)
-	data, _ := json.Marshal(completion)
-	fmt.Fprint(w, string(data))
-	return &models.LLMAnswer{Answer: completion.Choices[0].Message.Content, AnswerId: completion.ID}, nil
+
+	ch <- StreamChunk{
+		ID:      completion.ID,
+		Content: completion.Choices[0].Message.Content,
+		Done:    true,
+		FinalAnswer: &models.LLMAnswer{
+			Answer:   completion.Choices[0].Message.Content,
+			AnswerId: completion.ID,
+		},
+	}
 }
 
-// doChatStream handles streaming chat completion responses from OpenAI
-// It properly manages thinking tags for models that support reasoning content
-func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, handler Handler, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
-	// Use request context with timeout
-	ctx, cancel := context.WithTimeout(handler.RequestContext(), 5*time.Minute)
+// doChatStream handles streaming chat completion responses from OpenAI.
+// It sends chunks on the provided channel and closes it when done.
+func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, configuredURL string, baseURL string) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	log.Print("Creating OpenAI stream")
+	slog.Info("Creating OpenAI stream")
 	stream, err := client.CreateChatCompletionStream(ctx, req)
-
 	if err != nil {
-		log.Printf("OpenAI stream setup failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
-		return nil, dto.ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())
+		slog.Info("OpenAI stream setup failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
+		ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())}
+		return
 	}
 	defer func() {
 		if err := stream.Close(); err != nil {
-			log.Printf("Error closing OpenAI stream: %v", err)
+			slog.Error("error closing OpenAI stream", "error", err)
 		}
 	}()
 
-	// Setup Server-Sent Events (SSE) streaming
-	flusher, err := SetupSSEStream(w)
-	if err != nil {
-		return nil, dto.APIError{
-			HTTPCode: http.StatusInternalServerError,
-			Code:     "STREAM_UNSUPPORTED",
-			Message:  "Streaming unsupported by client",
-		}
-	}
+	var answerID string
+	var hasReason bool
+	var reasonTagOpened bool
+	var reasonTagClosed bool
 
-	// Initialize streaming state
-	var answer_id string
-
-	var hasReason bool       // Whether we've detected any reasoning content
-	var reasonTagOpened bool // Whether we've sent the opening <think> tag
-	var reasonTagClosed bool // Whether we've sent the closing </think> tag
-
-	// Ensure minimum buffer length
 	if bufferLen == 0 {
-		log.Println("Buffer length is 0, setting to 1")
+		slog.Info("Buffer length is 0, setting to 1")
 		bufferLen = 1
 	}
 
-	// Initialize buffers for accumulating content
 	TextBuffer := NewTextBuffer(bufferLen, "", "")
 	reasonBuffer := NewTextBuffer(bufferLen, "<think>\n\n", "\n\n</think>\n\n")
-	answer_id = generateAnswerID(chatUuid, regenerate)
-	// Main streaming loop
+	answerID = generateAnswerID(chatUuid, regenerate)
+
 	for {
-		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
-			log.Printf("Stream cancelled by client: %v", ctx.Err())
-			// Return current accumulated content when cancelled
-			llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answer_id}
+			slog.Info("Stream cancelled by client", "error", ctx.Err())
+			llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answerID}
 			if hasReason {
 				llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 			}
-			return &llmAnswer, nil
+			ch <- StreamChunk{Done: true, FinalAnswer: &llmAnswer}
+			return
 		default:
 		}
 
 		rawLine, err := stream.RecvRaw()
 		if err != nil {
-			log.Printf("OpenAI stream receive error - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
+			slog.Info("OpenAI stream receive error - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
 			if errors.Is(err, io.EOF) {
 				if TextBuffer.String("\n") == "" && reasonBuffer.String("\n") == "" {
 					errMsg := fmt.Sprintf("stream closed without content; verify configured URL %q resolves to a valid OpenAI-compatible base URL %q and that model %q is valid", configuredURL, baseURL, req.Model)
-					log.Print(errMsg)
-					return nil, dto.ErrOpenAIStreamFailed.WithMessage("Stream closed without content").WithDebugInfo(errMsg)
+					slog.Info(errMsg)
+					ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Stream closed without content").WithDebugInfo(errMsg)}
+					return
 				}
-				// Stream ended successfully - return accumulated content
-				llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answer_id}
+				llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answerID}
 				if hasReason {
 					llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 				}
-				return &llmAnswer, nil
-			} else {
-				log.Printf("Stream error: %v", err)
-				return nil, dto.ErrOpenAIStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())
+				ch <- StreamChunk{Done: true, FinalAnswer: &llmAnswer}
+				return
 			}
+			slog.Info("Stream error", "error", err)
+			ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())}
+			return
 		}
-		// Parse the streaming response
+
 		response := llm_openai.ChatCompletionStreamResponse{}
-		err = json.Unmarshal(rawLine, &response)
-		if err != nil {
-			log.Printf("Could not unmarshal response: %v\n", err)
+		if err := json.Unmarshal(rawLine, &response); err != nil {
+			slog.Info("Could not unmarshal response", "error", err)
 			continue
 		}
 
-		// Extract delta content from the response
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Delta
 
-		// Accumulate content in buffers (for final answer construction)
 		TextBuffer.AppendByIndex(textIdx, delta.Content)
 		if len(delta.ReasoningContent) > 0 {
 			hasReason = true
 			reasonBuffer.AppendByIndex(textIdx, delta.ReasoningContent)
 		}
 
-		// Set answer ID from response if not already set
-		if answer_id == "" {
-			answer_id = strings.TrimPrefix(response.ID, "chatcmpl-")
+		if answerID == "" {
+			answerID = strings.TrimPrefix(response.ID, "chatcmpl-")
 		}
 
-		// Process and send delta content
 		if len(delta.Content) > 0 || len(delta.ReasoningContent) > 0 {
 			deltaToSend := processDelta(delta, &reasonTagOpened, &reasonTagClosed, hasReason)
 			if len(deltaToSend) > 0 {
-				log.Printf("delta: %s", deltaToSend)
-				err := FlushResponse(w, flusher, StreamingResponse{
-					AnswerID: answer_id,
-					Content:  deltaToSend,
-					IsFinal:  false,
-				})
-				if err != nil {
-					log.Printf("Failed to flush response: %v", err)
-				}
+				ch <- StreamChunk{ID: answerID, Content: deltaToSend}
 			}
 		}
 	}
@@ -214,22 +192,16 @@ func processDelta(delta llm_openai.ChatCompletionStreamChoiceDelta, reasonTagOpe
 	var deltaToSend string
 
 	if len(delta.ReasoningContent) > 0 {
-		// Handle reasoning content
 		if !*reasonTagOpened {
-			// First time seeing reasoning content, add opening tag
 			deltaToSend = "<think>" + delta.ReasoningContent
 			*reasonTagOpened = true
 		} else {
-			// Continue reasoning content
 			deltaToSend = delta.ReasoningContent
 		}
 	} else if hasReason && !*reasonTagClosed {
-		// We had reasoning content before and now we have regular content for the first time
-		// Close the think tag first, then send the content
 		deltaToSend = "</think>" + delta.Content
 		*reasonTagClosed = true
 	} else {
-		// Regular content without reasoning
 		deltaToSend = delta.Content
 	}
 
@@ -247,14 +219,13 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chatCompleti
 
 	for _, m := range openaiMessages {
 		b, _ := m.MarshalJSON()
-		log.Printf("messages: %+v\n", string(b))
+		slog.Info("openai message", "msg", string(b))
 	}
 
-	log.Printf("messages: %+v\n", openaiMessages)
-	// Ensure TopP is always greater than 0 to prevent API validation errors
+	slog.Info("openai messages", "messages", openaiMessages)
 	topP := float32(chatSession.TopP) - 0.01
 	if topP <= 0 {
-		topP = 0.01 // Minimum valid value
+		topP = 0.01
 	}
 	openaiReq := openai.ChatCompletionRequest{
 		Model:       chatSession.Model,

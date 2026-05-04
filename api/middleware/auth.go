@@ -16,8 +16,8 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/google/uuid"
 	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
 )
@@ -30,14 +30,6 @@ const (
 	UserContextKey contextKey = "user"
 	GuidContextKey contextKey = "guid"
 )
-
-// JWTSecret holds the JWT signing secret used across middleware.
-var JWTSecret string
-
-// SetJWTSecret sets the JWT secret for middleware.
-func SetJWTSecret(secret string) {
-	JWTSecret = secret
-}
 
 // ExtractBearerToken extracts the bearer token from an Authorization header.
 func ExtractBearerToken(r *http.Request) string {
@@ -57,7 +49,7 @@ func CreateUserContext(r *http.Request, userID, role string) *http.Request {
 }
 
 // ParseAndValidateJWT parses and validates a JWT token.
-func ParseAndValidateJWT(bearerToken string, expectedTokenType string) *AuthTokenResult {
+func ParseAndValidateJWT(bearerToken string, expectedTokenType string, jwtSecret string) *AuthTokenResult {
 	result := &AuthTokenResult{}
 
 	if bearerToken == "" {
@@ -67,7 +59,7 @@ func ParseAndValidateJWT(bearerToken string, expectedTokenType string) *AuthToke
 		return result
 	}
 
-	jwtSigningKey := []byte(JWTSecret)
+	jwtSigningKey := []byte(jwtSecret)
 	token, err := jwt.Parse(bearerToken, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("invalid JWT signing method")
@@ -172,40 +164,44 @@ func parseInt32(s string) (int32, error) {
 }
 
 // AdminAuthMiddleware provides authentication + admin authorization.
-func AdminAuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bearerToken := ExtractBearerToken(r)
-		result := ParseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
+func AdminAuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			bearerToken := ExtractBearerToken(r)
+			result := ParseAndValidateJWT(bearerToken, auth.TokenTypeAccess, jwtSecret)
 
-		if result.Error != nil {
-			dto.RespondWithAPIError(w, *result.Error)
-			return
-		}
+			if result.Error != nil {
+				dto.RespondWithAPIError(w, *result.Error)
+				return
+			}
 
-		if result.Role != "admin" {
-			apiErr := dto.ErrAuthAdminRequired
-			apiErr.Detail = "Admin privileges required"
-			dto.RespondWithAPIError(w, apiErr)
-			return
-		}
+			if result.Role != "admin" {
+				apiErr := dto.ErrAuthAdminRequired
+				apiErr.Detail = "Admin privileges required"
+				dto.RespondWithAPIError(w, apiErr)
+				return
+			}
 
-		next.ServeHTTP(w, CreateUserContext(r, result.UserID, result.Role))
-	})
+			next.ServeHTTP(w, CreateUserContext(r, result.UserID, result.Role))
+		})
+	}
 }
 
 // UserAuthMiddleware provides authentication for regular user routes.
-func UserAuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bearerToken := ExtractBearerToken(r)
-		result := ParseAndValidateJWT(bearerToken, auth.TokenTypeAccess)
+func UserAuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			bearerToken := ExtractBearerToken(r)
+			result := ParseAndValidateJWT(bearerToken, auth.TokenTypeAccess, jwtSecret)
 
-		if result.Error != nil {
-			dto.RespondWithAPIError(w, *result.Error)
-			return
-		}
+			if result.Error != nil {
+				dto.RespondWithAPIError(w, *result.Error)
+				return
+			}
 
-		next.ServeHTTP(w, CreateUserContext(r, result.UserID, result.Role))
-	})
+			next.ServeHTTP(w, CreateUserContext(r, result.UserID, result.Role))
+		})
+	}
 }
 
 // AdminOnlyHandler wraps a handler to require admin role.

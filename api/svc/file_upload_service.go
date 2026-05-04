@@ -2,7 +2,7 @@ package svc
 
 import (
 	"context"
-	"log"
+	"log/slog"
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -37,15 +37,14 @@ func (s *ChatFileService) CreateChatUpload(ctx context.Context, params sqlc_quer
 		return sqlc_queries.ChatFile{}, dto.ErrValidationInvalidInput("empty file data")
 	}
 
-	log.Printf("Creating chat file upload for session %s, user %d",
-		params.ChatSessionUuid, params.UserID)
+	slog.Info("Creating chat file upload", "session", params.ChatSessionUuid, "userID", params.UserID)
 
 	upload, err := s.q.CreateChatFile(ctx, params)
 	if err != nil {
 		return sqlc_queries.ChatFile{}, dto.WrapError(err, "failed to create chat file")
 	}
 
-	log.Printf("Created chat file upload ID %d", upload.ID)
+	slog.Info("Created chat file upload", "id", upload.ID)
 	return upload, nil
 }
 
@@ -55,7 +54,7 @@ func (s *ChatFileService) GetChatFile(ctx context.Context, id int32) (sqlc_queri
 		return sqlc_queries.GetChatFileByIDRow{}, dto.ErrValidationInvalidInput("invalid file ID")
 	}
 
-	log.Printf("Retrieving chat file ID %d", id)
+	slog.Info("Retrieving chat file", "id", id)
 
 	file, err := s.q.GetChatFileByID(ctx, id)
 	if err != nil {
@@ -71,7 +70,7 @@ func (s *ChatFileService) DeleteChatFile(ctx context.Context, id int32) error {
 		return dto.ErrValidationInvalidInput("invalid file ID")
 	}
 
-	log.Printf("Deleting chat file ID %d", id)
+	slog.Info("Deleting chat file", "id", id)
 
 	_, err := s.q.DeleteChatFile(ctx, id)
 	if err != nil {
@@ -90,7 +89,7 @@ func (s *ChatFileService) ListChatFilesBySession(ctx context.Context, sessionUUI
 		return nil, dto.ErrValidationInvalidInput("invalid user ID")
 	}
 
-	log.Printf("Listing chat files for session %s, user %d", sessionUUID, userID)
+	slog.Info("Listing chat files", "session", sessionUUID, "userID", userID)
 
 	files, err := s.q.ListChatFilesBySessionUUID(ctx, sqlc_queries.ListChatFilesBySessionUUIDParams{
 		ChatSessionUuid: sessionUUID,

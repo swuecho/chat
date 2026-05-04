@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
+	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
@@ -116,7 +116,7 @@ func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context,
 // --- Permission ---
 
 func (s *ChatWorkspaceService) HasWorkspacePermission(ctx context.Context, uuid string, userID int32) (bool, error) {
-	log.Printf("Checking permission for workspace=%s, user=%d", uuid, userID)
+	slog.Info("Checking permission for workspace=%s, user=%d", uuid, userID)
 	result, err := s.q.HasWorkspacePermission(ctx, sqlc_queries.HasWorkspacePermissionParams{
 		Uuid: uuid, UserID: userID,
 	})
@@ -210,7 +210,7 @@ func (s *ChatWorkspaceService) MigrateLegacyActiveSessions(ctx context.Context, 
 				ChatSessionUuid: session.ChatSessionUuid,
 			})
 			if err != nil {
-				log.Printf("Warning: failed to migrate active session %s: %v", session.ChatSessionUuid, err)
+				slog.Warn("failed to migrate active session %s: %v", session.ChatSessionUuid, err)
 				continue
 			}
 			// Delete old global active session

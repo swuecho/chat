@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -12,29 +12,26 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-// OpenAIToken is set during initialization to avoid importing main package globals.
-var OpenAIToken string
-
 // SummarizeWithTimeout generates a summary with a 20-second timeout.
-func SummarizeWithTimeout(baseURL, content string) string {
+func SummarizeWithTimeout(apiToken, baseURL, content string) string {
 	// Create a context with a 20 second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	// Call the summarize function with the context
-	summary := llm_summarize(ctx, baseURL, content)
+	summary := llm_summarize(ctx, apiToken, baseURL, content)
 
 	return summary
 }
 
-func llm_summarize(ctx context.Context, baseURL string, doc string) string {
+func llm_summarize(ctx context.Context, apiToken, baseURL string, doc string) string {
 	baseURL = strings.TrimSuffix(baseURL, "/v1")
 	llm, err := openai.New(
-		openai.WithToken(OpenAIToken),
+		openai.WithToken(apiToken),
 		openai.WithBaseURL(baseURL),
 	)
 	if err != nil {
-		log.Printf("failed to create openai client %s: %v", baseURL, err)
+		slog.Info("failed to create openai client %s: %v", baseURL, err)
 		return ""
 	}
 
@@ -44,7 +41,7 @@ func llm_summarize(ctx context.Context, baseURL string, doc string) string {
 	)
 	outputValues, err := chains.Call(ctx, llmSummarizationChain, map[string]any{"input_documents": docs})
 	if err != nil {
-		log.Printf("failed to call chain: %s, %v", baseURL, err)
+		slog.Info("failed to call chain: %s, %v", baseURL, err)
 		return ""
 	}
 	out, _ := outputValues["text"].(string)

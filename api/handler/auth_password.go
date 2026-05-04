@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"log/slog"
 )
 
 // --- Request types ---
@@ -39,7 +39,7 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 
 	tempPassword, err := auth.GenerateRandomPassword()
 	if err != nil {
-		log.WithError(err).Error("Failed to generate temporary password")
+		slog.Error("Failed to generate temporary password", "error", err)
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate temporary password").WithDebugInfo(err.Error()))
 		return
 	}

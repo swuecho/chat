@@ -3,7 +3,7 @@ package svc
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/samber/lo"
@@ -81,7 +81,7 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 		Text: text, Conversation: simple_msgs_raw,
 	})
 	if err != nil {
-		log.Println(err)
+		slog.Info("error", "error", err)
 		return "", err
 	}
 	return one.Uuid, nil
@@ -94,7 +94,7 @@ func GenTitle(q *sqlc_queries.Queries, ctx context.Context, chatSession sqlc_que
 	if err == nil {
 		genTitle, err := provider.GenerateChatTitle(ctx, model, text)
 		if err != nil {
-			log.Println(err)
+			slog.Info("error", "error", err)
 		}
 		if genTitle != "" {
 			title = genTitle
@@ -131,7 +131,7 @@ func (s *ChatSnapshotService) CreateChatBot(ctx context.Context, chatSessionUuid
 		Tags: json.RawMessage([]byte("{}")), Text: text, Conversation: simple_msgs_raw,
 	})
 	if err != nil {
-		log.Println(err)
+		slog.Info("error", "error", err)
 		return "", err
 	}
 	return one.Uuid, nil

@@ -1,20 +1,17 @@
 package provider
 
 import (
-	"fmt"
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
-	"log"
-	"net/http"
+	"log/slog"
 	"strings"
 
 	openai "github.com/sashabaranov/go-openai"
 
+	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
-	"github.com/swuecho/chat_backend/dto"
 )
 
 // CompletionChatModel implements ChatModel interface for OpenAI completion models
@@ -27,43 +24,38 @@ func NewCompletionChatModel(h Handler) *CompletionChatModel {
 	return &CompletionChatModel{h: h}
 }
 
-// Stream implements the ChatModel interface for completion model scenarios
-func (m *CompletionChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	// Get request context for cancellation support
-	ctx := m.h.RequestContext()
-	return m.completionStream(ctx, w, chatSession, chat_completion_messages, chatUuid, regenerate, stream)
+func (m *CompletionChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
+	ch := make(chan StreamChunk, 10)
+	go func() {
+		defer close(ch)
+		m.completionStream(ctx, ch, chatSession, chatCompletionMessages, chatUuid, regenerate)
+	}()
+	return ch, nil
 }
 
-// completionStream handles streaming for OpenAI completion models
-func (m *CompletionChatModel) completionStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, _ bool) (*models.LLMAnswer, error) {
-	// Check per chat_model rate limit
-	m.h.Config().RateLimiter.Wait(m.h.RequestContext())
+func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- StreamChunk, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool) {
+	m.h.Config().RateLimiter.Wait(ctx)
 
-	exceedPerModeRateLimitOrError := m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
-	if exceedPerModeRateLimitOrError {
-		return nil, fmt.Errorf("exceed per mode rate limit")
+	if err := m.h.CheckModelAccess(ctx, chatSession.Uuid, chatSession.Model, chatSession.UserID); err != nil {
+		ch <- StreamChunk{Err: err}
+		return
 	}
 
-	// Get chat model configuration
-	chatModel, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
+	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrResourceNotFound(""), "chat model "+chatSession.Model, ""))
-		return nil, err
+		ch <- StreamChunk{Err: err}
+		return
 	}
 
-	// Generate OpenAI client configuration
 	config, err := GenOpenAIConfig(*chatModel, m.h.Config())
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to generate OpenAI configuration", err.Error()))
-		return nil, err
+		ch <- StreamChunk{Err: err}
+		return
 	}
 
 	client := openai.NewClientWithConfig(config)
+	prompt := chatCompletionMessages[len(chatCompletionMessages)-1].Content
 
-	// Get the latest message content as prompt
-	prompt := chat_completion_messages[len(chat_completion_messages)-1].Content
-
-	// Create completion request
 	N := chatSession.N
 	req := openai.CompletionRequest{
 		Model:       chatSession.Model,
@@ -74,108 +66,71 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 		Stream:      true,
 	}
 
-	// Create completion stream with timeout
 	ctx, cancel := context.WithTimeout(ctx, dto.DefaultRequestTimeout)
 	defer cancel()
 
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to create completion stream", err.Error()))
-		return nil, err
+		ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Failed to create completion stream").WithDebugInfo(err.Error())}
+		return
 	}
 	defer stream.Close()
 
-	// Setup SSE streaming
-	flusher, err := SetupSSEStream(w)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Streaming unsupported by client", err.Error()))
-		return nil, err
-	}
-
 	var answer string
-	answer_id := generateAnswerID(chatUuid, regenerate)
+	answerID := generateAnswerID(chatUuid, regenerate)
 	TextBuffer := NewTextBuffer(N, "```\n"+prompt, "\n```\n")
 
-	// Process streaming response
 	for {
-		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
-			log.Printf("Completion stream cancelled by client: %v", ctx.Err())
-			// Return current accumulated content when cancelled
-			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
+			slog.Info("Completion stream cancelled by client", "error", ctx.Err())
+			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
+			return
 		default:
 		}
 
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
-			// Send the final message
 			if len(answer) > 0 {
-				err := FlushResponse(w, flusher, StreamingResponse{
-					AnswerID: answer_id,
-					Content:  answer,
-					IsFinal:  true,
-				})
-				if err != nil {
-					log.Printf("Failed to flush final response: %v", err)
-				}
-			}
-
-			// Include debug information if enabled
-			if chatSession.Debug {
-				req_j, _ := json.Marshal(req)
-				log.Println(string(req_j))
-				answer = answer + "\n" + string(req_j)
-				err := FlushResponse(w, flusher, StreamingResponse{
-					AnswerID: answer_id,
-					Content:  answer,
-					IsFinal:  true,
-				})
-				if err != nil {
-					log.Printf("Failed to flush debug response: %v", err)
-				}
+				ch <- StreamChunk{ID: answerID, Content: answer, Done: true, FinalAnswer: &models.LLMAnswer{AnswerId: answerID, Answer: answer}}
+				return
 			}
 			break
 		}
 
 		if err != nil {
-			dto.RespondWithAPIError(w, dto.ErrChatStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error()))
-			return nil, err
+			ch <- StreamChunk{Err: dto.ErrChatStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())}
+			return
 		}
 
-		// Process response chunk
 		textIdx := response.Choices[0].Index
 		delta := response.Choices[0].Text
 		TextBuffer.AppendByIndex(textIdx, delta)
 
 		if chatSession.Debug {
-			log.Printf("%d: %s", textIdx, delta)
+			slog.Info("completion chunk", "index", textIdx, "delta", delta)
 		}
 
-		if answer_id == "" {
-			answer_id = response.ID
+		if answerID == "" {
+			answerID = response.ID
 		}
 
-		// Concatenate all string builders into a single string
 		answer = TextBuffer.String("\n\n")
 
-		// Determine when to flush the response
 		perWordStreamLimit := GetPerWordStreamLimit()
 		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
-			if len(answer) == 0 {
-				log.Print("no content in answer")
-			} else {
-				err := FlushResponse(w, flusher, StreamingResponse{
-					AnswerID: answer_id,
-					Content:  answer,
-					IsFinal:  false,
-				})
-				if err != nil {
-					log.Printf("Failed to flush response: %v", err)
-				}
+			if len(answer) > 0 {
+				ch <- StreamChunk{ID: answerID, Content: answer}
 			}
 		}
 	}
 
-	return &models.LLMAnswer{AnswerId: answer_id, Answer: answer}, nil
+	ch <- StreamChunk{
+		ID:   answerID,
+		Done: true,
+		FinalAnswer: &models.LLMAnswer{
+			AnswerId: answerID,
+			Answer:   answer,
+		},
+	}
 }

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -80,7 +80,7 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 		return
 	}
 
-	log.Printf("Creating chat model privilege for user %s with model %s", input.UserEmail, input.ChatModelName)
+	slog.Info("Creating chat model privilege for user %s with model %s", input.UserEmail, input.ChatModelName)
 
 	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
 	if err != nil {

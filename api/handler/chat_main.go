@@ -1,14 +1,13 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"golang.org/x/time/rate"
+	"log/slog"
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/provider"
@@ -21,20 +20,22 @@ type ChatHandler struct {
 	service         *svc.ChatService
 	sessionSvc      *svc.ChatSessionService
 	chatfileService *svc.ChatFileService
-	requestCtx      context.Context
 	rateLimiter     *rate.Limiter
+	openAIKey       string
+	openAIProxy     string
 }
 
 const sessionTitleGenerationTimeout = 30 * time.Second
 
 // NewChatHandler creates a new ChatHandler.
-func NewChatHandler(sqlc_q *sqlc_queries.Queries, rateLimiter *rate.Limiter) *ChatHandler {
+func NewChatHandler(sqlc_q *sqlc_queries.Queries, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
 	return &ChatHandler{
-		service:         svc.NewChatService(sqlc_q),
+		service:         svc.NewChatService(sqlc_q, openAIKey, openAIProxy),
 		sessionSvc:      svc.NewChatSessionService(sqlc_q),
 		chatfileService: svc.NewChatFileService(sqlc_q),
-		requestCtx:      context.Background(),
 		rateLimiter:     rateLimiter,
+		openAIKey:       openAIKey,
+		openAIProxy:     openAIProxy,
 	}
 }
 
@@ -47,26 +48,20 @@ func (h *ChatHandler) Register(router *mux.Router) {
 
 // --- provider.Handler implementation ---
 
-func (h *ChatHandler) RequestContext() context.Context { return h.requestCtx }
-func (h *ChatHandler) Queries() *sqlc_queries.Queries  { return h.service.Q() }
+func (h *ChatHandler) Queries() *sqlc_queries.Queries { return h.service.Q() }
 func (h *ChatHandler) Config() provider.Config {
 	return provider.Config{
-		OpenAIKey:   svc.Cfg.OpenAIKey,
-		OpenAIProxy: svc.Cfg.OpenAIProxy,
+		OpenAIKey:   h.openAIKey,
+		OpenAIProxy: h.openAIProxy,
 		RateLimiter: h.rateLimiter,
 	}
-}
-
-// GetRequestContext is a legacy alias for RequestContext.
-func (h *ChatHandler) GetRequestContext() context.Context {
-	return h.requestCtx
 }
 
 // GetChatInstructions returns artifact instruction text.
 func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) {
 	artifactInstruction, err := svc.LoadArtifactInstruction()
 	if err != nil {
-		log.Printf("Warning: Failed to load artifact instruction: %v", err)
+		slog.Warn("Failed to load artifact instruction", "error", err)
 		artifactInstruction = ""
 	}
 	json.NewEncoder(w).Encode(dto.ChatInstructionResponse{

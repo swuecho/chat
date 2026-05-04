@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
 	openai "github.com/sashabaranov/go-openai"
+	"log/slog"
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
@@ -31,10 +31,10 @@ type BotRequest struct {
 }
 
 type ChatCompletionResponse struct {
-	ID      string   `json:"id"`
-	Object  string   `json:"object"`
-	Created int      `json:"created"`
-	Model   string   `json:"model"`
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	Created int    `json:"created"`
+	Model   string `json:"model"`
 	Usage   struct {
 		PromptTokens     int `json:"prompt_tokens"`
 		CompletionTokens int `json:"completion_tokens"`
@@ -62,7 +62,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		log.Printf("Error getting user ID: %v", err)
+		slog.Error("error getting user ID", "error", err)
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
@@ -94,7 +94,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding request: %v", err)
+		slog.Error("error decoding request", "error", err)
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
@@ -102,7 +102,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		log.Printf("Error getting user ID: %v", err)
+		slog.Error("error getting user ID", "error", err)
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
@@ -120,7 +120,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 	if !ok {
 		return
 	}
-	log.Printf("Processing chat session - SessionUUID: %s, UserID: %d, Model: %s", chatSession.Uuid, userID, chatSession.Model)
+	slog.Info("Processing chat session", "sessionUUID", chatSession.Uuid, "userID", userID, "model", chatSession.Model)
 
 	if !h.handlePromptCreation(ctx, w, chatSession, chatUuid, question, userID, baseURL) {
 		return
@@ -131,7 +131,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 
 // genBotAnswer generates a bot answer from a snapshot conversation.
 func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, messages []dto.SimpleChatMessage, snapshotUuid, question string, userID int32, streamOutput bool) {
-	ctx := h.GetRequestContext()
+	ctx := context.Background()
 	if _, err := h.sessionSvc.ChatModelByName(ctx, session.Model); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat model: "+session.Model).WithDebugInfo(err.Error()))
 		return
@@ -140,8 +140,8 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	msgs := simpleChatMessagesToMessages(messages)
 	msgs = append(msgs, models.Message{Role: "user", Content: question})
 
-	model := h.chooseChatModel(session, msgs)
-	LLMAnswer, err := model.Stream(w, session, msgs, "", false, streamOutput)
+	model := h.chooseChatModel(ctx, session, msgs)
+	LLMAnswer, err := streamFromModel(model, ctx, w, session, msgs, "", false, streamOutput)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return
@@ -155,7 +155,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 		Model:      session.Model,
 		TokensUsed: int32(len(LLMAnswer.Answer)) / 4,
 	}); err != nil {
-		log.Printf("Failed to save bot answer history: %v", err)
+		slog.Info("Failed to save bot answer history", "error", err)
 	}
 
 	if !isTest(msgs) {
@@ -176,11 +176,11 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		return
 	}
 
-	h.requestCtx = ctx
-	model := h.chooseChatModel(*chatSession, msgs)
-	LLMAnswer, err := model.Stream(w, *chatSession, msgs, chatUuid, true, stream)
+	model := h.chooseChatModel(ctx, *chatSession, msgs)
+	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, true, stream)
 	if err != nil {
-		log.Printf("Error regenerating answer: %v", err)
+		slog.Error("error regenerating answer", "error", err)
+		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to regenerate answer"))
 		return
 	}
 

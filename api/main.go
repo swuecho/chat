@@ -20,7 +20,6 @@ import (
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/handler"
 	"github.com/swuecho/chat_backend/middleware"
-	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/static"
 	"github.com/swuecho/chat_backend/svc"
@@ -49,15 +48,7 @@ func main() {
 
 func run() error {
 	// --- Configuration ---
-	appCfg = config.Load()
-	cfg := appCfg
-
-	// Initialize package-level configs
-	provider.OpenAIToken = cfg.OPENAI.API_KEY
-	svc.Cfg.OpenAIKey = cfg.OPENAI.API_KEY
-	svc.Cfg.OpenAIProxy = cfg.OPENAI.PROXY_URL
-	svc.Cfg.DefaultLimit = int32(cfg.OPENAI.RATELIMIT)
-	appCfg = cfg
+	cfg := config.Load()
 
 	// --- Database ---
 	pgdb, err := openDB(cfg)
@@ -88,8 +79,6 @@ func run() error {
 		return fmt.Errorf("jwt secret: %w", err)
 	}
 	srv.jwtSecret = jwtSecretAndAud
-	middleware.SetJWTSecret(jwtSecretAndAud.Secret)
-	svc.Cfg.JWTSecret = jwtSecretAndAud.Secret
 
 	// --- Router ---
 	router, rawRouter := srv.buildRouter()
@@ -102,8 +91,8 @@ func run() error {
 
 	// --- HTTP Server ---
 	httpServer := &http.Server{
-		Addr:         ":8080",
-		Handler:      router,
+		Addr:              ":8080",
+		Handler:           router,
 		ReadTimeout:       60 * time.Second,
 		ReadHeaderTimeout: 30 * time.Second,
 		WriteTimeout:      10 * time.Minute, // Long write timeout for streaming
@@ -179,8 +168,8 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 	userRouter := apiRouter.NewRoute().Subrouter()
 
 	// Auth middleware
-	adminRouter.Use(middleware.AdminAuthMiddleware)
-	userRouter.Use(middleware.UserAuthMiddleware)
+	adminRouter.Use(middleware.AdminAuthMiddleware(s.jwtSecret.Secret))
+	userRouter.Use(middleware.UserAuthMiddleware(s.jwtSecret.Secret))
 
 	// Rate limiting
 	rateLimitMW := middleware.RateLimitByUserID(s.q, s.cfg.OPENAI.RATELIMIT)
@@ -213,6 +202,10 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) {
 	q := s.q
 	rateLimit := int32(s.cfg.OPENAI.RATELIMIT)
+	openAIKey := s.cfg.OPENAI.API_KEY
+	openAIProxy := s.cfg.OPENAI.PROXY_URL
+	jwtSecret := s.jwtSecret.Secret
+	jwtAudience := s.jwtSecret.Audience
 
 	// Public
 	apiRouter.HandleFunc("/tts", handler.HandleTTSRequest)
@@ -222,12 +215,12 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	handler.NewChatModelHandler(q).Register(userRouter)
 
 	// Auth
-	authHandler := handler.NewAuthUserHandler(q, s.jwtSecret.Secret, s.jwtSecret.Audience, rateLimit)
+	authHandler := handler.NewAuthUserHandler(q, jwtSecret, jwtAudience, rateLimit)
 	authHandler.Register(userRouter)
 	authHandler.RegisterPublicRoutes(apiRouter)
 
 	// Admin
-	handler.NewAdminHandler(svc.NewAuthUserService(q), rateLimit).RegisterRoutes(adminRouter)
+	handler.NewAdminHandler(svc.NewAuthUserService(q, jwtSecret, rateLimit), rateLimit).RegisterRoutes(adminRouter)
 
 	// Prompts
 	handler.NewChatPromptHandler(q).Register(userRouter)
@@ -242,13 +235,13 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	handler.NewChatWorkspaceHandler(q).Register(userRouter)
 
 	// Messages
-	handler.NewChatMessageHandler(q).Register(userRouter)
+	handler.NewChatMessageHandler(q, openAIKey, openAIProxy).Register(userRouter)
 
 	// Snapshots
 	handler.NewChatSnapshotHandler(q).Register(userRouter)
 
 	// Chat stream
-	handler.NewChatHandler(q, s.rateLimiter).Register(userRouter)
+	handler.NewChatHandler(q, s.rateLimiter, openAIKey, openAIProxy).Register(userRouter)
 
 	// Model privileges
 	handler.NewUserChatModelPrivilegeHandler(q).Register(userRouter)
@@ -286,8 +279,8 @@ func (s *server) healthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dto.RespondWithJSON(w, status, map[string]interface{}{
-		"status":  statusToText(healthy),
-		"checks":  checks,
+		"status": statusToText(healthy),
+		"checks": checks,
 	})
 }
 
@@ -353,7 +346,3 @@ func (s *server) idleMonitor() {
 		}
 	}
 }
-
-// Package-level var for the application config, used where dependency injection
-// is not yet feasible (e.g., during initialization order).
-var appCfg config.AppConfig

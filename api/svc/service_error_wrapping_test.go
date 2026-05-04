@@ -27,7 +27,7 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 	q := sqlc_queries.New(testDB)
 	ctx := context.Background()
 
-	testUser, err := NewAuthUserService(q).CreateAuthUser(ctx,
+	testUser, err := NewAuthUserService(q, "test-secret", 100).CreateAuthUser(ctx,
 		sqlc_queries.CreateAuthUserParams{
 			Email:    "wrap-test@test.com",
 			Username: "wraptest",
@@ -85,7 +85,7 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 	})
 
 	t.Run("AuthUserService_success_returns_nil_error", func(t *testing.T) {
-		svc := NewAuthUserService(q)
+		svc := NewAuthUserService(q, "test-secret", 100)
 		stats, total, err := svc.GetUserStats(ctx, dto.Pagination{Page: 1, Size: 10}, 100)
 		if err != nil {
 			t.Fatalf("GetUserStats failed: %v", err)

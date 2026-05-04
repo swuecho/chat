@@ -9,7 +9,6 @@ package provider
 
 import (
 	"context"
-	"net/http"
 
 	"golang.org/x/time/rate"
 
@@ -17,25 +16,35 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
+// StreamChunk represents a single chunk in a streaming LLM response.
+type StreamChunk struct {
+	ID          string            // answer ID
+	Content     string            // delta text content
+	Done        bool              // true for the terminal chunk
+	FinalAnswer *models.LLMAnswer // set on Done (nil on error)
+	Err         error             // non-nil if a stream error occurred
+}
+
 // ChatModel is the interface all LLM providers must implement.
+// Stream returns a channel of StreamChunk and an optional immediate error.
+// The channel is closed when streaming completes or fails.
 type ChatModel interface {
-	Stream(w http.ResponseWriter, session sqlc_queries.ChatSession,
+	Stream(ctx context.Context, session sqlc_queries.ChatSession,
 		messages []models.Message, chatUuid string,
-		regenerate bool, stream bool) (*models.LLMAnswer, error)
+		regenerate bool, stream bool) (<-chan StreamChunk, error)
 }
 
 // Config holds global configuration needed by providers.
 type Config struct {
-	OpenAIKey     string
-	OpenAIProxy   string
-	RateLimiter   *rate.Limiter
-	DefaultLimit  int
+	OpenAIKey    string
+	OpenAIProxy  string
+	RateLimiter  *rate.Limiter
+	DefaultLimit int
 }
 
 // Handler provides request-scoped dependencies that providers need.
 type Handler interface {
-	RequestContext() context.Context
 	Queries() *sqlc_queries.Queries
-	CheckModelAccess(w http.ResponseWriter, chatSessionUuid, model string, userID int32) bool
+	CheckModelAccess(ctx context.Context, chatSessionUuid, model string, userID int32) error
 	Config() Config
 }
