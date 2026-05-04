@@ -168,7 +168,7 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("Claude stream cancelled by client: %v", ctx.Err())
+			slog.Info("Claude stream cancelled by client", "error", ctx.Err())
 			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
 			return
 		default:

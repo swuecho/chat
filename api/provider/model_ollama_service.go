@@ -100,7 +100,7 @@ func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, h Handler, chat
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("Ollama stream cancelled by client: %v", ctx.Err())
+			slog.Info("Ollama stream cancelled by client", "error", ctx.Err())
 			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
 			return
 		default:

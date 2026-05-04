@@ -83,7 +83,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("Completion stream cancelled by client: %v", ctx.Err())
+			slog.Info("Completion stream cancelled by client", "error", ctx.Err())
 			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
 			return
 		default:
@@ -108,7 +108,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 		TextBuffer.AppendByIndex(textIdx, delta)
 
 		if chatSession.Debug {
-			slog.Info("%d: %s", textIdx, delta)
+			slog.Info("completion chunk", "index", textIdx, "delta", delta)
 		}
 
 		if answerID == "" {

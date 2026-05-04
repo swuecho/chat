@@ -61,7 +61,7 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 
 func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http.Request) {
 	workspaceUUID := mux.Vars(r)["uuid"]
-	slog.Info("getWorkspaceByUUID called with UUID=%s", workspaceUUID)
+	slog.Info("getWorkspaceByUUID called", "uuid", workspaceUUID)
 
 	ctx := r.Context()
 	userID, err := getUserID(ctx)

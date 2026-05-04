@@ -69,13 +69,13 @@ func messagesToOpenAIMesages(messages []models.Message, chatFiles []sqlc_queries
 	firstUserMessage, idx, found := lo.FindIndexOf(open_ai_msgs, func(msg openai.ChatCompletionMessage) bool { return msg.Role == "user" })
 
 	if found {
-		slog.Info("firstUserMessage: %+v\n", firstUserMessage)
+		slog.Info("firstUserMessage before attach", "msg", firstUserMessage)
 		open_ai_msgs[idx].MultiContent = append(
 			[]openai.ChatMessagePart{
 				{Type: openai.ChatMessagePartTypeText, Text: firstUserMessage.Content},
 			}, parts...)
 		open_ai_msgs[idx].Content = ""
-		slog.Info("firstUserMessage: %+v\n", firstUserMessage)
+		slog.Info("firstUserMessage after attach", "msg", firstUserMessage)
 	}
 
 	return open_ai_msgs
@@ -129,7 +129,7 @@ func configOpenAIProxy(clientCfg *openai.ClientConfig, proxyURL string) {
 	if proxyUrlStr != "" {
 		proxyUrl, err := url.Parse(proxyUrlStr)
 		if err != nil {
-			slog.Error("error: parsing proxy URL: %v", err)
+			slog.Error("error parsing proxy URL", "error", err)
 		}
 		transport := &http.Transport{
 			Proxy: http.ProxyURL(proxyUrl),
@@ -148,7 +148,7 @@ func GenOpenAIConfig(chatModel sqlc_queries.ChatModel, cfg Config) (openai.Clien
 	if err != nil {
 		return openai.ClientConfig{}, err
 	}
-	slog.Info("OpenAI-compatible URL resolved - Model: %s, ConfiguredURL: %s, BaseURL: %s", chatModel.Name, chatModel.Url, baseUrl)
+	slog.Info("OpenAI-compatible URL resolved", "model", chatModel.Name, "configuredURL", chatModel.Url, "baseURL", baseUrl)
 
 	var config openai.ClientConfig
 	if os.Getenv("AZURE_RESOURCE_NAME") != "" {

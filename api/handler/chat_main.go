@@ -61,7 +61,7 @@ func (h *ChatHandler) Config() provider.Config {
 func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) {
 	artifactInstruction, err := svc.LoadArtifactInstruction()
 	if err != nil {
-		slog.Warn("Failed to load artifact instruction: %v", err)
+		slog.Warn("Failed to load artifact instruction", "error", err)
 		artifactInstruction = ""
 	}
 	json.NewEncoder(w).Encode(dto.ChatInstructionResponse{

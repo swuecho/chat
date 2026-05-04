@@ -100,7 +100,7 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 
 	if result.HasLegacySessions {
 		if err := h.wsService.MigrateLegacyActiveSessions(ctx, userID, result.DefaultWorkspace.ID); err != nil {
-			slog.Warn("failed to migrate legacy active sessions: %v", err)
+			slog.Warn("failed to migrate legacy active sessions", "error", err)
 		}
 		response["defaultWorkspace"] = workspaceToResponse(result.DefaultWorkspace)
 	}

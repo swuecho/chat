@@ -210,12 +210,12 @@ func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sq
 	}
 
 	payloadBytes, err := json.Marshal(payload)
-	slog.Info("\n%s\n", string(payloadBytes))
 	if err != nil {
 		fmt.Println("Error marshalling payload:", err)
 		// handle err
 		return nil, err
 	}
+	slog.Info("gemini payload", "payload", string(payloadBytes))
 	return payloadBytes, nil
 }
 

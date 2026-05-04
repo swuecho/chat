@@ -55,7 +55,7 @@ func (h *UserActiveChatSessionHandler) GetUserActiveChatSessionHandler(w http.Re
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(session); err != nil {
-		slog.Info("Failed to encode response: %v", err)
+		slog.Info("Failed to encode response", "error", err)
 	}
 }
 
@@ -81,7 +81,7 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 		return
 	}
 
-	slog.Info("Creating/updating active chat session for user %d", userID)
+	slog.Info("Creating/updating active chat session", "userID", userID)
 
 	session, err := h.service.UpsertActiveSession(r.Context(), userID, nil, reqBody.ChatSessionUuid)
 	if err != nil {
@@ -91,7 +91,7 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(session); err != nil {
-		slog.Info("Failed to encode response: %v", err)
+		slog.Info("Failed to encode response", "error", err)
 	}
 }
 

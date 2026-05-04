@@ -297,11 +297,11 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	}
 
 	if err.DebugInfo != "" {
-		slog.Error("error: [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
+		slog.Error("api error", "code", err.Code, "message", err.Message, "debug", err.DebugInfo)
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Info("Failed to write error response: %v", err)
+		slog.Info("Failed to write error response", "error", err)
 	}
 }
 
@@ -359,7 +359,7 @@ func MapDatabaseError(err error) error {
 		}
 	}
 
-	slog.Info("Unhandled database error: %v", err)
+	slog.Info("Unhandled database error", "error", err)
 
 	dbErr := ErrDatabaseQuery
 	dbErr.DebugInfo = err.Error()

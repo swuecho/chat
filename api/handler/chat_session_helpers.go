@@ -22,7 +22,7 @@ import (
 func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string) (*sqlc_queries.ChatSession, *sqlc_queries.ChatModel, string, bool) {
 	chatSession, err := h.sessionSvc.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
-		slog.Info("Invalid session UUID: %s, error: %v", chatSessionUuid, err)
+		slog.Info("Invalid session UUID", "uuid", chatSessionUuid, "error", err)
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat session").WithMessage(chatSessionUuid))
 		return nil, nil, "", false
 	}
@@ -51,7 +51,7 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 		if errors.Is(err, sql.ErrNoRows) {
 			existingPrompt = false
 		} else {
-			slog.Error("error: checking prompt for session %s: %v", chatSession.Uuid, err)
+			slog.Error("error checking prompt", "session", chatSession.Uuid, "error", err)
 			dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to get prompt", err.Error()))
 			return false
 		}
@@ -81,7 +81,7 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 					Uuid: chatSession.Uuid, UserID: userID, Topic: title,
 				}
 				if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, params); err != nil {
-					slog.Warn("Failed to update session title: %v", err)
+					slog.Warn("Failed to update session title", "error", err)
 				}
 			}
 		}
@@ -93,16 +93,16 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.ResponseWriter, chatSession *sqlc_queries.ChatSession, chatUuid string, userID int32, baseURL string, streamOutput bool) bool {
 	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, false)
 	if err != nil {
-		slog.Error("error: collecting messages for session %s: %v", chatSession.Uuid, err)
+		slog.Error("error collecting messages", "session", chatSession.Uuid, "error", err)
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to collect messages", err.Error()))
 		return false
 	}
-	slog.Info("Collected messages - SessionUUID: %s, Count: %d, Model: %s", chatSession.Uuid, len(msgs), chatSession.Model)
+	slog.Info("Collected messages", "sessionUUID", chatSession.Uuid, "count", len(msgs), "model", chatSession.Model)
 
 	model := h.chooseChatModel(ctx, *chatSession, msgs)
 	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
-		slog.Error("error: generating answer: %v", err)
+		slog.Error("error generating answer", "error", err)
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return false
 	}
@@ -194,7 +194,7 @@ func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession
 		Uuid: chatSession.Uuid, Offset: 0, Limit: 100,
 	})
 	if err != nil {
-		slog.Warn("Failed to get messages for title generation: %v", err)
+		slog.Warn("Failed to get messages for title generation", "error", err)
 		return
 	}
 
@@ -220,11 +220,11 @@ func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession
 	if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, sqlc_queries.UpdateChatSessionTopicByUUIDParams{
 		Uuid: chatSession.Uuid, UserID: userID, Topic: genTitle,
 	}); err != nil {
-		slog.Warn("Failed to update session title: %v", err)
+		slog.Warn("Failed to update session title", "error", err)
 		return
 	}
 
-	slog.Info("Generated LLM title for session %s: %s", chatSession.Uuid, genTitle)
+	slog.Info("Generated LLM title", "sessionUUID", chatSession.Uuid, "title", genTitle)
 }
 
 // sendSuggestedQuestionsStream sends suggested questions as an SSE event.

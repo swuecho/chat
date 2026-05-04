@@ -127,7 +127,7 @@ func (s *ChatService) GetAskMessages(chatSession sqlc_queries.ChatSession, chatU
 	if chatSession.ArtifactEnabled {
 		artifactInstruction, err := LoadArtifactInstruction()
 		if err != nil {
-			slog.Warn("Failed to load artifact instruction: %v", err)
+			slog.Warn("Failed to load artifact instruction", "error", err)
 			artifactInstruction = "" // Use empty string if file can't be loaded
 		}
 
@@ -142,7 +142,7 @@ func (s *ChatService) GetAskMessages(chatSession sqlc_queries.ChatSession, chatU
 func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUuid string, newQuestion string, userID int32) (sqlc_queries.ChatPrompt, error) {
 	tokenCount, err := provider.GetTokenCount(newQuestion)
 	if err != nil {
-		slog.Warn("Failed to get token count for prompt: %v", err)
+		slog.Warn("Failed to get token count for prompt", "error", err)
 		tokenCount = len(newQuestion) / dto.TokenEstimateRatio // Fallback estimate
 	}
 	chatPrompt, err := s.q.CreateChatPrompt(ctx,
@@ -175,7 +175,7 @@ func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUui
 func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode bool) (sqlc_queries.ChatMessage, error) {
 	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
-		slog.Warn("Failed to get token count: %v", err)
+		slog.Warn("Failed to get token count", "error", err)
 		numTokens = len(content) / dto.TokenEstimateRatio // Fallback estimate
 	}
 
@@ -191,7 +191,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	artifacts := extractArtifacts(content)
 	artifactsJSON, err := json.Marshal(artifacts)
 	if err != nil {
-		slog.Warn("Failed to marshal artifacts: %v", err)
+		slog.Warn("Failed to marshal artifacts", "error", err)
 		artifactsJSON = json.RawMessage([]byte("[]"))
 	}
 
@@ -222,7 +222,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode, exploreMode bool, messages []models.Message) (sqlc_queries.ChatMessage, error) {
 	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
-		slog.Warn("Failed to get token count: %v", err)
+		slog.Warn("Failed to get token count", "error", err)
 		numTokens = len(content) / dto.TokenEstimateRatio // Fallback estimate
 	}
 
@@ -237,7 +237,7 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 	artifacts := extractArtifacts(content)
 	artifactsJSON, err := json.Marshal(artifacts)
 	if err != nil {
-		slog.Warn("Failed to marshal artifacts: %v", err)
+		slog.Warn("Failed to marshal artifacts", "error", err)
 		artifactsJSON = json.RawMessage([]byte("[]"))
 	}
 
@@ -248,7 +248,7 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 		if questionsJSON, err := json.Marshal(questions); err == nil {
 			suggestedQuestions = questionsJSON
 		} else {
-			slog.Warn("Failed to marshal suggested questions: %v", err)
+			slog.Warn("Failed to marshal suggested questions", "error", err)
 		}
 	}
 
@@ -324,7 +324,7 @@ func (s *ChatService) callLLMForSuggestions(prompt string) string {
 	// Get all models and find preferred models for suggestions
 	allModels, err := s.q.ListChatModels(ctx)
 	if err != nil {
-		slog.Warn("Failed to list models for suggestions: %v", err)
+		slog.Warn("Failed to list models for suggestions", "error", err)
 		return ""
 	}
 
@@ -377,7 +377,7 @@ func (s *ChatService) callLLMForSuggestions(prompt string) string {
 		return s.callOpenAICompatibleForSuggestions(ctx, selectedModel, prompt)
 	}
 
-	slog.Warn("Unsupported model type for suggestions: %s", selectedModel.ApiType)
+	slog.Warn("Unsupported model type for suggestions", "apiType", selectedModel.ApiType)
 	return ""
 }
 
@@ -401,7 +401,7 @@ func (s *ChatService) callGeminiForSuggestions(ctx context.Context, model sqlc_q
 	// Generate Gemini payload
 	payloadBytes, err := gemini.GenGemminPayload(messages, nil)
 	if err != nil {
-		slog.Warn("Failed to generate Gemini payload for suggestions: %v", err)
+		slog.Warn("Failed to generate Gemini payload for suggestions", "error", err)
 		return ""
 	}
 
@@ -409,7 +409,7 @@ func (s *ChatService) callGeminiForSuggestions(ctx context.Context, model sqlc_q
 	url := gemini.BuildAPIURL(model.Name, false)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		slog.Warn("Failed to create Gemini request for suggestions: %v", err)
+		slog.Warn("Failed to create Gemini request for suggestions", "error", err)
 		return ""
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -420,7 +420,7 @@ func (s *ChatService) callGeminiForSuggestions(ctx context.Context, model sqlc_q
 
 	answer, err := gemini.HandleRegularResponse(http.Client{Timeout: 30 * time.Second}, req)
 	if err != nil {
-		slog.Warn("Failed to get Gemini response for suggestions: %v", err)
+		slog.Warn("Failed to get Gemini response for suggestions", "error", err)
 		return ""
 	}
 
@@ -437,7 +437,7 @@ func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, mo
 	// Generate OpenAI client configuration
 	config, err := provider.GenOpenAIConfig(model, provider.Config{OpenAIKey: s.openAIKey, OpenAIProxy: s.openAIProxy})
 	if err != nil {
-		slog.Warn("Failed to generate OpenAI configuration for suggestions: %v", err)
+		slog.Warn("Failed to generate OpenAI configuration for suggestions", "error", err)
 		return ""
 	}
 
@@ -462,12 +462,12 @@ func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, mo
 
 	resp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		slog.Warn("Failed to generate suggested questions with %s: %v", model.Name, err)
+		slog.Warn("Failed to generate suggested questions", "model", model.Name, "error", err)
 		return ""
 	}
 
 	if len(resp.Choices) == 0 {
-		slog.Warn("No response choices returned for suggested questions from %s", model.Name)
+		slog.Warn("No response choices for suggested questions", "model", model.Name)
 		return ""
 	}
 
@@ -481,7 +481,7 @@ func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, conten
 	// num_tokens
 	num_tokens, err := provider.GetTokenCount(content)
 	if err != nil {
-		slog.Warn("Failed to get token count for update: %v", err)
+		slog.Warn("Failed to get token count for update", "error", err)
 		num_tokens = len(content) / dto.TokenEstimateRatio // Fallback estimate
 	}
 
@@ -513,12 +513,12 @@ func (s *ChatService) LogChat(chatSession sqlc_queries.ChatSession, msgs []model
 	}
 	question, err := json.Marshal(msgs)
 	if err != nil {
-		slog.Warn("Failed to marshal chat messages: %v", err)
+		slog.Warn("Failed to marshal chat messages", "error", err)
 		return // Skip logging if marshalling fails
 	}
 	answerRaw, err := json.Marshal(answerText)
 	if err != nil {
-		slog.Warn("Failed to marshal answer: %v", err)
+		slog.Warn("Failed to marshal answer", "error", err)
 		return // Skip logging if marshalling fails
 	}
 

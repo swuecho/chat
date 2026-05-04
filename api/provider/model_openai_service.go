@@ -54,8 +54,7 @@ func (m *OpenAIChatModel) Stream(ctx context.Context, chatSession sqlc_queries.C
 	if len(openaiReq.Messages) <= 1 {
 		return nil, dto.ErrSystemMessageError
 	}
-	slog.Info("OpenAI request prepared - Model: %s, MessageCount: %d, Temperature: %.2f",
-		openaiReq.Model, len(openaiReq.Messages), openaiReq.Temperature)
+	slog.Info("OpenAI request prepared", "model", openaiReq.Model, "messageCount", len(openaiReq.Messages), "temperature", openaiReq.Temperature)
 	client := openai.NewClientWithConfig(config)
 
 	ch := make(chan StreamChunk, 10)
@@ -107,7 +106,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 	}
 	defer func() {
 		if err := stream.Close(); err != nil {
-			slog.Error("error: closing OpenAI stream: %v", err)
+			slog.Error("error closing OpenAI stream", "error", err)
 		}
 	}()
 
@@ -128,7 +127,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("Stream cancelled by client: %v", ctx.Err())
+			slog.Info("Stream cancelled by client", "error", ctx.Err())
 			llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answerID}
 			if hasReason {
 				llmAnswer.ReasoningContent = reasonBuffer.String("\n")
@@ -155,14 +154,14 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 				ch <- StreamChunk{Done: true, FinalAnswer: &llmAnswer}
 				return
 			}
-			slog.Info("Stream error: %v", err)
+			slog.Info("Stream error", "error", err)
 			ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())}
 			return
 		}
 
 		response := llm_openai.ChatCompletionStreamResponse{}
 		if err := json.Unmarshal(rawLine, &response); err != nil {
-			slog.Info("Could not unmarshal response: %v\n", err)
+			slog.Info("Could not unmarshal response", "error", err)
 			continue
 		}
 
@@ -220,10 +219,10 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chatCompleti
 
 	for _, m := range openaiMessages {
 		b, _ := m.MarshalJSON()
-		slog.Info("messages: %+v\n", string(b))
+		slog.Info("openai message", "msg", string(b))
 	}
 
-	slog.Info("messages: %+v\n", openaiMessages)
+	slog.Info("openai messages", "messages", openaiMessages)
 	topP := float32(chatSession.TopP) - 0.01
 	if topP <= 0 {
 		topP = 0.01

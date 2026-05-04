@@ -62,7 +62,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		slog.Error("error: getting user ID: %v", err)
+		slog.Error("error getting user ID", "error", err)
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
@@ -94,7 +94,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		slog.Error("error: decoding request: %v", err)
+		slog.Error("error decoding request", "error", err)
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
@@ -102,7 +102,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		slog.Error("error: getting user ID: %v", err)
+		slog.Error("error getting user ID", "error", err)
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
@@ -120,7 +120,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 	if !ok {
 		return
 	}
-	slog.Info("Processing chat session - SessionUUID: %s, UserID: %d, Model: %s", chatSession.Uuid, userID, chatSession.Model)
+	slog.Info("Processing chat session", "sessionUUID", chatSession.Uuid, "userID", userID, "model", chatSession.Model)
 
 	if !h.handlePromptCreation(ctx, w, chatSession, chatUuid, question, userID, baseURL) {
 		return
@@ -155,7 +155,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 		Model:      session.Model,
 		TokensUsed: int32(len(LLMAnswer.Answer)) / 4,
 	}); err != nil {
-		slog.Info("Failed to save bot answer history: %v", err)
+		slog.Info("Failed to save bot answer history", "error", err)
 	}
 
 	if !isTest(msgs) {
@@ -179,7 +179,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 	model := h.chooseChatModel(ctx, *chatSession, msgs)
 	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, true, stream)
 	if err != nil {
-		slog.Error("error: regenerating answer: %v", err)
+		slog.Error("error regenerating answer", "error", err)
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to regenerate answer"))
 		return
 	}
