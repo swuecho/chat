@@ -4,18 +4,14 @@ package provider
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/pkoukk/tiktoken-go"
 	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/pkg/util"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -49,21 +45,8 @@ func FlushResponse(w http.ResponseWriter, flusher http.Flusher, response Streami
 }
 
 // SetupSSEStream configures the response writer for Server-Sent Events.
-func SetupSSEStream(w http.ResponseWriter) (http.Flusher, error) {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.Header().Del("Content-Length")
-	w.Header().Del("Content-Encoding")
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		return nil, errors.New(dto.ErrorStreamUnsupported)
-	}
-	return flusher, nil
-}
+// Delegates to pkg/util.SetupSSE.
+var SetupSSEStream = util.SetupSSE
 
 // --- Text buffer for streaming ---
 
@@ -169,13 +152,7 @@ func FirstN(s string, n int) string {
 // --- Utility functions ---
 
 // NewUUID generates a new UUID v7 string.
-func NewUUID() string {
-	uuidv7, err := uuid.NewV7()
-	if err != nil {
-		return uuid.NewString()
-	}
-	return uuidv7.String()
-}
+var NewUUID = util.NewUUID
 
 // generateAnswerID creates an answer ID or reuses chatUuid in regenerate mode.
 func generateAnswerID(chatUuid string, regenerate bool) string {
@@ -186,23 +163,7 @@ func generateAnswerID(chatUuid string, regenerate bool) string {
 }
 
 // GetTokenCount returns the number of tokens in the given content.
-func GetTokenCount(content string) (int, error) {
-	tke, err := tiktoken.GetEncoding("cl100k_base")
-	if err != nil {
-		return 0, err
-	}
-	return len(tke.Encode(content, nil, nil)), nil
-}
+var GetTokenCount = util.TokenCount
 
 // GetPerWordStreamLimit returns the per-word stream limit from env or default.
-func GetPerWordStreamLimit() int {
-	s := os.Getenv("PER_WORD_STREAM_LIMIT")
-	if s == "" {
-		return 200
-	}
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return 200
-	}
-	return n
-}
+var GetPerWordStreamLimit = util.PerWordStreamLimit

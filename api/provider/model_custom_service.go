@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -126,7 +126,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
-			log.Printf("Custom model stream cancelled by client: %v", ctx.Err())
+			slog.Info("Custom model stream cancelled by client: %v", ctx.Err())
 			// Return current accumulated content when cancelled
 			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
 		default:
@@ -178,7 +178,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseW
 				IsFinal:  false,
 			})
 			if err != nil {
-				log.Printf("Failed to flush response: %v", err)
+				slog.Info("Failed to flush response: %v", err)
 			}
 			lastFlushLength = len(answer)
 		}

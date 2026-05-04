@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/middleware"
@@ -153,7 +153,7 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 	params.ID = userID
 	user, err := h.service.UpdateAuthUser(r.Context(), params)
 	if err != nil {
-		log.WithError(err).Error("Failed to update user")
+		slog.Error("Failed to update user", "error", err)
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to update user").WithDebugInfo(err.Error()))
 		return
 	}
@@ -184,14 +184,14 @@ type LoginParams struct {
 func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var params LoginParams
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		log.WithFields(log.Fields{"error": err, "ip": r.RemoteAddr, "action": "signup_decode_error"}).Warn("Failed to decode signup")
+		slog.Warn("Failed to decode signup", "error", err, "ip", r.RemoteAddr, "action", "signup_decode_error")
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request: unable to decode JSON body").WithDebugInfo(err.Error()))
 		return
 	}
 
 	hash, err := auth.GeneratePasswordHash(params.Password)
 	if err != nil {
-		log.WithFields(log.Fields{"email": params.Email, "error": err}).Error("Failed to hash password")
+		slog.Error("Failed to hash password", "email", params.Email, "error", err)
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate password hash").WithDebugInfo(err.Error()))
 		return
 	}
@@ -200,7 +200,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		Password: hash, Email: params.Email, Username: params.Email,
 	})
 	if err != nil {
-		log.WithFields(log.Fields{"email": params.Email, "error": err}).Error("Failed to create user")
+		slog.Error("Failed to create user", "email", params.Email, "error", err)
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to create user"))
 		return
 	}
@@ -220,7 +220,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, createSecureRefreshCookie(RefreshTokenName, refreshToken, int(refreshLifetime.Seconds()), r))
 
-	log.WithFields(log.Fields{"user_id": user.ID, "email": user.Email, "action": "signup_success"}).Info("User signup successful")
+	slog.Info("User signup successful", "user_id", user.ID, "email", user.Email, "action", "signup_success")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(dto.TokenResult{AccessToken: accessToken, ExpiresIn: int(time.Now().Add(AccessTokenLifetime).Unix())})
@@ -229,14 +229,14 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var params LoginParams
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		log.WithFields(log.Fields{"error": err, "ip": r.RemoteAddr, "action": "login_decode_error"}).Warn("Failed to decode login")
+		slog.Warn("Failed to decode login", "error", err, "ip", r.RemoteAddr, "action", "login_decode_error")
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
 
 	user, err := h.service.Authenticate(r.Context(), params.Email, params.Password)
 	if err != nil {
-		log.WithFields(log.Fields{"email": params.Email, "ip": r.RemoteAddr, "error": err, "action": "login_failed"}).Warn("User login failed")
+		slog.Warn("User login failed", "email", params.Email, "ip", r.RemoteAddr, "error", err, "action", "login_failed")
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidEmailOrPassword.WithDebugInfo(err.Error()))
 		return
 	}
@@ -256,7 +256,7 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, createSecureRefreshCookie(RefreshTokenName, refreshToken, int(refreshLifetime.Seconds()), r))
 
-	log.WithFields(log.Fields{"user_id": user.ID, "email": user.Email, "action": "login_success"}).Info("User login successful")
+	slog.Info("User login successful", "user_id", user.ID, "email", user.Email, "action", "login_success")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(dto.TokenResult{AccessToken: accessToken, ExpiresIn: int(time.Now().Add(AccessTokenLifetime).Unix())})
@@ -278,18 +278,18 @@ func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	log.WithFields(log.Fields{"ip": r.RemoteAddr, "action": "refresh_attempt"}).Info("Token refresh attempt")
+	slog.Info("Token refresh attempt", "ip", r.RemoteAddr, "action", "refresh_attempt")
 
 	refreshCookie, err := r.Cookie(RefreshTokenName)
 	if err != nil {
-		log.WithFields(log.Fields{"ip": r.RemoteAddr, "error": err, "action": "refresh_missing_cookie"}).Warn("Missing refresh token cookie")
+		slog.Warn("Missing refresh token cookie", "ip", r.RemoteAddr, "error", err, "action", "refresh_missing_cookie")
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithMessage("Missing refresh token"))
 		return
 	}
 
 	result := middleware.ParseAndValidateJWT(refreshCookie.Value, auth.TokenTypeRefresh)
 	if result.Error != nil {
-		log.WithFields(log.Fields{"ip": r.RemoteAddr, "error": result.Error.Detail, "action": "refresh_invalid_token"}).Warn("Invalid refresh token")
+		slog.Warn("Invalid refresh token", "ip", r.RemoteAddr, "error", result.Error.Detail, "action", "refresh_invalid_token")
 		dto.RespondWithAPIError(w, *result.Error)
 		return
 	}
@@ -306,7 +306,7 @@ func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.WithFields(log.Fields{"user_id": userIDInt, "action": "refresh_success"}).Info("Token refresh successful")
+	slog.Info("Token refresh successful", "user_id", userIDInt, "action", "refresh_success")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(dto.TokenResult{AccessToken: accessToken, ExpiresIn: int(time.Now().Add(AccessTokenLifetime).Unix())})

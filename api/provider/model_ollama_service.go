@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -119,7 +119,7 @@ func chatOllamStream(h Handler, ctx context.Context, w http.ResponseWriter, chat
 		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
-			log.Printf("Ollama stream cancelled by client: %v", ctx.Err())
+			slog.Info("Ollama stream cancelled by client: %v", ctx.Err())
 			// Return current accumulated content when cancelled
 			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
 		default:
@@ -164,7 +164,7 @@ func chatOllamStream(h Handler, ctx context.Context, w http.ResponseWriter, chat
 				IsFinal:  false,
 			})
 			if err != nil {
-				log.Printf("Failed to flush response: %v", err)
+				slog.Info("Failed to flush response: %v", err)
 			}
 		}
 	}

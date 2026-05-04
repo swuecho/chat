@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
+	"log/slog"
 	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/swuecho/chat_backend/dto"
@@ -62,7 +62,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		log.Printf("Error getting user ID: %v", err)
+		slog.Error("error: getting user ID: %v", err)
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
@@ -94,7 +94,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding request: %v", err)
+		slog.Error("error: decoding request: %v", err)
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
@@ -102,7 +102,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
-		log.Printf("Error getting user ID: %v", err)
+		slog.Error("error: getting user ID: %v", err)
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
@@ -120,7 +120,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 	if !ok {
 		return
 	}
-	log.Printf("Processing chat session - SessionUUID: %s, UserID: %d, Model: %s", chatSession.Uuid, userID, chatSession.Model)
+	slog.Info("Processing chat session - SessionUUID: %s, UserID: %d, Model: %s", chatSession.Uuid, userID, chatSession.Model)
 
 	if !h.handlePromptCreation(ctx, w, chatSession, chatUuid, question, userID, baseURL) {
 		return
@@ -155,7 +155,7 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 		Model:      session.Model,
 		TokensUsed: int32(len(LLMAnswer.Answer)) / 4,
 	}); err != nil {
-		log.Printf("Failed to save bot answer history: %v", err)
+		slog.Info("Failed to save bot answer history: %v", err)
 	}
 
 	if !isTest(msgs) {
@@ -180,7 +180,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 	model := h.chooseChatModel(*chatSession, msgs)
 	LLMAnswer, err := model.Stream(w, *chatSession, msgs, chatUuid, true, stream)
 	if err != nil {
-		log.Printf("Error regenerating answer: %v", err)
+		slog.Error("error: regenerating answer: %v", err)
 		return
 	}
 

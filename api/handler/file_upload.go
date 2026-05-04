@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -116,7 +116,7 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
 	w.Header().Set("Content-Length", strconv.Itoa(len(file.Data)))
 	if _, err := w.Write(file.Data); err != nil {
-		log.Printf("Failed to write file data: %v", err)
+		slog.Info("Failed to write file data: %v", err)
 	}
 }
 

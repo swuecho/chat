@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -34,7 +34,7 @@ func llm_summarize(ctx context.Context, baseURL string, doc string) string {
 		openai.WithBaseURL(baseURL),
 	)
 	if err != nil {
-		log.Printf("failed to create openai client %s: %v", baseURL, err)
+		slog.Info("failed to create openai client %s: %v", baseURL, err)
 		return ""
 	}
 
@@ -44,7 +44,7 @@ func llm_summarize(ctx context.Context, baseURL string, doc string) string {
 	)
 	outputValues, err := chains.Call(ctx, llmSummarizationChain, map[string]any{"input_documents": docs})
 	if err != nil {
-		log.Printf("failed to call chain: %s, %v", baseURL, err)
+		slog.Info("failed to call chain: %s, %v", baseURL, err)
 		return ""
 	}
 	out, _ := outputValues["text"].(string)

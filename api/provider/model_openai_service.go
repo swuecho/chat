@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -42,7 +42,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	}
 
 	config, err := GenOpenAIConfig(*chatModel, m.h.Config())
-	log.Printf("%+v", config.String())
+	slog.Info("%+v", config.String())
 	// print all config details
 	if err != nil {
 		return nil, dto.ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
@@ -58,7 +58,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	if len(openaiReq.Messages) <= 1 {
 		return nil, dto.ErrSystemMessageError
 	}
-	log.Printf("OpenAI request prepared - Model: %s, MessageCount: %d, Temperature: %.2f",
+	slog.Info("OpenAI request prepared - Model: %s, MessageCount: %d, Temperature: %.2f",
 		openaiReq.Model, len(openaiReq.Messages), openaiReq.Temperature)
 	client := openai.NewClientWithConfig(config)
 	if streamOutput {
@@ -76,10 +76,10 @@ func handleRegularResponse(ctx context.Context, w http.ResponseWriter, client *o
 
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		log.Printf("OpenAI request failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
+		slog.Info("OpenAI request failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
 		return nil, dto.ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())
 	}
-	log.Printf("completion: %+v", completion)
+	slog.Info("completion: %+v", completion)
 	data, _ := json.Marshal(completion)
 	fmt.Fprint(w, string(data))
 	return &models.LLMAnswer{Answer: completion.Choices[0].Message.Content, AnswerId: completion.ID}, nil
@@ -92,16 +92,16 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 	ctx, cancel := context.WithTimeout(handler.RequestContext(), 5*time.Minute)
 	defer cancel()
 
-	log.Print("Creating OpenAI stream")
+	slog.Info("Creating OpenAI stream")
 	stream, err := client.CreateChatCompletionStream(ctx, req)
 
 	if err != nil {
-		log.Printf("OpenAI stream setup failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
+		slog.Info("OpenAI stream setup failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
 		return nil, dto.ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())
 	}
 	defer func() {
 		if err := stream.Close(); err != nil {
-			log.Printf("Error closing OpenAI stream: %v", err)
+			slog.Error("error: closing OpenAI stream: %v", err)
 		}
 	}()
 
@@ -124,7 +124,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 	// Ensure minimum buffer length
 	if bufferLen == 0 {
-		log.Println("Buffer length is 0, setting to 1")
+		slog.Info("Buffer length is 0, setting to 1")
 		bufferLen = 1
 	}
 
@@ -137,7 +137,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
-			log.Printf("Stream cancelled by client: %v", ctx.Err())
+			slog.Info("Stream cancelled by client: %v", ctx.Err())
 			// Return current accumulated content when cancelled
 			llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answer_id}
 			if hasReason {
@@ -149,11 +149,11 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 
 		rawLine, err := stream.RecvRaw()
 		if err != nil {
-			log.Printf("OpenAI stream receive error - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
+			slog.Info("OpenAI stream receive error - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
 			if errors.Is(err, io.EOF) {
 				if TextBuffer.String("\n") == "" && reasonBuffer.String("\n") == "" {
 					errMsg := fmt.Sprintf("stream closed without content; verify configured URL %q resolves to a valid OpenAI-compatible base URL %q and that model %q is valid", configuredURL, baseURL, req.Model)
-					log.Print(errMsg)
+					slog.Info(errMsg)
 					return nil, dto.ErrOpenAIStreamFailed.WithMessage("Stream closed without content").WithDebugInfo(errMsg)
 				}
 				// Stream ended successfully - return accumulated content
@@ -163,7 +163,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 				}
 				return &llmAnswer, nil
 			} else {
-				log.Printf("Stream error: %v", err)
+				slog.Info("Stream error: %v", err)
 				return nil, dto.ErrOpenAIStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())
 			}
 		}
@@ -171,7 +171,7 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		response := llm_openai.ChatCompletionStreamResponse{}
 		err = json.Unmarshal(rawLine, &response)
 		if err != nil {
-			log.Printf("Could not unmarshal response: %v\n", err)
+			slog.Info("Could not unmarshal response: %v\n", err)
 			continue
 		}
 
@@ -195,14 +195,14 @@ func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatC
 		if len(delta.Content) > 0 || len(delta.ReasoningContent) > 0 {
 			deltaToSend := processDelta(delta, &reasonTagOpened, &reasonTagClosed, hasReason)
 			if len(deltaToSend) > 0 {
-				log.Printf("delta: %s", deltaToSend)
+				slog.Info("delta: %s", deltaToSend)
 				err := FlushResponse(w, flusher, StreamingResponse{
 					AnswerID: answer_id,
 					Content:  deltaToSend,
 					IsFinal:  false,
 				})
 				if err != nil {
-					log.Printf("Failed to flush response: %v", err)
+					slog.Info("Failed to flush response: %v", err)
 				}
 			}
 		}
@@ -247,10 +247,10 @@ func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chatCompleti
 
 	for _, m := range openaiMessages {
 		b, _ := m.MarshalJSON()
-		log.Printf("messages: %+v\n", string(b))
+		slog.Info("messages: %+v\n", string(b))
 	}
 
-	log.Printf("messages: %+v\n", openaiMessages)
+	slog.Info("messages: %+v\n", openaiMessages)
 	// Ensure TopP is always greater than 0 to prevent API validation errors
 	topP := float32(chatSession.TopP) - 0.01
 	if topP <= 0 {

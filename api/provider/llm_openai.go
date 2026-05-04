@@ -3,7 +3,7 @@ package provider
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -69,13 +69,13 @@ func messagesToOpenAIMesages(messages []models.Message, chatFiles []sqlc_queries
 	firstUserMessage, idx, found := lo.FindIndexOf(open_ai_msgs, func(msg openai.ChatCompletionMessage) bool { return msg.Role == "user" })
 
 	if found {
-		log.Printf("firstUserMessage: %+v\n", firstUserMessage)
+		slog.Info("firstUserMessage: %+v\n", firstUserMessage)
 		open_ai_msgs[idx].MultiContent = append(
 			[]openai.ChatMessagePart{
 				{Type: openai.ChatMessagePartTypeText, Text: firstUserMessage.Content},
 			}, parts...)
 		open_ai_msgs[idx].Content = ""
-		log.Printf("firstUserMessage: %+v\n", firstUserMessage)
+		slog.Info("firstUserMessage: %+v\n", firstUserMessage)
 	}
 
 	return open_ai_msgs
@@ -117,7 +117,7 @@ func NormalizeOpenAIModelName(chatModel sqlc_queries.ChatModel, modelName string
 	if strings.Contains(chatModel.Url, "open.bigmodel.cn") {
 		normalized := strings.ToLower(modelName)
 		if normalized != modelName {
-			log.Printf("Normalizing BigModel model name from %q to %q", modelName, normalized)
+			slog.Info("Normalizing BigModel model name from %q to %q", modelName, normalized)
 		}
 		return normalized
 	}
@@ -129,7 +129,7 @@ func configOpenAIProxy(clientCfg *openai.ClientConfig, proxyURL string) {
 	if proxyUrlStr != "" {
 		proxyUrl, err := url.Parse(proxyUrlStr)
 		if err != nil {
-			log.Printf("Error parsing proxy URL: %v", err)
+			slog.Error("error: parsing proxy URL: %v", err)
 		}
 		transport := &http.Transport{
 			Proxy: http.ProxyURL(proxyUrl),
@@ -148,7 +148,7 @@ func GenOpenAIConfig(chatModel sqlc_queries.ChatModel, cfg Config) (openai.Clien
 	if err != nil {
 		return openai.ClientConfig{}, err
 	}
-	log.Printf("OpenAI-compatible URL resolved - Model: %s, ConfiguredURL: %s, BaseURL: %s", chatModel.Name, chatModel.Url, baseUrl)
+	slog.Info("OpenAI-compatible URL resolved - Model: %s, ConfiguredURL: %s, BaseURL: %s", chatModel.Name, chatModel.Url, baseUrl)
 
 	var config openai.ClientConfig
 	if os.Getenv("AZURE_RESOURCE_NAME") != "" {

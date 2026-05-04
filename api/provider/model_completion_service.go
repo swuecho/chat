@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -101,7 +101,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
-			log.Printf("Completion stream cancelled by client: %v", ctx.Err())
+			slog.Info("Completion stream cancelled by client: %v", ctx.Err())
 			// Return current accumulated content when cancelled
 			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
 		default:
@@ -117,14 +117,14 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 					IsFinal:  true,
 				})
 				if err != nil {
-					log.Printf("Failed to flush final response: %v", err)
+					slog.Info("Failed to flush final response: %v", err)
 				}
 			}
 
 			// Include debug information if enabled
 			if chatSession.Debug {
 				req_j, _ := json.Marshal(req)
-				log.Println(string(req_j))
+				slog.Info(string(req_j))
 				answer = answer + "\n" + string(req_j)
 				err := FlushResponse(w, flusher, StreamingResponse{
 					AnswerID: answer_id,
@@ -132,7 +132,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 					IsFinal:  true,
 				})
 				if err != nil {
-					log.Printf("Failed to flush debug response: %v", err)
+					slog.Info("Failed to flush debug response: %v", err)
 				}
 			}
 			break
@@ -149,7 +149,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 		TextBuffer.AppendByIndex(textIdx, delta)
 
 		if chatSession.Debug {
-			log.Printf("%d: %s", textIdx, delta)
+			slog.Info("%d: %s", textIdx, delta)
 		}
 
 		if answer_id == "" {
@@ -163,7 +163,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 		perWordStreamLimit := GetPerWordStreamLimit()
 		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
 			if len(answer) == 0 {
-				log.Print("no content in answer")
+				slog.Info("no content in answer")
 			} else {
 				err := FlushResponse(w, flusher, StreamingResponse{
 					AnswerID: answer_id,
@@ -171,7 +171,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 					IsFinal:  false,
 				})
 				if err != nil {
-					log.Printf("Failed to flush response: %v", err)
+					slog.Info("Failed to flush response: %v", err)
 				}
 			}
 		}

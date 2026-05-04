@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -215,7 +215,7 @@ func chatStreamClaude3(ctx context.Context, w http.ResponseWriter, req *http.Req
 		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
-			log.Printf("Claude stream cancelled by client: %v", ctx.Err())
+			slog.Info("Claude stream cancelled by client: %v", ctx.Err())
 			// Return current accumulated content when cancelled
 			return &models.LLMAnswer{Answer: answer, AnswerId: answer_id}, nil
 		default:
@@ -227,18 +227,18 @@ func chatStreamClaude3(ctx context.Context, w http.ResponseWriter, req *http.Req
 			break
 		}
 		line, err := ioreader.ReadBytes('\n')
-		log.Printf("%+v", string(line))
+		slog.Info("%+v", string(line))
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
-					log.Println(string(line))
+					slog.Info(string(line))
 					err := FlushResponse(w, flusher, StreamingResponse{
 						AnswerID: NewUUID(),
 						Content:  string(line),
 						IsFinal:  true,
 					})
 					if err != nil {
-						log.Printf("Failed to flush error response: %v", err)
+						slog.Info("Failed to flush error response: %v", err)
 					}
 				}
 				fmt.Println("End of stream reached")
@@ -254,7 +254,7 @@ func chatStreamClaude3(ctx context.Context, w http.ResponseWriter, req *http.Req
 			break
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
-			log.Println(string(line))
+			slog.Info(string(line))
 			return nil, dto.ErrClaudeStreamFailed.WithMessage("Error in Claude API response").WithDebugInfo(string(line))
 		}
 		if answer_id == "" {
@@ -268,7 +268,7 @@ func chatStreamClaude3(ctx context.Context, w http.ResponseWriter, req *http.Req
 				IsFinal:  false,
 			})
 			if err != nil {
-				log.Printf("Failed to flush content block start: %v", err)
+				slog.Info("Failed to flush content block start: %v", err)
 			}
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
@@ -281,7 +281,7 @@ func chatStreamClaude3(ctx context.Context, w http.ResponseWriter, req *http.Req
 				IsFinal:  false,
 			})
 			if err != nil {
-				log.Printf("Failed to flush content block delta: %v", err)
+				slog.Info("Failed to flush content block delta: %v", err)
 			}
 		}
 		// Flush after every iteration to ensure immediate delivery

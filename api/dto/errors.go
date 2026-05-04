@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strings"
@@ -297,11 +297,11 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	}
 
 	if err.DebugInfo != "" {
-		log.Printf("Error [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
+		slog.Error("error: [%s]: %s - %s", err.Code, err.Message, err.DebugInfo)
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Failed to write error response: %v", err)
+		slog.Info("Failed to write error response: %v", err)
 	}
 }
 
@@ -359,7 +359,7 @@ func MapDatabaseError(err error) error {
 		}
 	}
 
-	log.Printf("Unhandled database error: %v", err)
+	slog.Info("Unhandled database error: %v", err)
 
 	dbErr := ErrDatabaseQuery
 	dbErr.DebugInfo = err.Error()

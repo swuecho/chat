@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"log/slog"
 	"github.com/gorilla/mux"
 	"golang.org/x/time/rate"
 
@@ -66,7 +66,7 @@ func (h *ChatHandler) GetRequestContext() context.Context {
 func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) {
 	artifactInstruction, err := svc.LoadArtifactInstruction()
 	if err != nil {
-		log.Printf("Warning: Failed to load artifact instruction: %v", err)
+		slog.Warn("Failed to load artifact instruction: %v", err)
 		artifactInstruction = ""
 	}
 	json.NewEncoder(w).Encode(dto.ChatInstructionResponse{

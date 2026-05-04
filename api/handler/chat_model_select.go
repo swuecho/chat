@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
+	"log/slog"
 	mapset "github.com/deckarep/golang-set/v2"
 
 	"github.com/swuecho/chat_backend/dto"
@@ -64,7 +64,7 @@ func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid, m
 
 	chatModel, err := h.sessionSvc.ChatModelByName(ctx, model)
 	if err != nil {
-		log.WithError(err).WithField("model", model).Error("Chat model not found")
+		slog.Error("Chat model not found", "error", err, "model", model)
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat model: "+model))
 		return true
 	}

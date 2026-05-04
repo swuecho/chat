@@ -2,7 +2,7 @@ package provider
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/swuecho/chat_backend/dto"
@@ -42,7 +42,7 @@ func (m *TestChatModel) Stream(w http.ResponseWriter, session sqlc_queries.ChatS
 
 	answer := "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."
 	if err := FlushResponse(w, flusher, StreamingResponse{AnswerID: answerID, Content: answer}); err != nil {
-		log.Printf("Failed to flush response: %v", err)
+		slog.Info("Failed to flush response: %v", err)
 	}
 
 	if session.Debug {

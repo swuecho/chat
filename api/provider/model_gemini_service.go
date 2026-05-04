@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -184,15 +184,15 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, w http.Respo
 	}
 
 	var answer string
-	log.Println(resp.StatusCode)
+	slog.Info("gemini response", "statusCode", resp.StatusCode)
 	if resp.StatusCode != http.StatusOK {
 		errorBody, _ := io.ReadAll(resp.Body)
-		log.Println(string(errorBody))
+		slog.Info("gemini error body", "body", string(errorBody))
 		var apiError gemini.GoogleApiError
 		if json.Unmarshal(errorBody, &apiError) == nil && apiError.Error.Message != "" {
-			log.Printf("API returned non-200 status: %d %s. Error: %s", resp.StatusCode, http.StatusText(resp.StatusCode), &apiError)
+			slog.Warn("API returned non-200 status", "statusCode", resp.StatusCode, "statusText", http.StatusText(resp.StatusCode), "error", &apiError)
 		} else {
-			log.Printf("API returned non-200 status: %d %s. Body: %s", resp.StatusCode, http.StatusText(resp.StatusCode), string(errorBody))
+			slog.Warn("API returned non-200 status", "statusCode", resp.StatusCode, "statusText", http.StatusText(resp.StatusCode), "body", string(errorBody))
 		}
 		return nil, dto.APIError{
 			HTTPCode: apiError.Error.Code,
@@ -207,7 +207,7 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, w http.Respo
 		// Check if client disconnected or context was cancelled
 		select {
 		case <-ctx.Done():
-			log.Printf("Gemini stream cancelled by client: %v", ctx.Err())
+			slog.Info("Gemini stream cancelled by client", "error", ctx.Err())
 			// Return current accumulated content when cancelled
 			return &models.LLMAnswer{Answer: answer, AnswerId: answerID}, nil
 		default:
@@ -240,7 +240,7 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, w http.Respo
 					IsFinal:  false,
 				})
 				if err != nil {
-					log.Printf("Failed to flush response: %v", err)
+					slog.Info("Failed to flush response", "error", err)
 				}
 			}
 		}
