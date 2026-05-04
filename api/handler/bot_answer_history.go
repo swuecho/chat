@@ -127,9 +127,15 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByUserID(w http.ResponseWri
 }
 
 func (h *BotAnswerHistoryHandler) UpdateBotAnswerHistory(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	if id == "" {
+	idStr := mux.Vars(r)["id"]
+	if idStr == "" {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("ID is required"))
+		return
+	}
+
+	idInt, err := strconv.ParseInt(idStr, 10, 32)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid ID format"))
 		return
 	}
 
@@ -138,6 +144,7 @@ func (h *BotAnswerHistoryHandler) UpdateBotAnswerHistory(w http.ResponseWriter, 
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()))
 		return
 	}
+	params.ID = int32(idInt)
 
 	history, err := h.service.UpdateBotAnswerHistory(r.Context(), params.ID, params.Answer, params.TokensUsed)
 	if err != nil {

@@ -170,6 +170,24 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 
 func (h *ChatSessionHandler) deleteChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
+
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+
+	// Verify session ownership before deletion
+	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat session").WithDebugInfo(err.Error()))
+		return
+	}
+	if session.UserID != userID {
+		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("You do not own this session"))
+		return
+	}
+
 	if err := h.service.DeleteChatSessionByUUID(r.Context(), uuid); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to delete chat session").WithDebugInfo(err.Error()))
 		return
@@ -224,12 +242,28 @@ func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *ht
 	}
 	params.Uuid = uuid
 
-	session, err := h.service.UpdateSessionMaxLength(r.Context(), params)
+	// Verify session ownership
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat session").WithDebugInfo(err.Error()))
+		return
+	}
+	if session.UserID != userID {
+		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("You do not own this session"))
+		return
+	}
+
+	updatedSession, err := h.service.UpdateSessionMaxLength(r.Context(), params)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update session max length").WithDebugInfo(err.Error()))
 		return
 	}
-	json.NewEncoder(w).Encode(session)
+	json.NewEncoder(w).Encode(updatedSession)
 }
 
 func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter, r *http.Request) {
@@ -248,7 +282,10 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	}
 
 	var messages []dto.SimpleChatMessage
-	json.Unmarshal(snapshot.Conversation, &messages)
+	if err := json.Unmarshal(snapshot.Conversation, &messages); err != nil || len(messages) == 0 {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Snapshot has no messages"))
+		return
+	}
 	promptMsg := messages[0]
 
 	chatPrompt, err := h.service.GetChatPromptByUUID(r.Context(), promptMsg.Uuid)

@@ -18,6 +18,9 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
+// titleGenSemaphore limits concurrent title generation goroutines to prevent unbounded resource usage.
+var titleGenSemaphore = make(chan struct{}, 5)
+
 // validateChatSession validates the session UUID and retrieves session + model info.
 func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string) (*sqlc_queries.ChatSession, *sqlc_queries.ChatModel, string, bool) {
 	chatSession, err := h.sessionSvc.GetChatSessionByUUID(ctx, chatSessionUuid)
@@ -125,7 +128,12 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, chatMessage.SuggestedQuestions)
 	}
 
-	go h.generateSessionTitle(chatSession, userID)
+	// Launch title generation with bounded concurrency
+	go func() {
+		titleGenSemaphore <- struct{}{}
+		defer func() { <-titleGenSemaphore }()
+		h.generateSessionTitle(chatSession, userID)
+	}()
 	return true
 }
 
@@ -160,6 +168,9 @@ func streamFromModel(model provider.ChatModel, ctx context.Context, w http.Respo
 				})
 			}
 		}
+		// Send the [DONE] termination marker
+		fmt.Fprintf(w, "data: [DONE]\n\n")
+		flusher.Flush()
 	} else {
 		for chunk := range ch {
 			if chunk.Err != nil {

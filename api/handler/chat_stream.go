@@ -87,7 +87,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	genBotAnswer(h, w, session, messages, req.SnapshotUuid, req.Message, userID, req.Stream)
+	genBotAnswer(ctx, h, w, session, messages, req.SnapshotUuid, req.Message, userID, req.Stream)
 }
 
 // ChatCompletionHandler handles regular chat completion with streaming support.
@@ -130,8 +130,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 }
 
 // genBotAnswer generates a bot answer from a snapshot conversation.
-func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, messages []dto.SimpleChatMessage, snapshotUuid, question string, userID int32, streamOutput bool) {
-	ctx := context.Background()
+func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, messages []dto.SimpleChatMessage, snapshotUuid, question string, userID int32, streamOutput bool) {
 	if _, err := h.sessionSvc.ChatModelByName(ctx, session.Model); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat model: "+session.Model).WithDebugInfo(err.Error()))
 		return

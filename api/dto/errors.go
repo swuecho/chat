@@ -293,11 +293,11 @@ func RespondWithAPIError(w http.ResponseWriter, err APIError) {
 	}{
 		Code:    err.Code,
 		Message: err.Message,
-		Detail:  err.Detail + " " + err.DebugInfo,
+		Detail:  err.Detail,
 	}
 
 	if err.DebugInfo != "" {
-		slog.Error("api error", "code", err.Code, "message", err.Message, "debug", err.DebugInfo)
+		slog.Error("api error", "code", err.Code, "message", err.Message, "detail", err.Detail, "debug", err.DebugInfo)
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {

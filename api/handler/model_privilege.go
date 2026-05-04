@@ -80,7 +80,7 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 		return
 	}
 
-	slog.Info("Creating chat model privilege for user %s with model %s", input.UserEmail, input.ChatModelName)
+	slog.Info("Creating chat model privilege", "userEmail", input.UserEmail, "chatModelName", input.ChatModelName)
 
 	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
 	if err != nil {

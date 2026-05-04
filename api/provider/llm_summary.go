@@ -31,7 +31,7 @@ func llm_summarize(ctx context.Context, apiToken, baseURL string, doc string) st
 		openai.WithBaseURL(baseURL),
 	)
 	if err != nil {
-		slog.Info("failed to create openai client %s: %v", baseURL, err)
+		slog.Info("failed to create openai client", "baseURL", baseURL, "error", err)
 		return ""
 	}
 
@@ -41,7 +41,7 @@ func llm_summarize(ctx context.Context, apiToken, baseURL string, doc string) st
 	)
 	outputValues, err := chains.Call(ctx, llmSummarizationChain, map[string]any{"input_documents": docs})
 	if err != nil {
-		slog.Info("failed to call chain: %s, %v", baseURL, err)
+		slog.Info("failed to call chain", "baseURL", baseURL, "error", err)
 		return ""
 	}
 	out, _ := outputValues["text"].(string)

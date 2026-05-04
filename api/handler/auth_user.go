@@ -264,7 +264,11 @@ func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
 	lifetime := time.Duration(10*365*24) * time.Hour
-	userId, _ := getUserID(r.Context())
+	userId, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
 	userRole, _ := r.Context().Value(middleware.RoleContextKey).(string)
 
 	token, err := auth.GenerateToken(userId, userRole, h.jwtSecret, h.audience, lifetime, auth.TokenTypeAccess)

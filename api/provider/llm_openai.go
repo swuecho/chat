@@ -69,13 +69,13 @@ func messagesToOpenAIMesages(messages []models.Message, chatFiles []sqlc_queries
 	firstUserMessage, idx, found := lo.FindIndexOf(open_ai_msgs, func(msg openai.ChatCompletionMessage) bool { return msg.Role == "user" })
 
 	if found {
-		slog.Info("firstUserMessage before attach", "msg", firstUserMessage)
+		slog.Debug("firstUserMessage before attach", "msg", firstUserMessage)
 		open_ai_msgs[idx].MultiContent = append(
 			[]openai.ChatMessagePart{
 				{Type: openai.ChatMessagePartTypeText, Text: firstUserMessage.Content},
 			}, parts...)
 		open_ai_msgs[idx].Content = ""
-		slog.Info("firstUserMessage after attach", "msg", firstUserMessage)
+		slog.Debug("firstUserMessage after attach", "msg", firstUserMessage)
 	}
 
 	return open_ai_msgs
@@ -117,7 +117,7 @@ func NormalizeOpenAIModelName(chatModel sqlc_queries.ChatModel, modelName string
 	if strings.Contains(chatModel.Url, "open.bigmodel.cn") {
 		normalized := strings.ToLower(modelName)
 		if normalized != modelName {
-			slog.Info("Normalizing BigModel model name from %q to %q", modelName, normalized)
+			slog.Info("Normalizing BigModel model name", "from", modelName, "to", normalized)
 		}
 		return normalized
 	}

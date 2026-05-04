@@ -75,7 +75,7 @@ func handleRegularResponse(ctx context.Context, ch chan<- StreamChunk, client *o
 
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		slog.Info("OpenAI request failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
+		slog.Info("OpenAI request failed", "model", req.Model, "configuredURL", configuredURL, "baseURL", baseURL, "error", err)
 		ch <- StreamChunk{Err: dto.ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())}
 		return
 	}
@@ -100,7 +100,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 	slog.Info("Creating OpenAI stream")
 	stream, err := client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
-		slog.Info("OpenAI stream setup failed - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
+		slog.Info("OpenAI stream setup failed", "model", req.Model, "configuredURL", configuredURL, "baseURL", baseURL, "error", err)
 		ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())}
 		return
 	}
@@ -139,7 +139,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 
 		rawLine, err := stream.RecvRaw()
 		if err != nil {
-			slog.Info("OpenAI stream receive error - Model: %s, ConfiguredURL: %s, BaseURL: %s, Error: %+v", req.Model, configuredURL, baseURL, err)
+			slog.Info("OpenAI stream receive error", "model", req.Model, "configuredURL", configuredURL, "baseURL", baseURL, "error", err)
 			if errors.Is(err, io.EOF) {
 				if TextBuffer.String("\n") == "" && reasonBuffer.String("\n") == "" {
 					errMsg := fmt.Sprintf("stream closed without content; verify configured URL %q resolves to a valid OpenAI-compatible base URL %q and that model %q is valid", configuredURL, baseURL, req.Model)

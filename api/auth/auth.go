@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/rotisserie/eris"
@@ -41,9 +42,16 @@ func GeneratePasswordHash(password string) (string, error) {
 
 func ValidatePassword(password, hash string) bool {
 	fields := strings.Split(hash, "$")
-	if len(fields) != 4 || fields[0] != "pbkdf2_sha256" || fields[1] != fmt.Sprintf("%d", iterations) {
+	if len(fields) != 4 || fields[0] != "pbkdf2_sha256" {
 		return false
 	}
+
+	// Parse iteration count from the hash itself to support future upgrades
+	hashIterations, err := strconv.Atoi(fields[1])
+	if err != nil || hashIterations <= 0 {
+		return false
+	}
+
 	encodedSalt := fields[2]
 	decodedSalt, err := base64.StdEncoding.DecodeString(encodedSalt)
 	if err != nil {
@@ -55,7 +63,7 @@ func ValidatePassword(password, hash string) bool {
 	if err != nil {
 		return false
 	}
-	computedHash := pbkdf2.Key([]byte(password), decodedSalt, iterations, keySize, sha256.New)
+	computedHash := pbkdf2.Key([]byte(password), decodedSalt, hashIterations, keySize, sha256.New)
 	return subtle.ConstantTimeCompare(decodedHash, computedHash) == 1
 }
 

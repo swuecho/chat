@@ -3,7 +3,7 @@ package svc
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -40,7 +40,7 @@ func (s *AuthUserService) CreateAuthUser(ctx context.Context, auth_user_params s
 	}
 	if totalUserCount == 0 {
 		auth_user_params.IsSuperuser = true
-		fmt.Println("First user is superuser.")
+		slog.Info("First user is superuser")
 	}
 	auth_user, err := s.q.CreateAuthUser(ctx, auth_user_params)
 	if err != nil {

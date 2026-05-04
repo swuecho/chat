@@ -116,7 +116,7 @@ func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context,
 // --- Permission ---
 
 func (s *ChatWorkspaceService) HasWorkspacePermission(ctx context.Context, uuid string, userID int32) (bool, error) {
-	slog.Info("Checking permission for workspace=%s, user=%d", uuid, userID)
+	slog.Info("Checking workspace permission", "workspace", uuid, "user", userID)
 	result, err := s.q.HasWorkspacePermission(ctx, sqlc_queries.HasWorkspacePermissionParams{
 		Uuid: uuid, UserID: userID,
 	})
@@ -210,7 +210,7 @@ func (s *ChatWorkspaceService) MigrateLegacyActiveSessions(ctx context.Context, 
 				ChatSessionUuid: session.ChatSessionUuid,
 			})
 			if err != nil {
-				slog.Warn("failed to migrate active session %s: %v", session.ChatSessionUuid, err)
+				slog.Warn("failed to migrate active session", "sessionUuid", session.ChatSessionUuid, "error", err)
 				continue
 			}
 			// Delete old global active session
