@@ -11,8 +11,8 @@ import (
 	"time"
 
 	openai "github.com/sashabaranov/go-openai"
-	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/dto"
+	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )

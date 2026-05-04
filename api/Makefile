@@ -16,8 +16,12 @@ vet: fmt
 .PHONY: vet
 
 build: vet
-	go build
+	go build -v ./...
 .PHONY: build
+
+test:
+	go test -v ./...
+.PHONY: test
 
 install:
 	go install github.com/air-verse/air@latest

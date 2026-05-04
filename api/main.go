@@ -91,8 +91,8 @@ func run() error {
 
 	// --- HTTP Server ---
 	httpServer := &http.Server{
-		Addr:         ":8080",
-		Handler:      router,
+		Addr:              ":8080",
+		Handler:           router,
 		ReadTimeout:       60 * time.Second,
 		ReadHeaderTimeout: 30 * time.Second,
 		WriteTimeout:      10 * time.Minute, // Long write timeout for streaming
@@ -279,8 +279,8 @@ func (s *server) healthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dto.RespondWithJSON(w, status, map[string]interface{}{
-		"status":  statusToText(healthy),
-		"checks":  checks,
+		"status": statusToText(healthy),
+		"checks": checks,
 	})
 }
 
@@ -346,5 +346,3 @@ func (s *server) idleMonitor() {
 		}
 	}
 }
-
-

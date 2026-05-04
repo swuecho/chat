@@ -181,20 +181,20 @@ returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_l
 `
 
 type CreateOrUpdateChatSessionByUUIDParams struct {
-	Uuid              string        `json:"uuid"`
-	UserID            int32         `json:"userId"`
-	Topic             string        `json:"topic"`
-	MaxLength         int32         `json:"maxLength"`
-	Temperature       float64       `json:"temperature"`
-	Model             string        `json:"model"`
-	MaxTokens         int32         `json:"maxTokens"`
-	TopP              float64       `json:"topP"`
-	N                 int32         `json:"n"`
-	Debug             bool          `json:"debug"`
-	SummarizeMode     bool          `json:"summarizeMode"`
-	WorkspaceID       sql.NullInt32 `json:"workspaceId"`
-	ExploreMode       bool          `json:"exploreMode"`
-	ArtifactEnabled   bool          `json:"artifactEnabled"`
+	Uuid            string        `json:"uuid"`
+	UserID          int32         `json:"userId"`
+	Topic           string        `json:"topic"`
+	MaxLength       int32         `json:"maxLength"`
+	Temperature     float64       `json:"temperature"`
+	Model           string        `json:"model"`
+	MaxTokens       int32         `json:"maxTokens"`
+	TopP            float64       `json:"topP"`
+	N               int32         `json:"n"`
+	Debug           bool          `json:"debug"`
+	SummarizeMode   bool          `json:"summarizeMode"`
+	WorkspaceID     sql.NullInt32 `json:"workspaceId"`
+	ExploreMode     bool          `json:"exploreMode"`
+	ArtifactEnabled bool          `json:"artifactEnabled"`
 }
 
 func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg CreateOrUpdateChatSessionByUUIDParams) (ChatSession, error) {
@@ -535,28 +535,28 @@ ORDER BY
 `
 
 type GetSessionsGroupedByWorkspaceRow struct {
-	ID                int32          `json:"id"`
-	UserID            int32          `json:"userId"`
-	Uuid              string         `json:"uuid"`
-	Topic             string         `json:"topic"`
-	CreatedAt         time.Time      `json:"createdAt"`
-	UpdatedAt         time.Time      `json:"updatedAt"`
-	Active            bool           `json:"active"`
-	Model             string         `json:"model"`
-	MaxLength         int32          `json:"maxLength"`
-	Temperature       float64        `json:"temperature"`
-	TopP              float64        `json:"topP"`
-	MaxTokens         int32          `json:"maxTokens"`
-	N                 int32          `json:"n"`
-	SummarizeMode     bool           `json:"summarizeMode"`
-	WorkspaceID       sql.NullInt32  `json:"workspaceId"`
-	ArtifactEnabled   bool           `json:"artifactEnabled"`
-	Debug             bool           `json:"debug"`
-	ExploreMode       bool           `json:"exploreMode"`
-	WorkspaceUuid     sql.NullString `json:"workspaceUuid"`
-	WorkspaceName     sql.NullString `json:"workspaceName"`
-	WorkspaceColor    sql.NullString `json:"workspaceColor"`
-	WorkspaceIcon     sql.NullString `json:"workspaceIcon"`
+	ID              int32          `json:"id"`
+	UserID          int32          `json:"userId"`
+	Uuid            string         `json:"uuid"`
+	Topic           string         `json:"topic"`
+	CreatedAt       time.Time      `json:"createdAt"`
+	UpdatedAt       time.Time      `json:"updatedAt"`
+	Active          bool           `json:"active"`
+	Model           string         `json:"model"`
+	MaxLength       int32          `json:"maxLength"`
+	Temperature     float64        `json:"temperature"`
+	TopP            float64        `json:"topP"`
+	MaxTokens       int32          `json:"maxTokens"`
+	N               int32          `json:"n"`
+	SummarizeMode   bool           `json:"summarizeMode"`
+	WorkspaceID     sql.NullInt32  `json:"workspaceId"`
+	ArtifactEnabled bool           `json:"artifactEnabled"`
+	Debug           bool           `json:"debug"`
+	ExploreMode     bool           `json:"exploreMode"`
+	WorkspaceUuid   sql.NullString `json:"workspaceUuid"`
+	WorkspaceName   sql.NullString `json:"workspaceName"`
+	WorkspaceColor  sql.NullString `json:"workspaceColor"`
+	WorkspaceIcon   sql.NullString `json:"workspaceIcon"`
 }
 
 func (q *Queries) GetSessionsGroupedByWorkspace(ctx context.Context, userID int32) ([]GetSessionsGroupedByWorkspaceRow, error) {

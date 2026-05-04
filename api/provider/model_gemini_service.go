@@ -200,8 +200,8 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- St
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				ch <- StreamChunk{
-					ID:   answerID,
-					Done: true,
+					ID:          answerID,
+					Done:        true,
 					FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID},
 				}
 				return

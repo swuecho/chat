@@ -18,11 +18,11 @@ import (
 
 // StreamChunk represents a single chunk in a streaming LLM response.
 type StreamChunk struct {
-	ID          string             // answer ID
-	Content     string             // delta text content
-	Done        bool               // true for the terminal chunk
-	FinalAnswer *models.LLMAnswer  // set on Done (nil on error)
-	Err         error              // non-nil if a stream error occurred
+	ID          string            // answer ID
+	Content     string            // delta text content
+	Done        bool              // true for the terminal chunk
+	FinalAnswer *models.LLMAnswer // set on Done (nil on error)
+	Err         error             // non-nil if a stream error occurred
 }
 
 // ChatModel is the interface all LLM providers must implement.
@@ -36,10 +36,10 @@ type ChatModel interface {
 
 // Config holds global configuration needed by providers.
 type Config struct {
-	OpenAIKey     string
-	OpenAIProxy   string
-	RateLimiter   *rate.Limiter
-	DefaultLimit  int
+	OpenAIKey    string
+	OpenAIProxy  string
+	RateLimiter  *rate.Limiter
+	DefaultLimit int
 }
 
 // Handler provides request-scoped dependencies that providers need.

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"log/slog"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"log/slog"
 )
 
 // --- Request types ---

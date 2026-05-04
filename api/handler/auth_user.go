@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"log/slog"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/middleware"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
+	"log/slog"
 )
 
 // Token lifetime constants.

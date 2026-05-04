@@ -41,8 +41,8 @@ func (m *TestChatModel) Stream(ctx context.Context, session sqlc_queries.ChatSes
 		}
 
 		ch <- StreamChunk{
-			ID:   answerID,
-			Done: true,
+			ID:          answerID,
+			Done:        true,
 			FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID},
 		}
 	}()

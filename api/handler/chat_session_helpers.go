@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"log/slog"
 	openai "github.com/sashabaranov/go-openai"
+	"log/slog"
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"

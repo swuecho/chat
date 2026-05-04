@@ -13,8 +13,8 @@ import (
 	"os"
 	"time"
 
-	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/dto"
+	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -183,8 +183,8 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 					ch <- StreamChunk{
-						ID:   NewUUID(),
-						Done: true,
+						ID:          NewUUID(),
+						Done:        true,
 						FinalAnswer: &models.LLMAnswer{Answer: string(line), AnswerId: answerID},
 					}
 				}

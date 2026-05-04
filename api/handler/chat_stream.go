@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"log/slog"
 	openai "github.com/sashabaranov/go-openai"
+	"log/slog"
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
@@ -31,10 +31,10 @@ type BotRequest struct {
 }
 
 type ChatCompletionResponse struct {
-	ID      string   `json:"id"`
-	Object  string   `json:"object"`
-	Created int      `json:"created"`
-	Model   string   `json:"model"`
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	Created int    `json:"created"`
+	Model   string `json:"model"`
 	Usage   struct {
 		PromptTokens     int `json:"prompt_tokens"`
 		CompletionTokens int `json:"completion_tokens"`

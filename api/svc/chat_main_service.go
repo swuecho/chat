@@ -15,11 +15,11 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
+	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/llm/gemini"
 	models "github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
-	"github.com/swuecho/chat_backend/dto"
 )
 
 type ChatService struct {

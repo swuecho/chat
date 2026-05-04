@@ -22,7 +22,7 @@ type App struct {
 type Config struct {
 	OpenAIKey    string
 	OpenAIProxy  string
-	JWTSecret     string
-	JWTAudience   string
-	DefaultLimit  int32
+	JWTSecret    string
+	JWTAudience  string
+	DefaultLimit int32
 }

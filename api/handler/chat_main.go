@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"log/slog"
 	"github.com/gorilla/mux"
 	"golang.org/x/time/rate"
+	"log/slog"
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/provider"

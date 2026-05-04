@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	"log/slog"
 	mapset "github.com/deckarep/golang-set/v2"
+	"log/slog"
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
