@@ -19,7 +19,7 @@ import (
 
 // ChatModel is the interface all LLM providers must implement.
 type ChatModel interface {
-	Stream(w http.ResponseWriter, session sqlc_queries.ChatSession,
+	Stream(ctx context.Context, w http.ResponseWriter, session sqlc_queries.ChatSession,
 		messages []models.Message, chatUuid string,
 		regenerate bool, stream bool) (*models.LLMAnswer, error)
 }
@@ -34,7 +34,6 @@ type Config struct {
 
 // Handler provides request-scoped dependencies that providers need.
 type Handler interface {
-	RequestContext() context.Context
 	Queries() *sqlc_queries.Queries
 	CheckModelAccess(w http.ResponseWriter, chatSessionUuid, model string, userID int32) bool
 	Config() Config

@@ -55,10 +55,10 @@ func NewGeminiChatModel(h Handler) *GeminiChatModel {
 	}
 }
 
-func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+func (m *GeminiChatModel) Stream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	answerID := generateAnswerID(chatUuid, regenerate)
 
-	chatFiles, err := GetChatFiles(m.h.RequestContext(), m.h.Queries(), chatSession.Uuid)
+	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), chatSession.Uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -67,9 +67,6 @@ func (m *GeminiChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 	if err != nil {
 		return nil, dto.ErrInternalUnexpected.WithMessage("Failed to generate Gemini payload").WithDebugInfo(err.Error())
 	}
-
-	// Get request context for cancellation support
-	ctx := m.h.RequestContext()
 
 	url := gemini.BuildAPIURL(chatSession.Model, stream)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payloadBytes))

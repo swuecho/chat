@@ -43,9 +43,7 @@ func NewOllamaChatModel(h Handler) *OllamaChatModel {
 	return &OllamaChatModel{h: h}
 }
 
-func (m *OllamaChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	// Get request context for cancellation support
-	ctx := m.h.RequestContext()
+func (m *OllamaChatModel) Stream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	return chatOllamStream(m.h, ctx, w, chatSession, chat_compeletion_messages, chatUuid, regenerate)
 }
 

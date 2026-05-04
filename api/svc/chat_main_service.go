@@ -23,15 +23,17 @@ import (
 )
 
 type ChatService struct {
-	q *sqlc_queries.Queries
+	q           *sqlc_queries.Queries
+	openAIKey   string
+	openAIProxy string
 }
 
 //go:embed artifact_instruction.txt
 var artifactInstructionText string
 
-// NewChatService creates a new ChatService with database queries.
-func NewChatService(q *sqlc_queries.Queries) *ChatService {
-	return &ChatService{q: q}
+// NewChatService creates a new ChatService with database queries and OpenAI configuration.
+func NewChatService(q *sqlc_queries.Queries, openAIKey, openAIProxy string) *ChatService {
+	return &ChatService{q: q, openAIKey: openAIKey, openAIProxy: openAIProxy}
 }
 
 // Q returns the underlying queries.
@@ -181,7 +183,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 
 	if is_summarize_mode && numTokens > dto.SummarizeThreshold {
 		slog.Info("summarizing")
-		summary = provider.SummarizeWithTimeout(baseURL, content)
+		summary = provider.SummarizeWithTimeout(s.openAIKey, baseURL, content)
 		slog.Info("summarizing: " + summary)
 	}
 
@@ -227,7 +229,7 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 	summary := ""
 	if is_summarize_mode && numTokens > dto.SummarizeThreshold {
 		slog.Info("summarizing")
-		summary = provider.SummarizeWithTimeout(baseURL, content)
+		summary = provider.SummarizeWithTimeout(s.openAIKey, baseURL, content)
 		slog.Info("summarizing: " + summary)
 	}
 
@@ -433,7 +435,7 @@ func (s *ChatService) callGeminiForSuggestions(ctx context.Context, model sqlc_q
 // callOpenAICompatibleForSuggestions makes an OpenAI-compatible API call for suggestions (including deepseek)
 func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, model sqlc_queries.ChatModel, prompt string) string {
 	// Generate OpenAI client configuration
-	config, err := provider.GenOpenAIConfig(model, provider.Config{OpenAIKey: Cfg.OpenAIKey, OpenAIProxy: Cfg.OpenAIProxy})
+	config, err := provider.GenOpenAIConfig(model, provider.Config{OpenAIKey: s.openAIKey, OpenAIProxy: s.openAIProxy})
 	if err != nil {
 		slog.Warn("Failed to generate OpenAI configuration for suggestions: %v", err)
 		return ""

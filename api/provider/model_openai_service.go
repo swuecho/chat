@@ -28,15 +28,15 @@ func NewOpenAIChatModel(h Handler) *OpenAIChatModel {
 	return &OpenAIChatModel{h: h}
 }
 
-func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
-	m.h.Config().RateLimiter.Wait(m.h.RequestContext())
+func (m *OpenAIChatModel) Stream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
+	m.h.Config().RateLimiter.Wait(ctx)
 
 	exceedPerModeRateLimitOrError := m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
 	if exceedPerModeRateLimitOrError {
 		return nil, fmt.Errorf("exceed per mode rate limit")
 	}
 
-	chatModel, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
+	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		return nil, dto.ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
 	}
 
-	chatFiles, err := GetChatFiles(m.h.RequestContext(), m.h.Queries(), chatSession.Uuid)
+	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), chatSession.Uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -62,9 +62,9 @@ func (m *OpenAIChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries
 		openaiReq.Model, len(openaiReq.Messages), openaiReq.Temperature)
 	client := openai.NewClientWithConfig(config)
 	if streamOutput {
-		return doChatStream(w, client, openaiReq, chatSession.N, chatUuid, regenerate, m.h, chatModel.Url, config.BaseURL)
+		return doChatStream(ctx, w, client, openaiReq, chatSession.N, chatUuid, regenerate, m.h, chatModel.Url, config.BaseURL)
 	} else {
-		return handleRegularResponse(m.h.RequestContext(), w, client, openaiReq, chatModel.Url, config.BaseURL)
+		return handleRegularResponse(ctx, w, client, openaiReq, chatModel.Url, config.BaseURL)
 	}
 
 }
@@ -87,9 +87,9 @@ func handleRegularResponse(ctx context.Context, w http.ResponseWriter, client *o
 
 // doChatStream handles streaming chat completion responses from OpenAI
 // It properly manages thinking tags for models that support reasoning content
-func doChatStream(w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, handler Handler, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
+func doChatStream(ctx context.Context, w http.ResponseWriter, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, handler Handler, configuredURL string, baseURL string) (*models.LLMAnswer, error) {
 	// Use request context with timeout
-	ctx, cancel := context.WithTimeout(handler.RequestContext(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
 	slog.Info("Creating OpenAI stream")

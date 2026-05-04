@@ -21,11 +21,11 @@ type AuthUserService struct {
 }
 
 // NewAuthUserService creates a new AuthUserService.
-func NewAuthUserService(q *sqlc_queries.Queries) *AuthUserService {
+func NewAuthUserService(q *sqlc_queries.Queries, jwtSecret string, defaultLimit int32) *AuthUserService {
 	return &AuthUserService{
 		q:            q,
-		jwtSecret:    Cfg.JWTSecret,
-		defaultLimit: Cfg.DefaultLimit,
+		jwtSecret:    jwtSecret,
+		defaultLimit: defaultLimit,
 	}
 }
 

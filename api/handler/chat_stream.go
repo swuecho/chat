@@ -131,7 +131,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 
 // genBotAnswer generates a bot answer from a snapshot conversation.
 func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, messages []dto.SimpleChatMessage, snapshotUuid, question string, userID int32, streamOutput bool) {
-	ctx := h.GetRequestContext()
+	ctx := context.Background()
 	if _, err := h.sessionSvc.ChatModelByName(ctx, session.Model); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat model: "+session.Model).WithDebugInfo(err.Error()))
 		return
@@ -140,8 +140,8 @@ func genBotAnswer(h *ChatHandler, w http.ResponseWriter, session sqlc_queries.Ch
 	msgs := simpleChatMessagesToMessages(messages)
 	msgs = append(msgs, models.Message{Role: "user", Content: question})
 
-	model := h.chooseChatModel(session, msgs)
-	LLMAnswer, err := model.Stream(w, session, msgs, "", false, streamOutput)
+	model := h.chooseChatModel(ctx, session, msgs)
+	LLMAnswer, err := model.Stream(ctx, w, session, msgs, "", false, streamOutput)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return
@@ -176,9 +176,8 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		return
 	}
 
-	h.requestCtx = ctx
-	model := h.chooseChatModel(*chatSession, msgs)
-	LLMAnswer, err := model.Stream(w, *chatSession, msgs, chatUuid, true, stream)
+	model := h.chooseChatModel(ctx, *chatSession, msgs)
+	LLMAnswer, err := model.Stream(ctx, w, *chatSession, msgs, chatUuid, true, stream)
 	if err != nil {
 		slog.Error("error: regenerating answer: %v", err)
 		return

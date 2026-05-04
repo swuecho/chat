@@ -38,7 +38,7 @@ type AuthUserHandler struct {
 // NewAuthUserHandler creates a new AuthUserHandler.
 func NewAuthUserHandler(sqlc_q *sqlc_queries.Queries, jwtSecret, audience string, defaultRateLimit int32) *AuthUserHandler {
 	return &AuthUserHandler{
-		service:          svc.NewAuthUserService(sqlc_q),
+		service:          svc.NewAuthUserService(sqlc_q, jwtSecret, defaultRateLimit),
 		jwtSecret:        jwtSecret,
 		audience:         audience,
 		defaultRateLimit: defaultRateLimit,
@@ -287,7 +287,7 @@ func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := middleware.ParseAndValidateJWT(refreshCookie.Value, auth.TokenTypeRefresh)
+	result := middleware.ParseAndValidateJWT(refreshCookie.Value, auth.TokenTypeRefresh, h.jwtSecret)
 	if result.Error != nil {
 		slog.Warn("Invalid refresh token", "ip", r.RemoteAddr, "error", result.Error.Detail, "action", "refresh_invalid_token")
 		dto.RespondWithAPIError(w, *result.Error)

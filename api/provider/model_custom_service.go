@@ -41,16 +41,14 @@ func NewCustomChatModel(h Handler) *CustomChatModel {
 }
 
 // Stream implements the ChatModel interface for custom model scenarios
-func (m *CustomChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	// Get request context for cancellation support
-	ctx := m.h.RequestContext()
+func (m *CustomChatModel) Stream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	return m.customChatStream(ctx, w, chatSession, chat_completion_messages, chatUuid, regenerate)
 }
 
 // customChatStream handles streaming for custom model providers
 func (m *CustomChatModel) customChatStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool) (*models.LLMAnswer, error) {
 	// Get chat model configuration
-	chat_model, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
+	chat_model, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrResourceNotFound(""), "chat model: "+chatSession.Model, ""))
 		return nil, err

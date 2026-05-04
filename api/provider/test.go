@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -20,10 +21,10 @@ func NewTestChatModel(h Handler) *TestChatModel {
 	return &TestChatModel{h: h}
 }
 
-func (m *TestChatModel) Stream(w http.ResponseWriter, session sqlc_queries.ChatSession,
+func (m *TestChatModel) Stream(ctx context.Context, w http.ResponseWriter, session sqlc_queries.ChatSession,
 	messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 
-	chatFiles, err := GetChatFiles(m.h.RequestContext(), m.h.Queries(), session.Uuid)
+	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), session.Uuid)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to get chat files").WithDebugInfo(err.Error()))
 		return nil, err

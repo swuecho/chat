@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -16,12 +17,12 @@ import (
 )
 
 // chooseChatModel returns the appropriate ChatModel implementation based on session config.
-func (h *ChatHandler) chooseChatModel(session sqlc_queries.ChatSession, msgs []models.Message) provider.ChatModel {
+func (h *ChatHandler) chooseChatModel(ctx context.Context, session sqlc_queries.ChatSession, msgs []models.Message) provider.ChatModel {
 	if isTest(msgs) {
 		return provider.NewTestChatModel(h)
 	}
 
-	chatModel, err := provider.GetChatModel(h.RequestContext(), h.Queries(), session.Model)
+	chatModel, err := provider.GetChatModel(ctx, h.Queries(), session.Model)
 	if err != nil {
 		return provider.NewOpenAIChatModel(h) // fallback
 	}
@@ -60,7 +61,7 @@ func isTest(msgs []models.Message) bool {
 
 // CheckModelAccess verifies the user hasn't exceeded per-model rate limits.
 func (h *ChatHandler) CheckModelAccess(w http.ResponseWriter, chatSessionUuid, model string, userID int32) bool {
-	ctx := h.RequestContext()
+	ctx := context.Background()
 
 	chatModel, err := h.sessionSvc.ChatModelByName(ctx, model)
 	if err != nil {

@@ -5,6 +5,7 @@ package app
 import (
 	"database/sql"
 
+	"github.com/swuecho/chat_backend/sqlc_queries"
 	"golang.org/x/time/rate"
 )
 
@@ -12,6 +13,7 @@ import (
 // Pass this to constructors instead of relying on global variables.
 type App struct {
 	DB          *sql.DB
+	Q           *sqlc_queries.Queries
 	Config      Config
 	RateLimiter *rate.Limiter
 }

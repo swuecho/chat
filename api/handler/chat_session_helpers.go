@@ -97,9 +97,8 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	}
 	slog.Info("Collected messages - SessionUUID: %s, Count: %d, Model: %s", chatSession.Uuid, len(msgs), chatSession.Model)
 
-	h.requestCtx = ctx
-	model := h.chooseChatModel(*chatSession, msgs)
-	LLMAnswer, err := model.Stream(w, *chatSession, msgs, chatUuid, false, streamOutput)
+	model := h.chooseChatModel(ctx, *chatSession, msgs)
+	LLMAnswer, err := model.Stream(ctx, w, *chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
 		slog.Error("error: generating answer: %v", err)
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))

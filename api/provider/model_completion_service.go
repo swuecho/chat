@@ -28,16 +28,14 @@ func NewCompletionChatModel(h Handler) *CompletionChatModel {
 }
 
 // Stream implements the ChatModel interface for completion model scenarios
-func (m *CompletionChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
-	// Get request context for cancellation support
-	ctx := m.h.RequestContext()
+func (m *CompletionChatModel) Stream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	return m.completionStream(ctx, w, chatSession, chat_completion_messages, chatUuid, regenerate, stream)
 }
 
 // completionStream handles streaming for OpenAI completion models
 func (m *CompletionChatModel) completionStream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_completion_messages []models.Message, chatUuid string, regenerate bool, _ bool) (*models.LLMAnswer, error) {
 	// Check per chat_model rate limit
-	m.h.Config().RateLimiter.Wait(m.h.RequestContext())
+	m.h.Config().RateLimiter.Wait(ctx)
 
 	exceedPerModeRateLimitOrError := m.h.CheckModelAccess(w, chatSession.Uuid, chatSession.Model, chatSession.UserID)
 	if exceedPerModeRateLimitOrError {
@@ -45,7 +43,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, w http.Respo
 	}
 
 	// Get chat model configuration
-	chatModel, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
+	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrResourceNotFound(""), "chat model "+chatSession.Model, ""))
 		return nil, err

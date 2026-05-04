@@ -41,15 +41,15 @@ func NewClaude3ChatModel(h Handler) *Claude3ChatModel {
 	return &Claude3ChatModel{h: h}
 }
 
-func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
+func (m *Claude3ChatModel) Stream(ctx context.Context, w http.ResponseWriter, chatSession sqlc_queries.ChatSession, chat_compeletion_messages []models.Message, chatUuid string, regenerate bool, stream bool) (*models.LLMAnswer, error) {
 	// Get chat model configuration
-	chatModel, err := GetChatModel(m.h.RequestContext(), m.h.Queries(), chatSession.Model)
+	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get chat files if any
-	chatFiles, err := GetChatFiles(m.h.RequestContext(), m.h.Queries(), chatSession.Uuid)
+	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), chatSession.Uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +92,6 @@ func (m *Claude3ChatModel) Stream(w http.ResponseWriter, chatSession sqlc_querie
 	if err != nil {
 		return nil, dto.ErrValidationInvalidInputGeneric.WithDetail("failed to marshal request payload").WithDebugInfo(err.Error())
 	}
-
-	// Get request context for cancellation support
-	ctx := m.h.RequestContext()
 
 	// Create HTTP request with context
 	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
