@@ -140,8 +140,8 @@ export function useConversationFlow(
     if (abortController.value) {
       abortController.value.abort()
       abortController.value = null
-      loading.value = false
     }
+    loading.value = false
   }
 
   async function startStream(

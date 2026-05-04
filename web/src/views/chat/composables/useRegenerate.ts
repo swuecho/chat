@@ -122,8 +122,8 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
     if (abortController.value) {
       abortController.value.abort()
       abortController.value = null
-      loading.value = false
     }
+    loading.value = false
   }
 
   async function onRegenerate(index: number, dataSources: any[]): Promise<void> {

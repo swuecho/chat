@@ -90,7 +90,7 @@ const chatToMarkdown = () => {
     const chatData = snapshot_data.value.conversation;
     const markdown = chatData.map((chat: Chat.Message) => {
       if (chat.isPrompt)
-        return `**system** ${format_chat_md(chat)}}`
+        return `**system** ${format_chat_md(chat)}`
       else if (chat.inversion)
         return `**user** ${format_chat_md(chat)}`
       else

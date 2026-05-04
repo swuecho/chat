@@ -621,9 +621,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       // This prevents navigation loops during rapid switching
       const sessionStore = useSessionStore()
       if (targetSessionUuid &&
-          sessionStore.lastRequestedSessionUuid !== targetSessionUuid &&
-          sessionStore.lastRequestedSessionUuid !== null) {
-        console.log('Navigation target differs from last requested session, skipping to prevent loop')
+          sessionStore.lastRequestedSessionUuid === targetSessionUuid) {
+        console.log('Navigation target matches last requested session, skipping to prevent loop')
         return
       }
 

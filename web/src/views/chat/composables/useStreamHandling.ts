@@ -74,10 +74,10 @@ export function useStreamHandling() {
         artifacts = extractArtifacts(newText)
       }
 
-      // Prepare update object
+      // Prepare update object - preserve original timestamp from initial message
       const updateData: any = {
         uuid: answerUuid,
-        dateTime: nowISO(),
+        dateTime: currentMessage?.dateTime || nowISO(),
         text: newText,
         inversion: false,
         error: false,
@@ -161,8 +161,9 @@ export function useStreamHandling() {
           const chunk = decoder.decode(value, { stream: true })
           buffer += chunk
 
-          // Process complete SSE messages
-          const lines = buffer.split('\n\n')
+          // Process complete SSE messages (handle both \n\n and \r\n\r\n)
+          const normalizedBuffer = buffer.replace(/\r\n/g, '\n')
+          const lines = normalizedBuffer.split('\n\n')
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
 
@@ -250,8 +251,9 @@ export function useStreamHandling() {
           const chunk = decoder.decode(value, { stream: true })
           buffer += chunk
 
-          // Process complete SSE messages
-          const lines = buffer.split('\n\n')
+          // Process complete SSE messages (handle both \n\n and \r\n\r\n)
+          const normalizedBuffer = buffer.replace(/\r\n/g, '\n')
+          const lines = normalizedBuffer.split('\n\n')
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
 
