@@ -78,6 +78,23 @@ func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// Verify the authenticated user owns the email being changed
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+
+	user, err := h.service.GetAuthUserByID(r.Context(), userID)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("user").WithDebugInfo(err.Error()))
+		return
+	}
+	if user.Email != req.Email {
+		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("Cannot change password for another user"))
+		return
+	}
+
 	hashedPassword, err := auth.GeneratePasswordHash(req.NewPassword)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to hash password").WithDebugInfo(err.Error()))

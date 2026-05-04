@@ -122,7 +122,29 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	fileID := mux.Vars(r)["id"]
-	fileIdInt, _ := strconv.ParseInt(fileID, 10, 32)
+	fileIdInt, err := strconv.ParseInt(fileID, 10, 32)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid file ID"))
+		return
+	}
+
+	// Verify file ownership before deletion
+	file, err := h.service.GetChatFile(r.Context(), int32(fileIdInt))
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to get chat file"))
+		return
+	}
+
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	if file.UserID != userID {
+		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("You do not own this file"))
+		return
+	}
+
 	if err := h.service.DeleteChatFile(r.Context(), int32(fileIdInt)); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to delete chat file"))
 		return
