@@ -609,20 +609,11 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         targetSessionUuid = sessionStore.activeSessionUuid || undefined
       }
 
-      // More thorough route checking - only skip if route params match exactly
+      // Only skip if route params already match exactly
       if (currentRoute.name === 'WorkspaceChat' &&
           currentWorkspaceUuid === workspaceUuid &&
           currentSessionUuid === targetSessionUuid) {
         console.log('Already on exact target route, skipping navigation')
-        return
-      }
-
-      // Additional check: if target matches the last requested session, also skip
-      // This prevents navigation loops during rapid switching
-      const sessionStore = useSessionStore()
-      if (targetSessionUuid &&
-          sessionStore.lastRequestedSessionUuid === targetSessionUuid) {
-        console.log('Navigation target matches last requested session, skipping to prevent loop')
         return
       }
 
