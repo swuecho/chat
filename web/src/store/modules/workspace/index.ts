@@ -161,6 +161,27 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       }
     },
 
+    upsertWorkspace(workspace: Chat.Workspace) {
+      const index = this.workspaces.findIndex(w => w.uuid === workspace.uuid)
+      if (index >= 0) {
+        this.workspaces[index] = workspace
+      } else if (this.workspaces.length === 0) {
+        this.workspaces = [workspace]
+      } else {
+        this.workspaces.push(workspace)
+      }
+    },
+
+    async ensureWorkspaceLoaded(workspaceUuid: string) {
+      const existing = this.workspaces.find(w => w.uuid === workspaceUuid)
+      if (existing)
+        return existing
+
+      const workspace = await getWorkspace(workspaceUuid)
+      this.upsertWorkspace(workspace)
+      return workspace
+    },
+
     // Optimized method to load only the active/default workspace
     async loadActiveWorkspace(targetWorkspaceUuid?: string) {
       try {
@@ -169,8 +190,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         // If specific workspace is requested, try to load it
         if (targetWorkspaceUuid) {
           try {
-            const workspace = await getWorkspace(targetWorkspaceUuid)
-            this.workspaces = [workspace]
+            const workspace = await this.ensureWorkspaceLoaded(targetWorkspaceUuid)
             this.activeWorkspaceUuid = workspace.uuid
             return workspace
           } catch (error) {
@@ -188,7 +208,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
         // Ensure we have a default workspace (this only loads/creates the default one)
         const defaultWorkspace = await ensureDefaultWorkspace()
-        this.workspaces = [defaultWorkspace]
+        this.upsertWorkspace(defaultWorkspace)
         this.activeWorkspaceUuid = defaultWorkspace.uuid
 
         console.log('✅ Loaded default workspace:', defaultWorkspace.name)
@@ -244,12 +264,24 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           this.activeWorkspaceUuid = urlWorkspaceUuid
           console.log('✅ Used workspace from URL:', { workspaceUuid: urlWorkspaceUuid, sessionUuid: urlSessionUuid })
 
+          try {
+            await this.ensureWorkspaceLoaded(urlWorkspaceUuid)
+          } catch (error) {
+            console.warn('⚠️ Failed to load workspace from URL:', error)
+          }
+
           // Set active session in session store
           const sessionStore = useSessionStore()
           sessionStore.setActiveSessionWithoutNavigation(urlWorkspaceUuid, urlSessionUuid)
         } else if (urlWorkspaceUuid) {
           this.activeWorkspaceUuid = urlWorkspaceUuid
           console.log('✅ Used workspace from URL (no session):', urlWorkspaceUuid)
+
+          try {
+            await this.ensureWorkspaceLoaded(urlWorkspaceUuid)
+          } catch (error) {
+            console.warn('⚠️ Failed to load workspace from URL:', error)
+          }
 
           // Restore active session for this workspace if available
           const activeSessionForWorkspace = this.workspaceActiveSessions[urlWorkspaceUuid]
@@ -261,6 +293,12 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         } else if (globalActiveSession?.workspaceUuid) {
           this.activeWorkspaceUuid = globalActiveSession.workspaceUuid
           console.log('✅ Used workspace from backend:', globalActiveSession.workspaceUuid)
+
+          try {
+            await this.ensureWorkspaceLoaded(globalActiveSession.workspaceUuid)
+          } catch (error) {
+            console.warn('⚠️ Failed to load active workspace from backend state:', error)
+          }
 
           // Set active session from backend
           const sessionStore = useSessionStore()
@@ -398,7 +436,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         try {
           console.log(`Loading workspace ${workspaceUuid} on-demand...`)
           workspace = await getWorkspace(workspaceUuid)
-          this.workspaces.push(workspace)
+          this.upsertWorkspace(workspace)
           console.log(`✅ Loaded workspace on-demand: ${workspace.name}`)
         } catch (error) {
           console.error(`Failed to load workspace ${workspaceUuid}:`, error)
@@ -614,6 +652,15 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           currentWorkspaceUuid === workspaceUuid &&
           currentSessionUuid === targetSessionUuid) {
         console.log('Already on exact target route, skipping navigation')
+        return
+      }
+
+      // Skip stale navigations that no longer match the latest requested session
+      const sessionStore = useSessionStore()
+      if (targetSessionUuid &&
+          sessionStore.lastRequestedSessionUuid !== targetSessionUuid &&
+          sessionStore.lastRequestedSessionUuid !== null) {
+        console.log('Navigation target differs from last requested session, skipping stale navigation')
         return
       }
 

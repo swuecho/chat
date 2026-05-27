@@ -46,11 +46,11 @@ export function setupPageGuard(router: Router) {
         await workspaceStore.setActiveWorkspace(workspaceUuid)
       }
 
-      // Set active session if provided in URL
+      // Sync active session from URL without triggering another navigation
       if (to.params.uuid) {
         const sessionUuid = to.params.uuid as string
         if (sessionUuid !== sessionStore.activeSessionUuid) {
-          await sessionStore.setActiveSession(workspaceUuid, sessionUuid)
+          sessionStore.setActiveSessionWithoutNavigation(workspaceUuid, sessionUuid)
         }
       }
     }

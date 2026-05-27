@@ -323,8 +323,23 @@ export const useSessionStore = defineStore('session-store', {
     },
 
     async setActiveSession(workspaceUuid: string | null, sessionUuid: string) {
-      // Early return if this is already the active session
+      const currentRoute = router.currentRoute.value
+      const currentSessionUuid = currentRoute.params.uuid as string
+
+      // Already active and URL is in sync — nothing to do
+      if (this.activeSessionUuid === sessionUuid && currentSessionUuid === sessionUuid) {
+        return
+      }
+
+      // Store is in sync but URL is not — navigate without re-entering the switch flow
       if (this.activeSessionUuid === sessionUuid) {
+        this.lastRequestedSessionUuid = sessionUuid
+        this.isSwitchingSession = true
+        try {
+          await this.navigateToSession(sessionUuid)
+        } finally {
+          this.isSwitchingSession = false
+        }
         return
       }
 
