@@ -89,10 +89,9 @@ func (s *ChatSnapshotService) CreateChatSnapshot(ctx context.Context, chatSessio
 
 func GenTitle(q *sqlc_queries.Queries, ctx context.Context, chatSession sqlc_queries.ChatSession, text string) string {
 	title := provider.FirstN(chatSession.Topic, 100)
-	model := "gemini-2.0-flash"
-	_, err := q.ChatModelByName(ctx, model)
+	model, err := q.GetTitleChatModel(ctx)
 	if err == nil {
-		genTitle, err := provider.GenerateChatTitle(ctx, model, text)
+		genTitle, err := provider.GenerateChatTitle(ctx, model.Name, text)
 		if err != nil {
 			slog.Info("error", "error", err)
 		}

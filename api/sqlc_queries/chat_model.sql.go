@@ -10,7 +10,7 @@ import (
 )
 
 const chatModelByID = `-- name: ChatModelByID :one
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type FROM chat_model WHERE id = $1
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model FROM chat_model WHERE id = $1
 `
 
 func (q *Queries) ChatModelByID(ctx context.Context, id int32) (ChatModel, error) {
@@ -32,12 +32,13 @@ func (q *Queries) ChatModelByID(ctx context.Context, id int32) (ChatModel, error
 		&i.HttpTimeOut,
 		&i.IsEnable,
 		&i.ApiType,
+		&i.IsTitleModel,
 	)
 	return i, err
 }
 
 const chatModelByName = `-- name: ChatModelByName :one
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type FROM chat_model WHERE name = $1
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model FROM chat_model WHERE name = $1
 `
 
 func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, error) {
@@ -59,6 +60,7 @@ func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, 
 		&i.HttpTimeOut,
 		&i.IsEnable,
 		&i.ApiType,
+		&i.IsTitleModel,
 	)
 	return i, err
 }
@@ -66,7 +68,7 @@ func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, 
 const createChatModel = `-- name: CreateChatModel :one
 INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, api_type )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type
+RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model
 `
 
 type CreateChatModelParams struct {
@@ -118,6 +120,7 @@ func (q *Queries) CreateChatModel(ctx context.Context, arg CreateChatModelParams
 		&i.HttpTimeOut,
 		&i.IsEnable,
 		&i.ApiType,
+		&i.IsTitleModel,
 	)
 	return i, err
 }
@@ -137,7 +140,7 @@ func (q *Queries) DeleteChatModel(ctx context.Context, arg DeleteChatModelParams
 }
 
 const getDefaultChatModel = `-- name: GetDefaultChatModel :one
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type FROM chat_model WHERE is_default = true
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model FROM chat_model WHERE is_default = true
 and user_id in (select id from auth_user where is_superuser = true)
 ORDER BY order_number, id
 LIMIT 1
@@ -162,12 +165,44 @@ func (q *Queries) GetDefaultChatModel(ctx context.Context) (ChatModel, error) {
 		&i.HttpTimeOut,
 		&i.IsEnable,
 		&i.ApiType,
+		&i.IsTitleModel,
+	)
+	return i, err
+}
+
+const getTitleChatModel = `-- name: GetTitleChatModel :one
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model FROM chat_model
+WHERE is_title_model = true AND is_enable = true
+  AND user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
+LIMIT 1
+`
+
+func (q *Queries) GetTitleChatModel(ctx context.Context) (ChatModel, error) {
+	row := q.db.QueryRowContext(ctx, getTitleChatModel)
+	var i ChatModel
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Label,
+		&i.IsDefault,
+		&i.Url,
+		&i.ApiAuthHeader,
+		&i.ApiAuthKey,
+		&i.UserID,
+		&i.EnablePerModeRatelimit,
+		&i.MaxToken,
+		&i.DefaultToken,
+		&i.OrderNumber,
+		&i.HttpTimeOut,
+		&i.IsEnable,
+		&i.ApiType,
+		&i.IsTitleModel,
 	)
 	return i, err
 }
 
 const listChatModels = `-- name: ListChatModels :many
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type FROM chat_model ORDER BY order_number
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model FROM chat_model ORDER BY order_number
 `
 
 func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
@@ -195,6 +230,7 @@ func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
 			&i.HttpTimeOut,
 			&i.IsEnable,
 			&i.ApiType,
+			&i.IsTitleModel,
 		); err != nil {
 			return nil, err
 		}
@@ -210,7 +246,7 @@ func (q *Queries) ListChatModels(ctx context.Context) ([]ChatModel, error) {
 }
 
 const listSystemChatModels = `-- name: ListSystemChatModels :many
-SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type FROM chat_model
+SELECT id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model FROM chat_model
 where user_id in (select id from auth_user where is_superuser = true)
 ORDER BY order_number, id desc
 `
@@ -240,6 +276,7 @@ func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error)
 			&i.HttpTimeOut,
 			&i.IsEnable,
 			&i.ApiType,
+			&i.IsTitleModel,
 		); err != nil {
 			return nil, err
 		}
@@ -254,11 +291,67 @@ func (q *Queries) ListSystemChatModels(ctx context.Context) ([]ChatModel, error)
 	return items, nil
 }
 
+const setTitleChatModel = `-- name: SetTitleChatModel :one
+WITH updated AS (
+    UPDATE chat_model old_model
+    SET is_title_model = false
+    WHERE old_model.is_title_model = true
+      AND old_model.id <> $1
+      AND EXISTS (
+          SELECT 1 FROM chat_model selected_model
+          WHERE selected_model.id = $1
+            AND selected_model.user_id = $2
+            AND selected_model.is_enable = true
+            AND selected_model.api_type = 'gemini'
+            AND selected_model.user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
+      )
+    RETURNING old_model.id
+)
+UPDATE chat_model target
+SET is_title_model = true
+WHERE target.id = $1
+  AND target.user_id = $2
+  AND target.is_enable = true
+  AND target.api_type = 'gemini'
+  AND target.user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
+  AND (SELECT count(*) FROM updated) >= 0
+RETURNING target.id, target.name, target.label, target.is_default, target.url, target.api_auth_header, target.api_auth_key, target.user_id, target.enable_per_mode_ratelimit, target.max_token, target.default_token, target.order_number, target.http_time_out, target.is_enable, target.api_type, target.is_title_model
+`
+
+type SetTitleChatModelParams struct {
+	ModelID int32 `json:"modelId"`
+	UserID  int32 `json:"userId"`
+}
+
+func (q *Queries) SetTitleChatModel(ctx context.Context, arg SetTitleChatModelParams) (ChatModel, error) {
+	row := q.db.QueryRowContext(ctx, setTitleChatModel, arg.ModelID, arg.UserID)
+	var i ChatModel
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Label,
+		&i.IsDefault,
+		&i.Url,
+		&i.ApiAuthHeader,
+		&i.ApiAuthKey,
+		&i.UserID,
+		&i.EnablePerModeRatelimit,
+		&i.MaxToken,
+		&i.DefaultToken,
+		&i.OrderNumber,
+		&i.HttpTimeOut,
+		&i.IsEnable,
+		&i.ApiType,
+		&i.IsTitleModel,
+	)
+	return i, err
+}
+
 const updateChatModel = `-- name: UpdateChatModel :one
 UPDATE chat_model SET name = $2, label = $3, is_default = $4, url = $5, api_auth_header = $6, api_auth_key = $7, enable_per_mode_ratelimit = $9,
 max_token = $10, default_token = $11, order_number = $12, http_time_out = $13, is_enable = $14, api_type = $15
 WHERE id = $1 and user_id = $8
-RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type
+RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model
 `
 
 type UpdateChatModelParams struct {
@@ -314,6 +407,7 @@ func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams
 		&i.HttpTimeOut,
 		&i.IsEnable,
 		&i.ApiType,
+		&i.IsTitleModel,
 	)
 	return i, err
 }
@@ -321,7 +415,7 @@ func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams
 const updateChatModelKey = `-- name: UpdateChatModelKey :one
 UPDATE chat_model SET api_auth_key = $2
 WHERE id = $1
-RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type
+RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model
 `
 
 type UpdateChatModelKeyParams struct {
@@ -348,6 +442,7 @@ func (q *Queries) UpdateChatModelKey(ctx context.Context, arg UpdateChatModelKey
 		&i.HttpTimeOut,
 		&i.IsEnable,
 		&i.ApiType,
+		&i.IsTitleModel,
 	)
 	return i, err
 }

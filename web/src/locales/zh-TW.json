@@ -4,6 +4,11 @@
         "add_model": "添加模型",
         "add_user_model_rate_limit": "添加用戶會話數量",
         "chat_model": {
+            "title_model": "標題生成模型",
+            "title_model_description": "用於自動生成會話和快照標題。",
+            "title_model_placeholder": "選擇一個已啟用的 Gemini 模型",
+            "title_model_update_failed": "更新標題生成模型失敗",
+            "title_model_update_success": "標題生成模型已更新",
             "actions": "操作",
             "apiAuthHeader": "Auth Header 鍵",
             "apiAuthKey": "API KEY對應的環境變量",

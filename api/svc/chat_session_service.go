@@ -171,6 +171,11 @@ func (s *ChatSessionService) ChatModelByName(ctx context.Context, name string) (
 	return m, eris.Wrap(err, "failed to get chat model")
 }
 
+// GetTitleChatModel returns the enabled model configured for automatic titles.
+func (s *ChatSessionService) GetTitleChatModel(ctx context.Context) (sqlc_queries.ChatModel, error) {
+	return s.q.GetTitleChatModel(ctx)
+}
+
 // GetChatSessionByUUIDWithInActive returns a session by UUID including inactive ones.
 func (s *ChatSessionService) GetChatSessionByUUIDWithInActive(ctx context.Context, uuid string) (sqlc_queries.ChatSession, error) {
 	session, err := s.q.GetChatSessionByUUIDWithInActive(ctx, uuid)

@@ -113,6 +113,7 @@ type ChatModel struct {
 	HttpTimeOut            int32  `json:"httpTimeOut"`
 	IsEnable               bool   `json:"isEnable"`
 	ApiType                string `json:"apiType"`
+	IsTitleModel           bool   `json:"isTitleModel"`
 }
 
 type ChatPrompt struct {

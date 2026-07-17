@@ -72,3 +72,13 @@ export const fetchDefaultChatModel = async () => {
     throw error
   }
 }
+
+export const fetchTitleChatModel = async () => {
+  const response = await request.get('/chat_model/title-default')
+  return response.data
+}
+
+export const updateTitleChatModel = async (modelId: number) => {
+  const response = await request.put('/chat_model/title-default', { modelId })
+  return response.data
+}

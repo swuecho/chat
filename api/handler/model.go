@@ -23,6 +23,8 @@ func NewChatModelHandler(db *sqlc_queries.Queries) *ChatModelHandler {
 func (h *ChatModelHandler) Register(r *mux.Router) {
 	r.HandleFunc("/chat_model", h.ListSystemChatModels).Methods("GET")
 	r.HandleFunc("/chat_model/default", h.GetDefaultChatModel).Methods("GET")
+	r.HandleFunc("/chat_model/title-default", h.GetTitleChatModel).Methods("GET")
+	r.HandleFunc("/chat_model/title-default", h.SetTitleChatModel).Methods("PUT")
 	r.HandleFunc("/chat_model/{id}", h.ChatModelByID).Methods("GET")
 	r.HandleFunc("/chat_model", h.CreateChatModel).Methods("POST")
 	r.HandleFunc("/chat_model/{id}", h.UpdateChatModel).Methods("PUT")
@@ -250,5 +252,40 @@ func (h *ChatModelHandler) GetDefaultChatModel(w http.ResponseWriter, r *http.Re
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(chatModel)
+}
+
+func (h *ChatModelHandler) GetTitleChatModel(w http.ResponseWriter, r *http.Request) {
+	chatModel, err := h.db.GetTitleChatModel(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Title generation model").WithDebugInfo(err.Error()))
+		return
+	}
+	json.NewEncoder(w).Encode(chatModel)
+}
+
+func (h *ChatModelHandler) SetTitleChatModel(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+
+	var input struct {
+		ModelID int32 `json:"modelId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil || input.ModelID <= 0 {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("A valid enabled model is required"))
+		return
+	}
+
+	chatModel, err := h.db.SetTitleChatModel(r.Context(), sqlc_queries.SetTitleChatModelParams{
+		ModelID: input.ModelID,
+		UserID:  userID,
+	})
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("The title model must be an enabled model you manage").WithDebugInfo(err.Error()))
+		return
+	}
 	json.NewEncoder(w).Encode(chatModel)
 }

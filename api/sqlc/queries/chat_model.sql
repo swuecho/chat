@@ -36,3 +36,35 @@ SELECT * FROM chat_model WHERE is_default = true
 and user_id in (select id from auth_user where is_superuser = true)
 ORDER BY order_number, id
 LIMIT 1;
+
+-- name: GetTitleChatModel :one
+SELECT * FROM chat_model
+WHERE is_title_model = true AND is_enable = true
+  AND user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
+LIMIT 1;
+
+-- name: SetTitleChatModel :one
+WITH updated AS (
+    UPDATE chat_model old_model
+    SET is_title_model = false
+    WHERE old_model.is_title_model = true
+      AND old_model.id <> sqlc.arg(model_id)
+      AND EXISTS (
+          SELECT 1 FROM chat_model selected_model
+          WHERE selected_model.id = sqlc.arg(model_id)
+            AND selected_model.user_id = sqlc.arg(user_id)
+            AND selected_model.is_enable = true
+            AND selected_model.api_type = 'gemini'
+            AND selected_model.user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
+      )
+    RETURNING old_model.id
+)
+UPDATE chat_model target
+SET is_title_model = true
+WHERE target.id = sqlc.arg(model_id)
+  AND target.user_id = sqlc.arg(user_id)
+  AND target.is_enable = true
+  AND target.api_type = 'gemini'
+  AND target.user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
+  AND (SELECT count(*) FROM updated) >= 0
+RETURNING target.*;

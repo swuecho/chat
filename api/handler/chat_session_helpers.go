@@ -218,12 +218,12 @@ func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession
 		return
 	}
 
-	model := "gemini-2.0-flash"
-	if _, err := h.sessionSvc.ChatModelByName(ctx, model); err != nil {
+	titleModel, err := h.sessionSvc.GetTitleChatModel(ctx)
+	if err != nil {
 		return
 	}
 
-	genTitle, err := provider.GenerateChatTitle(ctx, model, chatText.String())
+	genTitle, err := provider.GenerateChatTitle(ctx, titleModel.Name, chatText.String())
 	if err != nil || genTitle == "" {
 		return
 	}

@@ -38,6 +38,7 @@ ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS order_number INTEGER NOT NULL de
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS http_time_out INTEGER NOT NULL default 120;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS is_enable BOOLEAN DEFAULT true NOT NULL;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS api_type VARCHAR(50) NOT NULL DEFAULT 'openai';
+ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS is_title_model BOOLEAN DEFAULT false NOT NULL;
 
 
 
@@ -84,6 +85,18 @@ CREATE TABLE IF NOT EXISTS auth_user (
   is_active BOOLEAN default true NOT NULL,
   date_joined TIMESTAMP default now() NOT NULL
 );
+
+-- Keep title generation independent from the default model used for new chats.
+-- Existing installations retain the historical Gemini choice when it exists.
+UPDATE chat_model
+SET is_title_model = true
+WHERE user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
+  AND name = 'gemini-2.0-flash'
+  AND NOT EXISTS (SELECT 1 FROM chat_model WHERE is_title_model = true);
+
+CREATE UNIQUE INDEX IF NOT EXISTS chat_model_single_title_model_idx
+    ON chat_model (is_title_model)
+    WHERE is_title_model = true;
 
 -- add index on email
 CREATE INDEX IF NOT EXISTS auth_user_email_idx ON auth_user (email);
