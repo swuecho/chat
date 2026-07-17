@@ -54,7 +54,6 @@ WITH updated AS (
           WHERE selected_model.id = sqlc.arg(model_id)
             AND selected_model.user_id = sqlc.arg(user_id)
             AND selected_model.is_enable = true
-            AND selected_model.api_type = 'gemini'
             AND selected_model.user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
       )
     RETURNING old_model.id
@@ -64,7 +63,6 @@ SET is_title_model = true
 WHERE target.id = sqlc.arg(model_id)
   AND target.user_id = sqlc.arg(user_id)
   AND target.is_enable = true
-  AND target.api_type = 'gemini'
   AND target.user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
   AND (SELECT count(*) FROM updated) >= 0
 RETURNING target.*;

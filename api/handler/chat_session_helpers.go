@@ -223,7 +223,7 @@ func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession
 		return
 	}
 
-	genTitle, err := provider.GenerateChatTitle(ctx, titleModel.Name, chatText.String())
+	genTitle, err := provider.GenerateChatTitle(ctx, h.sessionSvc.Q(), titleModel, chatText.String())
 	if err != nil || genTitle == "" {
 		return
 	}

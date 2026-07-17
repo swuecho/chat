@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -97,19 +96,14 @@ func (m *GeminiChatModel) Stream(ctx context.Context, chatSession sqlc_queries.C
 	return ch, nil
 }
 
-func GenerateChatTitle(ctx context.Context, model, chatText string) (string, error) {
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		return "", dto.ErrInternalUnexpected.WithMessage("GEMINI_API_KEY environment variable not set")
-	}
-
+func GenerateChatTitle(ctx context.Context, q *sqlc_queries.Queries, model sqlc_queries.ChatModel, chatText string) (string, error) {
 	if strings.TrimSpace(chatText) == "" {
 		return "", dto.ErrValidationInvalidInput("chat text cannot be empty")
 	}
 
 	messages := []models.Message{
 		{
-			Role:    "user",
+			Role:    "system",
 			Content: `Generate a short title (3-6 words) for this conversation. Output ONLY the title text, no quotes, no markdown, no prefixes like "Title:". Example: "Python list comprehension guide"`,
 		},
 		{
@@ -118,27 +112,49 @@ func GenerateChatTitle(ctx context.Context, model, chatText string) (string, err
 		},
 	}
 
-	payloadBytes, err := gemini.GenGemminPayload(messages, nil)
-	if err != nil {
-		return "", dto.ErrInternalUnexpected.WithMessage("Failed to generate Gemini payload").WithDebugInfo(err.Error())
+	h := newTitleGenerationHandler(q)
+	var titleModel ChatModel
+	switch model.ApiType {
+	case "claude":
+		titleModel = NewClaude3ChatModel(h)
+	case "gemini":
+		titleModel = NewGeminiChatModel(h)
+	case "ollama":
+		titleModel = NewOllamaChatModel(h)
+	case "custom":
+		titleModel = NewCustomChatModel(h)
+	default:
+		if strings.HasSuffix(strings.TrimSuffix(model.Url, "/"), "/completions") &&
+			!strings.HasSuffix(strings.TrimSuffix(model.Url, "/"), "/chat/completions") {
+			titleModel = NewCompletionChatModel(h)
+		} else {
+			titleModel = NewOpenAIChatModel(h)
+		}
 	}
 
-	url := gemini.BuildAPIURL(model, false)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+	stream, err := titleModel.Stream(ctx, sqlc_queries.ChatSession{
+		Model: model.Name, MaxTokens: 64, Temperature: 0.2, TopP: 1, N: 1,
+	}, messages, "title-generation", false, false)
 	if err != nil {
-		return "", dto.ErrInternalUnexpected.WithMessage("Failed to create Gemini API request").WithDebugInfo(err.Error())
-	}
-	req.Header.Set("Content-Type", "application/json")
-	answer, err := gemini.HandleRegularResponse(http.Client{Timeout: 1 * time.Minute}, req)
-	if err != nil {
-		return "", dto.ErrInternalUnexpected.WithMessage("Failed to handle Gemini response").WithDebugInfo(err.Error())
+		return "", err
 	}
 
-	if answer == nil || answer.Answer == "" {
-		return "", dto.ErrInternalUnexpected.WithMessage("Empty response from Gemini")
+	var answer string
+	for chunk := range stream {
+		if chunk.Err != nil {
+			return "", chunk.Err
+		}
+		if chunk.FinalAnswer != nil {
+			answer = chunk.FinalAnswer.Answer
+		} else if chunk.Content != "" {
+			answer += chunk.Content
+		}
+	}
+	if strings.TrimSpace(answer) == "" {
+		return "", dto.ErrInternalUnexpected.WithMessage("Empty response from title generation model")
 	}
 
-	title := strings.TrimSpace(answer.Answer)
+	title := strings.TrimSpace(answer)
 	title = strings.Trim(title, `"`)
 	title = strings.Trim(title, `*`)
 	title = strings.Trim(title, `#`)

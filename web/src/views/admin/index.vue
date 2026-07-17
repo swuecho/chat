@@ -3,7 +3,7 @@ import type { CSSProperties, Component, Ref } from 'vue'
 import { computed, h, reactive, ref, onMounted } from 'vue'
 import { NIcon, NLayout, NLayoutSider, NMenu } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
-import { PulseOutline, ShieldCheckmarkOutline, KeyOutline } from '@vicons/ionicons5'
+import { PulseOutline, ShieldCheckmarkOutline, KeyOutline, TextOutline } from '@vicons/ionicons5'
 import { RouterLink, useRoute } from 'vue-router'
 import Permission from '@/views/components/Permission.vue'
 import { t } from '@/locales'
@@ -26,6 +26,7 @@ onMounted(async () => {
 const currentRoute = useRoute()
 const USER_ROUTE = 'AdminUser'
 const MODEL_ROUTE = 'AdminModel'
+const TITLE_MODEL_ROUTE = 'TitleModel'
 const MODELRATELIMIT_ROUTUE = 'ModelRateLimit'
 
 const needPermission = computed(() => authStore.isInitialized && !authStore.isInitializing && !authStore.isValid)
@@ -78,6 +79,15 @@ const menuOptions: MenuOption[] = reactive([
     ),
     key: MODEL_ROUTE,
     icon: renderIcon(ShieldCheckmarkOutline),
+  },
+  {
+    label: () => h(
+      RouterLink,
+      { to: { name: TITLE_MODEL_ROUTE } },
+      { default: () => t('admin.chat_model.title_model') },
+    ),
+    key: TITLE_MODEL_ROUTE,
+    icon: renderIcon(TextOutline),
   },
   {
     label: () => h(

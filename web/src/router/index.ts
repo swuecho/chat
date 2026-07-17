@@ -60,6 +60,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/model/index.vue'),
       },
       {
+        path: 'title_model',
+        name: 'TitleModel',
+        component: () => import('@/views/admin/titleModel/index.vue'),
+      },
+      {
         path: 'model_rate_limit',
         name: 'ModelRateLimit',
         component: () => import('@/views/admin/modelRateLimit/index.vue'),

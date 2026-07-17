@@ -220,7 +220,7 @@
     "chat_model": {
       "title_model": "标题生成模型",
       "title_model_description": "用于自动生成会话和快照标题。",
-      "title_model_placeholder": "选择一个已启用的 Gemini 模型",
+      "title_model_placeholder": "选择一个已启用的模型",
       "title_model_update_failed": "更新标题生成模型失败",
       "title_model_update_success": "标题生成模型已更新",
       "copy": "复制",

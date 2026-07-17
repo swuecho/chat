@@ -302,7 +302,6 @@ WITH updated AS (
           WHERE selected_model.id = $1
             AND selected_model.user_id = $2
             AND selected_model.is_enable = true
-            AND selected_model.api_type = 'gemini'
             AND selected_model.user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
       )
     RETURNING old_model.id
@@ -312,7 +311,6 @@ SET is_title_model = true
 WHERE target.id = $1
   AND target.user_id = $2
   AND target.is_enable = true
-  AND target.api_type = 'gemini'
   AND target.user_id IN (SELECT id FROM auth_user WHERE is_superuser = true)
   AND (SELECT count(*) FROM updated) >= 0
 RETURNING target.id, target.name, target.label, target.is_default, target.url, target.api_auth_header, target.api_auth_key, target.user_id, target.enable_per_mode_ratelimit, target.max_token, target.default_token, target.order_number, target.http_time_out, target.is_enable, target.api_type, target.is_title_model
