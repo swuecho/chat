@@ -96,10 +96,15 @@
         "all": {
             "title": "Bots"
         },
+        "findById": "Find bot by ID",
+        "idPlaceholder": "Paste a bot ID or URL",
+        "invalidId": "Enter a valid bot ID or URL",
         "list": "Bots",
         "noHistory": "No history yet",
         "modelUpdateFailed": "Failed to update the bot model",
         "modelUpdateSuccess": "Bot model updated",
+        "notFound": "Bot not found",
+        "openBot": "Open bot",
         "runNumber": "Run {number}",
         "selectModel": "Select a model",
         "showCode": "Generate API call code",

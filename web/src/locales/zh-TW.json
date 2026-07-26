@@ -91,10 +91,15 @@
         "all": {
             "title": "機器人"
         },
+        "findById": "按 ID 尋找機器人",
+        "idPlaceholder": "貼上機器人 ID 或連結",
+        "invalidId": "請輸入有效的機器人 ID 或連結",
         "list": "機器人",
         "noHistory": "還沒有紀錄",
         "modelUpdateFailed": "機器人模型更新失敗",
         "modelUpdateSuccess": "機器人模型已更新",
+        "notFound": "找不到機器人",
+        "openBot": "開啟機器人",
         "runNumber": "執行 {number}",
         "selectModel": "選擇模型",
         "showCode": "產生 API 呼叫程式碼",

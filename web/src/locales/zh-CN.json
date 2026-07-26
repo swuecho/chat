@@ -68,10 +68,15 @@
     "enterJsonUrl": "请输入正确的JSON地址"
   },
   "bot": {
+    "findById": "按 ID 查找机器人",
+    "idPlaceholder": "粘贴机器人 ID 或链接",
+    "invalidId": "请输入有效的机器人 ID 或链接",
     "list": "机器人",
     "noHistory": "还没有记录",
     "modelUpdateFailed": "机器人模型更新失败",
     "modelUpdateSuccess": "机器人模型已更新",
+    "notFound": "未找到机器人",
+    "openBot": "打开机器人",
     "runNumber": "Run {number}",
     "selectModel": "选择模型",
     "all": {

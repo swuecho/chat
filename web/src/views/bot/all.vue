@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, h } from 'vue'
-import { NModal, useDialog, useMessage } from 'naive-ui'
+import { h, onMounted, ref } from 'vue'
+import { NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
+import { useRouter } from 'vue-router'
 import copy from 'copy-to-clipboard'
 import Search from '../snapshot/components/Search.vue'
-import { fetchChatbotAll, fetchSnapshotDelete, fetchChatbotAllData } from '@/api'
+import { fetchChatSnapshot, fetchChatbotAllData, fetchSnapshotDelete } from '@/api'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { generateAPIHelper, getBotPostLinks } from '@/service/snapshot'
 import { fetchAPIToken } from '@/api/token'
@@ -12,28 +13,28 @@ import { t } from '@/locales'
 import { useAuthStore } from '@/store'
 import Permission from '@/views/components/Permission.vue'
 const authStore = useAuthStore()
+const router = useRouter()
 
 const dialog = useDialog()
 const message = useMessage()
 
 const searchVisible = ref(false)
+const botIdSearchVisible = ref(false)
+const botIdSearch = ref('')
+const botIdSearchLoading = ref(false)
 const apiToken = ref('')
 
-
-const needPermission = authStore.needPermission;
+const needPermission = authStore.needPermission
 
 const postsByYearMonth = ref<Record<string, Snapshot.PostLink[]>>({})
 const botRunCounts = ref<Record<string, number>>({})
 
 onMounted(async () => {
-  console.log('🔄 Layout mounted, initializing auth...')
   await authStore.initializeAuth()
-  console.log('✅ Auth initialization completed in Layout')
   await refreshSnapshot()
   const data = await fetchAPIToken()
   apiToken.value = data.accessToken
 })
-
 
 async function refreshSnapshot() {
   const bots: Snapshot.Snapshot[] = await fetchChatbotAllData()
@@ -44,7 +45,8 @@ async function refreshSnapshot() {
     try {
       const count = await fetchBotRunCount(bot.uuid)
       return { uuid: bot.uuid, count }
-    } catch (error) {
+    }
+    catch (error) {
       console.warn(`Failed to fetch run count for bot ${bot.uuid}:`, error)
       return { uuid: bot.uuid, count: 0 }
     }
@@ -76,7 +78,6 @@ function handleDelete(post: Snapshot.PostLink) {
   })
 }
 
-
 function handleShowCode(post: Snapshot.PostLink) {
   const code = generateAPIHelper(post.uuid, apiToken.value, window.location.origin)
   const dialogBox = dialog.info({
@@ -85,71 +86,125 @@ function handleShowCode(post: Snapshot.PostLink) {
     positiveText: t('common.copy'),
     onPositiveClick: () => {
       const success = copy(code)
-      if (success) {
+      if (success)
         message.success(t('common.success'))
-      } else {
+      else
         message.error(t('common.copyFailed'))
-      }
+
       dialogBox.loading = false
     },
   })
 }
-
 
 function postUrl(uuid: string): string {
   return `#/bot/${uuid}`
 }
 
 function openPostUrl(uuid: string) {
-  if (typeof window !== 'undefined' && window.open) {
+  if (typeof window !== 'undefined' && window.open)
     window.open(postUrl(uuid), '_blank')
-  }
 }
 
 function copyToClipboard(text: string) {
   const success = copy(text)
-  if (success) {
+  if (success)
     message.success(t('common.success'))
-  } else {
+  else
     message.error(t('common.copyFailed'))
-  }
 }
 
+function extractBotId(input: string) {
+  return input.trim().match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i)?.[0]
+}
 
+async function findBotById() {
+  const botId = extractBotId(botIdSearch.value)
+  if (!botId) {
+    message.error(t('bot.invalidId'))
+    return
+  }
+
+  botIdSearchLoading.value = true
+  try {
+    const bot = await fetchChatSnapshot(botId)
+    if (bot.typ !== 'chatbot')
+      throw new Error('The ID does not belong to a bot')
+
+    botIdSearchVisible.value = false
+    botIdSearch.value = ''
+    await router.push(`/bot/${botId}`)
+  }
+  catch (error) {
+    message.error(t('bot.notFound'))
+  }
+  finally {
+    botIdSearchLoading.value = false
+  }
+}
 </script>
 
 <template>
   <div class="flex flex-col w-full h-full dark:text-white">
     <header
-      class="flex items-center justify-between h-16 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur">
+      class="flex items-center justify-between h-16 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur"
+    >
       <div class="flex items-center ml-10 gap-2">
         <SvgIcon icon="majesticons:robot-line" class="w-6 h-6" />
         <h1 class="text-xl font-semibold text-gray-900">
           {{ $t('bot.all.title') }}
         </h1>
       </div>
-      <div class="mr-10">
+      <div class="mr-10 flex items-center gap-1">
+        <HoverButton :tooltip="$t('bot.findById')" @click="botIdSearchVisible = true">
+          <SvgIcon icon="ic:baseline-fingerprint" class="text-2xl" />
+        </HoverButton>
         <HoverButton @click="searchVisible = true">
           <SvgIcon icon="ic:round-search" class="text-2xl" />
         </HoverButton>
         <NModal v-model:show="searchVisible" preset="dialog">
           <Search />
         </NModal>
+        <NModal
+          v-model:show="botIdSearchVisible"
+          preset="dialog"
+          :title="$t('bot.findById')"
+        >
+          <div class="flex flex-col gap-4">
+            <NInput
+              v-model:value="botIdSearch"
+              autofocus
+              clearable
+              :placeholder="$t('bot.idPlaceholder')"
+              @keyup.enter="findBotById"
+            />
+            <NButton
+              type="primary"
+              :loading="botIdSearchLoading"
+              :disabled="!botIdSearch.trim()"
+              @click="findBotById"
+            >
+              {{ $t('bot.openBot') }}
+            </NButton>
+          </div>
+        </NModal>
       </div>
     </header>
     <Permission :visible="needPermission" />
     <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
       <div class="max-w-screen-xl px-4 py-8 mx-auto">
-        <div v-for="[yearMonth, postsOfYearMonth] in Object.entries(postsByYearMonth)" :key="yearMonth"
-          class="flex flex-col md:flex-row mb-4">
+        <div
+          v-for="[yearMonth, postsOfYearMonth] in Object.entries(postsByYearMonth)" :key="yearMonth"
+          class="flex flex-col md:flex-row mb-4"
+        >
           <h2 class="flex-none w-28 text-lg font-medium mb-2 md:sticky top-8 self-start">
             {{ yearMonth }}
           </h2>
           <div class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="post in postsOfYearMonth" :key="post.uuid"
+            <div
+              v-for="post in postsOfYearMonth" :key="post.uuid"
               class="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 cursor-pointer"
-              @click="openPostUrl(post.uuid)">
-
+              @click="openPostUrl(post.uuid)"
+            >
               <!-- Header with date and actions -->
               <div class="flex justify-between items-start mb-3">
                 <div class="flex items-center gap-2">
@@ -161,14 +216,18 @@ function copyToClipboard(text: string) {
                   </time>
                 </div>
                 <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button @click.stop="handleShowCode(post)"
+                  <button
                     class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
-                    :title="t('bot.showCode')">
+                    :title="t('bot.showCode')"
+                    @click.stop="handleShowCode(post)"
+                  >
                     <SvgIcon icon="ic:outline-code" class="w-4 h-4" />
                   </button>
-                  <button @click.stop="handleDelete(post)"
+                  <button
                     class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
-                    :title="t('common.delete')">
+                    :title="t('common.delete')"
+                    @click.stop="handleDelete(post)"
+                  >
                     <SvgIcon icon="ic:baseline-delete-forever" class="w-4 h-4" />
                   </button>
                 </div>
@@ -178,7 +237,8 @@ function copyToClipboard(text: string) {
               <div class="mb-4">
                 <h3
                   class="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-                  style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                  style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"
+                >
                   {{ post.title }}
                 </h3>
               </div>
@@ -201,14 +261,15 @@ function copyToClipboard(text: string) {
 
                   <!-- Activity indicator -->
                   <div class="flex items-center gap-1">
-                    <div :class="[
-                      'w-2 h-2 rounded-full',
-                      (botRunCounts[post.uuid] || 0) > 10 ? 'bg-green-500' :
-                        (botRunCounts[post.uuid] || 0) > 0 ? 'bg-yellow-500' : 'bg-gray-300 dark:bg-gray-600'
-                    ]"></div>
+                    <div
+                      class="w-2 h-2 rounded-full" :class="[
+                        (botRunCounts[post.uuid] || 0) > 10 ? 'bg-green-500'
+                        : (botRunCounts[post.uuid] || 0) > 0 ? 'bg-yellow-500' : 'bg-gray-300 dark:bg-gray-600',
+                      ]"
+                    />
                     <span class="text-xs text-gray-500 dark:text-gray-400">
-                      {{ (botRunCounts[post.uuid] || 0) > 10 ? 'High activity' :
-                        (botRunCounts[post.uuid] || 0) > 0 ? 'Active' : 'Inactive' }}
+                      {{ (botRunCounts[post.uuid] || 0) > 10 ? 'High activity'
+                        : (botRunCounts[post.uuid] || 0) > 0 ? 'Active' : 'Inactive' }}
                     </span>
                   </div>
                 </div>
@@ -217,9 +278,11 @@ function copyToClipboard(text: string) {
                 <div class="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
                   <SvgIcon icon="ic:baseline-fingerprint" class="w-3.5 h-3.5" />
                   <span class="font-mono">{{ post.uuid.slice(0, 8) }}...</span>
-                  <button @click.stop="copyToClipboard(post.uuid)"
+                  <button
                     class="p-0.5 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                    :title="t('common.copy')">
+                    :title="t('common.copy')"
+                    @click.stop="copyToClipboard(post.uuid)"
+                  >
                     <SvgIcon icon="ic:baseline-content-copy" class="w-3 h-3" />
                   </button>
                 </div>
