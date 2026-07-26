@@ -1,7 +1,15 @@
 {
   "bot": {
+    "findById": "Find bot by ID",
+    "idPlaceholder": "Paste a bot ID or URL",
+    "invalidId": "Enter a valid bot ID or URL",
     "noHistory": "No history yet",
+    "modelUpdateFailed": "Failed to update the bot model",
+    "modelUpdateSuccess": "Bot model updated",
+    "notFound": "Bot not found",
+    "openBot": "Open bot",
     "runNumber": "Run {number}",
+    "selectModel": "Select a model",
     "tabs": {
       "conversation": "Preset",
       "history": "Answer"

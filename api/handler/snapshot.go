@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
@@ -29,6 +30,7 @@ func (h *ChatSnapshotHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_snapshot/{uuid}", h.DeleteChatSnapshot).Methods(http.MethodDelete)
 	router.HandleFunc("/uuid/chat_snapshot_search", h.ChatSnapshotSearch).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_bot/{uuid}", h.CreateChatBot).Methods(http.MethodPost)
+	router.HandleFunc("/uuid/chat_bot/{uuid}/model", h.UpdateChatBotModel).Methods(http.MethodPut)
 }
 
 func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +61,37 @@ func (h *ChatSnapshotHandler) CreateChatBot(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{"uuid": uuid})
+}
+
+func (h *ChatSnapshotHandler) UpdateChatBotModel(w http.ResponseWriter, r *http.Request) {
+	uuid := mux.Vars(r)["uuid"]
+	var input struct {
+		Model string `json:"model"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
+		return
+	}
+	input.Model = strings.TrimSpace(input.Model)
+	if input.Model == "" {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Model is required"))
+		return
+	}
+
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+
+	snapshot, err := h.Service.UpdateChatBotModel(r.Context(), sqlc_queries.UpdateChatBotModelParams{
+		Uuid: uuid, BotUserID: userID, InputModel: input.Model,
+	})
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Bot or enabled model").WithDebugInfo(err.Error()))
+		return
+	}
+	json.NewEncoder(w).Encode(snapshot)
 }
 
 func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Request) {
