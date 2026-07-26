@@ -11,7 +11,6 @@ export const createChatSnapshot = async (uuid: string): Promise<any> => {
   }
 }
 
-
 export const createChatBot = async (uuid: string): Promise<any> => {
   try {
     const response = await request.post(`/uuid/chat_bot/${uuid}`)
@@ -21,6 +20,11 @@ export const createChatBot = async (uuid: string): Promise<any> => {
     console.error(error)
     throw error
   }
+}
+
+export const updateChatBotModel = async (uuid: string, model: string): Promise<any> => {
+  const response = await request.put(`/uuid/chat_bot/${uuid}/model`, { model })
+  return response.data
 }
 
 export const fetchChatSnapshot = async (uuid: string): Promise<any> => {
@@ -34,7 +38,7 @@ export const fetchChatSnapshot = async (uuid: string): Promise<any> => {
   }
 }
 
-export const fetchSnapshotAll = async (page: number = 1, pageSize: number = 20): Promise<any> => {
+export const fetchSnapshotAll = async (page = 1, pageSize = 20): Promise<any> => {
   try {
     const response = await request.get(`/uuid/chat_snapshot/all?type=snapshot&page=${page}&page_size=${pageSize}`)
     return response.data
@@ -45,7 +49,7 @@ export const fetchSnapshotAll = async (page: number = 1, pageSize: number = 20):
   }
 }
 
-export const fetchSnapshotAllData = async (page: number = 1, pageSize: number = 20): Promise<Snapshot.Snapshot[]> => {
+export const fetchSnapshotAllData = async (page = 1, pageSize = 20): Promise<Snapshot.Snapshot[]> => {
   try {
     const response = await fetchSnapshotAll(page, pageSize)
     // Handle response format: { data: [...], total: n } or just the array
@@ -57,7 +61,7 @@ export const fetchSnapshotAllData = async (page: number = 1, pageSize: number = 
   }
 }
 
-export const fetchChatbotAll= async (): Promise<any> => {
+export const fetchChatbotAll = async (): Promise<any> => {
   try {
     const response = await request.get('/uuid/chat_snapshot/all?type=chatbot')
     return response.data

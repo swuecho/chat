@@ -93,7 +93,10 @@
         },
         "list": "機器人",
         "noHistory": "還沒有紀錄",
+        "modelUpdateFailed": "機器人模型更新失敗",
+        "modelUpdateSuccess": "機器人模型已更新",
         "runNumber": "執行 {number}",
+        "selectModel": "選擇模型",
         "showCode": "產生 API 呼叫程式碼",
         "tabs": {
             "conversation": "預設",

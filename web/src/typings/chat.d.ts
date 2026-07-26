@@ -135,8 +135,10 @@ declare namespace Snapshot {
 
 	interface Snapshot {
 		uuid: string;
+		userId: number;
 		title: string;
 		summary: string;
+		model: string;
 		tags: Record<string, unknown>;
 		createdAt: string;
 		typ: 'chatbot' | 'snapshot';

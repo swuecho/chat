@@ -70,7 +70,10 @@
   "bot": {
     "list": "机器人",
     "noHistory": "还没有记录",
+    "modelUpdateFailed": "机器人模型更新失败",
+    "modelUpdateSuccess": "机器人模型已更新",
     "runNumber": "Run {number}",
+    "selectModel": "选择模型",
     "all": {
       "title": "机器人"
     },

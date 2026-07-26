@@ -98,7 +98,10 @@
         },
         "list": "Bots",
         "noHistory": "No history yet",
+        "modelUpdateFailed": "Failed to update the bot model",
+        "modelUpdateSuccess": "Bot model updated",
         "runNumber": "Run {number}",
+        "selectModel": "Select a model",
         "showCode": "Generate API call code",
         "tabs": {
             "conversation": "Preset",

@@ -382,6 +382,50 @@ func (q *Queries) ListChatSnapshots(ctx context.Context) ([]ChatSnapshot, error)
 	return items, nil
 }
 
+const updateChatBotModel = `-- name: UpdateChatBotModel :one
+UPDATE chat_snapshot
+SET model = $1,
+    session = jsonb_set(session, '{model}', to_jsonb($1::text), true)
+WHERE chat_snapshot.uuid = $2
+  AND chat_snapshot.user_id = $3
+  AND chat_snapshot.typ = 'chatbot'
+  AND EXISTS (
+    SELECT 1
+    FROM chat_model
+    WHERE chat_model.name = $1
+      AND chat_model.is_enable = true
+      AND chat_model.user_id IN (SELECT auth_user.id FROM auth_user WHERE auth_user.is_superuser = true)
+  )
+RETURNING id, typ, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector
+`
+
+type UpdateChatBotModelParams struct {
+	InputModel string `json:"inputModel"`
+	Uuid       string `json:"uuid"`
+	BotUserID  int32  `json:"botUserId"`
+}
+
+func (q *Queries) UpdateChatBotModel(ctx context.Context, arg UpdateChatBotModelParams) (ChatSnapshot, error) {
+	row := q.db.QueryRowContext(ctx, updateChatBotModel, arg.InputModel, arg.Uuid, arg.BotUserID)
+	var i ChatSnapshot
+	err := row.Scan(
+		&i.ID,
+		&i.Typ,
+		&i.Uuid,
+		&i.UserID,
+		&i.Title,
+		&i.Summary,
+		&i.Model,
+		&i.Tags,
+		&i.Session,
+		&i.Conversation,
+		&i.CreatedAt,
+		&i.Text,
+		&i.SearchVector,
+	)
+	return i, err
+}
+
 const updateChatSnapshot = `-- name: UpdateChatSnapshot :one
 UPDATE chat_snapshot
 SET uuid = $2, user_id = $3, title = $4, summary = $5, tags = $6, conversation = $7, created_at = $8
