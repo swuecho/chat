@@ -1,15 +1,28 @@
 <script lang='ts' setup>
-import { computed, h, onMounted, ref, watch } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import copy from 'copy-to-clipboard'
 import jwt_decode from 'jwt-decode'
 import { useRoute } from 'vue-router'
-import { NSelect, NSpin, NTabPane, NTabs, useDialog, useMessage } from 'naive-ui'
+import {
+  NAlert,
+  NButton,
+  NForm,
+  NFormItem,
+  NInput,
+  NModal,
+  NSelect,
+  NSpin,
+  NTabPane,
+  NTabs,
+  useDialog,
+  useMessage,
+} from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import Header from '../snapshot/components/Header/index.vue'
 import Message from './components/Message/index.vue'
 import AnswerHistory from './components/AnswerHistory.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
-import { CreateSessionFromSnapshot, fetchChatSnapshot, updateChatBotModel } from '@/api/chat_snapshot'
+import { CreateSessionFromSnapshot, fetchChatSnapshot, updateChatBotSettings } from '@/api/chat_snapshot'
 import { fetchChatModel } from '@/api/chat_model'
 import type { ChatModel } from '@/types/chat-models'
 import { HoverButton, SvgIcon } from '@/components/common'
@@ -55,39 +68,65 @@ const currentUserId = computed(() => {
     return undefined
   }
 })
-const canEditModel = computed(() =>
+const canEditBot = computed(() =>
   currentUserId.value !== undefined && currentUserId.value === snapshot_data.value?.userId,
 )
-const modelOptions = computed(() =>
+const enabledModels = computed(() =>
   (chatModels.value ?? [])
     .filter(model => model.isEnable)
-    .sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0))
+    .sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0)),
+)
+const modelOptions = computed(() =>
+  enabledModels.value
     .map(model => ({ label: model.label, value: model.name })),
 )
-const selectedModel = ref<string>()
-const modelUpdating = ref(false)
+const currentModel = computed(() =>
+  (chatModels.value ?? []).find(model => model.name === snapshot_data.value?.model),
+)
+const modelIsOutdated = computed(() =>
+  !modelsLoading.value && Boolean(snapshot_data.value?.model)
+  && (!currentModel.value || !currentModel.value.isEnable),
+)
+const settingsVisible = ref(false)
+const settingsSaving = ref(false)
+const settingsForm = ref({
+  title: '',
+  summary: '',
+  model: '',
+})
 
-watch(() => snapshot_data.value?.model, (model) => {
-  selectedModel.value = model
-}, { immediate: true })
+function openSettings() {
+  const recommendedModel = enabledModels.value.find(model => model.isDefault) ?? enabledModels.value[0]
+  settingsForm.value = {
+    title: snapshot_data.value?.title ?? '',
+    summary: snapshot_data.value?.summary ?? '',
+    model: modelIsOutdated.value ? (recommendedModel?.name ?? '') : (snapshot_data.value?.model ?? ''),
+  }
+  settingsVisible.value = true
+}
 
-async function handleModelUpdate(model: string) {
-  const previousModel = snapshot_data.value?.model
-  if (!model || model === previousModel)
+async function saveSettings() {
+  if (!settingsForm.value.title.trim() || !settingsForm.value.model) {
+    nui_msg.error(t('bot.settingsRequired'))
     return
+  }
 
-  modelUpdating.value = true
+  settingsSaving.value = true
   try {
-    const updated = await updateChatBotModel(uuid, model)
+    const updated = await updateChatBotSettings(uuid, {
+      title: settingsForm.value.title.trim(),
+      summary: settingsForm.value.summary.trim(),
+      model: settingsForm.value.model,
+    })
     snapshot_data.value = updated
-    nui_msg.success(t('bot.modelUpdateSuccess'))
+    settingsVisible.value = false
+    nui_msg.success(t('bot.settingsUpdateSuccess'))
   }
   catch (error) {
-    selectedModel.value = previousModel
-    nui_msg.error(t('bot.modelUpdateFailed'))
+    nui_msg.error(t('bot.settingsUpdateFailed'))
   }
   finally {
-    modelUpdating.value = false
+    settingsSaving.value = false
   }
 }
 
@@ -235,21 +274,30 @@ function onScrollToTop() {
             id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
             :class="[isMobile ? 'p-2' : 'p-4']"
           >
-            <div class="flex items-center justify-center mt-4 ">
-              <div class="w-4/5 md:w-1/3 mb-3">
-                <NSelect
-                  v-if="canEditModel"
-                  v-model:value="selectedModel"
-                  :options="modelOptions"
-                  :loading="modelsLoading || modelUpdating"
-                  :disabled="modelsLoading || modelUpdating"
-                  :placeholder="$t('bot.selectModel')"
-                  :fallback-option="false"
-                  @update:value="handleModelUpdate"
-                />
-                <div v-else class="px-3 py-2 border rounded border-gray-200 dark:border-gray-700">
-                  {{ snapshot_data.model }}
+            <div class="w-4/5 md:w-2/3 mx-auto mt-4 mb-3 space-y-3">
+              <NAlert v-if="modelIsOutdated" type="warning" :title="$t('bot.outdatedModelTitle')">
+                {{ $t('bot.outdatedModelDescription', { model: snapshot_data.model }) }}
+                <template v-if="canEditBot" #action>
+                  <NButton size="small" type="warning" @click="openSettings">
+                    {{ $t('bot.chooseReplacement') }}
+                  </NButton>
+                </template>
+              </NAlert>
+              <div class="flex items-center justify-between gap-3 px-3 py-2 border rounded border-gray-200 dark:border-gray-700">
+                <div class="min-w-0">
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ $t('bot.currentModel') }}
+                  </div>
+                  <div class="font-medium truncate">
+                    {{ currentModel?.label || snapshot_data.model }}
+                  </div>
                 </div>
+                <NButton v-if="canEditBot" secondary @click="openSettings">
+                  <template #icon>
+                    <SvgIcon icon="material-symbols:settings-outline" />
+                  </template>
+                  {{ $t('bot.settings') }}
+                </NButton>
               </div>
             </div>
 
@@ -300,6 +348,49 @@ function onScrollToTop() {
           </span>
         </HoverButton>
       </div>
+      <NModal
+        v-model:show="settingsVisible"
+        preset="card"
+        class="w-[min(92vw,36rem)]"
+        :title="$t('bot.settings')"
+        :bordered="false"
+      >
+        <NForm :model="settingsForm" label-placement="top">
+          <NFormItem :label="$t('bot.title')" required>
+            <NInput v-model:value="settingsForm.title" maxlength="200" show-count />
+          </NFormItem>
+          <NFormItem :label="$t('bot.description')">
+            <NInput
+              v-model:value="settingsForm.summary"
+              type="textarea"
+              :autosize="{ minRows: 3, maxRows: 6 }"
+              maxlength="1000"
+              show-count
+            />
+          </NFormItem>
+          <NFormItem :label="$t('bot.model')" required>
+            <NSelect
+              v-model:value="settingsForm.model"
+              :options="modelOptions"
+              :loading="modelsLoading"
+              :disabled="modelsLoading"
+              :placeholder="$t('bot.selectModel')"
+              :fallback-option="false"
+            />
+          </NFormItem>
+          <NAlert v-if="modelIsOutdated" type="warning" class="mb-4">
+            {{ $t('bot.replacementSelected', { model: snapshot_data.model }) }}
+          </NAlert>
+          <div class="flex justify-end gap-2">
+            <NButton :disabled="settingsSaving" @click="settingsVisible = false">
+              {{ $t('common.cancel') }}
+            </NButton>
+            <NButton type="primary" :loading="settingsSaving" @click="saveSettings">
+              {{ $t('common.save') }}
+            </NButton>
+          </div>
+        </NForm>
+      </NModal>
     </div>
   </div>
 </template>

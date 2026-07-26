@@ -27,6 +27,20 @@ export const updateChatBotModel = async (uuid: string, model: string): Promise<a
   return response.data
 }
 
+export interface UpdateChatBotSettingsRequest {
+  title: string
+  summary: string
+  model: string
+}
+
+export const updateChatBotSettings = async (
+  uuid: string,
+  settings: UpdateChatBotSettingsRequest,
+): Promise<any> => {
+  const response = await request.put(`/uuid/chat_bot/${uuid}/settings`, settings)
+  return response.data
+}
+
 export const fetchChatSnapshot = async (uuid: string): Promise<any> => {
   try {
     const response = await request.get(`/uuid/chat_snapshot/${uuid}`)

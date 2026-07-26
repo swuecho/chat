@@ -46,6 +46,10 @@ func (s *ChatSnapshotService) UpdateChatBotModel(ctx context.Context, params sql
 	return s.q.UpdateChatBotModel(ctx, params)
 }
 
+func (s *ChatSnapshotService) UpdateChatBotSettings(ctx context.Context, params sqlc_queries.UpdateChatBotSettingsParams) (sqlc_queries.ChatSnapshot, error) {
+	return s.q.UpdateChatBotSettings(ctx, params)
+}
+
 func (s *ChatSnapshotService) DeleteChatSnapshot(ctx context.Context, params sqlc_queries.DeleteChatSnapshotParams) error {
 	_, err := s.q.DeleteChatSnapshot(ctx, params)
 	return err

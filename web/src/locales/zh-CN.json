@@ -68,6 +68,9 @@
     "enterJsonUrl": "请输入正确的JSON地址"
   },
   "bot": {
+    "chooseReplacement": "选择替代模型",
+    "currentModel": "当前模型",
+    "description": "描述",
     "findById": "按 ID 查找机器人",
     "idPlaceholder": "粘贴机器人 ID 或链接",
     "invalidId": "请输入有效的机器人 ID 或链接",
@@ -77,8 +80,16 @@
     "modelUpdateSuccess": "机器人模型已更新",
     "notFound": "未找到机器人",
     "openBot": "打开机器人",
+    "outdatedModelDescription": "当前配置的模型“{model}”已不可用。请先选择一个已启用的模型。",
+    "outdatedModelTitle": "此机器人使用了过时模型",
+    "replacementSelected": "保存后将替换不可用的“{model}”模型。",
     "runNumber": "Run {number}",
     "selectModel": "选择模型",
+    "settings": "机器人设置",
+    "settingsRequired": "机器人标题和模型为必填项",
+    "settingsUpdateFailed": "机器人设置更新失败",
+    "settingsUpdateSuccess": "机器人设置已更新",
+    "title": "标题",
     "all": {
       "title": "机器人"
     },

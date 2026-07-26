@@ -96,6 +96,9 @@
         "all": {
             "title": "Bots"
         },
+        "chooseReplacement": "Choose replacement",
+        "currentModel": "Current model",
+        "description": "Description",
         "findById": "Find bot by ID",
         "idPlaceholder": "Paste a bot ID or URL",
         "invalidId": "Enter a valid bot ID or URL",
@@ -105,9 +108,17 @@
         "modelUpdateSuccess": "Bot model updated",
         "notFound": "Bot not found",
         "openBot": "Open bot",
+        "outdatedModelDescription": "The configured model “{model}” is no longer available. Choose an enabled model before relying on this bot.",
+        "outdatedModelTitle": "This bot uses an outdated model",
+        "replacementSelected": "Saving will replace the unavailable “{model}” model.",
         "runNumber": "Run {number}",
         "selectModel": "Select a model",
+        "settings": "Bot settings",
+        "settingsRequired": "Bot title and model are required",
+        "settingsUpdateFailed": "Failed to update bot settings",
+        "settingsUpdateSuccess": "Bot settings updated",
         "showCode": "Generate API call code",
+        "title": "Title",
         "tabs": {
             "conversation": "Preset",
             "history": "Answer"

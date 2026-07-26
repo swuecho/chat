@@ -31,6 +31,7 @@ func (h *ChatSnapshotHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_snapshot_search", h.ChatSnapshotSearch).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_bot/{uuid}", h.CreateChatBot).Methods(http.MethodPost)
 	router.HandleFunc("/uuid/chat_bot/{uuid}/model", h.UpdateChatBotModel).Methods(http.MethodPut)
+	router.HandleFunc("/uuid/chat_bot/{uuid}/settings", h.UpdateChatBotSettings).Methods(http.MethodPut)
 }
 
 func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +62,42 @@ func (h *ChatSnapshotHandler) CreateChatBot(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{"uuid": uuid})
+}
+
+func (h *ChatSnapshotHandler) UpdateChatBotSettings(w http.ResponseWriter, r *http.Request) {
+	uuid := mux.Vars(r)["uuid"]
+	var input struct {
+		Title   string `json:"title"`
+		Summary string `json:"summary"`
+		Model   string `json:"model"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
+		return
+	}
+	input.Title = strings.TrimSpace(input.Title)
+	input.Summary = strings.TrimSpace(input.Summary)
+	input.Model = strings.TrimSpace(input.Model)
+	if input.Title == "" || input.Model == "" {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Title and model are required"))
+		return
+	}
+
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+
+	snapshot, err := h.Service.UpdateChatBotSettings(r.Context(), sqlc_queries.UpdateChatBotSettingsParams{
+		Uuid: uuid, BotUserID: userID, InputTitle: input.Title,
+		InputSummary: input.Summary, InputModel: input.Model,
+	})
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Bot or enabled model").WithDebugInfo(err.Error()))
+		return
+	}
+	json.NewEncoder(w).Encode(snapshot)
 }
 
 func (h *ChatSnapshotHandler) UpdateChatBotModel(w http.ResponseWriter, r *http.Request) {

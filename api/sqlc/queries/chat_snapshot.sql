@@ -60,6 +60,24 @@ WHERE chat_snapshot.uuid = sqlc.arg(uuid)
   )
 RETURNING *;
 
+-- name: UpdateChatBotSettings :one
+UPDATE chat_snapshot
+SET title = sqlc.arg(input_title),
+    summary = sqlc.arg(input_summary),
+    model = sqlc.arg(input_model),
+    session = jsonb_set(session, '{model}', to_jsonb(sqlc.arg(input_model)::text), true)
+WHERE chat_snapshot.uuid = sqlc.arg(uuid)
+  AND chat_snapshot.user_id = sqlc.arg(bot_user_id)
+  AND chat_snapshot.typ = 'chatbot'
+  AND EXISTS (
+    SELECT 1
+    FROM chat_model
+    WHERE chat_model.name = sqlc.arg(input_model)
+      AND chat_model.is_enable = true
+      AND chat_model.user_id IN (SELECT auth_user.id FROM auth_user WHERE auth_user.is_superuser = true)
+  )
+RETURNING *;
+
 -- name: ChatSnapshotCountByUserIDAndType :one
 SELECT COUNT(*)
 FROM chat_snapshot

@@ -91,6 +91,9 @@
         "all": {
             "title": "機器人"
         },
+        "chooseReplacement": "選擇替代模型",
+        "currentModel": "目前模型",
+        "description": "描述",
         "findById": "按 ID 尋找機器人",
         "idPlaceholder": "貼上機器人 ID 或連結",
         "invalidId": "請輸入有效的機器人 ID 或連結",
@@ -100,9 +103,17 @@
         "modelUpdateSuccess": "機器人模型已更新",
         "notFound": "找不到機器人",
         "openBot": "開啟機器人",
+        "outdatedModelDescription": "目前設定的模型「{model}」已無法使用。請先選擇一個已啟用的模型。",
+        "outdatedModelTitle": "此機器人使用了過時模型",
+        "replacementSelected": "儲存後將替換無法使用的「{model}」模型。",
         "runNumber": "執行 {number}",
         "selectModel": "選擇模型",
+        "settings": "機器人設定",
+        "settingsRequired": "機器人標題和模型為必填項",
+        "settingsUpdateFailed": "機器人設定更新失敗",
+        "settingsUpdateSuccess": "機器人設定已更新",
         "showCode": "產生 API 呼叫程式碼",
+        "title": "標題",
         "tabs": {
             "conversation": "預設",
             "history": "紀錄"
