@@ -61,7 +61,7 @@ WITH saved_message AS (
         $9, $10, $11,
         $12, $13, $14
     )
-    ON CONFLICT (chat_session_uuid, uuid) DO UPDATE
+    ON CONFLICT (chat_session_uuid, uuid) WHERE is_deleted = false DO UPDATE
     SET uuid = EXCLUDED.uuid
     RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions
 ),

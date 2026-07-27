@@ -46,7 +46,7 @@ WITH saved_message AS (
         sqlc.arg(created_by), sqlc.arg(updated_by), sqlc.arg(llm_summary),
         sqlc.arg(raw), sqlc.arg(artifacts), sqlc.arg(suggested_questions)
     )
-    ON CONFLICT (chat_session_uuid, uuid) DO UPDATE
+    ON CONFLICT (chat_session_uuid, uuid) WHERE is_deleted = false DO UPDATE
     SET uuid = EXCLUDED.uuid
     RETURNING *
 ),

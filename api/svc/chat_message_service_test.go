@@ -94,6 +94,17 @@ func TestCreateChatMessageIsIdempotentWithinSession(t *testing.T) {
 	if err := service.DeleteChatMessage(context.Background(), first.ID); err != nil {
 		t.Fatalf("cleanup failed: %v", err)
 	}
+
+	recreated, err := service.CreateChatMessage(context.Background(), params)
+	if err != nil {
+		t.Fatalf("recreating a soft-deleted message error = %v", err)
+	}
+	if recreated.ID == first.ID {
+		t.Fatalf("recreating a deleted UUID returned deleted row ID %d", recreated.ID)
+	}
+	if err := service.DeleteChatMessage(context.Background(), recreated.ID); err != nil {
+		t.Fatalf("recreated message cleanup failed: %v", err)
+	}
 }
 
 func TestGetChatMessagesBySessionID(t *testing.T) {

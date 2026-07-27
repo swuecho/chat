@@ -246,10 +246,32 @@ ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS suggested_questions JSONB DEFA
 -- add hash index on uuid
 CREATE INDEX IF NOT EXISTS chat_message_uuid_idx ON chat_message using hash (uuid) ;
 
--- A client retry must not create a second copy of the same logical message.
--- Scoped by session so imported conversations can retain their original UUIDs.
+-- Reconcile legacy duplicate UUIDs before enforcing active-message uniqueness.
+-- Keep the oldest row as the canonical message and soft-delete later copies so
+-- no conversation data is irreversibly removed.
+DROP INDEX IF EXISTS chat_message_session_uuid_unique_idx;
+
+WITH ranked_duplicate_messages AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (
+            PARTITION BY chat_session_uuid, uuid
+            ORDER BY id ASC
+        ) AS duplicate_rank
+    FROM chat_message
+    WHERE is_deleted = false
+)
+UPDATE chat_message AS message
+SET is_deleted = true, updated_at = now()
+FROM ranked_duplicate_messages AS duplicate
+WHERE message.id = duplicate.id
+  AND duplicate.duplicate_rank > 1;
+
+-- A client retry must not create a second active copy of the same logical
+-- message. Deleted history remains available for recovery and auditing.
 CREATE UNIQUE INDEX IF NOT EXISTS chat_message_session_uuid_unique_idx
-ON chat_message (chat_session_uuid, uuid);
+ON chat_message (chat_session_uuid, uuid)
+WHERE is_deleted = false;
 
 CREATE TABLE IF NOT EXISTS chat_request (
     id BIGSERIAL PRIMARY KEY,

@@ -31,7 +31,7 @@ WHERE is_deleted = false and id = $1;
 -- name: CreateChatMessage :one
 INSERT INTO chat_message (chat_session_uuid, uuid, role, content, reasoning_content,  model, token_count, score, user_id, created_by, updated_by, llm_summary, raw, artifacts, suggested_questions)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-ON CONFLICT (chat_session_uuid, uuid) DO UPDATE
+ON CONFLICT (chat_session_uuid, uuid) WHERE is_deleted = false DO UPDATE
 SET uuid = EXCLUDED.uuid
 RETURNING *;
 
