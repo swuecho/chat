@@ -218,8 +218,9 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	return message, nil
 }
 
-// CreateChatMessageWithSuggestedQuestions creates a chat message with optional suggested questions for explore mode
-func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode, exploreMode bool, messages []models.Message) (sqlc_queries.ChatMessage, error) {
+// CompleteChatRequestWithSuggestedQuestions atomically saves the assistant
+// message and marks its originating request completed.
+func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Context, requestUuid, sessionUuid, uuid, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode, exploreMode bool, messages []models.Message) (sqlc_queries.CompleteChatRequestWithMessageRow, error) {
 	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		slog.Warn("Failed to get token count", "error", err)
@@ -243,7 +244,7 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 
 	// Generate suggested questions if explore mode is enabled and role is assistant
 	suggestedQuestions := json.RawMessage([]byte("[]"))
-	if exploreMode && role == "assistant" && messages != nil {
+	if exploreMode && messages != nil {
 		questions := s.GenerateSuggestedQuestions(content, messages)
 		if questionsJSON, err := json.Marshal(questions); err == nil {
 			suggestedQuestions = questionsJSON
@@ -252,10 +253,9 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 		}
 	}
 
-	chatMessage := sqlc_queries.CreateChatMessageParams{
+	params := sqlc_queries.CompleteChatRequestWithMessageParams{
 		ChatSessionUuid:    sessionUuid,
-		Uuid:               uuid,
-		Role:               role,
+		MessageUuid:        uuid,
 		Content:            content,
 		ReasoningContent:   reasoningContent,
 		Model:              model,
@@ -267,10 +267,11 @@ func (s *ChatService) CreateChatMessageWithSuggestedQuestions(ctx context.Contex
 		Raw:                json.RawMessage([]byte("{}")),
 		Artifacts:          artifactsJSON,
 		SuggestedQuestions: suggestedQuestions,
+		RequestUuid:        requestUuid,
 	}
-	message, err := s.q.CreateChatMessage(ctx, chatMessage)
+	message, err := s.q.CompleteChatRequestWithMessage(ctx, params)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
+		return sqlc_queries.CompleteChatRequestWithMessageRow{}, eris.Wrap(err, "failed to complete chat request ")
 	}
 	return message, nil
 }

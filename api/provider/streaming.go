@@ -24,6 +24,15 @@ type StreamingResponse struct {
 	IsFinal  bool
 }
 
+// StreamEvent is a terminal SSE event emitted after durable processing finishes.
+type StreamEvent struct {
+	Type      string `json:"type"`
+	AnswerID  string `json:"answerId,omitempty"`
+	Persisted bool   `json:"persisted"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+}
+
 // FlushResponse sends a streaming response to the client.
 func FlushResponse(w http.ResponseWriter, flusher http.Flusher, response StreamingResponse) error {
 	if response.Content == "" && !response.IsFinal {
@@ -40,6 +49,24 @@ func FlushResponse(w http.ResponseWriter, flusher http.Flusher, response Streami
 		return err
 	}
 	fmt.Fprintf(w, "data: %v\n\n", string(data))
+	flusher.Flush()
+	return nil
+}
+
+// FlushStreamEvent emits a typed SSE event. A completed event must only be sent
+// after the corresponding database mutation has succeeded.
+func FlushStreamEvent(w http.ResponseWriter, eventType string, event StreamEvent) error {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming unsupported")
+	}
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, data); err != nil {
+		return err
+	}
 	flusher.Flush()
 	return nil
 }

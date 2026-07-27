@@ -159,6 +159,10 @@ export function useConversationFlow(
     loading.value = true
     abortController.value = new AbortController()
     const responseIndex = await initializeChatResponse(dataSources)
+    const handleChunk = async (chunk: string, index: number) => {
+      processStreamChunk(chunk, index, sessionUuid)
+      await smoothScrollToBottomIfAtBottom()
+    }
 
     try {
       await streamChatResponse(
@@ -166,10 +170,7 @@ export function useConversationFlow(
         chatUuid,
         message,
         responseIndex,
-        async (chunk: string, index: number) => {
-          processStreamChunk(chunk, index, sessionUuid)
-          await smoothScrollToBottomIfAtBottom()
-        },
+        handleChunk,
         abortController.value.signal,
       )
     }
@@ -178,6 +179,37 @@ export function useConversationFlow(
         // Stream was cancelled, no need to show error
         return
       }
+
+      // Reconcile once with the same request UUID. The server will either
+      // replay a durably completed answer or safely reclaim a failed request.
+      if (error instanceof Error && error.message.includes('ended before it was saved')) {
+        updateChat(sessionUuid, responseIndex, {
+          uuid: '',
+          dateTime: nowISO(),
+          text: '',
+          loading: true,
+          inversion: false,
+          error: false,
+        })
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        try {
+          await streamChatResponse(
+            sessionUuid,
+            chatUuid,
+            message,
+            responseIndex,
+            handleChunk,
+            abortController.value.signal,
+          )
+          return
+        }
+        catch (reconciliationError) {
+          handleStreamingError(reconciliationError, responseIndex, dataSources)
+          return
+        }
+      }
+
       handleStreamingError(error, responseIndex, dataSources)
     }
     finally {
