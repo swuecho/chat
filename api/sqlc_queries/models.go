@@ -132,6 +132,19 @@ type ChatPrompt struct {
 	TokenCount      int32     `json:"tokenCount"`
 }
 
+type ChatRequest struct {
+	ID              int64     `json:"id"`
+	Uuid            string    `json:"uuid"`
+	ChatSessionUuid string    `json:"chatSessionUuid"`
+	UserID          int32     `json:"userId"`
+	Status          string    `json:"status"`
+	AssistantUuid   string    `json:"assistantUuid"`
+	ErrorCode       string    `json:"errorCode"`
+	AttemptCount    int32     `json:"attemptCount"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+}
+
 type ChatSession struct {
 	ID              int32         `json:"id"`
 	UserID          int32         `json:"userId"`

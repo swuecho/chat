@@ -99,6 +99,14 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
+	if req.SessionUuid == "" || req.ChatUuid == "" {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("sessionUuid and chatUuid are required"))
+		return
+	}
+	if !req.Regenerate && req.Prompt == "" {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("prompt is required"))
+		return
+	}
 
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
@@ -123,7 +131,12 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 	}
 	slog.Info("Processing chat session", "sessionUUID", chatSession.Uuid, "userID", userID, "model", chatSession.Model)
 
+	if !h.claimOrReplayChatRequest(ctx, w, *chatSession, chatUuid, userID, streamOutput) {
+		return
+	}
+
 	if !h.handlePromptCreation(ctx, w, chatSession, chatUuid, question, userID, baseURL) {
+		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "prompt_persistence_failed")
 		return
 	}
 

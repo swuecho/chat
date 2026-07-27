@@ -251,6 +251,24 @@ CREATE INDEX IF NOT EXISTS chat_message_uuid_idx ON chat_message using hash (uui
 CREATE UNIQUE INDEX IF NOT EXISTS chat_message_session_uuid_unique_idx
 ON chat_message (chat_session_uuid, uuid);
 
+CREATE TABLE IF NOT EXISTS chat_request (
+    id BIGSERIAL PRIMARY KEY,
+    uuid VARCHAR(255) NOT NULL,
+    chat_session_uuid VARCHAR(255) NOT NULL REFERENCES chat_session(uuid) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    status VARCHAR(32) NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'streaming', 'completed', 'failed', 'cancelled')),
+    assistant_uuid VARCHAR(255) NOT NULL DEFAULT '',
+    error_code VARCHAR(255) NOT NULL DEFAULT '',
+    attempt_count INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP DEFAULT now() NOT NULL,
+    UNIQUE (chat_session_uuid, uuid)
+);
+
+CREATE INDEX IF NOT EXISTS chat_request_user_id_idx ON chat_request (user_id);
+CREATE INDEX IF NOT EXISTS chat_request_status_idx ON chat_request (status);
+
 -- add index on chat_session_uuid
 CREATE INDEX IF NOT EXISTS chat_message_chat_session_uuid_idx ON chat_message (chat_session_uuid);
 

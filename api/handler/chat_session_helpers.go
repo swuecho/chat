@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 	"log/slog"
@@ -20,6 +21,73 @@ import (
 
 // titleGenSemaphore limits concurrent title generation goroutines to prevent unbounded resource usage.
 var titleGenSemaphore = make(chan struct{}, 5)
+
+func (h *ChatHandler) failChatRequest(sessionUuid, requestUuid string, userID int32, code string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := h.service.Q().MarkChatRequestFailed(ctx, sqlc_queries.MarkChatRequestFailedParams{
+		Uuid: requestUuid, ChatSessionUuid: sessionUuid, UserID: userID, ErrorCode: code,
+	}); err != nil {
+		slog.Warn("Failed to persist chat request failure", "requestUUID", requestUuid, "error", err)
+	}
+}
+
+func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.ResponseWriter, session sqlc_queries.ChatSession, requestUuid string, userID int32, streamOutput bool) bool {
+	params := sqlc_queries.ClaimChatRequestParams{
+		Uuid: requestUuid, ChatSessionUuid: session.Uuid, UserID: userID,
+	}
+	if _, err := h.service.Q().ClaimChatRequest(ctx, params); err == nil {
+		return true
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to claim chat request", err.Error()))
+		return false
+	}
+
+	request, err := h.service.Q().GetChatRequest(ctx, sqlc_queries.GetChatRequestParams(params))
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to reconcile chat request", err.Error()))
+		return false
+	}
+
+	if request.Status != "completed" || request.AssistantUuid == "" {
+		if streamOutput {
+			if _, err := setupSSEStream(w); err == nil {
+				_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
+					Type: "failed", Code: "request_in_progress", Message: "This request is already being processed",
+				})
+			}
+		} else {
+			dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("This request is already being processed"))
+		}
+		return false
+	}
+
+	message, err := h.service.Q().GetChatMessageByUUID(ctx, request.AssistantUuid)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Completed response could not be loaded", err.Error()))
+		return false
+	}
+
+	if streamOutput {
+		flusher, err := setupSSEStream(w)
+		if err != nil {
+			return false
+		}
+		_ = provider.FlushResponse(w, flusher, provider.StreamingResponse{
+			AnswerID: message.Uuid, Content: message.Content,
+		})
+		_ = provider.FlushStreamEvent(w, "completed", provider.StreamEvent{
+			Type: "completed", AnswerID: message.Uuid, Persisted: true,
+		})
+		return false
+	}
+
+	_ = json.NewEncoder(w).Encode(ChatCompletionResponse{
+		ID: message.Uuid, Object: "chat.completion",
+		Choices: []Choice{{Message: openai.ChatCompletionMessage{Content: message.Content}}},
+	})
+	return false
+}
 
 // validateChatSession validates the session UUID and retrieves session + model info.
 func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string) (*sqlc_queries.ChatSession, *sqlc_queries.ChatModel, string, bool) {
@@ -96,15 +164,25 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.ResponseWriter, chatSession *sqlc_queries.ChatSession, chatUuid string, userID int32, baseURL string, streamOutput bool) bool {
 	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, false)
 	if err != nil {
+		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "message_collection_failed")
 		slog.Error("error collecting messages", "session", chatSession.Uuid, "error", err)
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to collect messages", err.Error()))
 		return false
 	}
 	slog.Info("Collected messages", "sessionUUID", chatSession.Uuid, "count", len(msgs), "model", chatSession.Model)
 
+	if err := h.service.Q().MarkChatRequestStreaming(ctx, sqlc_queries.MarkChatRequestStreamingParams{
+		Uuid: chatUuid, ChatSessionUuid: chatSession.Uuid, UserID: userID,
+	}); err != nil {
+		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "request_state_failed")
+		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to start chat request", err.Error()))
+		return false
+	}
+
 	model := h.chooseChatModel(ctx, *chatSession, msgs)
 	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
+		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "generation_failed")
 		slog.Error("error generating answer", "error", err)
 		if streamOutput {
 			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
@@ -116,6 +194,7 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		return false
 	}
 	if LLMAnswer == nil {
+		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "empty_answer")
 		if streamOutput {
 			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
 				Type: "failed", Code: "empty_answer", Message: "The model returned no final answer",
@@ -130,8 +209,9 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		h.service.LogChat(*chatSession, msgs, LLMAnswer.ReasoningContent+LLMAnswer.Answer)
 	}
 
-	chatMessage, err := h.service.CreateChatMessageWithSuggestedQuestions(ctx, chatSession.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs)
+	chatMessage, err := h.service.CompleteChatRequestWithSuggestedQuestions(ctx, chatUuid, chatSession.Uuid, LLMAnswer.AnswerId, LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs)
 	if err != nil {
+		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "persistence_failed")
 		if streamOutput {
 			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
 				Type: "failed", AnswerID: LLMAnswer.AnswerId, Code: "persistence_failed", Message: "Failed to save answer",
