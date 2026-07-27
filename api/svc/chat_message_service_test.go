@@ -56,6 +56,46 @@ func TestChatMessageService(t *testing.T) {
 	}
 }
 
+func TestCreateChatMessageIsIdempotentWithinSession(t *testing.T) {
+	q := sqlc_queries.New(testDB)
+	service := NewChatMessageService(q)
+	params := sqlc_queries.CreateChatMessageParams{
+		ChatSessionUuid:    "1",
+		Uuid:               "idempotent-message-uuid",
+		Role:               "user",
+		Content:            "original content",
+		ReasoningContent:   "",
+		Model:              "test-model",
+		UserID:             1,
+		CreatedBy:          1,
+		UpdatedBy:          1,
+		Raw:                json.RawMessage([]byte("{}")),
+		Artifacts:          json.RawMessage([]byte("[]")),
+		SuggestedQuestions: json.RawMessage([]byte("[]")),
+	}
+
+	first, err := service.CreateChatMessage(context.Background(), params)
+	if err != nil {
+		t.Fatalf("first CreateChatMessage() error = %v", err)
+	}
+	params.Content = "content from a retry must not overwrite the original"
+	second, err := service.CreateChatMessage(context.Background(), params)
+	if err != nil {
+		t.Fatalf("retried CreateChatMessage() error = %v", err)
+	}
+
+	if second.ID != first.ID {
+		t.Fatalf("retry created a duplicate: first ID %d, second ID %d", first.ID, second.ID)
+	}
+	if second.Content != first.Content {
+		t.Fatalf("retry overwrote original content: got %q, want %q", second.Content, first.Content)
+	}
+
+	if err := service.DeleteChatMessage(context.Background(), first.ID); err != nil {
+		t.Fatalf("cleanup failed: %v", err)
+	}
+}
+
 func TestGetChatMessagesBySessionID(t *testing.T) {
 	q := sqlc_queries.New(testDB)
 	service := NewChatMessageService(q)

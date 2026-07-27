@@ -2,7 +2,9 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/swuecho/chat_backend/dto"
@@ -31,6 +33,32 @@ func TestStreamingResponse(t *testing.T) {
 	}
 	if w.Header().Get("Content-Type") != "text/event-stream" {
 		t.Error("expected text/event-stream content type")
+	}
+}
+
+func TestFlushStreamEvent(t *testing.T) {
+	w := httptest.NewRecorder()
+	err := FlushStreamEvent(w, "completed", StreamEvent{
+		Type:      "completed",
+		AnswerID:  "answer-1",
+		Persisted: true,
+	})
+	if err != nil {
+		t.Fatalf("FlushStreamEvent() error = %v", err)
+	}
+
+	body := w.Body.String()
+	if !strings.HasPrefix(body, "event: completed\ndata: ") {
+		t.Fatalf("unexpected SSE frame: %q", body)
+	}
+
+	data := strings.TrimSuffix(strings.TrimPrefix(body, "event: completed\ndata: "), "\n\n")
+	var event StreamEvent
+	if err := json.Unmarshal([]byte(data), &event); err != nil {
+		t.Fatalf("invalid event JSON: %v", err)
+	}
+	if event.AnswerID != "answer-1" || !event.Persisted {
+		t.Fatalf("unexpected event: %#v", event)
 	}
 }
 

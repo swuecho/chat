@@ -2,6 +2,7 @@ import { useAuthStore, useMessageStore } from '@/store'
 import { extractStreamingData } from '@/utils/string'
 import { extractArtifacts } from '@/utils/artifacts'
 import { nowISO } from '@/utils/date'
+import { readTerminalStreamEvent } from '@/utils/sse'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { t } from '@/locales'
 import { getStreamingUrl } from '@/config/api'
@@ -150,6 +151,7 @@ export function useStreamHandling() {
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
+      let completed = false
 
       try {
         while (true) {
@@ -168,14 +170,33 @@ export function useStreamHandling() {
           buffer = lines.pop() || ''
 
           for (const line of lines) {
-            if (line.trim())
+            const terminalEvent = readTerminalStreamEvent(line)
+            if (terminalEvent?.type === 'failed')
+              throw new Error(terminalEvent.message || terminalEvent.code || 'Stream failed')
+            if (terminalEvent?.type === 'completed') {
+              if (!terminalEvent.persisted)
+                throw new Error('The response was not saved')
+              completed = true
+            }
+            else if (line.trim()) {
               onStreamChunk(line, responseIndex)
+            }
           }
         }
 
         // Process any remaining data in buffer
-        if (buffer.trim())
-          onStreamChunk(buffer, responseIndex)
+        if (buffer.trim()) {
+          const terminalEvent = readTerminalStreamEvent(buffer)
+          if (terminalEvent?.type === 'failed')
+            throw new Error(terminalEvent.message || terminalEvent.code || 'Stream failed')
+          if (terminalEvent?.type === 'completed')
+            completed = terminalEvent.persisted === true
+          else
+            onStreamChunk(buffer, responseIndex)
+        }
+
+        if (!completed)
+          throw new Error('The response stream ended before it was saved')
       }
       finally {
         reader.releaseLock()
@@ -240,6 +261,7 @@ export function useStreamHandling() {
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
+      let completed = false
 
       try {
         while (true) {
@@ -258,14 +280,33 @@ export function useStreamHandling() {
           buffer = lines.pop() || ''
 
           for (const line of lines) {
-            if (line.trim())
+            const terminalEvent = readTerminalStreamEvent(line)
+            if (terminalEvent?.type === 'failed')
+              throw new Error(terminalEvent.message || terminalEvent.code || 'Stream failed')
+            if (terminalEvent?.type === 'completed') {
+              if (!terminalEvent.persisted)
+                throw new Error('The regenerated response was not saved')
+              completed = true
+            }
+            else if (line.trim()) {
               onStreamChunk(line, updateIndex)
+            }
           }
         }
 
         // Process any remaining data in buffer
-        if (buffer.trim())
-          onStreamChunk(buffer, updateIndex)
+        if (buffer.trim()) {
+          const terminalEvent = readTerminalStreamEvent(buffer)
+          if (terminalEvent?.type === 'failed')
+            throw new Error(terminalEvent.message || terminalEvent.code || 'Stream failed')
+          if (terminalEvent?.type === 'completed')
+            completed = terminalEvent.persisted === true
+          else
+            onStreamChunk(buffer, updateIndex)
+        }
+
+        if (!completed)
+          throw new Error('The regenerated response stream ended before it was saved')
       }
       finally {
         reader.releaseLock()

@@ -106,10 +106,22 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
 		slog.Error("error generating answer", "error", err)
+		if streamOutput {
+			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
+				Type: "failed", Code: "generation_failed", Message: "Failed to generate answer",
+			})
+			return false
+		}
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return false
 	}
 	if LLMAnswer == nil {
+		if streamOutput {
+			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
+				Type: "failed", Code: "empty_answer", Message: "The model returned no final answer",
+			})
+			return false
+		}
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("LLMAnswer is nil"))
 		return false
 	}
@@ -120,12 +132,25 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 
 	chatMessage, err := h.service.CreateChatMessageWithSuggestedQuestions(ctx, chatSession.Uuid, LLMAnswer.AnswerId, "assistant", LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs)
 	if err != nil {
+		if streamOutput {
+			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
+				Type: "failed", AnswerID: LLMAnswer.AnswerId, Code: "persistence_failed", Message: "Failed to save answer",
+			})
+			return false
+		}
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to create message", err.Error()))
 		return false
 	}
 
 	if streamOutput && chatSession.ExploreMode && chatMessage.SuggestedQuestions != nil {
 		h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, chatMessage.SuggestedQuestions)
+	}
+	if streamOutput {
+		if err := provider.FlushStreamEvent(w, "completed", provider.StreamEvent{
+			Type: "completed", AnswerID: LLMAnswer.AnswerId, Persisted: true,
+		}); err != nil {
+			slog.Warn("Failed to send stream completion event", "error", err)
+		}
 	}
 
 	// Launch title generation with bounded concurrency
@@ -168,9 +193,6 @@ func streamFromModel(model provider.ChatModel, ctx context.Context, w http.Respo
 				})
 			}
 		}
-		// Send the [DONE] termination marker
-		fmt.Fprintf(w, "data: [DONE]\n\n")
-		flusher.Flush()
 	} else {
 		for chunk := range ch {
 			if chunk.Err != nil {

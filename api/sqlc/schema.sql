@@ -246,6 +246,11 @@ ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS suggested_questions JSONB DEFA
 -- add hash index on uuid
 CREATE INDEX IF NOT EXISTS chat_message_uuid_idx ON chat_message using hash (uuid) ;
 
+-- A client retry must not create a second copy of the same logical message.
+-- Scoped by session so imported conversations can retain their original UUIDs.
+CREATE UNIQUE INDEX IF NOT EXISTS chat_message_session_uuid_unique_idx
+ON chat_message (chat_session_uuid, uuid);
+
 -- add index on chat_session_uuid
 CREATE INDEX IF NOT EXISTS chat_message_chat_session_uuid_idx ON chat_message (chat_session_uuid);
 

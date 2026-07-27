@@ -11,6 +11,7 @@ import (
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -179,6 +180,12 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, true, stream)
 	if err != nil {
 		slog.Error("error regenerating answer", "error", err)
+		if stream {
+			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
+				Type: "failed", AnswerID: chatUuid, Code: "generation_failed", Message: "Failed to regenerate answer",
+			})
+			return
+		}
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to regenerate answer"))
 		return
 	}
@@ -186,6 +193,12 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 	h.service.LogChat(*chatSession, msgs, LLMAnswer.Answer)
 
 	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, LLMAnswer.Answer); err != nil {
+		if stream {
+			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
+				Type: "failed", AnswerID: chatUuid, Code: "persistence_failed", Message: "Failed to save regenerated answer",
+			})
+			return
+		}
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update message").WithDebugInfo(err.Error()))
 		return
 	}
@@ -200,6 +213,11 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 				}
 			}
 		}
+	}
+	if stream {
+		_ = provider.FlushStreamEvent(w, "completed", provider.StreamEvent{
+			Type: "completed", AnswerID: chatUuid, Persisted: true,
+		})
 	}
 }
 
