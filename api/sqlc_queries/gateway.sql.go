@@ -562,3 +562,31 @@ func (q *Queries) VirtualAPIKeyByIDAndUser(ctx context.Context, arg VirtualAPIKe
 	)
 	return i, err
 }
+
+const virtualAdminAPIKeyByHash = `-- name: VirtualAdminAPIKeyByHash :one
+SELECT vak.id, vak.user_id, vak.name, vak.key_prefix, vak.key_hash, vak.status, vak.requests_per_minute, vak.expires_at, vak.last_used_at, vak.created_at, vak.revoked_at
+FROM virtual_api_key vak
+JOIN auth_user au ON au.id = vak.user_id
+WHERE vak.key_hash = $1
+  AND au.is_superuser = true
+  AND au.is_active = true
+`
+
+func (q *Queries) VirtualAdminAPIKeyByHash(ctx context.Context, keyHash string) (VirtualApiKey, error) {
+	row := q.db.QueryRowContext(ctx, virtualAdminAPIKeyByHash, keyHash)
+	var i VirtualApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.KeyPrefix,
+		&i.KeyHash,
+		&i.Status,
+		&i.RequestsPerMinute,
+		&i.ExpiresAt,
+		&i.LastUsedAt,
+		&i.CreatedAt,
+		&i.RevokedAt,
+	)
+	return i, err
+}

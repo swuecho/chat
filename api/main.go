@@ -218,7 +218,7 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 
 	// Chat models
 	handler.NewChatModelHandler(q).Register(userRouter)
-	handler.NewAPIKeyHandler(q).Register(userRouter)
+	handler.NewAPIKeyHandler(q).Register(adminRouter)
 
 	// Auth
 	authHandler := handler.NewAuthUserHandler(q, jwtSecret, jwtAudience, rateLimit)

@@ -12,6 +12,14 @@ ORDER BY created_at DESC;
 SELECT * FROM virtual_api_key
 WHERE key_hash = $1;
 
+-- name: VirtualAdminAPIKeyByHash :one
+SELECT vak.*
+FROM virtual_api_key vak
+JOIN auth_user au ON au.id = vak.user_id
+WHERE vak.key_hash = $1
+  AND au.is_superuser = true
+  AND au.is_active = true;
+
 -- name: VirtualAPIKeyByIDAndUser :one
 SELECT * FROM virtual_api_key
 WHERE id = $1 AND user_id = $2;

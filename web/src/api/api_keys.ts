@@ -54,9 +54,11 @@ export interface GatewayRequestDetail extends GatewayRequestSummary {
   responseCapture: CapturedSample
 }
 
-export const fetchApiKeys = async (): Promise<VirtualApiKey[]> => (await request.get('/api-keys')).data
-export const createApiKey = async (data: { name: string; requestsPerMinute: number; expiresAt?: string }): Promise<VirtualApiKey> => (await request.post('/api-keys', data)).data
-export const revokeApiKey = async (id: number): Promise<void> => { await request.delete(`/api-keys/${id}`) }
-export const fetchApiKeyUsage = async (id: number): Promise<ApiKeyUsage[]> => (await request.get(`/api-keys/${id}/usage`)).data
-export const fetchGatewayRequests = async (keyId: number): Promise<GatewayRequestSummary[]> => (await request.get(`/api-keys/${keyId}/requests`)).data
-export const fetchGatewayRequest = async (keyId: number, requestId: number): Promise<GatewayRequestDetail> => (await request.get(`/api-keys/${keyId}/requests/${requestId}`)).data
+const adminKeysPath = '/admin/api-keys'
+
+export const fetchApiKeys = async (): Promise<VirtualApiKey[]> => (await request.get(adminKeysPath)).data
+export const createApiKey = async (data: { name: string; requestsPerMinute: number; expiresAt?: string }): Promise<VirtualApiKey> => (await request.post(adminKeysPath, data)).data
+export const revokeApiKey = async (id: number): Promise<void> => { await request.delete(`${adminKeysPath}/${id}`) }
+export const fetchApiKeyUsage = async (id: number): Promise<ApiKeyUsage[]> => (await request.get(`${adminKeysPath}/${id}/usage`)).data
+export const fetchGatewayRequests = async (keyId: number): Promise<GatewayRequestSummary[]> => (await request.get(`${adminKeysPath}/${keyId}/requests`)).data
+export const fetchGatewayRequest = async (keyId: number, requestId: number): Promise<GatewayRequestDetail> => (await request.get(`${adminKeysPath}/${keyId}/requests/${requestId}`)).data

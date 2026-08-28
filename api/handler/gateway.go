@@ -74,7 +74,7 @@ func (h *GatewayHandler) authenticate(next http.Handler) http.Handler {
 			return
 		}
 		sum := sha256.Sum256([]byte(token))
-		key, err := h.db.VirtualAPIKeyByHash(r.Context(), hex.EncodeToString(sum[:]))
+		key, err := h.db.VirtualAdminAPIKeyByHash(r.Context(), hex.EncodeToString(sum[:]))
 		if err != nil || key.Status != "active" || (key.ExpiresAt.Valid && !key.ExpiresAt.Time.After(time.Now())) {
 			openAIError(w, http.StatusUnauthorized, "Invalid or expired API key", "invalid_request_error", "invalid_api_key")
 			return

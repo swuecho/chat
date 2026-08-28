@@ -158,15 +158,15 @@ The list endpoint does not load captured bodies. Samples are fetched only when a
 The admin UI uses the authenticated application API:
 
 ```text
-GET    /api/api-keys
-POST   /api/api-keys
-DELETE /api/api-keys/{keyId}
-GET    /api/api-keys/{keyId}/usage
-GET    /api/api-keys/{keyId}/requests
-GET    /api/api-keys/{keyId}/requests/{requestId}
+GET    /api/admin/api-keys
+POST   /api/admin/api-keys
+DELETE /api/admin/api-keys/{keyId}
+GET    /api/admin/api-keys/{keyId}/usage
+GET    /api/admin/api-keys/{keyId}/requests
+GET    /api/admin/api-keys/{keyId}/requests/{requestId}
 ```
 
-These routes use the normal application JWT and only return keys and gateway records owned by the authenticated user. The `/v1` routes use virtual API keys instead.
+These routes require an administrator JWT and only return keys and gateway records owned by that administrator. The `/v1` routes use virtual API keys instead, and accept only keys owned by active administrators. If an administrator is deactivated or loses administrator status, their existing virtual keys stop working immediately.
 
 ## Error behavior
 
