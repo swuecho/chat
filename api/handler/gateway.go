@@ -1,0 +1,281 @@
+package handler
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/middleware"
+	"github.com/swuecho/chat_backend/sqlc_queries"
+)
+
+type GatewayHandler struct{ db *sqlc_queries.Queries }
+
+func NewGatewayHandler(db *sqlc_queries.Queries) *GatewayHandler { return &GatewayHandler{db: db} }
+
+func (h *GatewayHandler) Register(r *mux.Router) {
+	r.Handle("/models", h.authenticate(http.HandlerFunc(h.models))).Methods(http.MethodGet)
+	r.Handle("/chat/completions", h.authenticate(http.HandlerFunc(h.chatCompletions))).Methods(http.MethodPost)
+}
+
+type gatewayKeyContextKey struct{}
+
+func openAIError(w http.ResponseWriter, status int, message, errorType, code string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{
+		"message": message, "type": errorType, "param": nil, "code": code,
+	}})
+}
+
+func (h *GatewayHandler) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := middleware.ExtractBearerToken(r)
+		if !strings.HasPrefix(token, "sk-chat-") {
+			openAIError(w, http.StatusUnauthorized, "Invalid API key", "invalid_request_error", "invalid_api_key")
+			return
+		}
+		sum := sha256.Sum256([]byte(token))
+		key, err := h.db.VirtualAPIKeyByHash(r.Context(), hex.EncodeToString(sum[:]))
+		if err != nil || key.Status != "active" || (key.ExpiresAt.Valid && !key.ExpiresAt.Time.After(time.Now())) {
+			openAIError(w, http.StatusUnauthorized, "Invalid or expired API key", "invalid_request_error", "invalid_api_key")
+			return
+		}
+		count, err := h.db.CountRecentGatewayRequests(r.Context(), key.ID)
+		if err != nil {
+			openAIError(w, http.StatusInternalServerError, "Unable to check rate limit", "server_error", "internal_error")
+			return
+		}
+		if count >= int64(key.RequestsPerMinute) {
+			openAIError(w, http.StatusTooManyRequests, "API key rate limit exceeded", "rate_limit_error", "rate_limit_exceeded")
+			return
+		}
+		_ = h.db.TouchVirtualAPIKey(r.Context(), key.ID)
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), gatewayKeyContextKey{}, key)))
+	})
+}
+
+func (h *GatewayHandler) models(w http.ResponseWriter, r *http.Request) {
+	models, err := h.db.ListGatewayModels(r.Context())
+	if err != nil {
+		openAIError(w, http.StatusInternalServerError, "Unable to list models", "server_error", "internal_error")
+		return
+	}
+	data := make([]map[string]any, 0, len(models))
+	for _, model := range models {
+		data = append(data, map[string]any{"id": model.Name, "object": "model", "created": 0, "owned_by": "chat"})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "data": data})
+}
+
+type gatewayEnvelope struct {
+	Model    string            `json:"model"`
+	Messages []json.RawMessage `json:"messages"`
+	Stream   bool              `json:"stream"`
+	N        int               `json:"n,omitempty"`
+}
+
+type gatewayUsage struct {
+	PromptTokens     int32 `json:"prompt_tokens"`
+	CompletionTokens int32 `json:"completion_tokens"`
+	TotalTokens      int32 `json:"total_tokens"`
+}
+
+func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		openAIError(w, http.StatusBadRequest, "Unable to read request", "invalid_request_error", "invalid_request")
+		return
+	}
+	var envelope gatewayEnvelope
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		openAIError(w, http.StatusBadRequest, "Invalid JSON request body", "invalid_request_error", "invalid_json")
+		return
+	}
+	if envelope.Model == "" || len(envelope.Messages) == 0 {
+		openAIError(w, http.StatusBadRequest, "model and messages are required", "invalid_request_error", "missing_required_parameter")
+		return
+	}
+	if envelope.N > 1 {
+		openAIError(w, http.StatusBadRequest, "Only n=1 is supported", "invalid_request_error", "unsupported_parameter")
+		return
+	}
+	model, err := h.db.ChatModelByName(r.Context(), envelope.Model)
+	if err != nil || !model.IsEnable || model.ApiType != "openai" {
+		openAIError(w, http.StatusNotFound, "The requested model is not available", "invalid_request_error", "model_not_found")
+		return
+	}
+	providerKey := os.Getenv(model.ApiAuthKey)
+	if providerKey == "" {
+		openAIError(w, http.StatusBadGateway, "The model provider is not configured", "server_error", "provider_not_configured")
+		return
+	}
+	if envelope.Stream {
+		var payload map[string]any
+		if json.Unmarshal(body, &payload) == nil {
+			payload["stream_options"] = map[string]any{"include_usage": true}
+			body, _ = json.Marshal(payload)
+		}
+	}
+	key := r.Context().Value(gatewayKeyContextKey{}).(sqlc_queries.VirtualApiKey)
+	record, err := h.db.CreateGatewayRequest(r.Context(), sqlc_queries.CreateGatewayRequestParams{
+		RequestUuid: uuid.New(), ApiKeyID: key.ID, UserID: key.UserID, ChatModelID: sql.NullInt32{Int32: model.ID, Valid: true}, RequestedModel: model.Name, Provider: model.ApiType, Stream: envelope.Stream,
+	})
+	if err != nil {
+		openAIError(w, http.StatusInternalServerError, "Unable to record request", "server_error", "internal_error")
+		return
+	}
+	started := time.Now()
+	upstream, err := http.NewRequestWithContext(r.Context(), http.MethodPost, completionURL(model.Url), bytes.NewReader(body))
+	if err != nil {
+		h.finish(record.ID, started, "failed", gatewayUsage{}, "", "invalid_provider_url")
+		openAIError(w, http.StatusBadGateway, "Invalid provider URL", "server_error", "provider_error")
+		return
+	}
+	upstream.Header.Set("Content-Type", "application/json")
+	header := model.ApiAuthHeader
+	if header == "" {
+		header = "Authorization"
+	}
+	if strings.EqualFold(header, "Authorization") && !strings.HasPrefix(strings.ToLower(providerKey), "bearer ") {
+		providerKey = "Bearer " + providerKey
+	}
+	upstream.Header.Set(header, providerKey)
+	timeout := time.Duration(model.HttpTimeOut) * time.Second
+	if timeout <= 0 {
+		timeout = 120 * time.Second
+	}
+	resp, err := (&http.Client{Timeout: timeout}).Do(upstream)
+	if err != nil {
+		status := "failed"
+		code := "provider_error"
+		if errors.Is(err, context.Canceled) {
+			status, code = "cancelled", "client_cancelled"
+		}
+		h.finish(record.ID, started, status, gatewayUsage{}, "", code)
+		if status != "cancelled" {
+			openAIError(w, http.StatusBadGateway, "Provider request failed", "server_error", code)
+		}
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		providerBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		h.finish(record.ID, started, "failed", gatewayUsage{}, resp.Header.Get("x-request-id"), "provider_http_error")
+		var providerError struct {
+			Error json.RawMessage `json:"error"`
+		}
+		if json.Unmarshal(providerBody, &providerError) != nil || len(providerError.Error) == 0 {
+			openAIError(w, resp.StatusCode, "Model provider returned an error", "server_error", "provider_http_error")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.StatusCode)
+		_, _ = w.Write(providerBody)
+		return
+	}
+	if envelope.Stream {
+		h.proxyStream(w, resp, record.ID, started)
+		return
+	}
+	h.proxyResponse(w, resp, record.ID, started)
+}
+
+func completionURL(raw string) string {
+	trimmed := strings.TrimRight(raw, "/")
+	if strings.HasSuffix(trimmed, "/chat/completions") {
+		return trimmed
+	}
+	if u, err := url.Parse(trimmed); err == nil && u.Path != "" && u.Path != "/" && !strings.HasSuffix(u.Path, "/v1") {
+		return trimmed
+	}
+	return trimmed + "/chat/completions"
+}
+
+func (h *GatewayHandler) proxyResponse(w http.ResponseWriter, resp *http.Response, id int64, started time.Time) {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		h.finish(id, started, "failed", gatewayUsage{}, "", "provider_read_error")
+		openAIError(w, http.StatusBadGateway, "Unable to read provider response", "server_error", "provider_error")
+		return
+	}
+	var parsed struct {
+		ID    string       `json:"id"`
+		Usage gatewayUsage `json:"usage"`
+	}
+	_ = json.Unmarshal(body, &parsed)
+	h.finish(id, started, "succeeded", parsed.Usage, parsed.ID, "")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(body)
+}
+
+func (h *GatewayHandler) proxyStream(w http.ResponseWriter, resp *http.Response, id int64, started time.Time) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		h.finish(id, started, "failed", gatewayUsage{}, "", "stream_unsupported")
+		openAIError(w, http.StatusInternalServerError, "Streaming is not supported", "server_error", "stream_error")
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 64*1024), 2*1024*1024)
+	usage := gatewayUsage{}
+	providerID := ""
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "data: ") && line != "data: [DONE]" {
+			var chunk struct {
+				ID    string        `json:"id"`
+				Usage *gatewayUsage `json:"usage"`
+			}
+			if json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &chunk) == nil {
+				if chunk.ID != "" {
+					providerID = chunk.ID
+				}
+				if chunk.Usage != nil {
+					usage = *chunk.Usage
+				}
+			}
+		}
+		_, _ = io.WriteString(w, line+"\n")
+		if line == "" {
+			flusher.Flush()
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		status, code := "failed", "provider_stream_error"
+		if errors.Is(resp.Request.Context().Err(), context.Canceled) {
+			status, code = "cancelled", "client_cancelled"
+		}
+		h.finish(id, started, status, usage, providerID, code)
+		return
+	}
+	h.finish(id, started, "succeeded", usage, providerID, "")
+}
+
+func (h *GatewayHandler) finish(id int64, started time.Time, status string, usage gatewayUsage, providerID, code string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_ = h.db.CompleteGatewayRequest(ctx, sqlc_queries.CompleteGatewayRequestParams{
+		ID: id, Status: status, PromptTokens: usage.PromptTokens, CompletionTokens: usage.CompletionTokens, TotalTokens: usage.TotalTokens,
+		LatencyMs: time.Since(started).Milliseconds(), ProviderRequestID: providerID, ErrorCode: code,
+	})
+}
