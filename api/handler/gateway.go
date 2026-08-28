@@ -302,7 +302,7 @@ var hopByHopHeaders = []string{
 
 func copyEndToEndHeaders(dst, src http.Header) {
 	for key, values := range src {
-		dst[key] = append([]string(nil), values...)
+		dst[http.CanonicalHeaderKey(key)] = append([]string(nil), values...)
 	}
 	for _, token := range strings.Split(src.Get("Connection"), ",") {
 		if token = strings.TrimSpace(token); token != "" {
