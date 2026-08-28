@@ -28,6 +28,7 @@ const USER_ROUTE = 'AdminUser'
 const MODEL_ROUTE = 'AdminModel'
 const TITLE_MODEL_ROUTE = 'TitleModel'
 const MODELRATELIMIT_ROUTUE = 'ModelRateLimit'
+const API_KEYS_ROUTE = 'AdminApiKeys'
 
 const needPermission = computed(() => authStore.isInitialized && !authStore.isInitializing && !authStore.isValid)
 
@@ -66,6 +67,15 @@ const menuOptions: MenuOption[] = reactive([
         ),
     key: USER_ROUTE,
     icon: renderIcon(PulseOutline),
+  },
+  {
+    label: () => h(
+      RouterLink,
+      { to: { name: API_KEYS_ROUTE } },
+      { default: () => 'API keys' },
+    ),
+    key: API_KEYS_ROUTE,
+    icon: renderIcon(KeyOutline),
   },
   {
     label: () => h(

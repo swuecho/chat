@@ -8,6 +8,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type AuthUser struct {
@@ -196,6 +198,37 @@ type ChatWorkspace struct {
 	OrderPosition int32     `json:"orderPosition"`
 }
 
+type GatewayRequest struct {
+	ID                     int64           `json:"id"`
+	RequestUuid            uuid.UUID       `json:"requestUuid"`
+	ApiKeyID               int64           `json:"apiKeyId"`
+	UserID                 int32           `json:"userId"`
+	ChatModelID            sql.NullInt32   `json:"chatModelId"`
+	RequestedModel         string          `json:"requestedModel"`
+	Provider               string          `json:"provider"`
+	Status                 string          `json:"status"`
+	Stream                 bool            `json:"stream"`
+	PromptTokens           int32           `json:"promptTokens"`
+	CompletionTokens       int32           `json:"completionTokens"`
+	TotalTokens            int32           `json:"totalTokens"`
+	LatencyMs              int64           `json:"latencyMs"`
+	ProviderRequestID      string          `json:"providerRequestId"`
+	ErrorCode              string          `json:"errorCode"`
+	RequestBytes           int64           `json:"requestBytes"`
+	ResponseBytes          int64           `json:"responseBytes"`
+	RequestSha256          string          `json:"requestSha256"`
+	ResponseSha256         string          `json:"responseSha256"`
+	RequestSample          []byte          `json:"requestSample"`
+	ResponseSample         []byte          `json:"responseSample"`
+	RequestTruncated       bool            `json:"requestTruncated"`
+	ResponseTruncated      bool            `json:"responseTruncated"`
+	RequestClassification  json.RawMessage `json:"requestClassification"`
+	ResponseClassification json.RawMessage `json:"responseClassification"`
+	CreatedAt              time.Time       `json:"createdAt"`
+	CompletedAt            sql.NullTime    `json:"completedAt"`
+	RetentionUntil         time.Time       `json:"retentionUntil"`
+}
+
 type JwtSecret struct {
 	ID       int32  `json:"id"`
 	Name     string `json:"name"`
@@ -222,4 +255,18 @@ type UserChatModelPrivilege struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 	CreatedBy   int32     `json:"createdBy"`
 	UpdatedBy   int32     `json:"updatedBy"`
+}
+
+type VirtualApiKey struct {
+	ID                int64        `json:"id"`
+	UserID            int32        `json:"userId"`
+	Name              string       `json:"name"`
+	KeyPrefix         string       `json:"keyPrefix"`
+	KeyHash           string       `json:"keyHash"`
+	Status            string       `json:"status"`
+	RequestsPerMinute int32        `json:"requestsPerMinute"`
+	ExpiresAt         sql.NullTime `json:"expiresAt"`
+	LastUsedAt        sql.NullTime `json:"lastUsedAt"`
+	CreatedAt         time.Time    `json:"createdAt"`
+	RevokedAt         sql.NullTime `json:"revokedAt"`
 }

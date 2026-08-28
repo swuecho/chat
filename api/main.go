@@ -179,6 +179,11 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 	// --- Route registration ---
 	s.registerRoutes(apiRouter, adminRouter, userRouter)
 
+	// OpenAI-compatible gateway uses virtual API keys rather than browser JWTs.
+	handler.NewGatewayHandler(s.q, s.cfg.OPENAI.PROXY_URL).
+		WithObservability(s.cfg.GATEWAY.RETENTION_DAYS, s.cfg.GATEWAY.CAPTURE_BYTES).
+		Register(router.PathPrefix("/v1").Subrouter())
+
 	// --- Static files ---
 	fs := http.FileServer(http.FS(static.StaticFiles))
 	router.PathPrefix("/").Handler(middleware.MakeGzipHandler(
@@ -213,6 +218,7 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 
 	// Chat models
 	handler.NewChatModelHandler(q).Register(userRouter)
+	handler.NewAPIKeyHandler(q).Register(adminRouter)
 
 	// Auth
 	authHandler := handler.NewAuthUserHandler(q, jwtSecret, jwtAudience, rateLimit)

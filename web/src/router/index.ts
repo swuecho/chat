@@ -68,6 +68,11 @@ const routes: RouteRecordRaw[] = [
         path: 'model_rate_limit',
         name: 'ModelRateLimit',
         component: () => import('@/views/admin/modelRateLimit/index.vue'),
+      },
+      {
+        path: 'api_keys',
+        name: 'AdminApiKeys',
+        component: () => import('@/views/apiKeys/index.vue'),
       }
     ],
   },

@@ -109,6 +109,78 @@ CREATE TABLE IF NOT EXISTS auth_user_management (
     updated_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
 
+-- User-owned credentials for the OpenAI-compatible gateway. The plaintext key is
+-- returned once at creation time; only its SHA-256 hash is persisted.
+CREATE TABLE IF NOT EXISTS virtual_api_key (
+    id BIGSERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    key_prefix VARCHAR(24) NOT NULL,
+    key_hash CHAR(64) UNIQUE NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'active',
+    requests_per_minute INTEGER NOT NULL DEFAULT 60,
+    expires_at TIMESTAMP NULL,
+    last_used_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    revoked_at TIMESTAMP NULL,
+    CONSTRAINT virtual_api_key_status_check CHECK (status IN ('active', 'revoked'))
+);
+
+ALTER TABLE virtual_api_key ADD COLUMN IF NOT EXISTS requests_per_minute INTEGER NOT NULL DEFAULT 60;
+
+CREATE INDEX IF NOT EXISTS virtual_api_key_user_id_idx ON virtual_api_key(user_id);
+CREATE INDEX IF NOT EXISTS virtual_api_key_prefix_idx ON virtual_api_key(key_prefix);
+
+-- Gateway observability log. Full hashes and counts are retained alongside
+-- bounded request/response samples. Rows expire according to retention_until.
+CREATE TABLE IF NOT EXISTS gateway_request (
+    id BIGSERIAL PRIMARY KEY,
+    request_uuid UUID UNIQUE NOT NULL,
+    api_key_id BIGINT NOT NULL REFERENCES virtual_api_key(id) ON DELETE RESTRICT,
+    user_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    chat_model_id INTEGER NULL REFERENCES chat_model(id) ON DELETE SET NULL,
+    requested_model TEXT NOT NULL,
+    provider VARCHAR(50) NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'started',
+    stream BOOLEAN NOT NULL DEFAULT false,
+    prompt_tokens INTEGER NOT NULL DEFAULT 0,
+    completion_tokens INTEGER NOT NULL DEFAULT 0,
+    total_tokens INTEGER NOT NULL DEFAULT 0,
+    latency_ms BIGINT NOT NULL DEFAULT 0,
+    provider_request_id TEXT NOT NULL DEFAULT '',
+    error_code TEXT NOT NULL DEFAULT '',
+    request_bytes BIGINT NOT NULL DEFAULT 0,
+    response_bytes BIGINT NOT NULL DEFAULT 0,
+    request_sha256 CHAR(64) NOT NULL DEFAULT '',
+    response_sha256 CHAR(64) NOT NULL DEFAULT '',
+    request_sample BYTEA NOT NULL DEFAULT ''::BYTEA,
+    response_sample BYTEA NOT NULL DEFAULT ''::BYTEA,
+    request_truncated BOOLEAN NOT NULL DEFAULT false,
+    response_truncated BOOLEAN NOT NULL DEFAULT false,
+    request_classification JSONB NOT NULL DEFAULT '{}'::JSONB,
+    response_classification JSONB NOT NULL DEFAULT '{}'::JSONB,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+    completed_at TIMESTAMP NULL,
+    retention_until TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
+    CONSTRAINT gateway_request_status_check CHECK (status IN ('started', 'succeeded', 'failed', 'cancelled'))
+);
+
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_bytes BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_bytes BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_sha256 CHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_sha256 CHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_sample BYTEA NOT NULL DEFAULT ''::BYTEA;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_sample BYTEA NOT NULL DEFAULT ''::BYTEA;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_truncated BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_truncated BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_classification JSONB NOT NULL DEFAULT '{}'::JSONB;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_classification JSONB NOT NULL DEFAULT '{}'::JSONB;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS retention_until TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '7 days');
+
+CREATE INDEX IF NOT EXISTS gateway_request_key_created_idx ON gateway_request(api_key_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS gateway_request_user_created_idx ON gateway_request(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS gateway_request_retention_idx ON gateway_request(retention_until);
+
 -- add index on user_id
 CREATE INDEX IF NOT EXISTS auth_user_management_user_id_idx ON auth_user_management (user_id);
 
