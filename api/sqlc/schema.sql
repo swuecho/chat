@@ -131,8 +131,8 @@ ALTER TABLE virtual_api_key ADD COLUMN IF NOT EXISTS requests_per_minute INTEGER
 CREATE INDEX IF NOT EXISTS virtual_api_key_user_id_idx ON virtual_api_key(user_id);
 CREATE INDEX IF NOT EXISTS virtual_api_key_prefix_idx ON virtual_api_key(key_prefix);
 
--- Metadata-only gateway audit log. Prompts and generated content are deliberately
--- not stored here.
+-- Gateway observability log. Full hashes and counts are retained alongside
+-- bounded request/response samples. Rows expire according to retention_until.
 CREATE TABLE IF NOT EXISTS gateway_request (
     id BIGSERIAL PRIMARY KEY,
     request_uuid UUID UNIQUE NOT NULL,
@@ -149,13 +149,37 @@ CREATE TABLE IF NOT EXISTS gateway_request (
     latency_ms BIGINT NOT NULL DEFAULT 0,
     provider_request_id TEXT NOT NULL DEFAULT '',
     error_code TEXT NOT NULL DEFAULT '',
+    request_bytes BIGINT NOT NULL DEFAULT 0,
+    response_bytes BIGINT NOT NULL DEFAULT 0,
+    request_sha256 CHAR(64) NOT NULL DEFAULT '',
+    response_sha256 CHAR(64) NOT NULL DEFAULT '',
+    request_sample BYTEA NOT NULL DEFAULT ''::BYTEA,
+    response_sample BYTEA NOT NULL DEFAULT ''::BYTEA,
+    request_truncated BOOLEAN NOT NULL DEFAULT false,
+    response_truncated BOOLEAN NOT NULL DEFAULT false,
+    request_classification JSONB NOT NULL DEFAULT '{}'::JSONB,
+    response_classification JSONB NOT NULL DEFAULT '{}'::JSONB,
     created_at TIMESTAMP DEFAULT NOW() NOT NULL,
     completed_at TIMESTAMP NULL,
+    retention_until TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
     CONSTRAINT gateway_request_status_check CHECK (status IN ('started', 'succeeded', 'failed', 'cancelled'))
 );
 
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_bytes BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_bytes BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_sha256 CHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_sha256 CHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_sample BYTEA NOT NULL DEFAULT ''::BYTEA;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_sample BYTEA NOT NULL DEFAULT ''::BYTEA;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_truncated BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_truncated BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS request_classification JSONB NOT NULL DEFAULT '{}'::JSONB;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS response_classification JSONB NOT NULL DEFAULT '{}'::JSONB;
+ALTER TABLE gateway_request ADD COLUMN IF NOT EXISTS retention_until TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '7 days');
+
 CREATE INDEX IF NOT EXISTS gateway_request_key_created_idx ON gateway_request(api_key_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS gateway_request_user_created_idx ON gateway_request(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS gateway_request_retention_idx ON gateway_request(retention_until);
 
 -- add index on user_id
 CREATE INDEX IF NOT EXISTS auth_user_management_user_id_idx ON auth_user_management (user_id);

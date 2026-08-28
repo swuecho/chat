@@ -8,12 +8,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"hash"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,14 +25,28 @@ import (
 )
 
 type GatewayHandler struct {
-	db       *sqlc_queries.Queries
-	proxyURL string
+	db            *sqlc_queries.Queries
+	proxyURL      string
+	retentionDays int
+	captureBytes  int
+	cleanupMu     sync.Mutex
+	lastCleanup   time.Time
 }
 
 func NewGatewayHandler(db *sqlc_queries.Queries, proxyURL ...string) *GatewayHandler {
-	h := &GatewayHandler{db: db}
+	h := &GatewayHandler{db: db, retentionDays: 7, captureBytes: 64 * 1024}
 	if len(proxyURL) > 0 {
 		h.proxyURL = proxyURL[0]
+	}
+	return h
+}
+
+func (h *GatewayHandler) WithObservability(retentionDays, captureBytes int) *GatewayHandler {
+	if retentionDays > 0 {
+		h.retentionDays = retentionDays
+	}
+	if captureBytes > 0 {
+		h.captureBytes = captureBytes
 	}
 	return h
 }
@@ -128,12 +144,17 @@ func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	key := r.Context().Value(gatewayKeyContextKey{}).(sqlc_queries.VirtualApiKey)
+	requestHash := sha256.Sum256(body)
+	requestSample, requestTruncated := boundedSample(body, h.captureBytes)
 	record, err := h.db.CreateGatewayRequest(r.Context(), sqlc_queries.CreateGatewayRequestParams{
 		RequestUuid: uuid.New(), ApiKeyID: key.ID, UserID: key.UserID, ChatModelID: sql.NullInt32{Int32: model.ID, Valid: true}, RequestedModel: model.Name, Provider: model.ApiType, Stream: envelope.Stream,
+		RequestBytes: int64(len(body)), RequestSha256: hex.EncodeToString(requestHash[:]), RequestSample: requestSample,
+		RequestTruncated: requestTruncated, RequestClassification: classifyRequest(body), RetentionUntil: time.Now().AddDate(0, 0, h.retentionDays),
 	})
 	if err != nil {
 		slog.Error("Unable to create gateway audit record", "model", model.Name, "error", err)
 	}
+	go h.deleteExpiredRequests()
 	started := time.Now()
 	upstream, err := http.NewRequestWithContext(r.Context(), http.MethodPost, completionURL(model.Url), bytes.NewReader(body))
 	if err != nil {
@@ -222,11 +243,12 @@ func (h *GatewayHandler) proxyResponse(w http.ResponseWriter, resp *http.Respons
 		Usage gatewayUsage `json:"usage"`
 	}
 	_ = json.Unmarshal(body, &parsed)
+	observation := observeBytes(body, h.captureBytes)
 	status, code := "succeeded", ""
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		status, code = "failed", "provider_http_error"
 	}
-	h.finish(id, started, status, parsed.Usage, parsed.ID, code)
+	h.finishObserved(id, started, status, parsed.Usage, parsed.ID, code, observation, classifyResponse(resp, false))
 	replaceEndToEndHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
 	_, _ = w.Write(body)
@@ -241,29 +263,34 @@ func (h *GatewayHandler) proxyStream(w http.ResponseWriter, resp *http.Response,
 	}
 	replaceEndToEndHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
-	_, err := io.Copy(&flushWriter{writer: w, flusher: flusher}, resp.Body)
+	observation := newBodyObservation(h.captureBytes)
+	_, err := io.Copy(&flushWriter{writer: w, flusher: flusher, observation: observation}, resp.Body)
 	if err != nil {
 		status, code := "failed", "provider_stream_error"
 		if errors.Is(resp.Request.Context().Err(), context.Canceled) {
 			status, code = "cancelled", "client_cancelled"
 		}
-		h.finish(id, started, status, gatewayUsage{}, resp.Header.Get("x-request-id"), code)
+		h.finishObserved(id, started, status, gatewayUsage{}, resp.Header.Get("x-request-id"), code, observation, classifyResponse(resp, true))
 		return
 	}
 	status, code := "succeeded", ""
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		status, code = "failed", "provider_http_error"
 	}
-	h.finish(id, started, status, gatewayUsage{}, resp.Header.Get("x-request-id"), code)
+	h.finishObserved(id, started, status, gatewayUsage{}, resp.Header.Get("x-request-id"), code, observation, classifyResponse(resp, true))
 }
 
 type flushWriter struct {
-	writer  io.Writer
-	flusher http.Flusher
+	writer      io.Writer
+	flusher     http.Flusher
+	observation *bodyObservation
 }
 
 func (w *flushWriter) Write(p []byte) (int, error) {
 	n, err := w.writer.Write(p)
+	if n > 0 {
+		_, _ = w.observation.Write(p[:n])
+	}
 	w.flusher.Flush()
 	return n, err
 }
@@ -296,9 +323,103 @@ func replaceEndToEndHeaders(dst, src http.Header) {
 	dst.Del("Set-Cookie")
 }
 
+type bodyObservation struct {
+	hash      hash.Hash
+	sample    []byte
+	limit     int
+	byteCount int64
+}
+
+func newBodyObservation(limit int) *bodyObservation {
+	return &bodyObservation{hash: sha256.New(), sample: make([]byte, 0, limit), limit: limit}
+}
+
+func (o *bodyObservation) Write(p []byte) (int, error) {
+	o.byteCount += int64(len(p))
+	_, _ = o.hash.Write(p)
+	remaining := o.limit - len(o.sample)
+	if remaining > 0 {
+		if remaining > len(p) {
+			remaining = len(p)
+		}
+		o.sample = append(o.sample, p[:remaining]...)
+	}
+	return len(p), nil
+}
+
+func (o *bodyObservation) digest() string  { return hex.EncodeToString(o.hash.Sum(nil)) }
+func (o *bodyObservation) truncated() bool { return o.byteCount > int64(len(o.sample)) }
+
+func observeBytes(body []byte, limit int) *bodyObservation {
+	o := newBodyObservation(limit)
+	_, _ = o.Write(body)
+	return o
+}
+
+func boundedSample(body []byte, limit int) ([]byte, bool) {
+	if len(body) <= limit {
+		return append([]byte(nil), body...), false
+	}
+	return append([]byte(nil), body[:limit]...), true
+}
+
+func classifyRequest(body []byte) json.RawMessage {
+	classification := map[string]any{"format": "openai_chat_completions"}
+	var payload map[string]json.RawMessage
+	if json.Unmarshal(body, &payload) != nil {
+		encoded, _ := json.Marshal(classification)
+		return encoded
+	}
+	var messages []struct {
+		Role    string          `json:"role"`
+		Content json.RawMessage `json:"content"`
+	}
+	if json.Unmarshal(payload["messages"], &messages) == nil {
+		roles := make(map[string]int)
+		multimodal := false
+		for _, message := range messages {
+			roles[message.Role]++
+			if len(message.Content) > 0 && message.Content[0] == '[' {
+				multimodal = true
+			}
+		}
+		classification["message_count"] = len(messages)
+		classification["roles"] = roles
+		classification["multimodal"] = multimodal
+	}
+	_, classification["has_tools"] = payload["tools"]
+	_, classification["has_response_format"] = payload["response_format"]
+	encoded, _ := json.Marshal(classification)
+	return encoded
+}
+
+func classifyResponse(resp *http.Response, stream bool) json.RawMessage {
+	encoded, _ := json.Marshal(map[string]any{
+		"stream": stream, "status_code": resp.StatusCode,
+		"content_type":     resp.Header.Get("Content-Type"),
+		"content_encoding": resp.Header.Get("Content-Encoding"),
+		"successful":       resp.StatusCode >= 200 && resp.StatusCode < 300,
+	})
+	return encoded
+}
+
 func (h *GatewayHandler) finish(id int64, started time.Time, status string, usage gatewayUsage, providerID, code string) {
+	h.finishObserved(id, started, status, usage, providerID, code, nil, json.RawMessage(`{}`))
+}
+
+func (h *GatewayHandler) finishObserved(id int64, started time.Time, status string, usage gatewayUsage, providerID, code string, observation *bodyObservation, classification json.RawMessage) {
 	if id == 0 {
 		return
+	}
+	responseBytes := int64(0)
+	responseHash := ""
+	responseSample := []byte{}
+	responseTruncated := false
+	if observation != nil {
+		responseBytes = observation.byteCount
+		responseHash = observation.digest()
+		responseSample = append([]byte(nil), observation.sample...)
+		responseTruncated = observation.truncated()
 	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -306,8 +427,25 @@ func (h *GatewayHandler) finish(id int64, started time.Time, status string, usag
 		if err := h.db.CompleteGatewayRequest(ctx, sqlc_queries.CompleteGatewayRequestParams{
 			ID: id, Status: status, PromptTokens: usage.PromptTokens, CompletionTokens: usage.CompletionTokens, TotalTokens: usage.TotalTokens,
 			LatencyMs: time.Since(started).Milliseconds(), ProviderRequestID: providerID, ErrorCode: code,
+			ResponseBytes: responseBytes, ResponseSha256: responseHash, ResponseSample: responseSample,
+			ResponseTruncated: responseTruncated, ResponseClassification: classification,
 		}); err != nil {
 			slog.Error("Unable to complete gateway audit record", "requestID", id, "error", err)
 		}
 	}()
+}
+
+func (h *GatewayHandler) deleteExpiredRequests() {
+	h.cleanupMu.Lock()
+	if time.Since(h.lastCleanup) < time.Hour {
+		h.cleanupMu.Unlock()
+		return
+	}
+	h.lastCleanup = time.Now()
+	h.cleanupMu.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if _, err := h.db.PurgeExpiredGatewaySamples(ctx); err != nil {
+		slog.Error("Unable to purge expired gateway request samples", "error", err)
+	}
 }

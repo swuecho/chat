@@ -8,6 +8,8 @@ package sqlc_queries
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -21,19 +23,29 @@ SET status = $2,
     latency_ms = $6,
     provider_request_id = $7,
     error_code = $8,
+    response_bytes = $9,
+    response_sha256 = $10,
+    response_sample = $11,
+    response_truncated = $12,
+    response_classification = $13,
     completed_at = NOW()
 WHERE id = $1
 `
 
 type CompleteGatewayRequestParams struct {
-	ID                int64  `json:"id"`
-	Status            string `json:"status"`
-	PromptTokens      int32  `json:"promptTokens"`
-	CompletionTokens  int32  `json:"completionTokens"`
-	TotalTokens       int32  `json:"totalTokens"`
-	LatencyMs         int64  `json:"latencyMs"`
-	ProviderRequestID string `json:"providerRequestId"`
-	ErrorCode         string `json:"errorCode"`
+	ID                     int64           `json:"id"`
+	Status                 string          `json:"status"`
+	PromptTokens           int32           `json:"promptTokens"`
+	CompletionTokens       int32           `json:"completionTokens"`
+	TotalTokens            int32           `json:"totalTokens"`
+	LatencyMs              int64           `json:"latencyMs"`
+	ProviderRequestID      string          `json:"providerRequestId"`
+	ErrorCode              string          `json:"errorCode"`
+	ResponseBytes          int64           `json:"responseBytes"`
+	ResponseSha256         string          `json:"responseSha256"`
+	ResponseSample         []byte          `json:"responseSample"`
+	ResponseTruncated      bool            `json:"responseTruncated"`
+	ResponseClassification json.RawMessage `json:"responseClassification"`
 }
 
 func (q *Queries) CompleteGatewayRequest(ctx context.Context, arg CompleteGatewayRequestParams) error {
@@ -46,6 +58,11 @@ func (q *Queries) CompleteGatewayRequest(ctx context.Context, arg CompleteGatewa
 		arg.LatencyMs,
 		arg.ProviderRequestID,
 		arg.ErrorCode,
+		arg.ResponseBytes,
+		arg.ResponseSha256,
+		arg.ResponseSample,
+		arg.ResponseTruncated,
+		arg.ResponseClassification,
 	)
 	return err
 }
@@ -64,19 +81,27 @@ func (q *Queries) CountRecentGatewayRequests(ctx context.Context, apiKeyID int64
 
 const createGatewayRequest = `-- name: CreateGatewayRequest :one
 INSERT INTO gateway_request (
-    request_uuid, api_key_id, user_id, chat_model_id, requested_model, provider, stream
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, request_uuid, api_key_id, user_id, chat_model_id, requested_model, provider, status, stream, prompt_tokens, completion_tokens, total_tokens, latency_ms, provider_request_id, error_code, created_at, completed_at
+    request_uuid, api_key_id, user_id, chat_model_id, requested_model, provider, stream,
+    request_bytes, request_sha256, request_sample, request_truncated,
+    request_classification, retention_until
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+RETURNING id, request_uuid, api_key_id, user_id, chat_model_id, requested_model, provider, status, stream, prompt_tokens, completion_tokens, total_tokens, latency_ms, provider_request_id, error_code, request_bytes, response_bytes, request_sha256, response_sha256, request_sample, response_sample, request_truncated, response_truncated, request_classification, response_classification, created_at, completed_at, retention_until
 `
 
 type CreateGatewayRequestParams struct {
-	RequestUuid    uuid.UUID     `json:"requestUuid"`
-	ApiKeyID       int64         `json:"apiKeyId"`
-	UserID         int32         `json:"userId"`
-	ChatModelID    sql.NullInt32 `json:"chatModelId"`
-	RequestedModel string        `json:"requestedModel"`
-	Provider       string        `json:"provider"`
-	Stream         bool          `json:"stream"`
+	RequestUuid           uuid.UUID       `json:"requestUuid"`
+	ApiKeyID              int64           `json:"apiKeyId"`
+	UserID                int32           `json:"userId"`
+	ChatModelID           sql.NullInt32   `json:"chatModelId"`
+	RequestedModel        string          `json:"requestedModel"`
+	Provider              string          `json:"provider"`
+	Stream                bool            `json:"stream"`
+	RequestBytes          int64           `json:"requestBytes"`
+	RequestSha256         string          `json:"requestSha256"`
+	RequestSample         []byte          `json:"requestSample"`
+	RequestTruncated      bool            `json:"requestTruncated"`
+	RequestClassification json.RawMessage `json:"requestClassification"`
+	RetentionUntil        time.Time       `json:"retentionUntil"`
 }
 
 func (q *Queries) CreateGatewayRequest(ctx context.Context, arg CreateGatewayRequestParams) (GatewayRequest, error) {
@@ -88,6 +113,12 @@ func (q *Queries) CreateGatewayRequest(ctx context.Context, arg CreateGatewayReq
 		arg.RequestedModel,
 		arg.Provider,
 		arg.Stream,
+		arg.RequestBytes,
+		arg.RequestSha256,
+		arg.RequestSample,
+		arg.RequestTruncated,
+		arg.RequestClassification,
+		arg.RetentionUntil,
 	)
 	var i GatewayRequest
 	err := row.Scan(
@@ -106,8 +137,19 @@ func (q *Queries) CreateGatewayRequest(ctx context.Context, arg CreateGatewayReq
 		&i.LatencyMs,
 		&i.ProviderRequestID,
 		&i.ErrorCode,
+		&i.RequestBytes,
+		&i.ResponseBytes,
+		&i.RequestSha256,
+		&i.ResponseSha256,
+		&i.RequestSample,
+		&i.ResponseSample,
+		&i.RequestTruncated,
+		&i.ResponseTruncated,
+		&i.RequestClassification,
+		&i.ResponseClassification,
 		&i.CreatedAt,
 		&i.CompletedAt,
+		&i.RetentionUntil,
 	)
 	return i, err
 }
@@ -149,6 +191,53 @@ func (q *Queries) CreateVirtualAPIKey(ctx context.Context, arg CreateVirtualAPIK
 		&i.LastUsedAt,
 		&i.CreatedAt,
 		&i.RevokedAt,
+	)
+	return i, err
+}
+
+const gatewayRequestByIDAndUser = `-- name: GatewayRequestByIDAndUser :one
+SELECT id, request_uuid, api_key_id, user_id, chat_model_id, requested_model, provider, status, stream, prompt_tokens, completion_tokens, total_tokens, latency_ms, provider_request_id, error_code, request_bytes, response_bytes, request_sha256, response_sha256, request_sample, response_sample, request_truncated, response_truncated, request_classification, response_classification, created_at, completed_at, retention_until FROM gateway_request
+WHERE id = $1 AND api_key_id = $2 AND user_id = $3
+`
+
+type GatewayRequestByIDAndUserParams struct {
+	ID       int64 `json:"id"`
+	ApiKeyID int64 `json:"apiKeyId"`
+	UserID   int32 `json:"userId"`
+}
+
+func (q *Queries) GatewayRequestByIDAndUser(ctx context.Context, arg GatewayRequestByIDAndUserParams) (GatewayRequest, error) {
+	row := q.db.QueryRowContext(ctx, gatewayRequestByIDAndUser, arg.ID, arg.ApiKeyID, arg.UserID)
+	var i GatewayRequest
+	err := row.Scan(
+		&i.ID,
+		&i.RequestUuid,
+		&i.ApiKeyID,
+		&i.UserID,
+		&i.ChatModelID,
+		&i.RequestedModel,
+		&i.Provider,
+		&i.Status,
+		&i.Stream,
+		&i.PromptTokens,
+		&i.CompletionTokens,
+		&i.TotalTokens,
+		&i.LatencyMs,
+		&i.ProviderRequestID,
+		&i.ErrorCode,
+		&i.RequestBytes,
+		&i.ResponseBytes,
+		&i.RequestSha256,
+		&i.ResponseSha256,
+		&i.RequestSample,
+		&i.ResponseSample,
+		&i.RequestTruncated,
+		&i.ResponseTruncated,
+		&i.RequestClassification,
+		&i.ResponseClassification,
+		&i.CreatedAt,
+		&i.CompletedAt,
+		&i.RetentionUntil,
 	)
 	return i, err
 }
@@ -257,6 +346,86 @@ func (q *Queries) ListGatewayModels(ctx context.Context) ([]ChatModel, error) {
 	return items, nil
 }
 
+const listGatewayRequestsByKey = `-- name: ListGatewayRequestsByKey :many
+SELECT id, request_uuid, requested_model, provider, status, stream,
+       prompt_tokens, completion_tokens, total_tokens, latency_ms,
+       request_bytes, response_bytes, request_truncated, response_truncated,
+       created_at, completed_at, retention_until, error_code
+FROM gateway_request
+WHERE api_key_id = $1 AND user_id = $2
+ORDER BY created_at DESC
+LIMIT $3
+`
+
+type ListGatewayRequestsByKeyParams struct {
+	ApiKeyID int64 `json:"apiKeyId"`
+	UserID   int32 `json:"userId"`
+	Limit    int32 `json:"limit"`
+}
+
+type ListGatewayRequestsByKeyRow struct {
+	ID                int64        `json:"id"`
+	RequestUuid       uuid.UUID    `json:"requestUuid"`
+	RequestedModel    string       `json:"requestedModel"`
+	Provider          string       `json:"provider"`
+	Status            string       `json:"status"`
+	Stream            bool         `json:"stream"`
+	PromptTokens      int32        `json:"promptTokens"`
+	CompletionTokens  int32        `json:"completionTokens"`
+	TotalTokens       int32        `json:"totalTokens"`
+	LatencyMs         int64        `json:"latencyMs"`
+	RequestBytes      int64        `json:"requestBytes"`
+	ResponseBytes     int64        `json:"responseBytes"`
+	RequestTruncated  bool         `json:"requestTruncated"`
+	ResponseTruncated bool         `json:"responseTruncated"`
+	CreatedAt         time.Time    `json:"createdAt"`
+	CompletedAt       sql.NullTime `json:"completedAt"`
+	RetentionUntil    time.Time    `json:"retentionUntil"`
+	ErrorCode         string       `json:"errorCode"`
+}
+
+func (q *Queries) ListGatewayRequestsByKey(ctx context.Context, arg ListGatewayRequestsByKeyParams) ([]ListGatewayRequestsByKeyRow, error) {
+	rows, err := q.db.QueryContext(ctx, listGatewayRequestsByKey, arg.ApiKeyID, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListGatewayRequestsByKeyRow
+	for rows.Next() {
+		var i ListGatewayRequestsByKeyRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.RequestUuid,
+			&i.RequestedModel,
+			&i.Provider,
+			&i.Status,
+			&i.Stream,
+			&i.PromptTokens,
+			&i.CompletionTokens,
+			&i.TotalTokens,
+			&i.LatencyMs,
+			&i.RequestBytes,
+			&i.ResponseBytes,
+			&i.RequestTruncated,
+			&i.ResponseTruncated,
+			&i.CreatedAt,
+			&i.CompletedAt,
+			&i.RetentionUntil,
+			&i.ErrorCode,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listVirtualAPIKeysByUser = `-- name: ListVirtualAPIKeysByUser :many
 SELECT id, user_id, name, key_prefix, key_hash, status, requests_per_minute, expires_at, last_used_at, created_at, revoked_at FROM virtual_api_key
 WHERE user_id = $1
@@ -296,6 +465,21 @@ func (q *Queries) ListVirtualAPIKeysByUser(ctx context.Context, userID int32) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const purgeExpiredGatewaySamples = `-- name: PurgeExpiredGatewaySamples :execrows
+UPDATE gateway_request
+SET request_sample = ''::BYTEA, response_sample = ''::BYTEA
+WHERE retention_until <= NOW()
+  AND (octet_length(request_sample) > 0 OR octet_length(response_sample) > 0)
+`
+
+func (q *Queries) PurgeExpiredGatewaySamples(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, purgeExpiredGatewaySamples)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const revokeVirtualAPIKey = `-- name: RevokeVirtualAPIKey :execrows

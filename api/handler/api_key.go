@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
@@ -26,6 +27,8 @@ func (h *APIKeyHandler) Register(r *mux.Router) {
 	r.HandleFunc("/api-keys", h.create).Methods(http.MethodPost)
 	r.HandleFunc("/api-keys/{id}", h.revoke).Methods(http.MethodDelete)
 	r.HandleFunc("/api-keys/{id}/usage", h.usage).Methods(http.MethodGet)
+	r.HandleFunc("/api-keys/{id}/requests", h.requests).Methods(http.MethodGet)
+	r.HandleFunc("/api-keys/{id}/requests/{requestId}", h.requestDetail).Methods(http.MethodGet)
 }
 
 type apiKeyView struct {
@@ -173,4 +176,79 @@ func (h *APIKeyHandler) usage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dto.RespondWithJSON(w, http.StatusOK, usage)
+}
+
+func (h *APIKeyHandler) requests(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials)
+		return
+	}
+	keyID, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid API key ID"))
+		return
+	}
+	if _, err := h.db.VirtualAPIKeyByIDAndUser(r.Context(), sqlc_queries.VirtualAPIKeyByIDAndUserParams{ID: keyID, UserID: userID}); err != nil {
+		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("API key"))
+		return
+	}
+	requests, err := h.db.ListGatewayRequestsByKey(r.Context(), sqlc_queries.ListGatewayRequestsByKeyParams{ApiKeyID: keyID, UserID: userID, Limit: 100})
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDebugInfo(err.Error()))
+		return
+	}
+	dto.RespondWithJSON(w, http.StatusOK, requests)
+}
+
+type capturedSample struct {
+	Encoding string `json:"encoding"`
+	Text     string `json:"text,omitempty"`
+	Base64   string `json:"base64,omitempty"`
+}
+
+func sampleForAPI(sample []byte) capturedSample {
+	if utf8.Valid(sample) && !strings.ContainsRune(string(sample), '\x00') {
+		return capturedSample{Encoding: "utf-8", Text: string(sample)}
+	}
+	return capturedSample{Encoding: "base64", Base64: base64.StdEncoding.EncodeToString(sample)}
+}
+
+func (h *APIKeyHandler) requestDetail(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials)
+		return
+	}
+	keyID, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid API key ID"))
+		return
+	}
+	requestID, err := strconv.ParseInt(mux.Vars(r)["requestId"], 10, 64)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid gateway request ID"))
+		return
+	}
+	record, err := h.db.GatewayRequestByIDAndUser(r.Context(), sqlc_queries.GatewayRequestByIDAndUserParams{ID: requestID, ApiKeyID: keyID, UserID: userID})
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Gateway request"))
+		return
+	}
+	var completedAt *time.Time
+	if record.CompletedAt.Valid {
+		completedAt = &record.CompletedAt.Time
+	}
+	dto.RespondWithJSON(w, http.StatusOK, map[string]any{
+		"id": record.ID, "requestUuid": record.RequestUuid, "requestedModel": record.RequestedModel,
+		"provider": record.Provider, "status": record.Status, "stream": record.Stream,
+		"promptTokens": record.PromptTokens, "completionTokens": record.CompletionTokens, "totalTokens": record.TotalTokens,
+		"latencyMs": record.LatencyMs, "providerRequestId": record.ProviderRequestID, "errorCode": record.ErrorCode,
+		"requestBytes": record.RequestBytes, "responseBytes": record.ResponseBytes,
+		"requestSha256": record.RequestSha256, "responseSha256": record.ResponseSha256,
+		"requestTruncated": record.RequestTruncated, "responseTruncated": record.ResponseTruncated,
+		"requestClassification": record.RequestClassification, "responseClassification": record.ResponseClassification,
+		"createdAt": record.CreatedAt, "completedAt": completedAt, "retentionUntil": record.RetentionUntil,
+		"requestCapture": sampleForAPI(record.RequestSample), "responseCapture": sampleForAPI(record.ResponseSample),
+	})
 }

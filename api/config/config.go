@@ -20,6 +20,10 @@ type AppConfig struct {
 	CLAUDE struct {
 		API_KEY string
 	}
+	GATEWAY struct {
+		RETENTION_DAYS int
+		CAPTURE_BYTES  int
+	}
 	PG struct {
 		HOST string
 		PORT int
@@ -46,6 +50,12 @@ func Load() AppConfig {
 	}
 	if cfg.OPENAI.RATELIMIT == 0 {
 		cfg.OPENAI.RATELIMIT = 100
+	}
+	if cfg.GATEWAY.RETENTION_DAYS <= 0 {
+		cfg.GATEWAY.RETENTION_DAYS = 7
+	}
+	if cfg.GATEWAY.CAPTURE_BYTES <= 0 {
+		cfg.GATEWAY.CAPTURE_BYTES = 64 * 1024
 	}
 	return cfg
 }

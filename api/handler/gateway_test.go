@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -74,5 +77,27 @@ func TestCopyEndToEndHeaders(t *testing.T) {
 	}
 	if destination.Get("Connection") != "" || destination.Get("X-Internal") != "" {
 		t.Fatalf("hop-by-hop headers were copied: %v", destination)
+	}
+}
+
+func TestBodyObservationIsBoundedButHashesFullBody(t *testing.T) {
+	body := []byte("0123456789")
+	observation := observeBytes(body, 4)
+	if string(observation.sample) != "0123" || !observation.truncated() || observation.byteCount != 10 {
+		t.Fatalf("unexpected observation: sample=%q truncated=%v bytes=%d", observation.sample, observation.truncated(), observation.byteCount)
+	}
+	want := sha256.Sum256(body)
+	if observation.digest() != hex.EncodeToString(want[:]) {
+		t.Fatalf("hash did not cover the complete body")
+	}
+}
+
+func TestClassifyRequestDoesNotRetainContent(t *testing.T) {
+	classification := classifyRequest([]byte(`{"model":"test","messages":[{"role":"user","content":"private text"}],"tools":[]}`))
+	if bytes.Contains(classification, []byte("private text")) {
+		t.Fatal("classification retained message content")
+	}
+	if !bytes.Contains(classification, []byte(`"message_count":1`)) || !bytes.Contains(classification, []byte(`"has_tools":true`)) {
+		t.Fatalf("unexpected classification: %s", classification)
 	}
 }

@@ -30,8 +30,10 @@ WHERE api_key_id = $1 AND created_at >= NOW() - INTERVAL '1 minute';
 
 -- name: CreateGatewayRequest :one
 INSERT INTO gateway_request (
-    request_uuid, api_key_id, user_id, chat_model_id, requested_model, provider, stream
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    request_uuid, api_key_id, user_id, chat_model_id, requested_model, provider, stream,
+    request_bytes, request_sha256, request_sample, request_truncated,
+    request_classification, retention_until
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING *;
 
 -- name: CompleteGatewayRequest :exec
@@ -43,8 +45,19 @@ SET status = $2,
     latency_ms = $6,
     provider_request_id = $7,
     error_code = $8,
+    response_bytes = $9,
+    response_sha256 = $10,
+    response_sample = $11,
+    response_truncated = $12,
+    response_classification = $13,
     completed_at = NOW()
 WHERE id = $1;
+
+-- name: PurgeExpiredGatewaySamples :execrows
+UPDATE gateway_request
+SET request_sample = ''::BYTEA, response_sample = ''::BYTEA
+WHERE retention_until <= NOW()
+  AND (octet_length(request_sample) > 0 OR octet_length(response_sample) > 0);
 
 -- name: GatewayUsageByKey :many
 SELECT
@@ -58,6 +71,20 @@ FROM gateway_request
 WHERE api_key_id = $1 AND user_id = $2
 GROUP BY requested_model
 ORDER BY request_count DESC, requested_model;
+
+-- name: ListGatewayRequestsByKey :many
+SELECT id, request_uuid, requested_model, provider, status, stream,
+       prompt_tokens, completion_tokens, total_tokens, latency_ms,
+       request_bytes, response_bytes, request_truncated, response_truncated,
+       created_at, completed_at, retention_until, error_code
+FROM gateway_request
+WHERE api_key_id = $1 AND user_id = $2
+ORDER BY created_at DESC
+LIMIT $3;
+
+-- name: GatewayRequestByIDAndUser :one
+SELECT * FROM gateway_request
+WHERE id = $1 AND api_key_id = $2 AND user_id = $3;
 
 -- name: ListGatewayModels :many
 SELECT * FROM chat_model

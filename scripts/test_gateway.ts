@@ -84,7 +84,7 @@ async function testStreaming(model: string): Promise<void> {
       model,
       messages: [{ role: "user", content: "Reply with exactly: gateway stream ok" }],
       temperature: 0,
-      max_tokens: 32,
+      max_tokens: 128,
       stream: true,
     }),
   })
@@ -98,7 +98,33 @@ async function testStreaming(model: string): Promise<void> {
   const decoder = new TextDecoder()
   let buffer = ""
   let content = ""
+  let reasoning = ""
   let sawDone = false
+  let eventCount = 0
+  const observedDeltaFields = new Set<string>()
+
+  function processLine(rawLine: string) {
+    const line = rawLine.trimEnd()
+    if (!line.startsWith("data:"))
+      return
+    const data = line.slice(5).trimStart()
+    if (data === "[DONE]") {
+      sawDone = true
+      return
+    }
+    if (!data)
+      return
+    const chunk = JSON.parse(data) as {
+      choices?: Array<{ delta?: { content?: string; reasoning_content?: string; reasoning?: string } }>
+    }
+    eventCount++
+    const delta = chunk.choices?.[0]?.delta
+    if (!delta)
+      return
+    Object.keys(delta).forEach(field => observedDeltaFields.add(field))
+    content += delta.content ?? ""
+    reasoning += delta.reasoning_content ?? delta.reasoning ?? ""
+  }
 
   while (true) {
     const { value, done } = await reader.read()
@@ -106,27 +132,23 @@ async function testStreaming(model: string): Promise<void> {
 
     const lines = buffer.split("\n")
     buffer = lines.pop() ?? ""
-    for (const rawLine of lines) {
-      const line = rawLine.trimEnd()
-      if (!line.startsWith("data: "))
-        continue
-      const data = line.slice(6)
-      if (data === "[DONE]") {
-        sawDone = true
-        continue
-      }
-      const chunk = JSON.parse(data) as { choices?: Array<{ delta?: { content?: string } }> }
-      content += chunk.choices?.[0]?.delta?.content ?? ""
-    }
+    lines.forEach(processLine)
     if (done)
       break
   }
+  if (buffer)
+    processLine(buffer)
 
   if (!sawDone)
     throw new Error("Streaming response did not contain data: [DONE]")
-  if (!content)
-    throw new Error("Streaming response contained no text delta")
-  console.log(`✓ Streaming: ${JSON.stringify(content)}`)
+  if (!content && !reasoning) {
+    const fields = [...observedDeltaFields].join(", ") || "none"
+    throw new Error(`Streaming response contained no text or reasoning delta (${eventCount} events; delta fields: ${fields})`)
+  }
+  if (content)
+    console.log(`✓ Streaming content: ${JSON.stringify(content)}`)
+  if (reasoning)
+    console.log(`✓ Streaming reasoning: ${JSON.stringify(reasoning)}`)
 }
 
 try {
