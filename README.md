@@ -42,6 +42,8 @@
 - 支持上传文本文件
 - 支持多媒体文件, 需要模型支持
 - 提示词管理, 提示词快捷键 '/'
+- 内置 OpenAI 兼容网关，可通过虚拟 API Key 调用已配置的模型
+- 网关支持流式透传、限流、请求审计，以及限时保留的请求/响应样本
 
 > （可选）可在管理后台的「标题生成模型」页面，从已启用的模型中选择用于自动生成对话标题的模型。若未配置标题生成模型，或标题生成失败，将使用提示词的前 100 个字符作为默认标题。
 
@@ -50,6 +52,7 @@
 - [添加新模型指南](https://github.com/swuecho/chat/blob/master/docs/add_model_zh.md)
 - [快照 vs 聊天机器人](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_zh.md)
 - [使用本地Ollama](https://github.com/swuecho/chat/blob/master/docs/ollama_zh.md)
+- [OpenAI 兼容网关](https://github.com/swuecho/chat/blob/master/docs/gateway_en.md)
 - [论坛](https://github.com/swuecho/chat/discussions)
 
 ## 开发指南
@@ -81,6 +84,8 @@
 - Supports text file uploads
 - Supports multimedia files (requires model support)
 - Prompt management with '/' shortcut
+- Built-in OpenAI-compatible gateway using revocable virtual API keys
+- Transparent streaming proxy with per-key limits, request auditing, and time-limited request/response samples
 
 > (Optional) In the admin panel, open **Title Generation Model** to select any enabled model for automatic conversation titles. If no title-generation model is configured, or title generation fails, the first 100 characters of the prompt are used as the default title.
 
@@ -89,6 +94,7 @@
 - [Adding New Models Guide](https://github.com/swuecho/chat/blob/master/docs/add_model_en.md)
 - [Snapshots vs ChatBots](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_en.md)
 - [Using Local Ollama](https://github.com/swuecho/chat/blob/master/docs/ollama_en.md)
+- [OpenAI-Compatible Gateway](https://github.com/swuecho/chat/blob/master/docs/gateway_en.md)
 - [Community Discussions](https://github.com/swuecho/chat/discussions)
 
 ## Development Guide
