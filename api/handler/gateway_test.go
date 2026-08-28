@@ -59,3 +59,20 @@ func TestGatewayHTTPClientProxy(t *testing.T) {
 		t.Fatalf("proxy = %v", proxy)
 	}
 }
+
+func TestCopyEndToEndHeaders(t *testing.T) {
+	source := http.Header{
+		"Accept":         {"application/json"},
+		"OpenAI-Project": {"project-1"},
+		"Connection":     {"keep-alive, X-Internal"},
+		"X-Internal":     {"do-not-forward"},
+	}
+	destination := make(http.Header)
+	copyEndToEndHeaders(destination, source)
+	if destination.Get("Accept") != "application/json" || destination.Get("OpenAI-Project") != "project-1" {
+		t.Fatalf("end-to-end headers were not copied: %v", destination)
+	}
+	if destination.Get("Connection") != "" || destination.Get("X-Internal") != "" {
+		t.Fatalf("hop-by-hop headers were copied: %v", destination)
+	}
+}
