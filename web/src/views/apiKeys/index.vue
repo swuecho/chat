@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, h, onMounted, ref } from 'vue'
+import { h, onMounted, ref } from 'vue'
 import { NButton, NCard, NDataTable, NFormItem, NInput, NInputNumber, NModal, NSpace, NTag, useDialog, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import copy from 'copy-to-clipboard'
 import { createApiKey, fetchApiKeys, fetchApiKeyUsage, revokeApiKey } from '@/api/api_keys'
 import type { ApiKeyUsage, VirtualApiKey } from '@/api/api_keys'
-import Permission from '@/views/components/Permission.vue'
 import { useAuthStore } from '@/store'
 
 const authStore = useAuthStore()
@@ -19,7 +18,6 @@ const showUsage = ref(false)
 const createdSecret = ref('')
 const usage = ref<ApiKeyUsage[]>([])
 const form = ref({ name: '', requestsPerMinute: 60 })
-const needPermission = computed(() => authStore.isInitialized && !authStore.isValid)
 const gatewayBaseUrl = `${window.location.origin}/v1`
 
 const formatDate = (value: string | null) => value ? new Date(value).toLocaleString() : 'Never'
@@ -101,6 +99,5 @@ onMounted(async () => { await authStore.initializeAuth(); if (authStore.isValid)
     </NModal>
 
     <NModal v-model:show="showUsage" preset="card" title="API usage" class="max-w-4xl"><NDataTable :columns="usageColumns" :data="usage" /></NModal>
-    <Permission :visible="needPermission" />
   </div>
 </template>

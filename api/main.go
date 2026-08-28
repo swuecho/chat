@@ -180,7 +180,7 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 	s.registerRoutes(apiRouter, adminRouter, userRouter)
 
 	// OpenAI-compatible gateway uses virtual API keys rather than browser JWTs.
-	handler.NewGatewayHandler(s.q).Register(router.PathPrefix("/v1").Subrouter())
+	handler.NewGatewayHandler(s.q, s.cfg.OPENAI.PROXY_URL).Register(router.PathPrefix("/v1").Subrouter())
 
 	// --- Static files ---
 	fs := http.FileServer(http.FS(static.StaticFiles))

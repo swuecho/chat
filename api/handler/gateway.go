@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,9 +23,18 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-type GatewayHandler struct{ db *sqlc_queries.Queries }
+type GatewayHandler struct {
+	db       *sqlc_queries.Queries
+	proxyURL string
+}
 
-func NewGatewayHandler(db *sqlc_queries.Queries) *GatewayHandler { return &GatewayHandler{db: db} }
+func NewGatewayHandler(db *sqlc_queries.Queries, proxyURL ...string) *GatewayHandler {
+	h := &GatewayHandler{db: db}
+	if len(proxyURL) > 0 {
+		h.proxyURL = proxyURL[0]
+	}
+	return h
+}
 
 func (h *GatewayHandler) Register(r *mux.Router) {
 	r.Handle("/models", h.authenticate(http.HandlerFunc(h.models))).Methods(http.MethodGet)
@@ -159,8 +169,15 @@ func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request)
 	if timeout <= 0 {
 		timeout = 120 * time.Second
 	}
-	resp, err := (&http.Client{Timeout: timeout}).Do(upstream)
+	client, err := h.httpClient(timeout)
 	if err != nil {
+		h.finish(record.ID, started, "failed", gatewayUsage{}, "", "invalid_proxy_url")
+		openAIError(w, http.StatusBadGateway, "The configured provider proxy URL is invalid", "server_error", "invalid_proxy_url")
+		return
+	}
+	resp, err := client.Do(upstream)
+	if err != nil {
+		slog.Error("Gateway provider request failed", "model", model.Name, "url", completionURL(model.Url), "error", err)
 		status := "failed"
 		code := "provider_error"
 		if errors.Is(err, context.Canceled) {
@@ -193,6 +210,18 @@ func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	h.proxyResponse(w, resp, record.ID, started)
+}
+
+func (h *GatewayHandler) httpClient(timeout time.Duration) (*http.Client, error) {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if h.proxyURL != "" {
+		proxy, err := url.Parse(h.proxyURL)
+		if err != nil {
+			return nil, err
+		}
+		transport.Proxy = http.ProxyURL(proxy)
+	}
+	return &http.Client{Transport: transport, Timeout: timeout}, nil
 }
 
 func completionURL(raw string) string {
