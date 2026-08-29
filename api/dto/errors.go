@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgconn"
+	"github.com/swuecho/chat_backend/domain"
 )
 
 // APIError represents a standardized error response for the API.
@@ -281,28 +282,80 @@ func CreateAPIError(baseErr APIError, detail, debugInfo string) APIError {
 
 // --- HTTP response helpers ---
 
-// RespondWithAPIError writes an APIError response to the client.
-func RespondWithAPIError(w http.ResponseWriter, err APIError) {
+// RespondWithAPIError is the HTTP error boundary. It maps transport-neutral
+// application errors to the stable public API error contract.
+func RespondWithAPIError(w http.ResponseWriter, err error) {
+	apiErr := ToAPIError(err)
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(err.HTTPCode)
+	w.WriteHeader(apiErr.HTTPCode)
 
 	response := struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
 		Detail  string `json:"detail,omitempty"`
 	}{
-		Code:    err.Code,
-		Message: err.Message,
-		Detail:  err.Detail,
+		Code:    apiErr.Code,
+		Message: apiErr.Message,
+		Detail:  apiErr.Detail,
 	}
 
-	if err.DebugInfo != "" {
-		slog.Error("api error", "code", err.Code, "message", err.Message, "detail", err.Detail, "debug", err.DebugInfo)
+	if apiErr.DebugInfo != "" {
+		slog.Error("api error", "code", apiErr.Code, "message", apiErr.Message, "detail", apiErr.Detail, "debug", apiErr.DebugInfo)
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		slog.Info("Failed to write error response", "error", err)
 	}
+}
+
+// ToAPIError maps errors from the application and infrastructure layers to HTTP.
+func ToAPIError(err error) APIError {
+	if err == nil {
+		return ErrInternalUnexpected
+	}
+
+	if appErr, ok := domain.AsError(err); ok {
+		var apiErr APIError
+		switch appErr.Kind {
+		case domain.KindInvalid:
+			apiErr = ErrValidationInvalidInput(appErr.Message)
+		case domain.KindUnauthorized:
+			apiErr = ErrAuthInvalidCredentials.WithMessage(appErr.Message)
+		case domain.KindForbidden:
+			apiErr = ErrAuthAccessDenied.WithMessage(appErr.Message)
+		case domain.KindNotFound:
+			switch appErr.Resource {
+			case "Chat file":
+				apiErr = ErrChatFileNotFound
+			case "Chat model":
+				apiErr = ErrChatModelNotFound
+			case "Chat message":
+				apiErr = ErrChatMessageNotFound
+			case "Chat session":
+				apiErr = ErrChatSessionNotFound
+			default:
+				apiErr = ErrResourceNotFound(appErr.Resource)
+			}
+			apiErr.Message = appErr.Message
+		case domain.KindConflict:
+			apiErr = ErrResourceAlreadyExists(appErr.Resource)
+			apiErr.Message = appErr.Message
+		case domain.KindUnavailable:
+			apiErr = ErrExternalUnavailable.WithMessage(appErr.Message)
+		default:
+			apiErr = ErrInternalUnexpected.WithMessage(appErr.Message)
+		}
+		if appErr.Err != nil {
+			apiErr.DebugInfo = appErr.Err.Error()
+		}
+		return apiErr
+	}
+
+	var apiErr APIError
+	if errors.As(err, &apiErr) {
+		return apiErr
+	}
+	return WrapError(err, "")
 }
 
 // RespondWithJSON writes a JSON response with the given status code.

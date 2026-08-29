@@ -42,13 +42,7 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 	uuid := mux.Vars(r)["uuid"]
 	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			apiErr := dto.ErrResourceNotFound("Chat session")
-			apiErr.Message = "Session not found with UUID: " + uuid
-			dto.RespondWithAPIError(w, apiErr)
-			return
-		}
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat session"))
+		dto.RespondWithAPIError(w, err)
 		return
 	}
 

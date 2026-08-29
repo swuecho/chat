@@ -8,6 +8,7 @@ import (
 
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -114,6 +115,9 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 func (s *ChatSessionService) GetChatSessionByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatSession, error) {
 	chatSession, err := s.q.GetChatSessionByUUID(ctx, uuid)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return sqlc_queries.ChatSession{}, domain.NotFound("Chat session", err)
+		}
 		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to retrieve session by uuid, ")
 	}
 	return chatSession, nil

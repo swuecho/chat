@@ -2,9 +2,7 @@ package handler
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -105,11 +103,7 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	file, err := h.service.GetChatFile(r.Context(), int32(fileIdInt))
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			dto.RespondWithAPIError(w, dto.ErrChatFileNotFound.WithMessage(fmt.Sprintf("file ID %d not found", fileIdInt)))
-		} else {
-			dto.RespondWithAPIError(w, dto.WrapError(err, "failed to get chat file"))
-		}
+		dto.RespondWithAPIError(w, err)
 		return
 	}
 
