@@ -136,7 +136,7 @@ func ShouldFlushContent(content string, lastFlushLength int, isSmallContent bool
 }
 
 // GetChatModel retrieves a chat model by name from the database.
-func GetChatModel(ctx context.Context, q *sqlc_queries.Queries, modelName string) (*sqlc_queries.ChatModel, error) {
+func GetChatModel(ctx context.Context, q QueryStore, modelName string) (*sqlc_queries.ChatModel, error) {
 	chatModel, err := q.ChatModelByName(ctx, modelName)
 	if err != nil {
 		return nil, dto.ErrResourceNotFound("chat model: " + modelName)
@@ -145,7 +145,7 @@ func GetChatModel(ctx context.Context, q *sqlc_queries.Queries, modelName string
 }
 
 // GetChatFiles retrieves chat files for a session.
-func GetChatFiles(ctx context.Context, q *sqlc_queries.Queries, sessionUUID string) ([]sqlc_queries.ChatFile, error) {
+func GetChatFiles(ctx context.Context, q QueryStore, sessionUUID string) ([]sqlc_queries.ChatFile, error) {
 	chatFiles, err := q.ListChatFilesWithContentBySessionUUID(ctx, sessionUUID)
 	if err != nil {
 		return nil, dto.ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())

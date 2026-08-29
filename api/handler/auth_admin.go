@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // --- Request/response types ---
@@ -75,10 +74,7 @@ func (h *AuthUserHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	rate, err := h.service.UpdateAuthUserRateLimitByEmail(r.Context(),
-		sqlc_queries.UpdateAuthUserRateLimitByEmailParams{
-			Email: req.Email, RateLimit: req.RateLimit,
-		})
+	rate, err := h.service.UpdateAuthUserRateLimitByEmail(r.Context(), req.Email, req.RateLimit)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update rate limit"))
 		return

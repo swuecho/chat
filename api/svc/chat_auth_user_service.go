@@ -20,6 +20,28 @@ type AuthUserService struct {
 	defaultLimit int32
 }
 
+type CreateAuthUserInput struct {
+	Email       string
+	Password    string
+	FirstName   string
+	LastName    string
+	Username    string
+	IsStaff     bool
+	IsSuperuser bool
+}
+
+type UpdateAuthUserInput struct {
+	ID        int32
+	FirstName string
+	LastName  string
+}
+
+type UpdateAuthUserByEmailInput struct {
+	Email     string
+	FirstName string
+	LastName  string
+}
+
 // NewAuthUserService creates a new AuthUserService.
 func NewAuthUserService(q *sqlc_queries.Queries, jwtSecret string, defaultLimit int32) *AuthUserService {
 	return &AuthUserService{
@@ -33,7 +55,8 @@ func NewAuthUserService(q *sqlc_queries.Queries, jwtSecret string, defaultLimit 
 func (s *AuthUserService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateAuthUser creates a new authentication user record.
-func (s *AuthUserService) CreateAuthUser(ctx context.Context, auth_user_params sqlc_queries.CreateAuthUserParams) (sqlc_queries.AuthUser, error) {
+func (s *AuthUserService) CreateAuthUser(ctx context.Context, input CreateAuthUserInput) (sqlc_queries.AuthUser, error) {
+	auth_user_params := sqlc_queries.CreateAuthUserParams(input)
 	totalUserCount, err := s.q.GetTotalActiveUserCount(ctx)
 	if err != nil {
 		return sqlc_queries.AuthUser{}, errors.New("failed to retrieve total user count")
@@ -125,13 +148,13 @@ func (s *AuthUserService) UpdateRateLimit(ctx context.Context, user_email string
 
 // get ratelimit for user_id
 // UpdateAuthUser wraps the raw query for handler use.
-func (s *AuthUserService) UpdateAuthUser(ctx context.Context, params sqlc_queries.UpdateAuthUserParams) (sqlc_queries.UpdateAuthUserRow, error) {
-	return s.q.UpdateAuthUser(ctx, params)
+func (s *AuthUserService) UpdateAuthUser(ctx context.Context, input UpdateAuthUserInput) (sqlc_queries.UpdateAuthUserRow, error) {
+	return s.q.UpdateAuthUser(ctx, sqlc_queries.UpdateAuthUserParams(input))
 }
 
 // UpdateAuthUserByEmail wraps the raw query for handler use.
-func (s *AuthUserService) UpdateAuthUserByEmail(ctx context.Context, params sqlc_queries.UpdateAuthUserByEmailParams) (sqlc_queries.UpdateAuthUserByEmailRow, error) {
-	return s.q.UpdateAuthUserByEmail(ctx, params)
+func (s *AuthUserService) UpdateAuthUserByEmail(ctx context.Context, input UpdateAuthUserByEmailInput) (sqlc_queries.UpdateAuthUserByEmailRow, error) {
+	return s.q.UpdateAuthUserByEmail(ctx, sqlc_queries.UpdateAuthUserByEmailParams(input))
 }
 
 // GetUserByEmail wraps the raw query for handler use.
@@ -140,13 +163,13 @@ func (s *AuthUserService) GetUserByEmail(ctx context.Context, email string) (sql
 }
 
 // UpdateUserPassword wraps the raw query for handler use.
-func (s *AuthUserService) UpdateUserPassword(ctx context.Context, params sqlc_queries.UpdateUserPasswordParams) error {
-	return s.q.UpdateUserPassword(ctx, params)
+func (s *AuthUserService) UpdateUserPassword(ctx context.Context, email, password string) error {
+	return s.q.UpdateUserPassword(ctx, sqlc_queries.UpdateUserPasswordParams{Email: email, Password: password})
 }
 
 // UpdateAuthUserRateLimitByEmail wraps the raw query.
-func (s *AuthUserService) UpdateAuthUserRateLimitByEmail(ctx context.Context, params sqlc_queries.UpdateAuthUserRateLimitByEmailParams) (int32, error) {
-	return s.q.UpdateAuthUserRateLimitByEmail(ctx, params)
+func (s *AuthUserService) UpdateAuthUserRateLimitByEmail(ctx context.Context, email string, rateLimit int32) (int32, error) {
+	return s.q.UpdateAuthUserRateLimitByEmail(ctx, sqlc_queries.UpdateAuthUserRateLimitByEmailParams{Email: email, RateLimit: rateLimit})
 }
 
 // GetRateLimit wraps the raw query for handler use.

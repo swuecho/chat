@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -15,10 +14,8 @@ type ChatCommentHandler struct {
 	service *svc.ChatCommentService
 }
 
-func NewChatCommentHandler(sqlc_q *sqlc_queries.Queries) *ChatCommentHandler {
-	return &ChatCommentHandler{
-		service: svc.NewChatCommentService(sqlc_q),
-	}
+func NewChatCommentHandler(service *svc.ChatCommentService) *ChatCommentHandler {
+	return &ChatCommentHandler{service: service}
 }
 
 func (h *ChatCommentHandler) Register(router *mux.Router) {
@@ -46,7 +43,7 @@ func (h *ChatCommentHandler) CreateChatComment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	comment, err := h.service.CreateChatComment(r.Context(), sqlc_queries.CreateChatCommentParams{
+	comment, err := h.service.CreateChatComment(r.Context(), svc.CreateChatCommentInput{
 		Uuid:            uuid.New().String(),
 		ChatSessionUuid: sessionUUID,
 		ChatMessageUuid: messageUUID,

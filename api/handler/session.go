@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
@@ -9,21 +8,21 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
 type ChatSessionHandler struct {
-	service   *svc.ChatSessionService
-	wsService *svc.ChatWorkspaceService
-	activeSvc *svc.UserActiveChatSessionService
+	service    *svc.ChatSessionService
+	wsService  *svc.ChatWorkspaceService
+	activeSvc  *svc.UserActiveChatSessionService
+	promptSvc  *svc.ChatPromptService
+	messageSvc *svc.ChatMessageService
 }
 
-func NewChatSessionHandler(sqlc_q *sqlc_queries.Queries) *ChatSessionHandler {
+func NewChatSessionHandler(service *svc.ChatSessionService, wsService *svc.ChatWorkspaceService, activeSvc *svc.UserActiveChatSessionService, promptSvc *svc.ChatPromptService, messageSvc *svc.ChatMessageService) *ChatSessionHandler {
 	return &ChatSessionHandler{
-		service:   svc.NewChatSessionService(sqlc_q),
-		wsService: svc.NewChatWorkspaceService(sqlc_q),
-		activeSvc: svc.NewUserActiveChatSessionService(sqlc_q),
+		service: service, wsService: wsService, activeSvc: activeSvc,
+		promptSvc: promptSvc, messageSvc: messageSvc,
 	}
 }
 
@@ -81,12 +80,13 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
-	session, err := h.service.CreateOrUpdateChatSessionByUUID(ctx, sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
+	workspaceID := defaultWorkspace.ID
+	session, err := h.service.CreateOrUpdateChatSessionByUUID(ctx, svc.CreateOrUpdateChatSessionInput{
 		Uuid: req.Uuid, UserID: userID, Topic: req.Topic,
 		MaxLength: dto.DefaultMaxLength, Temperature: dto.DefaultTemperature,
 		Model: req.Model, MaxTokens: dto.DefaultMaxTokens, TopP: dto.DefaultTopP, N: dto.DefaultN,
 		Debug: false, SummarizeMode: false, ExploreMode: false, ArtifactEnabled: false,
-		WorkspaceID: sql.NullInt32{Int32: defaultWorkspace.ID, Valid: true},
+		WorkspaceID: &workspaceID,
 	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create or update chat session"))
@@ -98,10 +98,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
-	if _, err := h.service.UpsertUserActiveSession(ctx, sqlc_queries.UpsertUserActiveSessionParams{
-		UserID: session.UserID, WorkspaceID: sql.NullInt32{},
-		ChatSessionUuid: session.Uuid,
-	}); err != nil {
+	if _, err := h.activeSvc.UpsertActiveSession(ctx, session.UserID, nil, session.Uuid); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update active user session"))
 		return
 	}
@@ -126,7 +123,7 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 		return
 	}
 
-	params := sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
+	params := svc.CreateOrUpdateChatSessionInput{
 		Uuid: sessionReq.Uuid, UserID: userID, Topic: sessionReq.Topic,
 		MaxLength: sessionReq.MaxLength, Temperature: sessionReq.Temperature,
 		Model: sessionReq.Model, TopP: sessionReq.TopP, N: sessionReq.N,
@@ -141,14 +138,14 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 			dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Invalid workspace UUID"))
 			return
 		}
-		params.WorkspaceID = sql.NullInt32{Int32: workspace.ID, Valid: true}
+		params.WorkspaceID = &workspace.ID
 	} else {
 		defaultWS, err := h.wsService.EnsureDefaultWorkspaceExists(ctx, userID)
 		if err != nil {
 			dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to ensure default workspace exists"))
 			return
 		}
-		params.WorkspaceID = sql.NullInt32{Int32: defaultWS.ID, Valid: true}
+		params.WorkspaceID = &defaultWS.ID
 	}
 
 	session, err := h.service.CreateOrUpdateChatSessionByUUID(ctx, params)
@@ -205,21 +202,19 @@ func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter
 
 func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
-	var params sqlc_queries.UpdateChatSessionTopicByUUIDParams
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	var req struct {
+		Topic string `json:"topic"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
-	params.Uuid = uuid
-
 	userID, err := getUserID(r.Context())
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	params.UserID = userID
-
-	session, err := h.service.UpdateChatSessionTopicByUUID(r.Context(), params)
+	session, err := h.service.UpdateChatSessionTopicByUUID(r.Context(), uuid, userID, req.Topic)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update chat session topic").WithDebugInfo(err.Error()))
 		return
@@ -229,13 +224,13 @@ func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter,
 
 func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
-	var params sqlc_queries.UpdateSessionMaxLengthParams
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	var req struct {
+		MaxLength int32 `json:"maxLength"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
-	params.Uuid = uuid
-
 	// Verify session ownership
 	userID, err := getUserID(r.Context())
 	if err != nil {
@@ -252,7 +247,7 @@ func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *ht
 		return
 	}
 
-	updatedSession, err := h.service.UpdateSessionMaxLength(r.Context(), params)
+	updatedSession, err := h.service.UpdateSessionMaxLength(r.Context(), uuid, req.MaxLength)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update session max length").WithDebugInfo(err.Error()))
 		return
@@ -295,20 +290,25 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	}
 
 	sessionUUID := uuid.New().String()
-	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
+	var workspaceID *int32
+	if originSession.WorkspaceID.Valid {
+		id := originSession.WorkspaceID.Int32
+		workspaceID = &id
+	}
+	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), svc.CreateOrUpdateChatSessionInput{
 		Uuid: sessionUUID, UserID: userID, Topic: snapshot.Title,
 		MaxLength: originSession.MaxLength, Temperature: originSession.Temperature,
 		Model: originSession.Model, MaxTokens: originSession.MaxTokens,
 		TopP: originSession.TopP, Debug: originSession.Debug,
 		SummarizeMode: originSession.SummarizeMode, ExploreMode: originSession.ExploreMode,
-		WorkspaceID: originSession.WorkspaceID, N: 1,
+		WorkspaceID: workspaceID, N: 1,
 	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to create chat session from snapshot").WithDebugInfo(err.Error()))
 		return
 	}
 
-	if _, err := h.service.CreateChatPrompt(r.Context(), sqlc_queries.CreateChatPromptParams{
+	if _, err := h.promptSvc.CreateChatPrompt(r.Context(), svc.CreateChatPromptInput{
 		Uuid: NewUUID(), ChatSessionUuid: sessionUUID, Role: "system",
 		Content: promptMsg.Text, UserID: userID, CreatedBy: userID, UpdatedBy: userID,
 	}); err != nil {
@@ -317,7 +317,7 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 	}
 
 	for _, msg := range messages[1:] {
-		if _, err := h.service.CreateChatMessage(r.Context(), sqlc_queries.CreateChatMessageParams{
+		if _, err := h.messageSvc.CreateChatMessage(r.Context(), svc.CreateChatMessageInput{
 			ChatSessionUuid: sessionUUID, Uuid: NewUUID(),
 			Role: msg.GetRole(), Content: msg.Text, UserID: userID,
 			Raw: json.RawMessage([]byte("{}")),

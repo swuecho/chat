@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +38,7 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	workspace, err := h.wsService.CreateWorkspace(ctx, sqlc_queries.CreateWorkspaceParams{
+	workspace, err := h.wsService.CreateWorkspace(ctx, svc.CreateWorkspaceInput{
 		Uuid: uuid.New().String(), UserID: userID,
 		Name: req.Name, Description: req.Description,
 		Color: req.Color, Icon: req.Icon,
@@ -56,7 +57,7 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +87,7 @@ func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) getWorkspacesByUserID(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +106,7 @@ func (h *ChatWorkspaceHandler) getWorkspacesByUserID(w http.ResponseWriter, r *h
 
 	responses := make([]dto.WorkspaceResponse, 0, len(workspaces))
 	for _, ws := range workspaces {
-		responses = append(responses, workspaceRowToResponse(ws))
+		responses = append(responses, workspaceToResponse(ws.Uuid, ws.Name, ws.Description, ws.Color, ws.Icon, ws.IsDefault, ws.OrderPosition, ws.SessionCount, ws.CreatedAt, ws.UpdatedAt))
 	}
 	json.NewEncoder(w).Encode(responses)
 }
@@ -129,7 +130,7 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	workspace, err := h.wsService.UpdateWorkspace(ctx, sqlc_queries.UpdateWorkspaceParams{
+	workspace, err := h.wsService.UpdateWorkspace(ctx, svc.UpdateWorkspaceInput{
 		Uuid: workspaceUUID, Name: req.Name, Description: req.Description,
 		Color: req.Color, Icon: req.Icon,
 	})
@@ -138,7 +139,7 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -190,22 +191,12 @@ func (h *ChatWorkspaceHandler) checkPermission(w http.ResponseWriter, ctx contex
 	return true
 }
 
-func workspaceToResponse(ws sqlc_queries.ChatWorkspace) dto.WorkspaceResponse {
+func workspaceToResponse(uuid, name, description, color, icon string, isDefault bool, orderPosition int32, sessionCount int64, createdAt, updatedAt time.Time) dto.WorkspaceResponse {
 	return dto.WorkspaceResponse{
-		Uuid: ws.Uuid, Name: ws.Name, Description: ws.Description,
-		Color: ws.Color, Icon: ws.Icon,
-		IsDefault: ws.IsDefault, OrderPosition: ws.OrderPosition,
-		CreatedAt: ws.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt: ws.UpdatedAt.Format("2006-01-02T15:04:05Z"),
-	}
-}
-
-func workspaceRowToResponse(ws sqlc_queries.GetWorkspaceWithSessionCountRow) dto.WorkspaceResponse {
-	return dto.WorkspaceResponse{
-		Uuid: ws.Uuid, Name: ws.Name, Description: ws.Description,
-		Color: ws.Color, Icon: ws.Icon,
-		IsDefault: ws.IsDefault, OrderPosition: ws.OrderPosition, SessionCount: ws.SessionCount,
-		CreatedAt: ws.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt: ws.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		Uuid: uuid, Name: name, Description: description,
+		Color: color, Icon: icon, IsDefault: isDefault,
+		OrderPosition: orderPosition, SessionCount: sessionCount,
+		CreatedAt: createdAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt: updatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 }

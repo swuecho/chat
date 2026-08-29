@@ -14,6 +14,44 @@ type ChatMessageService struct {
 	q *sqlc_queries.Queries
 }
 
+type CreateChatMessageInput struct {
+	ChatSessionUuid    string
+	Uuid               string
+	Role               string
+	Content            string
+	ReasoningContent   string
+	Model              string
+	TokenCount         int32
+	Score              float64
+	UserID             int32
+	CreatedBy          int32
+	UpdatedBy          int32
+	LlmSummary         string
+	Raw                json.RawMessage
+	Artifacts          json.RawMessage
+	SuggestedQuestions json.RawMessage
+}
+
+type UpdateChatMessageInput struct {
+	ID                 int32
+	Role               string
+	Content            string
+	Score              float64
+	UserID             int32
+	UpdatedBy          int32
+	Artifacts          json.RawMessage
+	SuggestedQuestions json.RawMessage
+}
+
+type UpdateChatMessageByUUIDInput struct {
+	Uuid               string
+	Content            string
+	IsPin              bool
+	TokenCount         int32
+	Artifacts          json.RawMessage
+	SuggestedQuestions json.RawMessage
+}
+
 // NewChatMessageService creates a new ChatMessageService.
 func NewChatMessageService(q *sqlc_queries.Queries) *ChatMessageService {
 	return &ChatMessageService{q: q}
@@ -23,8 +61,8 @@ func NewChatMessageService(q *sqlc_queries.Queries) *ChatMessageService {
 func (s *ChatMessageService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateChatMessage creates a new chat message.
-func (s *ChatMessageService) CreateChatMessage(ctx context.Context, message_params sqlc_queries.CreateChatMessageParams) (sqlc_queries.ChatMessage, error) {
-	message, err := s.q.CreateChatMessage(ctx, message_params)
+func (s *ChatMessageService) CreateChatMessage(ctx context.Context, input CreateChatMessageInput) (sqlc_queries.ChatMessage, error) {
+	message, err := s.q.CreateChatMessage(ctx, sqlc_queries.CreateChatMessageParams(input))
 	if err != nil {
 		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
 	}
@@ -41,8 +79,8 @@ func (s *ChatMessageService) GetChatMessageByID(ctx context.Context, id int32) (
 }
 
 // UpdateChatMessage updates an existing chat message.
-func (s *ChatMessageService) UpdateChatMessage(ctx context.Context, message_params sqlc_queries.UpdateChatMessageParams) (sqlc_queries.ChatMessage, error) {
-	message_u, err := s.q.UpdateChatMessage(ctx, message_params)
+func (s *ChatMessageService) UpdateChatMessage(ctx context.Context, input UpdateChatMessageInput) (sqlc_queries.ChatMessage, error) {
+	message_u, err := s.q.UpdateChatMessage(ctx, sqlc_queries.UpdateChatMessageParams(input))
 	if err != nil {
 		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to update message ")
 	}
@@ -118,12 +156,19 @@ func (s *ChatMessageService) GetChatMessageByUUID(ctx context.Context, uuid stri
 }
 
 // UpdateChatMessageByUUID updates an existing chat message.
-func (s *ChatMessageService) UpdateChatMessageByUUID(ctx context.Context, message_params sqlc_queries.UpdateChatMessageByUUIDParams) (sqlc_queries.ChatMessage, error) {
-	message_u, err := s.q.UpdateChatMessageByUUID(ctx, message_params)
+func (s *ChatMessageService) UpdateChatMessageByUUID(ctx context.Context, input UpdateChatMessageByUUIDInput) (sqlc_queries.ChatMessage, error) {
+	message_u, err := s.q.UpdateChatMessageByUUID(ctx, sqlc_queries.UpdateChatMessageByUUIDParams(input))
 	if err != nil {
 		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to update message ")
 	}
 	return message_u, nil
+}
+
+func (s *ChatMessageService) UpdateSuggestedQuestions(ctx context.Context, uuid string, suggestions json.RawMessage) (sqlc_queries.ChatMessage, error) {
+	return s.q.UpdateChatMessageSuggestions(ctx, sqlc_queries.UpdateChatMessageSuggestionsParams{
+		Uuid:               uuid,
+		SuggestedQuestions: suggestions,
+	})
 }
 
 // GetChatMessagesBySessionUUID returns a chat message by session uuid.

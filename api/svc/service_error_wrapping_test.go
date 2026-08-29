@@ -28,7 +28,7 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 	ctx := context.Background()
 
 	testUser, err := NewAuthUserService(q, "test-secret", 100).CreateAuthUser(ctx,
-		sqlc_queries.CreateAuthUserParams{
+		CreateAuthUserInput{
 			Email:    "wrap-test@test.com",
 			Username: "wraptest",
 			Password: "pbkdf2_sha256$260000$test$test",
@@ -41,7 +41,7 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 	t.Run("ChatSessionService_success_returns_nil_error", func(t *testing.T) {
 		svc := NewChatSessionService(q)
 		session, err := svc.CreateOrUpdateChatSessionByUUID(ctx,
-			sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
+			CreateOrUpdateChatSessionInput{
 				Uuid: "test-wrap-nil-session", UserID: testUID,
 				Topic: "Wrap Nil Test", Model: "gpt-3.5-turbo", MaxLength: 10,
 			})
@@ -62,7 +62,7 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 
 	t.Run("ChatWorkspaceService_success_returns_nil_error", func(t *testing.T) {
 		svc := NewChatWorkspaceService(q)
-		ws, err := svc.CreateWorkspace(ctx, sqlc_queries.CreateWorkspaceParams{
+		ws, err := svc.CreateWorkspace(ctx, CreateWorkspaceInput{
 			Uuid: "test-wrap-nil-workspace", UserID: testUID,
 			Name: "Wrap Nil Test WS", Color: "#6366f1", Icon: "folder",
 		})

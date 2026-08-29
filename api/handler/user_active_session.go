@@ -11,17 +11,18 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
 type UserActiveChatSessionHandler struct {
-	service *svc.UserActiveChatSessionService
+	service          *svc.UserActiveChatSessionService
+	workspaceService *svc.ChatWorkspaceService
+	sessionService   *svc.ChatSessionService
 }
 
-func NewUserActiveChatSessionHandler(sqlc_q *sqlc_queries.Queries) *UserActiveChatSessionHandler {
+func NewUserActiveChatSessionHandler(service *svc.UserActiveChatSessionService, workspaceService *svc.ChatWorkspaceService, sessionService *svc.ChatSessionService) *UserActiveChatSessionHandler {
 	return &UserActiveChatSessionHandler{
-		service: svc.NewUserActiveChatSessionService(sqlc_q),
+		service: service, workspaceService: workspaceService, sessionService: sessionService,
 	}
 }
 
@@ -105,8 +106,7 @@ func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
-	workspaceService := svc.NewChatWorkspaceService(h.service.Q())
-	hasPermission, err := workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
+	hasPermission, err := h.workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to check workspace permission"))
 		return
@@ -116,7 +116,7 @@ func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
-	workspace, err := workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
+	workspace, err := h.workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
 		return
@@ -146,8 +146,7 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
-	workspaceService := svc.NewChatWorkspaceService(h.service.Q())
-	hasPermission, err := workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
+	hasPermission, err := h.workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to check workspace permission"))
 		return
@@ -170,14 +169,13 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
-	workspace, err := workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
+	workspace, err := h.workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
 		return
 	}
 
-	sessionService := svc.NewChatSessionService(h.service.Q())
-	session, err := sessionService.GetChatSessionByUUID(ctx, requestBody.ChatSessionUuid)
+	session, err := h.sessionService.GetChatSessionByUUID(ctx, requestBody.ChatSessionUuid)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat Session").WithMessage("chat session not found"))
 		return
@@ -216,8 +214,7 @@ func (h *UserActiveChatSessionHandler) GetAllWorkspaceActiveSessionsHandler(w ht
 		return
 	}
 
-	workspaceService := svc.NewChatWorkspaceService(h.service.Q())
-	workspaces, err := workspaceService.GetWorkspacesByUserID(ctx, userID)
+	workspaces, err := h.workspaceService.GetWorkspacesByUserID(ctx, userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to get workspaces"))
 		return

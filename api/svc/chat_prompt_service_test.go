@@ -17,7 +17,7 @@ func TestChatPromptService(t *testing.T) {
 	prompt_params := sqlc_queries.CreateChatPromptParams{
 		ChatSessionUuid: "Test Topic", Role: "Test Role", Content: "Test Content", UserID: 1,
 	}
-	prompt, err := service.CreateChatPrompt(context.Background(), prompt_params)
+	prompt, err := service.CreateChatPrompt(context.Background(), CreateChatPromptInput(prompt_params))
 	if err != nil {
 		t.Fatalf("failed to create chat prompt: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestChatPromptService(t *testing.T) {
 		ID: prompt.ID, ChatSessionUuid: "Updated Test Topic",
 		Role: "Updated Test Role", Content: "Updated Test Content", Score: 0.75,
 	}
-	if _, err := service.UpdateChatPrompt(context.Background(), updated_params); err != nil {
+	if _, err := service.UpdateChatPrompt(context.Background(), UpdateChatPromptInput(updated_params)); err != nil {
 		t.Fatalf("failed to update chat prompt: %v", err)
 	}
 	retrievedPrompt, err = service.GetChatPromptByID(context.Background(), prompt.ID)
@@ -69,14 +69,14 @@ func TestGetAllChatPrompts(t *testing.T) {
 	prompt1_params := sqlc_queries.CreateChatPromptParams{
 		ChatSessionUuid: "Test Topic 1", Role: "Test Role 1", Content: "Test Content 1", UserID: 1,
 	}
-	prompt1, err := service.CreateChatPrompt(context.Background(), prompt1_params)
+	prompt1, err := service.CreateChatPrompt(context.Background(), CreateChatPromptInput(prompt1_params))
 	if err != nil {
 		t.Fatalf("failed to create chat prompt: %v", err)
 	}
 	prompt2_params := sqlc_queries.CreateChatPromptParams{
 		ChatSessionUuid: "Test Topic 2", Role: "Test Role 2", Content: "Test Content 2", UserID: 2,
 	}
-	prompt2, err := service.CreateChatPrompt(context.Background(), prompt2_params)
+	prompt2, err := service.CreateChatPrompt(context.Background(), CreateChatPromptInput(prompt2_params))
 	if err != nil {
 		t.Fatalf("failed to create chat prompt: %v", err)
 	}
@@ -104,14 +104,14 @@ func TestGetChatPromptsByTopic(t *testing.T) {
 	prompt1_params := sqlc_queries.CreateChatPromptParams{
 		ChatSessionUuid: "Test Topic 1", Role: "Test Role 1", Content: "Test Content 1", UserID: 1,
 	}
-	prompt1, err := service.CreateChatPrompt(context.Background(), prompt1_params)
+	prompt1, err := service.CreateChatPrompt(context.Background(), CreateChatPromptInput(prompt1_params))
 	if err != nil {
 		t.Fatalf("failed to create chat prompt: %v", err)
 	}
 	prompt2_params := sqlc_queries.CreateChatPromptParams{
 		ChatSessionUuid: "Test Topic 2", Role: "Test Role 2", Content: "Test Content 2", UserID: 2,
 	}
-	prompt2, err := service.CreateChatPrompt(context.Background(), prompt2_params)
+	prompt2, err := service.CreateChatPrompt(context.Background(), CreateChatPromptInput(prompt2_params))
 	if err != nil {
 		t.Fatalf("failed to create chat prompt: %v", err)
 	}
@@ -142,14 +142,14 @@ func TestGetChatPromptsByUserID(t *testing.T) {
 	prompt1_params := sqlc_queries.CreateChatPromptParams{
 		ChatSessionUuid: "Test Topic 1", Role: "Test Role 1", Content: "Test Content 1", UserID: 1,
 	}
-	prompt1, err := service.CreateChatPrompt(context.Background(), prompt1_params)
+	prompt1, err := service.CreateChatPrompt(context.Background(), CreateChatPromptInput(prompt1_params))
 	if err != nil {
 		t.Fatalf("failed to create chat prompt: %v", err)
 	}
 	prompt2_params := sqlc_queries.CreateChatPromptParams{
 		ChatSessionUuid: "Test Topic 2", Role: "Test Role 2", Content: "Test Content 2", UserID: 2,
 	}
-	prompt2, err := service.CreateChatPrompt(context.Background(), prompt2_params)
+	prompt2, err := service.CreateChatPrompt(context.Background(), CreateChatPromptInput(prompt2_params))
 	if err != nil {
 		t.Fatalf("failed to create chat prompt: %v", err)
 	}

@@ -6,7 +6,6 @@ import (
 
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"log/slog"
 )
 
@@ -50,9 +49,7 @@ func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err := h.service.UpdateUserPassword(r.Context(), sqlc_queries.UpdateUserPasswordParams{
-		Email: req.Email, Password: hashedPassword,
-	}); err != nil {
+	if err := h.service.UpdateUserPassword(r.Context(), req.Email, hashedPassword); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to update password").WithDebugInfo(err.Error()))
 		return
 	}
@@ -101,9 +98,7 @@ func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := h.service.UpdateUserPassword(r.Context(), sqlc_queries.UpdateUserPasswordParams{
-		Email: req.Email, Password: string(hashedPassword),
-	}); err != nil {
+	if err := h.service.UpdateUserPassword(r.Context(), req.Email, string(hashedPassword)); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update password"))
 		return
 	}

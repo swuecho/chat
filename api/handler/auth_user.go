@@ -12,7 +12,6 @@ import (
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/middleware"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 	"log/slog"
 )
@@ -36,9 +35,9 @@ type AuthUserHandler struct {
 }
 
 // NewAuthUserHandler creates a new AuthUserHandler.
-func NewAuthUserHandler(sqlc_q *sqlc_queries.Queries, jwtSecret, audience string, defaultRateLimit int32) *AuthUserHandler {
+func NewAuthUserHandler(service *svc.AuthUserService, jwtSecret, audience string, defaultRateLimit int32) *AuthUserHandler {
 	return &AuthUserHandler{
-		service:          svc.NewAuthUserService(sqlc_q, jwtSecret, defaultRateLimit),
+		service:          service,
 		jwtSecret:        jwtSecret,
 		audience:         audience,
 		defaultRateLimit: defaultRateLimit,
@@ -112,7 +111,7 @@ func (h *AuthUserHandler) RegisterPublicRoutes(router *mux.Router) {
 // --- CRUD handlers ---
 
 func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var params sqlc_queries.CreateAuthUserParams
+	var params svc.CreateAuthUserInput
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
@@ -145,7 +144,7 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	var params sqlc_queries.UpdateAuthUserParams
+	var params svc.UpdateAuthUserInput
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
@@ -161,7 +160,7 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var params sqlc_queries.UpdateAuthUserByEmailParams
+	var params svc.UpdateAuthUserByEmailInput
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
@@ -196,7 +195,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.CreateAuthUser(r.Context(), sqlc_queries.CreateAuthUserParams{
+	user, err := h.service.CreateAuthUser(r.Context(), svc.CreateAuthUserInput{
 		Password: hash, Email: params.Email, Username: params.Email,
 	})
 	if err != nil {

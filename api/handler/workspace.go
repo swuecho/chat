@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -16,11 +15,11 @@ type ChatWorkspaceHandler struct {
 }
 
 // NewChatWorkspaceHandler creates a new ChatWorkspaceHandler with all required services.
-func NewChatWorkspaceHandler(q *sqlc_queries.Queries) *ChatWorkspaceHandler {
+func NewChatWorkspaceHandler(wsService *svc.ChatWorkspaceService, sessionService *svc.ChatSessionService, activeSession *svc.UserActiveChatSessionService) *ChatWorkspaceHandler {
 	return &ChatWorkspaceHandler{
-		wsService:      svc.NewChatWorkspaceService(q),
-		sessionService: svc.NewChatSessionService(q),
-		activeSession:  svc.NewUserActiveChatSessionService(q),
+		wsService:      wsService,
+		sessionService: sessionService,
+		activeSession:  activeSession,
 	}
 }
 

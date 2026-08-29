@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 	"gotest.tools/v3/assert"
 )
 
@@ -71,7 +72,7 @@ func unmarshalResponseToChatModel(t *testing.T, rr *httptest.ResponseRecorder) [
 
 func TestChatModelTest(t *testing.T) {
 	q := sqlc_queries.New(testDB)
-	h := NewChatModelHandler(q)
+	h := NewChatModelHandler(svc.NewChatModelService(q))
 	router := mux.NewRouter()
 	h.Register(router)
 	clearChatModelsIfExists(q)

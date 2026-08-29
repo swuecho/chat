@@ -16,7 +16,7 @@ func newTitleGenerationHandler(q *sqlc_queries.Queries) *titleGenerationHandler 
 	return &titleGenerationHandler{q: q, limiter: rate.NewLimiter(rate.Inf, 1)}
 }
 
-func (h *titleGenerationHandler) Queries() *sqlc_queries.Queries { return h.q }
+func (h *titleGenerationHandler) Queries() QueryStore { return h.q }
 
 func (h *titleGenerationHandler) CheckModelAccess(context.Context, string, string, int32) error {
 	return nil

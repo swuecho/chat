@@ -11,7 +11,6 @@ import (
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/provider"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -27,10 +26,10 @@ type ChatHandler struct {
 const sessionTitleGenerationTimeout = 30 * time.Second
 
 // NewChatHandler creates a new ChatHandler.
-func NewChatHandler(sqlc_q *sqlc_queries.Queries, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
+func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
 	return &ChatHandler{
-		service:     svc.NewChatService(sqlc_q, openAIKey, openAIProxy),
-		sessionSvc:  svc.NewChatSessionService(sqlc_q),
+		service:     service,
+		sessionSvc:  sessionSvc,
 		rateLimiter: rateLimiter,
 		openAIKey:   openAIKey,
 		openAIProxy: openAIProxy,
@@ -46,7 +45,7 @@ func (h *ChatHandler) Register(router *mux.Router) {
 
 // --- provider.Handler implementation ---
 
-func (h *ChatHandler) Queries() *sqlc_queries.Queries { return h.service.Q() }
+func (h *ChatHandler) Queries() provider.QueryStore { return h.service.ProviderQueries() }
 func (h *ChatHandler) Config() provider.Config {
 	return provider.Config{
 		OpenAIKey:   h.openAIKey,

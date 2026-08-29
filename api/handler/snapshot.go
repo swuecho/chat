@@ -8,7 +8,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -16,10 +15,8 @@ type ChatSnapshotHandler struct {
 	Service *svc.ChatSnapshotService
 }
 
-func NewChatSnapshotHandler(sqlc_q *sqlc_queries.Queries) *ChatSnapshotHandler {
-	return &ChatSnapshotHandler{
-		Service: svc.NewChatSnapshotService(sqlc_q),
-	}
+func NewChatSnapshotHandler(service *svc.ChatSnapshotService) *ChatSnapshotHandler {
+	return &ChatSnapshotHandler{Service: service}
 }
 
 func (h *ChatSnapshotHandler) Register(router *mux.Router) {
@@ -89,10 +86,7 @@ func (h *ChatSnapshotHandler) UpdateChatBotSettings(w http.ResponseWriter, r *ht
 		return
 	}
 
-	snapshot, err := h.Service.UpdateChatBotSettings(r.Context(), sqlc_queries.UpdateChatBotSettingsParams{
-		Uuid: uuid, BotUserID: userID, InputTitle: input.Title,
-		InputSummary: input.Summary, InputModel: input.Model,
-	})
+	snapshot, err := h.Service.UpdateChatBotSettings(r.Context(), uuid, userID, input.Title, input.Summary, input.Model)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Bot or enabled model").WithDebugInfo(err.Error()))
 		return
@@ -121,9 +115,7 @@ func (h *ChatSnapshotHandler) UpdateChatBotModel(w http.ResponseWriter, r *http.
 		return
 	}
 
-	snapshot, err := h.Service.UpdateChatBotModel(r.Context(), sqlc_queries.UpdateChatBotModelParams{
-		Uuid: uuid, BotUserID: userID, InputModel: input.Model,
-	})
+	snapshot, err := h.Service.UpdateChatBotModel(r.Context(), uuid, userID, input.Model)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Bot or enabled model").WithDebugInfo(err.Error()))
 		return
@@ -168,21 +160,13 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 
 	offset := (page - 1) * pageSize
 
-	chatSnapshots, err := h.Service.ChatSnapshotMetaByUserID(r.Context(), sqlc_queries.ChatSnapshotMetaByUserIDParams{
-		UserID: userID,
-		Typ:    typ,
-		Limit:  pageSize,
-		Offset: offset,
-	})
+	chatSnapshots, err := h.Service.ChatSnapshotMetaByUserID(r.Context(), userID, typ, pageSize, offset)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to retrieve chat snapshots").WithDebugInfo(err.Error()))
 		return
 	}
 
-	totalCount, err := h.Service.ChatSnapshotCountByUserIDAndType(r.Context(), sqlc_queries.ChatSnapshotCountByUserIDAndTypeParams{
-		UserID:  userID,
-		Column2: typ,
-	})
+	totalCount, err := h.Service.ChatSnapshotCountByUserIDAndType(r.Context(), userID, typ)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to retrieve snapshot count").WithDebugInfo(err.Error()))
 		return
@@ -210,9 +194,7 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		return
 	}
 
-	if err := h.Service.UpdateChatSnapshotMetaByUUID(r.Context(), sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{
-		Uuid: uuid, Title: input.Title, Summary: input.Summary, UserID: userID,
-	}); err != nil {
+	if err := h.Service.UpdateChatSnapshotMetaByUUID(r.Context(), uuid, input.Title, input.Summary, userID); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update chat snapshot metadata").WithDebugInfo(err.Error()))
 		return
 	}
@@ -232,9 +214,7 @@ func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	if err := h.Service.DeleteChatSnapshot(r.Context(), sqlc_queries.DeleteChatSnapshotParams{
-		Uuid: uuid, UserID: userID,
-	}); err != nil {
+	if err := h.Service.DeleteChatSnapshot(r.Context(), uuid, userID); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to delete chat snapshot").WithDebugInfo(err.Error()))
 		return
 	}
@@ -253,9 +233,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 		return
 	}
 
-	chatSnapshots, err := h.Service.ChatSnapshotSearch(r.Context(), sqlc_queries.ChatSnapshotSearchParams{
-		UserID: userID, Search: search,
-	})
+	chatSnapshots, err := h.Service.ChatSnapshotSearch(r.Context(), userID, search)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to search chat snapshots").WithDebugInfo(err.Error()))
 		return

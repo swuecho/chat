@@ -12,7 +12,7 @@ import (
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
-	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 // --- Request types used by chat handlers ---
@@ -68,15 +68,13 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	chatSnapshot, err := h.sessionSvc.ChatSnapshotByUserIdAndUuid(ctx, sqlc_queries.ChatSnapshotByUserIdAndUuidParams{
-		UserID: userID, Uuid: req.SnapshotUuid,
-	})
+	chatSnapshot, err := h.sessionSvc.ChatSnapshotByUserIDAndUUID(ctx, userID, req.SnapshotUuid)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat snapshot").WithDebugInfo(err.Error()))
 		return
 	}
 
-	var session sqlc_queries.ChatSession
+	var session svc.ChatSession
 	if err := json.Unmarshal(chatSnapshot.Session, &session); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to deserialize chat session").WithDebugInfo(err.Error()))
 		return
@@ -144,7 +142,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 }
 
 // genBotAnswer generates a bot answer from a snapshot conversation.
-func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, session sqlc_queries.ChatSession, messages []dto.SimpleChatMessage, snapshotUuid, question string, userID int32, streamOutput bool) {
+func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, session svc.ChatSession, messages []dto.SimpleChatMessage, snapshotUuid, question string, userID int32, streamOutput bool) {
 	if _, err := h.sessionSvc.ChatModelByName(ctx, session.Model); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat model: "+session.Model).WithDebugInfo(err.Error()))
 		return
@@ -160,7 +158,7 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 		return
 	}
 
-	if _, err := h.sessionSvc.CreateBotAnswerHistory(ctx, sqlc_queries.CreateBotAnswerHistoryParams{
+	if _, err := h.sessionSvc.SaveBotAnswerHistory(ctx, svc.CreateBotAnswerHistoryInput{
 		BotUuid:    snapshotUuid,
 		UserID:     userID,
 		Prompt:     question,
