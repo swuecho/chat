@@ -197,7 +197,18 @@ func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat sessions").WithDebugInfo(err.Error()))
 		return
 	}
-	json.NewEncoder(w).Encode(sessions)
+	response := make([]dto.SimpleChatSession, 0, len(sessions))
+	for _, session := range sessions {
+		response = append(response, dto.SimpleChatSession{
+			Uuid: session.UUID, IsEdit: false, Title: session.Title,
+			MaxLength: session.MaxLength, Temperature: session.Temperature,
+			TopP: session.TopP, N: session.N, MaxTokens: session.MaxTokens,
+			Debug: session.Debug, Model: session.Model,
+			SummarizeMode: session.SummarizeMode, ArtifactEnabled: session.ArtifactEnabled,
+			WorkspaceUuid: session.WorkspaceUUID,
+		})
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter, r *http.Request) {

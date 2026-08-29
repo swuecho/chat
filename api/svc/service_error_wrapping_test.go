@@ -86,7 +86,7 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 
 	t.Run("AuthUserService_success_returns_nil_error", func(t *testing.T) {
 		svc := NewAuthUserService(q, "test-secret", 100)
-		stats, total, err := svc.GetUserStats(ctx, dto.Pagination{Page: 1, Size: 10}, 100)
+		stats, total, err := svc.GetUserStats(ctx, PageRequest{Page: 1, Size: 10}, 100)
 		if err != nil {
 			t.Fatalf("GetUserStats failed: %v", err)
 		}

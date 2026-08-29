@@ -7,9 +7,7 @@ import (
 	"strings"
 
 	"github.com/rotisserie/eris"
-	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/domain"
-	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -102,21 +100,21 @@ func (s *ChatSessionService) GetChatSessionsByUserID(ctx context.Context, userID
 	return sessions, nil
 }
 
-func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, userID int32) ([]dto.SimpleChatSession, error) {
+func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, userID int32) ([]SimpleChatSession, error) {
 	sessions, err := s.q.GetSessionsGroupedByWorkspace(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	simple_sessions := lo.Map(sessions, func(session sqlc_queries.GetSessionsGroupedByWorkspaceRow, _idx int) dto.SimpleChatSession {
+	simpleSessions := make([]SimpleChatSession, 0, len(sessions))
+	for _, session := range sessions {
 		workspaceUuid := ""
 		if session.WorkspaceUuid.Valid {
 			workspaceUuid = session.WorkspaceUuid.String
 		}
 
-		return dto.SimpleChatSession{
-			Uuid:            session.Uuid,
-			IsEdit:          false,
+		simpleSessions = append(simpleSessions, SimpleChatSession{
+			UUID:            session.Uuid,
 			Title:           session.Topic,
 			MaxLength:       int(session.MaxLength),
 			Temperature:     float64(session.Temperature),
@@ -127,10 +125,10 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 			Model:           session.Model,
 			SummarizeMode:   session.SummarizeMode,
 			ArtifactEnabled: session.ArtifactEnabled,
-			WorkspaceUuid:   workspaceUuid,
-		}
-	})
-	return simple_sessions, nil
+			WorkspaceUUID:   workspaceUuid,
+		})
+	}
+	return simpleSessions, nil
 }
 
 // GetChatSessionByUUID returns an authentication user record by ID.
@@ -340,12 +338,12 @@ func (s *ChatSessionService) EnsureDefaultSystemPrompt(ctx context.Context, chat
 
 	promptText := strings.TrimSpace(systemPrompt)
 	if promptText == "" {
-		promptText = dto.DefaultSystemPromptText
+		promptText = defaultSystemPromptText
 	}
 
 	tokenCount, tokenErr := provider.GetTokenCount(promptText)
 	if tokenErr != nil {
-		tokenCount = len(promptText) / dto.TokenEstimateRatio
+		tokenCount = len(promptText) / tokenEstimateRatio
 	}
 	if tokenCount <= 0 {
 		tokenCount = 1

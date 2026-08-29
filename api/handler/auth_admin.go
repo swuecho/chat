@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 // --- Request/response types ---
@@ -36,7 +37,7 @@ func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination, h.defaultRateLimit)
+	userStatsRows, total, err := h.service.GetUserStats(r.Context(), svc.PageRequest{Page: pagination.Page, Size: pagination.Size}, h.defaultRateLimit)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get user stats"))
 		return

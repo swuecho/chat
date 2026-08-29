@@ -8,7 +8,7 @@ import (
 
 	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/auth"
-	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -91,7 +91,7 @@ func (s *AuthUserService) Authenticate(ctx context.Context, email, password stri
 		return sqlc_queries.AuthUser{}, err
 	}
 	if !auth.ValidatePassword(password, user.Password) {
-		return sqlc_queries.AuthUser{}, dto.ErrAuthInvalidCredentials
+		return sqlc_queries.AuthUser{}, domain.Unauthorized("invalid credentials")
 	}
 	return user, nil
 }
@@ -100,7 +100,7 @@ func (s *AuthUserService) Authenticate(ctx context.Context, email, password stri
 // GetUserStat(page, page_size) -> {data: [{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}], total: 100}
 // GetTotalUserCount
 // GetUserStat(page, page_size) ->[{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}]
-func (s *AuthUserService) GetUserStats(ctx context.Context, p dto.Pagination, defaultRateLimit int32) ([]sqlc_queries.GetUserStatsRow, int64, error) {
+func (s *AuthUserService) GetUserStats(ctx context.Context, p PageRequest, defaultRateLimit int32) ([]sqlc_queries.GetUserStatsRow, int64, error) {
 	auth_users_stat, err := s.q.GetUserStats(ctx,
 		sqlc_queries.GetUserStatsParams{
 			Offset:           p.Offset(),

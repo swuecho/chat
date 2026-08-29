@@ -69,7 +69,7 @@ func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userStatsRows, total, err := h.service.GetUserStats(r.Context(), pagination, h.defaultRateLimit)
+	userStatsRows, total, err := h.service.GetUserStats(r.Context(), svc.PageRequest{Page: pagination.Page, Size: pagination.Size}, h.defaultRateLimit)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get user stats"))
 		return

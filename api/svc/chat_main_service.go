@@ -15,7 +15,6 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
-	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/llm/gemini"
 	models "github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
@@ -105,7 +104,7 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 	for i, msg := range msgs {
 		if msg.Role == "system" {
 			msgs[i].Content = msg.Content + "\n" + instruction
-			msgs[i].SetTokenCount(int32(len(msgs[i].Content) / dto.TokenEstimateRatio))
+			msgs[i].SetTokenCount(int32(len(msgs[i].Content) / tokenEstimateRatio))
 			systemMsgFound = true
 			break
 		}
@@ -113,7 +112,7 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 
 	if !systemMsgFound {
 		msgs[0].Content = msgs[0].Content + "\n" + instruction
-		msgs[0].SetTokenCount(int32(len(msgs[0].Content) / dto.TokenEstimateRatio))
+		msgs[0].SetTokenCount(int32(len(msgs[0].Content) / tokenEstimateRatio))
 	}
 }
 
@@ -126,14 +125,14 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 //
 // Returns combined message array or error.
 func (s *ChatService) GetAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*dto.RequestTimeoutSeconds)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*requestTimeoutSeconds)
 	defer cancel()
 
 	chatSessionUuid := chatSession.Uuid
 
 	lastN := chatSession.MaxLength
 	if chatSession.MaxLength == 0 {
-		lastN = dto.DefaultMaxLength
+		lastN = defaultMaxLength
 	}
 
 	chat_prompts, err := s.q.GetChatPromptsBySessionUUID(ctx, chatSessionUuid)
@@ -191,7 +190,7 @@ func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUui
 	tokenCount, err := provider.GetTokenCount(newQuestion)
 	if err != nil {
 		slog.Warn("Failed to get token count for prompt", "error", err)
-		tokenCount = len(newQuestion) / dto.TokenEstimateRatio // Fallback estimate
+		tokenCount = len(newQuestion) / tokenEstimateRatio // Fallback estimate
 	}
 	chatPrompt, err := s.q.CreateChatPrompt(ctx,
 		sqlc_queries.CreateChatPromptParams{
@@ -224,12 +223,12 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		slog.Warn("Failed to get token count", "error", err)
-		numTokens = len(content) / dto.TokenEstimateRatio // Fallback estimate
+		numTokens = len(content) / tokenEstimateRatio // Fallback estimate
 	}
 
 	summary := ""
 
-	if is_summarize_mode && numTokens > dto.SummarizeThreshold {
+	if is_summarize_mode && numTokens > summarizeThreshold {
 		slog.Info("summarizing")
 		summary = provider.SummarizeWithTimeout(s.openAIKey, baseURL, content)
 		slog.Info("summarizing: " + summary)
@@ -272,11 +271,11 @@ func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Cont
 	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		slog.Warn("Failed to get token count", "error", err)
-		numTokens = len(content) / dto.TokenEstimateRatio // Fallback estimate
+		numTokens = len(content) / tokenEstimateRatio // Fallback estimate
 	}
 
 	summary := ""
-	if is_summarize_mode && numTokens > dto.SummarizeThreshold {
+	if is_summarize_mode && numTokens > summarizeThreshold {
 		slog.Info("summarizing")
 		summary = provider.SummarizeWithTimeout(s.openAIKey, baseURL, content)
 		slog.Info("summarizing: " + summary)
@@ -531,7 +530,7 @@ func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, conten
 	num_tokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		slog.Warn("Failed to get token count for update", "error", err)
-		num_tokens = len(content) / dto.TokenEstimateRatio // Fallback estimate
+		num_tokens = len(content) / tokenEstimateRatio // Fallback estimate
 	}
 
 	err = s.q.UpdateChatMessageContent(ctx, sqlc_queries.UpdateChatMessageContentParams{
