@@ -44,7 +44,13 @@ type Config struct {
 
 // Handler provides request-scoped dependencies that providers need.
 type Handler interface {
-	Queries() *sqlc_queries.Queries
+	Queries() QueryStore
 	CheckModelAccess(ctx context.Context, chatSessionUuid, model string, userID int32) error
 	Config() Config
+}
+
+// QueryStore is the narrow persistence surface needed by LLM providers.
+type QueryStore interface {
+	ChatModelByName(context.Context, string) (sqlc_queries.ChatModel, error)
+	ListChatFilesWithContentBySessionUUID(context.Context, string) ([]sqlc_queries.ChatFile, error)
 }

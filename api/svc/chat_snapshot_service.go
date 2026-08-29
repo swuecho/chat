@@ -30,33 +30,33 @@ func (s *ChatSnapshotService) ChatSnapshotByUUID(ctx context.Context, uuid strin
 	return s.q.ChatSnapshotByUUID(ctx, uuid)
 }
 
-func (s *ChatSnapshotService) ChatSnapshotMetaByUserID(ctx context.Context, params sqlc_queries.ChatSnapshotMetaByUserIDParams) ([]sqlc_queries.ChatSnapshotMetaByUserIDRow, error) {
-	return s.q.ChatSnapshotMetaByUserID(ctx, params)
+func (s *ChatSnapshotService) ChatSnapshotMetaByUserID(ctx context.Context, userID int32, typ string, limit, offset int32) ([]sqlc_queries.ChatSnapshotMetaByUserIDRow, error) {
+	return s.q.ChatSnapshotMetaByUserID(ctx, sqlc_queries.ChatSnapshotMetaByUserIDParams{UserID: userID, Typ: typ, Limit: limit, Offset: offset})
 }
 
-func (s *ChatSnapshotService) ChatSnapshotCountByUserIDAndType(ctx context.Context, params sqlc_queries.ChatSnapshotCountByUserIDAndTypeParams) (int64, error) {
-	return s.q.ChatSnapshotCountByUserIDAndType(ctx, params)
+func (s *ChatSnapshotService) ChatSnapshotCountByUserIDAndType(ctx context.Context, userID int32, typ string) (int64, error) {
+	return s.q.ChatSnapshotCountByUserIDAndType(ctx, sqlc_queries.ChatSnapshotCountByUserIDAndTypeParams{UserID: userID, Column2: typ})
 }
 
-func (s *ChatSnapshotService) UpdateChatSnapshotMetaByUUID(ctx context.Context, params sqlc_queries.UpdateChatSnapshotMetaByUUIDParams) error {
-	return s.q.UpdateChatSnapshotMetaByUUID(ctx, params)
+func (s *ChatSnapshotService) UpdateChatSnapshotMetaByUUID(ctx context.Context, uuid, title, summary string, userID int32) error {
+	return s.q.UpdateChatSnapshotMetaByUUID(ctx, sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{Uuid: uuid, Title: title, Summary: summary, UserID: userID})
 }
 
-func (s *ChatSnapshotService) UpdateChatBotModel(ctx context.Context, params sqlc_queries.UpdateChatBotModelParams) (sqlc_queries.ChatSnapshot, error) {
-	return s.q.UpdateChatBotModel(ctx, params)
+func (s *ChatSnapshotService) UpdateChatBotModel(ctx context.Context, uuid string, userID int32, model string) (sqlc_queries.ChatSnapshot, error) {
+	return s.q.UpdateChatBotModel(ctx, sqlc_queries.UpdateChatBotModelParams{Uuid: uuid, BotUserID: userID, InputModel: model})
 }
 
-func (s *ChatSnapshotService) UpdateChatBotSettings(ctx context.Context, params sqlc_queries.UpdateChatBotSettingsParams) (sqlc_queries.ChatSnapshot, error) {
-	return s.q.UpdateChatBotSettings(ctx, params)
+func (s *ChatSnapshotService) UpdateChatBotSettings(ctx context.Context, uuid string, userID int32, title, summary, model string) (sqlc_queries.ChatSnapshot, error) {
+	return s.q.UpdateChatBotSettings(ctx, sqlc_queries.UpdateChatBotSettingsParams{Uuid: uuid, BotUserID: userID, InputTitle: title, InputSummary: summary, InputModel: model})
 }
 
-func (s *ChatSnapshotService) DeleteChatSnapshot(ctx context.Context, params sqlc_queries.DeleteChatSnapshotParams) error {
-	_, err := s.q.DeleteChatSnapshot(ctx, params)
+func (s *ChatSnapshotService) DeleteChatSnapshot(ctx context.Context, uuid string, userID int32) error {
+	_, err := s.q.DeleteChatSnapshot(ctx, sqlc_queries.DeleteChatSnapshotParams{Uuid: uuid, UserID: userID})
 	return err
 }
 
-func (s *ChatSnapshotService) ChatSnapshotSearch(ctx context.Context, params sqlc_queries.ChatSnapshotSearchParams) ([]sqlc_queries.ChatSnapshotSearchRow, error) {
-	return s.q.ChatSnapshotSearch(ctx, params)
+func (s *ChatSnapshotService) ChatSnapshotSearch(ctx context.Context, userID int32, search string) ([]sqlc_queries.ChatSnapshotSearchRow, error) {
+	return s.q.ChatSnapshotSearch(ctx, sqlc_queries.ChatSnapshotSearchParams{UserID: userID, Search: search})
 }
 
 // --- Business operations ---

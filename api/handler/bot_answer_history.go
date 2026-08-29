@@ -7,7 +7,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -15,8 +14,8 @@ type BotAnswerHistoryHandler struct {
 	service *svc.BotAnswerHistoryService
 }
 
-func NewBotAnswerHistoryHandler(q *sqlc_queries.Queries) *BotAnswerHistoryHandler {
-	return &BotAnswerHistoryHandler{service: svc.NewBotAnswerHistoryService(q)}
+func NewBotAnswerHistoryHandler(service *svc.BotAnswerHistoryService) *BotAnswerHistoryHandler {
+	return &BotAnswerHistoryHandler{service: service}
 }
 
 func (h *BotAnswerHistoryHandler) Register(router *mux.Router) {
@@ -39,7 +38,7 @@ func (h *BotAnswerHistoryHandler) CreateBotAnswerHistory(w http.ResponseWriter, 
 		return
 	}
 
-	var params sqlc_queries.CreateBotAnswerHistoryParams
+	var params svc.CreateBotAnswerHistoryInput
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()))
 		return
@@ -139,14 +138,15 @@ func (h *BotAnswerHistoryHandler) UpdateBotAnswerHistory(w http.ResponseWriter, 
 		return
 	}
 
-	var params sqlc_queries.UpdateBotAnswerHistoryParams
+	var params struct {
+		Answer     string `json:"answer"`
+		TokensUsed int32  `json:"tokensUsed"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()))
 		return
 	}
-	params.ID = int32(idInt)
-
-	history, err := h.service.UpdateBotAnswerHistory(r.Context(), params.ID, params.Answer, params.TokensUsed)
+	history, err := h.service.UpdateBotAnswerHistory(r.Context(), int32(idInt), params.Answer, params.TokensUsed)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to update bot answer history"))
 		return

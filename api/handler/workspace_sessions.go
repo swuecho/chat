@@ -6,7 +6,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -87,29 +86,15 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 
 	responses := make([]map[string]interface{}, 0, len(sessions))
 	for _, s := range sessions {
-		responses = append(responses, sessionToMap(s, workspaceUUID))
+		responses = append(responses, map[string]interface{}{
+			"uuid": s.Uuid, "title": s.Topic, "isEdit": false, "model": s.Model,
+			"workspaceUuid": workspaceUUID, "maxLength": s.MaxLength, "temperature": s.Temperature,
+			"maxTokens": s.MaxTokens, "topP": s.TopP, "n": s.N, "debug": s.Debug,
+			"summarizeMode": s.SummarizeMode, "exploreMode": s.ExploreMode,
+			"artifactEnabled": s.ArtifactEnabled, "createdAt": s.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			"updatedAt": s.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		})
 	}
 
 	json.NewEncoder(w).Encode(responses)
-}
-
-func sessionToMap(s sqlc_queries.ChatSession, workspaceUUID string) map[string]interface{} {
-	return map[string]interface{}{
-		"uuid":            s.Uuid,
-		"title":           s.Topic,
-		"isEdit":          false,
-		"model":           s.Model,
-		"workspaceUuid":   workspaceUUID,
-		"maxLength":       s.MaxLength,
-		"temperature":     s.Temperature,
-		"maxTokens":       s.MaxTokens,
-		"topP":            s.TopP,
-		"n":               s.N,
-		"debug":           s.Debug,
-		"summarizeMode":   s.SummarizeMode,
-		"exploreMode":     s.ExploreMode,
-		"artifactEnabled": s.ArtifactEnabled,
-		"createdAt":       s.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		"updatedAt":       s.UpdatedAt.Format("2006-01-02T15:04:05Z"),
-	}
 }

@@ -11,31 +11,28 @@ import (
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/provider"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
 // ChatHandler handles chat completion and streaming requests.
 type ChatHandler struct {
-	service         *svc.ChatService
-	sessionSvc      *svc.ChatSessionService
-	chatfileService *svc.ChatFileService
-	rateLimiter     *rate.Limiter
-	openAIKey       string
-	openAIProxy     string
+	service     *svc.ChatService
+	sessionSvc  *svc.ChatSessionService
+	rateLimiter *rate.Limiter
+	openAIKey   string
+	openAIProxy string
 }
 
 const sessionTitleGenerationTimeout = 30 * time.Second
 
 // NewChatHandler creates a new ChatHandler.
-func NewChatHandler(sqlc_q *sqlc_queries.Queries, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
+func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
 	return &ChatHandler{
-		service:         svc.NewChatService(sqlc_q, openAIKey, openAIProxy),
-		sessionSvc:      svc.NewChatSessionService(sqlc_q),
-		chatfileService: svc.NewChatFileService(sqlc_q),
-		rateLimiter:     rateLimiter,
-		openAIKey:       openAIKey,
-		openAIProxy:     openAIProxy,
+		service:     service,
+		sessionSvc:  sessionSvc,
+		rateLimiter: rateLimiter,
+		openAIKey:   openAIKey,
+		openAIProxy: openAIProxy,
 	}
 }
 
@@ -48,7 +45,7 @@ func (h *ChatHandler) Register(router *mux.Router) {
 
 // --- provider.Handler implementation ---
 
-func (h *ChatHandler) Queries() *sqlc_queries.Queries { return h.service.Q() }
+func (h *ChatHandler) Queries() provider.QueryStore { return h.service.ProviderQueries() }
 func (h *ChatHandler) Config() provider.Config {
 	return provider.Config{
 		OpenAIKey:   h.openAIKey,

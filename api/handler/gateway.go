@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -18,14 +17,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/middleware"
-	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 type GatewayHandler struct {
-	db            *sqlc_queries.Queries
+	service       *svc.GatewayService
 	proxyURL      string
 	retentionDays int
 	captureBytes  int
@@ -33,8 +31,8 @@ type GatewayHandler struct {
 	lastCleanup   time.Time
 }
 
-func NewGatewayHandler(db *sqlc_queries.Queries, proxyURL ...string) *GatewayHandler {
-	h := &GatewayHandler{db: db, retentionDays: 7, captureBytes: 64 * 1024}
+func NewGatewayHandler(service *svc.GatewayService, proxyURL ...string) *GatewayHandler {
+	h := &GatewayHandler{service: service, retentionDays: 7, captureBytes: 64 * 1024}
 	if len(proxyURL) > 0 {
 		h.proxyURL = proxyURL[0]
 	}
@@ -74,12 +72,12 @@ func (h *GatewayHandler) authenticate(next http.Handler) http.Handler {
 			return
 		}
 		sum := sha256.Sum256([]byte(token))
-		key, err := h.db.VirtualAdminAPIKeyByHash(r.Context(), hex.EncodeToString(sum[:]))
-		if err != nil || key.Status != "active" || (key.ExpiresAt.Valid && !key.ExpiresAt.Time.After(time.Now())) {
+		key, err := h.service.CredentialByHash(r.Context(), hex.EncodeToString(sum[:]))
+		if err != nil || key.Status != "active" || (key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now())) {
 			openAIError(w, http.StatusUnauthorized, "Invalid or expired API key", "invalid_request_error", "invalid_api_key")
 			return
 		}
-		count, err := h.db.CountRecentGatewayRequests(r.Context(), key.ID)
+		count, err := h.service.CountRecentRequests(r.Context(), key.ID)
 		if err != nil {
 			openAIError(w, http.StatusInternalServerError, "Unable to check rate limit", "server_error", "internal_error")
 			return
@@ -88,20 +86,20 @@ func (h *GatewayHandler) authenticate(next http.Handler) http.Handler {
 			openAIError(w, http.StatusTooManyRequests, "API key rate limit exceeded", "rate_limit_error", "rate_limit_exceeded")
 			return
 		}
-		_ = h.db.TouchVirtualAPIKey(r.Context(), key.ID)
+		_ = h.service.TouchKey(r.Context(), key.ID)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), gatewayKeyContextKey{}, key)))
 	})
 }
 
 func (h *GatewayHandler) models(w http.ResponseWriter, r *http.Request) {
-	models, err := h.db.ListGatewayModels(r.Context())
+	models, err := h.service.ListModelNames(r.Context())
 	if err != nil {
 		openAIError(w, http.StatusInternalServerError, "Unable to list models", "server_error", "internal_error")
 		return
 	}
 	data := make([]map[string]any, 0, len(models))
 	for _, model := range models {
-		data = append(data, map[string]any{"id": model.Name, "object": "model", "created": 0, "owned_by": "chat"})
+		data = append(data, map[string]any{"id": model, "object": "model", "created": 0, "owned_by": "chat"})
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "data": data})
@@ -133,7 +131,7 @@ func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request)
 		openAIError(w, http.StatusBadRequest, "model is required", "invalid_request_error", "missing_required_parameter")
 		return
 	}
-	model, err := h.db.ChatModelByName(r.Context(), envelope.Model)
+	model, err := h.service.ModelByName(r.Context(), envelope.Model)
 	if err != nil || !model.IsEnable || model.ApiType != "openai" {
 		openAIError(w, http.StatusNotFound, "The requested model is not available", "invalid_request_error", "model_not_found")
 		return
@@ -143,12 +141,12 @@ func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request)
 		openAIError(w, http.StatusBadGateway, "The model provider is not configured", "server_error", "provider_not_configured")
 		return
 	}
-	key := r.Context().Value(gatewayKeyContextKey{}).(sqlc_queries.VirtualApiKey)
+	key := r.Context().Value(gatewayKeyContextKey{}).(svc.GatewayCredential)
 	requestHash := sha256.Sum256(body)
 	requestSample, requestTruncated := boundedSample(body, h.captureBytes)
-	record, err := h.db.CreateGatewayRequest(r.Context(), sqlc_queries.CreateGatewayRequestParams{
-		RequestUuid: uuid.New(), ApiKeyID: key.ID, UserID: key.UserID, ChatModelID: sql.NullInt32{Int32: model.ID, Valid: true}, RequestedModel: model.Name, Provider: model.ApiType, Stream: envelope.Stream,
-		RequestBytes: int64(len(body)), RequestSha256: hex.EncodeToString(requestHash[:]), RequestSample: requestSample,
+	recordID, err := h.service.CreateRequest(r.Context(), svc.CreateGatewayRequestInput{
+		APIKeyID: key.ID, UserID: key.UserID, ChatModelID: model.ID, RequestedModel: model.Name, Provider: model.ApiType, Stream: envelope.Stream,
+		RequestBytes: int64(len(body)), RequestSHA256: hex.EncodeToString(requestHash[:]), RequestSample: requestSample,
 		RequestTruncated: requestTruncated, RequestClassification: classifyRequest(body), RetentionUntil: time.Now().AddDate(0, 0, h.retentionDays),
 	})
 	if err != nil {
@@ -158,7 +156,7 @@ func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request)
 	started := time.Now()
 	upstream, err := http.NewRequestWithContext(r.Context(), http.MethodPost, completionURL(model.Url), bytes.NewReader(body))
 	if err != nil {
-		h.finish(record.ID, started, "failed", gatewayUsage{}, "", "invalid_provider_url")
+		h.finish(recordID, started, "failed", gatewayUsage{}, "", "invalid_provider_url")
 		openAIError(w, http.StatusBadGateway, "Invalid provider URL", "server_error", "provider_error")
 		return
 	}
@@ -179,7 +177,7 @@ func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request)
 	}
 	client, err := h.httpClient(timeout)
 	if err != nil {
-		h.finish(record.ID, started, "failed", gatewayUsage{}, "", "invalid_proxy_url")
+		h.finish(recordID, started, "failed", gatewayUsage{}, "", "invalid_proxy_url")
 		openAIError(w, http.StatusBadGateway, "The configured provider proxy URL is invalid", "server_error", "invalid_proxy_url")
 		return
 	}
@@ -191,7 +189,7 @@ func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request)
 		if errors.Is(err, context.Canceled) {
 			status, code = "cancelled", "client_cancelled"
 		}
-		h.finish(record.ID, started, status, gatewayUsage{}, "", code)
+		h.finish(recordID, started, status, gatewayUsage{}, "", code)
 		if status != "cancelled" {
 			openAIError(w, http.StatusBadGateway, "Provider request failed", "server_error", code)
 		}
@@ -199,10 +197,10 @@ func (h *GatewayHandler) chatCompletions(w http.ResponseWriter, r *http.Request)
 	}
 	defer resp.Body.Close()
 	if envelope.Stream {
-		h.proxyStream(w, resp, record.ID, started)
+		h.proxyStream(w, resp, recordID, started)
 		return
 	}
-	h.proxyResponse(w, resp, record.ID, started)
+	h.proxyResponse(w, resp, recordID, started)
 }
 
 func (h *GatewayHandler) httpClient(timeout time.Duration) (*http.Client, error) {
@@ -424,10 +422,10 @@ func (h *GatewayHandler) finishObserved(id int64, started time.Time, status stri
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		if err := h.db.CompleteGatewayRequest(ctx, sqlc_queries.CompleteGatewayRequestParams{
+		if err := h.service.CompleteRequest(ctx, svc.CompleteGatewayRequestInput{
 			ID: id, Status: status, PromptTokens: usage.PromptTokens, CompletionTokens: usage.CompletionTokens, TotalTokens: usage.TotalTokens,
 			LatencyMs: time.Since(started).Milliseconds(), ProviderRequestID: providerID, ErrorCode: code,
-			ResponseBytes: responseBytes, ResponseSha256: responseHash, ResponseSample: responseSample,
+			ResponseBytes: responseBytes, ResponseSHA256: responseHash, ResponseSample: responseSample,
 			ResponseTruncated: responseTruncated, ResponseClassification: classification,
 		}); err != nil {
 			slog.Error("Unable to complete gateway audit record", "requestID", id, "error", err)
@@ -445,7 +443,7 @@ func (h *GatewayHandler) deleteExpiredRequests() {
 	h.cleanupMu.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if _, err := h.db.PurgeExpiredGatewaySamples(ctx); err != nil {
+	if err := h.service.PurgeExpiredSamples(ctx); err != nil {
 		slog.Error("Unable to purge expired gateway request samples", "error", err)
 	}
 }

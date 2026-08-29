@@ -9,26 +9,22 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
 type ChatMessageHandler struct {
 	service     *svc.ChatMessageService
 	sessionSvc  *svc.ChatSessionService
-	openAIKey   string
-	openAIProxy string
+	chatService *svc.ChatService
 }
 
-func NewChatMessageHandler(sqlc_q *sqlc_queries.Queries, openAIKey, openAIProxy string) *ChatMessageHandler {
+func NewChatMessageHandler(service *svc.ChatMessageService, sessionSvc *svc.ChatSessionService, chatService *svc.ChatService) *ChatMessageHandler {
 	return &ChatMessageHandler{
-		service:     svc.NewChatMessageService(sqlc_q),
-		sessionSvc:  svc.NewChatSessionService(sqlc_q),
-		openAIKey:   openAIKey,
-		openAIProxy: openAIProxy,
+		service:     service,
+		sessionSvc:  sessionSvc,
+		chatService: chatService,
 	}
 }
 
@@ -48,7 +44,7 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 }
 
 func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Request) {
-	var messageParams sqlc_queries.CreateChatMessageParams
+	var messageParams svc.CreateChatMessageInput
 	err := json.NewDecoder(r.Body).Decode(&messageParams)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
@@ -84,7 +80,7 @@ func (h *ChatMessageHandler) UpdateChatMessage(w http.ResponseWriter, r *http.Re
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid chat message ID"))
 		return
 	}
-	var messageParams sqlc_queries.UpdateChatMessageParams
+	var messageParams svc.UpdateChatMessageInput
 	err = json.NewDecoder(r.Body).Decode(&messageParams)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
@@ -140,7 +136,7 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	var messageParams sqlc_queries.UpdateChatMessageByUUIDParams
+	var messageParams svc.UpdateChatMessageByUUIDInput
 	messageParams.Uuid = simpleMsg.Uuid
 	messageParams.Content = simpleMsg.Text
 	tokenCount, _ := getTokenCount(simpleMsg.Text)
@@ -181,7 +177,8 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 		return
 	}
 
-	simpleMsgs := lo.Map(messages, func(message sqlc_queries.ChatMessage, _ int) dto.SimpleChatMessage {
+	simpleMsgs := make([]dto.SimpleChatMessage, len(messages))
+	for i, message := range messages {
 		var artifacts []dto.Artifact
 		if message.Artifacts != nil {
 			err := json.Unmarshal(message.Artifacts, &artifacts)
@@ -190,7 +187,7 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 			}
 		}
 
-		return dto.SimpleChatMessage{
+		simpleMsgs[i] = dto.SimpleChatMessage{
 			DateTime:  message.UpdatedAt.Format(time.RFC3339),
 			Text:      message.Content,
 			Inversion: message.Role != "user",
@@ -198,7 +195,7 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 			Loading:   false,
 			Artifacts: artifacts,
 		}
-	})
+	}
 	json.NewEncoder(w).Encode(simpleMsgs)
 }
 
@@ -277,9 +274,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 		})
 	}
 
-	chatService := svc.NewChatService(h.service.Q(), h.openAIKey, h.openAIProxy)
-
-	newSuggestions := chatService.GenerateSuggestedQuestions(message.Content, msgs)
+	newSuggestions := h.chatService.GenerateSuggestedQuestions(message.Content, msgs)
 	if len(newSuggestions) == 0 {
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to generate suggestions", "no suggestions returned"))
 		return
@@ -309,11 +304,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 		return
 	}
 
-	_, err = h.sessionSvc.UpdateChatMessageSuggestions(r.Context(),
-		sqlc_queries.UpdateChatMessageSuggestionsParams{
-			Uuid:               messageUUID,
-			SuggestedQuestions: suggestionsJSON,
-		})
+	_, err = h.service.UpdateSuggestedQuestions(r.Context(), messageUUID, suggestionsJSON)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update message with suggestions"))
 		return

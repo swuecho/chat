@@ -16,7 +16,7 @@ import (
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
-	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 // titleGenSemaphore limits concurrent title generation goroutines to prevent unbounded resource usage.
@@ -25,25 +25,20 @@ var titleGenSemaphore = make(chan struct{}, 5)
 func (h *ChatHandler) failChatRequest(sessionUuid, requestUuid string, userID int32, code string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := h.service.Q().MarkChatRequestFailed(ctx, sqlc_queries.MarkChatRequestFailedParams{
-		Uuid: requestUuid, ChatSessionUuid: sessionUuid, UserID: userID, ErrorCode: code,
-	}); err != nil {
+	if err := h.service.MarkChatRequestFailed(ctx, requestUuid, sessionUuid, userID, code); err != nil {
 		slog.Warn("Failed to persist chat request failure", "requestUUID", requestUuid, "error", err)
 	}
 }
 
-func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.ResponseWriter, session sqlc_queries.ChatSession, requestUuid string, userID int32, streamOutput bool) bool {
-	params := sqlc_queries.ClaimChatRequestParams{
-		Uuid: requestUuid, ChatSessionUuid: session.Uuid, UserID: userID,
-	}
-	if _, err := h.service.Q().ClaimChatRequest(ctx, params); err == nil {
+func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.ResponseWriter, session svc.ChatSession, requestUuid string, userID int32, streamOutput bool) bool {
+	if _, err := h.service.ClaimChatRequest(ctx, requestUuid, session.Uuid, userID); err == nil {
 		return true
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to claim chat request", err.Error()))
 		return false
 	}
 
-	request, err := h.service.Q().GetChatRequest(ctx, sqlc_queries.GetChatRequestParams(params))
+	request, err := h.service.GetChatRequest(ctx, requestUuid, session.Uuid, userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to reconcile chat request", err.Error()))
 		return false
@@ -62,7 +57,7 @@ func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.Respo
 		return false
 	}
 
-	message, err := h.service.Q().GetChatMessageByUUID(ctx, request.AssistantUuid)
+	message, err := h.service.GetChatMessageByUUID(ctx, request.AssistantUuid)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Completed response could not be loaded", err.Error()))
 		return false
@@ -90,7 +85,7 @@ func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.Respo
 }
 
 // validateChatSession validates the session UUID and retrieves session + model info.
-func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string) (*sqlc_queries.ChatSession, *sqlc_queries.ChatModel, string, bool) {
+func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string) (*svc.ChatSession, *svc.ChatModel, string, bool) {
 	chatSession, err := h.sessionSvc.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
 		slog.Info("Invalid session UUID", "uuid", chatSessionUuid, "error", err)
@@ -115,7 +110,7 @@ func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWr
 }
 
 // handlePromptCreation creates or reuses the system prompt and adds the user message.
-func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseWriter, chatSession *sqlc_queries.ChatSession, chatUuid, newQuestion string, userID int32, baseURL string) bool {
+func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseWriter, chatSession *svc.ChatSession, chatUuid, newQuestion string, userID int32, baseURL string) bool {
 	existingPrompt := true
 	_, err := h.sessionSvc.GetOneChatPromptBySessionUUID(ctx, chatSession.Uuid)
 	if err != nil {
@@ -148,10 +143,7 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 			}
 
 			if title := firstNWords(newQuestion, 10); title != "" {
-				params := sqlc_queries.UpdateChatSessionTopicByUUIDParams{
-					Uuid: chatSession.Uuid, UserID: userID, Topic: title,
-				}
-				if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, params); err != nil {
+				if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, chatSession.Uuid, userID, title); err != nil {
 					slog.Warn("Failed to update session title", "error", err)
 				}
 			}
@@ -161,7 +153,7 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 }
 
 // generateAndSaveAnswer calls the LLM, streams the response, and persists the answer.
-func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.ResponseWriter, chatSession *sqlc_queries.ChatSession, chatUuid string, userID int32, baseURL string, streamOutput bool) bool {
+func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.ResponseWriter, chatSession *svc.ChatSession, chatUuid string, userID int32, baseURL string, streamOutput bool) bool {
 	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, false)
 	if err != nil {
 		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "message_collection_failed")
@@ -171,9 +163,7 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	}
 	slog.Info("Collected messages", "sessionUUID", chatSession.Uuid, "count", len(msgs), "model", chatSession.Model)
 
-	if err := h.service.Q().MarkChatRequestStreaming(ctx, sqlc_queries.MarkChatRequestStreamingParams{
-		Uuid: chatUuid, ChatSessionUuid: chatSession.Uuid, UserID: userID,
-	}); err != nil {
+	if err := h.service.MarkChatRequestStreaming(ctx, chatUuid, chatSession.Uuid, userID); err != nil {
 		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "request_state_failed")
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to start chat request", err.Error()))
 		return false
@@ -244,7 +234,7 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 
 // streamFromModel calls model.Stream() and consumes the channel, writing SSE or JSON to w.
 // Returns the final answer or an error.
-func streamFromModel(model provider.ChatModel, ctx context.Context, w http.ResponseWriter, session sqlc_queries.ChatSession, msgs []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
+func streamFromModel(model provider.ChatModel, ctx context.Context, w http.ResponseWriter, session svc.ChatSession, msgs []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
 	ch, err := model.Stream(ctx, session, msgs, chatUuid, regenerate, streamOutput)
 	if err != nil {
 		return nil, err
@@ -299,13 +289,11 @@ func streamFromModel(model provider.ChatModel, ctx context.Context, w http.Respo
 }
 
 // generateSessionTitle asynchronously updates the session topic using an LLM.
-func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession, userID int32) {
+func (h *ChatHandler) generateSessionTitle(chatSession *svc.ChatSession, userID int32) {
 	ctx, cancel := context.WithTimeout(context.Background(), sessionTitleGenerationTimeout)
 	defer cancel()
 
-	messages, err := h.sessionSvc.GetChatMessagesBySessionUUID(ctx, sqlc_queries.GetChatMessagesBySessionUUIDParams{
-		Uuid: chatSession.Uuid, Offset: 0, Limit: 100,
-	})
+	messages, err := h.sessionSvc.GetChatMessagesPage(ctx, chatSession.Uuid, 0, 100)
 	if err != nil {
 		slog.Warn("Failed to get messages for title generation", "error", err)
 		return
@@ -325,14 +313,12 @@ func (h *ChatHandler) generateSessionTitle(chatSession *sqlc_queries.ChatSession
 		return
 	}
 
-	genTitle, err := provider.GenerateChatTitle(ctx, h.sessionSvc.Q(), titleModel, chatText.String())
+	genTitle, err := h.sessionSvc.GenerateChatTitle(ctx, titleModel, chatText.String())
 	if err != nil || genTitle == "" {
 		return
 	}
 
-	if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, sqlc_queries.UpdateChatSessionTopicByUUIDParams{
-		Uuid: chatSession.Uuid, UserID: userID, Topic: genTitle,
-	}); err != nil {
+	if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, chatSession.Uuid, userID, genTitle); err != nil {
 		slog.Warn("Failed to update session title", "error", err)
 		return
 	}

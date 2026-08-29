@@ -39,6 +39,36 @@ func NewChatService(q *sqlc_queries.Queries, openAIKey, openAIProxy string) *Cha
 // Q returns the underlying queries.
 func (s *ChatService) Q() *sqlc_queries.Queries { return s.q }
 
+func (s *ChatService) ProviderQueries() provider.QueryStore { return s.q }
+
+func (s *ChatService) MarkChatRequestFailed(ctx context.Context, requestUUID, sessionUUID string, userID int32, code string) error {
+	return s.q.MarkChatRequestFailed(ctx, sqlc_queries.MarkChatRequestFailedParams{
+		Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID, ErrorCode: code,
+	})
+}
+
+func (s *ChatService) ClaimChatRequest(ctx context.Context, requestUUID, sessionUUID string, userID int32) (sqlc_queries.ChatRequest, error) {
+	return s.q.ClaimChatRequest(ctx, sqlc_queries.ClaimChatRequestParams{
+		Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID,
+	})
+}
+
+func (s *ChatService) GetChatRequest(ctx context.Context, requestUUID, sessionUUID string, userID int32) (sqlc_queries.ChatRequest, error) {
+	return s.q.GetChatRequest(ctx, sqlc_queries.GetChatRequestParams{
+		Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID,
+	})
+}
+
+func (s *ChatService) GetChatMessageByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatMessage, error) {
+	return s.q.GetChatMessageByUUID(ctx, uuid)
+}
+
+func (s *ChatService) MarkChatRequestStreaming(ctx context.Context, requestUUID, sessionUUID string, userID int32) error {
+	return s.q.MarkChatRequestStreaming(ctx, sqlc_queries.MarkChatRequestStreamingParams{
+		Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID,
+	})
+}
+
 // loadArtifactInstruction loads the artifact instruction from file.
 // Returns the instruction content or an error if the file cannot be read.
 func LoadArtifactInstruction() (string, error) {

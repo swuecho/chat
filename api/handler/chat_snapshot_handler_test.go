@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 	"gotest.tools/v3/assert"
 )
 
@@ -17,7 +18,7 @@ func TestChatSnapshot(t *testing.T) {
 	const snapshotPath = "/uuid/chat_snapshot/%s"
 
 	q := sqlc_queries.New(testDB)
-	h := NewChatSnapshotHandler(q)
+	h := NewChatSnapshotHandler(svc.NewChatSnapshotService(q))
 
 	router := mux.NewRouter()
 	h.Register(router)
@@ -25,7 +26,7 @@ func TestChatSnapshot(t *testing.T) {
 	userID := 1
 	snapshotUUID := NewUUID()
 
-	snapshot, err := h.Service.Q().CreateChatSnapshot(context.Background(), sqlc_queries.CreateChatSnapshotParams{
+	snapshot, err := q.CreateChatSnapshot(context.Background(), sqlc_queries.CreateChatSnapshotParams{
 		Uuid:         snapshotUUID,
 		Model:        "gpt3",
 		Title:        "test chat snapshot",

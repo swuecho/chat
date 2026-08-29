@@ -180,7 +180,8 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 	s.registerRoutes(apiRouter, adminRouter, userRouter)
 
 	// OpenAI-compatible gateway uses virtual API keys rather than browser JWTs.
-	handler.NewGatewayHandler(s.q, s.cfg.OPENAI.PROXY_URL).
+	gatewayService := svc.NewGatewayService(s.q)
+	handler.NewGatewayHandler(gatewayService, s.cfg.OPENAI.PROXY_URL).
 		WithObservability(s.cfg.GATEWAY.RETENTION_DAYS, s.cfg.GATEWAY.CAPTURE_BYTES).
 		Register(router.PathPrefix("/v1").Subrouter())
 
@@ -217,49 +218,75 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	apiRouter.HandleFunc("/errors", dto.ErrorCatalogHandler)
 
 	// Chat models
-	handler.NewChatModelHandler(q).Register(userRouter)
-	handler.NewAPIKeyHandler(q).Register(adminRouter)
+	chatModelService := svc.NewChatModelService(q)
+	handler.NewChatModelHandler(chatModelService).Register(userRouter)
+	apiKeyService := svc.NewAPIKeyService(q)
+	handler.NewAPIKeyHandler(apiKeyService).Register(adminRouter)
 
 	// Auth
-	authHandler := handler.NewAuthUserHandler(q, jwtSecret, jwtAudience, rateLimit)
+	authUserService := svc.NewAuthUserService(q, jwtSecret, rateLimit)
+	authHandler := handler.NewAuthUserHandler(authUserService, jwtSecret, jwtAudience, rateLimit)
 	authHandler.Register(userRouter)
 	authHandler.RegisterPublicRoutes(apiRouter)
 
 	// Admin
-	handler.NewAdminHandler(svc.NewAuthUserService(q, jwtSecret, rateLimit), rateLimit).RegisterRoutes(adminRouter)
+	adminAuthService := svc.NewAuthUserService(q, jwtSecret, rateLimit)
+	adminSessionService := svc.NewChatSessionService(q)
+	handler.NewAdminHandler(adminAuthService, adminSessionService, rateLimit).RegisterRoutes(adminRouter)
 
 	// Prompts
-	handler.NewChatPromptHandler(q).Register(userRouter)
+	chatPromptService := svc.NewChatPromptService(q)
+	handler.NewChatPromptHandler(chatPromptService).Register(userRouter)
 
 	// Sessions
-	handler.NewChatSessionHandler(q).Register(userRouter)
+	chatSessionService := svc.NewChatSessionService(q)
+	chatSessionWorkspaceService := svc.NewChatWorkspaceService(q)
+	chatSessionActiveService := svc.NewUserActiveChatSessionService(q)
+	chatSessionMessageService := svc.NewChatMessageService(q)
+	handler.NewChatSessionHandler(chatSessionService, chatSessionWorkspaceService, chatSessionActiveService, chatPromptService, chatSessionMessageService).Register(userRouter)
 
 	// Active sessions
-	handler.NewUserActiveChatSessionHandler(q).Register(userRouter)
+	activeSessionService := svc.NewUserActiveChatSessionService(q)
+	activeWorkspaceService := svc.NewChatWorkspaceService(q)
+	activeChatSessionService := svc.NewChatSessionService(q)
+	handler.NewUserActiveChatSessionHandler(activeSessionService, activeWorkspaceService, activeChatSessionService).Register(userRouter)
 
 	// Workspaces
-	handler.NewChatWorkspaceHandler(q).Register(userRouter)
+	workspaceService := svc.NewChatWorkspaceService(q)
+	workspaceSessionService := svc.NewChatSessionService(q)
+	workspaceActiveSessionService := svc.NewUserActiveChatSessionService(q)
+	handler.NewChatWorkspaceHandler(workspaceService, workspaceSessionService, workspaceActiveSessionService).Register(userRouter)
 
 	// Messages
-	handler.NewChatMessageHandler(q, openAIKey, openAIProxy).Register(userRouter)
+	chatMessageService := svc.NewChatMessageService(q)
+	chatMessageSessionService := svc.NewChatSessionService(q)
+	messageSuggestionService := svc.NewChatService(q, openAIKey, openAIProxy)
+	handler.NewChatMessageHandler(chatMessageService, chatMessageSessionService, messageSuggestionService).Register(userRouter)
 
 	// Snapshots
-	handler.NewChatSnapshotHandler(q).Register(userRouter)
+	chatSnapshotService := svc.NewChatSnapshotService(q)
+	handler.NewChatSnapshotHandler(chatSnapshotService).Register(userRouter)
 
 	// Chat stream
-	handler.NewChatHandler(q, s.rateLimiter, openAIKey, openAIProxy).Register(userRouter)
+	chatService := svc.NewChatService(q, openAIKey, openAIProxy)
+	chatStreamSessionService := svc.NewChatSessionService(q)
+	handler.NewChatHandler(chatService, chatStreamSessionService, s.rateLimiter, openAIKey, openAIProxy).Register(userRouter)
 
 	// Model privileges
-	handler.NewUserChatModelPrivilegeHandler(q).Register(userRouter)
+	chatModelPrivilegeService := svc.NewChatModelPrivilegeService(q)
+	handler.NewUserChatModelPrivilegeHandler(chatModelPrivilegeService).Register(userRouter)
 
 	// Files
-	handler.NewChatFileHandler(q).Register(userRouter)
+	chatFileService := svc.NewChatFileService(q)
+	handler.NewChatFileHandler(chatFileService).Register(userRouter)
 
 	// Comments
-	handler.NewChatCommentHandler(q).Register(userRouter)
+	chatCommentService := svc.NewChatCommentService(q)
+	handler.NewChatCommentHandler(chatCommentService).Register(userRouter)
 
 	// Bot history
-	handler.NewBotAnswerHistoryHandler(q).Register(userRouter)
+	botAnswerHistoryService := svc.NewBotAnswerHistoryService(q)
+	handler.NewBotAnswerHistoryHandler(botAnswerHistoryService).Register(userRouter)
 }
 
 // healthCheck returns server health status.

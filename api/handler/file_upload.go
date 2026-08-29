@@ -2,9 +2,7 @@ package handler
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -13,7 +11,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -21,8 +18,8 @@ type ChatFileHandler struct {
 	service *svc.ChatFileService
 }
 
-func NewChatFileHandler(sqlc_q *sqlc_queries.Queries) *ChatFileHandler {
-	return &ChatFileHandler{service: svc.NewChatFileService(sqlc_q)}
+func NewChatFileHandler(service *svc.ChatFileService) *ChatFileHandler {
+	return &ChatFileHandler{service: service}
 }
 
 func (h *ChatFileHandler) Register(router *mux.Router) {
@@ -73,7 +70,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatFile, err := h.service.CreateChatUpload(r.Context(), sqlc_queries.CreateChatFileParams{
+	chatFile, err := h.service.CreateChatUpload(r.Context(), svc.CreateChatFileInput{
 		ChatSessionUuid: sessionUUID,
 		UserID:          userID,
 		Name:            header.Filename,
@@ -105,11 +102,7 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 
 	file, err := h.service.GetChatFile(r.Context(), int32(fileIdInt))
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			dto.RespondWithAPIError(w, dto.ErrChatFileNotFound.WithMessage(fmt.Sprintf("file ID %d not found", fileIdInt)))
-		} else {
-			dto.RespondWithAPIError(w, dto.WrapError(err, "failed to get chat file"))
-		}
+		dto.RespondWithAPIError(w, err)
 		return
 	}
 

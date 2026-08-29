@@ -11,6 +11,15 @@ type BotAnswerHistoryService struct {
 	q *sqlc_queries.Queries
 }
 
+type CreateBotAnswerHistoryInput struct {
+	BotUuid    string
+	UserID     int32
+	Prompt     string
+	Answer     string
+	Model      string
+	TokensUsed int32
+}
+
 // NewBotAnswerHistoryService creates a new BotAnswerHistoryService
 func NewBotAnswerHistoryService(q *sqlc_queries.Queries) *BotAnswerHistoryService {
 	return &BotAnswerHistoryService{q: q}
@@ -20,8 +29,8 @@ func NewBotAnswerHistoryService(q *sqlc_queries.Queries) *BotAnswerHistoryServic
 func (s *BotAnswerHistoryService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateBotAnswerHistory creates a new bot answer history entry
-func (s *BotAnswerHistoryService) CreateBotAnswerHistory(ctx context.Context, params sqlc_queries.CreateBotAnswerHistoryParams) (sqlc_queries.BotAnswerHistory, error) {
-	history, err := s.q.CreateBotAnswerHistory(ctx, params)
+func (s *BotAnswerHistoryService) CreateBotAnswerHistory(ctx context.Context, input CreateBotAnswerHistoryInput) (sqlc_queries.BotAnswerHistory, error) {
+	history, err := s.q.CreateBotAnswerHistory(ctx, sqlc_queries.CreateBotAnswerHistoryParams(input))
 	if err != nil {
 		return sqlc_queries.BotAnswerHistory{}, eris.Wrap(err, "failed to create bot answer history")
 	}

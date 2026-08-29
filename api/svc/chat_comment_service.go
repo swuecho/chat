@@ -12,6 +12,14 @@ type ChatCommentService struct {
 	q *sqlc_queries.Queries
 }
 
+type CreateChatCommentInput struct {
+	Uuid            string
+	ChatSessionUuid string
+	ChatMessageUuid string
+	Content         string
+	CreatedBy       int32
+}
+
 func NewChatCommentService(q *sqlc_queries.Queries) *ChatCommentService {
 	return &ChatCommentService{q: q}
 }
@@ -20,8 +28,8 @@ func NewChatCommentService(q *sqlc_queries.Queries) *ChatCommentService {
 func (s *ChatCommentService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateChatComment creates a new chat comment
-func (s *ChatCommentService) CreateChatComment(ctx context.Context, params sqlc_queries.CreateChatCommentParams) (sqlc_queries.ChatComment, error) {
-	comment, err := s.q.CreateChatComment(ctx, params)
+func (s *ChatCommentService) CreateChatComment(ctx context.Context, input CreateChatCommentInput) (sqlc_queries.ChatComment, error) {
+	comment, err := s.q.CreateChatComment(ctx, sqlc_queries.CreateChatCommentParams(input))
 	if err != nil {
 		return sqlc_queries.ChatComment{}, eris.Wrap(err, "failed to create comment")
 	}

@@ -16,6 +16,25 @@ type ChatWorkspaceService struct {
 	q *sqlc_queries.Queries
 }
 
+type CreateWorkspaceInput struct {
+	Uuid          string
+	UserID        int32
+	Name          string
+	Description   string
+	Color         string
+	Icon          string
+	IsDefault     bool
+	OrderPosition int32
+}
+
+type UpdateWorkspaceInput struct {
+	Uuid        string
+	Name        string
+	Description string
+	Color       string
+	Icon        string
+}
+
 // NewChatWorkspaceService creates a new ChatWorkspaceService.
 func NewChatWorkspaceService(q *sqlc_queries.Queries) *ChatWorkspaceService {
 	return &ChatWorkspaceService{q: q}
@@ -26,8 +45,8 @@ func (s *ChatWorkspaceService) Q() *sqlc_queries.Queries { return s.q }
 
 // --- Workspace CRUD ---
 
-func (s *ChatWorkspaceService) CreateWorkspace(ctx context.Context, params sqlc_queries.CreateWorkspaceParams) (sqlc_queries.ChatWorkspace, error) {
-	w, err := s.q.CreateWorkspace(ctx, params)
+func (s *ChatWorkspaceService) CreateWorkspace(ctx context.Context, input CreateWorkspaceInput) (sqlc_queries.ChatWorkspace, error) {
+	w, err := s.q.CreateWorkspace(ctx, sqlc_queries.CreateWorkspaceParams(input))
 	return w, eris.Wrap(err, "failed to create workspace")
 }
 
@@ -46,13 +65,13 @@ func (s *ChatWorkspaceService) GetWorkspaceWithSessionCount(ctx context.Context,
 	return ws, eris.Wrap(err, "failed to retrieve workspaces with session count")
 }
 
-func (s *ChatWorkspaceService) UpdateWorkspace(ctx context.Context, params sqlc_queries.UpdateWorkspaceParams) (sqlc_queries.ChatWorkspace, error) {
-	w, err := s.q.UpdateWorkspace(ctx, params)
+func (s *ChatWorkspaceService) UpdateWorkspace(ctx context.Context, input UpdateWorkspaceInput) (sqlc_queries.ChatWorkspace, error) {
+	w, err := s.q.UpdateWorkspace(ctx, sqlc_queries.UpdateWorkspaceParams(input))
 	return w, eris.Wrap(err, "failed to update workspace")
 }
 
-func (s *ChatWorkspaceService) UpdateWorkspaceOrder(ctx context.Context, params sqlc_queries.UpdateWorkspaceOrderParams) (sqlc_queries.ChatWorkspace, error) {
-	w, err := s.q.UpdateWorkspaceOrder(ctx, params)
+func (s *ChatWorkspaceService) UpdateWorkspaceOrder(ctx context.Context, uuid string, orderPosition int32) (sqlc_queries.ChatWorkspace, error) {
+	w, err := s.q.UpdateWorkspaceOrder(ctx, sqlc_queries.UpdateWorkspaceOrderParams{Uuid: uuid, OrderPosition: orderPosition})
 	return w, eris.Wrap(err, "failed to update workspace order")
 }
 

@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgconn"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -18,10 +17,8 @@ type ChatPromptHandler struct {
 	service *svc.ChatPromptService
 }
 
-func NewChatPromptHandler(sqlc_q *sqlc_queries.Queries) *ChatPromptHandler {
-	return &ChatPromptHandler{
-		service: svc.NewChatPromptService(sqlc_q),
-	}
+func NewChatPromptHandler(service *svc.ChatPromptService) *ChatPromptHandler {
+	return &ChatPromptHandler{service: service}
 }
 
 func (h *ChatPromptHandler) Register(router *mux.Router) {
@@ -36,7 +33,7 @@ func (h *ChatPromptHandler) Register(router *mux.Router) {
 }
 
 func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Request) {
-	var promptParams sqlc_queries.CreateChatPromptParams
+	var promptParams svc.CreateChatPromptInput
 	err := json.NewDecoder(r.Body).Decode(&promptParams)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
@@ -105,7 +102,7 @@ func (h *ChatPromptHandler) UpdateChatPrompt(w http.ResponseWriter, r *http.Requ
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid chat prompt ID"))
 		return
 	}
-	var promptParams sqlc_queries.UpdateChatPromptParams
+	var promptParams svc.UpdateChatPromptInput
 	err = json.NewDecoder(r.Body).Decode(&promptParams)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))

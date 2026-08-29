@@ -10,17 +10,16 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 type UserChatModelPrivilegeHandler struct {
-	db *sqlc_queries.Queries
+	service *svc.ChatModelPrivilegeService
 }
 
-func NewUserChatModelPrivilegeHandler(db *sqlc_queries.Queries) *UserChatModelPrivilegeHandler {
-	return &UserChatModelPrivilegeHandler{db: db}
+func NewUserChatModelPrivilegeHandler(service *svc.ChatModelPrivilegeService) *UserChatModelPrivilegeHandler {
+	return &UserChatModelPrivilegeHandler{service: service}
 }
 
 func (h *UserChatModelPrivilegeHandler) Register(r *mux.Router) {
@@ -30,37 +29,19 @@ func (h *UserChatModelPrivilegeHandler) Register(r *mux.Router) {
 	r.HandleFunc("/admin/user_chat_model_privilege/{id}", h.UpdateUserChatModelPrivilege).Methods(http.MethodPut)
 }
 
-type ChatModelPrivilege struct {
-	ID            int32  `json:"id"`
-	FullName      string `json:"fullName"`
-	UserEmail     string `json:"userEmail"`
-	ChatModelName string `json:"chatModelName"`
-	RateLimit     int32  `json:"rateLimit"`
-}
-
 func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivileges(w http.ResponseWriter, r *http.Request) {
-	userChatModelRows, err := h.db.ListUserChatModelPrivilegesRateLimit(r.Context())
+	output, err := h.service.List(r.Context())
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to list user chat model privileges"))
 		return
 	}
-
-	output := lo.Map(userChatModelRows, func(r sqlc_queries.ListUserChatModelPrivilegesRateLimitRow, idx int) ChatModelPrivilege {
-		return ChatModelPrivilege{
-			ID:            r.ID,
-			FullName:      r.FullName,
-			UserEmail:     r.UserEmail,
-			ChatModelName: r.ChatModelName,
-			RateLimit:     r.RateLimit,
-		}
-	})
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(output)
 }
 
 func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.ResponseWriter, r *http.Request) {
-	var input ChatModelPrivilege
+	var input svc.ChatModelPrivilege
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("failed to parse request body"))
 		return
@@ -82,34 +63,7 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 
 	slog.Info("Creating chat model privilege", "userEmail", input.UserEmail, "chatModelName", input.ChatModelName)
 
-	user, err := h.db.GetAuthUserByEmail(r.Context(), input.UserEmail)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			dto.RespondWithAPIError(w, dto.ErrResourceNotFound("user").WithMessage(
-				fmt.Sprintf("user with email %s not found", input.UserEmail)))
-		} else {
-			dto.RespondWithAPIError(w, dto.WrapError(err, "failed to get user by email"))
-		}
-		return
-	}
-
-	chatModel, err := h.db.ChatModelByName(r.Context(), input.ChatModelName)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			dto.RespondWithAPIError(w, dto.ErrChatModelNotFound.WithMessage(fmt.Sprintf("chat model %s not found", input.ChatModelName)))
-		} else {
-			dto.RespondWithAPIError(w, dto.WrapError(err, "failed to get chat model"))
-		}
-		return
-	}
-
-	userChatModelPrivilege, err := h.db.CreateUserChatModelPrivilege(r.Context(), sqlc_queries.CreateUserChatModelPrivilegeParams{
-		UserID:      user.ID,
-		ChatModelID: chatModel.ID,
-		RateLimit:   input.RateLimit,
-		CreatedBy:   user.ID,
-		UpdatedBy:   user.ID,
-	})
+	output, err := h.service.Create(r.Context(), input)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat model privilege"))
@@ -119,12 +73,6 @@ func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.Resp
 		return
 	}
 
-	output := ChatModelPrivilege{
-		ID:            userChatModelPrivilege.ID,
-		UserEmail:     user.Email,
-		ChatModelName: chatModel.Name,
-		RateLimit:     userChatModelPrivilege.RateLimit,
-	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(output)
 }
@@ -143,7 +91,7 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 		return
 	}
 
-	var input ChatModelPrivilege
+	var input svc.ChatModelPrivilege
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("failed to parse request body"))
 		return
@@ -154,11 +102,7 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 		return
 	}
 
-	userChatModelPrivilege, err := h.db.UpdateUserChatModelPrivilege(r.Context(), sqlc_queries.UpdateUserChatModelPrivilegeParams{
-		ID:        int32(id),
-		RateLimit: input.RateLimit,
-		UpdatedBy: userID,
-	})
+	output, err := h.service.Update(r.Context(), int32(id), input.RateLimit, userID, input.UserEmail, input.ChatModelName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat model privilege"))
@@ -166,12 +110,6 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 			dto.RespondWithAPIError(w, dto.WrapError(err, "failed to update user chat model privilege"))
 		}
 		return
-	}
-	output := ChatModelPrivilege{
-		ID:            userChatModelPrivilege.ID,
-		UserEmail:     input.UserEmail,
-		ChatModelName: input.ChatModelName,
-		RateLimit:     userChatModelPrivilege.RateLimit,
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(output)
@@ -185,7 +123,7 @@ func (h *UserChatModelPrivilegeHandler) DeleteUserChatModelPrivilege(w http.Resp
 		return
 	}
 
-	if err := h.db.DeleteUserChatModelPrivilege(r.Context(), int32(id)); err != nil {
+	if err := h.service.Delete(r.Context(), int32(id)); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat model privilege"))
 		} else {
@@ -204,7 +142,7 @@ func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivilegesByUserID(w ht
 		return
 	}
 
-	privileges, err := h.db.ListUserChatModelPrivilegesByUserID(r.Context(), int32(userID))
+	privileges, err := h.service.ListByUserID(r.Context(), userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to list privileges for user"))
 		return

@@ -13,6 +13,27 @@ type ChatPromptService struct {
 	q *sqlc_queries.Queries
 }
 
+type CreateChatPromptInput struct {
+	Uuid            string
+	ChatSessionUuid string
+	Role            string
+	Content         string
+	TokenCount      int32
+	UserID          int32
+	CreatedBy       int32
+	UpdatedBy       int32
+}
+
+type UpdateChatPromptInput struct {
+	ID              int32
+	ChatSessionUuid string
+	Role            string
+	Content         string
+	Score           float64
+	UserID          int32
+	UpdatedBy       int32
+}
+
 // NewChatPromptService creates a new ChatPromptService.
 func NewChatPromptService(q *sqlc_queries.Queries) *ChatPromptService {
 	return &ChatPromptService{q: q}
@@ -22,8 +43,8 @@ func NewChatPromptService(q *sqlc_queries.Queries) *ChatPromptService {
 func (s *ChatPromptService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateChatPrompt creates a new chat prompt.
-func (s *ChatPromptService) CreateChatPrompt(ctx context.Context, prompt_params sqlc_queries.CreateChatPromptParams) (sqlc_queries.ChatPrompt, error) {
-	prompt, err := s.q.CreateChatPrompt(ctx, prompt_params)
+func (s *ChatPromptService) CreateChatPrompt(ctx context.Context, input CreateChatPromptInput) (sqlc_queries.ChatPrompt, error) {
+	prompt, err := s.q.CreateChatPrompt(ctx, sqlc_queries.CreateChatPromptParams(input))
 	if err != nil {
 		return sqlc_queries.ChatPrompt{}, eris.Wrap(err, "failed to create prompt: ")
 	}
@@ -50,8 +71,8 @@ func (s *ChatPromptService) GetChatPromptByID(ctx context.Context, id int32) (sq
 }
 
 // UpdateChatPrompt updates an existing chat prompt.
-func (s *ChatPromptService) UpdateChatPrompt(ctx context.Context, prompt_params sqlc_queries.UpdateChatPromptParams) (sqlc_queries.ChatPrompt, error) {
-	prompt_u, err := s.q.UpdateChatPrompt(ctx, prompt_params)
+func (s *ChatPromptService) UpdateChatPrompt(ctx context.Context, input UpdateChatPromptInput) (sqlc_queries.ChatPrompt, error) {
+	prompt_u, err := s.q.UpdateChatPrompt(ctx, sqlc_queries.UpdateChatPromptParams(input))
 	if err != nil {
 		return sqlc_queries.ChatPrompt{}, errors.New("failed to update prompt")
 	}

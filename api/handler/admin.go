@@ -7,7 +7,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -17,10 +16,10 @@ type AdminHandler struct {
 	defaultRateLimit int32
 }
 
-func NewAdminHandler(service *svc.AuthUserService, defaultRateLimit int32) *AdminHandler {
+func NewAdminHandler(service *svc.AuthUserService, sessionSvc *svc.ChatSessionService, defaultRateLimit int32) *AdminHandler {
 	return &AdminHandler{
 		service:          service,
-		sessionSvc:       svc.NewChatSessionService(service.Q()),
+		sessionSvc:       sessionSvc,
 		defaultRateLimit: defaultRateLimit,
 	}
 }
@@ -36,7 +35,7 @@ func (h *AdminHandler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var userParams sqlc_queries.CreateAuthUserParams
+	var userParams svc.CreateAuthUserInput
 	if err := json.NewDecoder(r.Body).Decode(&userParams); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
@@ -50,7 +49,7 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var userParams sqlc_queries.UpdateAuthUserByEmailParams
+	var userParams svc.UpdateAuthUserByEmailInput
 	if err := json.NewDecoder(r.Body).Decode(&userParams); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
@@ -106,11 +105,7 @@ func (h *AdminHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	rate, err := h.service.UpdateAuthUserRateLimitByEmail(r.Context(),
-		sqlc_queries.UpdateAuthUserRateLimitByEmailParams{
-			Email:     rateLimitRequest.Email,
-			RateLimit: rateLimitRequest.RateLimit,
-		})
+	rate, err := h.service.UpdateAuthUserRateLimitByEmail(r.Context(), rateLimitRequest.Email, rateLimitRequest.RateLimit)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update rate limit"))
 		return

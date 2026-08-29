@@ -31,7 +31,7 @@ func TestChatMessageService(t *testing.T) {
 		Artifacts:          json.RawMessage([]byte("[]")),
 		SuggestedQuestions: json.RawMessage([]byte("[]")),
 	}
-	msg, err := service.CreateChatMessage(context.Background(), msg_params)
+	msg, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(msg_params))
 	if err != nil {
 		t.Fatalf("failed to create chat message: %v", err)
 	}
@@ -74,12 +74,12 @@ func TestCreateChatMessageIsIdempotentWithinSession(t *testing.T) {
 		SuggestedQuestions: json.RawMessage([]byte("[]")),
 	}
 
-	first, err := service.CreateChatMessage(context.Background(), params)
+	first, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(params))
 	if err != nil {
 		t.Fatalf("first CreateChatMessage() error = %v", err)
 	}
 	params.Content = "content from a retry must not overwrite the original"
-	second, err := service.CreateChatMessage(context.Background(), params)
+	second, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(params))
 	if err != nil {
 		t.Fatalf("retried CreateChatMessage() error = %v", err)
 	}
@@ -95,7 +95,7 @@ func TestCreateChatMessageIsIdempotentWithinSession(t *testing.T) {
 		t.Fatalf("cleanup failed: %v", err)
 	}
 
-	recreated, err := service.CreateChatMessage(context.Background(), params)
+	recreated, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(params))
 	if err != nil {
 		t.Fatalf("recreating a soft-deleted message error = %v", err)
 	}
@@ -128,7 +128,7 @@ func TestGetChatMessagesBySessionID(t *testing.T) {
 		Artifacts:          json.RawMessage([]byte("[]")),
 		SuggestedQuestions: json.RawMessage([]byte("[]")),
 	}
-	msg1, err := service.CreateChatMessage(context.Background(), msg1_params)
+	msg1, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(msg1_params))
 	if err != nil {
 		t.Fatalf("failed to create chat message: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestGetChatMessagesBySessionID(t *testing.T) {
 		Artifacts:          json.RawMessage([]byte("[]")),
 		SuggestedQuestions: json.RawMessage([]byte("[]")),
 	}
-	msg2, err := service.CreateChatMessage(context.Background(), msg2_params)
+	msg2, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(msg2_params))
 	if err != nil {
 		t.Fatalf("failed to create chat message: %v", err)
 	}

@@ -12,11 +12,11 @@ import (
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
-	"github.com/swuecho/chat_backend/sqlc_queries"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 // chooseChatModel returns the appropriate ChatModel implementation based on session config.
-func (h *ChatHandler) chooseChatModel(ctx context.Context, session sqlc_queries.ChatSession, msgs []models.Message) provider.ChatModel {
+func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSession, msgs []models.Message) provider.ChatModel {
 	if isTest(msgs) {
 		return provider.NewTestChatModel(h)
 	}
@@ -72,9 +72,7 @@ func (h *ChatHandler) CheckModelAccess(ctx context.Context, chatSessionUuid, mod
 		return nil
 	}
 
-	rate, err := h.sessionSvc.RateLimitByUserAndSessionUUID(ctx, sqlc_queries.RateLimiteByUserAndSessionUUIDParams{
-		Uuid: chatSessionUuid, UserID: userID,
-	})
+	rate, err := h.sessionSvc.CheckRateLimit(ctx, chatSessionUuid, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
@@ -82,9 +80,7 @@ func (h *ChatHandler) CheckModelAccess(ctx context.Context, chatSessionUuid, mod
 		return dto.WrapError(dto.MapDatabaseError(err), "Failed to get rate limit")
 	}
 
-	usage10Min, err := h.sessionSvc.GetChatMessagesCountByUserAndModel(ctx, sqlc_queries.GetChatMessagesCountByUserAndModelParams{
-		UserID: userID, Model: rate.ChatModelName,
-	})
+	usage10Min, err := h.sessionSvc.GetModelUsage(ctx, userID, rate.ChatModelName)
 	if err != nil {
 		return dto.ErrInternalUnexpected.WithDetail("Failed to get usage data").WithDebugInfo(err.Error())
 	}
