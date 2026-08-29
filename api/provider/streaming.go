@@ -157,15 +157,14 @@ func FirstN(s string, n int) string {
 
 // --- Utility functions ---
 
-// NewUUID generates a new UUID v7 string.
-var NewUUID = util.NewUUID
+var newUUID = util.NewUUID
 
 // generateAnswerID creates an answer ID or reuses chatUuid in regenerate mode.
 func generateAnswerID(chatUuid string, regenerate bool) string {
 	if regenerate {
 		return chatUuid
 	}
-	return NewUUID()
+	return newUUID()
 }
 
 // GetTokenCount returns the number of tokens in the given content.

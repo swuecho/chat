@@ -176,7 +176,7 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
 					ch <- StreamChunk{
-						ID:          NewUUID(),
+						ID:          newUUID(),
 						Done:        true,
 						FinalAnswer: &models.LLMAnswer{Answer: string(line), AnswerId: answerID},
 					}
@@ -197,7 +197,7 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 			return
 		}
 		if answerID == "" {
-			answerID = NewUUID()
+			answerID = newUUID()
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
 			delta := claude.AnswerFromBlockStart(line)

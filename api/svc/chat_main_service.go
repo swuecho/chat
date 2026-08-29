@@ -17,6 +17,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chat_backend/llm/gemini"
 	models "github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/pkg/util"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -34,7 +35,7 @@ var artifactInstructionText string
 
 // NewChatService creates a new ChatService with database queries and OpenAI configuration.
 func NewChatService(q *sqlc_queries.Queries, openAIKey, openAIProxy string) *ChatService {
-	return &ChatService{q: q, modelCatalog: newLLMModelCatalog(q), newID: provider.NewUUID, openAIKey: openAIKey, openAIProxy: openAIProxy}
+	return &ChatService{q: q, modelCatalog: newLLMModelCatalog(q), newID: util.NewUUID, openAIKey: openAIKey, openAIProxy: openAIProxy}
 }
 
 func (s *ChatService) ProviderModel(ctx context.Context, name string) (provider.ModelConfig, error) {
@@ -194,7 +195,7 @@ func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUui
 	}
 	chatPrompt, err := s.q.CreateChatPrompt(ctx,
 		sqlc_queries.CreateChatPromptParams{
-			Uuid:            provider.NewUUID(),
+			Uuid:            s.newID(),
 			ChatSessionUuid: chatSessionUuid,
 			Role:            "system",
 			Content:         newQuestion,

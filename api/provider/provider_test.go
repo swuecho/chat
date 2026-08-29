@@ -63,8 +63,8 @@ func TestFlushStreamEvent(t *testing.T) {
 }
 
 func TestNewUUID(t *testing.T) {
-	id1 := NewUUID()
-	id2 := NewUUID()
+	id1 := newUUID()
+	id2 := newUUID()
 	if id1 == "" || id2 == "" {
 		t.Error("expected non-empty UUIDs")
 	}

@@ -131,7 +131,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 		}
 
 		if answerID == "" {
-			answerID = NewUUID()
+			answerID = newUUID()
 		}
 
 		var response CustomModelResponse

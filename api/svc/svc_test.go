@@ -75,6 +75,6 @@ func TestNewUUID(t *testing.T) {
 // newUUID is a copy of the unexported function from util.go for testing.
 func newUUID() string {
 	// Re-implemented here to test independently
-	// The real implementation uses provider.NewUUID()
+	// The real implementation uses util.NewUUID()
 	return "test-uuid"
 }

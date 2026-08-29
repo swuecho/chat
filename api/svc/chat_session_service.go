@@ -8,13 +8,15 @@ import (
 
 	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/domain"
+	"github.com/swuecho/chat_backend/pkg/util"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // ChatSessionService provides methods for interacting with chat sessions.
 type ChatSessionService struct {
-	q *sqlc_queries.Queries
+	q     *sqlc_queries.Queries
+	newID func() string
 }
 
 type ChatSession = sqlc_queries.ChatSession
@@ -44,7 +46,7 @@ type CreateOrUpdateChatSessionInput struct {
 
 // NewChatSessionService creates a new ChatSessionService.
 func NewChatSessionService(q *sqlc_queries.Queries) *ChatSessionService {
-	return &ChatSessionService{q: q}
+	return &ChatSessionService{q: q, newID: util.NewUUID}
 }
 
 // CreateChatSession creates a new chat session.
@@ -350,7 +352,7 @@ func (s *ChatSessionService) EnsureDefaultSystemPrompt(ctx context.Context, chat
 	}
 
 	prompt, createErr := s.q.CreateChatPrompt(ctx, sqlc_queries.CreateChatPromptParams{
-		Uuid:            provider.NewUUID(),
+		Uuid:            s.newID(),
 		ChatSessionUuid: chatSessionUUID,
 		Role:            "system",
 		Content:         promptText,
