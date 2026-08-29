@@ -4,25 +4,20 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/uuid"
-
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/svc"
 )
 
 type ChatSessionHandler struct {
-	service    *svc.ChatSessionService
-	wsService  *svc.ChatWorkspaceService
-	activeSvc  *svc.UserActiveChatSessionService
-	promptSvc  *svc.ChatPromptService
-	messageSvc *svc.ChatMessageService
+	service   *svc.ChatSessionService
+	wsService *svc.ChatWorkspaceService
+	activeSvc *svc.UserActiveChatSessionService
 }
 
-func NewChatSessionHandler(service *svc.ChatSessionService, wsService *svc.ChatWorkspaceService, activeSvc *svc.UserActiveChatSessionService, promptSvc *svc.ChatPromptService, messageSvc *svc.ChatMessageService) *ChatSessionHandler {
+func NewChatSessionHandler(service *svc.ChatSessionService, wsService *svc.ChatWorkspaceService, activeSvc *svc.UserActiveChatSessionService) *ChatSessionHandler {
 	return &ChatSessionHandler{
 		service: service, wsService: wsService, activeSvc: activeSvc,
-		promptSvc: promptSvc, messageSvc: messageSvc,
 	}
 }
 
@@ -275,74 +270,15 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 		return
 	}
 
-	snapshot, err := h.service.ChatSnapshotByUUID(r.Context(), snapshotUUID)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat snapshot").WithDebugInfo(err.Error()))
-		return
-	}
-
-	var messages []dto.SimpleChatMessage
-	if err := json.Unmarshal(snapshot.Conversation, &messages); err != nil || len(messages) == 0 {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Snapshot has no messages"))
-		return
-	}
-	promptMsg := messages[0]
-
-	chatPrompt, err := h.service.GetChatPromptByUUID(r.Context(), promptMsg.Uuid)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat prompt").WithDebugInfo(err.Error()))
-		return
-	}
-
-	originSession, err := h.service.GetChatSessionByUUIDWithInActive(r.Context(), chatPrompt.ChatSessionUuid)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Original chat session").WithDebugInfo(err.Error()))
-		return
-	}
-
-	sessionUUID := uuid.New().String()
-	var workspaceID *int32
-	if originSession.WorkspaceID.Valid {
-		id := originSession.WorkspaceID.Int32
-		workspaceID = &id
-	}
-	session, err := h.service.CreateOrUpdateChatSessionByUUID(r.Context(), svc.CreateOrUpdateChatSessionInput{
-		Uuid: sessionUUID, UserID: userID, Topic: snapshot.Title,
-		MaxLength: originSession.MaxLength, Temperature: originSession.Temperature,
-		Model: originSession.Model, MaxTokens: originSession.MaxTokens,
-		TopP: originSession.TopP, Debug: originSession.Debug,
-		SummarizeMode: originSession.SummarizeMode, ExploreMode: originSession.ExploreMode,
-		WorkspaceID: workspaceID, N: 1,
+	result, err := h.service.CreateSessionFromSnapshot(r.Context(), svc.CreateSessionFromSnapshotCommand{
+		SnapshotUUID: snapshotUUID,
+		UserID:       userID,
 	})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to create chat session from snapshot").WithDebugInfo(err.Error()))
-		return
-	}
-
-	if _, err := h.promptSvc.CreateChatPrompt(r.Context(), svc.CreateChatPromptInput{
-		Uuid: NewUUID(), ChatSessionUuid: sessionUUID, Role: "system",
-		Content: promptMsg.Text, UserID: userID, CreatedBy: userID, UpdatedBy: userID,
-	}); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to create prompt").WithDebugInfo(err.Error()))
-		return
-	}
-
-	for _, msg := range messages[1:] {
-		if _, err := h.messageSvc.CreateChatMessage(r.Context(), svc.CreateChatMessageInput{
-			ChatSessionUuid: sessionUUID, Uuid: NewUUID(),
-			Role: msg.GetRole(), Content: msg.Text, UserID: userID,
-			Raw: json.RawMessage([]byte("{}")),
-		}); err != nil {
-			dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to create messages").WithDebugInfo(err.Error()))
-			return
-		}
-	}
-
-	if _, err := h.activeSvc.UpsertActiveSession(r.Context(), userID, nil, session.Uuid); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update active session").WithDebugInfo(err.Error()))
+		dto.RespondWithAPIError(w, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"SessionUuid": session.Uuid})
+	json.NewEncoder(w).Encode(map[string]string{"SessionUuid": result.SessionUUID})
 }

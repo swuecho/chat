@@ -242,8 +242,7 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	chatSessionService := svc.NewChatSessionService(q)
 	chatSessionWorkspaceService := svc.NewChatWorkspaceService(q)
 	chatSessionActiveService := svc.NewUserActiveChatSessionService(q)
-	chatSessionMessageService := svc.NewChatMessageService(q)
-	handler.NewChatSessionHandler(chatSessionService, chatSessionWorkspaceService, chatSessionActiveService, chatPromptService, chatSessionMessageService).Register(userRouter)
+	handler.NewChatSessionHandler(chatSessionService, chatSessionWorkspaceService, chatSessionActiveService).Register(userRouter)
 
 	// Active sessions
 	activeSessionService := svc.NewUserActiveChatSessionService(q)

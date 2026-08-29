@@ -14,7 +14,8 @@ import (
 
 // ChatSessionService provides methods for interacting with chat sessions.
 type ChatSessionService struct {
-	q *sqlc_queries.Queries
+	q     *sqlc_queries.Queries
+	newID func() string
 }
 
 type ChatSession = sqlc_queries.ChatSession
@@ -44,7 +45,7 @@ type CreateOrUpdateChatSessionInput struct {
 
 // NewChatSessionService creates a new ChatSessionService.
 func NewChatSessionService(q *sqlc_queries.Queries) *ChatSessionService {
-	return &ChatSessionService{q: q}
+	return &ChatSessionService{q: q, newID: provider.NewUUID}
 }
 
 // CreateChatSession creates a new chat session.
