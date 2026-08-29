@@ -79,7 +79,7 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 		if retrieved.UUID != ws.UUID {
 			t.Fatalf("UUID mismatch: got %s, want %s", retrieved.UUID, ws.UUID)
 		}
-		if err := svc.DeleteWorkspace(ctx, ws.UUID); err != nil {
+		if err := svc.DeleteWorkspace(ctx, DeleteWorkspaceCommand{WorkspaceUUID: ws.UUID, UserID: ws.UserID}); err != nil {
 			t.Fatalf("DeleteWorkspace failed: %v", err)
 		}
 	})
@@ -96,7 +96,7 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 
 	t.Run("ChatMessageService_success_returns_nil_error", func(t *testing.T) {
 		svc := NewChatMessageService(q)
-		msgs, err := svc.GetAllChatMessages(ctx)
+		msgs, err := svc.GetAllChatMessages(ctx, testUID)
 		if err != nil {
 			t.Fatalf("GetAllChatMessages failed: %v", err)
 		}

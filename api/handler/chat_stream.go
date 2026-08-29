@@ -68,7 +68,7 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	chatSnapshot, err := h.sessionSvc.ChatSnapshotByUserIDAndUUID(ctx, userID, req.SnapshotUuid)
+	chatSnapshot, err := h.snapshotSvc.ByUserAndUUID(ctx, userID, req.SnapshotUuid)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat snapshot").WithDebugInfo(err.Error()))
 		return
@@ -115,7 +115,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	if req.Regenerate {
-		regenerateAnswer(h, w, ctx, req.SessionUuid, req.ChatUuid, req.Stream)
+		regenerateAnswer(h, w, ctx, req.SessionUuid, req.ChatUuid, userID, req.Stream)
 	} else {
 		genAnswer(h, w, ctx, req.SessionUuid, req.ChatUuid, req.Prompt, userID, req.Stream)
 	}
@@ -123,7 +123,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 
 // genAnswer orchestrates the full chat completion flow.
 func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessionUuid, chatUuid, question string, userID int32, streamOutput bool) {
-	chatSession, _, baseURL, ok := h.validateChatSession(ctx, w, sessionUuid)
+	chatSession, _, baseURL, ok := h.validateChatSession(ctx, w, sessionUuid, userID)
 	if !ok {
 		return
 	}
@@ -143,7 +143,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 
 // genBotAnswer generates a bot answer from a snapshot conversation.
 func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, session svc.ChatSession, messages []dto.SimpleChatMessage, snapshotUuid, question string, userID int32, streamOutput bool) {
-	if _, err := h.sessionSvc.ChatModelByName(ctx, session.Model); err != nil {
+	if _, err := h.modelSvc.ByName(ctx, session.Model); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat model: "+session.Model).WithDebugInfo(err.Error()))
 		return
 	}
@@ -163,7 +163,7 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 		return
 	}
 
-	if _, err := h.sessionSvc.SaveBotAnswerHistory(ctx, svc.CreateBotAnswerHistoryInput{
+	if err := h.botHistorySvc.Save(ctx, svc.CreateBotAnswerHistoryInput{
 		BotUuid:    snapshotUuid,
 		UserID:     userID,
 		Prompt:     question,
@@ -180,8 +180,8 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 }
 
 // regenerateAnswer regenerates the last assistant response.
-func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessionUuid, chatUuid string, stream bool) {
-	chatSession, _, _, ok := h.validateChatSession(ctx, w, sessionUuid)
+func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessionUuid, chatUuid string, userID int32, stream bool) {
+	chatSession, _, _, ok := h.validateChatSession(ctx, w, sessionUuid, userID)
 	if !ok {
 		return
 	}
@@ -213,7 +213,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 
 	h.service.LogChat(*chatSession, msgs, LLMAnswer.Answer)
 
-	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, LLMAnswer.Answer); err != nil {
+	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, userID, LLMAnswer.Answer); err != nil {
 		if stream {
 			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
 				Type: "failed", AnswerID: chatUuid, Code: "persistence_failed", Message: "Failed to save regenerated answer",
@@ -228,7 +228,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		suggested := h.service.GenerateSuggestedQuestions(LLMAnswer.Answer, msgs)
 		if len(suggested) > 0 {
 			if questionsJSON, err := json.Marshal(suggested); err == nil {
-				h.service.UpdateChatMessageSuggestions(ctx, chatUuid, questionsJSON)
+				h.service.UpdateChatMessageSuggestions(ctx, chatUuid, userID, questionsJSON)
 				if stream {
 					h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, questionsJSON)
 				}

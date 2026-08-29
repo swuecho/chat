@@ -126,12 +126,8 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	if !h.checkPermission(w, ctx, workspaceUUID, userID) {
-		return
-	}
-
 	workspace, err := h.wsService.UpdateWorkspace(ctx, svc.UpdateWorkspaceInput{
-		Uuid: workspaceUUID, Name: req.Name, Description: req.Description,
+		Uuid: workspaceUUID, UserID: userID, Name: req.Name, Description: req.Description,
 		Color: req.Color, Icon: req.Icon,
 	})
 	if err != nil {
@@ -151,21 +147,7 @@ func (h *ChatWorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Re
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	if !h.checkPermission(w, ctx, workspaceUUID, userID) {
-		return
-	}
-
-	workspace, err := h.wsService.GetWorkspaceByUUID(ctx, workspaceUUID)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get workspace"))
-		return
-	}
-	if workspace.IsDefault {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Cannot delete default workspace"))
-		return
-	}
-
-	if err := h.wsService.DeleteWorkspace(ctx, workspaceUUID); err != nil {
+	if err := h.wsService.DeleteWorkspace(ctx, svc.DeleteWorkspaceCommand{WorkspaceUUID: workspaceUUID, UserID: userID}); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to delete workspace"))
 		return
 	}

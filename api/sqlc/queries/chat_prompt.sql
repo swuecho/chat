@@ -5,7 +5,7 @@ ORDER BY id;
 
 -- name: GetChatPromptByID :one
 SELECT * FROM chat_prompt
-WHERE is_deleted = false and  id = $1;
+WHERE is_deleted = false and id = $1 and user_id = $2;
 
 -- name: CreateChatPrompt :one
 INSERT INTO chat_prompt (uuid, chat_session_uuid, role, content, token_count, user_id, created_by, updated_by)
@@ -14,18 +14,18 @@ RETURNING *;
 
 -- name: UpdateChatPrompt :one
 UPDATE chat_prompt SET chat_session_uuid = $2, role = $3, content = $4, score = $5, user_id = $6, updated_at = now(), updated_by = $7
-WHERE id = $1
+WHERE id = $1 and user_id = $6
 RETURNING *;
 
 -- name: UpdateChatPromptByUUID :one
 UPDATE chat_prompt SET content = $2, token_count = $3, updated_at = now()
-WHERE uuid = $1 and is_deleted = false
+WHERE uuid = $1 and is_deleted = false and user_id = $4
 RETURNING *;
 
--- name: DeleteChatPrompt :exec
+-- name: DeleteChatPrompt :execrows
 UPDATE chat_prompt 
 SET is_deleted = true, updated_at = now()
-WHERE id = $1;
+WHERE id = $1 and user_id = $2;
 
 -- name: GetChatPromptsByUserID :many
 SELECT *
@@ -63,10 +63,10 @@ INNER JOIN auth_user au ON cp.user_id = au.id
 WHERE cp.id = $1 AND (cp.user_id = $2 OR au.is_superuser) AND cp.is_deleted = false;
 
 
--- name: DeleteChatPromptByUUID :exec
+-- name: DeleteChatPromptByUUID :execrows
 UPDATE chat_prompt
 SET is_deleted = true, updated_at = now()
-WHERE uuid = $1;
+WHERE uuid = $1 and user_id = $2;
 
 
 -- name: GetChatPromptByUUID :one

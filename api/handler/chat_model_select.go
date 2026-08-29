@@ -61,18 +61,18 @@ func isTest(msgs []models.Message) bool {
 // CheckModelAccess verifies the user hasn't exceeded per-model rate limits.
 // Returns nil if access is allowed, or an error (dto.APIError) if denied.
 func (h *ChatHandler) CheckModelAccess(ctx context.Context, chatSessionUuid, model string, userID int32) error {
-	chatModel, err := h.sessionSvc.ChatModelByName(ctx, model)
+	chatModel, err := h.modelSvc.ByName(ctx, model)
 	if err != nil {
 		slog.Error("Chat model not found", "error", err, "model", model)
 		apiErr := dto.ErrResourceNotFound("chat model: " + model)
 		return apiErr
 	}
 
-	if !chatModel.EnablePerModeRatelimit {
+	if !chatModel.EnablePerModelRateLimit {
 		return nil
 	}
 
-	rate, err := h.sessionSvc.CheckRateLimit(ctx, chatSessionUuid, userID)
+	rate, err := h.rateLimitSvc.Check(ctx, chatSessionUuid, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
@@ -80,7 +80,7 @@ func (h *ChatHandler) CheckModelAccess(ctx context.Context, chatSessionUuid, mod
 		return dto.WrapError(dto.MapDatabaseError(err), "Failed to get rate limit")
 	}
 
-	usage10Min, err := h.sessionSvc.GetModelUsage(ctx, userID, rate.ChatModelName)
+	usage10Min, err := h.rateLimitSvc.Usage(ctx, userID, rate.ChatModelName)
 	if err != nil {
 		return dto.ErrInternalUnexpected.WithDetail("Failed to get usage data").WithDebugInfo(err.Error())
 	}

@@ -86,12 +86,12 @@ func (h *ChatSnapshotHandler) UpdateChatBotSettings(w http.ResponseWriter, r *ht
 		return
 	}
 
-	snapshot, err := h.Service.UpdateChatBotSettings(r.Context(), uuid, userID, input.Title, input.Summary, input.Model)
+	snapshot, err := h.Service.UpdateChatBotSettings(r.Context(), svc.UpdateChatBotSettingsCommand{UUID: uuid, UserID: userID, Title: input.Title, Summary: input.Summary, Model: input.Model})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Bot or enabled model").WithDebugInfo(err.Error()))
 		return
 	}
-	json.NewEncoder(w).Encode(snapshot)
+	json.NewEncoder(w).Encode(snapshotResponse(snapshot))
 }
 
 func (h *ChatSnapshotHandler) UpdateChatBotModel(w http.ResponseWriter, r *http.Request) {
@@ -115,12 +115,12 @@ func (h *ChatSnapshotHandler) UpdateChatBotModel(w http.ResponseWriter, r *http.
 		return
 	}
 
-	snapshot, err := h.Service.UpdateChatBotModel(r.Context(), uuid, userID, input.Model)
+	snapshot, err := h.Service.UpdateChatBotModel(r.Context(), svc.UpdateChatBotModelCommand{UUID: uuid, UserID: userID, Model: input.Model})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Bot or enabled model").WithDebugInfo(err.Error()))
 		return
 	}
-	json.NewEncoder(w).Encode(snapshot)
+	json.NewEncoder(w).Encode(snapshotResponse(snapshot))
 }
 
 func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +130,7 @@ func (h *ChatSnapshotHandler) GetChatSnapshot(w http.ResponseWriter, r *http.Req
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat snapshot"))
 		return
 	}
-	json.NewEncoder(w).Encode(snapshot)
+	json.NewEncoder(w).Encode(snapshotResponse(snapshot))
 }
 
 func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r *http.Request) {
@@ -173,8 +173,12 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 	}
 
 	w.WriteHeader(http.StatusOK)
+	data := make([]map[string]any, 0, len(chatSnapshots))
+	for _, snapshot := range chatSnapshots {
+		data = append(data, snapshotSummaryResponse(snapshot))
+	}
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": chatSnapshots, "page": page, "page_size": pageSize, "total": totalCount,
+		"data": data, "page": page, "page_size": pageSize, "total": totalCount,
 	})
 }
 
@@ -204,7 +208,7 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat snapshot").WithDebugInfo(err.Error()))
 		return
 	}
-	json.NewEncoder(w).Encode(snapshot)
+	json.NewEncoder(w).Encode(snapshotResponse(snapshot))
 }
 
 func (h *ChatSnapshotHandler) DeleteChatSnapshot(w http.ResponseWriter, r *http.Request) {
@@ -239,5 +243,9 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 		return
 	}
 
-	json.NewEncoder(w).Encode(chatSnapshots)
+	response := make([]map[string]any, 0, len(chatSnapshots))
+	for _, snapshot := range chatSnapshots {
+		response = append(response, snapshotSearchResponse(snapshot))
+	}
+	json.NewEncoder(w).Encode(response)
 }

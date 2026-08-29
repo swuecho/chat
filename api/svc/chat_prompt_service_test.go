@@ -22,7 +22,7 @@ func TestChatPromptService(t *testing.T) {
 		t.Fatalf("failed to create chat prompt: %v", err)
 	}
 
-	retrievedPrompt, err := service.GetChatPromptByID(context.Background(), prompt.ID)
+	retrievedPrompt, err := service.GetChatPromptByID(context.Background(), prompt.ID, prompt.UserID)
 	if err != nil {
 		t.Fatalf("failed to get chat prompt: %v", err)
 	}
@@ -35,11 +35,12 @@ func TestChatPromptService(t *testing.T) {
 	updated_params := sqlc_queries.UpdateChatPromptParams{
 		ID: prompt.ID, ChatSessionUuid: "Updated Test Topic",
 		Role: "Updated Test Role", Content: "Updated Test Content", Score: 0.75,
+		UserID: prompt.UserID, UpdatedBy: prompt.UserID,
 	}
 	if _, err := service.UpdateChatPrompt(context.Background(), UpdateChatPromptInput(updated_params)); err != nil {
 		t.Fatalf("failed to update chat prompt: %v", err)
 	}
-	retrievedPrompt, err = service.GetChatPromptByID(context.Background(), prompt.ID)
+	retrievedPrompt, err = service.GetChatPromptByID(context.Background(), prompt.ID, prompt.UserID)
 	if err != nil {
 		t.Fatalf("failed to get chat prompt: %v", err)
 	}
@@ -50,10 +51,10 @@ func TestChatPromptService(t *testing.T) {
 		t.Error("retrieved chat prompt does not match expected values")
 	}
 
-	if err := service.DeleteChatPrompt(context.Background(), prompt.ID); err != nil {
+	if err := service.DeleteChatPrompt(context.Background(), DeleteChatPromptCommand{ID: prompt.ID, UserID: prompt.UserID}); err != nil {
 		t.Fatalf("failed to delete chat prompt: %v", err)
 	}
-	_, err = service.GetChatPromptByID(context.Background(), prompt.ID)
+	_, err = service.GetChatPromptByID(context.Background(), prompt.ID, prompt.UserID)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		print("Chat prompt deleted successfully")
 	}
@@ -89,10 +90,10 @@ func TestGetAllChatPrompts(t *testing.T) {
 		t.Errorf("expected 2 chat prompts, but got %d", len(prompts))
 	}
 
-	if err := service.DeleteChatPrompt(context.Background(), prompt1.ID); err != nil {
+	if err := service.DeleteChatPrompt(context.Background(), DeleteChatPromptCommand{ID: prompt1.ID, UserID: prompt1.UserID}); err != nil {
 		t.Fatalf("failed to delete chat prompt: %v", err)
 	}
-	if err := service.DeleteChatPrompt(context.Background(), prompt2.ID); err != nil {
+	if err := service.DeleteChatPrompt(context.Background(), DeleteChatPromptCommand{ID: prompt2.ID, UserID: prompt2.UserID}); err != nil {
 		t.Fatalf("failed to delete chat prompt: %v", err)
 	}
 }
@@ -127,10 +128,10 @@ func TestGetChatPromptsByTopic(t *testing.T) {
 		t.Error("retrieved chat prompts do not match expected values")
 	}
 
-	if err := service.DeleteChatPrompt(context.Background(), prompt1.ID); err != nil {
+	if err := service.DeleteChatPrompt(context.Background(), DeleteChatPromptCommand{ID: prompt1.ID, UserID: prompt1.UserID}); err != nil {
 		t.Fatalf("failed to delete chat prompt: %v", err)
 	}
-	if err := service.DeleteChatPrompt(context.Background(), prompt2.ID); err != nil {
+	if err := service.DeleteChatPrompt(context.Background(), DeleteChatPromptCommand{ID: prompt2.ID, UserID: prompt2.UserID}); err != nil {
 		t.Fatalf("failed to delete chat prompt: %v", err)
 	}
 }
@@ -165,10 +166,10 @@ func TestGetChatPromptsByUserID(t *testing.T) {
 		t.Error("retrieved chat prompts do not match expected values")
 	}
 
-	if err := service.DeleteChatPrompt(context.Background(), prompt1.ID); err != nil {
+	if err := service.DeleteChatPrompt(context.Background(), DeleteChatPromptCommand{ID: prompt1.ID, UserID: prompt1.UserID}); err != nil {
 		t.Fatalf("failed to delete chat prompt: %v", err)
 	}
-	if err := service.DeleteChatPrompt(context.Background(), prompt2.ID); err != nil {
+	if err := service.DeleteChatPrompt(context.Background(), DeleteChatPromptCommand{ID: prompt2.ID, UserID: prompt2.UserID}); err != nil {
 		t.Fatalf("failed to delete chat prompt: %v", err)
 	}
 

@@ -3,6 +3,7 @@ package svc
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/llm/gemini"
 	models "github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/pkg/util"
@@ -77,8 +79,8 @@ func (s *ChatService) GetChatRequest(ctx context.Context, requestUUID, sessionUU
 	})
 }
 
-func (s *ChatService) GetChatMessageByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatMessage, error) {
-	return s.q.GetChatMessageByUUID(ctx, uuid)
+func (s *ChatService) GetChatMessageByUUID(ctx context.Context, uuid string, userID int32) (sqlc_queries.ChatMessage, error) {
+	return s.q.GetChatMessageByUUID(ctx, sqlc_queries.GetChatMessageByUUIDParams{Uuid: uuid, UserID: userID})
 }
 
 func (s *ChatService) MarkChatRequestStreaming(ctx context.Context, requestUUID, sessionUUID string, userID int32) error {
@@ -525,7 +527,7 @@ func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, mo
 
 // UpdateChatMessageContent updates the content of an existing chat message.
 // Recalculates token count for the updated content.
-func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, content string) error {
+func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid string, userID int32, content string) error {
 	// encode
 	// num_tokens
 	num_tokens, err := provider.GetTokenCount(content)
@@ -534,19 +536,27 @@ func (s *ChatService) UpdateChatMessageContent(ctx context.Context, uuid, conten
 		num_tokens = len(content) / tokenEstimateRatio // Fallback estimate
 	}
 
-	err = s.q.UpdateChatMessageContent(ctx, sqlc_queries.UpdateChatMessageContentParams{
+	rows, err := s.q.UpdateChatMessageContent(ctx, sqlc_queries.UpdateChatMessageContentParams{
 		Uuid:       uuid,
 		Content:    content,
 		TokenCount: int32(num_tokens),
+		UserID:     userID,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return domain.NotFound("Chat message", sql.ErrNoRows)
+	}
+	return nil
 }
 
 // UpdateChatMessageSuggestions updates the suggested questions for a chat message
-func (s *ChatService) UpdateChatMessageSuggestions(ctx context.Context, uuid string, suggestedQuestions json.RawMessage) error {
+func (s *ChatService) UpdateChatMessageSuggestions(ctx context.Context, uuid string, userID int32, suggestedQuestions json.RawMessage) error {
 	_, err := s.q.UpdateChatMessageSuggestions(ctx, sqlc_queries.UpdateChatMessageSuggestionsParams{
 		Uuid:               uuid,
 		SuggestedQuestions: suggestedQuestions,
+		UserID:             userID,
 	})
 	return err
 }

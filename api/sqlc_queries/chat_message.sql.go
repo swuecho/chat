@@ -81,45 +81,69 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 	return i, err
 }
 
-const deleteChatMessage = `-- name: DeleteChatMessage :exec
+const deleteChatMessage = `-- name: DeleteChatMessage :execrows
 UPDATE chat_message set is_deleted = true, updated_at = now()
-WHERE id = $1
+WHERE id = $1 and user_id = $2
 `
 
-func (q *Queries) DeleteChatMessage(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteChatMessage, id)
-	return err
+type DeleteChatMessageParams struct {
+	ID     int32 `json:"id"`
+	UserID int32 `json:"userId"`
 }
 
-const deleteChatMessageByUUID = `-- name: DeleteChatMessageByUUID :exec
+func (q *Queries) DeleteChatMessage(ctx context.Context, arg DeleteChatMessageParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteChatMessage, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteChatMessageByUUID = `-- name: DeleteChatMessageByUUID :execrows
 UPDATE chat_message SET is_deleted = true, updated_at = now()
-WHERE uuid = $1
+WHERE uuid = $1 and user_id = $2
 `
 
-func (q *Queries) DeleteChatMessageByUUID(ctx context.Context, uuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteChatMessageByUUID, uuid)
-	return err
+type DeleteChatMessageByUUIDParams struct {
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userId"`
 }
 
-const deleteChatMessagesBySesionUUID = `-- name: DeleteChatMessagesBySesionUUID :exec
+func (q *Queries) DeleteChatMessageByUUID(ctx context.Context, arg DeleteChatMessageByUUIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteChatMessageByUUID, arg.Uuid, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteChatMessagesBySesionUUID = `-- name: DeleteChatMessagesBySesionUUID :execrows
 UPDATE chat_message 
 SET is_deleted = true, updated_at = now()
-WHERE is_deleted = false and is_pin = false and chat_session_uuid = $1
+WHERE is_deleted = false and is_pin = false and chat_session_uuid = $1 and user_id = $2
 `
 
-func (q *Queries) DeleteChatMessagesBySesionUUID(ctx context.Context, chatSessionUuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteChatMessagesBySesionUUID, chatSessionUuid)
-	return err
+type DeleteChatMessagesBySesionUUIDParams struct {
+	ChatSessionUuid string `json:"chatSessionUuid"`
+	UserID          int32  `json:"userId"`
+}
+
+func (q *Queries) DeleteChatMessagesBySesionUUID(ctx context.Context, arg DeleteChatMessagesBySesionUUIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteChatMessagesBySesionUUID, arg.ChatSessionUuid, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getAllChatMessages = `-- name: GetAllChatMessages :many
 SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions FROM chat_message 
-WHERE is_deleted = false
+WHERE is_deleted = false and user_id = $1
 ORDER BY id
 `
 
-func (q *Queries) GetAllChatMessages(ctx context.Context) ([]ChatMessage, error) {
-	rows, err := q.db.QueryContext(ctx, getAllChatMessages)
+func (q *Queries) GetAllChatMessages(ctx context.Context, userID int32) ([]ChatMessage, error) {
+	rows, err := q.db.QueryContext(ctx, getAllChatMessages, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -164,11 +188,16 @@ func (q *Queries) GetAllChatMessages(ctx context.Context) ([]ChatMessage, error)
 
 const getChatMessageByID = `-- name: GetChatMessageByID :one
 SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions FROM chat_message 
-WHERE is_deleted = false and id = $1
+WHERE is_deleted = false and id = $1 and user_id = $2
 `
 
-func (q *Queries) GetChatMessageByID(ctx context.Context, id int32) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, getChatMessageByID, id)
+type GetChatMessageByIDParams struct {
+	ID     int32 `json:"id"`
+	UserID int32 `json:"userId"`
+}
+
+func (q *Queries) GetChatMessageByID(ctx context.Context, arg GetChatMessageByIDParams) (ChatMessage, error) {
+	row := q.db.QueryRowContext(ctx, getChatMessageByID, arg.ID, arg.UserID)
 	var i ChatMessage
 	err := row.Scan(
 		&i.ID,
@@ -241,12 +270,17 @@ func (q *Queries) GetChatMessageBySessionUUID(ctx context.Context, arg GetChatMe
 const getChatMessageByUUID = `-- name: GetChatMessageByUUID :one
 
 SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions FROM chat_message 
-WHERE is_deleted = false and uuid = $1
+WHERE is_deleted = false and uuid = $1 and user_id = $2
 `
 
+type GetChatMessageByUUIDParams struct {
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userId"`
+}
+
 // -- UUID ----
-func (q *Queries) GetChatMessageByUUID(ctx context.Context, uuid string) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, getChatMessageByUUID, uuid)
+func (q *Queries) GetChatMessageByUUID(ctx context.Context, arg GetChatMessageByUUIDParams) (ChatMessage, error) {
+	row := q.db.QueryRowContext(ctx, getChatMessageByUUID, arg.Uuid, arg.UserID)
 	var i ChatMessage
 	err := row.Scan(
 		&i.ID,
@@ -711,7 +745,7 @@ func (q *Queries) HasChatMessagePermission(ctx context.Context, arg HasChatMessa
 
 const updateChatMessage = `-- name: UpdateChatMessage :one
 UPDATE chat_message SET role = $2, content = $3, score = $4, user_id = $5, updated_by = $6, artifacts = $7, suggested_questions = $8, updated_at = now()
-WHERE id = $1
+WHERE id = $1 and user_id = $5
 RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions
 `
 
@@ -765,7 +799,7 @@ func (q *Queries) UpdateChatMessage(ctx context.Context, arg UpdateChatMessagePa
 
 const updateChatMessageByUUID = `-- name: UpdateChatMessageByUUID :one
 UPDATE chat_message SET content = $2, is_pin = $3, token_count = $4, artifacts = $5, suggested_questions = $6, updated_at = now() 
-WHERE uuid = $1
+WHERE uuid = $1 and user_id = $7
 RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions
 `
 
@@ -776,6 +810,7 @@ type UpdateChatMessageByUUIDParams struct {
 	TokenCount         int32           `json:"tokenCount"`
 	Artifacts          json.RawMessage `json:"artifacts"`
 	SuggestedQuestions json.RawMessage `json:"suggestedQuestions"`
+	UserID             int32           `json:"userId"`
 }
 
 func (q *Queries) UpdateChatMessageByUUID(ctx context.Context, arg UpdateChatMessageByUUIDParams) (ChatMessage, error) {
@@ -786,6 +821,7 @@ func (q *Queries) UpdateChatMessageByUUID(ctx context.Context, arg UpdateChatMes
 		arg.TokenCount,
 		arg.Artifacts,
 		arg.SuggestedQuestions,
+		arg.UserID,
 	)
 	var i ChatMessage
 	err := row.Scan(
@@ -813,37 +849,47 @@ func (q *Queries) UpdateChatMessageByUUID(ctx context.Context, arg UpdateChatMes
 	return i, err
 }
 
-const updateChatMessageContent = `-- name: UpdateChatMessageContent :exec
+const updateChatMessageContent = `-- name: UpdateChatMessageContent :execrows
 UPDATE chat_message
 SET content = $2, updated_at = now(), token_count = $3
-WHERE uuid = $1
+WHERE uuid = $1 and user_id = $4
 `
 
 type UpdateChatMessageContentParams struct {
 	Uuid       string `json:"uuid"`
 	Content    string `json:"content"`
 	TokenCount int32  `json:"tokenCount"`
+	UserID     int32  `json:"userId"`
 }
 
-func (q *Queries) UpdateChatMessageContent(ctx context.Context, arg UpdateChatMessageContentParams) error {
-	_, err := q.db.ExecContext(ctx, updateChatMessageContent, arg.Uuid, arg.Content, arg.TokenCount)
-	return err
+func (q *Queries) UpdateChatMessageContent(ctx context.Context, arg UpdateChatMessageContentParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateChatMessageContent,
+		arg.Uuid,
+		arg.Content,
+		arg.TokenCount,
+		arg.UserID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateChatMessageSuggestions = `-- name: UpdateChatMessageSuggestions :one
 UPDATE chat_message 
 SET suggested_questions = $2, updated_at = now() 
-WHERE uuid = $1
+WHERE uuid = $1 and user_id = $3
 RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions
 `
 
 type UpdateChatMessageSuggestionsParams struct {
 	Uuid               string          `json:"uuid"`
 	SuggestedQuestions json.RawMessage `json:"suggestedQuestions"`
+	UserID             int32           `json:"userId"`
 }
 
 func (q *Queries) UpdateChatMessageSuggestions(ctx context.Context, arg UpdateChatMessageSuggestionsParams) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, updateChatMessageSuggestions, arg.Uuid, arg.SuggestedQuestions)
+	row := q.db.QueryRowContext(ctx, updateChatMessageSuggestions, arg.Uuid, arg.SuggestedQuestions, arg.UserID)
 	var i ChatMessage
 	err := row.Scan(
 		&i.ID,

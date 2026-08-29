@@ -8,7 +8,6 @@ import (
 
 	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/domain"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type CreateSessionFromSnapshotCommand struct {
@@ -45,8 +44,8 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 	}
 
 	result := CreateSessionFromSnapshotResult{}
-	err := s.q.InTransaction(ctx, func(q *sqlc_queries.Queries) error {
-		snapshot, err := q.ChatSnapshotByUUID(ctx, command.SnapshotUUID)
+	err := s.tx.WithinTransaction(ctx, func(uow UnitOfWork) error {
+		snapshot, err := uow.SnapshotByUUID(ctx, command.SnapshotUUID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return domain.NotFound("Chat snapshot", err)
@@ -59,14 +58,14 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 			return domain.Invalid("snapshot has no messages")
 		}
 
-		prompt, err := q.GetChatPromptByUUID(ctx, messages[0].UUID)
+		prompt, err := uow.PromptByUUID(ctx, messages[0].UUID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return domain.NotFound("Chat prompt", err)
 			}
 			return eris.Wrap(err, "failed to retrieve source prompt")
 		}
-		source, err := q.GetChatSessionByUUIDWithInActive(ctx, prompt.ChatSessionUuid)
+		source, err := uow.InactiveSessionByUUID(ctx, prompt.ChatSessionUuid)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return domain.NotFound("Original chat session", err)
@@ -75,7 +74,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 		}
 
 		sessionUUID := s.newID()
-		session, err := q.CreateOrUpdateChatSessionByUUID(ctx, sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
+		session, err := uow.CreateOrUpdateSession(ctx, CreateOrUpdateChatSessionInput{
 			Uuid: sessionUUID, UserID: command.UserID, Topic: snapshot.Title,
 			MaxLength: source.MaxLength, Temperature: source.Temperature,
 			Model: source.Model, MaxTokens: source.MaxTokens, TopP: source.TopP, N: 1,
@@ -87,7 +86,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 			return eris.Wrap(err, "failed to create session from snapshot")
 		}
 
-		if _, err := q.CreateChatPrompt(ctx, sqlc_queries.CreateChatPromptParams{
+		if err := uow.CreatePrompt(ctx, CreateChatPromptInput{
 			Uuid: s.newID(), ChatSessionUuid: sessionUUID, Role: "system",
 			Content: messages[0].Text, UserID: command.UserID,
 			CreatedBy: command.UserID, UpdatedBy: command.UserID,
@@ -96,7 +95,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 		}
 
 		for _, message := range messages[1:] {
-			if _, err := q.CreateChatMessage(ctx, sqlc_queries.CreateChatMessageParams{
+			if err := uow.CreateMessage(ctx, CreateChatMessageInput{
 				ChatSessionUuid: sessionUUID, Uuid: s.newID(), Role: message.role(),
 				Content: message.Text, UserID: command.UserID,
 				CreatedBy: command.UserID, UpdatedBy: command.UserID,
@@ -107,9 +106,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 			}
 		}
 
-		if _, err := q.UpsertUserActiveSession(ctx, sqlc_queries.UpsertUserActiveSessionParams{
-			UserID: command.UserID, WorkspaceID: source.WorkspaceID, ChatSessionUuid: session.Uuid,
-		}); err != nil {
+		if err := uow.SetActiveSession(ctx, command.UserID, source.WorkspaceID, session.Uuid); err != nil {
 			return eris.Wrap(err, "failed to set active session")
 		}
 		result.SessionUUID = session.Uuid

@@ -56,26 +56,42 @@ func (q *Queries) CreateChatPrompt(ctx context.Context, arg CreateChatPromptPara
 	return i, err
 }
 
-const deleteChatPrompt = `-- name: DeleteChatPrompt :exec
+const deleteChatPrompt = `-- name: DeleteChatPrompt :execrows
 UPDATE chat_prompt 
 SET is_deleted = true, updated_at = now()
-WHERE id = $1
+WHERE id = $1 and user_id = $2
 `
 
-func (q *Queries) DeleteChatPrompt(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteChatPrompt, id)
-	return err
+type DeleteChatPromptParams struct {
+	ID     int32 `json:"id"`
+	UserID int32 `json:"userId"`
 }
 
-const deleteChatPromptByUUID = `-- name: DeleteChatPromptByUUID :exec
+func (q *Queries) DeleteChatPrompt(ctx context.Context, arg DeleteChatPromptParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteChatPrompt, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteChatPromptByUUID = `-- name: DeleteChatPromptByUUID :execrows
 UPDATE chat_prompt
 SET is_deleted = true, updated_at = now()
-WHERE uuid = $1
+WHERE uuid = $1 and user_id = $2
 `
 
-func (q *Queries) DeleteChatPromptByUUID(ctx context.Context, uuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteChatPromptByUUID, uuid)
-	return err
+type DeleteChatPromptByUUIDParams struct {
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userId"`
+}
+
+func (q *Queries) DeleteChatPromptByUUID(ctx context.Context, arg DeleteChatPromptByUUIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteChatPromptByUUID, arg.Uuid, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getAllChatPrompts = `-- name: GetAllChatPrompts :many
@@ -123,11 +139,16 @@ func (q *Queries) GetAllChatPrompts(ctx context.Context) ([]ChatPrompt, error) {
 
 const getChatPromptByID = `-- name: GetChatPromptByID :one
 SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, token_count FROM chat_prompt
-WHERE is_deleted = false and  id = $1
+WHERE is_deleted = false and id = $1 and user_id = $2
 `
 
-func (q *Queries) GetChatPromptByID(ctx context.Context, id int32) (ChatPrompt, error) {
-	row := q.db.QueryRowContext(ctx, getChatPromptByID, id)
+type GetChatPromptByIDParams struct {
+	ID     int32 `json:"id"`
+	UserID int32 `json:"userId"`
+}
+
+func (q *Queries) GetChatPromptByID(ctx context.Context, arg GetChatPromptByIDParams) (ChatPrompt, error) {
+	row := q.db.QueryRowContext(ctx, getChatPromptByID, arg.ID, arg.UserID)
 	var i ChatPrompt
 	err := row.Scan(
 		&i.ID,
@@ -355,7 +376,7 @@ func (q *Queries) HasChatPromptPermission(ctx context.Context, arg HasChatPrompt
 
 const updateChatPrompt = `-- name: UpdateChatPrompt :one
 UPDATE chat_prompt SET chat_session_uuid = $2, role = $3, content = $4, score = $5, user_id = $6, updated_at = now(), updated_by = $7
-WHERE id = $1
+WHERE id = $1 and user_id = $6
 RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, token_count
 `
 
@@ -400,7 +421,7 @@ func (q *Queries) UpdateChatPrompt(ctx context.Context, arg UpdateChatPromptPara
 
 const updateChatPromptByUUID = `-- name: UpdateChatPromptByUUID :one
 UPDATE chat_prompt SET content = $2, token_count = $3, updated_at = now()
-WHERE uuid = $1 and is_deleted = false
+WHERE uuid = $1 and is_deleted = false and user_id = $4
 RETURNING id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, token_count
 `
 
@@ -408,10 +429,16 @@ type UpdateChatPromptByUUIDParams struct {
 	Uuid       string `json:"uuid"`
 	Content    string `json:"content"`
 	TokenCount int32  `json:"tokenCount"`
+	UserID     int32  `json:"userId"`
 }
 
 func (q *Queries) UpdateChatPromptByUUID(ctx context.Context, arg UpdateChatPromptByUUIDParams) (ChatPrompt, error) {
-	row := q.db.QueryRowContext(ctx, updateChatPromptByUUID, arg.Uuid, arg.Content, arg.TokenCount)
+	row := q.db.QueryRowContext(ctx, updateChatPromptByUUID,
+		arg.Uuid,
+		arg.Content,
+		arg.TokenCount,
+		arg.UserID,
+	)
 	var i ChatPrompt
 	err := row.Scan(
 		&i.ID,

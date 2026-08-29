@@ -15,7 +15,9 @@ import (
 
 // ChatWorkspaceService provides all workspace-related business logic.
 type ChatWorkspaceService struct {
-	q *sqlc_queries.Queries
+	q     *sqlc_queries.Queries
+	tx    TransactionManager
+	newID func() string
 }
 
 type CreateWorkspaceInput struct {
@@ -31,10 +33,20 @@ type CreateWorkspaceInput struct {
 
 type UpdateWorkspaceInput struct {
 	Uuid        string
+	UserID      int32
 	Name        string
 	Description string
 	Color       string
 	Icon        string
+}
+
+type UpdateWorkspaceOrderCommand struct {
+	WorkspaceUUID         string
+	UserID, OrderPosition int32
+}
+type DeleteWorkspaceCommand struct {
+	WorkspaceUUID string
+	UserID        int32
 }
 
 type SetDefaultWorkspaceCommand struct {
@@ -71,7 +83,7 @@ func workspaceFromRecord(w sqlc_queries.ChatWorkspace) Workspace {
 
 // NewChatWorkspaceService creates a new ChatWorkspaceService.
 func NewChatWorkspaceService(q *sqlc_queries.Queries) *ChatWorkspaceService {
-	return &ChatWorkspaceService{q: q}
+	return &ChatWorkspaceService{q: q, tx: newSQLCTransactionManager(q), newID: util.NewUUID}
 }
 
 // --- Workspace CRUD ---
@@ -111,17 +123,27 @@ func (s *ChatWorkspaceService) GetWorkspaceWithSessionCount(ctx context.Context,
 }
 
 func (s *ChatWorkspaceService) UpdateWorkspace(ctx context.Context, input UpdateWorkspaceInput) (Workspace, error) {
-	w, err := s.q.UpdateWorkspace(ctx, sqlc_queries.UpdateWorkspaceParams(input))
+	w, err := s.q.UpdateWorkspace(ctx, sqlc_queries.UpdateWorkspaceParams{
+		Uuid: input.Uuid, UserID: input.UserID, Name: input.Name,
+		Description: input.Description, Color: input.Color, Icon: input.Icon,
+	})
 	return workspaceFromRecord(w), eris.Wrap(err, "failed to update workspace")
 }
 
-func (s *ChatWorkspaceService) UpdateWorkspaceOrder(ctx context.Context, uuid string, orderPosition int32) (Workspace, error) {
-	w, err := s.q.UpdateWorkspaceOrder(ctx, sqlc_queries.UpdateWorkspaceOrderParams{Uuid: uuid, OrderPosition: orderPosition})
+func (s *ChatWorkspaceService) UpdateWorkspaceOrder(ctx context.Context, command UpdateWorkspaceOrderCommand) (Workspace, error) {
+	w, err := s.q.UpdateWorkspaceOrder(ctx, sqlc_queries.UpdateWorkspaceOrderParams{Uuid: command.WorkspaceUUID, UserID: command.UserID, OrderPosition: command.OrderPosition})
 	return workspaceFromRecord(w), eris.Wrap(err, "failed to update workspace order")
 }
 
-func (s *ChatWorkspaceService) DeleteWorkspace(ctx context.Context, uuid string) error {
-	return eris.Wrap(s.q.DeleteWorkspace(ctx, uuid), "failed to delete workspace")
+func (s *ChatWorkspaceService) DeleteWorkspace(ctx context.Context, command DeleteWorkspaceCommand) error {
+	rows, err := s.q.DeleteWorkspace(ctx, sqlc_queries.DeleteWorkspaceParams{Uuid: command.WorkspaceUUID, UserID: command.UserID})
+	if err != nil {
+		return eris.Wrap(err, "failed to delete workspace")
+	}
+	if rows == 0 {
+		return domain.NotFound("Workspace", sql.ErrNoRows)
+	}
+	return nil
 }
 
 // --- Default workspace ---
@@ -158,9 +180,9 @@ func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context,
 		return Workspace{}, domain.Invalid("workspace UUID is required")
 	}
 
-	var result sqlc_queries.ChatWorkspace
-	err := s.q.InTransaction(ctx, func(q *sqlc_queries.Queries) error {
-		workspace, err := q.GetWorkspaceByUUID(ctx, command.WorkspaceUUID)
+	var result Workspace
+	err := s.tx.WithinTransaction(ctx, func(uow UnitOfWork) error {
+		workspace, err := uow.WorkspaceByUUID(ctx, command.WorkspaceUUID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return domain.NotFound("Workspace", err)
@@ -170,21 +192,21 @@ func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context,
 		if workspace.UserID != command.UserID {
 			return domain.Forbidden("workspace does not belong to user")
 		}
-		if err := q.ClearDefaultWorkspacesByUserID(ctx, command.UserID); err != nil {
+		if err := uow.ClearDefaultWorkspaces(ctx, command.UserID); err != nil {
 			return eris.Wrap(err, "failed to clear default workspace")
 		}
-		result, err = q.SetDefaultWorkspaceForUser(ctx, sqlc_queries.SetDefaultWorkspaceForUserParams{
-			Uuid: command.WorkspaceUUID, UserID: command.UserID,
-		})
+		var updated Workspace
+		updated, err = uow.SetDefaultWorkspace(ctx, command.UserID, command.WorkspaceUUID)
 		if err != nil {
 			return eris.Wrap(err, "failed to set default workspace")
 		}
+		result = updated
 		return nil
 	})
 	if err != nil {
 		return Workspace{}, err
 	}
-	return workspaceFromRecord(result), nil
+	return result, nil
 }
 
 // --- Permission ---
@@ -198,28 +220,6 @@ func (s *ChatWorkspaceService) HasWorkspacePermission(ctx context.Context, uuid 
 		return false, eris.Wrap(err, "failed to check workspace permission")
 	}
 	return result, nil
-}
-
-// --- Session creation inside workspace ---
-
-// CreateSessionInWorkspace creates a new chat session inside a workspace and sets it as active.
-func (s *ChatWorkspaceService) CreateSessionInWorkspace(ctx context.Context, userID int32, workspaceID int32, topic, model, defaultSystemPrompt string) (ChatSession, error) {
-	sessionUUID := util.NewUUID()
-
-	session, err := s.q.CreateChatSessionInWorkspace(ctx, sqlc_queries.CreateChatSessionInWorkspaceParams{
-		UserID:      userID,
-		Uuid:        sessionUUID,
-		Topic:       topic,
-		Model:       model,
-		MaxLength:   10,
-		Active:      true,
-		WorkspaceID: sql.NullInt32{Int32: workspaceID, Valid: true},
-	})
-	if err != nil {
-		return ChatSession{}, eris.Wrap(err, "failed to create session in workspace")
-	}
-
-	return chatSessionFromRecord(session), nil
 }
 
 // GetSessionsByWorkspaceID returns all sessions in a workspace.

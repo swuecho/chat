@@ -96,14 +96,22 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 	return i, err
 }
 
-const deleteWorkspace = `-- name: DeleteWorkspace :exec
+const deleteWorkspace = `-- name: DeleteWorkspace :execrows
 DELETE FROM chat_workspace 
-WHERE uuid = $1
+WHERE uuid = $1 AND user_id = $2 AND is_default = false
 `
 
-func (q *Queries) DeleteWorkspace(ctx context.Context, uuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteWorkspace, uuid)
-	return err
+type DeleteWorkspaceParams struct {
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userId"`
+}
+
+func (q *Queries) DeleteWorkspace(ctx context.Context, arg DeleteWorkspaceParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteWorkspace, arg.Uuid, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getDefaultWorkspaceByUserID = `-- name: GetDefaultWorkspaceByUserID :one
@@ -349,7 +357,7 @@ func (q *Queries) SetDefaultWorkspaceForUser(ctx context.Context, arg SetDefault
 const updateWorkspace = `-- name: UpdateWorkspace :one
 UPDATE chat_workspace 
 SET name = $2, description = $3, color = $4, icon = $5, updated_at = now()
-WHERE uuid = $1
+WHERE uuid = $1 AND user_id = $6
 RETURNING id, uuid, user_id, name, description, color, icon, created_at, updated_at, is_default, order_position
 `
 
@@ -359,6 +367,7 @@ type UpdateWorkspaceParams struct {
 	Description string `json:"description"`
 	Color       string `json:"color"`
 	Icon        string `json:"icon"`
+	UserID      int32  `json:"userId"`
 }
 
 func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams) (ChatWorkspace, error) {
@@ -368,6 +377,7 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 		arg.Description,
 		arg.Color,
 		arg.Icon,
+		arg.UserID,
 	)
 	var i ChatWorkspace
 	err := row.Scan(
@@ -389,17 +399,18 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 const updateWorkspaceOrder = `-- name: UpdateWorkspaceOrder :one
 UPDATE chat_workspace 
 SET order_position = $2, updated_at = now()
-WHERE uuid = $1
+WHERE uuid = $1 AND user_id = $3
 RETURNING id, uuid, user_id, name, description, color, icon, created_at, updated_at, is_default, order_position
 `
 
 type UpdateWorkspaceOrderParams struct {
 	Uuid          string `json:"uuid"`
 	OrderPosition int32  `json:"orderPosition"`
+	UserID        int32  `json:"userId"`
 }
 
 func (q *Queries) UpdateWorkspaceOrder(ctx context.Context, arg UpdateWorkspaceOrderParams) (ChatWorkspace, error) {
-	row := q.db.QueryRowContext(ctx, updateWorkspaceOrder, arg.Uuid, arg.OrderPosition)
+	row := q.db.QueryRowContext(ctx, updateWorkspaceOrder, arg.Uuid, arg.OrderPosition, arg.UserID)
 	var i ChatWorkspace
 	err := row.Scan(
 		&i.ID,

@@ -16,23 +16,33 @@ import (
 
 // ChatHandler handles chat completion and streaming requests.
 type ChatHandler struct {
-	service     *svc.ChatService
-	sessionSvc  *svc.ChatSessionService
-	rateLimiter *rate.Limiter
-	openAIKey   string
-	openAIProxy string
+	service         *svc.ChatService
+	sessionSvc      *svc.ChatSessionService
+	conversationSvc *svc.SessionConversationService
+	rateLimitSvc    *svc.SessionRateLimitService
+	snapshotSvc     *svc.SessionSnapshotQueryService
+	modelSvc        *svc.SessionModelService
+	botHistorySvc   *svc.SessionBotHistoryService
+	rateLimiter     *rate.Limiter
+	openAIKey       string
+	openAIProxy     string
 }
 
 const sessionTitleGenerationTimeout = 30 * time.Second
 
 // NewChatHandler creates a new ChatHandler.
-func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
+func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService, conversationSvc *svc.SessionConversationService, rateLimitSvc *svc.SessionRateLimitService, snapshotSvc *svc.SessionSnapshotQueryService, modelSvc *svc.SessionModelService, botHistorySvc *svc.SessionBotHistoryService, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
 	return &ChatHandler{
-		service:     service,
-		sessionSvc:  sessionSvc,
-		rateLimiter: rateLimiter,
-		openAIKey:   openAIKey,
-		openAIProxy: openAIProxy,
+		service:         service,
+		sessionSvc:      sessionSvc,
+		conversationSvc: conversationSvc,
+		rateLimitSvc:    rateLimitSvc,
+		snapshotSvc:     snapshotSvc,
+		modelSvc:        modelSvc,
+		botHistorySvc:   botHistorySvc,
+		rateLimiter:     rateLimiter,
+		openAIKey:       openAIKey,
+		openAIProxy:     openAIProxy,
 	}
 }
 

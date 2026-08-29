@@ -180,7 +180,7 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat Session").WithMessage("chat session not found"))
 		return
 	}
-	if !session.WorkspaceID.Valid || session.WorkspaceID.Int32 != workspace.ID {
+	if session.WorkspaceID == nil || *session.WorkspaceID != workspace.ID {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("session does not belong to workspace"))
 		return
 	}

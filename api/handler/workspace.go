@@ -9,18 +9,12 @@ import (
 
 // ChatWorkspaceHandler handles HTTP requests for workspace management.
 type ChatWorkspaceHandler struct {
-	wsService      *svc.ChatWorkspaceService
-	sessionService *svc.ChatSessionService
-	activeSession  *svc.UserActiveChatSessionService
+	wsService *svc.ChatWorkspaceService
 }
 
 // NewChatWorkspaceHandler creates a new ChatWorkspaceHandler with all required services.
-func NewChatWorkspaceHandler(wsService *svc.ChatWorkspaceService, sessionService *svc.ChatSessionService, activeSession *svc.UserActiveChatSessionService) *ChatWorkspaceHandler {
-	return &ChatWorkspaceHandler{
-		wsService:      wsService,
-		sessionService: sessionService,
-		activeSession:  activeSession,
-	}
+func NewChatWorkspaceHandler(wsService *svc.ChatWorkspaceService) *ChatWorkspaceHandler {
+	return &ChatWorkspaceHandler{wsService: wsService}
 }
 
 // Register registers workspace routes on the given router.

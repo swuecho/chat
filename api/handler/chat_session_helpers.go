@@ -57,7 +57,7 @@ func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.Respo
 		return false
 	}
 
-	message, err := h.service.GetChatMessageByUUID(ctx, request.AssistantUuid)
+	message, err := h.service.GetChatMessageByUUID(ctx, request.AssistantUuid, userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Completed response could not be loaded", err.Error()))
 		return false
@@ -85,21 +85,25 @@ func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.Respo
 }
 
 // validateChatSession validates the session UUID and retrieves session + model info.
-func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string) (*svc.ChatSession, *svc.ChatModel, string, bool) {
+func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string, userID int32) (*svc.ChatSession, *svc.RuntimeModel, string, bool) {
 	chatSession, err := h.sessionSvc.GetChatSessionByUUID(ctx, chatSessionUuid)
 	if err != nil {
 		slog.Info("Invalid session UUID", "uuid", chatSessionUuid, "error", err)
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat session").WithMessage(chatSessionUuid))
 		return nil, nil, "", false
 	}
+	if chatSession.UserID != userID {
+		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("You do not own this session"))
+		return nil, nil, "", false
+	}
 
-	chatModel, err := h.sessionSvc.ChatModelByName(ctx, chatSession.Model)
+	chatModel, err := h.modelSvc.ByName(ctx, chatSession.Model)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat model: "+chatSession.Model))
 		return nil, nil, "", false
 	}
 
-	baseURL, _ := provider.GetModelBaseURL(chatModel.Url)
+	baseURL, _ := provider.GetModelBaseURL(chatModel.URL)
 
 	if chatSession.Uuid == "" {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid session UUID"))
@@ -112,8 +116,8 @@ func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWr
 // handlePromptCreation creates or reuses the system prompt and adds the user message.
 func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseWriter, chatSession *svc.ChatSession, chatUuid, newQuestion string, userID int32, baseURL string) bool {
 	existingPrompt := true
-	_, err := h.sessionSvc.GetOneChatPromptBySessionUUID(ctx, chatSession.Uuid)
-	if err != nil {
+	hasPrompt, err := h.conversationSvc.HasSystemPrompt(ctx, chatSession.Uuid)
+	if err != nil || !hasPrompt {
 		if errors.Is(err, sql.ErrNoRows) {
 			existingPrompt = false
 		} else {
@@ -299,7 +303,7 @@ func (h *ChatHandler) generateSessionTitle(chatSession *svc.ChatSession, userID 
 	ctx, cancel := context.WithTimeout(context.Background(), sessionTitleGenerationTimeout)
 	defer cancel()
 
-	messages, err := h.sessionSvc.GetChatMessagesPage(ctx, chatSession.Uuid, 0, 100)
+	messages, err := h.conversationSvc.MessagesPage(ctx, chatSession.Uuid, 0, 100)
 	if err != nil {
 		slog.Warn("Failed to get messages for title generation", "error", err)
 		return
@@ -314,12 +318,7 @@ func (h *ChatHandler) generateSessionTitle(chatSession *svc.ChatSession, userID 
 		return
 	}
 
-	titleModel, err := h.sessionSvc.GetTitleChatModel(ctx)
-	if err != nil {
-		return
-	}
-
-	genTitle, err := h.sessionSvc.GenerateChatTitle(ctx, titleModel, chatText.String())
+	genTitle, err := h.modelSvc.GenerateTitle(ctx, chatText.String())
 	if err != nil || genTitle == "" {
 		return
 	}

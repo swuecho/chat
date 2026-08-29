@@ -1,6 +1,6 @@
 -- name: GetAllChatMessages :many
 SELECT * FROM chat_message 
-WHERE is_deleted = false
+WHERE is_deleted = false and user_id = $1
 ORDER BY id;
 
 -- name: GetChatMessagesBySessionUUID :many
@@ -25,7 +25,7 @@ LIMIT $1;
 
 -- name: GetChatMessageByID :one
 SELECT * FROM chat_message 
-WHERE is_deleted = false and id = $1;
+WHERE is_deleted = false and id = $1 and user_id = $2;
 
 
 -- name: CreateChatMessage :one
@@ -37,29 +37,29 @@ RETURNING *;
 
 -- name: UpdateChatMessage :one
 UPDATE chat_message SET role = $2, content = $3, score = $4, user_id = $5, updated_by = $6, artifacts = $7, suggested_questions = $8, updated_at = now()
-WHERE id = $1
+WHERE id = $1 and user_id = $5
 RETURNING *;
 
--- name: DeleteChatMessage :exec
+-- name: DeleteChatMessage :execrows
 UPDATE chat_message set is_deleted = true, updated_at = now()
-WHERE id = $1;
+WHERE id = $1 and user_id = $2;
 
 
 ---- UUID ----
 
 -- name: GetChatMessageByUUID :one
 SELECT * FROM chat_message 
-WHERE is_deleted = false and uuid = $1;
+WHERE is_deleted = false and uuid = $1 and user_id = $2;
 
 
 -- name: UpdateChatMessageByUUID :one
 UPDATE chat_message SET content = $2, is_pin = $3, token_count = $4, artifacts = $5, suggested_questions = $6, updated_at = now() 
-WHERE uuid = $1
+WHERE uuid = $1 and user_id = $7
 RETURNING *;
 
--- name: DeleteChatMessageByUUID :exec
+-- name: DeleteChatMessageByUUID :execrows
 UPDATE chat_message SET is_deleted = true, updated_at = now()
-WHERE uuid = $1;
+WHERE uuid = $1 and user_id = $2;
 
 
 -- name: HasChatMessagePermission :one
@@ -118,21 +118,21 @@ WHERE chat_message.id in (
 ORDER BY created_at;
 
 
--- name: UpdateChatMessageContent :exec
+-- name: UpdateChatMessageContent :execrows
 UPDATE chat_message
 SET content = $2, updated_at = now(), token_count = $3
-WHERE uuid = $1 ;
+WHERE uuid = $1 and user_id = $4;
 
 -- name: UpdateChatMessageSuggestions :one
 UPDATE chat_message 
 SET suggested_questions = $2, updated_at = now() 
-WHERE uuid = $1
+WHERE uuid = $1 and user_id = $3
 RETURNING *;
 
--- name: DeleteChatMessagesBySesionUUID :exec
+-- name: DeleteChatMessagesBySesionUUID :execrows
 UPDATE chat_message 
 SET is_deleted = true, updated_at = now()
-WHERE is_deleted = false and is_pin = false and chat_session_uuid = $1;
+WHERE is_deleted = false and is_pin = false and chat_session_uuid = $1 and user_id = $2;
 
 
 -- name: GetChatMessagesCount :one

@@ -25,11 +25,7 @@ func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *ht
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	if !h.checkPermission(w, ctx, workspaceUUID, userID) {
-		return
-	}
-
-	workspace, err := h.wsService.UpdateWorkspaceOrder(ctx, workspaceUUID, req.OrderPosition)
+	workspace, err := h.wsService.UpdateWorkspaceOrder(ctx, svc.UpdateWorkspaceOrderCommand{WorkspaceUUID: workspaceUUID, UserID: userID, OrderPosition: req.OrderPosition})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update workspace order"))
 		return

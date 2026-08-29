@@ -15,18 +15,18 @@ ORDER BY order_position ASC, created_at ASC;
 -- name: UpdateWorkspace :one
 UPDATE chat_workspace 
 SET name = $2, description = $3, color = $4, icon = $5, updated_at = now()
-WHERE uuid = $1
+WHERE uuid = $1 AND user_id = $6
 RETURNING *;
 
 -- name: UpdateWorkspaceOrder :one
 UPDATE chat_workspace 
 SET order_position = $2, updated_at = now()
-WHERE uuid = $1
+WHERE uuid = $1 AND user_id = $3
 RETURNING *;
 
--- name: DeleteWorkspace :exec
+-- name: DeleteWorkspace :execrows
 DELETE FROM chat_workspace 
-WHERE uuid = $1;
+WHERE uuid = $1 AND user_id = $2 AND is_default = false;
 
 -- name: GetDefaultWorkspaceByUserID :one
 SELECT * FROM chat_workspace 

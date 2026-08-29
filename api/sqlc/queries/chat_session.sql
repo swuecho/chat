@@ -69,9 +69,9 @@ topic = EXCLUDED.topic,
 updated_at = now()
 returning *;
 
--- name: DeleteChatSessionByUUID :exec
+-- name: DeleteChatSessionByUUID :execrows
 update chat_session set active = false
-WHERE uuid = $1
+WHERE uuid = $1 AND user_id = $2
 returning *;
 
 -- name: GetChatSessionsByUserID :many
@@ -104,7 +104,7 @@ WHERE cs.id = $1 AND (cs.user_id = $2 OR au.is_superuser);
 UPDATE chat_session
 SET max_length = $2,
     updated_at = now()
-WHERE uuid = $1
+WHERE uuid = $1 AND user_id = $3
 RETURNING *;
 
 -- name: CreateChatSessionInWorkspace :one
