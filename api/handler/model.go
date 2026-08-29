@@ -67,14 +67,14 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var input svc.CreateChatModelInput
+	var request createChatModelRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
 		return
 	}
 
-	apiType := input.ApiType
+	apiType := request.APIType
 	if apiType == "" {
 		apiType = "openai"
 	}
@@ -87,9 +87,7 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	input.UserID, input.MaxToken, input.DefaultToken = userID, 4096, 2048
-	input.HttpTimeOut, input.ApiType = 120, apiType
-	chatModel, err := h.service.Create(r.Context(), input)
+	chatModel, err := h.service.Create(r.Context(), request.createInput(userID, apiType))
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to create chat model").WithDebugInfo(err.Error()))
 		return
@@ -113,13 +111,13 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var input svc.UpdateChatModelInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	var request createChatModelRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
 		return
 	}
 
-	apiType := input.ApiType
+	apiType := request.APIType
 	if apiType == "" {
 		apiType = "openai"
 	}
@@ -132,8 +130,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	input.ID, input.UserID, input.ApiType = int32(id), userID, apiType
-	chatModel, err := h.service.Update(r.Context(), input)
+	chatModel, err := h.service.Update(r.Context(), request.updateInput(int32(id), userID, apiType))
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update chat model").WithDebugInfo(err.Error()))
 		return

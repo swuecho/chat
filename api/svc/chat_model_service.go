@@ -12,37 +12,37 @@ type ChatModelService struct{ q *sqlc_queries.Queries }
 func NewChatModelService(q *sqlc_queries.Queries) *ChatModelService { return &ChatModelService{q: q} }
 
 type CreateChatModelInput struct {
-	Name                   string `json:"name"`
-	Label                  string `json:"label"`
-	IsDefault              bool   `json:"isDefault"`
-	Url                    string `json:"url"`
-	ApiAuthHeader          string `json:"apiAuthHeader"`
-	ApiAuthKey             string `json:"apiAuthKey"`
+	Name                   string
+	Label                  string
+	IsDefault              bool
+	Url                    string
+	ApiAuthHeader          string
+	ApiAuthKey             string
 	UserID                 int32
-	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
-	MaxToken               int32  `json:"maxToken"`
-	DefaultToken           int32  `json:"defaultToken"`
-	OrderNumber            int32  `json:"orderNumber"`
-	HttpTimeOut            int32  `json:"httpTimeOut"`
-	ApiType                string `json:"apiType"`
+	EnablePerModeRatelimit bool
+	MaxToken               int32
+	DefaultToken           int32
+	OrderNumber            int32
+	HttpTimeOut            int32
+	ApiType                string
 }
 
 type UpdateChatModelInput struct {
 	ID                     int32
-	Name                   string `json:"name"`
-	Label                  string `json:"label"`
-	IsDefault              bool   `json:"isDefault"`
-	Url                    string `json:"url"`
-	ApiAuthHeader          string `json:"apiAuthHeader"`
-	ApiAuthKey             string `json:"apiAuthKey"`
+	Name                   string
+	Label                  string
+	IsDefault              bool
+	Url                    string
+	ApiAuthHeader          string
+	ApiAuthKey             string
 	UserID                 int32
-	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
-	MaxToken               int32  `json:"maxToken"`
-	DefaultToken           int32  `json:"defaultToken"`
-	OrderNumber            int32  `json:"orderNumber"`
-	HttpTimeOut            int32  `json:"httpTimeOut"`
-	IsEnable               bool   `json:"isEnable"`
-	ApiType                string `json:"apiType"`
+	EnablePerModeRatelimit bool
+	MaxToken               int32
+	DefaultToken           int32
+	OrderNumber            int32
+	HttpTimeOut            int32
+	IsEnable               bool
+	ApiType                string
 }
 
 type ChatModelWithUsage struct {

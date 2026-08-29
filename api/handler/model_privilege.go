@@ -41,29 +41,31 @@ func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivileges(w http.Respo
 }
 
 func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.ResponseWriter, r *http.Request) {
-	var input svc.ChatModelPrivilege
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	var request chatModelPrivilegeRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}
 
-	if input.UserEmail == "" {
+	if request.UserEmail == "" {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("user email is required"))
 		return
 	}
-	if input.ChatModelName == "" {
+	if request.ChatModelName == "" {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("chat model name is required"))
 		return
 	}
-	if input.RateLimit <= 0 {
+	if request.RateLimit <= 0 {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("rate limit must be positive").WithMessage(
-			fmt.Sprintf("invalid rate limit: %d", input.RateLimit)))
+			fmt.Sprintf("invalid rate limit: %d", request.RateLimit)))
 		return
 	}
 
-	slog.Info("Creating chat model privilege", "userEmail", input.UserEmail, "chatModelName", input.ChatModelName)
+	slog.Info("Creating chat model privilege", "userEmail", request.UserEmail, "chatModelName", request.ChatModelName)
 
-	output, err := h.service.Create(r.Context(), input)
+	output, err := h.service.Create(r.Context(), svc.ChatModelPrivilege{
+		UserEmail: request.UserEmail, ChatModelName: request.ChatModelName, RateLimit: request.RateLimit,
+	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat model privilege"))
@@ -91,18 +93,18 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 		return
 	}
 
-	var input svc.ChatModelPrivilege
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	var request chatModelPrivilegeRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}
 
-	if input.RateLimit <= 0 {
+	if request.RateLimit <= 0 {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("rate limit must be positive"))
 		return
 	}
 
-	output, err := h.service.Update(r.Context(), int32(id), input.RateLimit, userID, input.UserEmail, input.ChatModelName)
+	output, err := h.service.Update(r.Context(), int32(id), request.RateLimit, userID, request.UserEmail, request.ChatModelName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat model privilege"))

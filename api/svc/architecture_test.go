@@ -64,3 +64,45 @@ func TestServicesDoNotImportTransportDTOs(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestServiceInputsDoNotHaveJSONTags(t *testing.T) {
+	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		files := token.NewFileSet()
+		file, err := parser.ParseFile(files, path, nil, 0)
+		if err != nil {
+			return err
+		}
+		for _, declaration := range file.Decls {
+			gen, ok := declaration.(*ast.GenDecl)
+			if !ok || gen.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range gen.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || (!strings.HasSuffix(typeSpec.Name.Name, "Input") && !strings.HasSuffix(typeSpec.Name.Name, "Command")) {
+					continue
+				}
+				structure, ok := typeSpec.Type.(*ast.StructType)
+				if !ok {
+					continue
+				}
+				for _, field := range structure.Fields.List {
+					if field.Tag != nil && strings.Contains(field.Tag.Value, "json:") {
+						position := files.Position(field.Pos())
+						t.Errorf("%s:%d application input %s has an HTTP JSON tag", path, position.Line, typeSpec.Name.Name)
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

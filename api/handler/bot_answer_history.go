@@ -38,15 +38,16 @@ func (h *BotAnswerHistoryHandler) CreateBotAnswerHistory(w http.ResponseWriter, 
 		return
 	}
 
-	var params svc.CreateBotAnswerHistoryInput
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	var request createBotAnswerHistoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()))
 		return
 	}
 
-	params.UserID = userID
-
-	history, err := h.service.CreateBotAnswerHistory(ctx, params)
+	history, err := h.service.CreateBotAnswerHistory(ctx, svc.CreateBotAnswerHistoryInput{
+		BotUuid: request.BotUUID, UserID: userID, Prompt: request.Prompt,
+		Answer: request.Answer, Model: request.Model, TokensUsed: request.TokensUsed,
+	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to create bot answer history"))
 		return

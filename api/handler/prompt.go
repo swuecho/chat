@@ -33,8 +33,8 @@ func (h *ChatPromptHandler) Register(router *mux.Router) {
 }
 
 func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Request) {
-	var promptParams svc.CreateChatPromptInput
-	err := json.NewDecoder(r.Body).Decode(&promptParams)
+	var request chatPromptRequest
+	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
@@ -46,9 +46,9 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	promptParams.UserID = userID
-	promptParams.CreatedBy = userID
-	promptParams.UpdatedBy = userID
+	promptParams := svc.CreateChatPromptInput{Uuid: request.UUID, ChatSessionUuid: request.ChatSessionUUID,
+		Role: request.Role, Content: request.Content, TokenCount: request.TokenCount,
+		UserID: userID, CreatedBy: userID, UpdatedBy: userID}
 
 	if promptParams.ChatSessionUuid != "" && promptParams.Role == "system" {
 		existingPrompt, getErr := h.service.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
@@ -102,13 +102,14 @@ func (h *ChatPromptHandler) UpdateChatPrompt(w http.ResponseWriter, r *http.Requ
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid chat prompt ID"))
 		return
 	}
-	var promptParams svc.UpdateChatPromptInput
-	err = json.NewDecoder(r.Body).Decode(&promptParams)
+	var request chatPromptRequest
+	err = json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	promptParams.ID = int32(id)
+	promptParams := svc.UpdateChatPromptInput{ID: int32(id), ChatSessionUuid: request.ChatSessionUUID,
+		Role: request.Role, Content: request.Content, Score: request.Score}
 	prompt, err := h.service.UpdateChatPrompt(r.Context(), promptParams)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update chat prompt"))

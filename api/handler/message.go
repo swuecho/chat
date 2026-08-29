@@ -44,13 +44,19 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 }
 
 func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Request) {
-	var messageParams svc.CreateChatMessageInput
-	err := json.NewDecoder(r.Body).Decode(&messageParams)
+	var request chatMessageRequest
+	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	message, err := h.service.CreateChatMessage(r.Context(), messageParams)
+	message, err := h.service.CreateChatMessage(r.Context(), svc.CreateChatMessageInput{
+		ChatSessionUuid: request.ChatSessionUUID, Uuid: request.UUID, Role: request.Role,
+		Content: request.Content, ReasoningContent: request.ReasoningContent, Model: request.Model,
+		TokenCount: request.TokenCount, Score: request.Score, UserID: request.UserID,
+		CreatedBy: request.CreatedBy, UpdatedBy: request.UpdatedBy, LlmSummary: request.LLMSummary,
+		Raw: request.Raw, Artifacts: request.Artifacts, SuggestedQuestions: request.SuggestedQuestions,
+	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create chat message"))
 		return
@@ -80,14 +86,17 @@ func (h *ChatMessageHandler) UpdateChatMessage(w http.ResponseWriter, r *http.Re
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid chat message ID"))
 		return
 	}
-	var messageParams svc.UpdateChatMessageInput
-	err = json.NewDecoder(r.Body).Decode(&messageParams)
+	var request chatMessageRequest
+	err = json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	messageParams.ID = int32(id)
-	message, err := h.service.UpdateChatMessage(r.Context(), messageParams)
+	message, err := h.service.UpdateChatMessage(r.Context(), svc.UpdateChatMessageInput{
+		ID: int32(id), Role: request.Role, Content: request.Content, Score: request.Score,
+		UserID: request.UserID, UpdatedBy: request.UpdatedBy,
+		Artifacts: request.Artifacts, SuggestedQuestions: request.SuggestedQuestions,
+	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update chat message"))
 		return
@@ -136,13 +145,10 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	var messageParams svc.UpdateChatMessageByUUIDInput
-	messageParams.Uuid = simpleMsg.Uuid
-	messageParams.Content = simpleMsg.Text
 	tokenCount, _ := getTokenCount(simpleMsg.Text)
-	messageParams.TokenCount = int32(tokenCount)
-	messageParams.IsPin = simpleMsg.IsPin
-	message, err := h.service.UpdateChatMessageByUUID(r.Context(), messageParams)
+	message, err := h.service.UpdateChatMessageByUUID(r.Context(), svc.UpdateChatMessageByUUIDInput{
+		Uuid: simpleMsg.Uuid, Content: simpleMsg.Text, TokenCount: int32(tokenCount), IsPin: simpleMsg.IsPin,
+	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update chat message"))
 		return

@@ -111,12 +111,12 @@ func (h *AuthUserHandler) RegisterPublicRoutes(router *mux.Router) {
 // --- CRUD handlers ---
 
 func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var params svc.CreateAuthUserInput
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	var request createAuthUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	user, err := h.service.CreateAuthUser(r.Context(), params)
+	user, err := h.service.CreateAuthUser(r.Context(), request.input())
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to create user"))
 		return
@@ -144,13 +144,12 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	var params svc.UpdateAuthUserInput
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	var request updateAuthUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	params.ID = userID
-	user, err := h.service.UpdateAuthUser(r.Context(), params)
+	user, err := h.service.UpdateAuthUser(r.Context(), request.selfInput(userID))
 	if err != nil {
 		slog.Error("Failed to update user", "error", err)
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to update user").WithDebugInfo(err.Error()))
@@ -160,12 +159,12 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var params svc.UpdateAuthUserByEmailInput
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	var request updateAuthUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	user, err := h.service.UpdateAuthUserByEmail(r.Context(), params)
+	user, err := h.service.UpdateAuthUserByEmail(r.Context(), request.emailInput())
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update user"))
 		return

@@ -35,12 +35,12 @@ func (h *AdminHandler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var userParams svc.CreateAuthUserInput
-	if err := json.NewDecoder(r.Body).Decode(&userParams); err != nil {
+	var request createAuthUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	user, err := h.service.CreateAuthUser(r.Context(), userParams)
+	user, err := h.service.CreateAuthUser(r.Context(), request.input())
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to create user"))
 		return
@@ -49,12 +49,12 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var userParams svc.UpdateAuthUserByEmailInput
-	if err := json.NewDecoder(r.Body).Decode(&userParams); err != nil {
+	var request updateAuthUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	user, err := h.service.UpdateAuthUserByEmail(r.Context(), userParams)
+	user, err := h.service.UpdateAuthUserByEmail(r.Context(), request.emailInput())
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update user"))
 		return
