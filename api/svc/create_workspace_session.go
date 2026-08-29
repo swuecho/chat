@@ -45,10 +45,10 @@ func (s *ChatWorkspaceService) CreateWorkspaceSession(ctx context.Context, comma
 		if err != nil {
 			return err
 		}
-		if err := uow.EnsureSystemPrompt(ctx, session.Uuid, command.UserID, command.DefaultSystemPrompt, s.newID()); err != nil {
+		if err := uow.EnsureSystemPrompt(ctx, session.UUID, command.UserID, command.DefaultSystemPrompt, s.newID()); err != nil {
 			return err
 		}
-		if err := uow.SetActiveSession(ctx, command.UserID, &workspace.ID, session.Uuid); err != nil {
+		if err := uow.SetActiveSession(ctx, command.UserID, &workspace.ID, session.UUID); err != nil {
 			return err
 		}
 		result = CreateWorkspaceSessionResult{Session: session, WorkspaceUUID: workspace.UUID}

@@ -45,7 +45,7 @@ func (h *BotAnswerHistoryHandler) CreateBotAnswerHistory(w http.ResponseWriter, 
 	}
 
 	history, err := h.service.CreateBotAnswerHistory(ctx, svc.CreateBotAnswerHistoryInput{
-		BotUuid: request.BotUUID, UserID: userID, Prompt: request.Prompt,
+		BotUUID: request.BotUUID, UserID: userID, Prompt: request.Prompt,
 		Answer: request.Answer, Model: request.Model, TokensUsed: request.TokensUsed,
 	})
 	if err != nil {
@@ -86,7 +86,7 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByBotUUID(w http.ResponseWr
 	}
 
 	limit, offset := getPaginationParams(r)
-	history, err := h.service.GetBotAnswerHistoryByBotUUID(r.Context(), botUUID, limit, offset)
+	history, err := h.service.GetBotAnswerHistoryByBotUUID(r.Context(), svc.BotAnswerHistoryPageQuery{BotUUID: botUUID, Page: svc.PageWindow{Limit: limit, Offset: offset}})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history"))
 		return
@@ -103,9 +103,7 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByBotUUID(w http.ResponseWr
 		totalPages++
 	}
 
-	dto.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
-		"items": history, "totalPages": totalPages, "totalCount": totalCount,
-	})
+	dto.RespondWithJSON(w, http.StatusOK, newPaginatedHTTPResponse(history, totalPages, totalCount))
 }
 
 func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByUserID(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +115,7 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByUserID(w http.ResponseWri
 	}
 
 	limit, offset := getPaginationParams(r)
-	history, err := h.service.GetBotAnswerHistoryByUserID(ctx, userID, limit, offset)
+	history, err := h.service.GetBotAnswerHistoryByUserID(ctx, svc.UserAnswerHistoryPageQuery{UserID: userID, Page: svc.PageWindow{Limit: limit, Offset: offset}})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history"))
 		return
@@ -218,7 +216,7 @@ func (h *BotAnswerHistoryHandler) GetLatestBotAnswerHistoryByBotUUID(w http.Resp
 	}
 
 	limit := getLimitParam(r, 1)
-	history, err := h.service.GetLatestBotAnswerHistoryByBotUUID(r.Context(), botUUID, limit)
+	history, err := h.service.GetLatestBotAnswerHistoryByBotUUID(r.Context(), svc.LatestBotAnswerHistoryQuery{BotUUID: botUUID, Limit: limit})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get latest bot answer history"))
 		return

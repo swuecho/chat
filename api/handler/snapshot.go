@@ -43,7 +43,7 @@ func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create chat snapshot"))
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"uuid": uuid})
+	json.NewEncoder(w).Encode(uuidHTTPResponse{UUID: uuid})
 }
 
 func (h *ChatSnapshotHandler) CreateChatBot(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +58,7 @@ func (h *ChatSnapshotHandler) CreateChatBot(w http.ResponseWriter, r *http.Reque
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to create chat bot").WithDebugInfo(err.Error()))
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"uuid": uuid})
+	json.NewEncoder(w).Encode(uuidHTTPResponse{UUID: uuid})
 }
 
 func (h *ChatSnapshotHandler) UpdateChatBotSettings(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +160,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 
 	offset := (page - 1) * pageSize
 
-	chatSnapshots, err := h.Service.ChatSnapshotMetaByUserID(r.Context(), userID, typ, pageSize, offset)
+	chatSnapshots, err := h.Service.ChatSnapshotMetaByUserID(r.Context(), svc.SnapshotPageQuery{UserID: userID, Type: typ, Page: svc.PageWindow{Limit: pageSize, Offset: offset}})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to retrieve chat snapshots").WithDebugInfo(err.Error()))
 		return
@@ -177,9 +177,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 	for _, snapshot := range chatSnapshots {
 		data = append(data, snapshotSummaryResponse(snapshot))
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": data, "page": page, "page_size": pageSize, "total": totalCount,
-	})
+	json.NewEncoder(w).Encode(snapshotPageHTTPResponse{Data: data, Page: page, PageSize: pageSize, Total: totalCount})
 }
 
 func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter, r *http.Request) {

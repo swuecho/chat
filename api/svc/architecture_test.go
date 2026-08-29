@@ -299,3 +299,42 @@ func TestChatSessionServiceRemainsLifecycleFocused(t *testing.T) {
 		}
 	}
 }
+
+func TestApplicationModelsUseStandardInitialisms(t *testing.T) {
+	targets := map[string]bool{
+		"ChatSession": true, "CreateOrUpdateChatSessionInput": true,
+		"ChatPrompt": true, "CreateChatPromptInput": true, "UpdateChatPromptInput": true,
+		"ChatMessage": true, "CreateChatMessageInput": true, "UpdateChatMessageByUUIDInput": true,
+		"CreateBotAnswerHistoryInput": true,
+	}
+	for _, path := range []string{"chat_session_service.go", "chat_prompt_service.go", "chat_message_service.go", "bot_answer_history_service.go"} {
+		files := token.NewFileSet()
+		file, err := parser.ParseFile(files, path, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, declaration := range file.Decls {
+			gen, ok := declaration.(*ast.GenDecl)
+			if !ok || gen.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range gen.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || !targets[typeSpec.Name.Name] {
+					continue
+				}
+				structure, ok := typeSpec.Type.(*ast.StructType)
+				if !ok {
+					continue
+				}
+				for _, field := range structure.Fields.List {
+					for _, name := range field.Names {
+						if strings.Contains(name.Name, "Uuid") || strings.Contains(name.Name, "Llm") {
+							t.Errorf("%s.%s uses nonstandard initialism; use UUID or LLM", typeSpec.Name.Name, name.Name)
+						}
+					}
+				}
+			}
+		}
+	}
+}

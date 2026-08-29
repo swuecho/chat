@@ -15,7 +15,7 @@ import (
 
 type ChatMessage struct {
 	ID                                                                        int32
-	Uuid, ChatSessionUuid, Role, Content, ReasoningContent, Model, LlmSummary string
+	UUID, ChatSessionUUID, Role, Content, ReasoningContent, Model, LLMSummary string
 	Score                                                                     float64
 	UserID                                                                    int32
 	CreatedAt, UpdatedAt                                                      time.Time
@@ -26,8 +26,8 @@ type ChatMessage struct {
 }
 
 func chatMessageFromRecord(m sqlc_queries.ChatMessage) ChatMessage {
-	return ChatMessage{ID: m.ID, Uuid: m.Uuid, ChatSessionUuid: m.ChatSessionUuid, Role: m.Role,
-		Content: m.Content, ReasoningContent: m.ReasoningContent, Model: m.Model, LlmSummary: m.LlmSummary,
+	return ChatMessage{ID: m.ID, UUID: m.Uuid, ChatSessionUUID: m.ChatSessionUuid, Role: m.Role,
+		Content: m.Content, ReasoningContent: m.ReasoningContent, Model: m.Model, LLMSummary: m.LlmSummary,
 		Score: m.Score, UserID: m.UserID, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt,
 		CreatedBy: m.CreatedBy, UpdatedBy: m.UpdatedBy, IsDeleted: m.IsDeleted, IsPin: m.IsPin,
 		TokenCount: m.TokenCount, Raw: m.Raw, Artifacts: m.Artifacts, SuggestedQuestions: m.SuggestedQuestions}
@@ -41,13 +41,21 @@ func chatMessagesFromRecords(records []sqlc_queries.ChatMessage) []ChatMessage {
 	return result
 }
 
+func createChatMessageParams(input CreateChatMessageInput) sqlc_queries.CreateChatMessageParams {
+	return sqlc_queries.CreateChatMessageParams{ChatSessionUuid: input.ChatSessionUUID, Uuid: input.UUID,
+		Role: input.Role, Content: input.Content, ReasoningContent: input.ReasoningContent, Model: input.Model,
+		TokenCount: input.TokenCount, Score: input.Score, UserID: input.UserID, CreatedBy: input.CreatedBy,
+		UpdatedBy: input.UpdatedBy, LlmSummary: input.LLMSummary, Raw: input.Raw, Artifacts: input.Artifacts,
+		SuggestedQuestions: input.SuggestedQuestions}
+}
+
 type ChatMessageService struct {
 	q *sqlc_queries.Queries
 }
 
 type CreateChatMessageInput struct {
-	ChatSessionUuid    string
-	Uuid               string
+	ChatSessionUUID    string
+	UUID               string
 	Role               string
 	Content            string
 	ReasoningContent   string
@@ -57,7 +65,7 @@ type CreateChatMessageInput struct {
 	UserID             int32
 	CreatedBy          int32
 	UpdatedBy          int32
-	LlmSummary         string
+	LLMSummary         string
 	Raw                json.RawMessage
 	Artifacts          json.RawMessage
 	SuggestedQuestions json.RawMessage
@@ -75,7 +83,7 @@ type UpdateChatMessageInput struct {
 }
 
 type UpdateChatMessageByUUIDInput struct {
-	Uuid               string
+	UUID               string
 	Content            string
 	IsPin              bool
 	TokenCount         int32
@@ -93,6 +101,14 @@ type DeleteSessionMessagesCommand struct {
 	SessionUUID string
 	UserID      int32
 }
+type SessionMessagesPageQuery struct {
+	SessionUUID string
+	Page        PageRequest
+}
+type LatestSessionMessagesQuery struct {
+	SessionUUID string
+	Limit       int32
+}
 
 // NewChatMessageService creates a new ChatMessageService.
 func NewChatMessageService(q *sqlc_queries.Queries) *ChatMessageService {
@@ -101,7 +117,7 @@ func NewChatMessageService(q *sqlc_queries.Queries) *ChatMessageService {
 
 // CreateChatMessage creates a new chat message.
 func (s *ChatMessageService) CreateChatMessage(ctx context.Context, input CreateChatMessageInput) (ChatMessage, error) {
-	message, err := s.q.CreateChatMessage(ctx, sqlc_queries.CreateChatMessageParams(input))
+	message, err := s.q.CreateChatMessage(ctx, createChatMessageParams(input))
 	if err != nil {
 		return ChatMessage{}, eris.Wrap(err, "failed to create message ")
 	}
@@ -159,8 +175,8 @@ func (s *ChatMessageService) GetAllChatMessages(ctx context.Context, userID int3
 	return chatMessagesFromRecords(messages), nil
 }
 
-func (s *ChatMessageService) GetLatestMessagesBySessionID(ctx context.Context, chatSessionUuid string, limit int32) ([]ChatMessage, error) {
-	params := sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: chatSessionUuid, Limit: limit}
+func (s *ChatMessageService) GetLatestMessagesBySessionID(ctx context.Context, query LatestSessionMessagesQuery) ([]ChatMessage, error) {
+	params := sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: query.SessionUUID, Limit: query.Limit}
 	msgs, err := s.q.GetLatestMessagesBySessionUUID(ctx, params)
 	if err != nil {
 		return []ChatMessage{}, err
@@ -202,7 +218,9 @@ func (s *ChatMessageService) GetChatMessageByUUID(ctx context.Context, uuid stri
 
 // UpdateChatMessageByUUID updates an existing chat message.
 func (s *ChatMessageService) UpdateChatMessageByUUID(ctx context.Context, input UpdateChatMessageByUUIDInput) (ChatMessage, error) {
-	message_u, err := s.q.UpdateChatMessageByUUID(ctx, sqlc_queries.UpdateChatMessageByUUIDParams(input))
+	message_u, err := s.q.UpdateChatMessageByUUID(ctx, sqlc_queries.UpdateChatMessageByUUIDParams{Uuid: input.UUID,
+		Content: input.Content, IsPin: input.IsPin, TokenCount: input.TokenCount, Artifacts: input.Artifacts,
+		SuggestedQuestions: input.SuggestedQuestions, UserID: input.UserID})
 	if err != nil {
 		return ChatMessage{}, eris.Wrap(err, "failed to update message ")
 	}
@@ -219,11 +237,11 @@ func (s *ChatMessageService) UpdateSuggestedQuestions(ctx context.Context, uuid 
 }
 
 // GetChatMessagesBySessionUUID returns a chat message by session uuid.
-func (s *ChatMessageService) GetChatMessagesBySessionUUID(ctx context.Context, uuid string, pageNum, pageSize int32) ([]ChatMessage, error) {
+func (s *ChatMessageService) GetChatMessagesBySessionUUID(ctx context.Context, query SessionMessagesPageQuery) ([]ChatMessage, error) {
 	param := sqlc_queries.GetChatMessagesBySessionUUIDParams{
-		Uuid:   uuid,
-		Offset: pageNum - 1,
-		Limit:  pageSize,
+		Uuid:   query.SessionUUID,
+		Offset: query.Page.Offset(),
+		Limit:  query.Page.Size,
 	}
 	message, err := s.q.GetChatMessagesBySessionUUID(ctx, param)
 	if err != nil {

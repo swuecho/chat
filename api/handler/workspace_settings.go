@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -78,23 +77,18 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 		return
 	}
 
-	result, err := h.wsService.AutoMigrateLegacySessions(ctx, userID)
+	result, err := h.wsService.MigrateLegacyWorkspaceSessions(ctx, userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to migrate legacy sessions"))
 		return
 	}
 
-	response := map[string]interface{}{
-		"hasLegacySessions": result.HasLegacySessions,
-		"migratedSessions":  result.MigratedCount,
-	}
+	response := migrationHTTPResponse{HasLegacySessions: result.HasLegacySessions, MigratedSessions: result.MigratedCount}
 
 	if result.HasLegacySessions {
-		if err := h.wsService.MigrateLegacyActiveSessions(ctx, userID, result.DefaultWorkspace.ID); err != nil {
-			slog.Warn("failed to migrate legacy active sessions", "error", err)
-		}
 		ws := result.DefaultWorkspace
-		response["defaultWorkspace"] = workspaceToResponse(ws.UUID, ws.Name, ws.Description, ws.Color, ws.Icon, ws.IsDefault, ws.OrderPosition, 0, ws.CreatedAt, ws.UpdatedAt)
+		workspace := workspaceToResponse(ws.UUID, ws.Name, ws.Description, ws.Color, ws.Icon, ws.IsDefault, ws.OrderPosition, 0, ws.CreatedAt, ws.UpdatedAt)
+		response.DefaultWorkspace = &workspace
 	}
 
 	w.Header().Set("Content-Type", "application/json")

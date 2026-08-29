@@ -49,7 +49,7 @@ func (s *ChatService) ProviderRequest(ctx context.Context, session ChatSession, 
 	if err != nil {
 		return provider.Request{}, err
 	}
-	rows, err := s.q.ListChatFilesWithContentBySessionUUID(ctx, session.Uuid)
+	rows, err := s.q.ListChatFilesWithContentBySessionUUID(ctx, session.UUID)
 	if err != nil {
 		return provider.Request{}, err
 	}
@@ -131,7 +131,7 @@ func (s *ChatService) GetAskMessages(chatSession ChatSession, chatUuid string, r
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*requestTimeoutSeconds)
 	defer cancel()
 
-	chatSessionUuid := chatSession.Uuid
+	chatSessionUuid := chatSession.UUID
 
 	lastN := chatSession.MaxLength
 	if chatSession.MaxLength == 0 {
@@ -155,7 +155,7 @@ func (s *ChatService) GetAskMessages(chatSession ChatSession, chatUuid string, r
 
 	} else {
 		chatMessages, err = s.q.GetLatestMessagesBySessionUUID(ctx,
-			sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: chatSession.Uuid, Limit: lastN})
+			sqlc_queries.GetLatestMessagesBySessionUUIDParams{ChatSessionUuid: chatSession.UUID, Limit: lastN})
 	}
 
 	if err != nil {

@@ -22,6 +22,14 @@ type SessionHistoryMessage struct {
 	SuggestedQuestions                         []string
 }
 type SessionSnapshot struct{ Session, Conversation json.RawMessage }
+type SessionHistoryQuery struct {
+	SessionUUID string
+	Page        PageRequest
+}
+type ConversationMessagesPageQuery struct {
+	SessionUUID string
+	Page        PageWindow
+}
 type AdminSessionMessage struct {
 	ID                                           int32
 	UUID, Role, Content, ReasoningContent, Model string
@@ -53,8 +61,8 @@ func (s *SessionConversationService) HasSystemPrompt(ctx context.Context, sessio
 	return false, eris.Wrap(err, "failed to get chat prompt")
 }
 
-func (s *SessionConversationService) MessagesPage(ctx context.Context, uuid string, offset, limit int32) ([]ConversationMessage, error) {
-	msgs, err := s.q.GetChatMessagesBySessionUUID(ctx, sqlc_queries.GetChatMessagesBySessionUUIDParams{Uuid: uuid, Offset: offset, Limit: limit})
+func (s *SessionConversationService) MessagesPage(ctx context.Context, query ConversationMessagesPageQuery) ([]ConversationMessage, error) {
+	msgs, err := s.q.GetChatMessagesBySessionUUID(ctx, sqlc_queries.GetChatMessagesBySessionUUIDParams{Uuid: query.SessionUUID, Offset: query.Page.Offset, Limit: query.Page.Limit})
 	if err != nil {
 		return nil, eris.Wrap(err, "failed to get chat messages")
 	}
@@ -65,8 +73,8 @@ func (s *SessionConversationService) MessagesPage(ctx context.Context, uuid stri
 	return result, nil
 }
 
-func (s *SessionConversationService) History(ctx context.Context, uuid string, pageNum, pageSize int32) ([]SessionHistoryMessage, error) {
-	rows, err := s.q.GetChatHistoryBySessionUUID(ctx, uuid, pageNum, pageSize)
+func (s *SessionConversationService) History(ctx context.Context, query SessionHistoryQuery) ([]SessionHistoryMessage, error) {
+	rows, err := s.q.GetChatHistoryBySessionUUID(ctx, query.SessionUUID, query.Page.Page, query.Page.Size)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +144,7 @@ func NewSessionBotHistoryService(q *sqlc_queries.Queries) *SessionBotHistoryServ
 	return &SessionBotHistoryService{q: q}
 }
 func (s *SessionBotHistoryService) Save(ctx context.Context, input CreateBotAnswerHistoryInput) error {
-	_, err := s.q.CreateBotAnswerHistory(ctx, sqlc_queries.CreateBotAnswerHistoryParams(input))
+	_, err := s.q.CreateBotAnswerHistory(ctx, createBotAnswerHistoryParams(input))
 	return eris.Wrap(err, "failed to save bot answer history")
 }
 

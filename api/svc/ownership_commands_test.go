@@ -37,14 +37,14 @@ func TestPromptMutationsAreOwnershipScoped(t *testing.T) {
 	_, otherID := createWorkspaceUser(t, "prompt-other")
 	service := NewChatPromptService(q)
 	prompt, err := service.CreateChatPrompt(context.Background(), CreateChatPromptInput{
-		Uuid: "owned-prompt", ChatSessionUuid: "owned-prompt-session", Role: "system",
+		UUID: "owned-prompt", ChatSessionUUID: "owned-prompt-session", Role: "system",
 		Content: "original", UserID: ownerID, CreatedBy: ownerID, UpdatedBy: ownerID,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.UpdateChatPromptByUUID(context.Background(), UpdateChatPromptByUUIDCommand{
-		UUID: prompt.Uuid, Content: "hijacked", UserID: otherID,
+		UUID: prompt.UUID, Content: "hijacked", UserID: otherID,
 	}); err == nil {
 		t.Fatal("expected cross-owner update to fail")
 	}
@@ -65,7 +65,7 @@ func TestMessageMutationsAreOwnershipScoped(t *testing.T) {
 	_, otherID := createWorkspaceUser(t, "message-other")
 	service := NewChatMessageService(q)
 	message, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput{
-		Uuid: "owned-message", ChatSessionUuid: "owned-message-session", Role: "user",
+		UUID: "owned-message", ChatSessionUUID: "owned-message-session", Role: "user",
 		Content: "original", UserID: ownerID, CreatedBy: ownerID, UpdatedBy: ownerID,
 		Raw: json.RawMessage(`{}`), Artifacts: json.RawMessage(`[]`), SuggestedQuestions: json.RawMessage(`[]`),
 	})
@@ -73,15 +73,15 @@ func TestMessageMutationsAreOwnershipScoped(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := service.UpdateChatMessageByUUID(context.Background(), UpdateChatMessageByUUIDInput{
-		Uuid: message.Uuid, Content: "hijacked", UserID: otherID,
+		UUID: message.UUID, Content: "hijacked", UserID: otherID,
 	}); err == nil {
 		t.Fatal("expected cross-owner update to fail")
 	}
 	chatService := NewChatService(q, "", "")
-	if err := chatService.UpdateChatMessageContent(context.Background(), message.Uuid, otherID, "hijacked"); err == nil {
+	if err := chatService.UpdateChatMessageContent(context.Background(), message.UUID, otherID, "hijacked"); err == nil {
 		t.Fatal("expected cross-owner regeneration update to fail")
 	}
-	if _, err := service.UpdateSuggestedQuestions(context.Background(), message.Uuid, otherID, json.RawMessage(`["hijacked"]`)); err == nil {
+	if _, err := service.UpdateSuggestedQuestions(context.Background(), message.UUID, otherID, json.RawMessage(`["hijacked"]`)); err == nil {
 		t.Fatal("expected cross-owner suggestion update to fail")
 	}
 	if err := service.DeleteChatMessage(context.Background(), DeleteChatMessageCommand{ID: message.ID, UserID: otherID}); err == nil {

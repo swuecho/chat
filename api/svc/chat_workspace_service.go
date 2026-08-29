@@ -237,21 +237,25 @@ func (s *ChatWorkspaceService) GetSessionsByWorkspaceID(ctx context.Context, wor
 
 // --- Legacy migration ---
 
-// AutoMigrateLegacySessionsResult holds the result of the migration operation.
-type AutoMigrateLegacySessionsResult struct {
+// MigrateLegacyWorkspaceSessionsResult describes the completed migration.
+type MigrateLegacyWorkspaceSessionsResult struct {
 	HasLegacySessions bool
 	MigratedCount     int
 	DefaultWorkspace  Workspace
 }
 
-// AutoMigrateLegacySessions migrates sessions without a workspace_id to the default workspace.
-func (s *ChatWorkspaceService) AutoMigrateLegacySessions(ctx context.Context, userID int32) (*AutoMigrateLegacySessionsResult, error) {
+// MigrateLegacyWorkspaceSessions migrates legacy sessions and repairs their
+// active-session selection as one application operation.
+func (s *ChatWorkspaceService) MigrateLegacyWorkspaceSessions(ctx context.Context, userID int32) (MigrateLegacyWorkspaceSessionsResult, error) {
+	if userID <= 0 {
+		return MigrateLegacyWorkspaceSessionsResult{}, domain.Invalid("user ID is required")
+	}
 	legacySessions, err := s.q.GetSessionsWithoutWorkspace(ctx, userID)
 	if err != nil {
-		return nil, eris.Wrap(err, "failed to check for legacy sessions")
+		return MigrateLegacyWorkspaceSessionsResult{}, eris.Wrap(err, "failed to check for legacy sessions")
 	}
 
-	result := &AutoMigrateLegacySessionsResult{
+	result := MigrateLegacyWorkspaceSessionsResult{
 		HasLegacySessions: len(legacySessions) > 0,
 	}
 
@@ -261,7 +265,7 @@ func (s *ChatWorkspaceService) AutoMigrateLegacySessions(ctx context.Context, us
 
 	defaultWS, err := s.EnsureDefaultWorkspaceExists(ctx, userID)
 	if err != nil {
-		return nil, eris.Wrap(err, "failed to ensure default workspace")
+		return MigrateLegacyWorkspaceSessionsResult{}, eris.Wrap(err, "failed to ensure default workspace")
 	}
 	result.DefaultWorkspace = defaultWS
 
@@ -269,15 +273,17 @@ func (s *ChatWorkspaceService) AutoMigrateLegacySessions(ctx context.Context, us
 		UserID:      userID,
 		WorkspaceID: sql.NullInt32{Int32: defaultWS.ID, Valid: true},
 	}); err != nil {
-		return nil, eris.Wrap(err, "failed to migrate legacy sessions")
+		return MigrateLegacyWorkspaceSessionsResult{}, eris.Wrap(err, "failed to migrate legacy sessions")
 	}
 
 	result.MigratedCount = len(legacySessions)
+	if err := s.migrateLegacyActiveSessions(ctx, userID, defaultWS.ID); err != nil {
+		return MigrateLegacyWorkspaceSessionsResult{}, err
+	}
 	return result, nil
 }
 
-// MigrateLegacyActiveSessions migrates active sessions without workspace context.
-func (s *ChatWorkspaceService) MigrateLegacyActiveSessions(ctx context.Context, userID int32, defaultWorkspaceID int32) error {
+func (s *ChatWorkspaceService) migrateLegacyActiveSessions(ctx context.Context, userID int32, defaultWorkspaceID int32) error {
 	activeSessions, err := s.q.GetAllUserActiveSessions(ctx, userID)
 	if err != nil {
 		return eris.Wrap(err, "failed to get legacy active sessions")
@@ -291,13 +297,14 @@ func (s *ChatWorkspaceService) MigrateLegacyActiveSessions(ctx context.Context, 
 				ChatSessionUuid: session.ChatSessionUuid,
 			})
 			if err != nil {
-				slog.Warn("failed to migrate active session", "sessionUuid", session.ChatSessionUuid, "error", err)
-				continue
+				return eris.Wrap(err, "failed to migrate legacy active session")
 			}
 			// Delete old global active session
-			_ = s.q.DeleteUserActiveSessionBySession(ctx, sqlc_queries.DeleteUserActiveSessionBySessionParams{
+			if err := s.q.DeleteUserActiveSessionBySession(ctx, sqlc_queries.DeleteUserActiveSessionBySessionParams{
 				UserID: userID, ChatSessionUuid: session.ChatSessionUuid,
-			})
+			}); err != nil {
+				return eris.Wrap(err, "failed to remove legacy active session")
+			}
 		}
 	}
 	return nil

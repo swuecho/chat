@@ -10,6 +10,13 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
+func messageInputFromParams(p sqlc_queries.CreateChatMessageParams) CreateChatMessageInput {
+	return CreateChatMessageInput{ChatSessionUUID: p.ChatSessionUuid, UUID: p.Uuid, Role: p.Role,
+		Content: p.Content, ReasoningContent: p.ReasoningContent, Model: p.Model, TokenCount: p.TokenCount,
+		Score: p.Score, UserID: p.UserID, CreatedBy: p.CreatedBy, UpdatedBy: p.UpdatedBy,
+		LLMSummary: p.LlmSummary, Raw: p.Raw, Artifacts: p.Artifacts, SuggestedQuestions: p.SuggestedQuestions}
+}
+
 func TestChatMessageService(t *testing.T) {
 	q := sqlc_queries.New(testDB)
 	service := NewChatMessageService(q)
@@ -31,7 +38,7 @@ func TestChatMessageService(t *testing.T) {
 		Artifacts:          json.RawMessage([]byte("[]")),
 		SuggestedQuestions: json.RawMessage([]byte("[]")),
 	}
-	msg, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(msg_params))
+	msg, err := service.CreateChatMessage(context.Background(), messageInputFromParams(msg_params))
 	if err != nil {
 		t.Fatalf("failed to create chat message: %v", err)
 	}
@@ -40,7 +47,7 @@ func TestChatMessageService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to retrieve chat message: %v", err)
 	}
-	if retrieved_msg.ID != msg.ID || retrieved_msg.ChatSessionUuid != msg.ChatSessionUuid ||
+	if retrieved_msg.ID != msg.ID || retrieved_msg.ChatSessionUUID != msg.ChatSessionUUID ||
 		retrieved_msg.Role != msg.Role || retrieved_msg.Content != msg.Content || retrieved_msg.Score != msg.Score ||
 		retrieved_msg.UserID != msg.UserID || !retrieved_msg.CreatedAt.Equal(msg.CreatedAt) || !retrieved_msg.UpdatedAt.Equal(msg.UpdatedAt) ||
 		retrieved_msg.CreatedBy != msg.CreatedBy || retrieved_msg.UpdatedBy != msg.UpdatedBy {
@@ -74,12 +81,12 @@ func TestCreateChatMessageIsIdempotentWithinSession(t *testing.T) {
 		SuggestedQuestions: json.RawMessage([]byte("[]")),
 	}
 
-	first, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(params))
+	first, err := service.CreateChatMessage(context.Background(), messageInputFromParams(params))
 	if err != nil {
 		t.Fatalf("first CreateChatMessage() error = %v", err)
 	}
 	params.Content = "content from a retry must not overwrite the original"
-	second, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(params))
+	second, err := service.CreateChatMessage(context.Background(), messageInputFromParams(params))
 	if err != nil {
 		t.Fatalf("retried CreateChatMessage() error = %v", err)
 	}
@@ -95,7 +102,7 @@ func TestCreateChatMessageIsIdempotentWithinSession(t *testing.T) {
 		t.Fatalf("cleanup failed: %v", err)
 	}
 
-	recreated, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(params))
+	recreated, err := service.CreateChatMessage(context.Background(), messageInputFromParams(params))
 	if err != nil {
 		t.Fatalf("recreating a soft-deleted message error = %v", err)
 	}
@@ -128,7 +135,7 @@ func TestGetChatMessagesBySessionID(t *testing.T) {
 		Artifacts:          json.RawMessage([]byte("[]")),
 		SuggestedQuestions: json.RawMessage([]byte("[]")),
 	}
-	msg1, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(msg1_params))
+	msg1, err := service.CreateChatMessage(context.Background(), messageInputFromParams(msg1_params))
 	if err != nil {
 		t.Fatalf("failed to create chat message: %v", err)
 	}
@@ -149,7 +156,7 @@ func TestGetChatMessagesBySessionID(t *testing.T) {
 		Artifacts:          json.RawMessage([]byte("[]")),
 		SuggestedQuestions: json.RawMessage([]byte("[]")),
 	}
-	msg2, err := service.CreateChatMessage(context.Background(), CreateChatMessageInput(msg2_params))
+	msg2, err := service.CreateChatMessage(context.Background(), messageInputFromParams(msg2_params))
 	if err != nil {
 		t.Fatalf("failed to create chat message: %v", err)
 	}

@@ -104,9 +104,9 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 
 	slog.Info("Creating/updating active chat session", "userID", userID)
 
-	session, err := h.service.UpsertActiveSession(r.Context(), svc.SetActiveSessionCommand{UserID: userID, SessionUUID: reqBody.ChatSessionUuid})
+	session, err := h.service.SetGlobalActiveSession(r.Context(), svc.SetGlobalActiveSessionCommand{UserID: userID, SessionUUID: reqBody.ChatSessionUuid})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to create or update active chat session"))
+		dto.RespondWithAPIError(w, dto.ToAPIError(err))
 		return
 	}
 
@@ -126,25 +126,9 @@ func (h *UserActiveChatSessionHandler) GetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
-	hasPermission, err := h.workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
+	session, err := h.service.GetWorkspaceActiveSession(ctx, svc.GetWorkspaceActiveSessionQuery{UserID: userID, WorkspaceUUID: workspaceUuid})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to check workspace permission"))
-		return
-	}
-	if !hasPermission {
-		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("access denied to workspace"))
-		return
-	}
-
-	workspace, err := h.workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
-		return
-	}
-
-	session, err := h.service.GetActiveSession(ctx, svc.GetActiveSessionQuery{UserID: userID, WorkspaceID: &workspace.ID})
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Active Session").WithMessage("no active session for workspace"))
+		dto.RespondWithAPIError(w, dto.ToAPIError(err))
 		return
 	}
 

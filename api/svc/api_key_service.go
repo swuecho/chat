@@ -90,11 +90,17 @@ func (s *APIKeyService) Usage(ctx context.Context, id int64, userID int32) ([]sq
 	return s.q.GatewayUsageByKey(ctx, sqlc_queries.GatewayUsageByKeyParams{ApiKeyID: id, UserID: userID})
 }
 
-func (s *APIKeyService) Requests(ctx context.Context, keyID int64, userID int32, limit int32) ([]sqlc_queries.ListGatewayRequestsByKeyRow, error) {
-	if _, err := s.q.VirtualAPIKeyByIDAndUser(ctx, sqlc_queries.VirtualAPIKeyByIDAndUserParams{ID: keyID, UserID: userID}); err != nil {
+type APIKeyRequestsQuery struct {
+	KeyID  int64
+	UserID int32
+	Limit  int32
+}
+
+func (s *APIKeyService) Requests(ctx context.Context, query APIKeyRequestsQuery) ([]sqlc_queries.ListGatewayRequestsByKeyRow, error) {
+	if _, err := s.q.VirtualAPIKeyByIDAndUser(ctx, sqlc_queries.VirtualAPIKeyByIDAndUserParams{ID: query.KeyID, UserID: query.UserID}); err != nil {
 		return nil, err
 	}
-	return s.q.ListGatewayRequestsByKey(ctx, sqlc_queries.ListGatewayRequestsByKeyParams{ApiKeyID: keyID, UserID: userID, Limit: limit})
+	return s.q.ListGatewayRequestsByKey(ctx, sqlc_queries.ListGatewayRequestsByKeyParams{ApiKeyID: query.KeyID, UserID: query.UserID, Limit: query.Limit})
 }
 
 func (s *APIKeyService) RequestDetail(ctx context.Context, requestID, keyID int64, userID int32) (sqlc_queries.GatewayRequest, error) {

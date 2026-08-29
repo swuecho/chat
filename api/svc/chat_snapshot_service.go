@@ -38,6 +38,11 @@ type ChatSnapshotSearchResult struct {
 	UUID, Title string
 	Rank        float32
 }
+type SnapshotPageQuery struct {
+	UserID int32
+	Type   string
+	Page   PageWindow
+}
 type UpdateChatBotSettingsCommand struct {
 	UUID                  string
 	UserID                int32
@@ -69,8 +74,8 @@ func (s *ChatSnapshotService) ChatSnapshotByUUID(ctx context.Context, uuid strin
 	return chatSnapshotFromRecord(r), err
 }
 
-func (s *ChatSnapshotService) ChatSnapshotMetaByUserID(ctx context.Context, userID int32, typ string, limit, offset int32) ([]ChatSnapshotSummary, error) {
-	rows, err := s.q.ChatSnapshotMetaByUserID(ctx, sqlc_queries.ChatSnapshotMetaByUserIDParams{UserID: userID, Typ: typ, Limit: limit, Offset: offset})
+func (s *ChatSnapshotService) ChatSnapshotMetaByUserID(ctx context.Context, query SnapshotPageQuery) ([]ChatSnapshotSummary, error) {
+	rows, err := s.q.ChatSnapshotMetaByUserID(ctx, sqlc_queries.ChatSnapshotMetaByUserIDParams{UserID: query.UserID, Typ: query.Type, Limit: query.Page.Limit, Offset: query.Page.Offset})
 	if err != nil {
 		return nil, err
 	}

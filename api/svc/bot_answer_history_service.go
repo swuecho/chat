@@ -12,12 +12,31 @@ type BotAnswerHistoryService struct {
 }
 
 type CreateBotAnswerHistoryInput struct {
-	BotUuid    string
+	BotUUID    string
 	UserID     int32
 	Prompt     string
 	Answer     string
 	Model      string
 	TokensUsed int32
+}
+
+type BotAnswerHistoryPageQuery struct {
+	BotUUID string
+	Page    PageWindow
+}
+
+type UserAnswerHistoryPageQuery struct {
+	UserID int32
+	Page   PageWindow
+}
+type LatestBotAnswerHistoryQuery struct {
+	BotUUID string
+	Limit   int32
+}
+
+func createBotAnswerHistoryParams(input CreateBotAnswerHistoryInput) sqlc_queries.CreateBotAnswerHistoryParams {
+	return sqlc_queries.CreateBotAnswerHistoryParams{BotUuid: input.BotUUID, UserID: input.UserID,
+		Prompt: input.Prompt, Answer: input.Answer, Model: input.Model, TokensUsed: input.TokensUsed}
 }
 
 // NewBotAnswerHistoryService creates a new BotAnswerHistoryService
@@ -27,7 +46,7 @@ func NewBotAnswerHistoryService(q *sqlc_queries.Queries) *BotAnswerHistoryServic
 
 // CreateBotAnswerHistory creates a new bot answer history entry
 func (s *BotAnswerHistoryService) CreateBotAnswerHistory(ctx context.Context, input CreateBotAnswerHistoryInput) (sqlc_queries.BotAnswerHistory, error) {
-	history, err := s.q.CreateBotAnswerHistory(ctx, sqlc_queries.CreateBotAnswerHistoryParams(input))
+	history, err := s.q.CreateBotAnswerHistory(ctx, createBotAnswerHistoryParams(input))
 	if err != nil {
 		return sqlc_queries.BotAnswerHistory{}, eris.Wrap(err, "failed to create bot answer history")
 	}
@@ -44,11 +63,11 @@ func (s *BotAnswerHistoryService) GetBotAnswerHistoryByID(ctx context.Context, i
 }
 
 // GetBotAnswerHistoryByBotUUID gets paginated bot answer history for a specific bot
-func (s *BotAnswerHistoryService) GetBotAnswerHistoryByBotUUID(ctx context.Context, botUUID string, limit, offset int32) ([]sqlc_queries.GetBotAnswerHistoryByBotUUIDRow, error) {
+func (s *BotAnswerHistoryService) GetBotAnswerHistoryByBotUUID(ctx context.Context, query BotAnswerHistoryPageQuery) ([]sqlc_queries.GetBotAnswerHistoryByBotUUIDRow, error) {
 	params := sqlc_queries.GetBotAnswerHistoryByBotUUIDParams{
-		BotUuid: botUUID,
-		Limit:   limit,
-		Offset:  offset,
+		BotUuid: query.BotUUID,
+		Limit:   query.Page.Limit,
+		Offset:  query.Page.Offset,
 	}
 	history, err := s.q.GetBotAnswerHistoryByBotUUID(ctx, params)
 	if err != nil {
@@ -58,11 +77,11 @@ func (s *BotAnswerHistoryService) GetBotAnswerHistoryByBotUUID(ctx context.Conte
 }
 
 // GetBotAnswerHistoryByUserID gets paginated bot answer history for a specific user
-func (s *BotAnswerHistoryService) GetBotAnswerHistoryByUserID(ctx context.Context, userID, limit, offset int32) ([]sqlc_queries.GetBotAnswerHistoryByUserIDRow, error) {
+func (s *BotAnswerHistoryService) GetBotAnswerHistoryByUserID(ctx context.Context, query UserAnswerHistoryPageQuery) ([]sqlc_queries.GetBotAnswerHistoryByUserIDRow, error) {
 	params := sqlc_queries.GetBotAnswerHistoryByUserIDParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
+		UserID: query.UserID,
+		Limit:  query.Page.Limit,
+		Offset: query.Page.Offset,
 	}
 	history, err := s.q.GetBotAnswerHistoryByUserID(ctx, params)
 	if err != nil {
@@ -113,10 +132,10 @@ func (s *BotAnswerHistoryService) GetBotAnswerHistoryCountByUserID(ctx context.C
 }
 
 // GetLatestBotAnswerHistoryByBotUUID gets the latest history entries for a bot
-func (s *BotAnswerHistoryService) GetLatestBotAnswerHistoryByBotUUID(ctx context.Context, botUUID string, limit int32) ([]sqlc_queries.GetLatestBotAnswerHistoryByBotUUIDRow, error) {
+func (s *BotAnswerHistoryService) GetLatestBotAnswerHistoryByBotUUID(ctx context.Context, query LatestBotAnswerHistoryQuery) ([]sqlc_queries.GetLatestBotAnswerHistoryByBotUUIDRow, error) {
 	params := sqlc_queries.GetLatestBotAnswerHistoryByBotUUIDParams{
-		BotUuid: botUUID,
-		Limit:   limit,
+		BotUuid: query.BotUUID,
+		Limit:   query.Limit,
 	}
 	history, err := s.q.GetLatestBotAnswerHistoryByBotUUID(ctx, params)
 	if err != nil {

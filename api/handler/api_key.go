@@ -140,7 +140,7 @@ func (h *APIKeyHandler) requests(w http.ResponseWriter, r *http.Request) {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid API key ID"))
 		return
 	}
-	requests, err := h.service.Requests(r.Context(), keyID, userID, 100)
+	requests, err := h.service.Requests(r.Context(), svc.APIKeyRequestsQuery{KeyID: keyID, UserID: userID, Limit: 100})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDebugInfo(err.Error()))
 		return
@@ -186,16 +186,13 @@ func (h *APIKeyHandler) requestDetail(w http.ResponseWriter, r *http.Request) {
 	if record.CompletedAt.Valid {
 		completedAt = &record.CompletedAt.Time
 	}
-	dto.RespondWithJSON(w, http.StatusOK, map[string]any{
-		"id": record.ID, "requestUuid": record.RequestUuid, "requestedModel": record.RequestedModel,
-		"provider": record.Provider, "status": record.Status, "stream": record.Stream,
-		"promptTokens": record.PromptTokens, "completionTokens": record.CompletionTokens, "totalTokens": record.TotalTokens,
-		"latencyMs": record.LatencyMs, "providerRequestId": record.ProviderRequestID, "errorCode": record.ErrorCode,
-		"requestBytes": record.RequestBytes, "responseBytes": record.ResponseBytes,
-		"requestSha256": record.RequestSha256, "responseSha256": record.ResponseSha256,
-		"requestTruncated": record.RequestTruncated, "responseTruncated": record.ResponseTruncated,
-		"requestClassification": record.RequestClassification, "responseClassification": record.ResponseClassification,
-		"createdAt": record.CreatedAt, "completedAt": completedAt, "retentionUntil": record.RetentionUntil,
-		"requestCapture": sampleForAPI(record.RequestSample), "responseCapture": sampleForAPI(record.ResponseSample),
-	})
+	dto.RespondWithJSON(w, http.StatusOK, gatewayRequestDetailHTTPResponse{ID: record.ID, RequestUUID: record.RequestUuid,
+		RequestedModel: record.RequestedModel, Provider: record.Provider, Status: record.Status, Stream: record.Stream,
+		PromptTokens: record.PromptTokens, CompletionTokens: record.CompletionTokens, TotalTokens: record.TotalTokens,
+		LatencyMs: record.LatencyMs, ProviderRequestID: record.ProviderRequestID, ErrorCode: record.ErrorCode,
+		RequestBytes: record.RequestBytes, ResponseBytes: record.ResponseBytes, RequestSHA256: record.RequestSha256,
+		ResponseSHA256: record.ResponseSha256, RequestTruncated: record.RequestTruncated, ResponseTruncated: record.ResponseTruncated,
+		RequestClassification: record.RequestClassification, ResponseClassification: record.ResponseClassification,
+		CreatedAt: record.CreatedAt, CompletedAt: completedAt, RetentionUntil: record.RetentionUntil,
+		RequestCapture: sampleForAPI(record.RequestSample), ResponseCapture: sampleForAPI(record.ResponseSample)})
 }

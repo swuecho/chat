@@ -34,14 +34,9 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 	}
 	session := result.Session
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"uuid":            session.Uuid,
-		"topic":           session.Topic,
-		"model":           session.Model,
-		"artifactEnabled": session.ArtifactEnabled,
-		"workspaceUuid":   result.WorkspaceUUID,
-		"createdAt":       session.CreatedAt.Format("2006-01-02T15:04:05Z"),
-	})
+	json.NewEncoder(w).Encode(workspaceSessionCreatedHTTPResponse{UUID: session.UUID, Topic: session.Topic,
+		Model: session.Model, ArtifactEnabled: session.ArtifactEnabled, WorkspaceUUID: result.WorkspaceUUID,
+		CreatedAt: session.CreatedAt.Format("2006-01-02T15:04:05Z")})
 }
 
 func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -69,16 +64,13 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 		return
 	}
 
-	responses := make([]map[string]interface{}, 0, len(sessions))
+	responses := make([]workspaceSessionHTTPResponse, 0, len(sessions))
 	for _, s := range sessions {
-		responses = append(responses, map[string]interface{}{
-			"uuid": s.Uuid, "title": s.Topic, "isEdit": false, "model": s.Model,
-			"workspaceUuid": workspaceUUID, "maxLength": s.MaxLength, "temperature": s.Temperature,
-			"maxTokens": s.MaxTokens, "topP": s.TopP, "n": s.N, "debug": s.Debug,
-			"summarizeMode": s.SummarizeMode, "exploreMode": s.ExploreMode,
-			"artifactEnabled": s.ArtifactEnabled, "createdAt": s.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			"updatedAt": s.UpdatedAt.Format("2006-01-02T15:04:05Z"),
-		})
+		responses = append(responses, workspaceSessionHTTPResponse{UUID: s.UUID, Title: s.Topic, Model: s.Model,
+			WorkspaceUUID: workspaceUUID, MaxLength: s.MaxLength, Temperature: s.Temperature,
+			MaxTokens: s.MaxTokens, TopP: s.TopP, N: s.N, Debug: s.Debug, SummarizeMode: s.SummarizeMode,
+			ExploreMode: s.ExploreMode, ArtifactEnabled: s.ArtifactEnabled,
+			CreatedAt: s.CreatedAt.Format("2006-01-02T15:04:05Z"), UpdatedAt: s.UpdatedAt.Format("2006-01-02T15:04:05Z")})
 	}
 
 	json.NewEncoder(w).Encode(responses)

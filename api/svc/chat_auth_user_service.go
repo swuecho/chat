@@ -298,22 +298,26 @@ func (s *AuthUserService) GetUserAnalysis(ctx context.Context, email string, def
 	return analysisData, nil
 }
 
+type UserSessionHistoryQuery struct {
+	Email string
+	Page  PageRequest
+}
+
 // GetUserSessionHistory retrieves paginated session history for a user
-func (s *AuthUserService) GetUserSessionHistory(ctx context.Context, email string, page, pageSize int32) ([]SessionHistoryInfo, int64, error) {
-	offset := (page - 1) * pageSize
+func (s *AuthUserService) GetUserSessionHistory(ctx context.Context, query UserSessionHistoryQuery) ([]SessionHistoryInfo, int64, error) {
 
 	// Get session history with pagination
 	sessionRows, err := s.q.GetUserSessionHistoryByEmail(ctx, sqlc_queries.GetUserSessionHistoryByEmailParams{
-		Email:  email,
-		Limit:  pageSize,
-		Offset: offset,
+		Email:  query.Email,
+		Limit:  query.Page.Size,
+		Offset: query.Page.Offset(),
 	})
 	if err != nil {
 		return nil, 0, eris.Wrap(err, "failed to get user session history")
 	}
 
 	// Get total count
-	totalCount, err := s.q.GetUserSessionHistoryCountByEmail(ctx, email)
+	totalCount, err := s.q.GetUserSessionHistoryCountByEmail(ctx, query.Email)
 	if err != nil {
 		return nil, 0, eris.Wrap(err, "failed to get user session history count")
 	}

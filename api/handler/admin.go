@@ -161,7 +161,7 @@ func (h *AdminHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.
 		}
 	}
 
-	sessionHistory, total, err := h.service.GetUserSessionHistory(r.Context(), email, page, size)
+	sessionHistory, total, err := h.service.GetUserSessionHistory(r.Context(), svc.UserSessionHistoryQuery{Email: email, Page: svc.PageRequest{Page: page, Size: size}})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get user session history"))
 		return

@@ -46,12 +46,12 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	promptParams := svc.CreateChatPromptInput{Uuid: request.UUID, ChatSessionUuid: request.ChatSessionUUID,
+	promptParams := svc.CreateChatPromptInput{UUID: request.UUID, ChatSessionUUID: request.ChatSessionUUID,
 		Role: request.Role, Content: request.Content, TokenCount: request.TokenCount,
 		UserID: userID, CreatedBy: userID, UpdatedBy: userID}
 
-	if promptParams.ChatSessionUuid != "" && promptParams.Role == "system" {
-		existingPrompt, getErr := h.service.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
+	if promptParams.ChatSessionUUID != "" && promptParams.Role == "system" {
+		existingPrompt, getErr := h.service.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUUID)
 		if getErr == nil {
 			json.NewEncoder(w).Encode(promptResponse(existingPrompt))
 			return
@@ -65,9 +65,9 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 	prompt, err := h.service.CreateChatPrompt(r.Context(), promptParams)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if promptParams.ChatSessionUuid != "" && promptParams.Role == "system" &&
+		if promptParams.ChatSessionUUID != "" && promptParams.Role == "system" &&
 			errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			existingPrompt, getErr := h.service.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
+			existingPrompt, getErr := h.service.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUUID)
 			if getErr == nil {
 				json.NewEncoder(w).Encode(promptResponse(existingPrompt))
 				return
@@ -113,7 +113,7 @@ func (h *ChatPromptHandler) UpdateChatPrompt(w http.ResponseWriter, r *http.Requ
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	promptParams := svc.UpdateChatPromptInput{ID: int32(id), ChatSessionUuid: request.ChatSessionUUID,
+	promptParams := svc.UpdateChatPromptInput{ID: int32(id), ChatSessionUUID: request.ChatSessionUUID,
 		Role: request.Role, Content: request.Content, Score: request.Score}
 	userID, err := getUserID(r.Context())
 	if err != nil {

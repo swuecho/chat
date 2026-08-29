@@ -42,21 +42,21 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 		svc := NewChatSessionService(q)
 		session, err := svc.CreateOrUpdateChatSessionByUUID(ctx,
 			CreateOrUpdateChatSessionInput{
-				Uuid: "test-wrap-nil-session", UserID: testUID,
+				UUID: "test-wrap-nil-session", UserID: testUID,
 				Topic: "Wrap Nil Test", Model: "gpt-3.5-turbo", MaxLength: 10,
 			})
 		if err != nil {
 			t.Fatalf("CreateOrUpdateChatSessionByUUID failed: %v", err)
 		}
-		if session.Uuid == "" {
+		if session.UUID == "" {
 			t.Fatal("expected non-empty session UUID")
 		}
-		retrieved, err := svc.GetChatSessionByUUID(ctx, session.Uuid)
+		retrieved, err := svc.GetChatSessionByUUID(ctx, session.UUID)
 		if err != nil {
 			t.Fatalf("GetChatSessionByUUID failed: %v", err)
 		}
-		if retrieved.Uuid != session.Uuid {
-			t.Fatalf("UUID mismatch: got %s, want %s", retrieved.Uuid, session.Uuid)
+		if retrieved.UUID != session.UUID {
+			t.Fatalf("UUID mismatch: got %s, want %s", retrieved.UUID, session.UUID)
 		}
 	})
 

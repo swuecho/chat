@@ -127,14 +127,14 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 	if !ok {
 		return
 	}
-	slog.Info("Processing chat session", "sessionUUID", chatSession.Uuid, "userID", userID, "model", chatSession.Model)
+	slog.Info("Processing chat session", "sessionUUID", chatSession.UUID, "userID", userID, "model", chatSession.Model)
 
 	if !h.claimOrReplayChatRequest(ctx, w, *chatSession, chatUuid, userID, streamOutput) {
 		return
 	}
 
 	if !h.handlePromptCreation(ctx, w, chatSession, chatUuid, question, userID, baseURL) {
-		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "prompt_persistence_failed")
+		h.failChatRequest(chatSession.UUID, chatUuid, userID, "prompt_persistence_failed")
 		return
 	}
 
@@ -164,7 +164,7 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 	}
 
 	if err := h.botHistorySvc.Save(ctx, svc.CreateBotAnswerHistoryInput{
-		BotUuid:    snapshotUuid,
+		BotUUID:    snapshotUuid,
 		UserID:     userID,
 		Prompt:     question,
 		Answer:     LLMAnswer.Answer,

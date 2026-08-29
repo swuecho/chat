@@ -59,9 +59,7 @@ type gatewayKeyContextKey struct{}
 func openAIError(w http.ResponseWriter, status int, message, errorType, code string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{
-		"message": message, "type": errorType, "param": nil, "code": code,
-	}})
+	_ = json.NewEncoder(w).Encode(openAIErrorResponse{Error: openAIErrorDetail{Message: message, Type: errorType, Code: code}})
 }
 
 func (h *GatewayHandler) authenticate(next http.Handler) http.Handler {
@@ -97,12 +95,12 @@ func (h *GatewayHandler) models(w http.ResponseWriter, r *http.Request) {
 		openAIError(w, http.StatusInternalServerError, "Unable to list models", "server_error", "internal_error")
 		return
 	}
-	data := make([]map[string]any, 0, len(models))
+	data := make([]gatewayModelHTTPResponse, 0, len(models))
 	for _, model := range models {
-		data = append(data, map[string]any{"id": model, "object": "model", "created": 0, "owned_by": "chat"})
+		data = append(data, gatewayModelHTTPResponse{ID: model, Object: "model", OwnedBy: "chat"})
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "data": data})
+	_ = json.NewEncoder(w).Encode(gatewayModelListHTTPResponse{Object: "list", Data: data})
 }
 
 type gatewayEnvelope struct {
@@ -362,7 +360,7 @@ func boundedSample(body []byte, limit int) ([]byte, bool) {
 }
 
 func classifyRequest(body []byte) json.RawMessage {
-	classification := map[string]any{"format": "openai_chat_completions"}
+	classification := gatewayRequestClassification{Format: "openai_chat_completions"}
 	var payload map[string]json.RawMessage
 	if json.Unmarshal(body, &payload) != nil {
 		encoded, _ := json.Marshal(classification)
@@ -381,23 +379,20 @@ func classifyRequest(body []byte) json.RawMessage {
 				multimodal = true
 			}
 		}
-		classification["message_count"] = len(messages)
-		classification["roles"] = roles
-		classification["multimodal"] = multimodal
+		classification.MessageCount = len(messages)
+		classification.Roles = roles
+		classification.Multimodal = multimodal
 	}
-	_, classification["has_tools"] = payload["tools"]
-	_, classification["has_response_format"] = payload["response_format"]
+	_, classification.HasTools = payload["tools"]
+	_, classification.HasResponseFormat = payload["response_format"]
 	encoded, _ := json.Marshal(classification)
 	return encoded
 }
 
 func classifyResponse(resp *http.Response, stream bool) json.RawMessage {
-	encoded, _ := json.Marshal(map[string]any{
-		"stream": stream, "status_code": resp.StatusCode,
-		"content_type":     resp.Header.Get("Content-Type"),
-		"content_encoding": resp.Header.Get("Content-Encoding"),
-		"successful":       resp.StatusCode >= 200 && resp.StatusCode < 300,
-	})
+	encoded, _ := json.Marshal(gatewayResponseClassification{Stream: stream, StatusCode: resp.StatusCode,
+		ContentType: resp.Header.Get("Content-Type"), ContentEncoding: resp.Header.Get("Content-Encoding"),
+		Successful: resp.StatusCode >= 200 && resp.StatusCode < 300})
 	return encoded
 }
 

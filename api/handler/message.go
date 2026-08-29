@@ -58,10 +58,10 @@ func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Re
 		return
 	}
 	message, err := h.service.CreateChatMessage(r.Context(), svc.CreateChatMessageInput{
-		ChatSessionUuid: request.ChatSessionUUID, Uuid: request.UUID, Role: request.Role,
+		ChatSessionUUID: request.ChatSessionUUID, UUID: request.UUID, Role: request.Role,
 		Content: request.Content, ReasoningContent: request.ReasoningContent, Model: request.Model,
 		TokenCount: request.TokenCount, Score: request.Score, UserID: userID,
-		CreatedBy: userID, UpdatedBy: userID, LlmSummary: request.LLMSummary,
+		CreatedBy: userID, UpdatedBy: userID, LLMSummary: request.LLMSummary,
 		Raw: request.Raw, Artifacts: request.Artifacts, SuggestedQuestions: request.SuggestedQuestions,
 	})
 	if err != nil {
@@ -184,7 +184,7 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 		return
 	}
 	message, err := h.service.UpdateChatMessageByUUID(r.Context(), svc.UpdateChatMessageByUUIDInput{
-		Uuid: simpleMsg.Uuid, Content: simpleMsg.Text, TokenCount: int32(tokenCount), IsPin: simpleMsg.IsPin, UserID: userID,
+		UUID: simpleMsg.Uuid, Content: simpleMsg.Text, TokenCount: int32(tokenCount), IsPin: simpleMsg.IsPin, UserID: userID,
 	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update chat message"))
@@ -219,7 +219,7 @@ func (h *ChatMessageHandler) GetChatMessagesBySessionUUID(w http.ResponseWriter,
 		pageSize = 200
 	}
 
-	messages, err := h.service.GetChatMessagesBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
+	messages, err := h.service.GetChatMessagesBySessionUUID(r.Context(), svc.SessionMessagesPageQuery{SessionUUID: uuidStr, Page: svc.PageRequest{Page: int32(pageNum), Size: int32(pageSize)}})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat messages"))
 		return
@@ -257,7 +257,7 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 	if err != nil {
 		pageSize = 200
 	}
-	simpleMsgs, err := h.conversationSvc.History(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
+	simpleMsgs, err := h.conversationSvc.History(r.Context(), svc.SessionHistoryQuery{SessionUUID: uuidStr, Page: svc.PageRequest{Page: int32(pageNum), Size: int32(pageSize)}})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat history"))
 		return
@@ -307,7 +307,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 		return
 	}
 
-	session, err := h.sessionSvc.GetChatSessionByUUID(r.Context(), message.ChatSessionUuid)
+	session, err := h.sessionSvc.GetChatSessionByUUID(r.Context(), message.ChatSessionUUID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dto.RespondWithAPIError(w, dto.ErrChatSessionNotFound.WithMessage("Session not found").WithDebugInfo(err.Error()))
@@ -322,7 +322,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 		return
 	}
 
-	contextMessages, err := h.service.GetLatestMessagesBySessionID(r.Context(), session.Uuid, 6)
+	contextMessages, err := h.service.GetLatestMessagesBySessionID(r.Context(), svc.LatestSessionMessagesQuery{SessionUUID: session.UUID, Limit: 6})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get conversation context"))
 		return
@@ -372,10 +372,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 		return
 	}
 
-	response := map[string]interface{}{
-		"newSuggestions": newSuggestions,
-		"allSuggestions": uniqueSuggestions,
-	}
+	response := suggestionsHTTPResponse{NewSuggestions: newSuggestions, AllSuggestions: uniqueSuggestions}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)

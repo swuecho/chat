@@ -31,14 +31,14 @@ func (h *ChatHandler) failChatRequest(sessionUuid, requestUuid string, userID in
 }
 
 func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.ResponseWriter, session svc.ChatSession, requestUuid string, userID int32, streamOutput bool) bool {
-	if _, err := h.service.ClaimChatRequest(ctx, requestUuid, session.Uuid, userID); err == nil {
+	if _, err := h.service.ClaimChatRequest(ctx, requestUuid, session.UUID, userID); err == nil {
 		return true
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to claim chat request", err.Error()))
 		return false
 	}
 
-	request, err := h.service.GetChatRequest(ctx, requestUuid, session.Uuid, userID)
+	request, err := h.service.GetChatRequest(ctx, requestUuid, session.UUID, userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to reconcile chat request", err.Error()))
 		return false
@@ -105,7 +105,7 @@ func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWr
 
 	baseURL, _ := provider.GetModelBaseURL(chatModel.URL)
 
-	if chatSession.Uuid == "" {
+	if chatSession.UUID == "" {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid session UUID"))
 		return nil, nil, "", false
 	}
@@ -116,12 +116,12 @@ func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWr
 // handlePromptCreation creates or reuses the system prompt and adds the user message.
 func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseWriter, chatSession *svc.ChatSession, chatUuid, newQuestion string, userID int32, baseURL string) bool {
 	existingPrompt := true
-	hasPrompt, err := h.conversationSvc.HasSystemPrompt(ctx, chatSession.Uuid)
+	hasPrompt, err := h.conversationSvc.HasSystemPrompt(ctx, chatSession.UUID)
 	if err != nil || !hasPrompt {
 		if errors.Is(err, sql.ErrNoRows) {
 			existingPrompt = false
 		} else {
-			slog.Error("error checking prompt", "session", chatSession.Uuid, "error", err)
+			slog.Error("error checking prompt", "session", chatSession.UUID, "error", err)
 			dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to get prompt", err.Error()))
 			return false
 		}
@@ -129,25 +129,25 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 
 	if existingPrompt {
 		if newQuestion != "" {
-			if _, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
+			if _, err := h.service.CreateChatMessageSimple(ctx, chatSession.UUID, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
 				dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to create message", err.Error()))
 				return false
 			}
 		}
 	} else {
-		if _, err := h.service.CreateChatPromptSimple(ctx, chatSession.Uuid, dto.DefaultSystemPromptText, userID); err != nil {
+		if _, err := h.service.CreateChatPromptSimple(ctx, chatSession.UUID, dto.DefaultSystemPromptText, userID); err != nil {
 			dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to create prompt", err.Error()))
 			return false
 		}
 
 		if newQuestion != "" {
-			if _, err := h.service.CreateChatMessageSimple(ctx, chatSession.Uuid, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
+			if _, err := h.service.CreateChatMessageSimple(ctx, chatSession.UUID, chatUuid, "user", newQuestion, "", chatSession.Model, userID, baseURL, chatSession.SummarizeMode); err != nil {
 				dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to create message", err.Error()))
 				return false
 			}
 
 			if title := firstNWords(newQuestion, 10); title != "" {
-				if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, chatSession.Uuid, userID, title); err != nil {
+				if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, chatSession.UUID, userID, title); err != nil {
 					slog.Warn("Failed to update session title", "error", err)
 				}
 			}
@@ -160,15 +160,15 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.ResponseWriter, chatSession *svc.ChatSession, chatUuid string, userID int32, baseURL string, streamOutput bool) bool {
 	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, false)
 	if err != nil {
-		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "message_collection_failed")
-		slog.Error("error collecting messages", "session", chatSession.Uuid, "error", err)
+		h.failChatRequest(chatSession.UUID, chatUuid, userID, "message_collection_failed")
+		slog.Error("error collecting messages", "session", chatSession.UUID, "error", err)
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to collect messages", err.Error()))
 		return false
 	}
-	slog.Info("Collected messages", "sessionUUID", chatSession.Uuid, "count", len(msgs), "model", chatSession.Model)
+	slog.Info("Collected messages", "sessionUUID", chatSession.UUID, "count", len(msgs), "model", chatSession.Model)
 
-	if err := h.service.MarkChatRequestStreaming(ctx, chatUuid, chatSession.Uuid, userID); err != nil {
-		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "request_state_failed")
+	if err := h.service.MarkChatRequestStreaming(ctx, chatUuid, chatSession.UUID, userID); err != nil {
+		h.failChatRequest(chatSession.UUID, chatUuid, userID, "request_state_failed")
 		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to start chat request", err.Error()))
 		return false
 	}
@@ -176,13 +176,13 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	model := h.chooseChatModel(ctx, *chatSession, msgs)
 	providerRequest, err := h.service.ProviderRequest(ctx, *chatSession, msgs, chatUuid, false, streamOutput)
 	if err != nil {
-		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "provider_request_failed")
+		h.failChatRequest(chatSession.UUID, chatUuid, userID, "provider_request_failed")
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to prepare model request"))
 		return false
 	}
 	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest)
 	if err != nil {
-		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "generation_failed")
+		h.failChatRequest(chatSession.UUID, chatUuid, userID, "generation_failed")
 		slog.Error("error generating answer", "error", err)
 		if streamOutput {
 			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
@@ -194,7 +194,7 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		return false
 	}
 	if LLMAnswer == nil {
-		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "empty_answer")
+		h.failChatRequest(chatSession.UUID, chatUuid, userID, "empty_answer")
 		if streamOutput {
 			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
 				Type: "failed", Code: "empty_answer", Message: "The model returned no final answer",
@@ -209,9 +209,9 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 		h.service.LogChat(*chatSession, msgs, LLMAnswer.ReasoningContent+LLMAnswer.Answer)
 	}
 
-	chatMessage, err := h.service.CompleteChatRequestWithSuggestedQuestions(ctx, chatUuid, chatSession.Uuid, LLMAnswer.AnswerId, LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs)
+	chatMessage, err := h.service.CompleteChatRequestWithSuggestedQuestions(ctx, chatUuid, chatSession.UUID, LLMAnswer.AnswerId, LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs)
 	if err != nil {
-		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "persistence_failed")
+		h.failChatRequest(chatSession.UUID, chatUuid, userID, "persistence_failed")
 		if streamOutput {
 			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
 				Type: "failed", AnswerID: LLMAnswer.AnswerId, Code: "persistence_failed", Message: "Failed to save answer",
@@ -303,7 +303,7 @@ func (h *ChatHandler) generateSessionTitle(chatSession *svc.ChatSession, userID 
 	ctx, cancel := context.WithTimeout(context.Background(), sessionTitleGenerationTimeout)
 	defer cancel()
 
-	messages, err := h.conversationSvc.MessagesPage(ctx, chatSession.Uuid, 0, 100)
+	messages, err := h.conversationSvc.MessagesPage(ctx, svc.ConversationMessagesPageQuery{SessionUUID: chatSession.UUID, Page: svc.PageWindow{Limit: 100}})
 	if err != nil {
 		slog.Warn("Failed to get messages for title generation", "error", err)
 		return
@@ -323,12 +323,12 @@ func (h *ChatHandler) generateSessionTitle(chatSession *svc.ChatSession, userID 
 		return
 	}
 
-	if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, chatSession.Uuid, userID, genTitle); err != nil {
+	if _, err := h.sessionSvc.UpdateChatSessionTopicByUUID(ctx, chatSession.UUID, userID, genTitle); err != nil {
 		slog.Warn("Failed to update session title", "error", err)
 		return
 	}
 
-	slog.Info("Generated LLM title", "sessionUUID", chatSession.Uuid, "title", genTitle)
+	slog.Info("Generated LLM title", "sessionUUID", chatSession.UUID, "title", genTitle)
 }
 
 // sendSuggestedQuestionsStream sends suggested questions as an SSE event.
@@ -343,18 +343,8 @@ func (h *ChatHandler) sendSuggestedQuestionsStream(w http.ResponseWriter, answer
 		return
 	}
 
-	response := map[string]interface{}{
-		"id":     answerID,
-		"object": "chat.completion.chunk",
-		"choices": []map[string]interface{}{{
-			"index": 0,
-			"delta": map[string]interface{}{
-				"content":            "",
-				"suggestedQuestions": suggestedQuestions,
-			},
-			"finish_reason": nil,
-		}},
-	}
+	response := suggestedQuestionsChunk{ID: answerID, Object: "chat.completion.chunk",
+		Choices: []suggestedQuestionsChoice{{Index: 0, Delta: suggestedQuestionsDelta{SuggestedQuestions: suggestedQuestions}}}}
 
 	data, _ := json.Marshal(response)
 	fmt.Fprintf(w, "data: %v\n\n", string(data))

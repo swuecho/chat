@@ -120,7 +120,7 @@ func adminMessageResponse(m svc.AdminSessionMessage) adminMessageHTTPResponse {
 }
 
 func promptResponse(p svc.ChatPrompt) promptHTTPResponse {
-	return promptHTTPResponse{ID: p.ID, UUID: p.Uuid, ChatSessionUUID: p.ChatSessionUuid, Role: p.Role, Content: p.Content, Score: p.Score, UserID: p.UserID, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt, CreatedBy: p.CreatedBy, UpdatedBy: p.UpdatedBy, IsDeleted: p.IsDeleted, TokenCount: p.TokenCount}
+	return promptHTTPResponse{ID: p.ID, UUID: p.UUID, ChatSessionUUID: p.ChatSessionUUID, Role: p.Role, Content: p.Content, Score: p.Score, UserID: p.UserID, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt, CreatedBy: p.CreatedBy, UpdatedBy: p.UpdatedBy, IsDeleted: p.IsDeleted, TokenCount: p.TokenCount}
 }
 
 func promptResponses(prompts []svc.ChatPrompt) []promptHTTPResponse {
@@ -132,7 +132,7 @@ func promptResponses(prompts []svc.ChatPrompt) []promptHTTPResponse {
 }
 
 func messageResponse(m svc.ChatMessage) messageHTTPResponse {
-	return messageHTTPResponse{ID: m.ID, UUID: m.Uuid, ChatSessionUUID: m.ChatSessionUuid, Role: m.Role, Content: m.Content, ReasoningContent: m.ReasoningContent, Model: m.Model, LLMSummary: m.LlmSummary, Score: m.Score, UserID: m.UserID, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt, CreatedBy: m.CreatedBy, UpdatedBy: m.UpdatedBy, IsDeleted: m.IsDeleted, IsPin: m.IsPin, TokenCount: m.TokenCount, Raw: m.Raw, Artifacts: m.Artifacts, SuggestedQuestions: m.SuggestedQuestions}
+	return messageHTTPResponse{ID: m.ID, UUID: m.UUID, ChatSessionUUID: m.ChatSessionUUID, Role: m.Role, Content: m.Content, ReasoningContent: m.ReasoningContent, Model: m.Model, LLMSummary: m.LLMSummary, Score: m.Score, UserID: m.UserID, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt, CreatedBy: m.CreatedBy, UpdatedBy: m.UpdatedBy, IsDeleted: m.IsDeleted, IsPin: m.IsPin, TokenCount: m.TokenCount, Raw: m.Raw, Artifacts: m.Artifacts, SuggestedQuestions: m.SuggestedQuestions}
 }
 
 func messageResponses(messages []svc.ChatMessage) []messageHTTPResponse {

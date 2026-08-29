@@ -65,7 +65,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 			}
 			return eris.Wrap(err, "failed to retrieve source prompt")
 		}
-		source, err := uow.InactiveSessionByUUID(ctx, prompt.ChatSessionUuid)
+		source, err := uow.InactiveSessionByUUID(ctx, prompt.ChatSessionUUID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return domain.NotFound("Original chat session", err)
@@ -75,7 +75,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 
 		sessionUUID := s.newID()
 		session, err := uow.CreateOrUpdateSession(ctx, CreateOrUpdateChatSessionInput{
-			Uuid: sessionUUID, UserID: command.UserID, Topic: snapshot.Title,
+			UUID: sessionUUID, UserID: command.UserID, Topic: snapshot.Title,
 			MaxLength: source.MaxLength, Temperature: source.Temperature,
 			Model: source.Model, MaxTokens: source.MaxTokens, TopP: source.TopP, N: 1,
 			Debug: source.Debug, SummarizeMode: source.SummarizeMode,
@@ -87,7 +87,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 		}
 
 		if err := uow.CreatePrompt(ctx, CreateChatPromptInput{
-			Uuid: s.newID(), ChatSessionUuid: sessionUUID, Role: "system",
+			UUID: s.newID(), ChatSessionUUID: sessionUUID, Role: "system",
 			Content: messages[0].Text, UserID: command.UserID,
 			CreatedBy: command.UserID, UpdatedBy: command.UserID,
 		}); err != nil {
@@ -96,7 +96,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 
 		for _, message := range messages[1:] {
 			if err := uow.CreateMessage(ctx, CreateChatMessageInput{
-				ChatSessionUuid: sessionUUID, Uuid: s.newID(), Role: message.role(),
+				ChatSessionUUID: sessionUUID, UUID: s.newID(), Role: message.role(),
 				Content: message.Text, UserID: command.UserID,
 				CreatedBy: command.UserID, UpdatedBy: command.UserID,
 				Raw: json.RawMessage(`{}`), Artifacts: json.RawMessage(`[]`),
@@ -106,10 +106,10 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 			}
 		}
 
-		if err := uow.SetActiveSession(ctx, command.UserID, source.WorkspaceID, session.Uuid); err != nil {
+		if err := uow.SetActiveSession(ctx, command.UserID, source.WorkspaceID, session.UUID); err != nil {
 			return eris.Wrap(err, "failed to set active session")
 		}
-		result.SessionUUID = session.Uuid
+		result.SessionUUID = session.UUID
 		return nil
 	})
 	if err != nil {

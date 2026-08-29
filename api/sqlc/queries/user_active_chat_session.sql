@@ -30,5 +30,4 @@ WHERE user_id = $1 AND (
 
 -- name: DeleteUserActiveSessionBySession :exec
 DELETE FROM user_active_chat_session
-WHERE user_id = $1 AND chat_session_uuid = $2;
-
+WHERE user_id = $1 AND chat_session_uuid = $2 AND workspace_id IS NULL;

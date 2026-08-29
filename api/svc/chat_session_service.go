@@ -24,7 +24,7 @@ type ChatSessionService struct {
 type ChatSession struct {
 	ID              int32
 	UserID          int32
-	Uuid            string
+	UUID            string
 	Topic           string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
@@ -80,7 +80,7 @@ func chatSessionFromRecord(s sqlc_queries.ChatSession) ChatSession {
 		value := s.WorkspaceID.Int32
 		workspaceID = &value
 	}
-	return ChatSession{ID: s.ID, UserID: s.UserID, Uuid: s.Uuid, Topic: s.Topic,
+	return ChatSession{ID: s.ID, UserID: s.UserID, UUID: s.Uuid, Topic: s.Topic,
 		CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt, Active: s.Active, Model: s.Model,
 		MaxLength: s.MaxLength, Temperature: s.Temperature, TopP: s.TopP,
 		MaxTokens: s.MaxTokens, N: s.N, SummarizeMode: s.SummarizeMode,
@@ -90,7 +90,7 @@ func chatSessionFromRecord(s sqlc_queries.ChatSession) ChatSession {
 
 func (s ChatSession) ToRawMessage() *json.RawMessage {
 	encoded, err := json.Marshal(map[string]any{
-		"id": s.ID, "userId": s.UserID, "uuid": s.Uuid, "topic": s.Topic,
+		"id": s.ID, "userId": s.UserID, "uuid": s.UUID, "topic": s.Topic,
 		"createdAt": s.CreatedAt, "updatedAt": s.UpdatedAt, "active": s.Active,
 		"model": s.Model, "maxLength": s.MaxLength, "temperature": s.Temperature,
 		"topP": s.TopP, "maxTokens": s.MaxTokens, "n": s.N,
@@ -110,7 +110,7 @@ type RateLimit struct {
 }
 
 type CreateOrUpdateChatSessionInput struct {
-	Uuid            string
+	UUID            string
 	UserID          int32
 	Topic           string
 	MaxLength       int32
@@ -262,7 +262,7 @@ func (s *ChatSessionService) CreateOrUpdateChatSessionByUUID(ctx context.Context
 		workspaceID = sql.NullInt32{Int32: *input.WorkspaceID, Valid: true}
 	}
 	session_u, err := s.q.CreateOrUpdateChatSessionByUUID(ctx, sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
-		Uuid: input.Uuid, UserID: input.UserID, Topic: input.Topic,
+		Uuid: input.UUID, UserID: input.UserID, Topic: input.Topic,
 		MaxLength: input.MaxLength, Temperature: input.Temperature, Model: input.Model,
 		MaxTokens: input.MaxTokens, TopP: input.TopP, N: input.N, Debug: input.Debug,
 		SummarizeMode: input.SummarizeMode, WorkspaceID: workspaceID,

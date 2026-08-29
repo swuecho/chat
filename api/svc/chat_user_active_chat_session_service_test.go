@@ -97,6 +97,46 @@ func TestSetWorkspaceActiveSessionRejectsSessionFromAnotherWorkspace(t *testing.
 	}
 }
 
+func TestSetGlobalActiveSessionRejectsDifferentSessionOwner(t *testing.T) {
+	q, ownerID := createWorkspaceUser(t, "global-active-owner")
+	_, otherID := createWorkspaceUser(t, "global-active-other")
+	workspace := createWorkspaceRecord(t, q, ownerID, "global-active-workspace", false)
+	createActiveSessionTestChatSession(t, q, ownerID, workspace.ID, "global-foreign-session")
+
+	_, err := NewUserActiveChatSessionService(q).SetGlobalActiveSession(context.Background(), SetGlobalActiveSessionCommand{
+		UserID: otherID, SessionUUID: "global-foreign-session",
+	})
+	if !domain.IsKind(err, domain.KindForbidden) {
+		t.Fatalf("expected forbidden error, got %v", err)
+	}
+}
+
+func TestGetWorkspaceActiveSessionChecksWorkspaceOwner(t *testing.T) {
+	q, ownerID := createWorkspaceUser(t, "get-active-owner")
+	_, otherID := createWorkspaceUser(t, "get-active-other")
+	workspace := createWorkspaceRecord(t, q, ownerID, "get-active-workspace", false)
+	createActiveSessionTestChatSession(t, q, ownerID, workspace.ID, "get-active-session")
+	service := NewUserActiveChatSessionService(q)
+	if _, err := service.SetWorkspaceActiveSession(context.Background(), SetWorkspaceActiveSessionCommand{
+		UserID: ownerID, WorkspaceUUID: workspace.Uuid, SessionUUID: "get-active-session",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	active, err := service.GetWorkspaceActiveSession(context.Background(), GetWorkspaceActiveSessionQuery{
+		UserID: ownerID, WorkspaceUUID: workspace.Uuid,
+	})
+	if err != nil || active.SessionUUID != "get-active-session" {
+		t.Fatalf("active session = %#v, error = %v", active, err)
+	}
+	_, err = service.GetWorkspaceActiveSession(context.Background(), GetWorkspaceActiveSessionQuery{
+		UserID: otherID, WorkspaceUUID: workspace.Uuid,
+	})
+	if !domain.IsKind(err, domain.KindForbidden) {
+		t.Fatalf("expected forbidden error, got %v", err)
+	}
+}
+
 var (
 	_ WorkspaceTransactionManager    = (*sqlcTransactionManager)(nil)
 	_ SnapshotCopyTransactionManager = (*sqlcTransactionManager)(nil)

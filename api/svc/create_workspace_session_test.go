@@ -23,7 +23,7 @@ func TestCreateWorkspaceSessionCommitsCompleteAggregate(t *testing.T) {
 	if result.Session.WorkspaceID == nil || *result.Session.WorkspaceID != workspace.ID {
 		t.Fatalf("session workspace mismatch: %#v", result.Session.WorkspaceID)
 	}
-	prompt, err := q.GetOneChatPromptBySessionUUID(context.Background(), result.Session.Uuid)
+	prompt, err := q.GetOneChatPromptBySessionUUID(context.Background(), result.Session.UUID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestCreateWorkspaceSessionCommitsCompleteAggregate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if active.ChatSessionUuid != result.Session.Uuid {
+	if active.ChatSessionUuid != result.Session.UUID {
 		t.Fatalf("active session = %q", active.ChatSessionUuid)
 	}
 }

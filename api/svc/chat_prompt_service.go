@@ -14,7 +14,7 @@ import (
 
 type ChatPrompt struct {
 	ID                                   int32
-	Uuid, ChatSessionUuid, Role, Content string
+	UUID, ChatSessionUUID, Role, Content string
 	Score                                float64
 	UserID                               int32
 	CreatedAt, UpdatedAt                 time.Time
@@ -24,7 +24,7 @@ type ChatPrompt struct {
 }
 
 func chatPromptFromRecord(p sqlc_queries.ChatPrompt) ChatPrompt {
-	return ChatPrompt{ID: p.ID, Uuid: p.Uuid, ChatSessionUuid: p.ChatSessionUuid, Role: p.Role,
+	return ChatPrompt{ID: p.ID, UUID: p.Uuid, ChatSessionUUID: p.ChatSessionUuid, Role: p.Role,
 		Content: p.Content, Score: p.Score, UserID: p.UserID, CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt, CreatedBy: p.CreatedBy, UpdatedBy: p.UpdatedBy,
 		IsDeleted: p.IsDeleted, TokenCount: p.TokenCount}
@@ -38,13 +38,19 @@ func chatPromptsFromRecords(records []sqlc_queries.ChatPrompt) []ChatPrompt {
 	return result
 }
 
+func createChatPromptParams(input CreateChatPromptInput) sqlc_queries.CreateChatPromptParams {
+	return sqlc_queries.CreateChatPromptParams{Uuid: input.UUID, ChatSessionUuid: input.ChatSessionUUID,
+		Role: input.Role, Content: input.Content, TokenCount: input.TokenCount, UserID: input.UserID,
+		CreatedBy: input.CreatedBy, UpdatedBy: input.UpdatedBy}
+}
+
 type ChatPromptService struct {
 	q *sqlc_queries.Queries
 }
 
 type CreateChatPromptInput struct {
-	Uuid            string
-	ChatSessionUuid string
+	UUID            string
+	ChatSessionUUID string
 	Role            string
 	Content         string
 	TokenCount      int32
@@ -55,7 +61,7 @@ type CreateChatPromptInput struct {
 
 type UpdateChatPromptInput struct {
 	ID              int32
-	ChatSessionUuid string
+	ChatSessionUUID string
 	Role            string
 	Content         string
 	Score           float64
@@ -80,7 +86,7 @@ func NewChatPromptService(q *sqlc_queries.Queries) *ChatPromptService {
 
 // CreateChatPrompt creates a new chat prompt.
 func (s *ChatPromptService) CreateChatPrompt(ctx context.Context, input CreateChatPromptInput) (ChatPrompt, error) {
-	prompt, err := s.q.CreateChatPrompt(ctx, sqlc_queries.CreateChatPromptParams(input))
+	prompt, err := s.q.CreateChatPrompt(ctx, createChatPromptParams(input))
 	if err != nil {
 		return ChatPrompt{}, eris.Wrap(err, "failed to create prompt: ")
 	}
@@ -108,7 +114,9 @@ func (s *ChatPromptService) GetChatPromptByID(ctx context.Context, id, userID in
 
 // UpdateChatPrompt updates an existing chat prompt.
 func (s *ChatPromptService) UpdateChatPrompt(ctx context.Context, input UpdateChatPromptInput) (ChatPrompt, error) {
-	prompt_u, err := s.q.UpdateChatPrompt(ctx, sqlc_queries.UpdateChatPromptParams(input))
+	prompt_u, err := s.q.UpdateChatPrompt(ctx, sqlc_queries.UpdateChatPromptParams{ID: input.ID,
+		ChatSessionUuid: input.ChatSessionUUID, Role: input.Role, Content: input.Content,
+		Score: input.Score, UserID: input.UserID, UpdatedBy: input.UpdatedBy})
 	if err != nil {
 		return ChatPrompt{}, errors.New("failed to update prompt")
 	}

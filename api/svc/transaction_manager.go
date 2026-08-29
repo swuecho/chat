@@ -129,7 +129,7 @@ func (u *sqlcUnitOfWork) CreateOrUpdateSession(ctx context.Context, input Create
 		workspaceID = sql.NullInt32{Int32: *input.WorkspaceID, Valid: true}
 	}
 	r, err := u.q.CreateOrUpdateChatSessionByUUID(ctx, sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
-		Uuid: input.Uuid, UserID: input.UserID, Topic: input.Topic, MaxLength: input.MaxLength,
+		Uuid: input.UUID, UserID: input.UserID, Topic: input.Topic, MaxLength: input.MaxLength,
 		Temperature: input.Temperature, Model: input.Model, MaxTokens: input.MaxTokens,
 		TopP: input.TopP, N: input.N, Debug: input.Debug, SummarizeMode: input.SummarizeMode,
 		WorkspaceID: workspaceID, ExploreMode: input.ExploreMode, ArtifactEnabled: input.ArtifactEnabled,
@@ -138,11 +138,11 @@ func (u *sqlcUnitOfWork) CreateOrUpdateSession(ctx context.Context, input Create
 }
 
 func (u *sqlcUnitOfWork) CreatePrompt(ctx context.Context, input CreateChatPromptInput) error {
-	_, err := u.q.CreateChatPrompt(ctx, sqlc_queries.CreateChatPromptParams(input))
+	_, err := u.q.CreateChatPrompt(ctx, createChatPromptParams(input))
 	return err
 }
 
 func (u *sqlcUnitOfWork) CreateMessage(ctx context.Context, input CreateChatMessageInput) error {
-	_, err := u.q.CreateChatMessage(ctx, sqlc_queries.CreateChatMessageParams(input))
+	_, err := u.q.CreateChatMessage(ctx, createChatMessageParams(input))
 	return err
 }

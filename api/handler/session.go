@@ -42,7 +42,7 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 	}
 
 	json.NewEncoder(w).Encode(&dto.ChatSessionResponse{
-		Uuid:            session.Uuid,
+		Uuid:            session.UUID,
 		Topic:           session.Topic,
 		MaxLength:       session.MaxLength,
 		CreatedAt:       session.CreatedAt,
@@ -78,7 +78,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 
 	workspaceID := defaultWorkspace.ID
 	session, err := h.service.CreateOrUpdateChatSessionByUUID(ctx, svc.CreateOrUpdateChatSessionInput{
-		Uuid: req.Uuid, UserID: userID, Topic: req.Topic,
+		UUID: req.Uuid, UserID: userID, Topic: req.Topic,
 		MaxLength: dto.DefaultMaxLength, Temperature: dto.DefaultTemperature,
 		Model: req.Model, MaxTokens: dto.DefaultMaxTokens, TopP: dto.DefaultTopP, N: dto.DefaultN,
 		Debug: false, SummarizeMode: false, ExploreMode: false, ArtifactEnabled: false,
@@ -89,12 +89,12 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
-	if err := h.conversationSvc.EnsureSystemPrompt(ctx, session.Uuid, userID, req.DefaultSystemPrompt); err != nil {
+	if err := h.conversationSvc.EnsureSystemPrompt(ctx, session.UUID, userID, req.DefaultSystemPrompt); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create default system prompt"))
 		return
 	}
 
-	if _, err := h.activeSvc.UpsertActiveSession(ctx, svc.SetActiveSessionCommand{UserID: session.UserID, SessionUUID: session.Uuid}); err != nil {
+	if _, err := h.activeSvc.UpsertActiveSession(ctx, svc.SetActiveSessionCommand{UserID: session.UserID, SessionUUID: session.UUID}); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update active user session"))
 		return
 	}
@@ -120,7 +120,7 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 	}
 
 	params := svc.CreateOrUpdateChatSessionInput{
-		Uuid: sessionReq.Uuid, UserID: userID, Topic: sessionReq.Topic,
+		UUID: sessionReq.Uuid, UserID: userID, Topic: sessionReq.Topic,
 		MaxLength: sessionReq.MaxLength, Temperature: sessionReq.Temperature,
 		Model: sessionReq.Model, TopP: sessionReq.TopP, N: sessionReq.N,
 		MaxTokens: sessionReq.MaxTokens, Debug: sessionReq.Debug,
