@@ -49,9 +49,6 @@ func NewChatSessionService(q *sqlc_queries.Queries) *ChatSessionService {
 	return &ChatSessionService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *ChatSessionService) Q() *sqlc_queries.Queries { return s.q }
-
 // CreateChatSession creates a new chat session.
 func (s *ChatSessionService) CreateChatSession(ctx context.Context, session_params sqlc_queries.CreateChatSessionParams) (sqlc_queries.ChatSession, error) {
 	session, err := s.q.CreateChatSession(ctx, session_params)

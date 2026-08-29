@@ -24,9 +24,6 @@ func NewChatCommentService(q *sqlc_queries.Queries) *ChatCommentService {
 	return &ChatCommentService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *ChatCommentService) Q() *sqlc_queries.Queries { return s.q }
-
 // CreateChatComment creates a new chat comment
 func (s *ChatCommentService) CreateChatComment(ctx context.Context, input CreateChatCommentInput) (sqlc_queries.ChatComment, error) {
 	comment, err := s.q.CreateChatComment(ctx, sqlc_queries.CreateChatCommentParams(input))

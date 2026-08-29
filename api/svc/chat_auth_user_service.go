@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/rotisserie/eris"
@@ -50,9 +48,6 @@ func NewAuthUserService(q *sqlc_queries.Queries, jwtSecret string, defaultLimit 
 		defaultLimit: defaultLimit,
 	}
 }
-
-// Q returns the underlying queries for use by other services during initialization.
-func (s *AuthUserService) Q() *sqlc_queries.Queries { return s.q }
 
 // CreateAuthUser creates a new authentication user record.
 func (s *AuthUserService) CreateAuthUser(ctx context.Context, input CreateAuthUserInput) (sqlc_queries.AuthUser, error) {
@@ -99,17 +94,6 @@ func (s *AuthUserService) Authenticate(ctx context.Context, email, password stri
 		return sqlc_queries.AuthUser{}, dto.ErrAuthInvalidCredentials
 	}
 	return user, nil
-}
-
-func (s *AuthUserService) Logout(tokenString string) (*http.Cookie, error) {
-	userID, err := auth.ValidateToken(tokenString, s.jwtSecret, auth.TokenTypeAccess)
-	if err != nil {
-		return nil, err
-	}
-	// Implement a mechanism to track invalidated tokens for the given user ID
-	// auth.AddInvalidToken(userID, "insert-invalidated-token-here")
-	cookie := auth.GetExpireSecureCookie(strconv.Itoa(int(userID)), false)
-	return cookie, nil
 }
 
 // backend api

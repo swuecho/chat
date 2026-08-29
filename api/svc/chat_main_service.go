@@ -25,6 +25,7 @@ import (
 type ChatService struct {
 	q            *sqlc_queries.Queries
 	modelCatalog *llmModelCatalog
+	newID        func() string
 	openAIKey    string
 	openAIProxy  string
 }
@@ -34,11 +35,8 @@ var artifactInstructionText string
 
 // NewChatService creates a new ChatService with database queries and OpenAI configuration.
 func NewChatService(q *sqlc_queries.Queries, openAIKey, openAIProxy string) *ChatService {
-	return &ChatService{q: q, modelCatalog: newLLMModelCatalog(q), openAIKey: openAIKey, openAIProxy: openAIProxy}
+	return &ChatService{q: q, modelCatalog: newLLMModelCatalog(q), newID: provider.NewUUID, openAIKey: openAIKey, openAIProxy: openAIProxy}
 }
-
-// Q returns the underlying queries.
-func (s *ChatService) Q() *sqlc_queries.Queries { return s.q }
 
 func (s *ChatService) ProviderModel(ctx context.Context, name string) (provider.ModelConfig, error) {
 	return s.modelCatalog.get(ctx, name)
@@ -238,7 +236,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	}
 
 	// Extract artifacts from content
-	artifacts := extractArtifacts(content)
+	artifacts := extractArtifacts(content, s.newID)
 	artifactsJSON, err := json.Marshal(artifacts)
 	if err != nil {
 		slog.Warn("Failed to marshal artifacts", "error", err)
@@ -285,7 +283,7 @@ func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Cont
 	}
 
 	// Extract artifacts from content
-	artifacts := extractArtifacts(content)
+	artifacts := extractArtifacts(content, s.newID)
 	artifactsJSON, err := json.Marshal(artifacts)
 	if err != nil {
 		slog.Warn("Failed to marshal artifacts", "error", err)

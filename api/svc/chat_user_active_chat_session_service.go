@@ -15,9 +15,6 @@ func NewUserActiveChatSessionService(q *sqlc.Queries) *UserActiveChatSessionServ
 	return &UserActiveChatSessionService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *UserActiveChatSessionService) Q() *sqlc.Queries { return s.q }
-
 // Simplified unified methods
 
 // UpsertActiveSession creates or updates an active session for a user in a specific workspace (or global if workspaceID is nil)

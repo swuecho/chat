@@ -3,6 +3,8 @@ package dto
 
 import (
 	"time"
+
+	"github.com/swuecho/chat_backend/domain"
 )
 
 // --- Request types ---
@@ -55,13 +57,9 @@ type TokenResult struct {
 	ExpiresIn   int    `json:"expiresIn"`
 }
 
-type Artifact struct {
-	UUID     string `json:"uuid"`
-	Type     string `json:"type"`
-	Title    string `json:"title"`
-	Content  string `json:"content"`
-	Language string `json:"language,omitempty"`
-}
+// Artifact is retained as a transport alias for compatibility. The canonical
+// application type lives in domain.
+type Artifact = domain.Artifact
 
 type SimpleChatMessage struct {
 	Uuid      string     `json:"uuid"`

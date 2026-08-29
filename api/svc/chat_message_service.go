@@ -57,9 +57,6 @@ func NewChatMessageService(q *sqlc_queries.Queries) *ChatMessageService {
 	return &ChatMessageService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *ChatMessageService) Q() *sqlc_queries.Queries { return s.q }
-
 // CreateChatMessage creates a new chat message.
 func (s *ChatMessageService) CreateChatMessage(ctx context.Context, input CreateChatMessageInput) (sqlc_queries.ChatMessage, error) {
 	message, err := s.q.CreateChatMessage(ctx, sqlc_queries.CreateChatMessageParams(input))

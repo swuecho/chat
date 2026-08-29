@@ -4,13 +4,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/provider"
+	"github.com/swuecho/chat_backend/domain"
 )
 
 // extractArtifacts detects and extracts artifacts from message content
-func extractArtifacts(content string) []dto.Artifact {
-	var artifacts []dto.Artifact
+func extractArtifacts(content string, newID func() string) []domain.Artifact {
+	var artifacts []domain.Artifact
 
 	// Pattern for HTML artifacts (check specific types first)
 	// Example: ```html <!-- artifact: Interactive Demo -->
@@ -20,8 +19,8 @@ func extractArtifacts(content string) []dto.Artifact {
 	for _, match := range htmlMatches {
 		title := strings.TrimSpace(match[1])
 		artifactContent := strings.TrimSpace(match[2])
-		artifact := dto.Artifact{
-			UUID:     provider.NewUUID(),
+		artifact := domain.Artifact{
+			UUID:     newID(),
 			Type:     "html",
 			Title:    title,
 			Content:  artifactContent,
@@ -39,8 +38,8 @@ func extractArtifacts(content string) []dto.Artifact {
 		title := strings.TrimSpace(match[1])
 		artifactContent := strings.TrimSpace(match[2])
 
-		artifact := dto.Artifact{
-			UUID:     provider.NewUUID(),
+		artifact := domain.Artifact{
+			UUID:     newID(),
 			Type:     "svg",
 			Title:    title,
 			Content:  artifactContent,
@@ -58,8 +57,8 @@ func extractArtifacts(content string) []dto.Artifact {
 		title := strings.TrimSpace(match[1])
 		artifactContent := strings.TrimSpace(match[2])
 
-		artifact := dto.Artifact{
-			UUID:     provider.NewUUID(),
+		artifact := domain.Artifact{
+			UUID:     newID(),
 			Type:     "mermaid",
 			Title:    title,
 			Content:  artifactContent,
@@ -77,8 +76,8 @@ func extractArtifacts(content string) []dto.Artifact {
 		title := strings.TrimSpace(match[1])
 		artifactContent := strings.TrimSpace(match[2])
 
-		artifact := dto.Artifact{
-			UUID:     provider.NewUUID(),
+		artifact := domain.Artifact{
+			UUID:     newID(),
 			Type:     "json",
 			Title:    title,
 			Content:  artifactContent,
@@ -108,8 +107,8 @@ func extractArtifacts(content string) []dto.Artifact {
 
 		// Only create executable artifacts for supported languages
 		if isExecutableLanguage(language) {
-			artifact := dto.Artifact{
-				UUID:     provider.NewUUID(),
+			artifact := domain.Artifact{
+				UUID:     newID(),
 				Type:     "executable-code",
 				Title:    title,
 				Content:  artifactContent,
@@ -147,8 +146,8 @@ func extractArtifacts(content string) []dto.Artifact {
 			}
 		}
 
-		artifact := dto.Artifact{
-			UUID:     provider.NewUUID(),
+		artifact := domain.Artifact{
+			UUID:     newID(),
 			Type:     artifactType,
 			Title:    title,
 			Content:  artifactContent,

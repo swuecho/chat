@@ -22,9 +22,6 @@ func NewJWTSecretService(q *sqlc_queries.Queries) *JWTSecretService {
 	return &JWTSecretService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *JWTSecretService) Q() *sqlc_queries.Queries { return s.q }
-
 // GetJWTSecret returns a jwt_secret by name.
 func (s *JWTSecretService) GetJwtSecret(ctx context.Context, name string) (sqlc_queries.JwtSecret, error) {
 	secret, err := s.q.GetJwtSecret(ctx, name)

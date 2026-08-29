@@ -25,9 +25,6 @@ func NewBotAnswerHistoryService(q *sqlc_queries.Queries) *BotAnswerHistoryServic
 	return &BotAnswerHistoryService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *BotAnswerHistoryService) Q() *sqlc_queries.Queries { return s.q }
-
 // CreateBotAnswerHistory creates a new bot answer history entry
 func (s *BotAnswerHistoryService) CreateBotAnswerHistory(ctx context.Context, input CreateBotAnswerHistoryInput) (sqlc_queries.BotAnswerHistory, error) {
 	history, err := s.q.CreateBotAnswerHistory(ctx, sqlc_queries.CreateBotAnswerHistoryParams(input))

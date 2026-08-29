@@ -40,9 +40,6 @@ func NewChatWorkspaceService(q *sqlc_queries.Queries) *ChatWorkspaceService {
 	return &ChatWorkspaceService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *ChatWorkspaceService) Q() *sqlc_queries.Queries { return s.q }
-
 // --- Workspace CRUD ---
 
 func (s *ChatWorkspaceService) CreateWorkspace(ctx context.Context, input CreateWorkspaceInput) (sqlc_queries.ChatWorkspace, error) {

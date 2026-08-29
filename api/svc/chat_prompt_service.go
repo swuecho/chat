@@ -39,9 +39,6 @@ func NewChatPromptService(q *sqlc_queries.Queries) *ChatPromptService {
 	return &ChatPromptService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *ChatPromptService) Q() *sqlc_queries.Queries { return s.q }
-
 // CreateChatPrompt creates a new chat prompt.
 func (s *ChatPromptService) CreateChatPrompt(ctx context.Context, input CreateChatPromptInput) (sqlc_queries.ChatPrompt, error) {
 	prompt, err := s.q.CreateChatPrompt(ctx, sqlc_queries.CreateChatPromptParams(input))

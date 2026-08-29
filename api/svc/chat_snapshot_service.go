@@ -21,9 +21,6 @@ func NewChatSnapshotService(q *sqlc_queries.Queries) *ChatSnapshotService {
 	return &ChatSnapshotService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *ChatSnapshotService) Q() *sqlc_queries.Queries { return s.q }
-
 // --- Query wrappers ---
 
 func (s *ChatSnapshotService) ChatSnapshotByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatSnapshot, error) {
