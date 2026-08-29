@@ -39,6 +39,17 @@ SET is_default = $2, updated_at = now()
 WHERE uuid = $1
 RETURNING *;
 
+-- name: ClearDefaultWorkspacesByUserID :exec
+UPDATE chat_workspace
+SET is_default = false, updated_at = now()
+WHERE user_id = $1 AND is_default = true;
+
+-- name: SetDefaultWorkspaceForUser :one
+UPDATE chat_workspace
+SET is_default = true, updated_at = now()
+WHERE uuid = $1 AND user_id = $2
+RETURNING *;
+
 -- name: GetWorkspaceWithSessionCount :many
 SELECT 
     w.*,

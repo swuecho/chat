@@ -10,6 +10,17 @@ import (
 	"time"
 )
 
+const clearDefaultWorkspacesByUserID = `-- name: ClearDefaultWorkspacesByUserID :exec
+UPDATE chat_workspace
+SET is_default = false, updated_at = now()
+WHERE user_id = $1 AND is_default = true
+`
+
+func (q *Queries) ClearDefaultWorkspacesByUserID(ctx context.Context, userID int32) error {
+	_, err := q.db.ExecContext(ctx, clearDefaultWorkspacesByUserID, userID)
+	return err
+}
+
 const createDefaultWorkspace = `-- name: CreateDefaultWorkspace :one
 INSERT INTO chat_workspace (uuid, user_id, name, description, color, icon, is_default, order_position)
 VALUES ($1, $2, 'General', 'Default workspace for all conversations', '#6366f1', 'folder', true, 0)
@@ -287,6 +298,37 @@ type SetDefaultWorkspaceParams struct {
 
 func (q *Queries) SetDefaultWorkspace(ctx context.Context, arg SetDefaultWorkspaceParams) (ChatWorkspace, error) {
 	row := q.db.QueryRowContext(ctx, setDefaultWorkspace, arg.Uuid, arg.IsDefault)
+	var i ChatWorkspace
+	err := row.Scan(
+		&i.ID,
+		&i.Uuid,
+		&i.UserID,
+		&i.Name,
+		&i.Description,
+		&i.Color,
+		&i.Icon,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.IsDefault,
+		&i.OrderPosition,
+	)
+	return i, err
+}
+
+const setDefaultWorkspaceForUser = `-- name: SetDefaultWorkspaceForUser :one
+UPDATE chat_workspace
+SET is_default = true, updated_at = now()
+WHERE uuid = $1 AND user_id = $2
+RETURNING id, uuid, user_id, name, description, color, icon, created_at, updated_at, is_default, order_position
+`
+
+type SetDefaultWorkspaceForUserParams struct {
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userId"`
+}
+
+func (q *Queries) SetDefaultWorkspaceForUser(ctx context.Context, arg SetDefaultWorkspaceForUserParams) (ChatWorkspace, error) {
+	row := q.db.QueryRowContext(ctx, setDefaultWorkspaceForUser, arg.Uuid, arg.UserID)
 	var i ChatWorkspace
 	err := row.Scan(
 		&i.ID,

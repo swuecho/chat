@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -33,6 +34,11 @@ type UpdateWorkspaceInput struct {
 	Description string
 	Color       string
 	Icon        string
+}
+
+type SetDefaultWorkspaceCommand struct {
+	UserID        int32
+	WorkspaceUUID string
 }
 
 // NewChatWorkspaceService creates a new ChatWorkspaceService.
@@ -83,11 +89,6 @@ func (s *ChatWorkspaceService) GetDefaultWorkspaceByUserID(ctx context.Context, 
 	return w, eris.Wrap(err, "failed to retrieve default workspace")
 }
 
-func (s *ChatWorkspaceService) SetDefaultWorkspace(ctx context.Context, params sqlc_queries.SetDefaultWorkspaceParams) (sqlc_queries.ChatWorkspace, error) {
-	w, err := s.q.SetDefaultWorkspace(ctx, params)
-	return w, eris.Wrap(err, "failed to set default workspace")
-}
-
 func (s *ChatWorkspaceService) CreateDefaultWorkspace(ctx context.Context, userID int32) (sqlc_queries.ChatWorkspace, error) {
 	w, err := s.q.CreateDefaultWorkspace(ctx, sqlc_queries.CreateDefaultWorkspaceParams{
 		Uuid: uuid.New().String(), UserID: userID,
@@ -106,27 +107,42 @@ func (s *ChatWorkspaceService) EnsureDefaultWorkspaceExists(ctx context.Context,
 	return w, nil
 }
 
-// SetWorkspaceAsDefaultForUser clears any existing default then sets the target as default.
-// This is a business operation that should live in the service, not the handler.
-func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context, userID int32, workspaceUUID string) (sqlc_queries.ChatWorkspace, error) {
-	workspaces, err := s.GetWorkspacesByUserID(ctx, userID)
+// SetWorkspaceAsDefaultForUser changes a user's default workspace atomically.
+func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context, command SetDefaultWorkspaceCommand) (sqlc_queries.ChatWorkspace, error) {
+	if command.UserID <= 0 {
+		return sqlc_queries.ChatWorkspace{}, domain.Invalid("user ID is required")
+	}
+	if command.WorkspaceUUID == "" {
+		return sqlc_queries.ChatWorkspace{}, domain.Invalid("workspace UUID is required")
+	}
+
+	var result sqlc_queries.ChatWorkspace
+	err := s.q.InTransaction(ctx, func(q *sqlc_queries.Queries) error {
+		workspace, err := q.GetWorkspaceByUUID(ctx, command.WorkspaceUUID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return domain.NotFound("Workspace", err)
+			}
+			return eris.Wrap(err, "failed to retrieve workspace")
+		}
+		if workspace.UserID != command.UserID {
+			return domain.Forbidden("workspace does not belong to user")
+		}
+		if err := q.ClearDefaultWorkspacesByUserID(ctx, command.UserID); err != nil {
+			return eris.Wrap(err, "failed to clear default workspace")
+		}
+		result, err = q.SetDefaultWorkspaceForUser(ctx, sqlc_queries.SetDefaultWorkspaceForUserParams{
+			Uuid: command.WorkspaceUUID, UserID: command.UserID,
+		})
+		if err != nil {
+			return eris.Wrap(err, "failed to set default workspace")
+		}
+		return nil
+	})
 	if err != nil {
 		return sqlc_queries.ChatWorkspace{}, err
 	}
-
-	for _, ws := range workspaces {
-		if ws.IsDefault && ws.Uuid != workspaceUUID {
-			if _, err := s.SetDefaultWorkspace(ctx, sqlc_queries.SetDefaultWorkspaceParams{
-				Uuid: ws.Uuid, IsDefault: false,
-			}); err != nil {
-				return sqlc_queries.ChatWorkspace{}, err
-			}
-		}
-	}
-
-	return s.SetDefaultWorkspace(ctx, sqlc_queries.SetDefaultWorkspaceParams{
-		Uuid: workspaceUUID, IsDefault: true,
-	})
+	return result, nil
 }
 
 // --- Permission ---

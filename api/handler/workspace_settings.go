@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *http.Request) {
@@ -46,13 +47,10 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	if !h.checkPermission(w, ctx, workspaceUUID, userID) {
-		return
-	}
 
-	workspace, err := h.wsService.SetWorkspaceAsDefaultForUser(ctx, userID, workspaceUUID)
+	workspace, err := h.wsService.SetWorkspaceAsDefaultForUser(ctx, svc.SetDefaultWorkspaceCommand{UserID: userID, WorkspaceUUID: workspaceUUID})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to set default workspace"))
+		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to set default workspace"))
 		return
 	}
 

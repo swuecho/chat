@@ -50,7 +50,7 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 	}
 
 	if req.IsDefault {
-		workspace, err = h.wsService.SetWorkspaceAsDefaultForUser(ctx, userID, workspace.Uuid)
+		workspace, err = h.wsService.SetWorkspaceAsDefaultForUser(ctx, svc.SetDefaultWorkspaceCommand{UserID: userID, WorkspaceUUID: workspace.Uuid})
 		if err != nil {
 			dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to set default workspace"))
 			return
