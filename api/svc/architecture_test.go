@@ -177,17 +177,18 @@ func TestCoreSessionAPIDoesNotExposeSQLCRecords(t *testing.T) {
 
 func TestConvertedServiceAPIsDoNotExposeSQLCTypes(t *testing.T) {
 	convertedReceivers := map[string]bool{
-		"ChatSessionService":          true,
-		"ChatWorkspaceService":        true,
-		"ChatSnapshotService":         true,
-		"ChatPromptService":           true,
-		"ChatMessageService":          true,
-		"SessionConversationService":  true,
-		"SessionRateLimitService":     true,
-		"SessionSnapshotQueryService": true,
-		"SessionAdminQueryService":    true,
-		"SessionBotHistoryService":    true,
-		"SessionModelService":         true,
+		"ChatSessionService":           true,
+		"ChatWorkspaceService":         true,
+		"ChatSnapshotService":          true,
+		"ChatPromptService":            true,
+		"ChatMessageService":           true,
+		"SessionConversationService":   true,
+		"SessionRateLimitService":      true,
+		"SessionSnapshotQueryService":  true,
+		"SessionAdminQueryService":     true,
+		"SessionBotHistoryService":     true,
+		"SessionModelService":          true,
+		"UserActiveChatSessionService": true,
 	}
 	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
 		if err != nil {

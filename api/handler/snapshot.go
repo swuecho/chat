@@ -173,7 +173,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotMetaByUserID(w http.ResponseWriter, r 
 	}
 
 	w.WriteHeader(http.StatusOK)
-	data := make([]map[string]any, 0, len(chatSnapshots))
+	data := make([]snapshotSummaryHTTPResponse, 0, len(chatSnapshots))
 	for _, snapshot := range chatSnapshots {
 		data = append(data, snapshotSummaryResponse(snapshot))
 	}
@@ -198,7 +198,7 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		return
 	}
 
-	if err := h.Service.UpdateChatSnapshotMetaByUUID(r.Context(), uuid, input.Title, input.Summary, userID); err != nil {
+	if err := h.Service.UpdateChatSnapshotMetadata(r.Context(), svc.UpdateSnapshotMetadataCommand{UUID: uuid, Title: input.Title, Summary: input.Summary, UserID: userID}); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update chat snapshot metadata").WithDebugInfo(err.Error()))
 		return
 	}
@@ -243,7 +243,7 @@ func (h *ChatSnapshotHandler) ChatSnapshotSearch(w http.ResponseWriter, r *http.
 		return
 	}
 
-	response := make([]map[string]any, 0, len(chatSnapshots))
+	response := make([]snapshotSearchHTTPResponse, 0, len(chatSnapshots))
 	for _, snapshot := range chatSnapshots {
 		response = append(response, snapshotSearchResponse(snapshot))
 	}

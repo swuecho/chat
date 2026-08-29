@@ -232,8 +232,8 @@ func (s *ChatMessageService) GetChatMessagesBySessionUUID(ctx context.Context, u
 	return chatMessagesFromRecords(message), nil
 }
 
-// DeleteChatMessagesBySesionUUID deletes chat messages by session uuid.
-func (s *ChatMessageService) DeleteChatMessagesBySesionUUID(ctx context.Context, command DeleteSessionMessagesCommand) error {
+// DeleteChatMessagesBySessionUUID deletes chat messages by session UUID.
+func (s *ChatMessageService) DeleteChatMessagesBySessionUUID(ctx context.Context, command DeleteSessionMessagesCommand) error {
 	rows, err := s.q.DeleteChatMessagesBySesionUUID(ctx, sqlc_queries.DeleteChatMessagesBySesionUUIDParams{ChatSessionUuid: command.SessionUUID, UserID: command.UserID})
 	if err != nil {
 		return err

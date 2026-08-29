@@ -44,7 +44,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 	}
 
 	result := CreateSessionFromSnapshotResult{}
-	err := s.tx.WithinTransaction(ctx, func(uow UnitOfWork) error {
+	err := s.tx.WithinSnapshotCopyTransaction(ctx, func(uow SnapshotCopyUnitOfWork) error {
 		snapshot, err := uow.SnapshotByUUID(ctx, command.SnapshotUUID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {

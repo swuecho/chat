@@ -32,7 +32,7 @@ func (s *ChatWorkspaceService) CreateWorkspaceSession(ctx context.Context, comma
 	command.DefaultSystemPrompt = normalizedSystemPrompt(command.DefaultSystemPrompt)
 
 	var result CreateWorkspaceSessionResult
-	err := s.tx.WithinTransaction(ctx, func(uow UnitOfWork) error {
+	err := s.tx.WithinWorkspaceTransaction(ctx, func(uow WorkspaceUnitOfWork) error {
 		workspace, err := uow.WorkspaceByUUID(ctx, command.WorkspaceUUID)
 		if err != nil {
 			return err

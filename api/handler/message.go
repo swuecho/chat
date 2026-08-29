@@ -42,7 +42,7 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_messages/{uuid}", h.DeleteChatMessageByUUID).Methods(http.MethodDelete)
 	router.HandleFunc("/uuid/chat_messages/{uuid}/generate-suggestions", h.GenerateMoreSuggestions).Methods(http.MethodPost)
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.GetChatHistoryBySessionUUID).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.DeleteChatMessagesBySesionUUID).Methods(http.MethodDelete)
+	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.DeleteChatMessagesBySessionUUID).Methods(http.MethodDelete)
 }
 
 func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Request) {
@@ -262,21 +262,21 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat history"))
 		return
 	}
-	response := make([]map[string]any, 0, len(simpleMsgs))
+	response := make([]historyMessageHTTPResponse, 0, len(simpleMsgs))
 	for _, message := range simpleMsgs {
 		response = append(response, historyMessageResponse(message))
 	}
 	json.NewEncoder(w).Encode(response)
 }
 
-func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatMessageHandler) DeleteChatMessagesBySessionUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
 	userID, err := getUserID(r.Context())
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	err = h.service.DeleteChatMessagesBySesionUUID(r.Context(), svc.DeleteSessionMessagesCommand{SessionUUID: uuidStr, UserID: userID})
+	err = h.service.DeleteChatMessagesBySessionUUID(r.Context(), svc.DeleteSessionMessagesCommand{SessionUUID: uuidStr, UserID: userID})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to delete chat messages"))
 		return

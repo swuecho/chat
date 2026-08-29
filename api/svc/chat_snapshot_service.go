@@ -48,6 +48,10 @@ type UpdateChatBotModelCommand struct {
 	UserID int32
 	Model  string
 }
+type UpdateSnapshotMetadataCommand struct {
+	UUID, Title, Summary string
+	UserID               int32
+}
 
 func chatSnapshotFromRecord(r sqlc_queries.ChatSnapshot) ChatSnapshot {
 	return ChatSnapshot{ID: r.ID, Type: r.Typ, UUID: r.Uuid, UserID: r.UserID, Title: r.Title, Summary: r.Summary, Model: r.Model, Tags: r.Tags, Session: r.Session, Conversation: r.Conversation, CreatedAt: r.CreatedAt, Text: r.Text}
@@ -81,8 +85,8 @@ func (s *ChatSnapshotService) ChatSnapshotCountByUserIDAndType(ctx context.Conte
 	return s.q.ChatSnapshotCountByUserIDAndType(ctx, sqlc_queries.ChatSnapshotCountByUserIDAndTypeParams{UserID: userID, Column2: typ})
 }
 
-func (s *ChatSnapshotService) UpdateChatSnapshotMetaByUUID(ctx context.Context, uuid, title, summary string, userID int32) error {
-	return s.q.UpdateChatSnapshotMetaByUUID(ctx, sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{Uuid: uuid, Title: title, Summary: summary, UserID: userID})
+func (s *ChatSnapshotService) UpdateChatSnapshotMetadata(ctx context.Context, command UpdateSnapshotMetadataCommand) error {
+	return s.q.UpdateChatSnapshotMetaByUUID(ctx, sqlc_queries.UpdateChatSnapshotMetaByUUIDParams{Uuid: command.UUID, Title: command.Title, Summary: command.Summary, UserID: command.UserID})
 }
 
 func (s *ChatSnapshotService) UpdateChatBotModel(ctx context.Context, command UpdateChatBotModelCommand) (ChatSnapshot, error) {

@@ -3,9 +3,45 @@ package svc
 import (
 	"context"
 	"database/sql"
+	"time"
+
 	"github.com/rotisserie/eris"
 	sqlc "github.com/swuecho/chat_backend/sqlc_queries"
 )
+
+type ActiveSession struct {
+	ID          int32
+	UserID      int32
+	SessionUUID string
+	WorkspaceID *int32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type SetActiveSessionCommand struct {
+	UserID      int32
+	WorkspaceID *int32
+	SessionUUID string
+}
+
+type GetActiveSessionQuery struct {
+	UserID      int32
+	WorkspaceID *int32
+}
+
+type DeleteActiveSessionCommand struct {
+	UserID      int32
+	WorkspaceID *int32
+}
+
+func activeSessionFromRecord(record sqlc.UserActiveChatSession) ActiveSession {
+	var workspaceID *int32
+	if record.WorkspaceID.Valid {
+		workspaceID = &record.WorkspaceID.Int32
+	}
+	return ActiveSession{ID: record.ID, UserID: record.UserID, SessionUUID: record.ChatSessionUuid,
+		WorkspaceID: workspaceID, CreatedAt: record.CreatedAt, UpdatedAt: record.UpdatedAt}
+}
 
 type UserActiveChatSessionService struct {
 	q *sqlc.Queries
@@ -18,58 +54,62 @@ func NewUserActiveChatSessionService(q *sqlc.Queries) *UserActiveChatSessionServ
 // Simplified unified methods
 
 // UpsertActiveSession creates or updates an active session for a user in a specific workspace (or global if workspaceID is nil)
-func (s *UserActiveChatSessionService) UpsertActiveSession(ctx context.Context, userID int32, workspaceID *int32, sessionUUID string) (sqlc.UserActiveChatSession, error) {
+func (s *UserActiveChatSessionService) UpsertActiveSession(ctx context.Context, command SetActiveSessionCommand) (ActiveSession, error) {
 	var nullWorkspaceID sql.NullInt32
-	if workspaceID != nil {
-		nullWorkspaceID = sql.NullInt32{Int32: *workspaceID, Valid: true}
+	if command.WorkspaceID != nil {
+		nullWorkspaceID = sql.NullInt32{Int32: *command.WorkspaceID, Valid: true}
 	}
 
 	session, err := s.q.UpsertUserActiveSession(ctx, sqlc.UpsertUserActiveSessionParams{
-		UserID:          userID,
+		UserID:          command.UserID,
 		WorkspaceID:     nullWorkspaceID,
-		ChatSessionUuid: sessionUUID,
+		ChatSessionUuid: command.SessionUUID,
 	})
 	if err != nil {
-		return sqlc.UserActiveChatSession{}, eris.Wrap(err, "failed to upsert active session")
+		return ActiveSession{}, eris.Wrap(err, "failed to upsert active session")
 	}
-	return session, nil
+	return activeSessionFromRecord(session), nil
 }
 
 // GetActiveSession retrieves the active session for a user in a specific workspace (or global if workspaceID is nil)
-func (s *UserActiveChatSessionService) GetActiveSession(ctx context.Context, userID int32, workspaceID *int32) (sqlc.UserActiveChatSession, error) {
+func (s *UserActiveChatSessionService) GetActiveSession(ctx context.Context, query GetActiveSessionQuery) (ActiveSession, error) {
 	var workspaceParam int32
-	if workspaceID != nil {
-		workspaceParam = *workspaceID
+	if query.WorkspaceID != nil {
+		workspaceParam = *query.WorkspaceID
 	}
 
 	session, err := s.q.GetUserActiveSession(ctx, sqlc.GetUserActiveSessionParams{
-		UserID:  userID,
+		UserID:  query.UserID,
 		Column2: workspaceParam, // SQLC generated this awkward name due to the complex WHERE clause
 	})
 	if err != nil {
-		return sqlc.UserActiveChatSession{}, eris.Wrap(err, "failed to get active session")
+		return ActiveSession{}, eris.Wrap(err, "failed to get active session")
 	}
-	return session, nil
+	return activeSessionFromRecord(session), nil
 }
 
 // GetAllActiveSessions retrieves all active sessions for a user (both global and workspace-specific)
-func (s *UserActiveChatSessionService) GetAllActiveSessions(ctx context.Context, userID int32) ([]sqlc.UserActiveChatSession, error) {
+func (s *UserActiveChatSessionService) GetAllActiveSessions(ctx context.Context, userID int32) ([]ActiveSession, error) {
 	sessions, err := s.q.GetAllUserActiveSessions(ctx, userID)
 	if err != nil {
 		return nil, eris.Wrap(err, "failed to get all active sessions")
 	}
-	return sessions, nil
+	result := make([]ActiveSession, 0, len(sessions))
+	for _, session := range sessions {
+		result = append(result, activeSessionFromRecord(session))
+	}
+	return result, nil
 }
 
 // DeleteActiveSession deletes the active session for a user in a specific workspace (or global if workspaceID is nil)
-func (s *UserActiveChatSessionService) DeleteActiveSession(ctx context.Context, userID int32, workspaceID *int32) error {
+func (s *UserActiveChatSessionService) DeleteActiveSession(ctx context.Context, command DeleteActiveSessionCommand) error {
 	var workspaceParam int32
-	if workspaceID != nil {
-		workspaceParam = *workspaceID
+	if command.WorkspaceID != nil {
+		workspaceParam = *command.WorkspaceID
 	}
 
 	err := s.q.DeleteUserActiveSession(ctx, sqlc.DeleteUserActiveSessionParams{
-		UserID:  userID,
+		UserID:  command.UserID,
 		Column2: workspaceParam, // SQLC generated this awkward name
 	})
 	if err != nil {

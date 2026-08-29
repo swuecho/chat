@@ -9,34 +9,50 @@ import (
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
-// UnitOfWork exposes application operations available inside one transaction.
-// It intentionally contains no generated SQLC types.
-type UnitOfWork interface {
+// WorkspaceUnitOfWork contains only the operations used by workspace
+// transactions. Simple query services continue to use SQLC directly.
+type WorkspaceUnitOfWork interface {
 	WorkspaceByUUID(context.Context, string) (Workspace, error)
 	ClearDefaultWorkspaces(context.Context, int32) error
 	SetDefaultWorkspace(context.Context, int32, string) (Workspace, error)
 	CreateWorkspaceSession(context.Context, CreateWorkspaceSessionCommand) (ChatSession, error)
 	EnsureSystemPrompt(context.Context, string, int32, string, string) error
 	SetActiveSession(context.Context, int32, *int32, string) error
+}
+
+// SnapshotCopyUnitOfWork contains only the operations needed to copy a
+// snapshot into a session.
+type SnapshotCopyUnitOfWork interface {
 	SnapshotByUUID(context.Context, string) (ChatSnapshot, error)
 	PromptByUUID(context.Context, string) (ChatPrompt, error)
 	InactiveSessionByUUID(context.Context, string) (ChatSession, error)
 	CreateOrUpdateSession(context.Context, CreateOrUpdateChatSessionInput) (ChatSession, error)
 	CreatePrompt(context.Context, CreateChatPromptInput) error
 	CreateMessage(context.Context, CreateChatMessageInput) error
+	SetActiveSession(context.Context, int32, *int32, string) error
 }
 
-type TransactionManager interface {
-	WithinTransaction(context.Context, func(UnitOfWork) error) error
+type WorkspaceTransactionManager interface {
+	WithinWorkspaceTransaction(context.Context, func(WorkspaceUnitOfWork) error) error
+}
+
+type SnapshotCopyTransactionManager interface {
+	WithinSnapshotCopyTransaction(context.Context, func(SnapshotCopyUnitOfWork) error) error
 }
 
 type sqlcTransactionManager struct{ q *sqlc_queries.Queries }
 
-func newSQLCTransactionManager(q *sqlc_queries.Queries) TransactionManager {
+func newSQLCTransactionManager(q *sqlc_queries.Queries) *sqlcTransactionManager {
 	return &sqlcTransactionManager{q: q}
 }
 
-func (m *sqlcTransactionManager) WithinTransaction(ctx context.Context, fn func(UnitOfWork) error) error {
+func (m *sqlcTransactionManager) WithinWorkspaceTransaction(ctx context.Context, fn func(WorkspaceUnitOfWork) error) error {
+	return m.q.InTransaction(ctx, func(q *sqlc_queries.Queries) error {
+		return fn(&sqlcUnitOfWork{q: q})
+	})
+}
+
+func (m *sqlcTransactionManager) WithinSnapshotCopyTransaction(ctx context.Context, fn func(SnapshotCopyUnitOfWork) error) error {
 	return m.q.InTransaction(ctx, func(q *sqlc_queries.Queries) error {
 		return fn(&sqlcUnitOfWork{q: q})
 	})

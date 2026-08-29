@@ -94,7 +94,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
-	if _, err := h.activeSvc.UpsertActiveSession(ctx, session.UserID, nil, session.Uuid); err != nil {
+	if _, err := h.activeSvc.UpsertActiveSession(ctx, svc.SetActiveSessionCommand{UserID: session.UserID, SessionUUID: session.Uuid}); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update active user session"))
 		return
 	}

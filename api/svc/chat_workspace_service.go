@@ -16,7 +16,7 @@ import (
 // ChatWorkspaceService provides all workspace-related business logic.
 type ChatWorkspaceService struct {
 	q     *sqlc_queries.Queries
-	tx    TransactionManager
+	tx    WorkspaceTransactionManager
 	newID func() string
 }
 
@@ -181,7 +181,7 @@ func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context,
 	}
 
 	var result Workspace
-	err := s.tx.WithinTransaction(ctx, func(uow UnitOfWork) error {
+	err := s.tx.WithinWorkspaceTransaction(ctx, func(uow WorkspaceUnitOfWork) error {
 		workspace, err := uow.WorkspaceByUUID(ctx, command.WorkspaceUUID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {

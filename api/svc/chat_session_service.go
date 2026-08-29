@@ -18,7 +18,7 @@ import (
 type ChatSessionService struct {
 	q     *sqlc_queries.Queries
 	newID func() string
-	tx    TransactionManager
+	tx    SnapshotCopyTransactionManager
 }
 
 type ChatSession struct {

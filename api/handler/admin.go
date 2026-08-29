@@ -189,7 +189,7 @@ func (h *AdminHandler) SessionMessagesHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	response := make([]map[string]any, 0, len(messages))
+	response := make([]adminMessageHTTPResponse, 0, len(messages))
 	for _, message := range messages {
 		response = append(response, adminMessageResponse(message))
 	}
