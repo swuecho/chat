@@ -97,7 +97,7 @@ func (m *GeminiChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 	return ch, nil
 }
 
-func GenerateChatTitle(ctx context.Context, q QueryStore, model ModelConfig, chatText string) (string, error) {
+func GenerateChatTitle(ctx context.Context, model ModelConfig, chatText string) (string, error) {
 	if strings.TrimSpace(chatText) == "" {
 		return "", dto.ErrValidationInvalidInput("chat text cannot be empty")
 	}
@@ -113,7 +113,7 @@ func GenerateChatTitle(ctx context.Context, q QueryStore, model ModelConfig, cha
 		},
 	}
 
-	h := newTitleGenerationHandler(q)
+	h := newTitleGenerationHandler()
 	var titleModel ChatModel
 	switch model.APIType {
 	case "claude":
@@ -133,9 +133,10 @@ func GenerateChatTitle(ctx context.Context, q QueryStore, model ModelConfig, cha
 		}
 	}
 
-	stream, err := titleModel.Stream(ctx, Session{
-		Model: model.Name, MaxTokens: 64, Temperature: 0.2, TopP: 1, N: 1,
-	}, messages, "title-generation", false, false)
+	stream, err := titleModel.Stream(ctx, Request{
+		Session: Session{Model: model.Name, MaxTokens: 64, Temperature: 0.2, TopP: 1, N: 1},
+		Model:   model, Messages: messages, ChatUUID: "title-generation",
+	})
 	if err != nil {
 		return "", err
 	}

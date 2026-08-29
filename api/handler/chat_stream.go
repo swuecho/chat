@@ -152,7 +152,12 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 	msgs = append(msgs, models.Message{Role: "user", Content: question})
 
 	model := h.chooseChatModel(ctx, session, msgs)
-	LLMAnswer, err := streamFromModel(model, ctx, w, session, msgs, "", false, streamOutput)
+	providerRequest, err := h.service.ProviderRequest(ctx, session, msgs, "", false, streamOutput)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to prepare model request"))
+		return
+	}
+	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return
@@ -188,7 +193,12 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 	}
 
 	model := h.chooseChatModel(ctx, *chatSession, msgs)
-	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, true, stream)
+	providerRequest, err := h.service.ProviderRequest(ctx, *chatSession, msgs, chatUuid, true, stream)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to prepare model request"))
+		return
+	}
+	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest)
 	if err != nil {
 		slog.Error("error regenerating answer", "error", err)
 		if stream {

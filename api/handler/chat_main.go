@@ -45,7 +45,6 @@ func (h *ChatHandler) Register(router *mux.Router) {
 
 // --- provider.Handler implementation ---
 
-func (h *ChatHandler) Queries() provider.QueryStore { return h.service.ProviderQueries() }
 func (h *ChatHandler) Config() provider.Config {
 	return provider.Config{
 		OpenAIKey:   h.openAIKey,

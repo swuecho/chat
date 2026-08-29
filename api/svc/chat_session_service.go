@@ -306,7 +306,7 @@ func (s *ChatSessionService) SaveBotAnswerHistory(ctx context.Context, input Cre
 }
 
 func (s *ChatSessionService) GenerateChatTitle(ctx context.Context, model sqlc_queries.ChatModel, text string) (string, error) {
-	return provider.GenerateChatTitle(ctx, newLLMProviderStore(s.q), providerModel(model), text)
+	return provider.GenerateChatTitle(ctx, providerModel(model), text)
 }
 
 // UpdateChatMessageSuggestions updates suggested questions.

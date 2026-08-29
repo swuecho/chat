@@ -21,7 +21,7 @@ func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSessi
 		return provider.NewTestChatModel(h)
 	}
 
-	chatModel, err := provider.GetChatModel(ctx, h.Queries(), session.Model)
+	chatModel, err := h.service.ProviderModel(ctx, session.Model)
 	if err != nil {
 		return provider.NewOpenAIChatModel(h) // fallback
 	}

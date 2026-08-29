@@ -49,13 +49,13 @@ type File struct {
 // Request is a fully resolved LLM invocation. Providers do not perform
 // persistence lookups; the application supplies all required configuration.
 type Request struct {
-	Session  Session
-	Model    ModelConfig
-	Files    []File
-	Messages []models.Message
-	ChatUUID string
+	Session    Session
+	Model      ModelConfig
+	Files      []File
+	Messages   []models.Message
+	ChatUUID   string
 	Regenerate bool
-	Stream bool
+	Stream     bool
 }
 
 // StreamChunk represents a single chunk in a streaming LLM response.

@@ -170,7 +170,13 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 	}
 
 	model := h.chooseChatModel(ctx, *chatSession, msgs)
-	LLMAnswer, err := streamFromModel(model, ctx, w, *chatSession, msgs, chatUuid, false, streamOutput)
+	providerRequest, err := h.service.ProviderRequest(ctx, *chatSession, msgs, chatUuid, false, streamOutput)
+	if err != nil {
+		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "provider_request_failed")
+		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to prepare model request"))
+		return false
+	}
+	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest)
 	if err != nil {
 		h.failChatRequest(chatSession.Uuid, chatUuid, userID, "generation_failed")
 		slog.Error("error generating answer", "error", err)
@@ -234,19 +240,15 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 
 // streamFromModel calls model.Stream() and consumes the channel, writing SSE or JSON to w.
 // Returns the final answer or an error.
-func streamFromModel(model provider.ChatModel, ctx context.Context, w http.ResponseWriter, session svc.ChatSession, msgs []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
-	ch, err := model.Stream(ctx, provider.Session{
-		UUID: session.Uuid, UserID: session.UserID, Model: session.Model,
-		MaxTokens: session.MaxTokens, Temperature: session.Temperature,
-		TopP: session.TopP, N: session.N, Debug: session.Debug,
-	}, msgs, chatUuid, regenerate, streamOutput)
+func streamFromModel(model provider.ChatModel, ctx context.Context, w http.ResponseWriter, input provider.Request) (*models.LLMAnswer, error) {
+	ch, err := model.Stream(ctx, input)
 	if err != nil {
 		return nil, err
 	}
 
 	var lastAnswer *models.LLMAnswer
 
-	if streamOutput {
+	if input.Stream {
 		flusher, err := setupSSEStream(w)
 		if err != nil {
 			return nil, err

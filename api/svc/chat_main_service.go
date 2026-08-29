@@ -23,9 +23,10 @@ import (
 )
 
 type ChatService struct {
-	q           *sqlc_queries.Queries
-	openAIKey   string
-	openAIProxy string
+	q            *sqlc_queries.Queries
+	modelCatalog *llmModelCatalog
+	openAIKey    string
+	openAIProxy  string
 }
 
 //go:embed artifact_instruction.txt
@@ -33,13 +34,32 @@ var artifactInstructionText string
 
 // NewChatService creates a new ChatService with database queries and OpenAI configuration.
 func NewChatService(q *sqlc_queries.Queries, openAIKey, openAIProxy string) *ChatService {
-	return &ChatService{q: q, openAIKey: openAIKey, openAIProxy: openAIProxy}
+	return &ChatService{q: q, modelCatalog: newLLMModelCatalog(q), openAIKey: openAIKey, openAIProxy: openAIProxy}
 }
 
 // Q returns the underlying queries.
 func (s *ChatService) Q() *sqlc_queries.Queries { return s.q }
 
-func (s *ChatService) ProviderQueries() provider.QueryStore { return newLLMProviderStore(s.q) }
+func (s *ChatService) ProviderModel(ctx context.Context, name string) (provider.ModelConfig, error) {
+	return s.modelCatalog.get(ctx, name)
+}
+
+func (s *ChatService) ProviderRequest(ctx context.Context, session sqlc_queries.ChatSession, messages []models.Message, chatUUID string, regenerate, stream bool) (provider.Request, error) {
+	model, err := s.ProviderModel(ctx, session.Model)
+	if err != nil {
+		return provider.Request{}, err
+	}
+	rows, err := s.q.ListChatFilesWithContentBySessionUUID(ctx, session.Uuid)
+	if err != nil {
+		return provider.Request{}, err
+	}
+	files := make([]provider.File, 0, len(rows))
+	for _, row := range rows {
+		files = append(files, provider.File{Name: row.Name, Data: row.Data, MIMEType: row.MimeType})
+	}
+	return provider.Request{Session: providerSession(session), Model: model, Files: files,
+		Messages: messages, ChatUUID: chatUUID, Regenerate: regenerate, Stream: stream}, nil
+}
 
 func (s *ChatService) MarkChatRequestFailed(ctx context.Context, requestUUID, sessionUUID string, userID int32, code string) error {
 	return s.q.MarkChatRequestFailed(ctx, sqlc_queries.MarkChatRequestFailedParams{

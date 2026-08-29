@@ -2,7 +2,6 @@
 package provider
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 
-	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/pkg/util"
 )
 
@@ -132,24 +130,6 @@ func ShouldFlushContent(content string, lastFlushLength int, isSmallContent bool
 	return strings.Contains(content, "\n") ||
 		(isSmallContent && len(content) < 200) ||
 		(len(content)-lastFlushLength) >= 500
-}
-
-// GetChatModel retrieves a chat model by name from the database.
-func GetChatModel(ctx context.Context, q QueryStore, modelName string) (*ModelConfig, error) {
-	chatModel, err := q.ChatModelByName(ctx, modelName)
-	if err != nil {
-		return nil, dto.ErrResourceNotFound("chat model: " + modelName)
-	}
-	return &chatModel, nil
-}
-
-// GetChatFiles retrieves chat files for a session.
-func GetChatFiles(ctx context.Context, q QueryStore, sessionUUID string) ([]File, error) {
-	chatFiles, err := q.ListChatFilesWithContentBySessionUUID(ctx, sessionUUID)
-	if err != nil {
-		return nil, dto.ErrInternalUnexpected.WithMessage("Failed to get chat files").WithDebugInfo(err.Error())
-	}
-	return chatFiles, nil
 }
 
 // buildStreamResponse creates a simple streaming response struct.
