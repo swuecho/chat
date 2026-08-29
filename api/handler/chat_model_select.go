@@ -29,7 +29,7 @@ func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSessi
 	completionModels := mapset.NewSet[string]()
 	isCompletion := completionModels.Contains(session.Model)
 
-	switch chatModel.ApiType {
+	switch chatModel.APIType {
 	case "claude":
 		return provider.NewClaude3ChatModel(h)
 	case "ollama":

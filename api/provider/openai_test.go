@@ -2,8 +2,6 @@ package provider
 
 import (
 	"testing"
-
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 func Test_getModelBaseUrl(t *testing.T) {
@@ -67,7 +65,7 @@ func Test_normalizeOpenAIModelName(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := NormalizeOpenAIModelName(sqlc_queries.ChatModel{Url: tc.url}, tc.modelName)
+			actual := NormalizeOpenAIModelName(ModelConfig{URL: tc.url}, tc.modelName)
 			if actual != tc.expected {
 				t.Errorf("Expected model name '%s', but got '%s'", tc.expected, actual)
 			}

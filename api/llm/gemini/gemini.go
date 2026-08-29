@@ -13,8 +13,13 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
 	models "github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
+
+type File struct {
+	Name     string
+	Data     []byte
+	MIMEType string
+}
 
 type Part interface {
 	toPart() string
@@ -177,7 +182,7 @@ func SupportedMimeTypes() mapset.Set[string] {
 	)
 }
 
-func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sqlc_queries.ChatFile) ([]byte, error) {
+func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []File) ([]byte, error) {
 	payload := GeminPayload{
 		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
 	}
@@ -197,10 +202,10 @@ func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []sq
 	}
 
 	if len(chatFiles) > 0 {
-		partsFromFiles := lo.Map(chatFiles, func(chatFile sqlc_queries.ChatFile, _ int) Part {
+		partsFromFiles := lo.Map(chatFiles, func(chatFile File, _ int) Part {
 			imageExt := SupportedMimeTypes()
-			if imageExt.Contains(chatFile.MimeType) {
-				return &PartBlob{Blob: ImageData(chatFile.MimeType, chatFile.Data)}
+			if imageExt.Contains(chatFile.MIMEType) {
+				return &PartBlob{Blob: ImageData(chatFile.MIMEType, chatFile.Data)}
 			} else {
 				return &PartString{Text: "file: " + chatFile.Name + "\n<<<" + string(chatFile.Data) + ">>>\n"}
 			}

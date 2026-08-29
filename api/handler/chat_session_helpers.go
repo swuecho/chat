@@ -235,7 +235,11 @@ func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.Response
 // streamFromModel calls model.Stream() and consumes the channel, writing SSE or JSON to w.
 // Returns the final answer or an error.
 func streamFromModel(model provider.ChatModel, ctx context.Context, w http.ResponseWriter, session svc.ChatSession, msgs []models.Message, chatUuid string, regenerate bool, streamOutput bool) (*models.LLMAnswer, error) {
-	ch, err := model.Stream(ctx, session, msgs, chatUuid, regenerate, streamOutput)
+	ch, err := model.Stream(ctx, provider.Session{
+		UUID: session.Uuid, UserID: session.UserID, Model: session.Model,
+		MaxTokens: session.MaxTokens, Temperature: session.Temperature,
+		TopP: session.TopP, N: session.N, Debug: session.Debug,
+	}, msgs, chatUuid, regenerate, streamOutput)
 	if err != nil {
 		return nil, err
 	}

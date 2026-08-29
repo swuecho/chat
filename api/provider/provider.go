@@ -13,8 +13,50 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
+
+// Session contains only the chat settings needed by an LLM provider. It is
+// intentionally independent of the database representation of a chat session.
+type Session struct {
+	UUID        string
+	UserID      int32
+	Model       string
+	MaxTokens   int32
+	Temperature float64
+	TopP        float64
+	N           int32
+	Debug       bool
+}
+
+// ModelConfig describes an upstream model endpoint without exposing a
+// persistence record to provider implementations.
+type ModelConfig struct {
+	Name                    string
+	URL                     string
+	APIAuthHeader           string
+	APIAuthKey              string
+	APIType                 string
+	EnablePerModelRateLimit bool
+}
+
+// File contains the attachment data providers may add to an LLM request.
+type File struct {
+	Name     string
+	Data     []byte
+	MIMEType string
+}
+
+// Request is a fully resolved LLM invocation. Providers do not perform
+// persistence lookups; the application supplies all required configuration.
+type Request struct {
+	Session  Session
+	Model    ModelConfig
+	Files    []File
+	Messages []models.Message
+	ChatUUID string
+	Regenerate bool
+	Stream bool
+}
 
 // StreamChunk represents a single chunk in a streaming LLM response.
 type StreamChunk struct {
@@ -29,9 +71,7 @@ type StreamChunk struct {
 // Stream returns a channel of StreamChunk and an optional immediate error.
 // The channel is closed when streaming completes or fails.
 type ChatModel interface {
-	Stream(ctx context.Context, session sqlc_queries.ChatSession,
-		messages []models.Message, chatUuid string,
-		regenerate bool, stream bool) (<-chan StreamChunk, error)
+	Stream(context.Context, Request) (<-chan StreamChunk, error)
 }
 
 // Config holds global configuration needed by providers.
@@ -44,13 +84,6 @@ type Config struct {
 
 // Handler provides request-scoped dependencies that providers need.
 type Handler interface {
-	Queries() QueryStore
 	CheckModelAccess(ctx context.Context, chatSessionUuid, model string, userID int32) error
 	Config() Config
-}
-
-// QueryStore is the narrow persistence surface needed by LLM providers.
-type QueryStore interface {
-	ChatModelByName(context.Context, string) (sqlc_queries.ChatModel, error)
-	ListChatFilesWithContentBySessionUUID(context.Context, string) ([]sqlc_queries.ChatFile, error)
 }

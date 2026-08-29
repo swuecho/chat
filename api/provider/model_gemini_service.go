@@ -15,7 +15,6 @@ import (
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/llm/gemini"
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // GeminiClient handles communication with the Gemini API
@@ -43,15 +42,17 @@ func NewGeminiChatModel(h Handler) *GeminiChatModel {
 	}
 }
 
-func (m *GeminiChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, messages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
+func (m *GeminiChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
+	chatSession, messages := input.Session, input.Messages
+	chatUuid, regenerate, stream := input.ChatUUID, input.Regenerate, input.Stream
 	answerID := generateAnswerID(chatUuid, regenerate)
+	chatFiles := input.Files
 
-	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), chatSession.Uuid)
-	if err != nil {
-		return nil, err
+	geminiFiles := make([]gemini.File, 0, len(chatFiles))
+	for _, file := range chatFiles {
+		geminiFiles = append(geminiFiles, gemini.File{Name: file.Name, Data: file.Data, MIMEType: file.MIMEType})
 	}
-
-	payloadBytes, err := gemini.GenGemminPayload(messages, chatFiles)
+	payloadBytes, err := gemini.GenGemminPayload(messages, geminiFiles)
 	if err != nil {
 		return nil, dto.ErrInternalUnexpected.WithMessage("Failed to generate Gemini payload").WithDebugInfo(err.Error())
 	}
@@ -96,7 +97,7 @@ func (m *GeminiChatModel) Stream(ctx context.Context, chatSession sqlc_queries.C
 	return ch, nil
 }
 
-func GenerateChatTitle(ctx context.Context, q *sqlc_queries.Queries, model sqlc_queries.ChatModel, chatText string) (string, error) {
+func GenerateChatTitle(ctx context.Context, q QueryStore, model ModelConfig, chatText string) (string, error) {
 	if strings.TrimSpace(chatText) == "" {
 		return "", dto.ErrValidationInvalidInput("chat text cannot be empty")
 	}
@@ -114,7 +115,7 @@ func GenerateChatTitle(ctx context.Context, q *sqlc_queries.Queries, model sqlc_
 
 	h := newTitleGenerationHandler(q)
 	var titleModel ChatModel
-	switch model.ApiType {
+	switch model.APIType {
 	case "claude":
 		titleModel = NewClaude3ChatModel(h)
 	case "gemini":
@@ -124,15 +125,15 @@ func GenerateChatTitle(ctx context.Context, q *sqlc_queries.Queries, model sqlc_
 	case "custom":
 		titleModel = NewCustomChatModel(h)
 	default:
-		if strings.HasSuffix(strings.TrimSuffix(model.Url, "/"), "/completions") &&
-			!strings.HasSuffix(strings.TrimSuffix(model.Url, "/"), "/chat/completions") {
+		if strings.HasSuffix(strings.TrimSuffix(model.URL, "/"), "/completions") &&
+			!strings.HasSuffix(strings.TrimSuffix(model.URL, "/"), "/chat/completions") {
 			titleModel = NewCompletionChatModel(h)
 		} else {
 			titleModel = NewOpenAIChatModel(h)
 		}
 	}
 
-	stream, err := titleModel.Stream(ctx, sqlc_queries.ChatSession{
+	stream, err := titleModel.Stream(ctx, Session{
 		Model: model.Name, MaxTokens: 64, Temperature: 0.2, TopP: 1, N: 1,
 	}, messages, "title-generation", false, false)
 	if err != nil {

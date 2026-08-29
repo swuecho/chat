@@ -11,7 +11,6 @@ import (
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // CompletionChatModel implements ChatModel interface for OpenAI completion models
@@ -24,30 +23,26 @@ func NewCompletionChatModel(h Handler) *CompletionChatModel {
 	return &CompletionChatModel{h: h}
 }
 
-func (m *CompletionChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
+func (m *CompletionChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
 	ch := make(chan StreamChunk, 10)
 	go func() {
 		defer close(ch)
-		m.completionStream(ctx, ch, chatSession, chatCompletionMessages, chatUuid, regenerate)
+		m.completionStream(ctx, ch, input)
 	}()
 	return ch, nil
 }
 
-func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- StreamChunk, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool) {
+func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- StreamChunk, input Request) {
+	chatSession, chatCompletionMessages := input.Session, input.Messages
+	chatUuid, regenerate, chatModel := input.ChatUUID, input.Regenerate, input.Model
 	m.h.Config().RateLimiter.Wait(ctx)
 
-	if err := m.h.CheckModelAccess(ctx, chatSession.Uuid, chatSession.Model, chatSession.UserID); err != nil {
+	if err := m.h.CheckModelAccess(ctx, chatSession.UUID, chatSession.Model, chatSession.UserID); err != nil {
 		ch <- StreamChunk{Err: err}
 		return
 	}
 
-	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
-	if err != nil {
-		ch <- StreamChunk{Err: err}
-		return
-	}
-
-	config, err := GenOpenAIConfig(*chatModel, m.h.Config())
+	config, err := GenOpenAIConfig(chatModel, m.h.Config())
 	if err != nil {
 		ch <- StreamChunk{Err: err}
 		return

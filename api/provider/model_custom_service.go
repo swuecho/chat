@@ -15,7 +15,6 @@ import (
 	"github.com/swuecho/chat_backend/dto"
 	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // CustomModelResponse represents the response structure for custom models
@@ -39,24 +38,21 @@ func NewCustomChatModel(h Handler) *CustomChatModel {
 	return &CustomChatModel{h: h}
 }
 
-func (m *CustomChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
+func (m *CustomChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
 	ch := make(chan StreamChunk, 10)
 	go func() {
 		defer close(ch)
-		m.customChatStream(ctx, ch, chatSession, chatCompletionMessages, chatUuid, regenerate)
+		m.customChatStream(ctx, ch, input)
 	}()
 	return ch, nil
 }
 
-func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- StreamChunk, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool) {
-	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
-	if err != nil {
-		ch <- StreamChunk{Err: err}
-		return
-	}
+func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- StreamChunk, input Request) {
+	chatSession, chatCompletionMessages := input.Session, input.Messages
+	chatUuid, regenerate, chatModel := input.ChatUUID, input.Regenerate, input.Model
 
-	apiKey := os.Getenv(chatModel.ApiAuthKey)
-	url := chatModel.Url
+	apiKey := os.Getenv(chatModel.APIAuthKey)
+	url := chatModel.URL
 
 	prompt := claude.FormatClaudePrompt(chatCompletionMessages)
 
@@ -77,7 +73,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 		return
 	}
 
-	authHeaderName := chatModel.ApiAuthHeader
+	authHeaderName := chatModel.APIAuthHeader
 	if authHeaderName != "" {
 		req.Header.Set(authHeaderName, apiKey)
 	}

@@ -99,7 +99,7 @@ func GenTitle(q *sqlc_queries.Queries, ctx context.Context, chatSession sqlc_que
 	title := provider.FirstN(chatSession.Topic, 100)
 	model, err := q.GetTitleChatModel(ctx)
 	if err == nil {
-		genTitle, err := provider.GenerateChatTitle(ctx, q, model, text)
+		genTitle, err := provider.GenerateChatTitle(ctx, newLLMProviderStore(q), providerModel(model), text)
 		if err != nil {
 			slog.Info("error", "error", err)
 		}

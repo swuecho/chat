@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // TestChatModel implements ChatModel for testing.
@@ -18,13 +17,9 @@ func NewTestChatModel(h Handler) *TestChatModel {
 	return &TestChatModel{h: h}
 }
 
-func (m *TestChatModel) Stream(ctx context.Context, session sqlc_queries.ChatSession,
-	messages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
-
-	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), session.Uuid)
-	if err != nil {
-		return nil, err
-	}
+func (m *TestChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
+	session, messages, chatFiles := input.Session, input.Messages, input.Files
+	chatUuid, regenerate := input.ChatUUID, input.Regenerate
 
 	answerID := generateAnswerID(chatUuid, regenerate)
 	answer := "Hi, I am a chatbot. I can help you to find the best answer for your question. Please ask me a question."

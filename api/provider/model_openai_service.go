@@ -14,7 +14,6 @@ import (
 	"github.com/swuecho/chat_backend/dto"
 	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // OpenAI ChatModel implementation
@@ -27,30 +26,24 @@ func NewOpenAIChatModel(h Handler) *OpenAIChatModel {
 	return &OpenAIChatModel{h: h}
 }
 
-func (m *OpenAIChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, streamOutput bool) (<-chan StreamChunk, error) {
+func (m *OpenAIChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
+	chatSession, chatCompletionMessages := input.Session, input.Messages
+	chatUuid, regenerate, streamOutput := input.ChatUUID, input.Regenerate, input.Stream
 	m.h.Config().RateLimiter.Wait(ctx)
 
-	if err := m.h.CheckModelAccess(ctx, chatSession.Uuid, chatSession.Model, chatSession.UserID); err != nil {
+	if err := m.h.CheckModelAccess(ctx, chatSession.UUID, chatSession.Model, chatSession.UserID); err != nil {
 		return nil, err
 	}
 
-	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
-	if err != nil {
-		return nil, err
-	}
+	chatModel := input.Model
 
-	config, err := GenOpenAIConfig(*chatModel, m.h.Config())
+	config, err := GenOpenAIConfig(chatModel, m.h.Config())
 	if err != nil {
 		return nil, dto.ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
 	}
 
-	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), chatSession.Uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	openaiReq := NewChatCompletionRequest(chatSession, chatCompletionMessages, chatFiles, streamOutput)
-	openaiReq.Model = NormalizeOpenAIModelName(*chatModel, openaiReq.Model)
+	openaiReq := NewChatCompletionRequest(chatSession, chatCompletionMessages, input.Files, streamOutput)
+	openaiReq.Model = NormalizeOpenAIModelName(chatModel, openaiReq.Model)
 	if len(openaiReq.Messages) <= 1 {
 		return nil, dto.ErrSystemMessageError
 	}
@@ -61,9 +54,9 @@ func (m *OpenAIChatModel) Stream(ctx context.Context, chatSession sqlc_queries.C
 	go func() {
 		defer close(ch)
 		if streamOutput {
-			doChatStream(ctx, ch, client, openaiReq, chatSession.N, chatUuid, regenerate, chatModel.Url, config.BaseURL)
+			doChatStream(ctx, ch, client, openaiReq, chatSession.N, chatUuid, regenerate, chatModel.URL, config.BaseURL)
 		} else {
-			handleRegularResponse(ctx, ch, client, openaiReq, chatModel.Url, config.BaseURL)
+			handleRegularResponse(ctx, ch, client, openaiReq, chatModel.URL, config.BaseURL)
 		}
 	}()
 	return ch, nil
@@ -214,7 +207,7 @@ func NewUserMessage(content string) openai.ChatCompletionMessage {
 }
 
 // NewChatCompletionRequest creates an OpenAI chat completion request from session and messages
-func NewChatCompletionRequest(chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatFiles []sqlc_queries.ChatFile, streamOutput bool) openai.ChatCompletionRequest {
+func NewChatCompletionRequest(chatSession Session, chatCompletionMessages []models.Message, chatFiles []File, streamOutput bool) openai.ChatCompletionRequest {
 	openaiMessages := messagesToOpenAIMesages(chatCompletionMessages, chatFiles)
 
 	for _, m := range openaiMessages {

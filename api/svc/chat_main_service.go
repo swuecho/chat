@@ -39,7 +39,7 @@ func NewChatService(q *sqlc_queries.Queries, openAIKey, openAIProxy string) *Cha
 // Q returns the underlying queries.
 func (s *ChatService) Q() *sqlc_queries.Queries { return s.q }
 
-func (s *ChatService) ProviderQueries() provider.QueryStore { return s.q }
+func (s *ChatService) ProviderQueries() provider.QueryStore { return newLLMProviderStore(s.q) }
 
 func (s *ChatService) MarkChatRequestFailed(ctx context.Context, requestUUID, sessionUUID string, userID int32, code string) error {
 	return s.q.MarkChatRequestFailed(ctx, sqlc_queries.MarkChatRequestFailedParams{
@@ -466,7 +466,7 @@ func (s *ChatService) callGeminiForSuggestions(ctx context.Context, model sqlc_q
 // callOpenAICompatibleForSuggestions makes an OpenAI-compatible API call for suggestions (including deepseek)
 func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, model sqlc_queries.ChatModel, prompt string) string {
 	// Generate OpenAI client configuration
-	config, err := provider.GenOpenAIConfig(model, provider.Config{OpenAIKey: s.openAIKey, OpenAIProxy: s.openAIProxy})
+	config, err := provider.GenOpenAIConfig(providerModel(model), provider.Config{OpenAIKey: s.openAIKey, OpenAIProxy: s.openAIProxy})
 	if err != nil {
 		slog.Warn("Failed to generate OpenAI configuration for suggestions", "error", err)
 		return ""

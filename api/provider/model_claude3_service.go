@@ -16,7 +16,6 @@ import (
 	"github.com/swuecho/chat_backend/dto"
 	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // ClaudeResponse represents the response structure from Claude API
@@ -40,16 +39,10 @@ func NewClaude3ChatModel(h Handler) *Claude3ChatModel {
 	return &Claude3ChatModel{h: h}
 }
 
-func (m *Claude3ChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
-	chatModel, err := GetChatModel(ctx, m.h.Queries(), chatSession.Model)
-	if err != nil {
-		return nil, err
-	}
-
-	chatFiles, err := GetChatFiles(ctx, m.h.Queries(), chatSession.Uuid)
-	if err != nil {
-		return nil, err
-	}
+func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
+	chatSession, chatCompletionMessages := input.Session, input.Messages
+	chatUuid, regenerate, stream := input.ChatUUID, input.Regenerate, input.Stream
+	chatModel, chatFiles := input.Model, input.Files
 
 	var claudeMessages []models.Message
 	if len(chatCompletionMessages) > 1 {
@@ -78,17 +71,17 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, chatSession sqlc_queries.
 		return nil, dto.ErrValidationInvalidInputGeneric.WithDetail("failed to marshal request payload").WithDebugInfo(err.Error())
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.URL, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		return nil, dto.ErrClaudeRequestFailed.WithDetail("failed to create HTTP request").WithDebugInfo(err.Error())
 	}
 
-	apiKey := os.Getenv(chatModel.ApiAuthKey)
+	apiKey := os.Getenv(chatModel.APIAuthKey)
 	if apiKey == "" {
 		return nil, dto.ErrAuthInvalidCredentials.WithDetail(fmt.Sprintf("missing API key for model %s", chatSession.Model))
 	}
 
-	authHeaderName := chatModel.ApiAuthHeader
+	authHeaderName := chatModel.APIAuthHeader
 	if authHeaderName != "" {
 		req.Header.Set(authHeaderName, apiKey)
 	}

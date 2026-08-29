@@ -2,17 +2,15 @@ package provider
 
 import (
 	"context"
-
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"golang.org/x/time/rate"
 )
 
 type titleGenerationHandler struct {
-	q       *sqlc_queries.Queries
+	q       QueryStore
 	limiter *rate.Limiter
 }
 
-func newTitleGenerationHandler(q *sqlc_queries.Queries) *titleGenerationHandler {
+func newTitleGenerationHandler(q QueryStore) *titleGenerationHandler {
 	return &titleGenerationHandler{q: q, limiter: rate.NewLimiter(rate.Inf, 1)}
 }
 

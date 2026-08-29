@@ -16,7 +16,6 @@ import (
 
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // OllamaResponse represents the response structure from Ollama API
@@ -43,21 +42,18 @@ func NewOllamaChatModel(h Handler) *OllamaChatModel {
 	return &OllamaChatModel{h: h}
 }
 
-func (m *OllamaChatModel) Stream(ctx context.Context, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool, stream bool) (<-chan StreamChunk, error) {
+func (m *OllamaChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
 	ch := make(chan StreamChunk, 10)
 	go func() {
 		defer close(ch)
-		chatOllamStream(ctx, ch, m.h, chatSession, chatCompletionMessages, chatUuid, regenerate)
+		chatOllamStream(ctx, ch, input)
 	}()
 	return ch, nil
 }
 
-func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, h Handler, chatSession sqlc_queries.ChatSession, chatCompletionMessages []models.Message, chatUuid string, regenerate bool) {
-	chatModel, err := GetChatModel(ctx, h.Queries(), chatSession.Model)
-	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrResourceNotFound("chat model: " + chatSession.Model)}
-		return
-	}
+func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, input Request) {
+	chatSession, chatCompletionMessages := input.Session, input.Messages
+	chatUuid, regenerate, chatModel := input.ChatUUID, input.Regenerate, input.Model
 
 	jsonData := map[string]any{
 		"model":    strings.Replace(chatSession.Model, "ollama-", "", 1),
@@ -65,14 +61,14 @@ func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, h Handler, chat
 	}
 	jsonValue, _ := json.Marshal(jsonData)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.Url, bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.URL, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Failed to make request").WithDebugInfo(err.Error())}
 		return
 	}
 
-	apiKey := os.Getenv(chatModel.ApiAuthKey)
-	authHeaderName := chatModel.ApiAuthHeader
+	apiKey := os.Getenv(chatModel.APIAuthKey)
+	authHeaderName := chatModel.APIAuthHeader
 	if authHeaderName != "" {
 		req.Header.Set(authHeaderName, apiKey)
 	}

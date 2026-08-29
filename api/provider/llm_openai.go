@@ -14,7 +14,6 @@ import (
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
 	models "github.com/swuecho/chat_backend/models"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 func SupportedMimeTypes() mapset.Set[string] {
@@ -42,19 +41,19 @@ func SupportedMimeTypes() mapset.Set[string] {
 	)
 }
 
-func messagesToOpenAIMesages(messages []models.Message, chatFiles []sqlc_queries.ChatFile) []openai.ChatCompletionMessage {
+func messagesToOpenAIMesages(messages []models.Message, chatFiles []File) []openai.ChatCompletionMessage {
 	open_ai_msgs := lo.Map(messages, func(m models.Message, _ int) openai.ChatCompletionMessage {
 		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
 	})
 	if len(chatFiles) == 0 {
 		return open_ai_msgs
 	}
-	parts := lo.Map(chatFiles, func(m sqlc_queries.ChatFile, _ int) openai.ChatMessagePart {
-		if SupportedMimeTypes().Contains(m.MimeType) {
+	parts := lo.Map(chatFiles, func(m File, _ int) openai.ChatMessagePart {
+		if SupportedMimeTypes().Contains(m.MIMEType) {
 			return openai.ChatMessagePart{
 				Type: openai.ChatMessagePartTypeImageURL,
 				ImageURL: &openai.ChatMessageImageURL{
-					URL:    byteToImageURL(m.MimeType, m.Data),
+					URL:    byteToImageURL(m.MIMEType, m.Data),
 					Detail: openai.ImageURLDetailAuto,
 				},
 			}
@@ -113,8 +112,8 @@ func GetModelBaseURL(apiUrl string) (string, error) {
 }
 
 // NormalizeOpenAIModelName normalizes model names for specific providers like BigModel.
-func NormalizeOpenAIModelName(chatModel sqlc_queries.ChatModel, modelName string) string {
-	if strings.Contains(chatModel.Url, "open.bigmodel.cn") {
+func NormalizeOpenAIModelName(chatModel ModelConfig, modelName string) string {
+	if strings.Contains(chatModel.URL, "open.bigmodel.cn") {
 		normalized := strings.ToLower(modelName)
 		if normalized != modelName {
 			slog.Info("Normalizing BigModel model name", "from", modelName, "to", normalized)
@@ -142,17 +141,17 @@ func configOpenAIProxy(clientCfg *openai.ClientConfig, proxyURL string) {
 }
 
 // GenOpenAIConfig creates an OpenAI client configuration from a chat model.
-func GenOpenAIConfig(chatModel sqlc_queries.ChatModel, cfg Config) (openai.ClientConfig, error) {
-	token := os.Getenv(chatModel.ApiAuthKey)
-	baseUrl, err := GetModelBaseURL(chatModel.Url)
+func GenOpenAIConfig(chatModel ModelConfig, cfg Config) (openai.ClientConfig, error) {
+	token := os.Getenv(chatModel.APIAuthKey)
+	baseUrl, err := GetModelBaseURL(chatModel.URL)
 	if err != nil {
 		return openai.ClientConfig{}, err
 	}
-	slog.Info("OpenAI-compatible URL resolved", "model", chatModel.Name, "configuredURL", chatModel.Url, "baseURL", baseUrl)
+	slog.Info("OpenAI-compatible URL resolved", "model", chatModel.Name, "configuredURL", chatModel.URL, "baseURL", baseUrl)
 
 	var config openai.ClientConfig
 	if os.Getenv("AZURE_RESOURCE_NAME") != "" {
-		config = openai.DefaultAzureConfig(token, chatModel.Url)
+		config = openai.DefaultAzureConfig(token, chatModel.URL)
 		config.AzureModelMapperFunc = func(model string) string {
 			azureModelMapping := map[string]string{
 				"gpt-3.5-turbo": os.Getenv("AZURE_RESOURCE_NAME"),
