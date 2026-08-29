@@ -11,7 +11,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -19,8 +18,8 @@ type ChatFileHandler struct {
 	service *svc.ChatFileService
 }
 
-func NewChatFileHandler(sqlc_q *sqlc_queries.Queries) *ChatFileHandler {
-	return &ChatFileHandler{service: svc.NewChatFileService(sqlc_q)}
+func NewChatFileHandler(service *svc.ChatFileService) *ChatFileHandler {
+	return &ChatFileHandler{service: service}
 }
 
 func (h *ChatFileHandler) Register(router *mux.Router) {
@@ -71,7 +70,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatFile, err := h.service.CreateChatUpload(r.Context(), sqlc_queries.CreateChatFileParams{
+	chatFile, err := h.service.CreateChatUpload(r.Context(), svc.CreateChatFileInput{
 		ChatSessionUuid: sessionUUID,
 		UserID:          userID,
 		Name:            header.Filename,

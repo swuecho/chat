@@ -17,12 +17,11 @@ import (
 
 // ChatHandler handles chat completion and streaming requests.
 type ChatHandler struct {
-	service         *svc.ChatService
-	sessionSvc      *svc.ChatSessionService
-	chatfileService *svc.ChatFileService
-	rateLimiter     *rate.Limiter
-	openAIKey       string
-	openAIProxy     string
+	service     *svc.ChatService
+	sessionSvc  *svc.ChatSessionService
+	rateLimiter *rate.Limiter
+	openAIKey   string
+	openAIProxy string
 }
 
 const sessionTitleGenerationTimeout = 30 * time.Second
@@ -30,12 +29,11 @@ const sessionTitleGenerationTimeout = 30 * time.Second
 // NewChatHandler creates a new ChatHandler.
 func NewChatHandler(sqlc_q *sqlc_queries.Queries, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
 	return &ChatHandler{
-		service:         svc.NewChatService(sqlc_q, openAIKey, openAIProxy),
-		sessionSvc:      svc.NewChatSessionService(sqlc_q),
-		chatfileService: svc.NewChatFileService(sqlc_q),
-		rateLimiter:     rateLimiter,
-		openAIKey:       openAIKey,
-		openAIProxy:     openAIProxy,
+		service:     svc.NewChatService(sqlc_q, openAIKey, openAIProxy),
+		sessionSvc:  svc.NewChatSessionService(sqlc_q),
+		rateLimiter: rateLimiter,
+		openAIKey:   openAIKey,
+		openAIProxy: openAIProxy,
 	}
 }
 

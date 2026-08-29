@@ -20,28 +20,35 @@ func NewChatFileService(q *sqlc_queries.Queries) *ChatFileService {
 	return &ChatFileService{q: q}
 }
 
-// Q returns the underlying queries.
-func (s *ChatFileService) Q() *sqlc_queries.Queries { return s.q }
+// CreateChatFileInput is the application input accepted from transports.
+// SQLC parameter construction remains private to the service.
+type CreateChatFileInput struct {
+	Name            string
+	Data            []byte
+	UserID          int32
+	ChatSessionUuid string
+	MimeType        string
+}
 
 // CreateChatUpload handles creating a new chat file upload
-func (s *ChatFileService) CreateChatUpload(ctx context.Context, params sqlc_queries.CreateChatFileParams) (sqlc_queries.ChatFile, error) {
+func (s *ChatFileService) CreateChatUpload(ctx context.Context, input CreateChatFileInput) (sqlc_queries.ChatFile, error) {
 	// Validate input
-	if params.ChatSessionUuid == "" {
+	if input.ChatSessionUuid == "" {
 		return sqlc_queries.ChatFile{}, domain.Invalid("missing session UUID")
 	}
-	if params.UserID <= 0 {
+	if input.UserID <= 0 {
 		return sqlc_queries.ChatFile{}, domain.Invalid("invalid user ID")
 	}
-	if params.Name == "" {
+	if input.Name == "" {
 		return sqlc_queries.ChatFile{}, domain.Invalid("missing file name")
 	}
-	if len(params.Data) == 0 {
+	if len(input.Data) == 0 {
 		return sqlc_queries.ChatFile{}, domain.Invalid("empty file data")
 	}
 
-	slog.Info("Creating chat file upload", "session", params.ChatSessionUuid, "userID", params.UserID)
+	slog.Info("Creating chat file upload", "session", input.ChatSessionUuid, "userID", input.UserID)
 
-	upload, err := s.q.CreateChatFile(ctx, params)
+	upload, err := s.q.CreateChatFile(ctx, sqlc_queries.CreateChatFileParams(input))
 	if err != nil {
 		return sqlc_queries.ChatFile{}, domain.Internal("failed to create chat file", err)
 	}

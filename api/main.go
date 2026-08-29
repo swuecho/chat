@@ -253,7 +253,8 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	handler.NewUserChatModelPrivilegeHandler(q).Register(userRouter)
 
 	// Files
-	handler.NewChatFileHandler(q).Register(userRouter)
+	chatFileService := svc.NewChatFileService(q)
+	handler.NewChatFileHandler(chatFileService).Register(userRouter)
 
 	// Comments
 	handler.NewChatCommentHandler(q).Register(userRouter)
