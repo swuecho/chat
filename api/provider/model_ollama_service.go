@@ -128,7 +128,7 @@ func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, input Request) 
 			break
 		}
 		if answerID == "" {
-			answerID = NewUUID()
+			answerID = newUUID()
 		}
 
 		if len(delta) > 0 {
