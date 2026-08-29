@@ -15,16 +15,18 @@ import (
 )
 
 type ChatMessageHandler struct {
-	service     *svc.ChatMessageService
-	sessionSvc  *svc.ChatSessionService
-	chatService *svc.ChatService
+	service         *svc.ChatMessageService
+	sessionSvc      *svc.ChatSessionService
+	conversationSvc *svc.SessionConversationService
+	chatService     *svc.ChatService
 }
 
-func NewChatMessageHandler(service *svc.ChatMessageService, sessionSvc *svc.ChatSessionService, chatService *svc.ChatService) *ChatMessageHandler {
+func NewChatMessageHandler(service *svc.ChatMessageService, sessionSvc *svc.ChatSessionService, conversationSvc *svc.SessionConversationService, chatService *svc.ChatService) *ChatMessageHandler {
 	return &ChatMessageHandler{
-		service:     service,
-		sessionSvc:  sessionSvc,
-		chatService: chatService,
+		service:         service,
+		sessionSvc:      sessionSvc,
+		conversationSvc: conversationSvc,
+		chatService:     chatService,
 	}
 }
 
@@ -40,7 +42,7 @@ func (h *ChatMessageHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_messages/{uuid}", h.DeleteChatMessageByUUID).Methods(http.MethodDelete)
 	router.HandleFunc("/uuid/chat_messages/{uuid}/generate-suggestions", h.GenerateMoreSuggestions).Methods(http.MethodPost)
 	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.GetChatHistoryBySessionUUID).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.DeleteChatMessagesBySesionUUID).Methods(http.MethodDelete)
+	router.HandleFunc("/uuid/chat_messages/chat_sessions/{uuid}", h.DeleteChatMessagesBySessionUUID).Methods(http.MethodDelete)
 }
 
 func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Request) {
@@ -50,18 +52,23 @@ func (h *ChatMessageHandler) CreateChatMessage(w http.ResponseWriter, r *http.Re
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
 	message, err := h.service.CreateChatMessage(r.Context(), svc.CreateChatMessageInput{
 		ChatSessionUuid: request.ChatSessionUUID, Uuid: request.UUID, Role: request.Role,
 		Content: request.Content, ReasoningContent: request.ReasoningContent, Model: request.Model,
-		TokenCount: request.TokenCount, Score: request.Score, UserID: request.UserID,
-		CreatedBy: request.CreatedBy, UpdatedBy: request.UpdatedBy, LlmSummary: request.LLMSummary,
+		TokenCount: request.TokenCount, Score: request.Score, UserID: userID,
+		CreatedBy: userID, UpdatedBy: userID, LlmSummary: request.LLMSummary,
 		Raw: request.Raw, Artifacts: request.Artifacts, SuggestedQuestions: request.SuggestedQuestions,
 	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create chat message"))
 		return
 	}
-	json.NewEncoder(w).Encode(message)
+	json.NewEncoder(w).Encode(messageResponse(message))
 }
 
 func (h *ChatMessageHandler) GetChatMessageByID(w http.ResponseWriter, r *http.Request) {
@@ -71,12 +78,17 @@ func (h *ChatMessageHandler) GetChatMessageByID(w http.ResponseWriter, r *http.R
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid chat message ID"))
 		return
 	}
-	message, err := h.service.GetChatMessageByID(r.Context(), int32(id))
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	message, err := h.service.GetChatMessageByID(r.Context(), int32(id), userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat message"))
 		return
 	}
-	json.NewEncoder(w).Encode(message)
+	json.NewEncoder(w).Encode(messageResponse(message))
 }
 
 func (h *ChatMessageHandler) UpdateChatMessage(w http.ResponseWriter, r *http.Request) {
@@ -92,16 +104,21 @@ func (h *ChatMessageHandler) UpdateChatMessage(w http.ResponseWriter, r *http.Re
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
 	message, err := h.service.UpdateChatMessage(r.Context(), svc.UpdateChatMessageInput{
 		ID: int32(id), Role: request.Role, Content: request.Content, Score: request.Score,
-		UserID: request.UserID, UpdatedBy: request.UpdatedBy,
+		UserID: userID, UpdatedBy: userID,
 		Artifacts: request.Artifacts, SuggestedQuestions: request.SuggestedQuestions,
 	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update chat message"))
 		return
 	}
-	json.NewEncoder(w).Encode(message)
+	json.NewEncoder(w).Encode(messageResponse(message))
 }
 
 func (h *ChatMessageHandler) DeleteChatMessage(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +128,12 @@ func (h *ChatMessageHandler) DeleteChatMessage(w http.ResponseWriter, r *http.Re
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid chat message ID"))
 		return
 	}
-	err = h.service.DeleteChatMessage(r.Context(), int32(id))
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	err = h.service.DeleteChatMessage(r.Context(), svc.DeleteChatMessageCommand{ID: int32(id), UserID: userID})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to delete chat message"))
 		return
@@ -120,22 +142,32 @@ func (h *ChatMessageHandler) DeleteChatMessage(w http.ResponseWriter, r *http.Re
 }
 
 func (h *ChatMessageHandler) GetAllChatMessages(w http.ResponseWriter, r *http.Request) {
-	messages, err := h.service.GetAllChatMessages(r.Context())
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	messages, err := h.service.GetAllChatMessages(r.Context(), userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat messages"))
 		return
 	}
-	json.NewEncoder(w).Encode(messages)
+	json.NewEncoder(w).Encode(messageResponses(messages))
 }
 
 func (h *ChatMessageHandler) GetChatMessageByUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	message, err := h.service.GetChatMessageByUUID(r.Context(), uuidStr)
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	message, err := h.service.GetChatMessageByUUID(r.Context(), uuidStr, userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat message"))
 		return
 	}
-	json.NewEncoder(w).Encode(message)
+	json.NewEncoder(w).Encode(messageResponse(message))
 }
 
 func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *http.Request) {
@@ -146,19 +178,29 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(w http.ResponseWriter, r *h
 		return
 	}
 	tokenCount, _ := getTokenCount(simpleMsg.Text)
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
 	message, err := h.service.UpdateChatMessageByUUID(r.Context(), svc.UpdateChatMessageByUUIDInput{
-		Uuid: simpleMsg.Uuid, Content: simpleMsg.Text, TokenCount: int32(tokenCount), IsPin: simpleMsg.IsPin,
+		Uuid: simpleMsg.Uuid, Content: simpleMsg.Text, TokenCount: int32(tokenCount), IsPin: simpleMsg.IsPin, UserID: userID,
 	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update chat message"))
 		return
 	}
-	json.NewEncoder(w).Encode(message)
+	json.NewEncoder(w).Encode(messageResponse(message))
 }
 
 func (h *ChatMessageHandler) DeleteChatMessageByUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatMessageByUUID(r.Context(), uuidStr)
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	err = h.service.DeleteChatMessageByUUID(r.Context(), svc.DeleteChatMessageByUUIDCommand{UUID: uuidStr, UserID: userID})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to delete chat message"))
 		return
@@ -215,17 +257,26 @@ func (h *ChatMessageHandler) GetChatHistoryBySessionUUID(w http.ResponseWriter, 
 	if err != nil {
 		pageSize = 200
 	}
-	simpleMsgs, err := h.sessionSvc.GetChatHistoryBySessionUUID(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
+	simpleMsgs, err := h.conversationSvc.History(r.Context(), uuidStr, int32(pageNum), int32(pageSize))
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat history"))
 		return
 	}
-	json.NewEncoder(w).Encode(simpleMsgs)
+	response := make([]historyMessageHTTPResponse, 0, len(simpleMsgs))
+	for _, message := range simpleMsgs {
+		response = append(response, historyMessageResponse(message))
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
-func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatMessageHandler) DeleteChatMessagesBySessionUUID(w http.ResponseWriter, r *http.Request) {
 	uuidStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatMessagesBySesionUUID(r.Context(), uuidStr)
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	err = h.service.DeleteChatMessagesBySessionUUID(r.Context(), svc.DeleteSessionMessagesCommand{SessionUUID: uuidStr, UserID: userID})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to delete chat messages"))
 		return
@@ -235,8 +286,13 @@ func (h *ChatMessageHandler) DeleteChatMessagesBySesionUUID(w http.ResponseWrite
 
 func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *http.Request) {
 	messageUUID := mux.Vars(r)["uuid"]
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
 
-	message, err := h.service.GetChatMessageByUUID(r.Context(), messageUUID)
+	message, err := h.service.GetChatMessageByUUID(r.Context(), messageUUID, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dto.RespondWithAPIError(w, dto.ErrChatMessageNotFound.WithMessage("Message not found").WithDebugInfo(err.Error()))
@@ -310,7 +366,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 		return
 	}
 
-	_, err = h.service.UpdateSuggestedQuestions(r.Context(), messageUUID, suggestionsJSON)
+	_, err = h.service.UpdateSuggestedQuestions(r.Context(), messageUUID, userID, suggestionsJSON)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update message with suggestions"))
 		return

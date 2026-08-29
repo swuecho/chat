@@ -231,7 +231,7 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 
 	// Admin
 	adminAuthService := svc.NewAuthUserService(q, jwtSecret, rateLimit)
-	adminSessionService := svc.NewChatSessionService(q)
+	adminSessionService := svc.NewSessionAdminQueryService(q)
 	handler.NewAdminHandler(adminAuthService, adminSessionService, rateLimit).RegisterRoutes(adminRouter)
 
 	// Prompts
@@ -242,25 +242,24 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	chatSessionService := svc.NewChatSessionService(q)
 	chatSessionWorkspaceService := svc.NewChatWorkspaceService(q)
 	chatSessionActiveService := svc.NewUserActiveChatSessionService(q)
-	handler.NewChatSessionHandler(chatSessionService, chatSessionWorkspaceService, chatSessionActiveService).Register(userRouter)
+	chatSessionConversationService := svc.NewSessionConversationService(q)
+	handler.NewChatSessionHandler(chatSessionService, chatSessionWorkspaceService, chatSessionActiveService, chatSessionConversationService).Register(userRouter)
 
 	// Active sessions
 	activeSessionService := svc.NewUserActiveChatSessionService(q)
 	activeWorkspaceService := svc.NewChatWorkspaceService(q)
-	activeChatSessionService := svc.NewChatSessionService(q)
-	handler.NewUserActiveChatSessionHandler(activeSessionService, activeWorkspaceService, activeChatSessionService).Register(userRouter)
+	handler.NewUserActiveChatSessionHandler(activeSessionService, activeWorkspaceService).Register(userRouter)
 
 	// Workspaces
 	workspaceService := svc.NewChatWorkspaceService(q)
-	workspaceSessionService := svc.NewChatSessionService(q)
-	workspaceActiveSessionService := svc.NewUserActiveChatSessionService(q)
-	handler.NewChatWorkspaceHandler(workspaceService, workspaceSessionService, workspaceActiveSessionService).Register(userRouter)
+	handler.NewChatWorkspaceHandler(workspaceService).Register(userRouter)
 
 	// Messages
 	chatMessageService := svc.NewChatMessageService(q)
 	chatMessageSessionService := svc.NewChatSessionService(q)
+	chatMessageConversationService := svc.NewSessionConversationService(q)
 	messageSuggestionService := svc.NewChatService(q, openAIKey, openAIProxy)
-	handler.NewChatMessageHandler(chatMessageService, chatMessageSessionService, messageSuggestionService).Register(userRouter)
+	handler.NewChatMessageHandler(chatMessageService, chatMessageSessionService, chatMessageConversationService, messageSuggestionService).Register(userRouter)
 
 	// Snapshots
 	chatSnapshotService := svc.NewChatSnapshotService(q)
@@ -269,7 +268,12 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	// Chat stream
 	chatService := svc.NewChatService(q, openAIKey, openAIProxy)
 	chatStreamSessionService := svc.NewChatSessionService(q)
-	handler.NewChatHandler(chatService, chatStreamSessionService, s.rateLimiter, openAIKey, openAIProxy).Register(userRouter)
+	chatConversationService := svc.NewSessionConversationService(q)
+	chatRateLimitService := svc.NewSessionRateLimitService(q)
+	chatSnapshotQueryService := svc.NewSessionSnapshotQueryService(q)
+	chatModelRuntimeService := svc.NewSessionModelService(q)
+	chatBotHistoryService := svc.NewSessionBotHistoryService(q)
+	handler.NewChatHandler(chatService, chatStreamSessionService, chatConversationService, chatRateLimitService, chatSnapshotQueryService, chatModelRuntimeService, chatBotHistoryService, s.rateLimiter, openAIKey, openAIProxy).Register(userRouter)
 
 	// Model privileges
 	chatModelPrivilegeService := svc.NewChatModelPrivilegeService(q)

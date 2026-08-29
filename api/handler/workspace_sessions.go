@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -23,38 +24,22 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	if !h.checkPermission(w, ctx, workspaceUUID, userID) {
-		return
-	}
-
-	workspace, err := h.wsService.GetWorkspaceByUUID(ctx, workspaceUUID)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get workspace"))
-		return
-	}
-
-	session, err := h.wsService.CreateSessionInWorkspace(ctx, userID, workspace.ID, req.Topic, req.Model, req.DefaultSystemPrompt)
+	result, err := h.wsService.CreateWorkspaceSession(ctx, svc.CreateWorkspaceSessionCommand{
+		UserID: userID, WorkspaceUUID: workspaceUUID, Topic: req.Topic,
+		Model: req.Model, DefaultSystemPrompt: req.DefaultSystemPrompt,
+	})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create session in workspace"))
 		return
 	}
-
-	if _, err := h.sessionService.EnsureDefaultSystemPrompt(ctx, session.Uuid, userID, req.DefaultSystemPrompt); err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create default system prompt"))
-		return
-	}
-
-	if _, err := h.activeSession.UpsertActiveSession(ctx, userID, &workspace.ID, session.Uuid); err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to set active session"))
-		return
-	}
+	session := result.Session
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"uuid":            session.Uuid,
 		"topic":           session.Topic,
 		"model":           session.Model,
 		"artifactEnabled": session.ArtifactEnabled,
-		"workspaceUuid":   workspaceUUID,
+		"workspaceUuid":   result.WorkspaceUUID,
 		"createdAt":       session.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	})
 }

@@ -53,7 +53,7 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 	if promptParams.ChatSessionUuid != "" && promptParams.Role == "system" {
 		existingPrompt, getErr := h.service.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
 		if getErr == nil {
-			json.NewEncoder(w).Encode(existingPrompt)
+			json.NewEncoder(w).Encode(promptResponse(existingPrompt))
 			return
 		}
 		if !errors.Is(getErr, sql.ErrNoRows) {
@@ -69,7 +69,7 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 			errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			existingPrompt, getErr := h.service.GetOneChatPromptBySessionUUID(r.Context(), promptParams.ChatSessionUuid)
 			if getErr == nil {
-				json.NewEncoder(w).Encode(existingPrompt)
+				json.NewEncoder(w).Encode(promptResponse(existingPrompt))
 				return
 			}
 		}
@@ -77,7 +77,7 @@ func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Requ
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create chat prompt"))
 		return
 	}
-	json.NewEncoder(w).Encode(prompt)
+	json.NewEncoder(w).Encode(promptResponse(prompt))
 }
 
 func (h *ChatPromptHandler) GetChatPromptByID(w http.ResponseWriter, r *http.Request) {
@@ -87,12 +87,17 @@ func (h *ChatPromptHandler) GetChatPromptByID(w http.ResponseWriter, r *http.Req
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid chat prompt ID"))
 		return
 	}
-	prompt, err := h.service.GetChatPromptByID(r.Context(), int32(id))
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	prompt, err := h.service.GetChatPromptByID(r.Context(), int32(id), userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat prompt"))
 		return
 	}
-	json.NewEncoder(w).Encode(prompt)
+	json.NewEncoder(w).Encode(promptResponse(prompt))
 }
 
 func (h *ChatPromptHandler) UpdateChatPrompt(w http.ResponseWriter, r *http.Request) {
@@ -110,12 +115,18 @@ func (h *ChatPromptHandler) UpdateChatPrompt(w http.ResponseWriter, r *http.Requ
 	}
 	promptParams := svc.UpdateChatPromptInput{ID: int32(id), ChatSessionUuid: request.ChatSessionUUID,
 		Role: request.Role, Content: request.Content, Score: request.Score}
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	promptParams.UserID, promptParams.UpdatedBy = userID, userID
 	prompt, err := h.service.UpdateChatPrompt(r.Context(), promptParams)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update chat prompt"))
 		return
 	}
-	json.NewEncoder(w).Encode(prompt)
+	json.NewEncoder(w).Encode(promptResponse(prompt))
 }
 
 func (h *ChatPromptHandler) DeleteChatPrompt(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +136,12 @@ func (h *ChatPromptHandler) DeleteChatPrompt(w http.ResponseWriter, r *http.Requ
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid chat prompt ID"))
 		return
 	}
-	err = h.service.DeleteChatPrompt(r.Context(), int32(id))
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	err = h.service.DeleteChatPrompt(r.Context(), svc.DeleteChatPromptCommand{ID: int32(id), UserID: userID})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to delete chat prompt"))
 		return
@@ -139,27 +155,31 @@ func (h *ChatPromptHandler) GetAllChatPrompts(w http.ResponseWriter, r *http.Req
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat prompts"))
 		return
 	}
-	json.NewEncoder(w).Encode(prompts)
+	json.NewEncoder(w).Encode(promptResponses(prompts))
 }
 
 func (h *ChatPromptHandler) GetChatPromptsByUserID(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
+	userID, err := getUserID(r.Context())
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid user ID"))
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	prompts, err := h.service.GetChatPromptsByUserID(r.Context(), int32(id))
+	prompts, err := h.service.GetChatPromptsByUserID(r.Context(), userID)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get chat prompts by user"))
 		return
 	}
-	json.NewEncoder(w).Encode(prompts)
+	json.NewEncoder(w).Encode(promptResponses(prompts))
 }
 
 func (h *ChatPromptHandler) DeleteChatPromptByUUID(w http.ResponseWriter, r *http.Request) {
 	idStr := mux.Vars(r)["uuid"]
-	err := h.service.DeleteChatPromptByUUID(r.Context(), idStr)
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	err = h.service.DeleteChatPromptByUUID(r.Context(), svc.DeleteChatPromptByUUIDCommand{UUID: idStr, UserID: userID})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to delete chat prompt"))
 		return
@@ -174,10 +194,15 @@ func (h *ChatPromptHandler) UpdateChatPromptByUUID(w http.ResponseWriter, r *htt
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
-	prompt, err := h.service.UpdateChatPromptByUUID(r.Context(), simpleMsg.Uuid, simpleMsg.Text)
+	userID, err := getUserID(r.Context())
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	prompt, err := h.service.UpdateChatPromptByUUID(r.Context(), svc.UpdateChatPromptByUUIDCommand{UUID: simpleMsg.Uuid, Content: simpleMsg.Text, UserID: userID})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update chat prompt"))
 		return
 	}
-	json.NewEncoder(w).Encode(prompt)
+	json.NewEncoder(w).Encode(promptResponse(prompt))
 }

@@ -10,14 +10,15 @@ import (
 )
 
 type ChatSessionHandler struct {
-	service   *svc.ChatSessionService
-	wsService *svc.ChatWorkspaceService
-	activeSvc *svc.UserActiveChatSessionService
+	service         *svc.ChatSessionService
+	wsService       *svc.ChatWorkspaceService
+	activeSvc       *svc.UserActiveChatSessionService
+	conversationSvc *svc.SessionConversationService
 }
 
-func NewChatSessionHandler(service *svc.ChatSessionService, wsService *svc.ChatWorkspaceService, activeSvc *svc.UserActiveChatSessionService) *ChatSessionHandler {
+func NewChatSessionHandler(service *svc.ChatSessionService, wsService *svc.ChatWorkspaceService, activeSvc *svc.UserActiveChatSessionService, conversationSvc *svc.SessionConversationService) *ChatSessionHandler {
 	return &ChatSessionHandler{
-		service: service, wsService: wsService, activeSvc: activeSvc,
+		service: service, wsService: wsService, activeSvc: activeSvc, conversationSvc: conversationSvc,
 	}
 }
 
@@ -88,12 +89,12 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
-	if _, err := h.service.EnsureDefaultSystemPrompt(ctx, session.Uuid, userID, req.DefaultSystemPrompt); err != nil {
+	if err := h.conversationSvc.EnsureSystemPrompt(ctx, session.Uuid, userID, req.DefaultSystemPrompt); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create default system prompt"))
 		return
 	}
 
-	if _, err := h.activeSvc.UpsertActiveSession(ctx, session.UserID, nil, session.Uuid); err != nil {
+	if _, err := h.activeSvc.UpsertActiveSession(ctx, svc.SetActiveSessionCommand{UserID: session.UserID, SessionUUID: session.Uuid}); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update active user session"))
 		return
 	}
@@ -163,18 +164,7 @@ func (h *ChatSessionHandler) deleteChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Verify session ownership before deletion
-	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat session").WithDebugInfo(err.Error()))
-		return
-	}
-	if session.UserID != userID {
-		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("You do not own this session"))
-		return
-	}
-
-	if err := h.service.DeleteChatSessionByUUID(r.Context(), uuid); err != nil {
+	if err := h.service.DeleteChatSessionByUUID(r.Context(), svc.DeleteChatSessionCommand{UUID: uuid, UserID: userID}); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to delete chat session").WithDebugInfo(err.Error()))
 		return
 	}
@@ -237,23 +227,12 @@ func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *ht
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
-	// Verify session ownership
 	userID, err := getUserID(r.Context())
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat session").WithDebugInfo(err.Error()))
-		return
-	}
-	if session.UserID != userID {
-		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("You do not own this session"))
-		return
-	}
-
-	updatedSession, err := h.service.UpdateSessionMaxLength(r.Context(), uuid, req.MaxLength)
+	updatedSession, err := h.service.UpdateSessionMaxLength(r.Context(), svc.UpdateSessionMaxLengthCommand{UUID: uuid, UserID: userID, MaxLength: req.MaxLength})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update session max length").WithDebugInfo(err.Error()))
 		return

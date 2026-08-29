@@ -248,15 +248,23 @@ func (q *Queries) DeleteChatSession(ctx context.Context, id int32) error {
 	return err
 }
 
-const deleteChatSessionByUUID = `-- name: DeleteChatSessionByUUID :exec
+const deleteChatSessionByUUID = `-- name: DeleteChatSessionByUUID :execrows
 update chat_session set active = false
-WHERE uuid = $1
+WHERE uuid = $1 AND user_id = $2
 returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, artifact_enabled, debug, explore_mode
 `
 
-func (q *Queries) DeleteChatSessionByUUID(ctx context.Context, uuid string) error {
-	_, err := q.db.ExecContext(ctx, deleteChatSessionByUUID, uuid)
-	return err
+type DeleteChatSessionByUUIDParams struct {
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userId"`
+}
+
+func (q *Queries) DeleteChatSessionByUUID(ctx context.Context, arg DeleteChatSessionByUUIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteChatSessionByUUID, arg.Uuid, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getAllChatSessions = `-- name: GetAllChatSessions :many
@@ -820,17 +828,18 @@ const updateSessionMaxLength = `-- name: UpdateSessionMaxLength :one
 UPDATE chat_session
 SET max_length = $2,
     updated_at = now()
-WHERE uuid = $1
+WHERE uuid = $1 AND user_id = $3
 RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, artifact_enabled, debug, explore_mode
 `
 
 type UpdateSessionMaxLengthParams struct {
 	Uuid      string `json:"uuid"`
 	MaxLength int32  `json:"maxLength"`
+	UserID    int32  `json:"userId"`
 }
 
 func (q *Queries) UpdateSessionMaxLength(ctx context.Context, arg UpdateSessionMaxLengthParams) (ChatSession, error) {
-	row := q.db.QueryRowContext(ctx, updateSessionMaxLength, arg.Uuid, arg.MaxLength)
+	row := q.db.QueryRowContext(ctx, updateSessionMaxLength, arg.Uuid, arg.MaxLength, arg.UserID)
 	var i ChatSession
 	err := row.Scan(
 		&i.ID,

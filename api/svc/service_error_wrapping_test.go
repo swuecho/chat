@@ -69,17 +69,17 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 		if err != nil {
 			t.Fatalf("CreateWorkspace failed: %v", err)
 		}
-		if ws.Uuid == "" {
+		if ws.UUID == "" {
 			t.Fatal("expected non-empty workspace UUID")
 		}
-		retrieved, err := svc.GetWorkspaceByUUID(ctx, ws.Uuid)
+		retrieved, err := svc.GetWorkspaceByUUID(ctx, ws.UUID)
 		if err != nil {
 			t.Fatalf("GetWorkspaceByUUID failed: %v", err)
 		}
-		if retrieved.Uuid != ws.Uuid {
-			t.Fatalf("UUID mismatch: got %s, want %s", retrieved.Uuid, ws.Uuid)
+		if retrieved.UUID != ws.UUID {
+			t.Fatalf("UUID mismatch: got %s, want %s", retrieved.UUID, ws.UUID)
 		}
-		if err := svc.DeleteWorkspace(ctx, ws.Uuid); err != nil {
+		if err := svc.DeleteWorkspace(ctx, DeleteWorkspaceCommand{WorkspaceUUID: ws.UUID, UserID: ws.UserID}); err != nil {
 			t.Fatalf("DeleteWorkspace failed: %v", err)
 		}
 	})
@@ -96,7 +96,7 @@ func TestServiceErrorWrappingNil(t *testing.T) {
 
 	t.Run("ChatMessageService_success_returns_nil_error", func(t *testing.T) {
 		svc := NewChatMessageService(q)
-		msgs, err := svc.GetAllChatMessages(ctx)
+		msgs, err := svc.GetAllChatMessages(ctx, testUID)
 		if err != nil {
 			t.Fatalf("GetAllChatMessages failed: %v", err)
 		}

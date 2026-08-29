@@ -36,7 +36,7 @@ func TestChatMessageService(t *testing.T) {
 		t.Fatalf("failed to create chat message: %v", err)
 	}
 
-	retrieved_msg, err := service.GetChatMessageByID(context.Background(), msg.ID)
+	retrieved_msg, err := service.GetChatMessageByID(context.Background(), msg.ID, msg.UserID)
 	if err != nil {
 		t.Fatalf("failed to retrieve chat message: %v", err)
 	}
@@ -47,10 +47,10 @@ func TestChatMessageService(t *testing.T) {
 		t.Error("retrieved chat message does not match expected values")
 	}
 
-	if err := service.DeleteChatMessage(context.Background(), msg.ID); err != nil {
+	if err := service.DeleteChatMessage(context.Background(), DeleteChatMessageCommand{ID: msg.ID, UserID: msg.UserID}); err != nil {
 		t.Fatalf("failed to delete chat prompt: %v", err)
 	}
-	_, err = service.GetChatMessageByID(context.Background(), msg.ID)
+	_, err = service.GetChatMessageByID(context.Background(), msg.ID, msg.UserID)
 	if err == nil || !errors.Is(err, sql.ErrNoRows) {
 		t.Error("expected error due to missing chat prompt, but got no error or different error")
 	}
@@ -91,7 +91,7 @@ func TestCreateChatMessageIsIdempotentWithinSession(t *testing.T) {
 		t.Fatalf("retry overwrote original content: got %q, want %q", second.Content, first.Content)
 	}
 
-	if err := service.DeleteChatMessage(context.Background(), first.ID); err != nil {
+	if err := service.DeleteChatMessage(context.Background(), DeleteChatMessageCommand{ID: first.ID, UserID: first.UserID}); err != nil {
 		t.Fatalf("cleanup failed: %v", err)
 	}
 
@@ -102,7 +102,7 @@ func TestCreateChatMessageIsIdempotentWithinSession(t *testing.T) {
 	if recreated.ID == first.ID {
 		t.Fatalf("recreating a deleted UUID returned deleted row ID %d", recreated.ID)
 	}
-	if err := service.DeleteChatMessage(context.Background(), recreated.ID); err != nil {
+	if err := service.DeleteChatMessage(context.Background(), DeleteChatMessageCommand{ID: recreated.ID, UserID: recreated.UserID}); err != nil {
 		t.Fatalf("recreated message cleanup failed: %v", err)
 	}
 }
@@ -154,18 +154,18 @@ func TestGetChatMessagesBySessionID(t *testing.T) {
 		t.Fatalf("failed to create chat message: %v", err)
 	}
 
-	if err := service.DeleteChatMessage(context.Background(), msg1.ID); err != nil {
+	if err := service.DeleteChatMessage(context.Background(), DeleteChatMessageCommand{ID: msg1.ID, UserID: msg1.UserID}); err != nil {
 		t.Fatalf("failed to delete chat message: %v", err)
 	}
-	if err := service.DeleteChatMessage(context.Background(), msg2.ID); err != nil {
+	if err := service.DeleteChatMessage(context.Background(), DeleteChatMessageCommand{ID: msg2.ID, UserID: msg2.UserID}); err != nil {
 		t.Fatalf("failed to delete chat message: %v", err)
 	}
 
-	_, err = service.GetChatMessageByID(context.Background(), msg1.ID)
+	_, err = service.GetChatMessageByID(context.Background(), msg1.ID, msg1.UserID)
 	if err == nil || !errors.Is(err, sql.ErrNoRows) {
 		t.Error("expected error due to missing chat message, but got no error or different error")
 	}
-	_, err = service.GetChatMessageByID(context.Background(), msg2.ID)
+	_, err = service.GetChatMessageByID(context.Background(), msg2.ID, msg2.UserID)
 	if err == nil || !errors.Is(err, sql.ErrNoRows) {
 		t.Error("expected error due to missing chat message, but got no error or different error")
 	}

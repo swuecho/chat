@@ -25,17 +25,13 @@ func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *ht
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	if !h.checkPermission(w, ctx, workspaceUUID, userID) {
-		return
-	}
-
-	workspace, err := h.wsService.UpdateWorkspaceOrder(ctx, workspaceUUID, req.OrderPosition)
+	workspace, err := h.wsService.UpdateWorkspaceOrder(ctx, svc.UpdateWorkspaceOrderCommand{WorkspaceUUID: workspaceUUID, UserID: userID, OrderPosition: req.OrderPosition})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update workspace order"))
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +50,7 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +67,7 @@ func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +94,7 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 			slog.Warn("failed to migrate legacy active sessions", "error", err)
 		}
 		ws := result.DefaultWorkspace
-		response["defaultWorkspace"] = workspaceToResponse(ws.Uuid, ws.Name, ws.Description, ws.Color, ws.Icon, ws.IsDefault, ws.OrderPosition, 0, ws.CreatedAt, ws.UpdatedAt)
+		response["defaultWorkspace"] = workspaceToResponse(ws.UUID, ws.Name, ws.Description, ws.Color, ws.Icon, ws.IsDefault, ws.OrderPosition, 0, ws.CreatedAt, ws.UpdatedAt)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

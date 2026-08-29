@@ -50,14 +50,14 @@ func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Re
 	}
 
 	if req.IsDefault {
-		workspace, err = h.wsService.SetWorkspaceAsDefaultForUser(ctx, svc.SetDefaultWorkspaceCommand{UserID: userID, WorkspaceUUID: workspace.Uuid})
+		workspace, err = h.wsService.SetWorkspaceAsDefaultForUser(ctx, svc.SetDefaultWorkspaceCommand{UserID: userID, WorkspaceUUID: workspace.UUID})
 		if err != nil {
 			dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to set default workspace"))
 			return
 		}
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +87,7 @@ func (h *ChatWorkspaceHandler) getWorkspaceByUUID(w http.ResponseWriter, r *http
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) getWorkspacesByUserID(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +106,7 @@ func (h *ChatWorkspaceHandler) getWorkspacesByUserID(w http.ResponseWriter, r *h
 
 	responses := make([]dto.WorkspaceResponse, 0, len(workspaces))
 	for _, ws := range workspaces {
-		responses = append(responses, workspaceToResponse(ws.Uuid, ws.Name, ws.Description, ws.Color, ws.Icon, ws.IsDefault, ws.OrderPosition, ws.SessionCount, ws.CreatedAt, ws.UpdatedAt))
+		responses = append(responses, workspaceToResponse(ws.UUID, ws.Name, ws.Description, ws.Color, ws.Icon, ws.IsDefault, ws.OrderPosition, ws.SessionCount, ws.CreatedAt, ws.UpdatedAt))
 	}
 	json.NewEncoder(w).Encode(responses)
 }
@@ -126,12 +126,8 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	if !h.checkPermission(w, ctx, workspaceUUID, userID) {
-		return
-	}
-
 	workspace, err := h.wsService.UpdateWorkspace(ctx, svc.UpdateWorkspaceInput{
-		Uuid: workspaceUUID, Name: req.Name, Description: req.Description,
+		Uuid: workspaceUUID, UserID: userID, Name: req.Name, Description: req.Description,
 		Color: req.Color, Icon: req.Icon,
 	})
 	if err != nil {
@@ -139,7 +135,7 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -151,21 +147,7 @@ func (h *ChatWorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Re
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
 		return
 	}
-	if !h.checkPermission(w, ctx, workspaceUUID, userID) {
-		return
-	}
-
-	workspace, err := h.wsService.GetWorkspaceByUUID(ctx, workspaceUUID)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get workspace"))
-		return
-	}
-	if workspace.IsDefault {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Cannot delete default workspace"))
-		return
-	}
-
-	if err := h.wsService.DeleteWorkspace(ctx, workspaceUUID); err != nil {
+	if err := h.wsService.DeleteWorkspace(ctx, svc.DeleteWorkspaceCommand{WorkspaceUUID: workspaceUUID, UserID: userID}); err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to delete workspace"))
 		return
 	}

@@ -106,3 +106,196 @@ func TestServiceInputsDoNotHaveJSONTags(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestWorkspaceServiceAPIDoesNotExposeSQLCRecords(t *testing.T) {
+	files := token.NewFileSet()
+	file, err := parser.ParseFile(files, "chat_workspace_service.go", nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, declaration := range file.Decls {
+		fn, ok := declaration.(*ast.FuncDecl)
+		if !ok || fn.Recv == nil {
+			continue
+		}
+		star, ok := fn.Recv.List[0].Type.(*ast.StarExpr)
+		if !ok {
+			continue
+		}
+		receiver, ok := star.X.(*ast.Ident)
+		if !ok || receiver.Name != "ChatWorkspaceService" {
+			continue
+		}
+		ast.Inspect(fn.Type, func(node ast.Node) bool {
+			selector, ok := node.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			pkg, ok := selector.X.(*ast.Ident)
+			if ok && pkg.Name == "sqlc_queries" {
+				position := files.Position(selector.Pos())
+				t.Errorf("%s:%d workspace method %s exposes generated SQLC type %s", position.Filename, position.Line, fn.Name.Name, selector.Sel.Name)
+			}
+			return true
+		})
+	}
+}
+
+func TestCoreSessionAPIDoesNotExposeSQLCRecords(t *testing.T) {
+	coreMethods := map[string]bool{
+		"CreateChatSession": true, "GetChatSessionByID": true,
+		"UpdateChatSession": true, "GetAllChatSessions": true,
+		"GetChatSessionsByUserID": true, "GetChatSessionByUUID": true,
+		"UpdateChatSessionByUUID": true, "UpdateChatSessionTopicByUUID": true,
+		"CreateOrUpdateChatSessionByUUID": true, "UpdateSessionMaxLength": true,
+		"GetChatSessionByUUIDWithInActive": true,
+	}
+	files := token.NewFileSet()
+	file, err := parser.ParseFile(files, "chat_session_service.go", nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, declaration := range file.Decls {
+		fn, ok := declaration.(*ast.FuncDecl)
+		if !ok || !coreMethods[fn.Name.Name] {
+			continue
+		}
+		ast.Inspect(fn.Type, func(node ast.Node) bool {
+			selector, ok := node.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			pkg, ok := selector.X.(*ast.Ident)
+			if ok && pkg.Name == "sqlc_queries" {
+				position := files.Position(selector.Pos())
+				t.Errorf("%s:%d core session method %s exposes generated SQLC type %s", position.Filename, position.Line, fn.Name.Name, selector.Sel.Name)
+			}
+			return true
+		})
+	}
+}
+
+func TestConvertedServiceAPIsDoNotExposeSQLCTypes(t *testing.T) {
+	convertedReceivers := map[string]bool{
+		"ChatSessionService":           true,
+		"ChatWorkspaceService":         true,
+		"ChatSnapshotService":          true,
+		"ChatPromptService":            true,
+		"ChatMessageService":           true,
+		"SessionConversationService":   true,
+		"SessionRateLimitService":      true,
+		"SessionSnapshotQueryService":  true,
+		"SessionAdminQueryService":     true,
+		"SessionBotHistoryService":     true,
+		"SessionModelService":          true,
+		"UserActiveChatSessionService": true,
+	}
+	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		files := token.NewFileSet()
+		file, err := parser.ParseFile(files, path, nil, 0)
+		if err != nil {
+			return err
+		}
+		for _, declaration := range file.Decls {
+			fn, ok := declaration.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil {
+				continue
+			}
+			receiverType := fn.Recv.List[0].Type
+			if star, ok := receiverType.(*ast.StarExpr); ok {
+				receiverType = star.X
+			}
+			receiver, ok := receiverType.(*ast.Ident)
+			if !ok || !convertedReceivers[receiver.Name] {
+				continue
+			}
+			ast.Inspect(fn.Type, func(node ast.Node) bool {
+				selector, ok := node.(*ast.SelectorExpr)
+				if !ok {
+					return true
+				}
+				pkg, ok := selector.X.(*ast.Ident)
+				if ok && pkg.Name == "sqlc_queries" {
+					position := files.Position(selector.Pos())
+					t.Errorf("%s:%d %s.%s exposes generated SQLC type %s", path, position.Line, receiver.Name, fn.Name.Name, selector.Sel.Name)
+				}
+				return true
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestApplicationServicesDoNotManageSQLCTransactionsDirectly(t *testing.T) {
+	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") || path == "transaction_manager.go" {
+			return nil
+		}
+		files := token.NewFileSet()
+		file, err := parser.ParseFile(files, path, nil, 0)
+		if err != nil {
+			return err
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			selector, ok := call.Fun.(*ast.SelectorExpr)
+			if ok && selector.Sel.Name == "InTransaction" {
+				position := files.Position(selector.Pos())
+				t.Errorf("%s:%d manages a SQLC transaction directly; depend on TransactionManager", path, position.Line)
+			}
+			return true
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestChatSessionServiceRemainsLifecycleFocused(t *testing.T) {
+	allowed := map[string]bool{
+		"CreateChatSession": true, "GetChatSessionByID": true, "UpdateChatSession": true,
+		"DeleteChatSession": true, "GetAllChatSessions": true, "GetChatSessionsByUserID": true,
+		"GetSimpleChatSessionsByUserID": true, "GetChatSessionByUUID": true,
+		"UpdateChatSessionByUUID": true, "UpdateChatSessionTopicByUUID": true,
+		"CreateOrUpdateChatSessionByUUID": true, "DeleteChatSessionByUUID": true,
+		"UpdateSessionMaxLength": true, "GetChatSessionByUUIDWithInActive": true,
+		"CreateSessionFromSnapshot": true,
+	}
+	files := token.NewFileSet()
+	packages, err := parser.ParseDir(files, ".", func(info os.FileInfo) bool { return !strings.HasSuffix(info.Name(), "_test.go") }, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range packages["svc"].Files {
+		for _, declaration := range file.Decls {
+			fn, ok := declaration.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil {
+				continue
+			}
+			typeExpr := fn.Recv.List[0].Type
+			if star, ok := typeExpr.(*ast.StarExpr); ok {
+				typeExpr = star.X
+			}
+			receiver, ok := typeExpr.(*ast.Ident)
+			if ok && receiver.Name == "ChatSessionService" && !allowed[fn.Name.Name] {
+				t.Errorf("ChatSessionService.%s is not a session lifecycle operation", fn.Name.Name)
+			}
+		}
+	}
+}

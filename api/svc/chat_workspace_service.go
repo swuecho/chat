@@ -5,16 +5,19 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
+	"time"
 
-	"github.com/google/uuid"
 	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/domain"
+	"github.com/swuecho/chat_backend/pkg/util"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 // ChatWorkspaceService provides all workspace-related business logic.
 type ChatWorkspaceService struct {
-	q *sqlc_queries.Queries
+	q     *sqlc_queries.Queries
+	tx    WorkspaceTransactionManager
+	newID func() string
 }
 
 type CreateWorkspaceInput struct {
@@ -30,10 +33,20 @@ type CreateWorkspaceInput struct {
 
 type UpdateWorkspaceInput struct {
 	Uuid        string
+	UserID      int32
 	Name        string
 	Description string
 	Color       string
 	Icon        string
+}
+
+type UpdateWorkspaceOrderCommand struct {
+	WorkspaceUUID         string
+	UserID, OrderPosition int32
+}
+type DeleteWorkspaceCommand struct {
+	WorkspaceUUID string
+	UserID        int32
 }
 
 type SetDefaultWorkspaceCommand struct {
@@ -41,84 +54,135 @@ type SetDefaultWorkspaceCommand struct {
 	WorkspaceUUID string
 }
 
+// Workspace is an application model; generated database records stay private
+// to the persistence implementation.
+type Workspace struct {
+	ID            int32
+	UUID          string
+	UserID        int32
+	Name          string
+	Description   string
+	Color         string
+	Icon          string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	IsDefault     bool
+	OrderPosition int32
+}
+
+type WorkspaceSummary struct {
+	Workspace
+	SessionCount int64
+}
+
+func workspaceFromRecord(w sqlc_queries.ChatWorkspace) Workspace {
+	return Workspace{ID: w.ID, UUID: w.Uuid, UserID: w.UserID, Name: w.Name,
+		Description: w.Description, Color: w.Color, Icon: w.Icon, CreatedAt: w.CreatedAt,
+		UpdatedAt: w.UpdatedAt, IsDefault: w.IsDefault, OrderPosition: w.OrderPosition}
+}
+
 // NewChatWorkspaceService creates a new ChatWorkspaceService.
 func NewChatWorkspaceService(q *sqlc_queries.Queries) *ChatWorkspaceService {
-	return &ChatWorkspaceService{q: q}
+	return &ChatWorkspaceService{q: q, tx: newSQLCTransactionManager(q), newID: util.NewUUID}
 }
 
 // --- Workspace CRUD ---
 
-func (s *ChatWorkspaceService) CreateWorkspace(ctx context.Context, input CreateWorkspaceInput) (sqlc_queries.ChatWorkspace, error) {
+func (s *ChatWorkspaceService) CreateWorkspace(ctx context.Context, input CreateWorkspaceInput) (Workspace, error) {
 	w, err := s.q.CreateWorkspace(ctx, sqlc_queries.CreateWorkspaceParams(input))
-	return w, eris.Wrap(err, "failed to create workspace")
+	return workspaceFromRecord(w), eris.Wrap(err, "failed to create workspace")
 }
 
-func (s *ChatWorkspaceService) GetWorkspaceByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatWorkspace, error) {
+func (s *ChatWorkspaceService) GetWorkspaceByUUID(ctx context.Context, uuid string) (Workspace, error) {
 	w, err := s.q.GetWorkspaceByUUID(ctx, uuid)
-	return w, eris.Wrap(err, "failed to retrieve workspace")
+	return workspaceFromRecord(w), eris.Wrap(err, "failed to retrieve workspace")
 }
 
-func (s *ChatWorkspaceService) GetWorkspacesByUserID(ctx context.Context, userID int32) ([]sqlc_queries.ChatWorkspace, error) {
+func (s *ChatWorkspaceService) GetWorkspacesByUserID(ctx context.Context, userID int32) ([]Workspace, error) {
 	ws, err := s.q.GetWorkspacesByUserID(ctx, userID)
-	return ws, eris.Wrap(err, "failed to retrieve workspaces")
+	if err != nil {
+		return nil, eris.Wrap(err, "failed to retrieve workspaces")
+	}
+	result := make([]Workspace, 0, len(ws))
+	for _, w := range ws {
+		result = append(result, workspaceFromRecord(w))
+	}
+	return result, nil
 }
 
-func (s *ChatWorkspaceService) GetWorkspaceWithSessionCount(ctx context.Context, userID int32) ([]sqlc_queries.GetWorkspaceWithSessionCountRow, error) {
+func (s *ChatWorkspaceService) GetWorkspaceWithSessionCount(ctx context.Context, userID int32) ([]WorkspaceSummary, error) {
 	ws, err := s.q.GetWorkspaceWithSessionCount(ctx, userID)
-	return ws, eris.Wrap(err, "failed to retrieve workspaces with session count")
+	if err != nil {
+		return nil, eris.Wrap(err, "failed to retrieve workspaces with session count")
+	}
+	result := make([]WorkspaceSummary, 0, len(ws))
+	for _, w := range ws {
+		result = append(result, WorkspaceSummary{Workspace: Workspace{ID: w.ID, UUID: w.Uuid, UserID: w.UserID, Name: w.Name, Description: w.Description, Color: w.Color, Icon: w.Icon, CreatedAt: w.CreatedAt, UpdatedAt: w.UpdatedAt, IsDefault: w.IsDefault, OrderPosition: w.OrderPosition}, SessionCount: w.SessionCount})
+	}
+	return result, nil
 }
 
-func (s *ChatWorkspaceService) UpdateWorkspace(ctx context.Context, input UpdateWorkspaceInput) (sqlc_queries.ChatWorkspace, error) {
-	w, err := s.q.UpdateWorkspace(ctx, sqlc_queries.UpdateWorkspaceParams(input))
-	return w, eris.Wrap(err, "failed to update workspace")
+func (s *ChatWorkspaceService) UpdateWorkspace(ctx context.Context, input UpdateWorkspaceInput) (Workspace, error) {
+	w, err := s.q.UpdateWorkspace(ctx, sqlc_queries.UpdateWorkspaceParams{
+		Uuid: input.Uuid, UserID: input.UserID, Name: input.Name,
+		Description: input.Description, Color: input.Color, Icon: input.Icon,
+	})
+	return workspaceFromRecord(w), eris.Wrap(err, "failed to update workspace")
 }
 
-func (s *ChatWorkspaceService) UpdateWorkspaceOrder(ctx context.Context, uuid string, orderPosition int32) (sqlc_queries.ChatWorkspace, error) {
-	w, err := s.q.UpdateWorkspaceOrder(ctx, sqlc_queries.UpdateWorkspaceOrderParams{Uuid: uuid, OrderPosition: orderPosition})
-	return w, eris.Wrap(err, "failed to update workspace order")
+func (s *ChatWorkspaceService) UpdateWorkspaceOrder(ctx context.Context, command UpdateWorkspaceOrderCommand) (Workspace, error) {
+	w, err := s.q.UpdateWorkspaceOrder(ctx, sqlc_queries.UpdateWorkspaceOrderParams{Uuid: command.WorkspaceUUID, UserID: command.UserID, OrderPosition: command.OrderPosition})
+	return workspaceFromRecord(w), eris.Wrap(err, "failed to update workspace order")
 }
 
-func (s *ChatWorkspaceService) DeleteWorkspace(ctx context.Context, uuid string) error {
-	return eris.Wrap(s.q.DeleteWorkspace(ctx, uuid), "failed to delete workspace")
+func (s *ChatWorkspaceService) DeleteWorkspace(ctx context.Context, command DeleteWorkspaceCommand) error {
+	rows, err := s.q.DeleteWorkspace(ctx, sqlc_queries.DeleteWorkspaceParams{Uuid: command.WorkspaceUUID, UserID: command.UserID})
+	if err != nil {
+		return eris.Wrap(err, "failed to delete workspace")
+	}
+	if rows == 0 {
+		return domain.NotFound("Workspace", sql.ErrNoRows)
+	}
+	return nil
 }
 
 // --- Default workspace ---
 
-func (s *ChatWorkspaceService) GetDefaultWorkspaceByUserID(ctx context.Context, userID int32) (sqlc_queries.ChatWorkspace, error) {
+func (s *ChatWorkspaceService) GetDefaultWorkspaceByUserID(ctx context.Context, userID int32) (Workspace, error) {
 	w, err := s.q.GetDefaultWorkspaceByUserID(ctx, userID)
-	return w, eris.Wrap(err, "failed to retrieve default workspace")
+	return workspaceFromRecord(w), eris.Wrap(err, "failed to retrieve default workspace")
 }
 
-func (s *ChatWorkspaceService) CreateDefaultWorkspace(ctx context.Context, userID int32) (sqlc_queries.ChatWorkspace, error) {
+func (s *ChatWorkspaceService) CreateDefaultWorkspace(ctx context.Context, userID int32) (Workspace, error) {
 	w, err := s.q.CreateDefaultWorkspace(ctx, sqlc_queries.CreateDefaultWorkspaceParams{
-		Uuid: uuid.New().String(), UserID: userID,
+		Uuid: util.NewUUID(), UserID: userID,
 	})
-	return w, eris.Wrap(err, "failed to create default workspace")
+	return workspaceFromRecord(w), eris.Wrap(err, "failed to create default workspace")
 }
 
-func (s *ChatWorkspaceService) EnsureDefaultWorkspaceExists(ctx context.Context, userID int32) (sqlc_queries.ChatWorkspace, error) {
+func (s *ChatWorkspaceService) EnsureDefaultWorkspaceExists(ctx context.Context, userID int32) (Workspace, error) {
 	w, err := s.GetDefaultWorkspaceByUserID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return s.CreateDefaultWorkspace(ctx, userID)
 		}
-		return sqlc_queries.ChatWorkspace{}, err
+		return Workspace{}, err
 	}
 	return w, nil
 }
 
 // SetWorkspaceAsDefaultForUser changes a user's default workspace atomically.
-func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context, command SetDefaultWorkspaceCommand) (sqlc_queries.ChatWorkspace, error) {
+func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context, command SetDefaultWorkspaceCommand) (Workspace, error) {
 	if command.UserID <= 0 {
-		return sqlc_queries.ChatWorkspace{}, domain.Invalid("user ID is required")
+		return Workspace{}, domain.Invalid("user ID is required")
 	}
 	if command.WorkspaceUUID == "" {
-		return sqlc_queries.ChatWorkspace{}, domain.Invalid("workspace UUID is required")
+		return Workspace{}, domain.Invalid("workspace UUID is required")
 	}
 
-	var result sqlc_queries.ChatWorkspace
-	err := s.q.InTransaction(ctx, func(q *sqlc_queries.Queries) error {
-		workspace, err := q.GetWorkspaceByUUID(ctx, command.WorkspaceUUID)
+	var result Workspace
+	err := s.tx.WithinWorkspaceTransaction(ctx, func(uow WorkspaceUnitOfWork) error {
+		workspace, err := uow.WorkspaceByUUID(ctx, command.WorkspaceUUID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return domain.NotFound("Workspace", err)
@@ -128,19 +192,19 @@ func (s *ChatWorkspaceService) SetWorkspaceAsDefaultForUser(ctx context.Context,
 		if workspace.UserID != command.UserID {
 			return domain.Forbidden("workspace does not belong to user")
 		}
-		if err := q.ClearDefaultWorkspacesByUserID(ctx, command.UserID); err != nil {
+		if err := uow.ClearDefaultWorkspaces(ctx, command.UserID); err != nil {
 			return eris.Wrap(err, "failed to clear default workspace")
 		}
-		result, err = q.SetDefaultWorkspaceForUser(ctx, sqlc_queries.SetDefaultWorkspaceForUserParams{
-			Uuid: command.WorkspaceUUID, UserID: command.UserID,
-		})
+		var updated Workspace
+		updated, err = uow.SetDefaultWorkspace(ctx, command.UserID, command.WorkspaceUUID)
 		if err != nil {
 			return eris.Wrap(err, "failed to set default workspace")
 		}
+		result = updated
 		return nil
 	})
 	if err != nil {
-		return sqlc_queries.ChatWorkspace{}, err
+		return Workspace{}, err
 	}
 	return result, nil
 }
@@ -158,32 +222,17 @@ func (s *ChatWorkspaceService) HasWorkspacePermission(ctx context.Context, uuid 
 	return result, nil
 }
 
-// --- Session creation inside workspace ---
-
-// CreateSessionInWorkspace creates a new chat session inside a workspace and sets it as active.
-func (s *ChatWorkspaceService) CreateSessionInWorkspace(ctx context.Context, userID int32, workspaceID int32, topic, model, defaultSystemPrompt string) (sqlc_queries.ChatSession, error) {
-	sessionUUID := uuid.New().String()
-
-	session, err := s.q.CreateChatSessionInWorkspace(ctx, sqlc_queries.CreateChatSessionInWorkspaceParams{
-		UserID:      userID,
-		Uuid:        sessionUUID,
-		Topic:       topic,
-		Model:       model,
-		MaxLength:   10,
-		Active:      true,
-		WorkspaceID: sql.NullInt32{Int32: workspaceID, Valid: true},
-	})
-	if err != nil {
-		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to create session in workspace")
-	}
-
-	return session, nil
-}
-
 // GetSessionsByWorkspaceID returns all sessions in a workspace.
-func (s *ChatWorkspaceService) GetSessionsByWorkspaceID(ctx context.Context, workspaceID int32) ([]sqlc_queries.ChatSession, error) {
+func (s *ChatWorkspaceService) GetSessionsByWorkspaceID(ctx context.Context, workspaceID int32) ([]ChatSession, error) {
 	sessions, err := s.q.GetSessionsByWorkspaceID(ctx, sql.NullInt32{Int32: workspaceID, Valid: true})
-	return sessions, eris.Wrap(err, "failed to get sessions by workspace")
+	if err != nil {
+		return nil, eris.Wrap(err, "failed to get sessions by workspace")
+	}
+	result := make([]ChatSession, 0, len(sessions))
+	for _, session := range sessions {
+		result = append(result, chatSessionFromRecord(session))
+	}
+	return result, nil
 }
 
 // --- Legacy migration ---
@@ -192,7 +241,7 @@ func (s *ChatWorkspaceService) GetSessionsByWorkspaceID(ctx context.Context, wor
 type AutoMigrateLegacySessionsResult struct {
 	HasLegacySessions bool
 	MigratedCount     int
-	DefaultWorkspace  sqlc_queries.ChatWorkspace
+	DefaultWorkspace  Workspace
 }
 
 // AutoMigrateLegacySessions migrates sessions without a workspace_id to the default workspace.

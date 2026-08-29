@@ -12,11 +12,11 @@ import (
 
 type AdminHandler struct {
 	service          *svc.AuthUserService
-	sessionSvc       *svc.ChatSessionService
+	sessionSvc       *svc.SessionAdminQueryService
 	defaultRateLimit int32
 }
 
-func NewAdminHandler(service *svc.AuthUserService, sessionSvc *svc.ChatSessionService, defaultRateLimit int32) *AdminHandler {
+func NewAdminHandler(service *svc.AuthUserService, sessionSvc *svc.SessionAdminQueryService, defaultRateLimit int32) *AdminHandler {
 	return &AdminHandler{
 		service:          service,
 		sessionSvc:       sessionSvc,
@@ -182,12 +182,16 @@ func (h *AdminHandler) SessionMessagesHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	messages, err := h.sessionSvc.GetChatMessagesBySessionUUIDForAdmin(r.Context(), sessionUuid)
+	messages, err := h.sessionSvc.Messages(r.Context(), sessionUuid)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get session messages"))
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(messages)
+	response := make([]adminMessageHTTPResponse, 0, len(messages))
+	for _, message := range messages {
+		response = append(response, adminMessageResponse(message))
+	}
+	json.NewEncoder(w).Encode(response)
 }

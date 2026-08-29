@@ -14,7 +14,7 @@ func TestChatSessionService(t *testing.T) {
 	sqlc_q := sqlc_queries.New(testDB)
 	service := NewChatSessionService(sqlc_q)
 
-	session_params := sqlc_queries.CreateChatSessionParams{
+	session_params := CreateChatSessionCommand{
 		UserID: 1, Topic: "Test Session", MaxLength: 100,
 	}
 	session, err := service.CreateChatSession(context.Background(), session_params)
@@ -31,7 +31,7 @@ func TestChatSessionService(t *testing.T) {
 		t.Error("retrieved chat session does not match expected values")
 	}
 
-	updated_params := sqlc_queries.UpdateChatSessionParams{
+	updated_params := UpdateChatSessionCommand{
 		ID: session.ID, UserID: session.UserID, Topic: "Updated Test Session",
 	}
 	if _, err := service.UpdateChatSession(context.Background(), updated_params); err != nil {
@@ -60,15 +60,15 @@ func TestGetChatSessionsByUserID(t *testing.T) {
 	sqlc_q := sqlc_queries.New(testDB)
 	service := NewChatSessionService(sqlc_q)
 
-	session1_params := sqlc_queries.CreateChatSessionParams{
-		UserID: 1, Topic: "Test Session 1", MaxLength: 100, Uuid: "uuid1",
+	session1_params := CreateChatSessionCommand{
+		UserID: 1, Topic: "Test Session 1", MaxLength: 100, UUID: "uuid1",
 	}
 	session1, err := service.CreateChatSession(context.Background(), session1_params)
 	if err != nil {
 		t.Fatalf("failed to create chat session: %v", err)
 	}
-	session2_params := sqlc_queries.CreateChatSessionParams{
-		UserID: 2, Topic: "Test Session 2", MaxLength: 150, Uuid: "uuid2",
+	session2_params := CreateChatSessionCommand{
+		UserID: 2, Topic: "Test Session 2", MaxLength: 150, UUID: "uuid2",
 	}
 	session2, err := service.CreateChatSession(context.Background(), session2_params)
 	if err != nil {
@@ -99,15 +99,15 @@ func TestGetAllChatSessions(t *testing.T) {
 	q := sqlc_queries.New(testDB)
 	service := NewChatSessionService(q)
 
-	session1_params := sqlc_queries.CreateChatSessionParams{
-		UserID: 1, Topic: "Test Session 1", MaxLength: 100, Uuid: "uuid1",
+	session1_params := CreateChatSessionCommand{
+		UserID: 1, Topic: "Test Session 1", MaxLength: 100, UUID: "uuid1",
 	}
 	session1, err := service.CreateChatSession(context.Background(), session1_params)
 	if err != nil {
 		t.Fatalf("failed to create chat session: %v", err)
 	}
-	session2_params := sqlc_queries.CreateChatSessionParams{
-		UserID: 2, Topic: "Test Session 2", MaxLength: 150, Uuid: "uuid2",
+	session2_params := CreateChatSessionCommand{
+		UserID: 2, Topic: "Test Session 2", MaxLength: 150, UUID: "uuid2",
 	}
 	session2, err := service.CreateChatSession(context.Background(), session2_params)
 	if err != nil {
