@@ -222,7 +222,7 @@ func (h *UserActiveChatSessionHandler) GetAllWorkspaceActiveSessionsHandler(w ht
 
 	workspaceMap := make(map[int32]string)
 	for _, workspace := range workspaces {
-		workspaceMap[workspace.ID] = workspace.Uuid
+		workspaceMap[workspace.ID] = workspace.UUID
 	}
 
 	var response []map[string]interface{}

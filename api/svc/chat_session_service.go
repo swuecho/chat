@@ -3,8 +3,10 @@ package svc
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/rotisserie/eris"
 	"github.com/swuecho/chat_backend/domain"
@@ -19,7 +21,66 @@ type ChatSessionService struct {
 	newID func() string
 }
 
-type ChatSession = sqlc_queries.ChatSession
+type ChatSession struct {
+	ID              int32
+	UserID          int32
+	Uuid            string
+	Topic           string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Active          bool
+	Model           string
+	MaxLength       int32
+	Temperature     float64
+	TopP            float64
+	MaxTokens       int32
+	N               int32
+	SummarizeMode   bool
+	WorkspaceID     sql.NullInt32
+	ArtifactEnabled bool
+	Debug           bool
+	ExploreMode     bool
+}
+
+type CreateChatSessionCommand struct {
+	UserID    int32
+	Topic     string
+	MaxLength int32
+	UUID      string
+	Model     string
+}
+
+type UpdateChatSessionCommand struct {
+	ID     int32
+	UserID int32
+	Topic  string
+	Active bool
+}
+
+type UpdateChatSessionByUUIDCommand struct {
+	UUID   string
+	UserID int32
+	Topic  string
+}
+
+func chatSessionFromRecord(s sqlc_queries.ChatSession) ChatSession {
+	return ChatSession{ID: s.ID, UserID: s.UserID, Uuid: s.Uuid, Topic: s.Topic,
+		CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt, Active: s.Active, Model: s.Model,
+		MaxLength: s.MaxLength, Temperature: s.Temperature, TopP: s.TopP,
+		MaxTokens: s.MaxTokens, N: s.N, SummarizeMode: s.SummarizeMode,
+		WorkspaceID: s.WorkspaceID, ArtifactEnabled: s.ArtifactEnabled, Debug: s.Debug,
+		ExploreMode: s.ExploreMode}
+}
+
+func (s ChatSession) ToRawMessage() *json.RawMessage {
+	encoded, err := json.Marshal(s)
+	if err != nil {
+		return nil
+	}
+	raw := json.RawMessage(encoded)
+	return &raw
+}
+
 type ChatModel = sqlc_queries.ChatModel
 
 type RateLimit struct {
@@ -50,30 +111,30 @@ func NewChatSessionService(q *sqlc_queries.Queries) *ChatSessionService {
 }
 
 // CreateChatSession creates a new chat session.
-func (s *ChatSessionService) CreateChatSession(ctx context.Context, session_params sqlc_queries.CreateChatSessionParams) (sqlc_queries.ChatSession, error) {
-	session, err := s.q.CreateChatSession(ctx, session_params)
+func (s *ChatSessionService) CreateChatSession(ctx context.Context, command CreateChatSessionCommand) (ChatSession, error) {
+	session, err := s.q.CreateChatSession(ctx, sqlc_queries.CreateChatSessionParams{UserID: command.UserID, Topic: command.Topic, MaxLength: command.MaxLength, Uuid: command.UUID, Model: command.Model})
 	if err != nil {
-		return sqlc_queries.ChatSession{}, err
+		return ChatSession{}, err
 	}
-	return session, nil
+	return chatSessionFromRecord(session), nil
 }
 
 // GetChatSessionByID returns a chat session by ID.
-func (s *ChatSessionService) GetChatSessionByID(ctx context.Context, id int32) (sqlc_queries.ChatSession, error) {
+func (s *ChatSessionService) GetChatSessionByID(ctx context.Context, id int32) (ChatSession, error) {
 	session, err := s.q.GetChatSessionByID(ctx, id)
 	if err != nil {
-		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to retrieve session: ")
+		return ChatSession{}, eris.Wrap(err, "failed to retrieve session: ")
 	}
-	return session, nil
+	return chatSessionFromRecord(session), nil
 }
 
 // UpdateChatSession updates an existing chat session.
-func (s *ChatSessionService) UpdateChatSession(ctx context.Context, session_params sqlc_queries.UpdateChatSessionParams) (sqlc_queries.ChatSession, error) {
-	session_u, err := s.q.UpdateChatSession(ctx, session_params)
+func (s *ChatSessionService) UpdateChatSession(ctx context.Context, command UpdateChatSessionCommand) (ChatSession, error) {
+	session_u, err := s.q.UpdateChatSession(ctx, sqlc_queries.UpdateChatSessionParams{ID: command.ID, UserID: command.UserID, Topic: command.Topic, Active: command.Active})
 	if err != nil {
-		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session")
+		return ChatSession{}, eris.Wrap(err, "failed to update session")
 	}
-	return session_u, nil
+	return chatSessionFromRecord(session_u), nil
 }
 
 // DeleteChatSession deletes a chat session by ID.
@@ -86,20 +147,28 @@ func (s *ChatSessionService) DeleteChatSession(ctx context.Context, id int32) er
 }
 
 // GetAllChatSessions returns all chat sessions.
-func (s *ChatSessionService) GetAllChatSessions(ctx context.Context) ([]sqlc_queries.ChatSession, error) {
+func (s *ChatSessionService) GetAllChatSessions(ctx context.Context) ([]ChatSession, error) {
 	sessions, err := s.q.GetAllChatSessions(ctx)
 	if err != nil {
 		return nil, eris.Wrap(err, "failed to retrieve sessions")
 	}
-	return sessions, nil
+	result := make([]ChatSession, 0, len(sessions))
+	for _, session := range sessions {
+		result = append(result, chatSessionFromRecord(session))
+	}
+	return result, nil
 }
 
-func (s *ChatSessionService) GetChatSessionsByUserID(ctx context.Context, userID int32) ([]sqlc_queries.ChatSession, error) {
+func (s *ChatSessionService) GetChatSessionsByUserID(ctx context.Context, userID int32) ([]ChatSession, error) {
 	sessions, err := s.q.GetChatSessionsByUserID(ctx, userID)
 	if err != nil {
 		return nil, eris.Wrap(err, "failed to retrieve sessions")
 	}
-	return sessions, nil
+	result := make([]ChatSession, 0, len(sessions))
+	for _, session := range sessions {
+		result = append(result, chatSessionFromRecord(session))
+	}
+	return result, nil
 }
 
 func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, userID int32) ([]SimpleChatSession, error) {
@@ -134,39 +203,39 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 }
 
 // GetChatSessionByUUID returns an authentication user record by ID.
-func (s *ChatSessionService) GetChatSessionByUUID(ctx context.Context, uuid string) (sqlc_queries.ChatSession, error) {
+func (s *ChatSessionService) GetChatSessionByUUID(ctx context.Context, uuid string) (ChatSession, error) {
 	chatSession, err := s.q.GetChatSessionByUUID(ctx, uuid)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return sqlc_queries.ChatSession{}, domain.NotFound("Chat session", err)
+			return ChatSession{}, domain.NotFound("Chat session", err)
 		}
-		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to retrieve session by uuid, ")
+		return ChatSession{}, eris.Wrap(err, "failed to retrieve session by uuid, ")
 	}
-	return chatSession, nil
+	return chatSessionFromRecord(chatSession), nil
 }
 
 // UpdateChatSessionByUUID updates an existing chat session.
-func (s *ChatSessionService) UpdateChatSessionByUUID(ctx context.Context, session_params sqlc_queries.UpdateChatSessionByUUIDParams) (sqlc_queries.ChatSession, error) {
-	session_u, err := s.q.UpdateChatSessionByUUID(ctx, session_params)
+func (s *ChatSessionService) UpdateChatSessionByUUID(ctx context.Context, command UpdateChatSessionByUUIDCommand) (ChatSession, error) {
+	session_u, err := s.q.UpdateChatSessionByUUID(ctx, sqlc_queries.UpdateChatSessionByUUIDParams{Uuid: command.UUID, UserID: command.UserID, Topic: command.Topic})
 	if err != nil {
-		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session, ")
+		return ChatSession{}, eris.Wrap(err, "failed to update session, ")
 	}
-	return session_u, nil
+	return chatSessionFromRecord(session_u), nil
 }
 
 // UpdateChatSessionTopicByUUID updates an existing chat session topic.
-func (s *ChatSessionService) UpdateChatSessionTopicByUUID(ctx context.Context, uuid string, userID int32, topic string) (sqlc_queries.ChatSession, error) {
+func (s *ChatSessionService) UpdateChatSessionTopicByUUID(ctx context.Context, uuid string, userID int32, topic string) (ChatSession, error) {
 	session_u, err := s.q.UpdateChatSessionTopicByUUID(ctx, sqlc_queries.UpdateChatSessionTopicByUUIDParams{
 		Uuid: uuid, UserID: userID, Topic: topic,
 	})
 	if err != nil {
-		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session, ")
+		return ChatSession{}, eris.Wrap(err, "failed to update session, ")
 	}
-	return session_u, nil
+	return chatSessionFromRecord(session_u), nil
 }
 
 // CreateOrUpdateChatSessionByUUID updates an existing chat session.
-func (s *ChatSessionService) CreateOrUpdateChatSessionByUUID(ctx context.Context, input CreateOrUpdateChatSessionInput) (sqlc_queries.ChatSession, error) {
+func (s *ChatSessionService) CreateOrUpdateChatSessionByUUID(ctx context.Context, input CreateOrUpdateChatSessionInput) (ChatSession, error) {
 	workspaceID := sql.NullInt32{}
 	if input.WorkspaceID != nil {
 		workspaceID = sql.NullInt32{Int32: *input.WorkspaceID, Valid: true}
@@ -179,9 +248,9 @@ func (s *ChatSessionService) CreateOrUpdateChatSessionByUUID(ctx context.Context
 		ExploreMode: input.ExploreMode, ArtifactEnabled: input.ArtifactEnabled,
 	})
 	if err != nil {
-		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session, ")
+		return ChatSession{}, eris.Wrap(err, "failed to update session, ")
 	}
-	return session_u, nil
+	return chatSessionFromRecord(session_u), nil
 }
 
 // DeleteChatSessionByUUID deletes a chat session by UUID.
@@ -195,14 +264,14 @@ func (s *ChatSessionService) DeleteChatSessionByUUID(ctx context.Context, uuid s
 }
 
 // UpdateSessionMaxLength
-func (s *ChatSessionService) UpdateSessionMaxLength(ctx context.Context, uuid string, maxLength int32) (sqlc_queries.ChatSession, error) {
+func (s *ChatSessionService) UpdateSessionMaxLength(ctx context.Context, uuid string, maxLength int32) (ChatSession, error) {
 	session_u, err := s.q.UpdateSessionMaxLength(ctx, sqlc_queries.UpdateSessionMaxLengthParams{
 		Uuid: uuid, MaxLength: maxLength,
 	})
 	if err != nil {
-		return sqlc_queries.ChatSession{}, eris.Wrap(err, "failed to update session, ")
+		return ChatSession{}, eris.Wrap(err, "failed to update session, ")
 	}
-	return session_u, nil
+	return chatSessionFromRecord(session_u), nil
 }
 
 // ChatModelByName returns a chat model by name.
@@ -217,9 +286,9 @@ func (s *ChatSessionService) GetTitleChatModel(ctx context.Context) (sqlc_querie
 }
 
 // GetChatSessionByUUIDWithInActive returns a session by UUID including inactive ones.
-func (s *ChatSessionService) GetChatSessionByUUIDWithInActive(ctx context.Context, uuid string) (sqlc_queries.ChatSession, error) {
+func (s *ChatSessionService) GetChatSessionByUUIDWithInActive(ctx context.Context, uuid string) (ChatSession, error) {
 	session, err := s.q.GetChatSessionByUUIDWithInActive(ctx, uuid)
-	return session, eris.Wrap(err, "failed to get session with inactive")
+	return chatSessionFromRecord(session), eris.Wrap(err, "failed to get session with inactive")
 }
 
 // GetOneChatPromptBySessionUUID returns the single prompt for a session.

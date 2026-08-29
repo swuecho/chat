@@ -106,3 +106,71 @@ func TestServiceInputsDoNotHaveJSONTags(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestWorkspaceServiceAPIDoesNotExposeSQLCRecords(t *testing.T) {
+	files := token.NewFileSet()
+	file, err := parser.ParseFile(files, "chat_workspace_service.go", nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, declaration := range file.Decls {
+		fn, ok := declaration.(*ast.FuncDecl)
+		if !ok || fn.Recv == nil {
+			continue
+		}
+		star, ok := fn.Recv.List[0].Type.(*ast.StarExpr)
+		if !ok {
+			continue
+		}
+		receiver, ok := star.X.(*ast.Ident)
+		if !ok || receiver.Name != "ChatWorkspaceService" {
+			continue
+		}
+		ast.Inspect(fn.Type, func(node ast.Node) bool {
+			selector, ok := node.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			pkg, ok := selector.X.(*ast.Ident)
+			if ok && pkg.Name == "sqlc_queries" {
+				position := files.Position(selector.Pos())
+				t.Errorf("%s:%d workspace method %s exposes generated SQLC type %s", position.Filename, position.Line, fn.Name.Name, selector.Sel.Name)
+			}
+			return true
+		})
+	}
+}
+
+func TestCoreSessionAPIDoesNotExposeSQLCRecords(t *testing.T) {
+	coreMethods := map[string]bool{
+		"CreateChatSession": true, "GetChatSessionByID": true,
+		"UpdateChatSession": true, "GetAllChatSessions": true,
+		"GetChatSessionsByUserID": true, "GetChatSessionByUUID": true,
+		"UpdateChatSessionByUUID": true, "UpdateChatSessionTopicByUUID": true,
+		"CreateOrUpdateChatSessionByUUID": true, "UpdateSessionMaxLength": true,
+		"GetChatSessionByUUIDWithInActive": true,
+	}
+	files := token.NewFileSet()
+	file, err := parser.ParseFile(files, "chat_session_service.go", nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, declaration := range file.Decls {
+		fn, ok := declaration.(*ast.FuncDecl)
+		if !ok || !coreMethods[fn.Name.Name] {
+			continue
+		}
+		ast.Inspect(fn.Type, func(node ast.Node) bool {
+			selector, ok := node.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			pkg, ok := selector.X.(*ast.Ident)
+			if ok && pkg.Name == "sqlc_queries" {
+				position := files.Position(selector.Pos())
+				t.Errorf("%s:%d core session method %s exposes generated SQLC type %s", position.Filename, position.Line, fn.Name.Name, selector.Sel.Name)
+			}
+			return true
+		})
+	}
+}

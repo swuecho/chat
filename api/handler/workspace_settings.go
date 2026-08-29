@@ -35,7 +35,7 @@ func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *ht
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +54,7 @@ func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *htt
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +71,7 @@ func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *
 		return
 	}
 
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.Uuid, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
 func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +98,7 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 			slog.Warn("failed to migrate legacy active sessions", "error", err)
 		}
 		ws := result.DefaultWorkspace
-		response["defaultWorkspace"] = workspaceToResponse(ws.Uuid, ws.Name, ws.Description, ws.Color, ws.Icon, ws.IsDefault, ws.OrderPosition, 0, ws.CreatedAt, ws.UpdatedAt)
+		response["defaultWorkspace"] = workspaceToResponse(ws.UUID, ws.Name, ws.Description, ws.Color, ws.Icon, ws.IsDefault, ws.OrderPosition, 0, ws.CreatedAt, ws.UpdatedAt)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

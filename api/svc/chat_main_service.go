@@ -42,7 +42,7 @@ func (s *ChatService) ProviderModel(ctx context.Context, name string) (provider.
 	return s.modelCatalog.get(ctx, name)
 }
 
-func (s *ChatService) ProviderRequest(ctx context.Context, session sqlc_queries.ChatSession, messages []models.Message, chatUUID string, regenerate, stream bool) (provider.Request, error) {
+func (s *ChatService) ProviderRequest(ctx context.Context, session ChatSession, messages []models.Message, chatUUID string, regenerate, stream bool) (provider.Request, error) {
 	model, err := s.ProviderModel(ctx, session.Model)
 	if err != nil {
 		return provider.Request{}, err
@@ -125,7 +125,7 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 //   - regenerate: If true, excludes the target message from history
 //
 // Returns combined message array or error.
-func (s *ChatService) GetAskMessages(chatSession sqlc_queries.ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
+func (s *ChatService) GetAskMessages(chatSession ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*requestTimeoutSeconds)
 	defer cancel()
 
@@ -553,7 +553,7 @@ func (s *ChatService) UpdateChatMessageSuggestions(ctx context.Context, uuid str
 
 // logChat creates a chat log entry for analytics and debugging.
 // Logs the session, messages, and LLM response for audit purposes.
-func (s *ChatService) LogChat(chatSession sqlc_queries.ChatSession, msgs []models.Message, answerText string) {
+func (s *ChatService) LogChat(chatSession ChatSession, msgs []models.Message, answerText string) {
 	// log chat
 	sessionRaw := chatSession.ToRawMessage()
 	if sessionRaw == nil {

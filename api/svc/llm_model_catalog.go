@@ -61,7 +61,7 @@ func (c *llmModelCatalog) refresh(ctx context.Context) error {
 	return nil
 }
 
-func providerSession(session sqlc_queries.ChatSession) provider.Session {
+func providerSession(session ChatSession) provider.Session {
 	return provider.Session{UUID: session.Uuid, UserID: session.UserID, Model: session.Model,
 		MaxTokens: session.MaxTokens, Temperature: session.Temperature,
 		TopP: session.TopP, N: session.N, Debug: session.Debug}
