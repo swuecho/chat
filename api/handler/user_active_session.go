@@ -18,7 +18,6 @@ import (
 type UserActiveChatSessionHandler struct {
 	service          *svc.UserActiveChatSessionService
 	workspaceService *svc.ChatWorkspaceService
-	sessionService   *svc.ChatSessionService
 }
 
 type activeSessionHTTPResponse struct {
@@ -41,9 +40,9 @@ func activeSessionResponse(session svc.ActiveSession) activeSessionHTTPResponse 
 		WorkspaceID: session.WorkspaceID, CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt}
 }
 
-func NewUserActiveChatSessionHandler(service *svc.UserActiveChatSessionService, workspaceService *svc.ChatWorkspaceService, sessionService *svc.ChatSessionService) *UserActiveChatSessionHandler {
+func NewUserActiveChatSessionHandler(service *svc.UserActiveChatSessionService, workspaceService *svc.ChatWorkspaceService) *UserActiveChatSessionHandler {
 	return &UserActiveChatSessionHandler{
-		service: service, workspaceService: workspaceService, sessionService: sessionService,
+		service: service, workspaceService: workspaceService,
 	}
 }
 
@@ -163,16 +162,6 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
-	hasPermission, err := h.workspaceService.HasWorkspacePermission(ctx, workspaceUuid, userID)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to check workspace permission"))
-		return
-	}
-	if !hasPermission {
-		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("access denied to workspace"))
-		return
-	}
-
 	var requestBody struct {
 		ChatSessionUuid string `json:"chatSessionUuid"`
 	}
@@ -186,25 +175,11 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 		return
 	}
 
-	workspace, err := h.workspaceService.GetWorkspaceByUUID(ctx, workspaceUuid)
+	activeSession, err := h.service.SetWorkspaceActiveSession(ctx, svc.SetWorkspaceActiveSessionCommand{
+		UserID: userID, WorkspaceUUID: workspaceUuid, SessionUUID: requestBody.ChatSessionUuid,
+	})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Workspace").WithMessage("workspace not found"))
-		return
-	}
-
-	session, err := h.sessionService.GetChatSessionByUUID(ctx, requestBody.ChatSessionUuid)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat Session").WithMessage("chat session not found"))
-		return
-	}
-	if session.WorkspaceID == nil || *session.WorkspaceID != workspace.ID {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("session does not belong to workspace"))
-		return
-	}
-
-	activeSession, err := h.service.UpsertActiveSession(ctx, svc.SetActiveSessionCommand{UserID: userID, WorkspaceID: &workspace.ID, SessionUUID: requestBody.ChatSessionUuid})
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to set workspace active session"))
+		dto.RespondWithAPIError(w, dto.ToAPIError(err))
 		return
 	}
 

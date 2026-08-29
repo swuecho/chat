@@ -3,9 +3,11 @@ package svc
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/rotisserie/eris"
+	"github.com/swuecho/chat_backend/domain"
 	sqlc "github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -22,6 +24,12 @@ type SetActiveSessionCommand struct {
 	UserID      int32
 	WorkspaceID *int32
 	SessionUUID string
+}
+
+type SetWorkspaceActiveSessionCommand struct {
+	UserID        int32
+	WorkspaceUUID string
+	SessionUUID   string
 }
 
 type GetActiveSessionQuery struct {
@@ -69,6 +77,50 @@ func (s *UserActiveChatSessionService) UpsertActiveSession(ctx context.Context, 
 		return ActiveSession{}, eris.Wrap(err, "failed to upsert active session")
 	}
 	return activeSessionFromRecord(session), nil
+}
+
+// SetWorkspaceActiveSession validates ownership and workspace membership before
+// changing the user's active session for that workspace.
+func (s *UserActiveChatSessionService) SetWorkspaceActiveSession(ctx context.Context, command SetWorkspaceActiveSessionCommand) (ActiveSession, error) {
+	if command.UserID <= 0 {
+		return ActiveSession{}, domain.Invalid("user ID is required")
+	}
+	if command.WorkspaceUUID == "" {
+		return ActiveSession{}, domain.Invalid("workspace UUID is required")
+	}
+	if command.SessionUUID == "" {
+		return ActiveSession{}, domain.Invalid("session UUID is required")
+	}
+
+	workspace, err := s.q.GetWorkspaceByUUID(ctx, command.WorkspaceUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ActiveSession{}, domain.NotFound("Workspace", err)
+		}
+		return ActiveSession{}, eris.Wrap(err, "failed to retrieve workspace")
+	}
+	if workspace.UserID != command.UserID {
+		return ActiveSession{}, domain.Forbidden("workspace does not belong to user")
+	}
+
+	session, err := s.q.GetChatSessionByUUID(ctx, command.SessionUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ActiveSession{}, domain.NotFound("Chat session", err)
+		}
+		return ActiveSession{}, eris.Wrap(err, "failed to retrieve chat session")
+	}
+	if session.UserID != command.UserID {
+		return ActiveSession{}, domain.Forbidden("chat session does not belong to user")
+	}
+	if !session.WorkspaceID.Valid || session.WorkspaceID.Int32 != workspace.ID {
+		return ActiveSession{}, domain.Invalid("chat session does not belong to workspace")
+	}
+
+	workspaceID := workspace.ID
+	return s.UpsertActiveSession(ctx, SetActiveSessionCommand{
+		UserID: command.UserID, WorkspaceID: &workspaceID, SessionUUID: command.SessionUUID,
+	})
 }
 
 // GetActiveSession retrieves the active session for a user in a specific workspace (or global if workspaceID is nil)
