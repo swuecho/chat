@@ -58,7 +58,7 @@ type uuidHTTPResponse struct {
 }
 
 type sessionCreatedHTTPResponse struct {
-	SessionUUID string `json:"sessionUuid"`
+	SessionUUID string `json:"sessionUuid" jsonschema:"format=uuid"`
 }
 
 type countHTTPResponse struct {

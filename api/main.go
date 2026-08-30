@@ -16,6 +16,8 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"github.com/swuecho/chat_backend/apicontract"
+	"github.com/swuecho/chat_backend/apiopenapi"
 	"github.com/swuecho/chat_backend/config"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/handler"
@@ -37,6 +39,7 @@ type server struct {
 	jwtSecret      sqlc_queries.JwtSecret
 	rateLimiter    *rate.Limiter
 	requestTracker *middleware.LastRequestTracker
+	apiContract    *apicontract.Registry
 }
 
 func main() {
@@ -70,6 +73,7 @@ func run() error {
 		q:              sqlc_queries.New(pgdb),
 		rateLimiter:    rate.NewLimiter(rate.Every(time.Minute/3000), 500),
 		requestTracker: middleware.NewLastRequestTracker(),
+		apiContract:    apiopenapi.NewRegistry(),
 	}
 
 	// JWT secret
@@ -166,6 +170,8 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 
 	// --- Health check (public, before auth) ---
 	apiRouter.HandleFunc("/health", s.healthCheck).Methods(http.MethodGet)
+	apiRouter.HandleFunc("/openapi.json", s.apiContract.Handler()).Methods(http.MethodGet)
+	apiRouter.HandleFunc("/docs", apicontract.ScalarHandler()).Methods(http.MethodGet)
 
 	// --- Subrouters ---
 	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
@@ -246,7 +252,7 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 
 	// Sessions
 	chatSessionService := svc.NewChatSessionService(q)
-	handler.NewChatSessionHandler(chatSessionService).Register(userRouter)
+	handler.NewChatSessionHandler(chatSessionService).Register(userRouter, s.apiContract)
 
 	// Active sessions
 	activeSessionService := svc.NewUserActiveChatSessionService(q)

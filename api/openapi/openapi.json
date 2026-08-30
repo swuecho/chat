@@ -1,0 +1,750 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Chat API",
+    "description": "Multi-LLM chat service API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/chat_sessions/user": {
+      "get": {
+        "operationId": "listChatSessions",
+        "summary": "List the authenticated user's chat sessions",
+        "tags": [
+          "sessions"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "items": {
+                    "properties": {
+                      "uuid": {
+                        "type": "string"
+                      },
+                      "isEdit": {
+                        "type": "boolean"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "maxLength": {
+                        "type": "integer"
+                      },
+                      "temperature": {
+                        "type": "number"
+                      },
+                      "topP": {
+                        "type": "number"
+                      },
+                      "n": {
+                        "type": "integer"
+                      },
+                      "maxTokens": {
+                        "type": "integer"
+                      },
+                      "debug": {
+                        "type": "boolean"
+                      },
+                      "model": {
+                        "type": "string"
+                      },
+                      "summarizeMode": {
+                        "type": "boolean"
+                      },
+                      "artifactEnabled": {
+                        "type": "boolean"
+                      },
+                      "workspaceUuid": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "uuid",
+                      "isEdit",
+                      "title",
+                      "maxLength",
+                      "temperature",
+                      "topP",
+                      "n",
+                      "maxTokens",
+                      "debug",
+                      "model",
+                      "summarizeMode",
+                      "artifactEnabled",
+                      "workspaceUuid"
+                    ]
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/uuid/chat_session_from_snapshot/{uuid}": {
+      "post": {
+        "operationId": "createChatSessionFromSnapshot",
+        "summary": "Create a chat session from a snapshot",
+        "tags": [
+          "sessions"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sessionCreatedHTTPResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/uuid/chat_sessions": {
+      "post": {
+        "operationId": "createChatSession",
+        "summary": "Create a chat session",
+        "tags": [
+          "sessions"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createChatSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chatSessionHTTPResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/uuid/chat_sessions/max_length/{uuid}": {
+      "put": {
+        "operationId": "updateSessionMaxLength",
+        "summary": "Update a chat session token limit",
+        "tags": [
+          "sessions"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateSessionMaxLengthRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chatSessionHTTPResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/uuid/chat_sessions/topic/{uuid}": {
+      "put": {
+        "operationId": "updateChatSessionTopic",
+        "summary": "Update a chat session topic",
+        "tags": [
+          "sessions"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateSessionTopicRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chatSessionHTTPResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/uuid/chat_sessions/{uuid}": {
+      "delete": {
+        "operationId": "deleteChatSession",
+        "summary": "Delete a chat session",
+        "tags": [
+          "sessions"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "getChatSession",
+        "summary": "Get a chat session",
+        "tags": [
+          "sessions"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatSessionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "createOrUpdateChatSession",
+        "summary": "Create or update a chat session",
+        "tags": [
+          "sessions"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChatSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chatSessionHTTPResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "APIError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ChatSessionResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "uuid": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "maxLength": {
+            "type": "integer"
+          },
+          "artifactEnabled": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "uuid",
+          "topic",
+          "createdAt",
+          "updatedAt",
+          "maxLength",
+          "artifactEnabled"
+        ]
+      },
+      "UpdateChatSessionRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "topic": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxLength": {
+            "type": "integer",
+            "maximum": 1000000,
+            "minimum": 0
+          },
+          "temperature": {
+            "type": "number",
+            "maximum": 2,
+            "minimum": 0
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1
+          },
+          "topP": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "n": {
+            "type": "integer",
+            "maximum": 128,
+            "minimum": 1
+          },
+          "maxTokens": {
+            "type": "integer",
+            "maximum": 1000000,
+            "minimum": 0
+          },
+          "debug": {
+            "type": "boolean"
+          },
+          "summarizeMode": {
+            "type": "boolean"
+          },
+          "artifactEnabled": {
+            "type": "boolean"
+          },
+          "exploreMode": {
+            "type": "boolean"
+          },
+          "workspaceUuid": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "uuid",
+          "topic",
+          "maxLength",
+          "temperature",
+          "model",
+          "topP",
+          "n",
+          "maxTokens",
+          "debug",
+          "summarizeMode",
+          "artifactEnabled",
+          "exploreMode"
+        ]
+      },
+      "chatSessionHTTPResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "uuid": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          },
+          "maxLength": {
+            "type": "integer"
+          },
+          "temperature": {
+            "type": "number"
+          },
+          "topP": {
+            "type": "number"
+          },
+          "maxTokens": {
+            "type": "integer"
+          },
+          "n": {
+            "type": "integer"
+          },
+          "summarizeMode": {
+            "type": "boolean"
+          },
+          "workspaceId": {
+            "type": "integer"
+          },
+          "artifactEnabled": {
+            "type": "boolean"
+          },
+          "debug": {
+            "type": "boolean"
+          },
+          "exploreMode": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "uuid",
+          "topic",
+          "active",
+          "model",
+          "maxLength",
+          "temperature",
+          "topP",
+          "maxTokens",
+          "n",
+          "summarizeMode",
+          "workspaceId",
+          "artifactEnabled",
+          "debug",
+          "exploreMode",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "createChatSessionRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "topic": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1
+          },
+          "defaultSystemPrompt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "uuid",
+          "topic",
+          "model",
+          "defaultSystemPrompt"
+        ]
+      },
+      "sessionCreatedHTTPResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "sessionUuid": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sessionUuid"
+        ]
+      },
+      "updateSessionMaxLengthRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "maxLength": {
+            "type": "integer",
+            "maximum": 1000000,
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "maxLength"
+        ]
+      },
+      "updateSessionTopicRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "topic"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "description": "Browser JWT access token",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  }
+}

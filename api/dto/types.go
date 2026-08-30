@@ -37,14 +37,14 @@ type BotRequest struct {
 }
 
 type UpdateChatSessionRequest struct {
-	Uuid            string  `json:"uuid"`
-	Topic           string  `json:"topic"`
-	MaxLength       int32   `json:"maxLength"`
-	Temperature     float64 `json:"temperature"`
-	Model           string  `json:"model"`
-	TopP            float64 `json:"topP"`
-	N               int32   `json:"n"`
-	MaxTokens       int32   `json:"maxTokens"`
+	Uuid            string  `json:"uuid" jsonschema:"required,format=uuid"`
+	Topic           string  `json:"topic" jsonschema:"maxLength=200"`
+	MaxLength       int32   `json:"maxLength" jsonschema:"minimum=0,maximum=1000000"`
+	Temperature     float64 `json:"temperature" jsonschema:"minimum=0,maximum=2"`
+	Model           string  `json:"model" jsonschema:"required,minLength=1,maxLength=200"`
+	TopP            float64 `json:"topP" jsonschema:"minimum=0,maximum=1"`
+	N               int32   `json:"n" jsonschema:"minimum=1,maximum=128"`
+	MaxTokens       int32   `json:"maxTokens" jsonschema:"minimum=0,maximum=1000000"`
 	Debug           bool    `json:"debug"`
 	SummarizeMode   bool    `json:"summarizeMode"`
 	ArtifactEnabled bool    `json:"artifactEnabled"`

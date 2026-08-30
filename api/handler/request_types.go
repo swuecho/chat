@@ -90,9 +90,9 @@ type createBotAnswerHistoryRequest struct {
 }
 
 type createChatSessionRequest struct {
-	UUID                string `json:"uuid"`
-	Topic               string `json:"topic"`
-	Model               string `json:"model"`
+	UUID                string `json:"uuid" jsonschema:"required,format=uuid"`
+	Topic               string `json:"topic" jsonschema:"maxLength=200"`
+	Model               string `json:"model" jsonschema:"required,minLength=1,maxLength=200"`
 	DefaultSystemPrompt string `json:"defaultSystemPrompt"`
 }
 
@@ -107,7 +107,7 @@ func (r *createChatSessionRequest) Validate() error {
 }
 
 type updateSessionTopicRequest struct {
-	Topic string `json:"topic"`
+	Topic string `json:"topic" jsonschema:"required,minLength=1,maxLength=200"`
 }
 
 func (r *updateSessionTopicRequest) Validate() error {
@@ -115,7 +115,7 @@ func (r *updateSessionTopicRequest) Validate() error {
 }
 
 type updateSessionMaxLengthRequest struct {
-	MaxLength int32 `json:"maxLength"`
+	MaxLength int32 `json:"maxLength" jsonschema:"minimum=1,maximum=1000000"`
 }
 
 type setTitleModelRequest struct {
