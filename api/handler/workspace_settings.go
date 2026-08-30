@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -9,78 +8,66 @@ import (
 	"github.com/swuecho/chat_backend/svc"
 )
 
-func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *http.Request) {
+func (h *ChatWorkspaceHandler) updateWorkspaceOrder(w http.ResponseWriter, r *http.Request) error {
 	workspaceUUID := mux.Vars(r)["uuid"]
 
 	var req dto.UpdateWorkspaceOrderRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error())
 	}
 
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 	workspace, err := h.wsService.UpdateWorkspaceOrder(ctx, svc.UpdateWorkspaceOrderCommand{WorkspaceUUID: workspaceUUID, UserID: userID, OrderPosition: req.OrderPosition})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update workspace order"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to update workspace order")
 	}
-
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	return respondJSON(w, http.StatusOK, workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
-func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
+func (h *ChatWorkspaceHandler) setDefaultWorkspace(w http.ResponseWriter, r *http.Request) error {
 	workspaceUUID := mux.Vars(r)["uuid"]
 
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	workspace, err := h.wsService.SetWorkspaceAsDefaultForUser(ctx, svc.SetDefaultWorkspaceCommand{UserID: userID, WorkspaceUUID: workspaceUUID})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to set default workspace"))
-		return
+		return dto.WrapError(err, "Failed to set default workspace")
 	}
-
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	return respondJSON(w, http.StatusOK, workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
-func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *http.Request) {
+func (h *ChatWorkspaceHandler) ensureDefaultWorkspace(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	workspace, err := h.wsService.EnsureDefaultWorkspaceExists(ctx, userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to ensure default workspace"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to ensure default workspace")
 	}
-
-	json.NewEncoder(w).Encode(workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
+	return respondJSON(w, http.StatusOK, workspaceToResponse(workspace.UUID, workspace.Name, workspace.Description, workspace.Color, workspace.Icon, workspace.IsDefault, workspace.OrderPosition, 0, workspace.CreatedAt, workspace.UpdatedAt))
 }
 
-func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, r *http.Request) {
+func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	result, err := h.wsService.MigrateLegacyWorkspaceSessions(ctx, userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to migrate legacy sessions"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to migrate legacy sessions")
 	}
 
 	response := migrationHTTPResponse{HasLegacySessions: result.HasLegacySessions, MigratedSessions: result.MigratedCount}
@@ -91,6 +78,5 @@ func (h *ChatWorkspaceHandler) autoMigrateLegacySessions(w http.ResponseWriter, 
 		response.DefaultWorkspace = &workspace
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	return respondJSON(w, http.StatusOK, response)
 }

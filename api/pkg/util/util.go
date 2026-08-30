@@ -16,6 +16,7 @@ import (
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/middleware"
+	"github.com/swuecho/chat_backend/requestctx"
 )
 
 // NewUUID generates a new UUID v7 string.
@@ -162,6 +163,9 @@ func DecodeJSON(r *http.Request, target any) error {
 
 // UserID extracts the authenticated user ID from the request context.
 func UserID(ctx context.Context) (int32, error) {
+	if userID, err := requestctx.UserID(ctx); err == nil {
+		return userID, nil
+	}
 	val := ctx.Value(middleware.UserContextKey)
 	if val == nil {
 		return 0, fmt.Errorf("no user ID in context")

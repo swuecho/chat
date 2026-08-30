@@ -156,10 +156,13 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 	apiRouter := router.PathPrefix("/api").Subrouter()
 
 	// --- Global middleware ---
-	router.Use(middleware.RecoveryMiddleware)
-	router.Use(middleware.RequestIDMiddleware)
-	router.Use(middleware.BodyLimitMiddleware)
-	router.Use(middleware.ValidateUUIDRouteParams)
+	router.Use(mux.MiddlewareFunc(middleware.Chain(
+		middleware.RecoveryMiddleware,
+		middleware.RequestIDMiddleware,
+		middleware.AccessLog,
+		middleware.BodyLimitMiddleware,
+		middleware.ValidateUUIDRouteParams,
+	)))
 
 	// --- Health check (public, before auth) ---
 	apiRouter.HandleFunc("/health", s.healthCheck).Methods(http.MethodGet)
@@ -169,13 +172,15 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 	userRouter := apiRouter.NewRoute().Subrouter()
 
 	// Auth middleware
-	adminRouter.Use(middleware.AdminAuthMiddleware(s.jwtSecret.Secret))
-	userRouter.Use(middleware.UserAuthMiddleware(s.jwtSecret.Secret))
-
-	// Rate limiting
 	rateLimitMW := middleware.RateLimitByUserID(s.q, s.cfg.OPENAI.RATELIMIT)
-	adminRouter.Use(rateLimitMW)
-	userRouter.Use(rateLimitMW)
+	adminRouter.Use(mux.MiddlewareFunc(middleware.Chain(
+		middleware.AdminAuthMiddleware(s.jwtSecret.Secret),
+		rateLimitMW,
+	)))
+	userRouter.Use(mux.MiddlewareFunc(middleware.Chain(
+		middleware.UserAuthMiddleware(s.jwtSecret.Secret),
+		rateLimitMW,
+	)))
 
 	// --- Route registration ---
 	s.registerRoutes(apiRouter, adminRouter, userRouter)

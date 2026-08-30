@@ -9,8 +9,45 @@ import (
 	"github.com/swuecho/chat_backend/svc"
 )
 
+type chatModelHTTPResponse struct {
+	ID                      int32  `json:"id"`
+	Name                    string `json:"name"`
+	Label                   string `json:"label"`
+	IsDefault               bool   `json:"isDefault"`
+	URL                     string `json:"url"`
+	APIAuthHeader           string `json:"apiAuthHeader"`
+	APIAuthKey              string `json:"apiAuthKey"`
+	UserID                  int32  `json:"userId"`
+	EnablePerModelRateLimit bool   `json:"enablePerModeRatelimit"`
+	MaxToken                int32  `json:"maxToken"`
+	DefaultToken            int32  `json:"defaultToken"`
+	OrderNumber             int32  `json:"orderNumber"`
+	HTTPTimeout             int32  `json:"httpTimeOut"`
+	IsEnable                bool   `json:"isEnable"`
+	APIType                 string `json:"apiType"`
+	IsTitleModel            bool   `json:"isTitleModel"`
+}
+
+type chatModelWithUsageHTTPResponse struct {
+	chatModelHTTPResponse
+	LastUsageTime time.Time `json:"lastUsageTime,omitempty"`
+	MessageCount  int64     `json:"messageCount"`
+}
+
 type uuidHTTPResponse struct {
 	UUID string `json:"uuid"`
+}
+
+type sessionCreatedHTTPResponse struct {
+	SessionUUID string `json:"sessionUuid"`
+}
+
+type countHTTPResponse struct {
+	Count int64 `json:"count"`
+}
+
+type messageHTTPStatusResponse struct {
+	Message string `json:"message"`
 }
 
 type paginatedHTTPResponse[T any] struct {

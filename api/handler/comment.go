@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -19,28 +18,24 @@ func NewChatCommentHandler(service *svc.ChatCommentService) *ChatCommentHandler 
 }
 
 func (h *ChatCommentHandler) Register(router *mux.Router) {
-	router.HandleFunc("/uuid/chat_sessions/{sessionUUID}/chat_messages/{messageUUID}/comments", h.CreateChatComment).Methods(http.MethodPost)
-	router.HandleFunc("/uuid/chat_sessions/{sessionUUID}/comments", h.GetCommentsBySessionUUID).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/chat_messages/{messageUUID}/comments", h.GetCommentsByMessageUUID).Methods(http.MethodGet)
+	router.HandleFunc("/uuid/chat_sessions/{sessionUUID}/chat_messages/{messageUUID}/comments", endpoint(h.CreateChatComment)).Methods(http.MethodPost)
+	router.HandleFunc("/uuid/chat_sessions/{sessionUUID}/comments", endpoint(h.GetCommentsBySessionUUID)).Methods(http.MethodGet)
+	router.HandleFunc("/uuid/chat_messages/{messageUUID}/comments", endpoint(h.GetCommentsByMessageUUID)).Methods(http.MethodGet)
 }
 
-func (h *ChatCommentHandler) CreateChatComment(w http.ResponseWriter, r *http.Request) {
+func (h *ChatCommentHandler) CreateChatComment(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	sessionUUID := vars["sessionUUID"]
 	messageUUID := vars["messageUUID"]
 
-	var req struct {
-		Content string `json:"content"`
-	}
+	var req createCommentRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithMessage("unauthorized").WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	comment, err := h.service.CreateChatComment(r.Context(), svc.CreateChatCommentInput{
@@ -51,34 +46,27 @@ func (h *ChatCommentHandler) CreateChatComment(w http.ResponseWriter, r *http.Re
 		CreatedBy:       userID,
 	})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create chat comment"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to create chat comment")
 	}
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(comment)
+	return respondJSON(w, http.StatusCreated, comment)
 }
 
-func (h *ChatCommentHandler) GetCommentsBySessionUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatCommentHandler) GetCommentsBySessionUUID(w http.ResponseWriter, r *http.Request) error {
 	sessionUUID := mux.Vars(r)["sessionUUID"]
 
 	comments, err := h.service.GetCommentsBySessionUUID(r.Context(), sessionUUID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get comments by session"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to get comments by session")
 	}
-
-	json.NewEncoder(w).Encode(comments)
+	return respondJSON(w, http.StatusOK, comments)
 }
 
-func (h *ChatCommentHandler) GetCommentsByMessageUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatCommentHandler) GetCommentsByMessageUUID(w http.ResponseWriter, r *http.Request) error {
 	messageUUID := mux.Vars(r)["messageUUID"]
 
 	comments, err := h.service.GetCommentsByMessageUUID(r.Context(), messageUUID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get comments by message"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to get comments by message")
 	}
-
-	json.NewEncoder(w).Encode(comments)
+	return respondJSON(w, http.StatusOK, comments)
 }

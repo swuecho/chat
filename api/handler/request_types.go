@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/swuecho/chat_backend/svc"
 	"github.com/swuecho/chat_backend/validation"
@@ -114,6 +116,109 @@ func (r *updateSessionTopicRequest) Validate() error {
 
 type updateSessionMaxLengthRequest struct {
 	MaxLength int32 `json:"maxLength"`
+}
+
+type setTitleModelRequest struct {
+	ModelID int32 `json:"modelId"`
+}
+
+type updateBotAnswerHistoryRequest struct {
+	Answer     string `json:"answer"`
+	TokensUsed int32  `json:"tokensUsed"`
+}
+
+type createCommentRequest struct {
+	Content string `json:"content"`
+}
+
+func (r *createCommentRequest) Validate() error {
+	if r.Content == "" {
+		return fmt.Errorf("content is required")
+	}
+	return nil
+}
+
+type activeSessionRequest struct {
+	ChatSessionUUID string `json:"chatSessionUuid"`
+}
+
+type createAPIKeyRequest struct {
+	Name              string `json:"name"`
+	ExpiresAt         string `json:"expiresAt"`
+	RequestsPerMinute int32  `json:"requestsPerMinute"`
+}
+
+type updateBotSettingsRequest struct {
+	Title   string `json:"title"`
+	Summary string `json:"summary"`
+	Model   string `json:"model"`
+}
+
+func (r *updateBotSettingsRequest) Validate() error {
+	r.Title = strings.TrimSpace(r.Title)
+	r.Summary = strings.TrimSpace(r.Summary)
+	r.Model = strings.TrimSpace(r.Model)
+	if r.Title == "" {
+		return fmt.Errorf("title is required")
+	}
+	return validation.ModelName("model", r.Model, true)
+}
+
+type updateBotModelRequest struct {
+	Model string `json:"model"`
+}
+
+func (r *updateBotModelRequest) Validate() error {
+	r.Model = strings.TrimSpace(r.Model)
+	return validation.ModelName("model", r.Model, true)
+}
+
+type updateSnapshotMetadataRequest struct {
+	Title   string `json:"title"`
+	Summary string `json:"summary"`
+}
+
+func (r *createAPIKeyRequest) Validate() error {
+	r.Name = strings.TrimSpace(r.Name)
+	if len(r.Name) < 1 || len(r.Name) > 100 {
+		return fmt.Errorf("key name must be between 1 and 100 characters")
+	}
+	if r.RequestsPerMinute == 0 {
+		r.RequestsPerMinute = 60
+	}
+	if r.RequestsPerMinute < 1 || r.RequestsPerMinute > 10_000 {
+		return fmt.Errorf("requestsPerMinute must be between 1 and 10000")
+	}
+	if r.ExpiresAt != "" {
+		expires, err := time.Parse(time.RFC3339, r.ExpiresAt)
+		if err != nil || !expires.After(time.Now()) {
+			return fmt.Errorf("expiresAt must be a future RFC3339 timestamp")
+		}
+	}
+	return nil
+}
+
+func (r createAPIKeyRequest) expiration() *time.Time {
+	if r.ExpiresAt == "" {
+		return nil
+	}
+	expires, _ := time.Parse(time.RFC3339, r.ExpiresAt)
+	return &expires
+}
+
+func (r *activeSessionRequest) Validate() error {
+	return validation.UUID("chatSessionUuid", r.ChatSessionUUID, true)
+}
+
+func (r *updateBotAnswerHistoryRequest) Validate() error {
+	return validation.TokenCount("tokensUsed", r.TokensUsed, true)
+}
+
+func (r *setTitleModelRequest) Validate() error {
+	if r.ModelID <= 0 {
+		return fmt.Errorf("modelId must be a positive integer")
+	}
+	return nil
 }
 
 func (r *updateSessionMaxLengthRequest) Validate() error {

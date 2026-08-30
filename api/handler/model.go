@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
@@ -19,59 +17,47 @@ func NewChatModelHandler(service *svc.ChatModelService) *ChatModelHandler {
 }
 
 func (h *ChatModelHandler) Register(r *mux.Router) {
-	r.HandleFunc("/chat_model", h.ListSystemChatModels).Methods("GET")
-	r.HandleFunc("/chat_model/default", h.GetDefaultChatModel).Methods("GET")
-	r.HandleFunc("/chat_model/title-default", h.GetTitleChatModel).Methods("GET")
-	r.HandleFunc("/chat_model/title-default", h.SetTitleChatModel).Methods("PUT")
-	r.HandleFunc("/chat_model/{id}", h.ChatModelByID).Methods("GET")
-	r.HandleFunc("/chat_model", h.CreateChatModel).Methods("POST")
-	r.HandleFunc("/chat_model/{id}", h.UpdateChatModel).Methods("PUT")
-	r.HandleFunc("/chat_model/{id}", h.DeleteChatModel).Methods("DELETE")
+	r.HandleFunc("/chat_model", endpoint(h.ListSystemChatModels)).Methods(http.MethodGet)
+	r.HandleFunc("/chat_model/default", endpoint(h.GetDefaultChatModel)).Methods(http.MethodGet)
+	r.HandleFunc("/chat_model/title-default", endpoint(h.GetTitleChatModel)).Methods(http.MethodGet)
+	r.HandleFunc("/chat_model/title-default", endpoint(h.SetTitleChatModel)).Methods(http.MethodPut)
+	r.HandleFunc("/chat_model/{id}", endpoint(h.ChatModelByID)).Methods(http.MethodGet)
+	r.HandleFunc("/chat_model", endpoint(h.CreateChatModel)).Methods(http.MethodPost)
+	r.HandleFunc("/chat_model/{id}", endpoint(h.UpdateChatModel)).Methods(http.MethodPut)
+	r.HandleFunc("/chat_model/{id}", endpoint(h.DeleteChatModel)).Methods(http.MethodDelete)
 }
 
-func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.Request) {
+func (h *ChatModelHandler) ListSystemChatModels(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	chatModels, err := h.service.ListSystemWithUsage(ctx, "30 days")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to list chat models").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDetail("Failed to list chat models").WithDebugInfo(err.Error())
 	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatModels)
+	return respondJSON(w, http.StatusOK, chatModelResponses(chatModels))
 }
 
-func (h *ChatModelHandler) ChatModelByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	ctx := r.Context()
-	id, err := strconv.Atoi(vars["id"])
+func (h *ChatModelHandler) ChatModelByID(w http.ResponseWriter, r *http.Request) error {
+	id, err := positiveInt32Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid chat model ID").WithDebugInfo(err.Error()))
-		return
+		return err
 	}
-
-	chatModel, err := h.service.ByID(ctx, int32(id))
+	chatModel, err := h.service.ByID(r.Context(), id)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat model").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrResourceNotFound("Chat model").WithDebugInfo(err.Error())
 	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatModel)
+	return respondJSON(w, http.StatusOK, chatModelResponse(chatModel))
 }
 
-func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	var request createChatModelRequest
 
 	if err := DecodeJSON(r, &request); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error())
 	}
 
 	apiType := request.APIType
@@ -83,38 +69,30 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 		"openai": true, "claude": true, "gemini": true, "ollama": true, "custom": true,
 	}
 	if !validApiTypes[apiType] {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom"))
-		return
+		return dto.ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
 	}
 
 	chatModel, err := h.service.Create(r.Context(), request.createInput(userID, apiType))
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to create chat model").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDetail("Failed to create chat model").WithDebugInfo(err.Error())
 	}
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(chatModel)
+	return respondJSON(w, http.StatusCreated, chatModelResponse(chatModel))
 }
 
-func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Request) error {
+	id, err := positiveInt32Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid chat model ID").WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	var request createChatModelRequest
 	if err := DecodeJSON(r, &request); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error())
 	}
 
 	apiType := request.APIType
@@ -126,80 +104,63 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 		"openai": true, "claude": true, "gemini": true, "ollama": true, "custom": true,
 	}
 	if !validApiTypes[apiType] {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom"))
-		return
+		return dto.ErrValidationInvalidInput("Invalid API type. Valid types are: openai, claude, gemini, ollama, custom")
 	}
 
-	chatModel, err := h.service.Update(r.Context(), request.updateInput(int32(id), userID, apiType))
+	chatModel, err := h.service.Update(r.Context(), request.updateInput(id, userID, apiType))
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update chat model").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDetail("Failed to update chat model").WithDebugInfo(err.Error())
 	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatModel)
+	return respondJSON(w, http.StatusOK, chatModelResponse(chatModel))
 }
 
-func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+func (h *ChatModelHandler) DeleteChatModel(w http.ResponseWriter, r *http.Request) error {
+	id, err := positiveInt32Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid chat model ID").WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
-	if err := h.service.Delete(r.Context(), int32(id), userID); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to delete chat model").WithDebugInfo(err.Error()))
-		return
+	if err := h.service.Delete(r.Context(), id, userID); err != nil {
+		return dto.ErrInternalUnexpected.WithDetail("Failed to delete chat model").WithDebugInfo(err.Error())
 	}
-
-	w.WriteHeader(http.StatusOK)
+	return respondStatus(w, http.StatusOK)
 }
 
-func (h *ChatModelHandler) GetDefaultChatModel(w http.ResponseWriter, r *http.Request) {
+func (h *ChatModelHandler) GetDefaultChatModel(w http.ResponseWriter, r *http.Request) error {
 	chatModel, err := h.service.Default(r.Context())
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to retrieve default chat model").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDetail("Failed to retrieve default chat model").WithDebugInfo(err.Error())
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(chatModel)
+	return respondJSON(w, http.StatusOK, chatModelResponse(chatModel))
 }
 
-func (h *ChatModelHandler) GetTitleChatModel(w http.ResponseWriter, r *http.Request) {
+func (h *ChatModelHandler) GetTitleChatModel(w http.ResponseWriter, r *http.Request) error {
 	chatModel, err := h.service.TitleModel(r.Context())
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Title generation model").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrResourceNotFound("Title generation model").WithDebugInfo(err.Error())
 	}
-	json.NewEncoder(w).Encode(chatModel)
+	return respondJSON(w, http.StatusOK, chatModelResponse(chatModel))
 }
 
-func (h *ChatModelHandler) SetTitleChatModel(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *ChatModelHandler) SetTitleChatModel(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
-	var input struct {
-		ModelID int32 `json:"modelId"`
-	}
-	if err := DecodeJSON(r, &input); err != nil || input.ModelID <= 0 {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("A valid enabled model is required"))
-		return
+	var input setTitleModelRequest
+	if err := DecodeJSON(r, &input); err != nil {
+		return dto.ErrValidationInvalidInput("A valid enabled model is required").WithDebugInfo(err.Error())
 	}
 
 	chatModel, err := h.service.SetTitleModel(r.Context(), input.ModelID, userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("The title model must be an enabled model you manage").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("The title model must be an enabled model you manage").WithDebugInfo(err.Error())
 	}
-	json.NewEncoder(w).Encode(chatModel)
+	return respondJSON(w, http.StatusOK, chatModelResponse(chatModel))
 }

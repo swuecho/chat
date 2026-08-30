@@ -5,8 +5,30 @@ import (
 	"time"
 
 	"github.com/swuecho/chat_backend/domain"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
+
+func chatModelResponse(model sqlc_queries.ChatModel) chatModelHTTPResponse {
+	return chatModelHTTPResponse{ID: model.ID, Name: model.Name, Label: model.Label,
+		IsDefault: model.IsDefault, URL: model.Url, APIAuthHeader: model.ApiAuthHeader,
+		APIAuthKey: model.ApiAuthKey, UserID: model.UserID,
+		EnablePerModelRateLimit: model.EnablePerModeRatelimit, MaxToken: model.MaxToken,
+		DefaultToken: model.DefaultToken, OrderNumber: model.OrderNumber,
+		HTTPTimeout: model.HttpTimeOut, IsEnable: model.IsEnable, APIType: model.ApiType,
+		IsTitleModel: model.IsTitleModel}
+}
+
+func chatModelResponses(models []svc.ChatModelWithUsage) []chatModelWithUsageHTTPResponse {
+	responses := make([]chatModelWithUsageHTTPResponse, 0, len(models))
+	for _, model := range models {
+		responses = append(responses, chatModelWithUsageHTTPResponse{
+			chatModelHTTPResponse: chatModelResponse(model.ChatModel),
+			LastUsageTime:         model.LastUsageTime, MessageCount: model.MessageCount,
+		})
+	}
+	return responses
+}
 
 type snapshotHTTPResponse struct {
 	ID           int32           `json:"id"`

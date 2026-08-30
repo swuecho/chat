@@ -14,12 +14,14 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/requestctx"
 )
 
 // Context keys for storing values in request context.
@@ -43,7 +45,13 @@ func ExtractBearerToken(r *http.Request) string {
 
 // CreateUserContext adds user ID and role to the request context.
 func CreateUserContext(r *http.Request, userID, role string) *http.Request {
-	ctx := context.WithValue(r.Context(), UserContextKey, userID)
+	parsedUserID, err := strconv.ParseInt(userID, 10, 32)
+	if err != nil || parsedUserID <= 0 {
+		return r
+	}
+	ctx := requestctx.WithPrincipal(r.Context(), requestctx.Principal{UserID: int32(parsedUserID), Role: role})
+	// Retain legacy keys while callers migrate to requestctx.PrincipalFrom.
+	ctx = context.WithValue(ctx, UserContextKey, userID)
 	ctx = context.WithValue(ctx, RoleContextKey, role)
 	return r.WithContext(ctx)
 }
@@ -146,6 +154,9 @@ type AuthTokenResult struct {
 
 // GetUserID extracts the user ID from a request context.
 func GetUserID(ctx context.Context) (int32, error) {
+	if userID, err := requestctx.UserID(ctx); err == nil {
+		return userID, nil
+	}
 	userIdValue := ctx.Value(UserContextKey)
 	if userIdValue == nil {
 		return 0, fmt.Errorf("no user ID in context")
@@ -158,9 +169,8 @@ func GetUserID(ctx context.Context) (int32, error) {
 }
 
 func parseInt32(s string) (int32, error) {
-	var n int32
-	_, err := fmt.Sscanf(s, "%d", &n)
-	return n, err
+	n, err := strconv.ParseInt(s, 10, 32)
+	return int32(n), err
 }
 
 // AdminAuthMiddleware provides authentication + admin authorization.
@@ -243,13 +253,17 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 			id = uuid.New().String()
 		}
 		w.Header().Set(RequestIDHeader, id)
-		ctx := context.WithValue(r.Context(), RequestIDKey, id)
+		ctx := requestctx.WithRequestID(r.Context(), id)
+		ctx = context.WithValue(ctx, RequestIDKey, id)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // GetRequestID extracts the request ID from context.
 func GetRequestID(ctx context.Context) string {
+	if id := requestctx.RequestID(ctx); id != "" {
+		return id
+	}
 	if id, ok := ctx.Value(RequestIDKey).(string); ok {
 		return id
 	}

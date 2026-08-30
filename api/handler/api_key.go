@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/base64"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -20,131 +19,91 @@ func NewAPIKeyHandler(service *svc.APIKeyService) *APIKeyHandler {
 }
 
 func (h *APIKeyHandler) Register(r *mux.Router) {
-	r.HandleFunc("/api-keys", h.list).Methods(http.MethodGet)
-	r.HandleFunc("/api-keys", h.create).Methods(http.MethodPost)
-	r.HandleFunc("/api-keys/{id}", h.revoke).Methods(http.MethodDelete)
-	r.HandleFunc("/api-keys/{id}/usage", h.usage).Methods(http.MethodGet)
-	r.HandleFunc("/api-keys/{id}/requests", h.requests).Methods(http.MethodGet)
-	r.HandleFunc("/api-keys/{id}/requests/{requestId}", h.requestDetail).Methods(http.MethodGet)
+	r.HandleFunc("/api-keys", endpoint(h.list)).Methods(http.MethodGet)
+	r.HandleFunc("/api-keys", endpoint(h.create)).Methods(http.MethodPost)
+	r.HandleFunc("/api-keys/{id}", endpoint(h.revoke)).Methods(http.MethodDelete)
+	r.HandleFunc("/api-keys/{id}/usage", endpoint(h.usage)).Methods(http.MethodGet)
+	r.HandleFunc("/api-keys/{id}/requests", endpoint(h.requests)).Methods(http.MethodGet)
+	r.HandleFunc("/api-keys/{id}/requests/{requestId}", endpoint(h.requestDetail)).Methods(http.MethodGet)
 }
 
-func (h *APIKeyHandler) list(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *APIKeyHandler) list(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials)
-		return
+		return err
 	}
 	keys, err := h.service.List(r.Context(), userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDebugInfo(err.Error())
 	}
-	dto.RespondWithJSON(w, http.StatusOK, keys)
+	return respondJSON(w, http.StatusOK, keys)
 }
 
-func (h *APIKeyHandler) create(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *APIKeyHandler) create(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials)
-		return
+		return err
 	}
-	var input struct {
-		Name              string `json:"name"`
-		ExpiresAt         string `json:"expiresAt"`
-		RequestsPerMinute int32  `json:"requestsPerMinute"`
-	}
+	var input createAPIKeyRequest
 	if err := DecodeJSON(r, &input); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body"))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error())
 	}
-	input.Name = strings.TrimSpace(input.Name)
-	if input.Name == "" || len(input.Name) > 100 {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Key name must be between 1 and 100 characters"))
-		return
-	}
-	if input.RequestsPerMinute == 0 {
-		input.RequestsPerMinute = 60
-	}
-	if input.RequestsPerMinute < 1 || input.RequestsPerMinute > 10000 {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("requestsPerMinute must be between 1 and 10000"))
-		return
-	}
-	var expires *time.Time
-	if input.ExpiresAt != "" {
-		t, err := time.Parse(time.RFC3339, input.ExpiresAt)
-		if err != nil || !t.After(time.Now()) {
-			dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("expiresAt must be a future RFC3339 timestamp"))
-			return
-		}
-		expires = &t
-	}
-	key, err := h.service.Create(r.Context(), userID, input.Name, expires, input.RequestsPerMinute)
+	key, err := h.service.Create(r.Context(), userID, input.Name, input.expiration(), input.RequestsPerMinute)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDebugInfo(err.Error())
 	}
-	dto.RespondWithJSON(w, http.StatusCreated, key)
+	return respondJSON(w, http.StatusCreated, key)
 }
 
-func (h *APIKeyHandler) revoke(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *APIKeyHandler) revoke(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials)
-		return
+		return err
 	}
-	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	id, err := positiveInt64Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid API key ID"))
-		return
+		return err
 	}
 	count, err := h.service.Revoke(r.Context(), id, userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDebugInfo(err.Error())
 	}
 	if count == 0 {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("API key"))
-		return
+		return dto.ErrResourceNotFound("API key")
 	}
-	w.WriteHeader(http.StatusNoContent)
+	return noContent(w)
 }
 
-func (h *APIKeyHandler) usage(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *APIKeyHandler) usage(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials)
-		return
+		return err
 	}
-	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	id, err := positiveInt64Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid API key ID"))
-		return
+		return err
 	}
 	usage, err := h.service.Usage(r.Context(), id, userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDebugInfo(err.Error())
 	}
-	dto.RespondWithJSON(w, http.StatusOK, usage)
+	return respondJSON(w, http.StatusOK, usage)
 }
 
-func (h *APIKeyHandler) requests(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *APIKeyHandler) requests(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials)
-		return
+		return err
 	}
-	keyID, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	keyID, err := positiveInt64Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid API key ID"))
-		return
+		return err
 	}
 	requests, err := h.service.Requests(r.Context(), svc.APIKeyRequestsQuery{KeyID: keyID, UserID: userID, Limit: 100})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDebugInfo(err.Error())
 	}
-	dto.RespondWithJSON(w, http.StatusOK, requests)
+	return respondJSON(w, http.StatusOK, requests)
 }
 
 type capturedSample struct {
@@ -160,32 +119,28 @@ func sampleForAPI(sample []byte) capturedSample {
 	return capturedSample{Encoding: "base64", Base64: base64.StdEncoding.EncodeToString(sample)}
 }
 
-func (h *APIKeyHandler) requestDetail(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *APIKeyHandler) requestDetail(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials)
-		return
+		return err
 	}
-	keyID, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	keyID, err := positiveInt64Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid API key ID"))
-		return
+		return err
 	}
-	requestID, err := strconv.ParseInt(mux.Vars(r)["requestId"], 10, 64)
+	requestID, err := positiveInt64Param(r, "requestId")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid gateway request ID"))
-		return
+		return err
 	}
 	record, err := h.service.RequestDetail(r.Context(), requestID, keyID, userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Gateway request"))
-		return
+		return dto.ErrResourceNotFound("Gateway request")
 	}
 	var completedAt *time.Time
 	if record.CompletedAt.Valid {
 		completedAt = &record.CompletedAt.Time
 	}
-	dto.RespondWithJSON(w, http.StatusOK, gatewayRequestDetailHTTPResponse{ID: record.ID, RequestUUID: record.RequestUuid,
+	return respondJSON(w, http.StatusOK, gatewayRequestDetailHTTPResponse{ID: record.ID, RequestUUID: record.RequestUuid,
 		RequestedModel: record.RequestedModel, Provider: record.Provider, Status: record.Status, Stream: record.Stream,
 		PromptTokens: record.PromptTokens, CompletionTokens: record.CompletionTokens, TotalTokens: record.TotalTokens,
 		LatencyMs: record.LatencyMs, ProviderRequestID: record.ProviderRequestID, ErrorCode: record.ErrorCode,

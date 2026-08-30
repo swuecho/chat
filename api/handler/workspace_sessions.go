@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -9,65 +8,53 @@ import (
 	"github.com/swuecho/chat_backend/svc"
 )
 
-func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r *http.Request) {
+func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r *http.Request) error {
 	workspaceUUID := mux.Vars(r)["uuid"]
-	if !validateUUIDParam(w, "uuid", workspaceUUID) {
-		return
-	}
 
 	var req dto.CreateSessionInWorkspaceRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error())
 	}
 
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 	result, err := h.wsService.CreateWorkspaceSession(ctx, svc.CreateWorkspaceSessionCommand{
 		UserID: userID, WorkspaceUUID: workspaceUUID, Topic: req.Topic,
 		Model: req.Model, DefaultSystemPrompt: req.DefaultSystemPrompt,
 	})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create session in workspace"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to create session in workspace")
 	}
 	session := result.Session
 
-	json.NewEncoder(w).Encode(workspaceSessionCreatedHTTPResponse{UUID: session.UUID, Topic: session.Topic,
+	return respondJSON(w, http.StatusCreated, workspaceSessionCreatedHTTPResponse{UUID: session.UUID, Topic: session.Topic,
 		Model: session.Model, ArtifactEnabled: session.ArtifactEnabled, WorkspaceUUID: result.WorkspaceUUID,
 		CreatedAt: session.CreatedAt.Format("2006-01-02T15:04:05Z")})
 }
 
-func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *http.Request) {
+func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *http.Request) error {
 	workspaceUUID := mux.Vars(r)["uuid"]
-	if !validateUUIDParam(w, "uuid", workspaceUUID) {
-		return
-	}
 
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
-	if !h.checkPermission(w, ctx, workspaceUUID, userID) {
-		return
+	if err := h.checkPermission(ctx, workspaceUUID, userID); err != nil {
+		return err
 	}
 
 	workspace, err := h.wsService.GetWorkspaceByUUID(ctx, workspaceUUID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get workspace"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to get workspace")
 	}
 
 	sessions, err := h.wsService.GetSessionsByWorkspaceID(ctx, workspace.ID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get sessions"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to get sessions")
 	}
 
 	responses := make([]workspaceSessionHTTPResponse, 0, len(sessions))
@@ -79,5 +66,5 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *
 			CreatedAt: s.CreatedAt.Format("2006-01-02T15:04:05Z"), UpdatedAt: s.UpdatedAt.Format("2006-01-02T15:04:05Z")})
 	}
 
-	json.NewEncoder(w).Encode(responses)
+	return respondJSON(w, http.StatusOK, responses)
 }

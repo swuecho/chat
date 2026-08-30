@@ -2,10 +2,10 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/httpx"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -18,29 +18,27 @@ func NewBotAnswerHistoryHandler(service *svc.BotAnswerHistoryService) *BotAnswer
 }
 
 func (h *BotAnswerHistoryHandler) Register(router *mux.Router) {
-	router.HandleFunc("/bot_answer_history", h.CreateBotAnswerHistory).Methods(http.MethodPost)
-	router.HandleFunc("/bot_answer_history/{id}", h.GetBotAnswerHistoryByID).Methods(http.MethodGet)
-	router.HandleFunc("/bot_answer_history/bot/{bot_uuid}", h.GetBotAnswerHistoryByBotUUID).Methods(http.MethodGet)
-	router.HandleFunc("/bot_answer_history/user/{user_id}", h.GetBotAnswerHistoryByUserID).Methods(http.MethodGet)
-	router.HandleFunc("/bot_answer_history/{id}", h.UpdateBotAnswerHistory).Methods(http.MethodPut)
-	router.HandleFunc("/bot_answer_history/{id}", h.DeleteBotAnswerHistory).Methods(http.MethodDelete)
-	router.HandleFunc("/bot_answer_history/bot/{bot_uuid}/count", h.GetBotAnswerHistoryCountByBotUUID).Methods(http.MethodGet)
-	router.HandleFunc("/bot_answer_history/user/{user_id}/count", h.GetBotAnswerHistoryCountByUserID).Methods(http.MethodGet)
-	router.HandleFunc("/bot_answer_history/bot/{bot_uuid}/latest", h.GetLatestBotAnswerHistoryByBotUUID).Methods(http.MethodGet)
+	router.HandleFunc("/bot_answer_history", endpoint(h.CreateBotAnswerHistory)).Methods(http.MethodPost)
+	router.HandleFunc("/bot_answer_history/{id}", endpoint(h.GetBotAnswerHistoryByID)).Methods(http.MethodGet)
+	router.HandleFunc("/bot_answer_history/bot/{bot_uuid}", endpoint(h.GetBotAnswerHistoryByBotUUID)).Methods(http.MethodGet)
+	router.HandleFunc("/bot_answer_history/user/{user_id}", endpoint(h.GetBotAnswerHistoryByUserID)).Methods(http.MethodGet)
+	router.HandleFunc("/bot_answer_history/{id}", endpoint(h.UpdateBotAnswerHistory)).Methods(http.MethodPut)
+	router.HandleFunc("/bot_answer_history/{id}", endpoint(h.DeleteBotAnswerHistory)).Methods(http.MethodDelete)
+	router.HandleFunc("/bot_answer_history/bot/{bot_uuid}/count", endpoint(h.GetBotAnswerHistoryCountByBotUUID)).Methods(http.MethodGet)
+	router.HandleFunc("/bot_answer_history/user/{user_id}/count", endpoint(h.GetBotAnswerHistoryCountByUserID)).Methods(http.MethodGet)
+	router.HandleFunc("/bot_answer_history/bot/{bot_uuid}/latest", endpoint(h.GetLatestBotAnswerHistoryByBotUUID)).Methods(http.MethodGet)
 }
 
-func (h *BotAnswerHistoryHandler) CreateBotAnswerHistory(w http.ResponseWriter, r *http.Request) {
+func (h *BotAnswerHistoryHandler) CreateBotAnswerHistory(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	var request createBotAnswerHistoryRequest
 	if err := DecodeJSON(r, &request); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error())
 	}
 
 	history, err := h.service.CreateBotAnswerHistory(ctx, svc.CreateBotAnswerHistoryInput{
@@ -48,190 +46,121 @@ func (h *BotAnswerHistoryHandler) CreateBotAnswerHistory(w http.ResponseWriter, 
 		Answer: request.Answer, Model: request.Model, TokensUsed: request.TokensUsed,
 	})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to create bot answer history"))
-		return
+		return dto.WrapError(err, "Failed to create bot answer history")
 	}
-
-	dto.RespondWithJSON(w, http.StatusCreated, history)
+	return respondJSON(w, http.StatusCreated, history)
 }
 
-func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByID(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	if id == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("ID is required"))
-		return
-	}
-
-	idInt, err := strconv.ParseInt(id, 10, 32)
+func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByID(w http.ResponseWriter, r *http.Request) error {
+	id, err := positiveInt32Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid ID format"))
-		return
+		return err
 	}
-
-	history, err := h.service.GetBotAnswerHistoryByID(r.Context(), int32(idInt))
+	history, err := h.service.GetBotAnswerHistoryByID(r.Context(), id)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history"))
-		return
+		return dto.WrapError(err, "Failed to get bot answer history")
 	}
-
-	dto.RespondWithJSON(w, http.StatusOK, history)
+	return respondJSON(w, http.StatusOK, history)
 }
 
-func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByBotUUID(w http.ResponseWriter, r *http.Request) {
+func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByBotUUID(w http.ResponseWriter, r *http.Request) error {
 	botUUID := mux.Vars(r)["bot_uuid"]
-	if botUUID == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Bot UUID is required"))
-		return
-	}
-
-	limit, offset, err := getPaginationParams(r)
+	page, err := httpx.ParsePage(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(err.Error()))
-		return
+		return err
 	}
-	history, err := h.service.GetBotAnswerHistoryByBotUUID(r.Context(), svc.BotAnswerHistoryPageQuery{BotUUID: botUUID, Page: svc.PageWindow{Limit: limit, Offset: offset}})
+	history, err := h.service.GetBotAnswerHistoryByBotUUID(r.Context(), svc.BotAnswerHistoryPageQuery{BotUUID: botUUID, Page: svc.PageWindow{Limit: page.Limit, Offset: page.Offset}})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history"))
-		return
+		return dto.WrapError(err, "Failed to get bot answer history")
 	}
 
 	totalCount, err := h.service.GetBotAnswerHistoryCountByBotUUID(r.Context(), botUUID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history count"))
-		return
+		return dto.WrapError(err, "Failed to get bot answer history count")
 	}
-
-	totalPages := totalCount / int64(limit)
-	if totalCount%int64(limit) > 0 {
-		totalPages++
-	}
-
-	dto.RespondWithJSON(w, http.StatusOK, newPaginatedHTTPResponse(history, totalPages, totalCount))
+	return respondJSON(w, http.StatusOK, pageResponse(history, totalCount, page))
 }
 
-func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByUserID(w http.ResponseWriter, r *http.Request) {
+func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByUserID(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
-
-	limit, offset, err := getPaginationParams(r)
+	page, err := httpx.ParsePage(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(err.Error()))
-		return
+		return err
 	}
-	history, err := h.service.GetBotAnswerHistoryByUserID(ctx, svc.UserAnswerHistoryPageQuery{UserID: userID, Page: svc.PageWindow{Limit: limit, Offset: offset}})
+	history, err := h.service.GetBotAnswerHistoryByUserID(ctx, svc.UserAnswerHistoryPageQuery{UserID: userID, Page: svc.PageWindow{Limit: page.Limit, Offset: page.Offset}})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history"))
-		return
+		return dto.WrapError(err, "Failed to get bot answer history")
 	}
-
-	dto.RespondWithJSON(w, http.StatusOK, history)
+	total, err := h.service.GetBotAnswerHistoryCountByUserID(ctx, userID)
+	if err != nil {
+		return dto.WrapError(err, "Failed to get bot answer history count")
+	}
+	return respondJSON(w, http.StatusOK, pageResponse(history, total, page))
 }
 
-func (h *BotAnswerHistoryHandler) UpdateBotAnswerHistory(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	if idStr == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("ID is required"))
-		return
-	}
-
-	idInt, err := strconv.ParseInt(idStr, 10, 32)
+func (h *BotAnswerHistoryHandler) UpdateBotAnswerHistory(w http.ResponseWriter, r *http.Request) error {
+	id, err := positiveInt32Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid ID format"))
-		return
+		return err
 	}
-
-	var params struct {
-		Answer     string `json:"answer"`
-		TokensUsed int32  `json:"tokensUsed"`
-	}
+	var params updateBotAnswerHistoryRequest
 	if err := DecodeJSON(r, &params); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error())
 	}
-	history, err := h.service.UpdateBotAnswerHistory(r.Context(), int32(idInt), params.Answer, params.TokensUsed)
+	history, err := h.service.UpdateBotAnswerHistory(r.Context(), id, params.Answer, params.TokensUsed)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to update bot answer history"))
-		return
+		return dto.WrapError(err, "Failed to update bot answer history")
 	}
-
-	dto.RespondWithJSON(w, http.StatusOK, history)
+	return respondJSON(w, http.StatusOK, history)
 }
 
-func (h *BotAnswerHistoryHandler) DeleteBotAnswerHistory(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	if id == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("ID is required"))
-		return
-	}
-
-	idInt, err := strconv.ParseInt(id, 10, 32)
+func (h *BotAnswerHistoryHandler) DeleteBotAnswerHistory(w http.ResponseWriter, r *http.Request) error {
+	id, err := positiveInt32Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid ID format"))
-		return
+		return err
 	}
-
-	if err := h.service.DeleteBotAnswerHistory(r.Context(), int32(idInt)); err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to delete bot answer history"))
-		return
+	if err := h.service.DeleteBotAnswerHistory(r.Context(), id); err != nil {
+		return dto.WrapError(err, "Failed to delete bot answer history")
 	}
-
-	w.WriteHeader(http.StatusNoContent)
+	return noContent(w)
 }
 
-func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByBotUUID(w http.ResponseWriter, r *http.Request) {
+func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByBotUUID(w http.ResponseWriter, r *http.Request) error {
 	botUUID := mux.Vars(r)["bot_uuid"]
-	if botUUID == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Bot UUID is required"))
-		return
-	}
-
 	count, err := h.service.GetBotAnswerHistoryCountByBotUUID(r.Context(), botUUID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history count"))
-		return
+		return dto.WrapError(err, "Failed to get bot answer history count")
 	}
-
-	dto.RespondWithJSON(w, http.StatusOK, map[string]int64{"count": count})
+	return respondJSON(w, http.StatusOK, countHTTPResponse{Count: count})
 }
 
-func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByUserID(w http.ResponseWriter, r *http.Request) {
+func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByUserID(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	count, err := h.service.GetBotAnswerHistoryCountByUserID(ctx, userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history count"))
-		return
+		return dto.WrapError(err, "Failed to get bot answer history count")
 	}
-
-	dto.RespondWithJSON(w, http.StatusOK, map[string]int64{"count": count})
+	return respondJSON(w, http.StatusOK, countHTTPResponse{Count: count})
 }
 
-func (h *BotAnswerHistoryHandler) GetLatestBotAnswerHistoryByBotUUID(w http.ResponseWriter, r *http.Request) {
+func (h *BotAnswerHistoryHandler) GetLatestBotAnswerHistoryByBotUUID(w http.ResponseWriter, r *http.Request) error {
 	botUUID := mux.Vars(r)["bot_uuid"]
-	if botUUID == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Bot UUID is required"))
-		return
-	}
-
-	limit, err := getLimitParam(r, 1)
+	limit, err := httpx.ParseLimit(r, 1)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(err.Error()))
-		return
+		return err
 	}
 	history, err := h.service.GetLatestBotAnswerHistoryByBotUUID(r.Context(), svc.LatestBotAnswerHistoryQuery{BotUUID: botUUID, Limit: limit})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get latest bot answer history"))
-		return
+		return dto.WrapError(err, "Failed to get latest bot answer history")
 	}
-
-	dto.RespondWithJSON(w, http.StatusOK, history)
+	return respondJSON(w, http.StatusOK, history)
 }

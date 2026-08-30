@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -18,33 +17,27 @@ func NewChatSessionHandler(service *svc.ChatSessionService) *ChatSessionHandler 
 }
 
 func (h *ChatSessionHandler) Register(router *mux.Router) {
-	router.HandleFunc("/chat_sessions/user", h.getSimpleChatSessionsByUserID).Methods(http.MethodGet)
-	router.HandleFunc("/uuid/chat_sessions/max_length/{uuid}", h.updateSessionMaxLength).Methods("PUT")
-	router.HandleFunc("/uuid/chat_sessions/topic/{uuid}", h.updateChatSessionTopicByUUID).Methods("PUT")
-	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.getChatSessionByUUID).Methods("GET")
-	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.createOrUpdateChatSessionByUUID).Methods("PUT")
-	router.HandleFunc("/uuid/chat_sessions/{uuid}", h.deleteChatSessionByUUID).Methods("DELETE")
-	router.HandleFunc("/uuid/chat_sessions", h.createChatSessionByUUID).Methods("POST")
-	router.HandleFunc("/uuid/chat_session_from_snapshot/{uuid}", h.createChatSessionFromSnapshot).Methods(http.MethodPost)
+	router.HandleFunc("/chat_sessions/user", endpoint(h.getSimpleChatSessionsByUserID)).Methods(http.MethodGet)
+	router.HandleFunc("/uuid/chat_sessions/max_length/{uuid}", endpoint(h.updateSessionMaxLength)).Methods(http.MethodPut)
+	router.HandleFunc("/uuid/chat_sessions/topic/{uuid}", endpoint(h.updateChatSessionTopicByUUID)).Methods(http.MethodPut)
+	router.HandleFunc("/uuid/chat_sessions/{uuid}", endpoint(h.getChatSessionByUUID)).Methods(http.MethodGet)
+	router.HandleFunc("/uuid/chat_sessions/{uuid}", endpoint(h.createOrUpdateChatSessionByUUID)).Methods(http.MethodPut)
+	router.HandleFunc("/uuid/chat_sessions/{uuid}", endpoint(h.deleteChatSessionByUUID)).Methods(http.MethodDelete)
+	router.HandleFunc("/uuid/chat_sessions", endpoint(h.createChatSessionByUUID)).Methods(http.MethodPost)
+	router.HandleFunc("/uuid/chat_session_from_snapshot/{uuid}", endpoint(h.createChatSessionFromSnapshot)).Methods(http.MethodPost)
 }
 
-func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
-	if !validateUUIDParam(w, "uuid", uuid) {
-		return
-	}
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 	session, err := h.service.GetOwnedChatSession(r.Context(), svc.GetOwnedChatSessionQuery{UUID: uuid, UserID: userID})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ToAPIError(err))
-		return
+		return err
 	}
-
-	json.NewEncoder(w).Encode(&dto.ChatSessionResponse{
+	return respondJSON(w, http.StatusOK, dto.ChatSessionResponse{
 		Uuid:            session.UUID,
 		Topic:           session.Topic,
 		MaxLength:       session.MaxLength,
@@ -54,18 +47,16 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 	})
 }
 
-func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *http.Request) error {
 	var req createChatSessionRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error())
 	}
 
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	session, err := h.service.SaveSession(ctx, svc.SaveSessionCommand{
@@ -76,36 +67,28 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		EnsureSystemPrompt: true, DefaultSystemPrompt: req.DefaultSystemPrompt, ActivateGlobally: true,
 	})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ToAPIError(err))
-		return
+		return err
 	}
-
-	json.NewEncoder(w).Encode(chatSessionResponse(session))
+	return respondJSON(w, http.StatusCreated, chatSessionResponse(session))
 }
 
-func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) error {
 	pathUUID := mux.Vars(r)["uuid"]
-	if !validateUUIDParam(w, "uuid", pathUUID) {
-		return
-	}
 	var sessionReq dto.UpdateChatSessionRequest
 	if err := DecodeJSON(r, &sessionReq); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error())
 	}
 	if sessionReq.Uuid != pathUUID {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("request uuid must match path uuid"))
-		return
+		return dto.ErrValidationInvalidInput("request uuid must match path uuid")
 	}
 	if sessionReq.MaxLength == 0 {
 		sessionReq.MaxLength = dto.DefaultMaxLength
 	}
 
 	ctx := r.Context()
-	userID, err := getUserID(ctx)
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	command := svc.SaveSessionCommand{
@@ -119,41 +102,32 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 
 	session, err := h.service.SaveSession(ctx, command)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ToAPIError(err))
-		return
+		return err
 	}
-	json.NewEncoder(w).Encode(chatSessionResponse(session))
+	return respondJSON(w, http.StatusOK, chatSessionResponse(session))
 }
 
-func (h *ChatSessionHandler) deleteChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatSessionHandler) deleteChatSessionByUUID(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
-	if !validateUUIDParam(w, "uuid", uuid) {
-		return
-	}
-
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	if err := h.service.DeleteChatSessionByUUID(r.Context(), svc.DeleteChatSessionCommand{UUID: uuid, UserID: userID}); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to delete chat session").WithDebugInfo(err.Error()))
-		return
+		return err
 	}
-	w.WriteHeader(http.StatusOK)
+	return respondStatus(w, http.StatusOK)
 }
 
-func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter, r *http.Request) {
-	id, err := getUserID(r.Context())
+func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter, r *http.Request) error {
+	id, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid user ID").WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 	sessions, err := h.service.GetSimpleChatSessionsByUserID(r.Context(), id)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat sessions").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrResourceNotFound("Chat sessions").WithDebugInfo(err.Error())
 	}
 	response := make([]dto.SimpleChatSession, 0, len(sessions))
 	for _, session := range sessions {
@@ -166,65 +140,48 @@ func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter
 			WorkspaceUuid: session.WorkspaceUUID,
 		})
 	}
-	json.NewEncoder(w).Encode(response)
+	return respondJSON(w, http.StatusOK, response)
 }
 
-func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
-	if !validateUUIDParam(w, "uuid", uuid) {
-		return
-	}
 	var req updateSessionTopicRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error())
 	}
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 	session, err := h.service.UpdateChatSessionTopicByUUID(r.Context(), uuid, userID, req.Topic)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update chat session topic").WithDebugInfo(err.Error()))
-		return
+		return err
 	}
-	json.NewEncoder(w).Encode(session)
+	return respondJSON(w, http.StatusOK, chatSessionResponse(session))
 }
 
-func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *http.Request) {
+func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
-	if !validateUUIDParam(w, "uuid", uuid) {
-		return
-	}
 	var req updateSessionMaxLengthRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error())
 	}
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 	updatedSession, err := h.service.UpdateSessionMaxLength(r.Context(), svc.UpdateSessionMaxLengthCommand{UUID: uuid, UserID: userID, MaxLength: req.MaxLength})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update session max length").WithDebugInfo(err.Error()))
-		return
+		return err
 	}
-	json.NewEncoder(w).Encode(updatedSession)
+	return respondJSON(w, http.StatusOK, chatSessionResponse(updatedSession))
 }
 
-func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter, r *http.Request) {
+func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter, r *http.Request) error {
 	snapshotUUID := mux.Vars(r)["uuid"]
-	if !validateUUIDParam(w, "uuid", snapshotUUID) {
-		return
-	}
-
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	result, err := h.service.CreateSessionFromSnapshot(r.Context(), svc.CreateSessionFromSnapshotCommand{
@@ -232,10 +189,7 @@ func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter
 		UserID:       userID,
 	})
 	if err != nil {
-		dto.RespondWithAPIError(w, err)
-		return
+		return err
 	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"SessionUuid": result.SessionUUID})
+	return respondJSON(w, http.StatusCreated, sessionCreatedHTTPResponse{SessionUUID: result.SessionUUID})
 }
