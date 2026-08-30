@@ -5,6 +5,7 @@ import { useErrorHandling } from './useErrorHandling'
 import { useValidation } from './useValidation'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { nowISO } from '@/utils/date'
+import type { AnswerStreamEvent } from '@/utils/sse'
 import { useSessionStore } from '@/store'
 
 interface ChatMessage {
@@ -25,7 +26,7 @@ export function useConversationFlow(
   const loading = ref<boolean>(false)
   const abortController = ref<AbortController | null>(null)
   const { addChat, updateChat, updateChatPartial, getChatByUuidAndIndex } = useChat()
-  const { streamChatResponse, processStreamChunk } = useStreamHandling()
+  const { streamChatResponse, processAnswerEvent } = useStreamHandling()
   const { handleApiError, showErrorNotification } = useErrorHandling()
   const { validateChatMessage } = useValidation()
   const sessionStore = useSessionStore()
@@ -159,8 +160,8 @@ export function useConversationFlow(
     loading.value = true
     abortController.value = new AbortController()
     const responseIndex = await initializeChatResponse(dataSources)
-    const handleChunk = async (chunk: string, index: number) => {
-      processStreamChunk(chunk, index, sessionUuid)
+    const handleAnswerEvent = async (event: AnswerStreamEvent, index: number) => {
+      processAnswerEvent(event, index, sessionUuid)
       await smoothScrollToBottomIfAtBottom()
     }
 
@@ -170,7 +171,7 @@ export function useConversationFlow(
         chatUuid,
         message,
         responseIndex,
-        handleChunk,
+        handleAnswerEvent,
         abortController.value.signal,
       )
     }
@@ -199,7 +200,7 @@ export function useConversationFlow(
             chatUuid,
             message,
             responseIndex,
-            handleChunk,
+            handleAnswerEvent,
             abortController.value.signal,
           )
           return

@@ -106,9 +106,8 @@ When enabling retry elsewhere, verify all three conditions:
 only one terminal event and requires `Persisted: true` for `completed`.
 
 The server emits typed events for normal, replayed, regenerated, and bot
-answers. The frontend reader temporarily accepts legacy OpenAI-compatible delta
-frames during migration, but new server code must use `AnswerEvent`; do not
-invent an untyped SSE payload in a handler.
+answers. The frontend accepts only this protocol. Provider-specific and untyped
+SSE payloads must be normalized before they reach handlers or clients.
 
 ## Dependency boundaries
 

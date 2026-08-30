@@ -65,6 +65,7 @@ export function useStreamHandling() {
     if (event.type === 'completed') {
       if (!event.persisted)
         throw new Error('The response was not saved')
+      onAnswerEvent(event, responseIndex)
       return true
     }
     if (event.type === 'started' || event.type === 'delta' || event.type === 'reasoning_delta' || event.type === 'suggested_questions')

@@ -1,6 +1,7 @@
 import { type Ref, ref } from 'vue'
 import { useStreamHandling } from './useStreamHandling'
 import { nowISO } from '@/utils/date'
+import type { AnswerStreamEvent } from '@/utils/sse'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { t } from '@/locales'
 
@@ -8,7 +9,7 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
   const loading = ref<boolean>(false)
   const abortController = ref<AbortController | null>(null)
   const { addChat, updateChat, updateChatPartial } = useChat()
-  const { streamRegenerateResponse, processStreamChunk } = useStreamHandling()
+  const { streamRegenerateResponse, processAnswerEvent } = useStreamHandling()
 
   function validateRegenerateInput(): boolean {
     return !loading.value
@@ -144,8 +145,8 @@ export function useRegenerate(sessionUuidRef: Ref<string>) {
         targetChatUuid,
         updateIndex,
         isRegenerate,
-        (chunk: string, updateIdx: number) => {
-          processStreamChunk(chunk, updateIdx, sessionUuid)
+        (event: AnswerStreamEvent, updateIdx: number) => {
+          processAnswerEvent(event, updateIdx, sessionUuid)
         },
         abortController.value.signal,
       )

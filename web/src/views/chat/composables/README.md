@@ -11,13 +11,12 @@ Handles all streaming-related functionality for chat responses.
 
 **Features:**
 - Stream progress handling with proper error management
-- Type-safe stream chunk processing
+- Type-safe answer-event processing
 - Centralized error formatting with i18n support
 - Robust error handling for various response statuses
 
 **Key Functions:**
-- `handleStreamProgress()` - Processes incoming stream data
-- `processStreamChunk()` - Parses and validates stream chunks
+- `processAnswerEvent()` - Applies typed answer events to chat state
 - `streamChatResponse()` - Manages chat streaming lifecycle
 - `streamRegenerateResponse()` - Handles message regeneration
 
