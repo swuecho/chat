@@ -1,8 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import 'dart:convert';
-
 import '../api/chat_api.dart';
+import '../api/answer_stream_event.dart';
 import '../constants/chat.dart';
 import '../models/chat_message.dart';
 import 'auth_provider.dart';
@@ -150,8 +149,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
         sessionId: sessionId,
         chatUuid: chatUuid,
         prompt: content,
-        onChunk: (chunk) {
-          _handleStreamChunk(sessionId, assistantMessage.id, chunk);
+        onEvent: (event) {
+          _handleStreamEvent(sessionId, assistantMessage.id, event);
         },
         regenerate: false,
       );
@@ -260,8 +259,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
         sessionId: sessionId,
         chatUuid: newChatUuid,
         prompt: userMessage.content,
-        onChunk: (chunk) {
-          _handleStreamChunk(sessionId, newAssistantMessage.id, chunk);
+        onEvent: (event) {
+          _handleStreamEvent(sessionId, newAssistantMessage.id, event);
         },
         regenerate: true,
       );
@@ -299,46 +298,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
     );
   }
 
-  void _handleStreamChunk(String sessionId, String tempId, String chunk) {
-    final data = _extractStreamingData(chunk);
-    if (data.isEmpty) {
-      return;
-    }
-    try {
-      final parsed = jsonDecode(data);
-      if (parsed is Map<String, dynamic> &&
-          parsed['code'] is String &&
-          parsed['message'] is String &&
-          parsed['choices'] == null) {
-        final message = parsed['message'] as String;
-        final detail = parsed['detail'];
-        final errorMessage =
-            detail is String && detail.isNotEmpty ? '$message ($detail)' : message;
-        _replaceMessageContent(tempId, errorMessage);
-        state = state.copyWith(errorMessage: errorMessage);
-        return;
-      }
-      if (parsed is Map<String, dynamic> && parsed['error'] is String) {
-        final errorMessage = parsed['error'] as String;
-        _replaceMessageContent(tempId, errorMessage);
-        state = state.copyWith(errorMessage: errorMessage);
-        return;
-      }
-      final choices = parsed['choices'];
-      if (choices is! List || choices.isEmpty) {
-        return;
-      }
-      final delta = choices.first['delta'];
-      if (delta is! Map) {
-        return;
-      }
-      final deltaContent = delta['content'];
-      final suggestedQuestions = delta['suggestedQuestions'];
-      final answerId = parsed['id']?.toString();
-      if (deltaContent is! String && suggestedQuestions == null && answerId == null) {
-        return;
-      }
-
+  void _handleStreamEvent(String sessionId, String tempId, AnswerStreamEvent event) {
+      final answerId = event.answerId;
       final messageIndex = state.messages.indexWhere(
         (message) =>
             message.id == tempId || (answerId != null && message.id == answerId),
@@ -348,10 +309,12 @@ class MessageNotifier extends StateNotifier<MessageState> {
       }
 
       final existing = state.messages[messageIndex];
+      final appendsDelta = event.type == AnswerStreamEventType.delta ||
+          event.type == AnswerStreamEventType.reasoningDelta;
       final newContent =
-          existing.content + (deltaContent is String ? deltaContent : '');
-      final newQuestions = suggestedQuestions is List
-          ? suggestedQuestions.map((e) => e.toString()).toList()
+          existing.content + (appendsDelta ? event.delta ?? '' : '');
+      final newQuestions = event.type == AnswerStreamEventType.suggestedQuestions
+          ? event.suggestedQuestions
           : null;
       final questions = newQuestions ?? existing.suggestedQuestions;
       final loading = newQuestions != null
@@ -368,7 +331,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
         role: existing.role,
         content: newContent,
         createdAt: existing.createdAt,
-        loading: true,
+        loading: event.type != AnswerStreamEventType.completed,
         suggestedQuestions: questions,
         suggestedQuestionsLoading: loading,
         suggestedQuestionsBatches: batches,
@@ -378,7 +341,6 @@ class MessageNotifier extends StateNotifier<MessageState> {
       final updatedMessages = [...state.messages];
       updatedMessages[messageIndex] = updated;
       state = state.copyWith(messages: updatedMessages);
-    } catch (_) {}
   }
 
   void _replaceMessageContent(String messageId, String content) {
@@ -675,17 +637,6 @@ final messagesForSessionProvider =
       .toList()
     ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 });
-
-String _extractStreamingData(String chunk) {
-  var data = chunk.trim();
-  if (data.startsWith('data:')) {
-    data = data.substring(5).trim();
-  }
-  if (data == '[DONE]') {
-    return '';
-  }
-  return data;
-}
 
 List<ChatMessage> _mergeSessionMessages({
   required List<ChatMessage> existing,

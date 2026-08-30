@@ -132,7 +132,10 @@ void main() {
         if (request.method == 'POST' && request.url.path == '/api/chat_stream') {
           return _streamResponse(
             200,
-            'data: {"choices":[{"delta":{"content":"new reply"}}]}\n\n',
+            'event: delta\n'
+            'data: {"type":"delta","answerId":"answer-1","delta":"new reply"}\n\n'
+            'event: completed\n'
+            'data: {"type":"completed","answerId":"answer-1","persisted":true}\n\n',
           );
         }
         return _jsonResponse(404, {'message': 'not found'});

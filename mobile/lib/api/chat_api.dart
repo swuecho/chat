@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_exception.dart';
+import 'answer_stream_event.dart';
 import '../models/chat_session.dart';
 import '../models/chat_message.dart';
 import '../models/chat_model.dart';
@@ -196,7 +197,7 @@ class ChatApi {
     required String sessionId,
     required String chatUuid,
     required String prompt,
-    required void Function(String chunk) onChunk,
+    required void Function(AnswerStreamEvent event) onEvent,
     bool regenerate = false,
   }) async {
     final uri = Uri.parse('$baseUrl/api/chat_stream');
@@ -220,19 +221,42 @@ class ChatApi {
 
     const decoder = Utf8Decoder();
     var buffer = '';
+    var completed = false;
+
+    void processFrame(String frame) {
+      if (frame.trim().isEmpty) return;
+      if (completed) {
+        throw const FormatException('Received an answer stream event after completion');
+      }
+      final event = AnswerStreamEvent.parseFrame(frame);
+      if (event.type == AnswerStreamEventType.failed ||
+          event.type == AnswerStreamEventType.canceled) {
+        throw Exception(event.message ?? event.code ?? 'Stream ${event.type.name}');
+      }
+      if (event.type == AnswerStreamEventType.completed) {
+        if (event.persisted != true) {
+          throw Exception('The response was not saved');
+        }
+        completed = true;
+      }
+      onEvent(event);
+    }
+
     await for (final chunk in response.stream.transform(decoder)) {
       buffer += chunk;
-      final parts = buffer.split('\n\n');
+      final normalized = buffer.replaceAll('\r\n', '\n');
+      final parts = normalized.split('\n\n');
       buffer = parts.removeLast();
       for (final part in parts) {
-        if (part.trim().isNotEmpty) {
-          onChunk(part);
-        }
+        processFrame(part);
       }
     }
 
     if (buffer.trim().isNotEmpty) {
-      onChunk(buffer);
+      processFrame(buffer);
+    }
+    if (!completed) {
+      throw Exception('The response stream ended before it was saved');
     }
   }
 
