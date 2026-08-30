@@ -30,9 +30,14 @@ func (h *ChatSessionHandler) Register(router *mux.Router) {
 
 func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
-	session, err := h.service.GetChatSessionByUUID(r.Context(), uuid)
+	userID, err := getUserID(r.Context())
 	if err != nil {
-		dto.RespondWithAPIError(w, err)
+		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
+		return
+	}
+	session, err := h.service.GetOwnedChatSession(r.Context(), svc.GetOwnedChatSessionQuery{UUID: uuid, UserID: userID})
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ToAPIError(err))
 		return
 	}
 

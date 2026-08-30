@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -92,6 +93,33 @@ func TestGetChatSessionsByUserID(t *testing.T) {
 	}
 	if err := service.DeleteChatSession(context.Background(), session2.ID); err != nil {
 		t.Fatalf("failed to delete chat session: %v", err)
+	}
+}
+
+func TestGetOwnedChatSessionScopesReadToOwner(t *testing.T) {
+	q, ownerID := createWorkspaceUser(t, "owned-session-read-owner")
+	_, otherUserID := createWorkspaceUser(t, "owned-session-read-other")
+	workspace := createWorkspaceRecord(t, q, ownerID, "owned-session-read-workspace", false)
+	createActiveSessionTestChatSession(t, q, ownerID, workspace.ID, "owned-session-read")
+
+	service := NewChatSessionService(q)
+	session, err := service.GetOwnedChatSession(context.Background(), GetOwnedChatSessionQuery{
+		UUID:   "owned-session-read",
+		UserID: ownerID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if session.UUID != "owned-session-read" || session.UserID != ownerID {
+		t.Fatalf("unexpected session: %#v", session)
+	}
+
+	_, err = service.GetOwnedChatSession(context.Background(), GetOwnedChatSessionQuery{
+		UUID:   "owned-session-read",
+		UserID: otherUserID,
+	})
+	if !domain.IsKind(err, domain.KindNotFound) {
+		t.Fatalf("expected not found for another user's session, got %v", err)
 	}
 }
 

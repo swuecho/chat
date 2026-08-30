@@ -378,6 +378,42 @@ func (q *Queries) GetChatSessionByUUID(ctx context.Context, uuid string) (ChatSe
 	return i, err
 }
 
+const getChatSessionByUUIDForUser = `-- name: GetChatSessionByUUIDForUser :one
+SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, artifact_enabled, debug, explore_mode FROM chat_session
+WHERE active = true AND uuid = $1 AND user_id = $2
+`
+
+type GetChatSessionByUUIDForUserParams struct {
+	Uuid   string `json:"uuid"`
+	UserID int32  `json:"userId"`
+}
+
+func (q *Queries) GetChatSessionByUUIDForUser(ctx context.Context, arg GetChatSessionByUUIDForUserParams) (ChatSession, error) {
+	row := q.db.QueryRowContext(ctx, getChatSessionByUUIDForUser, arg.Uuid, arg.UserID)
+	var i ChatSession
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Uuid,
+		&i.Topic,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Active,
+		&i.Model,
+		&i.MaxLength,
+		&i.Temperature,
+		&i.TopP,
+		&i.MaxTokens,
+		&i.N,
+		&i.SummarizeMode,
+		&i.WorkspaceID,
+		&i.ArtifactEnabled,
+		&i.Debug,
+		&i.ExploreMode,
+	)
+	return i, err
+}
+
 const getChatSessionByUUIDWithInActive = `-- name: GetChatSessionByUUIDWithInActive :one
 SELECT id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, artifact_enabled, debug, explore_mode FROM chat_session 
 WHERE uuid = $1

@@ -86,17 +86,12 @@ func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.Respo
 
 // validateChatSession validates the session UUID and retrieves session + model info.
 func (h *ChatHandler) validateChatSession(ctx context.Context, w http.ResponseWriter, chatSessionUuid string, userID int32) (*svc.ChatSession, *svc.RuntimeModel, string, bool) {
-	chatSession, err := h.sessionSvc.GetChatSessionByUUID(ctx, chatSessionUuid)
+	chatSession, err := h.sessionSvc.GetOwnedChatSession(ctx, svc.GetOwnedChatSessionQuery{UUID: chatSessionUuid, UserID: userID})
 	if err != nil {
 		slog.Info("Invalid session UUID", "uuid", chatSessionUuid, "error", err)
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat session").WithMessage(chatSessionUuid))
 		return nil, nil, "", false
 	}
-	if chatSession.UserID != userID {
-		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("You do not own this session"))
-		return nil, nil, "", false
-	}
-
 	chatModel, err := h.modelSvc.ByName(ctx, chatSession.Model)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("chat model: "+chatSession.Model))

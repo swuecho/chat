@@ -275,8 +275,8 @@ func TestChatSessionServiceRemainsLifecycleFocused(t *testing.T) {
 		"UpdateChatSessionByUUID": true, "UpdateChatSessionTopicByUUID": true,
 		"CreateOrUpdateChatSessionByUUID": true, "DeleteChatSessionByUUID": true,
 		"UpdateSessionMaxLength": true, "GetChatSessionByUUIDWithInActive": true,
-		"CreateSessionFromSnapshot": true,
-		"SaveSession":               true,
+		"CreateSessionFromSnapshot": true, "GetOwnedChatSession": true,
+		"SaveSession": true,
 	}
 	files := token.NewFileSet()
 	packages, err := parser.ParseDir(files, ".", func(info os.FileInfo) bool { return !strings.HasSuffix(info.Name(), "_test.go") }, 0)

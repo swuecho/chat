@@ -25,6 +25,10 @@ SELECT * FROM chat_session
 WHERE active = true and uuid = $1
 order by updated_at;
 
+-- name: GetChatSessionByUUIDForUser :one
+SELECT * FROM chat_session
+WHERE active = true AND uuid = $1 AND user_id = $2;
+
 -- name: GetChatSessionByUUIDWithInActive :one
 SELECT * FROM chat_session 
 WHERE uuid = $1

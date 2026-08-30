@@ -77,6 +77,11 @@ type UpdateSessionMaxLengthCommand struct {
 	MaxLength int32
 }
 
+type GetOwnedChatSessionQuery struct {
+	UUID   string
+	UserID int32
+}
+
 func chatSessionFromRecord(s sqlc_queries.ChatSession) ChatSession {
 	var workspaceID *int32
 	if s.WorkspaceID.Valid {
@@ -234,6 +239,24 @@ func (s *ChatSessionService) GetChatSessionByUUID(ctx context.Context, uuid stri
 			return ChatSession{}, domain.NotFound("Chat session", err)
 		}
 		return ChatSession{}, eris.Wrap(err, "failed to retrieve session by uuid, ")
+	}
+	return chatSessionFromRecord(chatSession), nil
+}
+
+// GetOwnedChatSession returns an active session only when it belongs to the
+// requesting user. Ownership is enforced by SQL rather than after retrieval.
+func (s *ChatSessionService) GetOwnedChatSession(ctx context.Context, query GetOwnedChatSessionQuery) (ChatSession, error) {
+	if query.UUID == "" || query.UserID <= 0 {
+		return ChatSession{}, domain.Invalid("session UUID and user ID are required")
+	}
+	chatSession, err := s.q.GetChatSessionByUUIDForUser(ctx, sqlc_queries.GetChatSessionByUUIDForUserParams{
+		Uuid: query.UUID, UserID: query.UserID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ChatSession{}, domain.NotFound("Chat session", err)
+		}
+		return ChatSession{}, eris.Wrap(err, "failed to retrieve owned session")
 	}
 	return chatSessionFromRecord(chatSession), nil
 }

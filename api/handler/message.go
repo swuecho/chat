@@ -307,7 +307,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(w http.ResponseWriter, r *h
 		return
 	}
 
-	session, err := h.sessionSvc.GetChatSessionByUUID(r.Context(), message.ChatSessionUUID)
+	session, err := h.sessionSvc.GetOwnedChatSession(r.Context(), svc.GetOwnedChatSessionQuery{UUID: message.ChatSessionUUID, UserID: userID})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			dto.RespondWithAPIError(w, dto.ErrChatSessionNotFound.WithMessage("Session not found").WithDebugInfo(err.Error()))
