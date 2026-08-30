@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/llm/gemini"
@@ -134,18 +135,26 @@ func GenerateChatTitle(ctx context.Context, model ModelConfig, chatText string) 
 		}
 	}
 
-	answer, err := Retry(ctx, RetryPolicy{MaxAttempts: 3, InitialDelay: 200 * time.Millisecond, MaxDelay: 2 * time.Second, Jitter: RandomJitter(0.2)}, func(ctx context.Context) (string, error) {
+	exponential := backoff.NewExponentialBackOff(
+		backoff.WithInitialInterval(200*time.Millisecond),
+		backoff.WithMaxInterval(2*time.Second),
+		backoff.WithMultiplier(2),
+		backoff.WithRandomizationFactor(0.2),
+		backoff.WithMaxElapsedTime(0),
+	)
+	retryBackoff := backoff.WithContext(backoff.WithMaxRetries(exponential, 2), ctx)
+	answer, err := backoff.RetryWithData(func() (string, error) {
 		stream, err := titleModel.Stream(ctx, Request{
 			Session: Session{Model: model.Name, MaxTokens: 64, Temperature: 0.2, TopP: 1, N: 1},
 			Model:   model, Messages: messages, ChatUUID: "title-generation",
 		})
 		if err != nil {
-			return "", err
+			return "", stopRetryingUnlessProviderFailureIsRetryable(err)
 		}
 		var value string
 		for chunk := range stream {
 			if chunk.Err != nil {
-				return "", chunk.Err
+				return "", stopRetryingUnlessProviderFailureIsRetryable(chunk.Err)
 			}
 			if chunk.FinalAnswer != nil {
 				value = chunk.FinalAnswer.Answer
@@ -154,7 +163,7 @@ func GenerateChatTitle(ctx context.Context, model ModelConfig, chatText string) 
 			}
 		}
 		return value, nil
-	})
+	}, retryBackoff)
 	if err != nil {
 		return "", err
 	}

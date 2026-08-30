@@ -47,8 +47,8 @@ func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.Respo
 	if request.Status != "completed" || request.AssistantUuid == "" {
 		if streamOutput {
 			if _, err := setupSSEStream(w); err == nil {
-				_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
-					Type: "failed", Code: "request_in_progress", Message: "This request is already being processed",
+				_ = provider.FlushAnswerEvent(w, provider.AnswerEvent{
+					Type: provider.AnswerEventFailed, Code: "request_in_progress", Message: "This request is already being processed",
 				})
 			}
 		} else {

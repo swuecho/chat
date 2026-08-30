@@ -36,15 +36,15 @@ func TestStreamingResponse(t *testing.T) {
 	}
 }
 
-func TestFlushStreamEvent(t *testing.T) {
+func TestFlushAnswerEvent(t *testing.T) {
 	w := httptest.NewRecorder()
-	err := FlushStreamEvent(w, "completed", StreamEvent{
+	err := FlushAnswerEvent(w, AnswerEvent{
 		Type:      "completed",
 		AnswerID:  "answer-1",
 		Persisted: true,
 	})
 	if err != nil {
-		t.Fatalf("FlushStreamEvent() error = %v", err)
+		t.Fatalf("FlushAnswerEvent() error = %v", err)
 	}
 
 	body := w.Body.String()
@@ -53,7 +53,7 @@ func TestFlushStreamEvent(t *testing.T) {
 	}
 
 	data := strings.TrimSuffix(strings.TrimPrefix(body, "event: completed\ndata: "), "\n\n")
-	var event StreamEvent
+	var event AnswerEvent
 	if err := json.Unmarshal([]byte(data), &event); err != nil {
 		t.Fatalf("invalid event JSON: %v", err)
 	}

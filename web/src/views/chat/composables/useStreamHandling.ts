@@ -1,8 +1,7 @@
 import { useAuthStore, useMessageStore } from '@/store'
-import { extractStreamingData } from '@/utils/string'
 import { extractArtifacts } from '@/utils/artifacts'
 import { nowISO } from '@/utils/date'
-import { answerEventAsLegacyFrame, readAnswerStreamEvent } from '@/utils/sse'
+import { type AnswerStreamEvent, readAnswerStreamEvent } from '@/utils/sse'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { t } from '@/locales'
 import { getStreamingUrl } from '@/config/api'
@@ -11,16 +10,6 @@ interface ErrorResponse {
   code: number
   message: string
   details?: any
-}
-
-interface StreamChunkData {
-  choices: Array<{
-    delta: {
-      content: string
-      suggestedQuestions?: string[]
-    }
-  }>
-  id: string
 }
 
 export function useStreamHandling() {
@@ -40,72 +29,37 @@ export function useStreamHandling() {
     }
   }
 
-  function processStreamChunk(chunk: string, responseIndex: number, sessionUuid: string): void {
-    const data = extractStreamingData(chunk)
+  function processAnswerEvent(event: AnswerStreamEvent, responseIndex: number, sessionUuid: string): void {
+    const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
+    const currentMessage = messages ? (messages[responseIndex] || null) : null
+    let newText = currentMessage?.text || ''
+    let artifacts = currentMessage?.artifacts || []
 
-    if (!data)
-      return
-
-    try {
-      const parsedData: StreamChunkData = JSON.parse(data)
-
-      const delta = parsedData.choices?.[0]?.delta
-      const answerUuid = parsedData.id?.replace('chatcmpl-', '') || parsedData.id
-
-      // Handle both content and suggested questions
-      const deltaContent = delta?.content || ''
-      const suggestedQuestions = delta?.suggestedQuestions
-
-      // Skip if neither content nor suggested questions are present
-      if (!deltaContent && !suggestedQuestions && !parsedData.id) {
-        console.warn('Invalid stream chunk structure:', parsedData)
-        return
-      }
-
-      // Get current message
-      const messages = messageStore.getChatSessionDataByUuid(sessionUuid)
-      const currentMessage = messages ? (messages[responseIndex] || null) : null
-
-      // Process content if present
-      let newText = currentMessage?.text || ''
-      let artifacts = currentMessage?.artifacts || []
-
-      if (deltaContent) {
-        newText = newText + deltaContent
-        artifacts = extractArtifacts(newText)
-      }
-
-      // Prepare update object - preserve original timestamp from initial message
-      const updateData: any = {
-        uuid: answerUuid,
-        dateTime: currentMessage?.dateTime || nowISO(),
-        text: newText,
-        inversion: false,
-        error: false,
-        loading: false,
-        artifacts,
-      }
-
-      // Add suggested questions if present
-      if (suggestedQuestions && Array.isArray(suggestedQuestions) && suggestedQuestions.length > 0) {
-        updateData.suggestedQuestions = suggestedQuestions
-        updateData.suggestedQuestionsLoading = false // Clear loading state when questions are received
-      }
-
-      updateChat(sessionUuid, responseIndex, updateData)
+    if ((event.type === 'delta' || event.type === 'reasoning_delta') && event.delta) {
+      newText += event.delta
+      artifacts = extractArtifacts(newText)
     }
-    catch (error) {
-      console.error('Failed to parse stream chunk:', error)
+
+    const updateData: any = {
+      uuid: event.answerId || currentMessage?.uuid || '',
+      dateTime: currentMessage?.dateTime || nowISO(),
+      text: newText,
+      inversion: false,
+      error: false,
+      loading: false,
+      artifacts,
     }
+    if (event.type === 'suggested_questions' && event.suggestedQuestions?.length) {
+      updateData.suggestedQuestions = event.suggestedQuestions
+      updateData.suggestedQuestionsLoading = false
+    }
+    updateChat(sessionUuid, responseIndex, updateData)
   }
 
-  function processAnswerFrame(frame: string, responseIndex: number, onStreamChunk: (chunk: string, responseIndex: number) => void): boolean {
+  function processAnswerFrame(frame: string, responseIndex: number, onAnswerEvent: (event: AnswerStreamEvent, responseIndex: number) => void): boolean {
     const event = readAnswerStreamEvent(frame)
-    if (!event) {
-      if (frame.trim())
-        onStreamChunk(frame, responseIndex)
-      return false
-    }
+    if (!event)
+      throw new Error('Received an untyped answer stream frame')
     if (event.type === 'failed' || event.type === 'canceled')
       throw new Error(event.message || event.code || `Stream ${event.type}`)
     if (event.type === 'completed') {
@@ -113,8 +67,8 @@ export function useStreamHandling() {
         throw new Error('The response was not saved')
       return true
     }
-    if (event.type === 'delta' || event.type === 'reasoning_delta' || event.type === 'suggested_questions')
-      onStreamChunk(answerEventAsLegacyFrame(event), responseIndex)
+    if (event.type === 'started' || event.type === 'delta' || event.type === 'reasoning_delta' || event.type === 'suggested_questions')
+      onAnswerEvent(event, responseIndex)
     return false
   }
 
@@ -123,7 +77,7 @@ export function useStreamHandling() {
     chatUuid: string,
     message: string,
     responseIndex: number,
-    onStreamChunk: (chunk: string, responseIndex: number) => void,
+    onAnswerEvent: (event: AnswerStreamEvent, responseIndex: number) => void,
     abortSignal?: AbortSignal,
   ): Promise<void> {
     const authStore = useAuthStore()
@@ -189,12 +143,12 @@ export function useStreamHandling() {
           buffer = lines.pop() || ''
 
           for (const line of lines)
-            completed = processAnswerFrame(line, responseIndex, onStreamChunk) || completed
+            completed = processAnswerFrame(line, responseIndex, onAnswerEvent) || completed
         }
 
         // Process any remaining data in buffer
         if (buffer.trim())
-          completed = processAnswerFrame(buffer, responseIndex, onStreamChunk) || completed
+          completed = processAnswerFrame(buffer, responseIndex, onAnswerEvent) || completed
 
         if (!completed)
           throw new Error('The response stream ended before it was saved')
@@ -215,7 +169,7 @@ export function useStreamHandling() {
     chatUuid: string,
     updateIndex: number,
     isRegenerate: boolean,
-    onStreamChunk: (chunk: string, updateIndex: number) => void,
+    onAnswerEvent: (event: AnswerStreamEvent, updateIndex: number) => void,
     abortSignal?: AbortSignal,
   ): Promise<void> {
     const authStore = useAuthStore()
@@ -281,12 +235,12 @@ export function useStreamHandling() {
           buffer = lines.pop() || ''
 
           for (const line of lines)
-            completed = processAnswerFrame(line, updateIndex, onStreamChunk) || completed
+            completed = processAnswerFrame(line, updateIndex, onAnswerEvent) || completed
         }
 
         // Process any remaining data in buffer
         if (buffer.trim())
-          completed = processAnswerFrame(buffer, updateIndex, onStreamChunk) || completed
+          completed = processAnswerFrame(buffer, updateIndex, onAnswerEvent) || completed
 
         if (!completed)
           throw new Error('The regenerated response stream ended before it was saved')
@@ -309,7 +263,7 @@ export function useStreamHandling() {
 
   return {
     handleStreamError,
-    processStreamChunk,
+    processAnswerEvent,
     streamChatResponse,
     streamRegenerateResponse,
     formatErr,

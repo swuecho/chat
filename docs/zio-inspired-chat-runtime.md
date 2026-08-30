@@ -73,10 +73,11 @@ must not choose HTTP response wording.
 
 ## Retry policies
 
-`provider.RetryPolicy` is a value describing bounded exponential backoff. It
-supports a delay cap, jitter, and an injectable sleep function. `Retry` only
-repeats normalized failures whose `Retryable` field is true, and it always
-honors cancellation.
+Retry scheduling uses `github.com/cenkalti/backoff/v4`, the newest release of
+that library compatible with this project's Go 1.21 baseline. It provides
+bounded exponential backoff, jitter, context cancellation, and permanent-error
+classification. The provider adapter marks normalized failures with
+`Retryable == false` as `backoff.Permanent`.
 
 Current automatic retry use is deliberately limited to non-streaming title
 generation. It is safe to rerun because no title content has been exposed to a
@@ -121,9 +122,9 @@ Use constructor injection for capabilities and keep interfaces narrow:
 - transaction interfaces expose only operations required by that use case.
 
 IDs are injected through the existing `newID` function fields in application
-services. Time-dependent policy uses injectable functions such as
-`RetryPolicy.Sleep`. Follow this pattern when nondeterminism affects a test;
-avoid a global mock clock or a general service locator.
+services. The backoff library exposes clock and timer seams for time-dependent
+tests. Follow this pattern when nondeterminism affects a test; avoid a global
+mock clock or a general service locator.
 
 ## Testing laws
 
@@ -141,7 +142,8 @@ Tests should verify lifecycle laws, not only example output:
 - HTTP 429 and 5xx are retryable, while 4xx request/auth failures are not;
 - resource cleanup runs on success, failure, and cancellation.
 
-Use an injected ID function and retry sleep function for deterministic tests.
+Use an injected ID function and the backoff library's clock/timer seams for
+deterministic tests.
 Integration tests that require PostgreSQL run through the repository's Docker
 test setup; focused domain/provider tests do not require Docker.
 

@@ -15,7 +15,6 @@ require (
 	github.com/rotisserie/eris v0.5.4
 	github.com/samber/lo v1.39.0
 	github.com/sashabaranov/go-openai v1.36.1
-	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.18.2
 	github.com/tmc/langchaingo v0.0.0-20230610024316-06cb7b57ea80
 	golang.org/x/crypto v0.23.0
@@ -43,6 +42,7 @@ require (
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
@@ -62,7 +62,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
-	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/docker/cli v23.0.4+incompatible // indirect
 	github.com/docker/docker v23.0.4+incompatible // indirect

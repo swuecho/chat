@@ -51,17 +51,3 @@ export function readAnswerStreamEvent(frame: string): AnswerStreamEvent | null {
     throw new Error(`Invalid ${eventType} stream event`)
   }
 }
-
-export function readTerminalStreamEvent(frame: string): AnswerStreamEvent | null {
-  const event = readAnswerStreamEvent(frame)
-  if (!event || !['completed', 'failed', 'canceled'].includes(event.type))
-    return null
-  return event
-}
-
-export function answerEventAsLegacyFrame(event: AnswerStreamEvent): string {
-  return `data: ${JSON.stringify({
-    id: event.answerId,
-    choices: [{ delta: { content: event.delta || '', suggestedQuestions: event.suggestedQuestions } }],
-  })}`
-}
