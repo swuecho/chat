@@ -99,17 +99,17 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 			client := http.Client{Timeout: 5 * time.Minute}
 			llmAnswer, err := doGenerateClaude3(ctx, client, req)
 			if err != nil {
-				ch <- StreamChunk{Err: err}
+				emitChunk(ctx, ch, StreamChunk{Err: err})
 				return
 			}
-			ch <- StreamChunk{
+			emitChunk(ctx, ch, StreamChunk{
 				ID:   llmAnswer.AnswerId,
 				Done: true,
 				FinalAnswer: &models.LLMAnswer{
 					Answer:   llmAnswer.Answer,
 					AnswerId: llmAnswer.AnswerId,
 				},
-			}
+			})
 		}()
 		return ch, nil
 	}
@@ -119,7 +119,7 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 		req.Header.Set("Accept", "text/event-stream")
 		req.Header.Set("Cache-Control", "no-cache")
 		req.Header.Set("Connection", "keep-alive")
-		chatStreamClaude3(ctx, ch, req, chatUuid, regenerate)
+		chatStreamClaude3(ctx, ch, req, chatUuid, regenerate, input.NewID)
 	}()
 	return ch, nil
 }
@@ -148,16 +148,16 @@ func doGenerateClaude3(ctx context.Context, client http.Client, req *http.Reques
 	}, nil
 }
 
-func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Request, chatUuid string, regenerate bool) {
+func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Request, chatUuid string, regenerate bool, newID func() string) {
 	client := &http.Client{Timeout: 5 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
-		ch <- StreamChunk{Err: normalizeFailure("claude", "open stream", err)}
+		emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("claude", "open stream", err)})
 		return
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		defer resp.Body.Close()
-		ch <- StreamChunk{Err: domain.NewProviderHTTPFailure("claude", "open stream", resp.StatusCode, fmt.Errorf("unexpected HTTP status %s", resp.Status))}
+		emitChunk(ctx, ch, StreamChunk{Err: domain.NewProviderHTTPFailure("claude", "open stream", resp.StatusCode, fmt.Errorf("unexpected HTTP status %s", resp.Status))})
 		return
 	}
 
@@ -165,7 +165,7 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 	defer resp.Body.Close()
 
 	var answer string
-	answerID := generateAnswerID(chatUuid, regenerate)
+	answerID := generateAnswerID(chatUuid, regenerate, newID)
 	var headerData = []byte("data: ")
 	count := 0
 
@@ -173,7 +173,6 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 		select {
 		case <-ctx.Done():
 			slog.Info("Claude stream cancelled by client", "error", ctx.Err())
-			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
 			return
 		default:
 		}
@@ -186,16 +185,13 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
-					ch <- StreamChunk{
-						ID:          newUUID(),
-						Done:        true,
-						FinalAnswer: &models.LLMAnswer{Answer: string(line), AnswerId: answerID},
-					}
+					emitChunk(ctx, ch, StreamChunk{Err: classifiedFailure("claude", "read stream", domain.ProviderFailureInvalidResponse, false, errors.New(string(line)))})
+					return
 				}
 				fmt.Println("End of stream reached")
 				break
 			}
-			ch <- StreamChunk{Err: normalizeFailure("claude", "read stream", err)}
+			emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("claude", "read stream", err)})
 			return
 		}
 		line = bytes.TrimPrefix(line, headerData)
@@ -204,34 +200,38 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 			break
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
-			ch <- StreamChunk{Err: classifiedFailure("claude", "read stream", domain.ProviderFailureInvalidResponse, false, errors.New(string(line)))}
+			emitChunk(ctx, ch, StreamChunk{Err: classifiedFailure("claude", "read stream", domain.ProviderFailureInvalidResponse, false, errors.New(string(line)))})
 			return
 		}
 		if answerID == "" {
-			answerID = newUUID()
+			answerID = generateAnswerID("", false, newID)
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_start\"")) {
 			delta := claude.AnswerFromBlockStart(line)
 			answer = delta
 			if len(delta) > 0 {
-				ch <- StreamChunk{ID: answerID, Content: delta}
+				if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: delta}) {
+					return
+				}
 			}
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"content_block_delta\"")) {
 			delta := claude.AnswerFromBlockDelta(line)
 			answer += delta
 			if len(delta) > 0 {
-				ch <- StreamChunk{ID: answerID, Content: delta}
+				if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: delta}) {
+					return
+				}
 			}
 		}
 	}
 
-	ch <- StreamChunk{
+	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
 		FinalAnswer: &models.LLMAnswer{
 			Answer:   answer,
 			AnswerId: answerID,
 		},
-	}
+	})
 }

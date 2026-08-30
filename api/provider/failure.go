@@ -8,6 +8,10 @@ import (
 )
 
 func normalizeFailure(provider, operation string, err error) error {
+	var statusErr interface{ HTTPStatusCode() int }
+	if errors.As(err, &statusErr) && statusErr.HTTPStatusCode() != 0 {
+		return domain.NewProviderHTTPFailure(provider, operation, statusErr.HTTPStatusCode(), err)
+	}
 	var apiErr *openai.APIError
 	if errors.As(err, &apiErr) && apiErr.HTTPStatusCode != 0 {
 		return domain.NewProviderHTTPFailure(provider, operation, apiErr.HTTPStatusCode, err)

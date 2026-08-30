@@ -36,16 +36,21 @@ func (m *CompletionChatModel) Stream(ctx context.Context, input Request) (<-chan
 func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- StreamChunk, input Request) {
 	chatSession, chatCompletionMessages := input.Session, input.Messages
 	chatUuid, regenerate, chatModel := input.ChatUUID, input.Regenerate, input.Model
-	m.h.Config().RateLimiter.Wait(ctx)
+	if limiter := m.h.Config().RateLimiter; limiter != nil {
+		if err := limiter.Wait(ctx); err != nil {
+			emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("openai-completion", "wait for local rate limit", err)})
+			return
+		}
+	}
 
 	if err := m.h.CheckModelAccess(ctx, chatSession.UUID, chatSession.Model, chatSession.UserID); err != nil {
-		ch <- StreamChunk{Err: err}
+		emitChunk(ctx, ch, StreamChunk{Err: err})
 		return
 	}
 
 	config, err := GenOpenAIConfig(chatModel, m.h.Config())
 	if err != nil {
-		ch <- StreamChunk{Err: classifiedFailure("openai-completion", "configure", domain.ProviderFailureConfiguration, false, err)}
+		emitChunk(ctx, ch, StreamChunk{Err: classifiedFailure("openai-completion", "configure", domain.ProviderFailureConfiguration, false, err)})
 		return
 	}
 
@@ -67,20 +72,19 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
-		ch <- StreamChunk{Err: normalizeFailure("openai-completion", "open stream", err)}
+		emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("openai-completion", "open stream", err)})
 		return
 	}
 	defer stream.Close()
 
 	var answer string
-	answerID := generateAnswerID(chatUuid, regenerate)
+	answerID := generateAnswerID(chatUuid, regenerate, input.NewID)
 	TextBuffer := NewTextBuffer(N, "```\n"+prompt, "\n```\n")
 
 	for {
 		select {
 		case <-ctx.Done():
 			slog.Info("Completion stream cancelled by client", "error", ctx.Err())
-			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
 			return
 		default:
 		}
@@ -88,14 +92,14 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			if len(answer) > 0 {
-				ch <- StreamChunk{ID: answerID, Content: answer, Done: true, FinalAnswer: &models.LLMAnswer{AnswerId: answerID, Answer: answer}}
+				emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: answer, Done: true, FinalAnswer: &models.LLMAnswer{AnswerId: answerID, Answer: answer}})
 				return
 			}
 			break
 		}
 
 		if err != nil {
-			ch <- StreamChunk{Err: normalizeFailure("openai-completion", "read stream", err)}
+			emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("openai-completion", "read stream", err)})
 			return
 		}
 
@@ -116,17 +120,19 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 		perWordStreamLimit := GetPerWordStreamLimit()
 		if strings.HasSuffix(delta, "\n") || len(answer) < perWordStreamLimit {
 			if len(answer) > 0 {
-				ch <- StreamChunk{ID: answerID, Content: answer}
+				if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: answer}) {
+					return
+				}
 			}
 		}
 	}
 
-	ch <- StreamChunk{
+	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
 		FinalAnswer: &models.LLMAnswer{
 			AnswerId: answerID,
 			Answer:   answer,
 		},
-	}
+	})
 }

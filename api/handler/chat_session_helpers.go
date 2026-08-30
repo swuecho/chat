@@ -64,16 +64,12 @@ func (h *ChatHandler) claimOrReplayChatRequest(ctx context.Context, w http.Respo
 	}
 
 	if streamOutput {
-		flusher, err := setupSSEStream(w)
-		if err != nil {
+		if _, err := setupSSEStream(w); err != nil {
 			return false
 		}
-		_ = provider.FlushResponse(w, flusher, provider.StreamingResponse{
-			AnswerID: message.Uuid, Content: message.Content,
-		})
-		_ = provider.FlushStreamEvent(w, "completed", provider.StreamEvent{
-			Type: "completed", AnswerID: message.Uuid, Persisted: true,
-		})
+		events := provider.NewAnswerEventWriter(w)
+		_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventDelta, AnswerID: message.Uuid, Delta: message.Content})
+		_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventCompleted, AnswerID: message.Uuid, Persisted: true})
 		return false
 	}
 
@@ -153,144 +149,105 @@ func (h *ChatHandler) handlePromptCreation(ctx context.Context, w http.ResponseW
 
 // generateAndSaveAnswer calls the LLM, streams the response, and persists the answer.
 func (h *ChatHandler) generateAndSaveAnswer(ctx context.Context, w http.ResponseWriter, chatSession *svc.ChatSession, chatUuid string, userID int32, baseURL string, streamOutput bool) bool {
-	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, false)
-	if err != nil {
-		h.failChatRequest(chatSession.UUID, chatUuid, userID, "message_collection_failed")
-		slog.Error("error collecting messages", "session", chatSession.UUID, "error", err)
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to collect messages", err.Error()))
-		return false
+	events := provider.NewAnswerEventWriter(w)
+	if streamOutput {
+		if _, err := setupSSEStream(w); err != nil {
+			return false
+		}
 	}
-	slog.Info("Collected messages", "sessionUUID", chatSession.UUID, "count", len(msgs), "model", chatSession.Model)
-
-	if err := h.service.MarkChatRequestStreaming(ctx, chatUuid, chatSession.UUID, userID); err != nil {
-		h.failChatRequest(chatSession.UUID, chatUuid, userID, "request_state_failed")
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to start chat request", err.Error()))
-		return false
+	var onChunk func(provider.StreamChunk) error
+	if streamOutput {
+		onChunk = func(chunk provider.StreamChunk) error {
+			return events.Emit(provider.AnswerEvent{Type: provider.AnswerEventDelta, AnswerID: chunk.ID, Delta: chunk.Content})
+		}
 	}
-
-	model := h.chooseChatModel(ctx, *chatSession, msgs)
-	providerRequest, err := h.service.ProviderRequest(ctx, *chatSession, msgs, chatUuid, false, streamOutput)
+	result, err := h.service.GenerateAnswer(ctx, svc.GenerateAnswerCommand{
+		Session: *chatSession, RequestUUID: chatUuid, UserID: userID, BaseURL: baseURL,
+		Stream: streamOutput,
+	}, svc.GenerateAnswerDependencies{
+		SelectModel: func(msgs []models.Message) provider.ChatModel {
+			return h.chooseChatModel(ctx, *chatSession, msgs)
+		},
+		OnChunk:   onChunk,
+		ShouldLog: func(msgs []models.Message) bool { return !isTest(msgs) },
+	})
 	if err != nil {
-		h.failChatRequest(chatSession.UUID, chatUuid, userID, "provider_request_failed")
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to prepare model request"))
-		return false
-	}
-	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest)
-	if err != nil {
-		h.failChatRequest(chatSession.UUID, chatUuid, userID, "generation_failed")
 		slog.Error("error generating answer", "error", err)
+		code := "generation_failed"
+		var generationErr *svc.GenerateAnswerError
+		if errors.As(err, &generationErr) {
+			code = generationErr.Code
+		}
 		if streamOutput {
-			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
-				Type: "failed", Code: "generation_failed", Message: "Failed to generate answer",
+			eventType := provider.AnswerEventFailed
+			message := "Failed to generate answer"
+			if code == "canceled" {
+				eventType = provider.AnswerEventCanceled
+				message = "Answer generation was canceled"
+			}
+			_ = events.Emit(provider.AnswerEvent{
+				Type: eventType, Code: code, Message: message,
 			})
 			return false
 		}
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return false
 	}
-	if LLMAnswer == nil {
-		h.failChatRequest(chatSession.UUID, chatUuid, userID, "empty_answer")
-		if streamOutput {
-			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
-				Type: "failed", Code: "empty_answer", Message: "The model returned no final answer",
-			})
+
+	if !streamOutput {
+		if err := json.NewEncoder(w).Encode(ChatCompletionResponse{ID: result.Answer.AnswerId, Object: "chat.completion", Choices: []Choice{{Message: openai.ChatCompletionMessage{Content: result.Answer.Answer}}}}); err != nil {
 			return false
 		}
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("LLMAnswer is nil"))
-		return false
 	}
-
-	if !isTest(msgs) {
-		h.service.LogChat(*chatSession, msgs, LLMAnswer.ReasoningContent+LLMAnswer.Answer)
-	}
-
-	chatMessage, err := h.service.CompleteChatRequestWithSuggestedQuestions(ctx, chatUuid, chatSession.UUID, LLMAnswer.AnswerId, LLMAnswer.Answer, LLMAnswer.ReasoningContent, chatSession.Model, userID, baseURL, chatSession.SummarizeMode, chatSession.ExploreMode, msgs)
-	if err != nil {
-		h.failChatRequest(chatSession.UUID, chatUuid, userID, "persistence_failed")
-		if streamOutput {
-			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
-				Type: "failed", AnswerID: LLMAnswer.AnswerId, Code: "persistence_failed", Message: "Failed to save answer",
-			})
-			return false
-		}
-		dto.RespondWithAPIError(w, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to create message", err.Error()))
-		return false
-	}
-
-	if streamOutput && chatSession.ExploreMode && chatMessage.SuggestedQuestions != nil {
-		h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, chatMessage.SuggestedQuestions)
+	if streamOutput && chatSession.ExploreMode && result.SuggestedQuestions != nil {
+		h.sendSuggestedQuestionsStream(events, result.Answer.AnswerId, result.SuggestedQuestions)
 	}
 	if streamOutput {
-		if err := provider.FlushStreamEvent(w, "completed", provider.StreamEvent{
-			Type: "completed", AnswerID: LLMAnswer.AnswerId, Persisted: true,
+		if err := events.Emit(provider.AnswerEvent{
+			Type: provider.AnswerEventCompleted, AnswerID: result.Answer.AnswerId, Persisted: true,
 		}); err != nil {
 			slog.Warn("Failed to send stream completion event", "error", err)
 		}
 	}
 
-	// Launch title generation with bounded concurrency
-	go func() {
-		titleGenSemaphore <- struct{}{}
-		defer func() { <-titleGenSemaphore }()
-		h.generateSessionTitle(chatSession, userID)
-	}()
+	// Launch best-effort title generation only when a bounded slot is available.
+	select {
+	case titleGenSemaphore <- struct{}{}:
+		go func() {
+			defer func() { <-titleGenSemaphore }()
+			h.generateSessionTitle(chatSession, userID)
+		}()
+	default:
+		slog.Info("Skipping title generation because all worker slots are busy", "sessionUUID", chatSession.UUID)
+	}
 	return true
 }
 
 // streamFromModel calls model.Stream() and consumes the channel, writing SSE or JSON to w.
 // Returns the final answer or an error.
-func streamFromModel(model provider.ChatModel, ctx context.Context, w http.ResponseWriter, input provider.Request) (*models.LLMAnswer, error) {
-	ch, err := model.Stream(ctx, input)
+func streamFromModel(model provider.ChatModel, ctx context.Context, w http.ResponseWriter, input provider.Request, events *provider.AnswerEventWriter) (*models.LLMAnswer, error) {
+	var onChunk func(provider.StreamChunk) error
+	if input.Stream {
+		if events == nil {
+			return nil, errors.New("typed answer event writer is required for streaming")
+		}
+		if _, err := setupSSEStream(w); err != nil {
+			return nil, err
+		}
+		onChunk = func(chunk provider.StreamChunk) error {
+			return events.Emit(provider.AnswerEvent{Type: provider.AnswerEventDelta, AnswerID: chunk.ID, Delta: chunk.Content})
+		}
+	}
+	answer, err := provider.ConsumeStream(ctx, model, input, onChunk)
 	if err != nil {
 		return nil, err
 	}
-
-	var lastAnswer *models.LLMAnswer
-
-	if input.Stream {
-		flusher, err := setupSSEStream(w)
-		if err != nil {
+	if !input.Stream {
+		if err := json.NewEncoder(w).Encode(ChatCompletionResponse{ID: answer.AnswerId, Object: "chat.completion", Choices: []Choice{{Message: openai.ChatCompletionMessage{Content: answer.Answer}}}}); err != nil {
 			return nil, err
 		}
-		for chunk := range ch {
-			if chunk.Err != nil {
-				return nil, chunk.Err
-			}
-			if chunk.Done {
-				lastAnswer = chunk.FinalAnswer
-				break
-			}
-			if chunk.Content != "" {
-				provider.FlushResponse(w, flusher, provider.StreamingResponse{
-					AnswerID: chunk.ID,
-					Content:  chunk.Content,
-					IsFinal:  false,
-				})
-			}
-		}
-	} else {
-		for chunk := range ch {
-			if chunk.Err != nil {
-				return nil, chunk.Err
-			}
-			if chunk.Done {
-				lastAnswer = chunk.FinalAnswer
-				break
-			}
-		}
-		// Write non-streaming JSON response
-		if lastAnswer != nil {
-			json.NewEncoder(w).Encode(ChatCompletionResponse{
-				ID:     lastAnswer.AnswerId,
-				Object: "chat.completion",
-				Choices: []Choice{{
-					Message: openai.ChatCompletionMessage{Content: lastAnswer.Answer},
-				}},
-			})
-		}
 	}
-
-	return lastAnswer, nil
+	return answer, nil
 }
 
 // generateSessionTitle asynchronously updates the session topic using an LLM.
@@ -327,21 +284,11 @@ func (h *ChatHandler) generateSessionTitle(chatSession *svc.ChatSession, userID 
 }
 
 // sendSuggestedQuestionsStream sends suggested questions as an SSE event.
-func (h *ChatHandler) sendSuggestedQuestionsStream(w http.ResponseWriter, answerID string, suggestedQuestionsJSON json.RawMessage) {
+func (h *ChatHandler) sendSuggestedQuestionsStream(events *provider.AnswerEventWriter, answerID string, suggestedQuestionsJSON json.RawMessage) {
 	var suggestedQuestions []string
 	if err := json.Unmarshal(suggestedQuestionsJSON, &suggestedQuestions); err != nil || len(suggestedQuestions) == 0 {
 		return
 	}
 
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		return
-	}
-
-	response := suggestedQuestionsChunk{ID: answerID, Object: "chat.completion.chunk",
-		Choices: []suggestedQuestionsChoice{{Index: 0, Delta: suggestedQuestionsDelta{SuggestedQuestions: suggestedQuestions}}}}
-
-	data, _ := json.Marshal(response)
-	fmt.Fprintf(w, "data: %v\n\n", string(data))
-	flusher.Flush()
+	_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventSuggested, AnswerID: answerID, SuggestedQuestions: suggestedQuestions})
 }

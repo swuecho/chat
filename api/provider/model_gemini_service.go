@@ -46,7 +46,7 @@ func NewGeminiChatModel(h Handler) *GeminiChatModel {
 func (m *GeminiChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
 	chatSession, messages := input.Session, input.Messages
 	chatUuid, regenerate, stream := input.ChatUUID, input.Regenerate, input.Stream
-	answerID := generateAnswerID(chatUuid, regenerate)
+	answerID := generateAnswerID(chatUuid, regenerate, input.NewID)
 	chatFiles := input.Files
 
 	geminiFiles := make([]gemini.File, 0, len(chatFiles))
@@ -79,21 +79,21 @@ func (m *GeminiChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 		defer close(ch)
 		llmAnswer, err := gemini.HandleRegularResponse(*m.client.client, req)
 		if err != nil {
-			ch <- StreamChunk{Err: normalizeFailure("gemini", "complete", err)}
+			emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("gemini", "complete", err)})
 			return
 		}
 		if llmAnswer == nil {
-			ch <- StreamChunk{Err: classifiedFailure("gemini", "decode response", domain.ProviderFailureInvalidResponse, false, errors.New("empty response"))}
+			emitChunk(ctx, ch, StreamChunk{Err: classifiedFailure("gemini", "decode response", domain.ProviderFailureInvalidResponse, false, errors.New("empty response"))})
 			return
 		}
-		ch <- StreamChunk{
+		emitChunk(ctx, ch, StreamChunk{
 			ID:   answerID,
 			Done: true,
 			FinalAnswer: &models.LLMAnswer{
 				Answer:   llmAnswer.Answer,
 				AnswerId: answerID,
 			},
-		}
+		})
 	}()
 	return ch, nil
 }
@@ -134,24 +134,29 @@ func GenerateChatTitle(ctx context.Context, model ModelConfig, chatText string) 
 		}
 	}
 
-	stream, err := titleModel.Stream(ctx, Request{
-		Session: Session{Model: model.Name, MaxTokens: 64, Temperature: 0.2, TopP: 1, N: 1},
-		Model:   model, Messages: messages, ChatUUID: "title-generation",
+	answer, err := Retry(ctx, RetryPolicy{MaxAttempts: 3, InitialDelay: 200 * time.Millisecond, MaxDelay: 2 * time.Second, Jitter: RandomJitter(0.2)}, func(ctx context.Context) (string, error) {
+		stream, err := titleModel.Stream(ctx, Request{
+			Session: Session{Model: model.Name, MaxTokens: 64, Temperature: 0.2, TopP: 1, N: 1},
+			Model:   model, Messages: messages, ChatUUID: "title-generation",
+		})
+		if err != nil {
+			return "", err
+		}
+		var value string
+		for chunk := range stream {
+			if chunk.Err != nil {
+				return "", chunk.Err
+			}
+			if chunk.FinalAnswer != nil {
+				value = chunk.FinalAnswer.Answer
+			} else if chunk.Content != "" {
+				value += chunk.Content
+			}
+		}
+		return value, nil
 	})
 	if err != nil {
 		return "", err
-	}
-
-	var answer string
-	for chunk := range stream {
-		if chunk.Err != nil {
-			return "", chunk.Err
-		}
-		if chunk.FinalAnswer != nil {
-			answer = chunk.FinalAnswer.Answer
-		} else if chunk.Content != "" {
-			answer += chunk.Content
-		}
 	}
 	if strings.TrimSpace(answer) == "" {
 		return "", dto.ErrInternalUnexpected.WithMessage("Empty response from title generation model")
@@ -180,7 +185,7 @@ func GenerateChatTitle(ctx context.Context, model ModelConfig, chatText string) 
 func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- StreamChunk, req *http.Request, answerID string) {
 	resp, err := m.client.client.Do(req)
 	if err != nil {
-		ch <- StreamChunk{Err: normalizeFailure("gemini", "open stream", err)}
+		emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("gemini", "open stream", err)})
 		return
 	}
 	defer resp.Body.Close()
@@ -200,7 +205,7 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- St
 		if message == "" {
 			message = http.StatusText(resp.StatusCode)
 		}
-		ch <- StreamChunk{Err: domain.NewProviderHTTPFailure("gemini", "open stream", resp.StatusCode, errors.New(message))}
+		emitChunk(ctx, ch, StreamChunk{Err: domain.NewProviderHTTPFailure("gemini", "open stream", resp.StatusCode, errors.New(message))})
 		return
 	}
 	ioreader := bufio.NewReader(resp.Body)
@@ -210,7 +215,6 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- St
 		select {
 		case <-ctx.Done():
 			slog.Info("Gemini stream cancelled by client", "error", ctx.Err())
-			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
 			return
 		default:
 		}
@@ -218,14 +222,14 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- St
 		line, err := ioreader.ReadBytes('\n')
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				ch <- StreamChunk{
+				emitChunk(ctx, ch, StreamChunk{
 					ID:          answerID,
 					Done:        true,
 					FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID},
-				}
+				})
 				return
 			}
-			ch <- StreamChunk{Err: normalizeFailure("gemini", "read stream", err)}
+			emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("gemini", "read stream", err)})
 			return
 		}
 
@@ -238,17 +242,19 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- St
 			delta := gemini.ParseRespLineDelta(line)
 			answer += delta
 			if len(delta) > 0 {
-				ch <- StreamChunk{ID: answerID, Content: delta}
+				if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: delta}) {
+					return
+				}
 			}
 		}
 	}
 
-	ch <- StreamChunk{
+	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
 		FinalAnswer: &models.LLMAnswer{
 			AnswerId: answerID,
 			Answer:   answer,
 		},
-	}
+	})
 }

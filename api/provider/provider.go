@@ -56,6 +56,7 @@ type Request struct {
 	ChatUUID   string
 	Regenerate bool
 	Stream     bool
+	NewID      func() string
 }
 
 // StreamChunk represents a single chunk in a streaming LLM response.
@@ -65,6 +66,17 @@ type StreamChunk struct {
 	Done        bool              // true for the terminal chunk
 	FinalAnswer *models.LLMAnswer // set on Done (nil on error)
 	Err         error             // non-nil if a stream error occurred
+}
+
+// emitChunk prevents a provider goroutine from being stranded when its request
+// is canceled or its consumer stops reading.
+func emitChunk(ctx context.Context, ch chan<- StreamChunk, chunk StreamChunk) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case ch <- chunk:
+		return true
+	}
 }
 
 // ChatModel is the interface all LLM providers must implement.
