@@ -159,6 +159,7 @@ func (s *server) buildRouter() (http.Handler, *mux.Router) {
 	router.Use(middleware.RecoveryMiddleware)
 	router.Use(middleware.RequestIDMiddleware)
 	router.Use(middleware.BodyLimitMiddleware)
+	router.Use(middleware.ValidateUUIDRouteParams)
 
 	// --- Health check (public, before auth) ---
 	apiRouter.HandleFunc("/health", s.healthCheck).Methods(http.MethodGet)

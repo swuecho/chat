@@ -11,6 +11,9 @@ import (
 
 func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r *http.Request) {
 	workspaceUUID := mux.Vars(r)["uuid"]
+	if !validateUUIDParam(w, "uuid", workspaceUUID) {
+		return
+	}
 
 	var req dto.CreateSessionInWorkspaceRequest
 	if err := DecodeJSON(r, &req); err != nil {
@@ -41,6 +44,9 @@ func (h *ChatWorkspaceHandler) createSessionInWorkspace(w http.ResponseWriter, r
 
 func (h *ChatWorkspaceHandler) getSessionsByWorkspace(w http.ResponseWriter, r *http.Request) {
 	workspaceUUID := mux.Vars(r)["uuid"]
+	if !validateUUIDParam(w, "uuid", workspaceUUID) {
+		return
+	}
 
 	ctx := r.Context()
 	userID, err := getUserID(ctx)

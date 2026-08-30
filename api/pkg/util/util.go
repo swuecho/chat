@@ -79,33 +79,49 @@ func PerWordStreamLimit() int {
 	return n
 }
 
-// PaginationParams extracts limit and offset from HTTP query parameters.
-func PaginationParams(r *http.Request) (limit int32, offset int32) {
+// PaginationParams extracts and validates bounded limit and offset parameters.
+func PaginationParams(r *http.Request) (limit int32, offset int32, err error) {
 	limit = 100
 	if v := r.URL.Query().Get("limit"); v != "" {
-		if l, err := strconv.ParseInt(v, 10, 32); err == nil {
-			limit = int32(l)
+		parsed, parseErr := strconv.ParseInt(v, 10, 32)
+		if parseErr != nil {
+			return 0, 0, fmt.Errorf("limit must be an integer")
 		}
+		limit = int32(parsed)
 	}
 	if v := r.URL.Query().Get("offset"); v != "" {
-		if o, err := strconv.ParseInt(v, 10, 32); err == nil {
-			offset = int32(o)
+		parsed, parseErr := strconv.ParseInt(v, 10, 32)
+		if parseErr != nil {
+			return 0, 0, fmt.Errorf("offset must be an integer")
 		}
+		offset = int32(parsed)
 	}
-	return
+	if limit < 1 || limit > 500 {
+		return 0, 0, fmt.Errorf("limit must be between 1 and 500")
+	}
+	if offset < 0 {
+		return 0, 0, fmt.Errorf("offset must not be negative")
+	}
+	return limit, offset, nil
 }
 
-// LimitParam extracts an optional limit parameter with a default value.
-func LimitParam(r *http.Request, defaultLimit int32) int32 {
+// LimitParam extracts and validates an optional bounded limit parameter.
+func LimitParam(r *http.Request, defaultLimit int32) (int32, error) {
 	v := r.URL.Query().Get("limit")
 	if v == "" {
-		return defaultLimit
+		if defaultLimit < 1 || defaultLimit > 500 {
+			return 0, fmt.Errorf("default limit must be between 1 and 500")
+		}
+		return defaultLimit, nil
 	}
 	n, err := strconv.ParseInt(v, 10, 32)
 	if err != nil {
-		return defaultLimit
+		return 0, fmt.Errorf("limit must be an integer")
 	}
-	return int32(n)
+	if n < 1 || n > 500 {
+		return 0, fmt.Errorf("limit must be between 1 and 500")
+	}
+	return int32(n), nil
 }
 
 // Validator is implemented by request types that can validate themselves after

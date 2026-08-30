@@ -84,7 +84,11 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByBotUUID(w http.ResponseWr
 		return
 	}
 
-	limit, offset := getPaginationParams(r)
+	limit, offset, err := getPaginationParams(r)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(err.Error()))
+		return
+	}
 	history, err := h.service.GetBotAnswerHistoryByBotUUID(r.Context(), svc.BotAnswerHistoryPageQuery{BotUUID: botUUID, Page: svc.PageWindow{Limit: limit, Offset: offset}})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history"))
@@ -113,7 +117,11 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByUserID(w http.ResponseWri
 		return
 	}
 
-	limit, offset := getPaginationParams(r)
+	limit, offset, err := getPaginationParams(r)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(err.Error()))
+		return
+	}
 	history, err := h.service.GetBotAnswerHistoryByUserID(ctx, svc.UserAnswerHistoryPageQuery{UserID: userID, Page: svc.PageWindow{Limit: limit, Offset: offset}})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get bot answer history"))
@@ -214,7 +222,11 @@ func (h *BotAnswerHistoryHandler) GetLatestBotAnswerHistoryByBotUUID(w http.Resp
 		return
 	}
 
-	limit := getLimitParam(r, 1)
+	limit, err := getLimitParam(r, 1)
+	if err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(err.Error()))
+		return
+	}
 	history, err := h.service.GetLatestBotAnswerHistoryByBotUUID(r.Context(), svc.LatestBotAnswerHistoryQuery{BotUUID: botUUID, Limit: limit})
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get latest bot answer history"))

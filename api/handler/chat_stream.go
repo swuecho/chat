@@ -14,6 +14,7 @@ import (
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/svc"
+	"github.com/swuecho/chat_backend/validation"
 )
 
 // --- Request types used by chat handlers ---
@@ -30,6 +31,17 @@ type BotRequest struct {
 	Message      string `json:"message"`
 	SnapshotUuid string `json:"snapshot_uuid"`
 	Stream       bool   `json:"stream"`
+}
+
+func (r *BotRequest) Validate() error {
+	return validation.UUID("snapshot_uuid", r.SnapshotUuid, true)
+}
+
+func (r *ChatRequest) Validate() error {
+	if err := validation.UUID("sessionUuid", r.SessionUuid, true); err != nil {
+		return err
+	}
+	return validation.UUID("chatUuid", r.ChatUuid, true)
 }
 
 type ChatCompletionResponse struct {

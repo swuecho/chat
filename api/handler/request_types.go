@@ -2,8 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/swuecho/chat_backend/svc"
+	"github.com/swuecho/chat_backend/validation"
 )
 
 type createChatModelRequest struct {
@@ -83,6 +85,98 @@ type createBotAnswerHistoryRequest struct {
 	Answer     string `json:"answer"`
 	Model      string `json:"model"`
 	TokensUsed int32  `json:"tokensUsed"`
+}
+
+type createChatSessionRequest struct {
+	UUID                string `json:"uuid"`
+	Topic               string `json:"topic"`
+	Model               string `json:"model"`
+	DefaultSystemPrompt string `json:"defaultSystemPrompt"`
+}
+
+func (r *createChatSessionRequest) Validate() error {
+	if err := validation.UUID("uuid", r.UUID, true); err != nil {
+		return err
+	}
+	if err := validation.Topic(r.Topic, false); err != nil {
+		return err
+	}
+	return validation.ModelName("model", r.Model, true)
+}
+
+type updateSessionTopicRequest struct {
+	Topic string `json:"topic"`
+}
+
+func (r *updateSessionTopicRequest) Validate() error {
+	return validation.Topic(r.Topic, true)
+}
+
+type updateSessionMaxLengthRequest struct {
+	MaxLength int32 `json:"maxLength"`
+}
+
+func (r *updateSessionMaxLengthRequest) Validate() error {
+	return validation.TokenCount("maxLength", r.MaxLength, false)
+}
+
+func (r *createChatModelRequest) Validate() error {
+	if err := validation.ModelName("name", r.Name, true); err != nil {
+		return err
+	}
+	if err := validation.TokenCount("maxToken", r.MaxToken, true); err != nil {
+		return err
+	}
+	if err := validation.TokenCount("defaultToken", r.DefaultToken, true); err != nil {
+		return err
+	}
+	if r.DefaultToken > 0 && r.MaxToken > 0 && r.DefaultToken > r.MaxToken {
+		return fmt.Errorf("defaultToken must not exceed maxToken")
+	}
+	return nil
+}
+
+func (r *chatPromptRequest) Validate() error {
+	if err := validation.UUID("uuid", r.UUID, false); err != nil {
+		return err
+	}
+	if err := validation.UUID("chatSessionUuid", r.ChatSessionUUID, false); err != nil {
+		return err
+	}
+	return validation.TokenCount("tokenCount", r.TokenCount, true)
+}
+
+func (r *chatMessageRequest) Validate() error {
+	if err := validation.UUID("uuid", r.UUID, true); err != nil {
+		return err
+	}
+	if err := validation.UUID("chatSessionUuid", r.ChatSessionUUID, true); err != nil {
+		return err
+	}
+	if err := validation.ModelName("model", r.Model, false); err != nil {
+		return err
+	}
+	return validation.TokenCount("tokenCount", r.TokenCount, true)
+}
+
+func (r *chatModelPrivilegeRequest) Validate() error {
+	if err := validation.ModelName("chatModelName", r.ChatModelName, true); err != nil {
+		return err
+	}
+	if r.RateLimit < 1 || r.RateLimit > validation.MaxTokenCount {
+		return fmt.Errorf("rateLimit must be between 1 and %d", validation.MaxTokenCount)
+	}
+	return nil
+}
+
+func (r *createBotAnswerHistoryRequest) Validate() error {
+	if err := validation.UUID("botUuid", r.BotUUID, true); err != nil {
+		return err
+	}
+	if err := validation.ModelName("model", r.Model, true); err != nil {
+		return err
+	}
+	return validation.TokenCount("tokensUsed", r.TokensUsed, true)
 }
 
 func (r createChatModelRequest) createInput(userID int32, apiType string) svc.CreateChatModelInput {

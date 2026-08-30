@@ -5,7 +5,9 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/pkg/util"
+	"github.com/swuecho/chat_backend/validation"
 )
 
 // Re-exported from pkg/util for convenient use within the handler package.
@@ -25,5 +27,13 @@ func getUserID(ctx context.Context) (int32, error)               { return util.U
 func setSSEHeader(w http.ResponseWriter)                         { _, _ = util.SetupSSE(w) }
 func setupSSEStream(w http.ResponseWriter) (http.Flusher, error) { return util.SetupSSE(w) }
 func getPerWordStreamLimit() int                                 { return util.PerWordStreamLimit() }
-func getPaginationParams(r *http.Request) (int32, int32)         { return util.PaginationParams(r) }
-func getLimitParam(r *http.Request, d int32) int32               { return util.LimitParam(r, d) }
+func getPaginationParams(r *http.Request) (int32, int32, error)  { return util.PaginationParams(r) }
+func getLimitParam(r *http.Request, d int32) (int32, error)      { return util.LimitParam(r, d) }
+
+func validateUUIDParam(w http.ResponseWriter, field, value string) bool {
+	if err := validation.UUID(field, value, true); err != nil {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(err.Error()))
+		return false
+	}
+	return true
+}

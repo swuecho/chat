@@ -30,6 +30,9 @@ func (h *ChatSessionHandler) Register(router *mux.Router) {
 
 func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
+	if !validateUUIDParam(w, "uuid", uuid) {
+		return
+	}
 	userID, err := getUserID(r.Context())
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
@@ -52,12 +55,7 @@ func (h *ChatSessionHandler) getChatSessionByUUID(w http.ResponseWriter, r *http
 }
 
 func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Uuid                string `json:"uuid"`
-		Topic               string `json:"topic"`
-		Model               string `json:"model"`
-		DefaultSystemPrompt string `json:"defaultSystemPrompt"`
-	}
+	var req createChatSessionRequest
 	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
@@ -71,7 +69,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 	}
 
 	session, err := h.service.SaveSession(ctx, svc.SaveSessionCommand{
-		SessionUUID: req.Uuid, UserID: userID, Topic: req.Topic,
+		SessionUUID: req.UUID, UserID: userID, Topic: req.Topic,
 		MaxLength: dto.DefaultMaxLength, Temperature: dto.DefaultTemperature,
 		Model: req.Model, MaxTokens: dto.DefaultMaxTokens, TopP: dto.DefaultTopP, N: dto.DefaultN,
 		Debug: false, SummarizeMode: false, ExploreMode: false, ArtifactEnabled: false,
@@ -86,9 +84,17 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 }
 
 func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
+	pathUUID := mux.Vars(r)["uuid"]
+	if !validateUUIDParam(w, "uuid", pathUUID) {
+		return
+	}
 	var sessionReq dto.UpdateChatSessionRequest
 	if err := DecodeJSON(r, &sessionReq); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
+		return
+	}
+	if sessionReq.Uuid != pathUUID {
+		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("request uuid must match path uuid"))
 		return
 	}
 	if sessionReq.MaxLength == 0 {
@@ -121,6 +127,9 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 
 func (h *ChatSessionHandler) deleteChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
+	if !validateUUIDParam(w, "uuid", uuid) {
+		return
+	}
 
 	userID, err := getUserID(r.Context())
 	if err != nil {
@@ -162,9 +171,10 @@ func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(w http.ResponseWriter
 
 func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
-	var req struct {
-		Topic string `json:"topic"`
+	if !validateUUIDParam(w, "uuid", uuid) {
+		return
 	}
+	var req updateSessionTopicRequest
 	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
@@ -184,9 +194,10 @@ func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter,
 
 func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *http.Request) {
 	uuid := mux.Vars(r)["uuid"]
-	var req struct {
-		MaxLength int32 `json:"maxLength"`
+	if !validateUUIDParam(w, "uuid", uuid) {
+		return
 	}
+	var req updateSessionMaxLengthRequest
 	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
@@ -206,6 +217,9 @@ func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *ht
 
 func (h *ChatSessionHandler) createChatSessionFromSnapshot(w http.ResponseWriter, r *http.Request) {
 	snapshotUUID := mux.Vars(r)["uuid"]
+	if !validateUUIDParam(w, "uuid", snapshotUUID) {
+		return
+	}
 
 	userID, err := getUserID(r.Context())
 	if err != nil {

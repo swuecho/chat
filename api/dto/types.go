@@ -2,9 +2,11 @@
 package dto
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/swuecho/chat_backend/domain"
+	"github.com/swuecho/chat_backend/validation"
 )
 
 // --- Request types ---
@@ -48,6 +50,34 @@ type UpdateChatSessionRequest struct {
 	ArtifactEnabled bool    `json:"artifactEnabled"`
 	ExploreMode     bool    `json:"exploreMode"`
 	WorkspaceUUID   string  `json:"workspaceUuid,omitempty"`
+}
+
+func (r *UpdateChatSessionRequest) Validate() error {
+	if err := validation.UUID("uuid", r.Uuid, true); err != nil {
+		return err
+	}
+	if err := validation.UUID("workspaceUuid", r.WorkspaceUUID, false); err != nil {
+		return err
+	}
+	if err := validation.Topic(r.Topic, false); err != nil {
+		return err
+	}
+	if err := validation.ModelName("model", r.Model, true); err != nil {
+		return err
+	}
+	if r.MaxLength != 0 && (r.MaxLength < 1 || r.MaxLength > validation.MaxTokenCount) {
+		return fmt.Errorf("maxLength must be between 1 and %d", validation.MaxTokenCount)
+	}
+	if r.Temperature < 0 || r.Temperature > 2 {
+		return fmt.Errorf("temperature must be between 0 and 2")
+	}
+	if r.TopP < 0 || r.TopP > 1 {
+		return fmt.Errorf("topP must be between 0 and 1")
+	}
+	if r.N < 1 || r.N > 128 {
+		return fmt.Errorf("n must be between 1 and 128")
+	}
+	return validation.TokenCount("maxTokens", r.MaxTokens, false)
 }
 
 // --- Response types ---
@@ -168,6 +198,13 @@ type CreateSessionInWorkspaceRequest struct {
 	Topic               string `json:"topic"`
 	Model               string `json:"model"`
 	DefaultSystemPrompt string `json:"defaultSystemPrompt"`
+}
+
+func (r *CreateSessionInWorkspaceRequest) Validate() error {
+	if err := validation.Topic(r.Topic, false); err != nil {
+		return err
+	}
+	return validation.ModelName("model", r.Model, true)
 }
 
 // --- Chat instruction response ---
