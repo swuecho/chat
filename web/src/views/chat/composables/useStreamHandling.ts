@@ -2,7 +2,7 @@ import { useAuthStore, useMessageStore } from '@/store'
 import { extractStreamingData } from '@/utils/string'
 import { extractArtifacts } from '@/utils/artifacts'
 import { nowISO } from '@/utils/date'
-import { readTerminalStreamEvent } from '@/utils/sse'
+import { answerEventAsLegacyFrame, readAnswerStreamEvent } from '@/utils/sse'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { t } from '@/locales'
 import { getStreamingUrl } from '@/config/api'
@@ -99,6 +99,25 @@ export function useStreamHandling() {
     }
   }
 
+  function processAnswerFrame(frame: string, responseIndex: number, onStreamChunk: (chunk: string, responseIndex: number) => void): boolean {
+    const event = readAnswerStreamEvent(frame)
+    if (!event) {
+      if (frame.trim())
+        onStreamChunk(frame, responseIndex)
+      return false
+    }
+    if (event.type === 'failed' || event.type === 'canceled')
+      throw new Error(event.message || event.code || `Stream ${event.type}`)
+    if (event.type === 'completed') {
+      if (!event.persisted)
+        throw new Error('The response was not saved')
+      return true
+    }
+    if (event.type === 'delta' || event.type === 'reasoning_delta' || event.type === 'suggested_questions')
+      onStreamChunk(answerEventAsLegacyFrame(event), responseIndex)
+    return false
+  }
+
   async function streamChatResponse(
     sessionUuid: string,
     chatUuid: string,
@@ -169,31 +188,13 @@ export function useStreamHandling() {
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
 
-          for (const line of lines) {
-            const terminalEvent = readTerminalStreamEvent(line)
-            if (terminalEvent?.type === 'failed')
-              throw new Error(terminalEvent.message || terminalEvent.code || 'Stream failed')
-            if (terminalEvent?.type === 'completed') {
-              if (!terminalEvent.persisted)
-                throw new Error('The response was not saved')
-              completed = true
-            }
-            else if (line.trim()) {
-              onStreamChunk(line, responseIndex)
-            }
-          }
+          for (const line of lines)
+            completed = processAnswerFrame(line, responseIndex, onStreamChunk) || completed
         }
 
         // Process any remaining data in buffer
-        if (buffer.trim()) {
-          const terminalEvent = readTerminalStreamEvent(buffer)
-          if (terminalEvent?.type === 'failed')
-            throw new Error(terminalEvent.message || terminalEvent.code || 'Stream failed')
-          if (terminalEvent?.type === 'completed')
-            completed = terminalEvent.persisted === true
-          else
-            onStreamChunk(buffer, responseIndex)
-        }
+        if (buffer.trim())
+          completed = processAnswerFrame(buffer, responseIndex, onStreamChunk) || completed
 
         if (!completed)
           throw new Error('The response stream ended before it was saved')
@@ -279,31 +280,13 @@ export function useStreamHandling() {
           // Keep the last potentially incomplete message in buffer
           buffer = lines.pop() || ''
 
-          for (const line of lines) {
-            const terminalEvent = readTerminalStreamEvent(line)
-            if (terminalEvent?.type === 'failed')
-              throw new Error(terminalEvent.message || terminalEvent.code || 'Stream failed')
-            if (terminalEvent?.type === 'completed') {
-              if (!terminalEvent.persisted)
-                throw new Error('The regenerated response was not saved')
-              completed = true
-            }
-            else if (line.trim()) {
-              onStreamChunk(line, updateIndex)
-            }
-          }
+          for (const line of lines)
+            completed = processAnswerFrame(line, updateIndex, onStreamChunk) || completed
         }
 
         // Process any remaining data in buffer
-        if (buffer.trim()) {
-          const terminalEvent = readTerminalStreamEvent(buffer)
-          if (terminalEvent?.type === 'failed')
-            throw new Error(terminalEvent.message || terminalEvent.code || 'Stream failed')
-          if (terminalEvent?.type === 'completed')
-            completed = terminalEvent.persisted === true
-          else
-            onStreamChunk(buffer, updateIndex)
-        }
+        if (buffer.trim())
+          completed = processAnswerFrame(buffer, updateIndex, onStreamChunk) || completed
 
         if (!completed)
           throw new Error('The regenerated response stream ended before it was saved')

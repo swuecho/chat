@@ -62,6 +62,22 @@ func TestFlushStreamEvent(t *testing.T) {
 	}
 }
 
+func TestAnswerEventWriterAllowsExactlyOneValidTerminalEvent(t *testing.T) {
+	w := httptest.NewRecorder()
+	writer := NewAnswerEventWriter(w)
+	if err := writer.Emit(AnswerEvent{Type: AnswerEventCompleted, AnswerID: "a", Persisted: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Emit(AnswerEvent{Type: AnswerEventFailed}); err == nil {
+		t.Fatal("expected second terminal event to be rejected")
+	}
+
+	invalid := NewAnswerEventWriter(httptest.NewRecorder())
+	if err := invalid.Emit(AnswerEvent{Type: AnswerEventCompleted}); err == nil {
+		t.Fatal("expected non-persisted completion to be rejected")
+	}
+}
+
 func TestNewUUID(t *testing.T) {
 	id1 := newUUID()
 	id2 := newUUID()
@@ -70,6 +86,16 @@ func TestNewUUID(t *testing.T) {
 	}
 	if id1 == id2 {
 		t.Error("expected unique UUIDs")
+	}
+}
+
+func TestGenerateAnswerIDUsesInjectedGenerator(t *testing.T) {
+	got := generateAnswerID("", false, func() string { return "fixed-answer-id" })
+	if got != "fixed-answer-id" {
+		t.Fatalf("got %q", got)
+	}
+	if got := generateAnswerID("existing", true, func() string { return "unused" }); got != "existing" {
+		t.Fatalf("regeneration changed answer ID: %q", got)
 	}
 }
 

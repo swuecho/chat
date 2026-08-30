@@ -232,6 +232,16 @@ type ErrorResponse struct {
 	} `json:"error"`
 }
 
+// HTTPError preserves the upstream status code so the provider boundary can
+// classify authentication, rate limits, and temporary failures consistently.
+type HTTPError struct {
+	Status  int
+	Message string
+}
+
+func (e *HTTPError) Error() string       { return e.Message }
+func (e *HTTPError) HTTPStatusCode() int { return e.Status }
+
 func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAnswer, error) {
 	// Make the request
 	resp, err := client.Do(req)
@@ -250,10 +260,9 @@ func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAn
 	if resp.StatusCode != http.StatusOK {
 		var errResp ErrorResponse
 		if jsonErr := json.Unmarshal(body, &errResp); jsonErr == nil && errResp.Error.Message != "" {
-			return nil, fmt.Errorf("gemini API error: %s (status: %s, code: %d)",
-				errResp.Error.Message, errResp.Error.Status, errResp.Error.Code)
+			return nil, &HTTPError{Status: resp.StatusCode, Message: fmt.Sprintf("gemini API error: %s (status: %s, code: %d)", errResp.Error.Message, errResp.Error.Status, errResp.Error.Code)}
 		}
-		return nil, fmt.Errorf("gemini API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, &HTTPError{Status: resp.StatusCode, Message: fmt.Sprintf("gemini API returned status %d: %s", resp.StatusCode, string(body))}
 	}
 
 	// Parse successful response

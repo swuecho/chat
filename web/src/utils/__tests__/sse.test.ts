@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readTerminalStreamEvent } from '../sse'
+import { answerEventAsLegacyFrame, readAnswerStreamEvent, readTerminalStreamEvent } from '../sse'
 
 describe('readTerminalStreamEvent', () => {
   it('reads a persisted completion event', () => {
@@ -29,5 +29,18 @@ describe('readTerminalStreamEvent', () => {
     expect(() => readTerminalStreamEvent('event: completed\ndata: nope')).toThrow(
       'Invalid completed stream event',
     )
+  })
+
+  it('reads typed deltas and adapts them for legacy consumers', () => {
+    const event = readAnswerStreamEvent('event: delta\ndata: {"type":"delta","answerId":"answer-1","delta":"hello"}')
+    expect(event).toMatchObject({ type: 'delta', answerId: 'answer-1', delta: 'hello' })
+    expect(answerEventAsLegacyFrame(event!)).toContain('"content":"hello"')
+  })
+
+  it('treats cancellation as terminal', () => {
+    expect(readTerminalStreamEvent('event: canceled\ndata: {"type":"canceled","code":"canceled"}')).toMatchObject({
+      type: 'canceled',
+      code: 'canceled',
+    })
   })
 })

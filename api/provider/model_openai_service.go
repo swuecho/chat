@@ -11,6 +11,7 @@ import (
 	"time"
 
 	openai "github.com/sashabaranov/go-openai"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
 	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/models"
@@ -29,7 +30,11 @@ func NewOpenAIChatModel(h Handler) *OpenAIChatModel {
 func (m *OpenAIChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
 	chatSession, chatCompletionMessages := input.Session, input.Messages
 	chatUuid, regenerate, streamOutput := input.ChatUUID, input.Regenerate, input.Stream
-	m.h.Config().RateLimiter.Wait(ctx)
+	if limiter := m.h.Config().RateLimiter; limiter != nil {
+		if err := limiter.Wait(ctx); err != nil {
+			return nil, normalizeFailure("openai", "wait for local rate limit", err)
+		}
+	}
 
 	if err := m.h.CheckModelAccess(ctx, chatSession.UUID, chatSession.Model, chatSession.UserID); err != nil {
 		return nil, err
@@ -39,7 +44,7 @@ func (m *OpenAIChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 
 	config, err := GenOpenAIConfig(chatModel, m.h.Config())
 	if err != nil {
-		return nil, dto.ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
+		return nil, classifiedFailure("openai", "configure", domain.ProviderFailureConfiguration, false, err)
 	}
 
 	openaiReq := NewChatCompletionRequest(chatSession, chatCompletionMessages, input.Files, streamOutput)
@@ -54,7 +59,7 @@ func (m *OpenAIChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 	go func() {
 		defer close(ch)
 		if streamOutput {
-			doChatStream(ctx, ch, client, openaiReq, chatSession.N, chatUuid, regenerate, chatModel.URL, config.BaseURL)
+			doChatStream(ctx, ch, client, openaiReq, chatSession.N, chatUuid, regenerate, input.NewID, chatModel.URL, config.BaseURL)
 		} else {
 			handleRegularResponse(ctx, ch, client, openaiReq, chatModel.URL, config.BaseURL)
 		}
@@ -69,11 +74,11 @@ func handleRegularResponse(ctx context.Context, ch chan<- StreamChunk, client *o
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		slog.Info("OpenAI request failed", "model", req.Model, "configuredURL", configuredURL, "baseURL", baseURL, "error", err)
-		ch <- StreamChunk{Err: dto.ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())}
+		emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("openai", "complete", err)})
 		return
 	}
 
-	ch <- StreamChunk{
+	emitChunk(ctx, ch, StreamChunk{
 		ID:      completion.ID,
 		Content: completion.Choices[0].Message.Content,
 		Done:    true,
@@ -81,12 +86,12 @@ func handleRegularResponse(ctx context.Context, ch chan<- StreamChunk, client *o
 			Answer:   completion.Choices[0].Message.Content,
 			AnswerId: completion.ID,
 		},
-	}
+	})
 }
 
 // doChatStream handles streaming chat completion responses from OpenAI.
 // It sends chunks on the provided channel and closes it when done.
-func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, configuredURL string, baseURL string) {
+func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Client, req openai.ChatCompletionRequest, bufferLen int32, chatUuid string, regenerate bool, newID func() string, configuredURL string, baseURL string) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
@@ -94,7 +99,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 	stream, err := client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
 		slog.Info("OpenAI stream setup failed", "model", req.Model, "configuredURL", configuredURL, "baseURL", baseURL, "error", err)
-		ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())}
+		emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("openai", "open stream", err)})
 		return
 	}
 	defer func() {
@@ -115,7 +120,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 
 	TextBuffer := NewTextBuffer(bufferLen, "", "")
 	reasonBuffer := NewTextBuffer(bufferLen, "<think>\n\n", "\n\n</think>\n\n")
-	answerID = generateAnswerID(chatUuid, regenerate)
+	answerID = generateAnswerID(chatUuid, regenerate, newID)
 
 	for {
 		select {
@@ -125,7 +130,6 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 			if hasReason {
 				llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 			}
-			ch <- StreamChunk{Done: true, FinalAnswer: &llmAnswer}
 			return
 		default:
 		}
@@ -137,18 +141,18 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 				if TextBuffer.String("\n") == "" && reasonBuffer.String("\n") == "" {
 					errMsg := fmt.Sprintf("stream closed without content; verify configured URL %q resolves to a valid OpenAI-compatible base URL %q and that model %q is valid", configuredURL, baseURL, req.Model)
 					slog.Info(errMsg)
-					ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Stream closed without content").WithDebugInfo(errMsg)}
+					emitChunk(ctx, ch, StreamChunk{Err: classifiedFailure("openai", "read stream", domain.ProviderFailureInvalidResponse, false, errors.New(errMsg))})
 					return
 				}
 				llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answerID}
 				if hasReason {
 					llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 				}
-				ch <- StreamChunk{Done: true, FinalAnswer: &llmAnswer}
+				emitChunk(ctx, ch, StreamChunk{Done: true, FinalAnswer: &llmAnswer})
 				return
 			}
 			slog.Info("Stream error", "error", err)
-			ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())}
+			emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("openai", "read stream", err)})
 			return
 		}
 
@@ -174,7 +178,9 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 		if len(delta.Content) > 0 || len(delta.ReasoningContent) > 0 {
 			deltaToSend := processDelta(delta, &reasonTagOpened, &reasonTagClosed, hasReason)
 			if len(deltaToSend) > 0 {
-				ch <- StreamChunk{ID: answerID, Content: deltaToSend}
+				if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: deltaToSend}) {
+					return
+				}
 			}
 		}
 	}

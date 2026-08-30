@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/domain"
 	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/models"
 )
@@ -69,7 +69,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrChatRequestFailed.WithMessage("Failed to create custom model request").WithDebugInfo(err.Error())}
+		emitChunk(ctx, ch, StreamChunk{Err: classifiedFailure("custom", "create request", domain.ProviderFailureConfiguration, false, err)})
 		return
 	}
 
@@ -83,15 +83,19 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrChatRequestFailed.WithMessage("Failed to send custom model request").WithDebugInfo(err.Error())}
+		emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("custom", "open stream", err)})
 		return
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		emitChunk(ctx, ch, StreamChunk{Err: domain.NewProviderHTTPFailure("custom", "open stream", resp.StatusCode, fmt.Errorf("unexpected HTTP status %s", resp.Status))})
+		return
+	}
 
 	ioreader := bufio.NewReader(resp.Body)
 
 	var answer string
-	answerID := generateAnswerID(chatUuid, regenerate)
+	answerID := generateAnswerID(chatUuid, regenerate, input.NewID)
 	var lastFlushLength int
 	headerData := []byte("data: ")
 	count := 0
@@ -100,7 +104,6 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 		select {
 		case <-ctx.Done():
 			slog.Info("Custom model stream cancelled by client", "error", ctx.Err())
-			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
 			return
 		default:
 		}
@@ -116,7 +119,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 				fmt.Println("End of stream reached")
 				break
 			}
-			ch <- StreamChunk{Err: err}
+			emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("custom", "read stream", err)})
 			return
 		}
 
@@ -131,7 +134,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 		}
 
 		if answerID == "" {
-			answerID = newUUID()
+			answerID = generateAnswerID("", false, input.NewID)
 		}
 
 		var response CustomModelResponse
@@ -142,7 +145,9 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 		if shouldFlush {
 			delta := answer[lastFlushLength:]
 			if len(delta) > 0 {
-				ch <- StreamChunk{ID: answerID, Content: delta}
+				if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: delta}) {
+					return
+				}
 			}
 			lastFlushLength = len(answer)
 		}
@@ -150,15 +155,17 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 
 	// Send remaining content
 	if len(answer) > lastFlushLength {
-		ch <- StreamChunk{ID: answerID, Content: answer[lastFlushLength:]}
+		if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: answer[lastFlushLength:]}) {
+			return
+		}
 	}
 
-	ch <- StreamChunk{
+	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
 		FinalAnswer: &models.LLMAnswer{
 			Answer:   answer,
 			AnswerId: answerID,
 		},
-	}
+	})
 }

@@ -13,9 +13,9 @@ import (
 )
 
 // SummarizeWithTimeout generates a summary with a 20-second timeout.
-func SummarizeWithTimeout(apiToken, baseURL, content string) string {
+func SummarizeWithTimeout(ctx context.Context, apiToken, baseURL, content string) string {
 	// Create a context with a 20 second timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
 	// Call the summarize function with the context

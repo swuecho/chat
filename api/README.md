@@ -1,5 +1,7 @@
 # architecture
 
+Developer guide: [ZIO-inspired chat runtime](../docs/zio-inspired-chat-runtime.md)
+
 request -> mux(router) -> sql generated code -> database -> sql
 
 ## library used

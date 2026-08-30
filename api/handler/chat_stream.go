@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -157,8 +158,20 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to prepare model request"))
 		return
 	}
-	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest)
+	var events *provider.AnswerEventWriter
+	if streamOutput {
+		events = provider.NewAnswerEventWriter(w)
+	}
+	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest, events)
 	if err != nil {
+		if streamOutput {
+			eventType := provider.AnswerEventFailed
+			if errors.Is(err, context.Canceled) {
+				eventType = provider.AnswerEventCanceled
+			}
+			_ = events.Emit(provider.AnswerEvent{Type: eventType, Code: "generation_failed", Message: "Failed to generate bot answer"})
+			return
+		}
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return
 	}
@@ -172,10 +185,17 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 		TokensUsed: int32(len(LLMAnswer.Answer)) / 4,
 	}); err != nil {
 		slog.Info("Failed to save bot answer history", "error", err)
+		if streamOutput {
+			_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventFailed, AnswerID: LLMAnswer.AnswerId, Code: "persistence_failed", Message: "Failed to save bot answer"})
+		}
+		return
+	}
+	if streamOutput {
+		_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventCompleted, AnswerID: LLMAnswer.AnswerId, Persisted: true})
 	}
 
 	if !isTest(msgs) {
-		h.service.LogChat(session, msgs, LLMAnswer.Answer)
+		h.service.LogChat(ctx, session, msgs, LLMAnswer.Answer)
 	}
 }
 
@@ -186,7 +206,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		return
 	}
 
-	msgs, err := h.service.GetAskMessages(*chatSession, chatUuid, true)
+	msgs, err := h.service.GetAskMessages(ctx, *chatSession, chatUuid, true)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to get chat messages").WithDebugInfo(err.Error()))
 		return
@@ -198,12 +218,21 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to prepare model request"))
 		return
 	}
-	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest)
+	events := provider.NewAnswerEventWriter(w)
+	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest, events)
 	if err != nil {
 		slog.Error("error regenerating answer", "error", err)
 		if stream {
-			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
-				Type: "failed", AnswerID: chatUuid, Code: "generation_failed", Message: "Failed to regenerate answer",
+			eventType := provider.AnswerEventFailed
+			code := "generation_failed"
+			message := "Failed to regenerate answer"
+			if errors.Is(err, context.Canceled) {
+				eventType = provider.AnswerEventCanceled
+				code = "canceled"
+				message = "Answer regeneration was canceled"
+			}
+			_ = events.Emit(provider.AnswerEvent{
+				Type: eventType, AnswerID: chatUuid, Code: code, Message: message,
 			})
 			return
 		}
@@ -211,12 +240,12 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		return
 	}
 
-	h.service.LogChat(*chatSession, msgs, LLMAnswer.Answer)
+	h.service.LogChat(ctx, *chatSession, msgs, LLMAnswer.Answer)
 
 	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, userID, LLMAnswer.Answer); err != nil {
 		if stream {
-			_ = provider.FlushStreamEvent(w, "failed", provider.StreamEvent{
-				Type: "failed", AnswerID: chatUuid, Code: "persistence_failed", Message: "Failed to save regenerated answer",
+			_ = events.Emit(provider.AnswerEvent{
+				Type: provider.AnswerEventFailed, AnswerID: chatUuid, Code: "persistence_failed", Message: "Failed to save regenerated answer",
 			})
 			return
 		}
@@ -225,19 +254,19 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 	}
 
 	if chatSession.ExploreMode {
-		suggested := h.service.GenerateSuggestedQuestions(LLMAnswer.Answer, msgs)
+		suggested := h.service.GenerateSuggestedQuestions(ctx, LLMAnswer.Answer, msgs)
 		if len(suggested) > 0 {
 			if questionsJSON, err := json.Marshal(suggested); err == nil {
 				h.service.UpdateChatMessageSuggestions(ctx, chatUuid, userID, questionsJSON)
 				if stream {
-					h.sendSuggestedQuestionsStream(w, LLMAnswer.AnswerId, questionsJSON)
+					h.sendSuggestedQuestionsStream(events, LLMAnswer.AnswerId, questionsJSON)
 				}
 			}
 		}
 	}
 	if stream {
-		_ = provider.FlushStreamEvent(w, "completed", provider.StreamEvent{
-			Type: "completed", AnswerID: chatUuid, Persisted: true,
+		_ = events.Emit(provider.AnswerEvent{
+			Type: provider.AnswerEventCompleted, AnswerID: chatUuid, Persisted: true,
 		})
 	}
 }

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/models"
 )
 
@@ -63,7 +63,7 @@ func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, input Request) 
 
 	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.URL, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Failed to make request").WithDebugInfo(err.Error())}
+		emitChunk(ctx, ch, StreamChunk{Err: classifiedFailure("ollama", "create request", domain.ProviderFailureConfiguration, false, err)})
 		return
 	}
 
@@ -82,7 +82,12 @@ func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, input Request) 
 	client := &http.Client{Timeout: 5 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())}
+		emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("ollama", "open stream", err)})
+		return
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		defer resp.Body.Close()
+		emitChunk(ctx, ch, StreamChunk{Err: domain.NewProviderHTTPFailure("ollama", "open stream", resp.StatusCode, fmt.Errorf("unexpected HTTP status %s", resp.Status))})
 		return
 	}
 
@@ -90,14 +95,13 @@ func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, input Request) 
 	defer resp.Body.Close()
 
 	var answer string
-	answerID := generateAnswerID(chatUuid, regenerate)
+	answerID := generateAnswerID(chatUuid, regenerate, input.NewID)
 
 	count := 0
 	for {
 		select {
 		case <-ctx.Done():
 			slog.Info("Ollama stream cancelled by client", "error", ctx.Err())
-			ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID}}
 			return
 		default:
 		}
@@ -112,12 +116,12 @@ func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, input Request) 
 				fmt.Println("End of stream reached")
 				break
 			}
-			ch <- StreamChunk{Err: err}
+			emitChunk(ctx, ch, StreamChunk{Err: normalizeFailure("ollama", "read stream", err)})
 			return
 		}
 		var streamResp OllamaResponse
 		if err := json.Unmarshal(line, &streamResp); err != nil {
-			ch <- StreamChunk{Err: err}
+			emitChunk(ctx, ch, StreamChunk{Err: classifiedFailure("ollama", "decode stream", domain.ProviderFailureInvalidResponse, false, err)})
 			return
 		}
 		delta := strings.ReplaceAll(streamResp.Message.Content, "<0x0A>", "\n")
@@ -128,20 +132,22 @@ func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, input Request) 
 			break
 		}
 		if answerID == "" {
-			answerID = newUUID()
+			answerID = generateAnswerID("", false, input.NewID)
 		}
 
 		if len(delta) > 0 {
-			ch <- StreamChunk{ID: answerID, Content: delta}
+			if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: delta}) {
+				return
+			}
 		}
 	}
 
-	ch <- StreamChunk{
+	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
 		FinalAnswer: &models.LLMAnswer{
 			Answer:   answer,
 			AnswerId: answerID,
 		},
-	}
+	})
 }

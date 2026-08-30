@@ -58,7 +58,7 @@ func (s *ChatService) ProviderRequest(ctx context.Context, session ChatSession, 
 		files = append(files, provider.File{Name: row.Name, Data: row.Data, MIMEType: row.MimeType})
 	}
 	return provider.Request{Session: providerSession(session), Model: model, Files: files,
-		Messages: messages, ChatUUID: chatUUID, Regenerate: regenerate, Stream: stream}, nil
+		Messages: messages, ChatUUID: chatUUID, Regenerate: regenerate, Stream: stream, NewID: s.newID}, nil
 }
 
 func (s *ChatService) MarkChatRequestFailed(ctx context.Context, requestUUID, sessionUUID string, userID int32, code string) error {
@@ -127,8 +127,8 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 //   - regenerate: If true, excludes the target message from history
 //
 // Returns combined message array or error.
-func (s *ChatService) GetAskMessages(chatSession ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*requestTimeoutSeconds)
+func (s *ChatService) GetAskMessages(ctx context.Context, chatSession ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*requestTimeoutSeconds)
 	defer cancel()
 
 	chatSessionUuid := chatSession.UUID
@@ -233,7 +233,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 
 	if is_summarize_mode && numTokens > summarizeThreshold {
 		slog.Info("summarizing")
-		summary = provider.SummarizeWithTimeout(s.openAIKey, baseURL, content)
+		summary = provider.SummarizeWithTimeout(ctx, s.openAIKey, baseURL, content)
 		slog.Info("summarizing: " + summary)
 	}
 
@@ -280,7 +280,7 @@ func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Cont
 	summary := ""
 	if is_summarize_mode && numTokens > summarizeThreshold {
 		slog.Info("summarizing")
-		summary = provider.SummarizeWithTimeout(s.openAIKey, baseURL, content)
+		summary = provider.SummarizeWithTimeout(ctx, s.openAIKey, baseURL, content)
 		slog.Info("summarizing: " + summary)
 	}
 
@@ -295,7 +295,7 @@ func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Cont
 	// Generate suggested questions if explore mode is enabled and role is assistant
 	suggestedQuestions := json.RawMessage([]byte("[]"))
 	if exploreMode && messages != nil {
-		questions := s.GenerateSuggestedQuestions(content, messages)
+		questions := s.GenerateSuggestedQuestions(ctx, content, messages)
 		if questionsJSON, err := json.Marshal(questions); err == nil {
 			suggestedQuestions = questionsJSON
 		} else {
@@ -327,7 +327,7 @@ func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Cont
 }
 
 // generateSuggestedQuestions generates follow-up questions based on the conversation context
-func (s *ChatService) GenerateSuggestedQuestions(content string, messages []models.Message) []string {
+func (s *ChatService) GenerateSuggestedQuestions(ctx context.Context, content string, messages []models.Message) []string {
 	// Create a simplified prompt to generate follow-up questions
 	prompt := `Based on the following conversation, generate 3 thoughtful follow-up questions that would help explore the topic further. Return only the questions, one per line, without numbering or bullet points.
 
@@ -347,7 +347,7 @@ Conversation context:
 	prompt += fmt.Sprintf("assistant: %s\n\nGenerate 3 follow-up questions:", content)
 
 	// Use the preferred models (deepseek-chat or gemini-2.0-flash) to generate suggestions
-	questions := s.callLLMForSuggestions(prompt)
+	questions := s.callLLMForSuggestions(ctx, prompt)
 
 	// Parse the response into individual questions
 	lines := strings.Split(strings.TrimSpace(questions), "\n")
@@ -369,9 +369,7 @@ Conversation context:
 }
 
 // callLLMForSuggestions makes a simple API call to generate suggested questions
-func (s *ChatService) callLLMForSuggestions(prompt string) string {
-	ctx := context.Background()
-
+func (s *ChatService) callLLMForSuggestions(ctx context.Context, prompt string) string {
 	// Get all models and find preferred models for suggestions
 	allModels, err := s.q.ListChatModels(ctx)
 	if err != nil {
@@ -563,7 +561,7 @@ func (s *ChatService) UpdateChatMessageSuggestions(ctx context.Context, uuid str
 
 // logChat creates a chat log entry for analytics and debugging.
 // Logs the session, messages, and LLM response for audit purposes.
-func (s *ChatService) LogChat(chatSession ChatSession, msgs []models.Message, answerText string) {
+func (s *ChatService) LogChat(ctx context.Context, chatSession ChatSession, msgs []models.Message, answerText string) {
 	// log chat
 	sessionRaw := chatSession.ToRawMessage()
 	if sessionRaw == nil {
@@ -581,7 +579,7 @@ func (s *ChatService) LogChat(chatSession ChatSession, msgs []models.Message, an
 		return // Skip logging if marshalling fails
 	}
 
-	s.q.CreateChatLog(context.Background(), sqlc_queries.CreateChatLogParams{
+	s.q.CreateChatLog(ctx, sqlc_queries.CreateChatLogParams{
 		Session:  *sessionRaw,
 		Question: question,
 		Answer:   answerRaw,

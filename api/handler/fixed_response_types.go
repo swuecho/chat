@@ -99,23 +99,6 @@ type suggestionsHTTPResponse struct {
 	AllSuggestions []string `json:"allSuggestions"`
 }
 
-type suggestedQuestionsDelta struct {
-	Content            string   `json:"content"`
-	SuggestedQuestions []string `json:"suggestedQuestions"`
-}
-
-type suggestedQuestionsChoice struct {
-	Index        int                     `json:"index"`
-	Delta        suggestedQuestionsDelta `json:"delta"`
-	FinishReason *string                 `json:"finish_reason"`
-}
-
-type suggestedQuestionsChunk struct {
-	ID      string                     `json:"id"`
-	Object  string                     `json:"object"`
-	Choices []suggestedQuestionsChoice `json:"choices"`
-}
-
 type gatewayRequestDetailHTTPResponse struct {
 	ID                     int64           `json:"id"`
 	RequestUUID            uuid.UUID       `json:"requestUuid"`

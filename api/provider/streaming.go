@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	openai "github.com/sashabaranov/go-openai"
 
@@ -14,45 +15,36 @@ import (
 
 // --- Streaming infrastructure ---
 
-// StreamingResponse represents a common streaming response structure.
-type StreamingResponse struct {
-	AnswerID string
-	Content  string
-	IsFinal  bool
+type AnswerEventType string
+
+const (
+	AnswerEventStarted        AnswerEventType = "started"
+	AnswerEventDelta          AnswerEventType = "delta"
+	AnswerEventReasoningDelta AnswerEventType = "reasoning_delta"
+	AnswerEventSuggested      AnswerEventType = "suggested_questions"
+	AnswerEventCompleted      AnswerEventType = "completed"
+	AnswerEventFailed         AnswerEventType = "failed"
+	AnswerEventCanceled       AnswerEventType = "canceled"
+)
+
+// AnswerEvent is the typed protocol shared by streaming adapters. Completed,
+// failed, and canceled are terminal events.
+type AnswerEvent struct {
+	Type               AnswerEventType `json:"type"`
+	AnswerID           string          `json:"answerId,omitempty"`
+	Delta              string          `json:"delta,omitempty"`
+	SuggestedQuestions []string        `json:"suggestedQuestions,omitempty"`
+	Persisted          bool            `json:"persisted"`
+	Code               string          `json:"code,omitempty"`
+	Message            string          `json:"message,omitempty"`
 }
 
-// StreamEvent is a terminal SSE event emitted after durable processing finishes.
-type StreamEvent struct {
-	Type      string `json:"type"`
-	AnswerID  string `json:"answerId,omitempty"`
-	Persisted bool   `json:"persisted"`
-	Code      string `json:"code,omitempty"`
-	Message   string `json:"message,omitempty"`
-}
-
-// FlushResponse sends a streaming response to the client.
-func FlushResponse(w http.ResponseWriter, flusher http.Flusher, response StreamingResponse) error {
-	if response.Content == "" && !response.IsFinal {
-		return nil
-	}
-	streamResponse := openai.ChatCompletionStreamResponse{
-		ID: response.AnswerID,
-		Choices: []openai.ChatCompletionStreamChoice{
-			{Index: 0, Delta: openai.ChatCompletionStreamChoiceDelta{Content: response.Content}},
-		},
-	}
-	data, err := json.Marshal(streamResponse)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "data: %v\n\n", string(data))
-	flusher.Flush()
-	return nil
-}
+// StreamEvent is retained as an alias while clients migrate to typed deltas.
+type StreamEvent = AnswerEvent
 
 // FlushStreamEvent emits a typed SSE event. A completed event must only be sent
 // after the corresponding database mutation has succeeded.
-func FlushStreamEvent(w http.ResponseWriter, eventType string, event StreamEvent) error {
+func FlushStreamEvent(w http.ResponseWriter, eventType string, event AnswerEvent) error {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return fmt.Errorf("streaming unsupported")
@@ -65,6 +57,40 @@ func FlushStreamEvent(w http.ResponseWriter, eventType string, event StreamEvent
 		return err
 	}
 	flusher.Flush()
+	return nil
+}
+
+func IsTerminalAnswerEvent(event AnswerEvent) bool {
+	return event.Type == AnswerEventCompleted || event.Type == AnswerEventFailed || event.Type == AnswerEventCanceled
+}
+
+// AnswerEventWriter enforces the terminal-event protocol for one response.
+// It is safe to share among workflow branches.
+type AnswerEventWriter struct {
+	w        http.ResponseWriter
+	mu       sync.Mutex
+	terminal bool
+}
+
+func NewAnswerEventWriter(w http.ResponseWriter) *AnswerEventWriter {
+	return &AnswerEventWriter{w: w}
+}
+
+func (s *AnswerEventWriter) Emit(event AnswerEvent) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.terminal {
+		return fmt.Errorf("answer stream already terminated")
+	}
+	if event.Type == AnswerEventCompleted && !event.Persisted {
+		return fmt.Errorf("completed answer event must be persisted")
+	}
+	if err := FlushStreamEvent(s.w, string(event.Type), event); err != nil {
+		return err
+	}
+	if IsTerminalAnswerEvent(event) {
+		s.terminal = true
+	}
 	return nil
 }
 
@@ -160,9 +186,12 @@ func FirstN(s string, n int) string {
 var newUUID = util.NewUUID
 
 // generateAnswerID creates an answer ID or reuses chatUuid in regenerate mode.
-func generateAnswerID(chatUuid string, regenerate bool) string {
+func generateAnswerID(chatUuid string, regenerate bool, generator ...func() string) string {
 	if regenerate {
 		return chatUuid
+	}
+	if len(generator) > 0 && generator[0] != nil {
+		return generator[0]()
 	}
 	return newUUID()
 }
