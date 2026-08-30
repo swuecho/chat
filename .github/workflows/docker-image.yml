@@ -15,29 +15,30 @@ jobs:
   build_chat:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: check locale
         run: python scripts/locale_missing_key.py web/src/locales --base zh-CN
 
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18.x"
 
       - name: build web
         run: |
-          npm install
-          npm run test
+          npm ci
+          npm run test -- --run
           npm run build
         working-directory: web
       - name: copy to api/static
         run: |
           cp -R web/dist/* api/static/
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
       - name: Build API
         run: go build -v ./...
         working-directory: api
@@ -60,7 +61,7 @@ jobs:
 
       # Setup cache for node_modules
       - name: Cache node modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: e2e/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('e2e/package-lock.json') }}

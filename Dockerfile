@@ -1,7 +1,7 @@
 FROM node:18-alpine AS frontend_builder
 WORKDIR /app
 COPY web/package*.json ./
-RUN npm install
+RUN npm ci
 COPY web/ .
 RUN npm run build
 

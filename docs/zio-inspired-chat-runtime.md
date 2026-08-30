@@ -73,8 +73,7 @@ must not choose HTTP response wording.
 
 ## Retry policies
 
-Retry scheduling uses `github.com/cenkalti/backoff/v4`, the newest release of
-that library compatible with this project's Go 1.21 baseline. It provides
+Retry scheduling uses `github.com/cenkalti/backoff/v4`. It provides
 bounded exponential backoff, jitter, context cancellation, and permanent-error
 classification. The provider adapter marks normalized failures with
 `Retryable == false` as `backoff.Permanent`.
