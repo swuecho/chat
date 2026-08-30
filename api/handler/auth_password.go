@@ -5,7 +5,6 @@ import (
 
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
-	"log/slog"
 )
 
 // --- Request types ---
@@ -14,51 +13,57 @@ type ResetPasswordRequest struct {
 	Email string `json:"email"`
 }
 
+func (r *ResetPasswordRequest) Validate() error {
+	if r.Email == "" {
+		return dto.ErrValidationInvalidInput("email is required")
+	}
+	return nil
+}
+
 type ChangePasswordRequest struct {
 	Email       string `json:"email"`
 	NewPassword string `json:"new_password"`
 }
 
+func (r *ChangePasswordRequest) Validate() error {
+	if r.Email == "" || r.NewPassword == "" {
+		return dto.ErrValidationInvalidInput("email and new_password are required")
+	}
+	return nil
+}
+
 // --- Handlers ---
 
 // ResetPasswordHandler generates a temporary password and sends it via email.
-func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
+func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) error {
 	var req ResetPasswordRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 
 	user, err := h.service.GetUserByEmail(r.Context(), req.Email)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("user"))
-		return
+		return dto.ErrResourceNotFound("user")
 	}
 
 	tempPassword, err := auth.GenerateRandomPassword()
 	if err != nil {
-		slog.Error("Failed to generate temporary password", "error", err)
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate temporary password").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to generate temporary password").WithDebugInfo(err.Error())
 	}
 
 	hashedPassword, err := auth.GeneratePasswordHash(tempPassword)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to hash password").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to hash password").WithDebugInfo(err.Error())
 	}
 
 	if err := h.service.UpdateUserPassword(r.Context(), req.Email, hashedPassword); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to update password").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to update password").WithDebugInfo(err.Error())
 	}
 
 	if err := sendPasswordResetEmail(user.Email, tempPassword); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to send password reset email").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to send password reset email").WithDebugInfo(err.Error())
 	}
-
-	w.WriteHeader(http.StatusOK)
+	return respondStatus(w, http.StatusOK)
 }
 
 // sendPasswordResetEmail sends a password reset email. Currently a no-op.
@@ -67,40 +72,33 @@ func sendPasswordResetEmail(email, tempPassword string) error {
 }
 
 // ChangePasswordHandler updates the user's password.
-func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
+func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.Request) error {
 	var req ChangePasswordRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 
 	// Verify the authenticated user owns the email being changed
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	user, err := h.service.GetAuthUserByID(r.Context(), userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("user").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrResourceNotFound("user").WithDebugInfo(err.Error())
 	}
 	if user.Email != req.Email {
-		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("Cannot change password for another user"))
-		return
+		return dto.ErrAuthAccessDenied.WithMessage("Cannot change password for another user")
 	}
 
 	hashedPassword, err := auth.GeneratePasswordHash(req.NewPassword)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to hash password").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to hash password").WithDebugInfo(err.Error())
 	}
 
 	if err := h.service.UpdateUserPassword(r.Context(), req.Email, string(hashedPassword)); err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update password"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to update password")
 	}
-
-	w.WriteHeader(http.StatusOK)
+	return respondStatus(w, http.StatusOK)
 }

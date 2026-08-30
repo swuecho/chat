@@ -66,65 +66,57 @@ type Choice struct {
 // --- Handler methods ---
 
 // ChatBotCompletionHandler handles bot chat completion via snapshot.
-func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Request) error {
 	var req BotRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		slog.Error("error getting user ID", "error", err)
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error())
 	}
 
 	chatSnapshot, err := h.snapshotSvc.ByUserAndUUID(ctx, userID, req.SnapshotUuid)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat snapshot").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrResourceNotFound("Chat snapshot").WithDebugInfo(err.Error())
 	}
 
 	var session svc.ChatSession
 	if err := json.Unmarshal(chatSnapshot.Session, &session); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to deserialize chat session").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDetail("Failed to deserialize chat session").WithDebugInfo(err.Error())
 	}
 
 	var messages []dto.SimpleChatMessage
 	if err := json.Unmarshal(chatSnapshot.Conversation, &messages); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to deserialize conversation").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDetail("Failed to deserialize conversation").WithDebugInfo(err.Error())
 	}
 
 	genBotAnswer(ctx, h, w, session, messages, req.SnapshotUuid, req.Message, userID, req.Stream)
+	return nil
 }
 
 // ChatCompletionHandler handles regular chat completion with streaming support.
-func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Request) error {
 	var req ChatRequest
 	if err := DecodeJSON(r, &req); err != nil {
 		slog.Error("error decoding request", "error", err)
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error())
 	}
 	if req.SessionUuid == "" || req.ChatUuid == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("sessionUuid and chatUuid are required"))
-		return
+		return dto.ErrValidationInvalidInput("sessionUuid and chatUuid are required")
 	}
 	if !req.Regenerate && req.Prompt == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("prompt is required"))
-		return
+		return dto.ErrValidationInvalidInput("prompt is required")
 	}
 
 	ctx := r.Context()
 	userID, err := getUserID(ctx)
 	if err != nil {
 		slog.Error("error getting user ID", "error", err)
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error())
 	}
 
 	if req.Regenerate {
@@ -132,6 +124,7 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 	} else {
 		genAnswer(h, w, ctx, req.SessionUuid, req.ChatUuid, req.Prompt, userID, req.Stream)
 	}
+	return nil
 }
 
 // genAnswer orchestrates the full chat completion flow.

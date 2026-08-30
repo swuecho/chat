@@ -45,6 +45,13 @@ func (w *responseMetricsWriter) Write(payload []byte) (int, error) {
 // and full-duplex support provided by the underlying writer.
 func (w *responseMetricsWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 
+// Flush preserves streaming behavior when access logging wraps an SSE handler.
+func (w *responseMetricsWriter) Flush() {
+	if err := http.NewResponseController(w.ResponseWriter).Flush(); err != nil {
+		slog.Debug("failed to flush response", "error", err)
+	}
+}
+
 func AccessLog(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		started := time.Now()

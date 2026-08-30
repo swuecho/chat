@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/httpx"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -25,57 +24,51 @@ func NewAdminHandler(service *svc.AuthUserService, sessionSvc *svc.SessionAdminQ
 }
 
 func (h *AdminHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/users", h.CreateUser).Methods(http.MethodPost)
-	router.HandleFunc("/users", h.UpdateUser).Methods(http.MethodPut)
-	router.HandleFunc("/rate_limit", h.UpdateRateLimit).Methods(http.MethodPost)
-	router.HandleFunc("/user_stats", h.UserStatHandler).Methods(http.MethodPost)
-	router.HandleFunc("/user_analysis/{email}", h.UserAnalysisHandler).Methods(http.MethodGet)
-	router.HandleFunc("/user_session_history/{email}", h.UserSessionHistoryHandler).Methods(http.MethodGet)
-	router.HandleFunc("/session_messages/{sessionUuid}", h.SessionMessagesHandler).Methods(http.MethodGet)
+	router.HandleFunc("/users", endpoint(h.CreateUser)).Methods(http.MethodPost)
+	router.HandleFunc("/users", endpoint(h.UpdateUser)).Methods(http.MethodPut)
+	router.HandleFunc("/rate_limit", endpoint(h.UpdateRateLimit)).Methods(http.MethodPost)
+	router.HandleFunc("/user_stats", endpoint(h.UserStatHandler)).Methods(http.MethodPost)
+	router.HandleFunc("/user_analysis/{email}", endpoint(h.UserAnalysisHandler)).Methods(http.MethodGet)
+	router.HandleFunc("/user_session_history/{email}", endpoint(h.UserSessionHistoryHandler)).Methods(http.MethodGet)
+	router.HandleFunc("/session_messages/{sessionUuid}", endpoint(h.SessionMessagesHandler)).Methods(http.MethodGet)
 }
 
-func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) error {
 	var request createAuthUserRequest
 	if err := DecodeJSON(r, &request); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 	user, err := h.service.CreateAuthUser(r.Context(), request.input())
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to create user"))
-		return
+		return dto.WrapError(err, "Failed to create user")
 	}
-	json.NewEncoder(w).Encode(user)
+	return respondJSON(w, http.StatusCreated, user)
 }
 
-func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) error {
 	var request updateAuthUserRequest
 	if err := DecodeJSON(r, &request); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 	user, err := h.service.UpdateAuthUserByEmail(r.Context(), request.emailInput())
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update user"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to update user")
 	}
-	json.NewEncoder(w).Encode(user)
+	return respondJSON(w, http.StatusOK, user)
 }
 
-func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
-	var pagination dto.Pagination
+func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) error {
+	var pagination pageRequest
 	if err := DecodeJSON(r, &pagination); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 
 	userStatsRows, total, err := h.service.GetUserStats(r.Context(), svc.PageRequest{Page: pagination.Page, Size: pagination.Size}, h.defaultRateLimit)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to get user stats"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to get user stats")
 	}
 
-	data := make([]interface{}, len(userStatsRows))
+	data := make([]UserStat, len(userStatsRows))
 	for i, v := range userStatsRows {
 		var avg int64
 		if v.TotalChatMessages3Days > 0 {
@@ -94,40 +87,33 @@ func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	json.NewEncoder(w).Encode(dto.Pagination{
-		Page: pagination.Page, Size: pagination.Size, Total: total, Data: data,
-	})
+	page := httpx.Page{Limit: pagination.Size, Offset: (pagination.Page - 1) * pagination.Size}
+	return respondJSON(w, http.StatusOK, pageResponse(data, total, page))
 }
 
-func (h *AdminHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) error {
 	var rateLimitRequest RateLimitRequest
 	if err := DecodeJSON(r, &rateLimitRequest); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 	rate, err := h.service.UpdateAuthUserRateLimitByEmail(r.Context(), rateLimitRequest.Email, rateLimitRequest.RateLimit)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update rate limit"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to update rate limit")
 	}
-	json.NewEncoder(w).Encode(map[string]int32{"rate": rate})
+	return respondJSON(w, http.StatusOK, rateHTTPResponse{Rate: rate})
 }
 
-func (h *AdminHandler) UserAnalysisHandler(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) UserAnalysisHandler(w http.ResponseWriter, r *http.Request) error {
 	email := mux.Vars(r)["email"]
 	if email == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Email parameter is required"))
-		return
+		return dto.ErrValidationInvalidInput("Email parameter is required")
 	}
 
 	analysisData, err := h.service.GetUserAnalysis(r.Context(), email, h.defaultRateLimit)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get user analysis"))
-		return
+		return dto.WrapError(err, "Failed to get user analysis")
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(analysisData)
+	return respondJSON(w, http.StatusOK, analysisData)
 }
 
 type SessionHistoryResponse struct {
@@ -137,55 +123,33 @@ type SessionHistoryResponse struct {
 	Size  int32                    `json:"size"`
 }
 
-func (h *AdminHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.Request) error {
 	email := mux.Vars(r)["email"]
 	if email == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Email parameter is required"))
-		return
+		return dto.ErrValidationInvalidInput("Email parameter is required")
 	}
-
-	pageStr := r.URL.Query().Get("page")
-	sizeStr := r.URL.Query().Get("size")
-
-	page := int32(1)
-	size := int32(10)
-
-	if pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
-			page = int32(p)
-		}
-	}
-	if sizeStr != "" {
-		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 && s <= 100 {
-			size = int32(s)
-		}
-	}
-
-	sessionHistory, total, err := h.service.GetUserSessionHistory(r.Context(), svc.UserSessionHistoryQuery{Email: email, Page: svc.PageRequest{Page: page, Size: size}})
+	page, err := httpx.ParsePage(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get user session history"))
-		return
+		return err
 	}
 
-	response := SessionHistoryResponse{
-		Data: sessionHistory, Total: total, Page: page, Size: size,
+	pageRequest := svc.PageRequest{Page: page.Offset/page.Limit + 1, Size: page.Limit}
+	sessionHistory, total, err := h.service.GetUserSessionHistory(r.Context(), svc.UserSessionHistoryQuery{Email: email, Page: pageRequest})
+	if err != nil {
+		return dto.WrapError(err, "Failed to get user session history")
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	return respondJSON(w, http.StatusOK, pageResponse(sessionHistory, total, page))
 }
 
-func (h *AdminHandler) SessionMessagesHandler(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) SessionMessagesHandler(w http.ResponseWriter, r *http.Request) error {
 	sessionUuid := mux.Vars(r)["sessionUuid"]
 	if sessionUuid == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Session UUID parameter is required"))
-		return
+		return dto.ErrValidationInvalidInput("Session UUID parameter is required")
 	}
 
 	messages, err := h.sessionSvc.Messages(r.Context(), sessionUuid)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to get session messages"))
-		return
+		return dto.WrapError(err, "Failed to get session messages")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -193,5 +157,5 @@ func (h *AdminHandler) SessionMessagesHandler(w http.ResponseWriter, r *http.Req
 	for _, message := range messages {
 		response = append(response, adminMessageResponse(message))
 	}
-	json.NewEncoder(w).Encode(response)
+	return respondJSON(w, http.StatusOK, response)
 }

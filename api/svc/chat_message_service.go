@@ -103,7 +103,7 @@ type DeleteSessionMessagesCommand struct {
 }
 type SessionMessagesPageQuery struct {
 	SessionUUID string
-	Page        PageRequest
+	Page        PageWindow
 }
 type LatestSessionMessagesQuery struct {
 	SessionUUID string
@@ -240,8 +240,8 @@ func (s *ChatMessageService) UpdateSuggestedQuestions(ctx context.Context, uuid 
 func (s *ChatMessageService) GetChatMessagesBySessionUUID(ctx context.Context, query SessionMessagesPageQuery) ([]ChatMessage, error) {
 	param := sqlc_queries.GetChatMessagesBySessionUUIDParams{
 		Uuid:   query.SessionUUID,
-		Offset: query.Page.Offset(),
-		Limit:  query.Page.Size,
+		Offset: query.Page.Offset,
+		Limit:  query.Page.Limit,
 	}
 	message, err := s.q.GetChatMessagesBySessionUUID(ctx, param)
 	if err != nil {

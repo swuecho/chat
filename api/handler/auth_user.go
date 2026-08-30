@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"os"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/httpx"
 	"github.com/swuecho/chat_backend/middleware"
 	"github.com/swuecho/chat_backend/svc"
 	"log/slog"
@@ -96,80 +96,70 @@ func refreshTokenLifetimeForRequest(r *http.Request) time.Duration {
 // --- Route registration ---
 
 func (h *AuthUserHandler) Register(router *mux.Router) {
-	router.HandleFunc("/users", h.GetUserByID).Methods(http.MethodGet)
-	router.HandleFunc("/users/{id}", h.UpdateSelf).Methods(http.MethodPut)
-	router.HandleFunc("/token_10years", h.ForeverToken).Methods(http.MethodGet)
+	router.HandleFunc("/users", endpoint(h.GetUserByID)).Methods(http.MethodGet)
+	router.HandleFunc("/users/{id}", endpoint(h.UpdateSelf)).Methods(http.MethodPut)
+	router.HandleFunc("/token_10years", endpoint(h.ForeverToken)).Methods(http.MethodGet)
 }
 
 func (h *AuthUserHandler) RegisterPublicRoutes(router *mux.Router) {
-	router.HandleFunc("/signup", h.SignUp).Methods(http.MethodPost)
-	router.HandleFunc("/login", h.Login).Methods(http.MethodPost)
-	router.HandleFunc("/auth/refresh", h.RefreshToken).Methods(http.MethodPost)
-	router.HandleFunc("/logout", h.Logout).Methods(http.MethodPost)
+	router.HandleFunc("/signup", endpoint(h.SignUp)).Methods(http.MethodPost)
+	router.HandleFunc("/login", endpoint(h.Login)).Methods(http.MethodPost)
+	router.HandleFunc("/auth/refresh", endpoint(h.RefreshToken)).Methods(http.MethodPost)
+	router.HandleFunc("/logout", endpoint(h.Logout)).Methods(http.MethodPost)
 }
 
 // --- CRUD handlers ---
 
-func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) error {
 	var request createAuthUserRequest
 	if err := DecodeJSON(r, &request); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 	user, err := h.service.CreateAuthUser(r.Context(), request.input())
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to create user"))
-		return
+		return dto.WrapError(err, "Failed to create user")
 	}
-	json.NewEncoder(w).Encode(user)
+	return respondJSON(w, http.StatusCreated, authUserResponse(user))
 }
 
-func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *AuthUserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 	user, err := h.service.GetAuthUserByID(r.Context(), userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("user"))
-		return
+		return dto.ErrResourceNotFound("user")
 	}
-	json.NewEncoder(w).Encode(user)
+	return respondJSON(w, http.StatusOK, authUserResponse(user))
 }
 
-func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r.Context())
+func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) error {
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 	var request updateAuthUserRequest
 	if err := DecodeJSON(r, &request); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 	user, err := h.service.UpdateAuthUser(r.Context(), request.selfInput(userID))
 	if err != nil {
-		slog.Error("Failed to update user", "error", err)
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to update user").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to update user").WithDebugInfo(err.Error())
 	}
-	json.NewEncoder(w).Encode(user)
+	return respondJSON(w, http.StatusOK, updatedUserResponse(user.FirstName, user.LastName, user.Email))
 }
 
-func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) error {
 	var request updateAuthUserRequest
 	if err := DecodeJSON(r, &request); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 	user, err := h.service.UpdateAuthUserByEmail(r.Context(), request.emailInput())
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update user"))
-		return
+		return dto.WrapError(dto.MapDatabaseError(err), "Failed to update user")
 	}
-	json.NewEncoder(w).Encode(user)
+	return respondJSON(w, http.StatusOK, updatedUserResponse(user.FirstName, user.LastName, user.Email))
 }
 
 // --- Auth handlers ---
@@ -179,19 +169,25 @@ type LoginParams struct {
 	Password string `json:"password"`
 }
 
-func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
+func (p *LoginParams) Validate() error {
+	p.Email = strings.TrimSpace(p.Email)
+	if p.Email == "" || p.Password == "" {
+		return httpx.Invalid("email and password are required")
+	}
+	return nil
+}
+
+func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) error {
 	var params LoginParams
 	if err := DecodeJSON(r, &params); err != nil {
 		slog.Warn("Failed to decode signup", "error", err, "ip", r.RemoteAddr, "action", "signup_decode_error")
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request: unable to decode JSON body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Invalid request: unable to decode JSON body").WithDebugInfo(err.Error())
 	}
 
 	hash, err := auth.GeneratePasswordHash(params.Password)
 	if err != nil {
 		slog.Error("Failed to hash password", "email", params.Email, "error", err)
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate password hash").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to generate password hash").WithDebugInfo(err.Error())
 	}
 
 	user, err := h.service.CreateAuthUser(r.Context(), svc.CreateAuthUserInput{
@@ -199,122 +195,103 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("Failed to create user", "email", params.Email, "error", err)
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to create user"))
-		return
+		return dto.WrapError(err, "Failed to create user")
 	}
 
 	accessToken, err := auth.GenerateToken(user.ID, user.Role(), h.jwtSecret, h.audience, AccessTokenLifetime, auth.TokenTypeAccess)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error())
 	}
 
 	refreshLifetime := refreshTokenLifetimeForRequest(r)
 	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), h.jwtSecret, h.audience, refreshLifetime, auth.TokenTypeRefresh)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate refresh token").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to generate refresh token").WithDebugInfo(err.Error())
 	}
 
 	http.SetCookie(w, createSecureRefreshCookie(RefreshTokenName, refreshToken, int(refreshLifetime.Seconds()), r))
 
 	slog.Info("User signup successful", "user_id", user.ID, "email", user.Email, "action", "signup_success")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.TokenResult{AccessToken: accessToken, ExpiresIn: int(time.Now().Add(AccessTokenLifetime).Unix())})
+	return respondJSON(w, http.StatusCreated, dto.TokenResult{AccessToken: accessToken, ExpiresIn: int(time.Now().Add(AccessTokenLifetime).Unix())})
 }
 
-func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	var params LoginParams
 	if err := DecodeJSON(r, &params); err != nil {
 		slog.Warn("Failed to decode login", "error", err, "ip", r.RemoteAddr, "action", "login_decode_error")
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error())
 	}
 
 	user, err := h.service.Authenticate(r.Context(), params.Email, params.Password)
 	if err != nil {
 		slog.Warn("User login failed", "email", params.Email, "ip", r.RemoteAddr, "error", err, "action", "login_failed")
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidEmailOrPassword.WithDebugInfo(err.Error()))
-		return
+		return dto.ErrAuthInvalidEmailOrPassword.WithDebugInfo(err.Error())
 	}
 
 	accessToken, err := auth.GenerateToken(user.ID, user.Role(), h.jwtSecret, h.audience, AccessTokenLifetime, auth.TokenTypeAccess)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate access token").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to generate access token").WithDebugInfo(err.Error())
 	}
 
 	refreshLifetime := refreshTokenLifetimeForRequest(r)
 	refreshToken, err := auth.GenerateToken(user.ID, user.Role(), h.jwtSecret, h.audience, refreshLifetime, auth.TokenTypeRefresh)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate refresh token").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to generate refresh token").WithDebugInfo(err.Error())
 	}
 
 	http.SetCookie(w, createSecureRefreshCookie(RefreshTokenName, refreshToken, int(refreshLifetime.Seconds()), r))
 
 	slog.Info("User login successful", "user_id", user.ID, "email", user.Email, "action", "login_success")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.TokenResult{AccessToken: accessToken, ExpiresIn: int(time.Now().Add(AccessTokenLifetime).Unix())})
+	return respondJSON(w, http.StatusOK, dto.TokenResult{AccessToken: accessToken, ExpiresIn: int(time.Now().Add(AccessTokenLifetime).Unix())})
 }
 
-func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) {
+func (h *AuthUserHandler) ForeverToken(w http.ResponseWriter, r *http.Request) error {
 	lifetime := time.Duration(10*365*24) * time.Hour
-	userId, err := getUserID(r.Context())
+	principal, err := httpx.Principal(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
-	}
-	userRole, _ := r.Context().Value(middleware.RoleContextKey).(string)
-
-	token, err := auth.GenerateToken(userId, userRole, h.jwtSecret, h.audience, lifetime, auth.TokenTypeAccess)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.TokenResult{AccessToken: token, ExpiresIn: int(time.Now().Add(lifetime).Unix())})
+	token, err := auth.GenerateToken(principal.UserID, principal.Role, h.jwtSecret, h.audience, lifetime, auth.TokenTypeAccess)
+	if err != nil {
+		return dto.ErrInternalUnexpected.WithMessage("Failed to generate token").WithDebugInfo(err.Error())
+	}
+	return respondJSON(w, http.StatusOK, dto.TokenResult{AccessToken: token, ExpiresIn: int(time.Now().Add(lifetime).Unix())})
 }
 
-func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+func (h *AuthUserHandler) RefreshToken(w http.ResponseWriter, r *http.Request) error {
 	slog.Info("Token refresh attempt", "ip", r.RemoteAddr, "action", "refresh_attempt")
 
 	refreshCookie, err := r.Cookie(RefreshTokenName)
 	if err != nil {
 		slog.Warn("Missing refresh token cookie", "ip", r.RemoteAddr, "error", err, "action", "refresh_missing_cookie")
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithMessage("Missing refresh token"))
-		return
+		return dto.ErrAuthInvalidCredentials.WithMessage("Missing refresh token")
 	}
 
 	result := middleware.ParseAndValidateJWT(refreshCookie.Value, auth.TokenTypeRefresh, h.jwtSecret)
 	if result.Error != nil {
 		slog.Warn("Invalid refresh token", "ip", r.RemoteAddr, "error", result.Error.Detail, "action", "refresh_invalid_token")
-		dto.RespondWithAPIError(w, *result.Error)
-		return
+		return *result.Error
 	}
 
 	userIDInt, err := strconv.ParseInt(result.UserID, 10, 32)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithMessage("Invalid user ID in token"))
-		return
+		return dto.ErrAuthInvalidCredentials.WithMessage("Invalid user ID in token")
 	}
 
 	accessToken, err := auth.GenerateToken(int32(userIDInt), result.Role, h.jwtSecret, h.audience, AccessTokenLifetime, auth.TokenTypeAccess)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithMessage("Failed to generate access token").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithMessage("Failed to generate access token").WithDebugInfo(err.Error())
 	}
 
 	slog.Info("Token refresh successful", "user_id", userIDInt, "action", "refresh_success")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.TokenResult{AccessToken: accessToken, ExpiresIn: int(time.Now().Add(AccessTokenLifetime).Unix())})
+	return respondJSON(w, http.StatusOK, dto.TokenResult{AccessToken: accessToken, ExpiresIn: int(time.Now().Add(AccessTokenLifetime).Unix())})
 }
 
-func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (h *AuthUserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 	http.SetCookie(w, createSecureRefreshCookie(RefreshTokenName, "", -1, r))
-	w.WriteHeader(http.StatusOK)
+	return respondStatus(w, http.StatusOK)
 }

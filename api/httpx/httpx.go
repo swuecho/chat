@@ -21,12 +21,56 @@ import (
 // ordinary responses; handlers that commit an SSE stream use the stream API.
 type HandlerFunc func(http.ResponseWriter, *http.Request) error
 
+// StreamHandlerFunc is a distinct registration type for endpoints that may
+// commit a streaming response. Once a stream is committed, failures must be
+// represented by that stream's protocol rather than a second JSON response.
+type StreamHandlerFunc func(http.ResponseWriter, *http.Request) error
+
 func Adapt(handler HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := handler(w, r); err != nil {
 			Error(w, r, err)
 		}
 	}
+}
+
+// AdaptStream centralizes errors which occur before a streaming endpoint has
+// committed its response. Stream handlers own protocol errors after commit.
+func AdaptStream(handler StreamHandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tracked := &commitWriter{ResponseWriter: w}
+		if err := handler(tracked, r); err != nil {
+			if tracked.committed {
+				slog.Error("stream failed after response commit",
+					"request_id", requestctx.RequestID(r.Context()),
+					"method", r.Method, "path", r.URL.Path, "error", err)
+				return
+			}
+			Error(w, r, err)
+		}
+	}
+}
+
+type commitWriter struct {
+	http.ResponseWriter
+	committed bool
+}
+
+func (w *commitWriter) WriteHeader(status int) {
+	w.committed = true
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *commitWriter) Write(payload []byte) (int, error) {
+	w.committed = true
+	return w.ResponseWriter.Write(payload)
+}
+
+func (w *commitWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
+func (w *commitWriter) Flush() {
+	w.committed = true
+	_ = http.NewResponseController(w.ResponseWriter).Flush()
 }
 
 // JSON marshals before committing headers so encoding failures can still be

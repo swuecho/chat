@@ -23,6 +23,12 @@ var (
 )
 
 func endpoint(handler httpx.HandlerFunc) http.HandlerFunc { return httpx.Adapt(handler) }
+
+// streamEndpoint is deliberately separate from endpoint: after SSE headers or
+// bytes are committed, failures must be sent as stream events, not JSON errors.
+func streamEndpoint(handler httpx.StreamHandlerFunc) http.HandlerFunc {
+	return httpx.AdaptStream(handler)
+}
 func respondJSON(w http.ResponseWriter, status int, value any) error {
 	return httpx.JSON(w, status, value)
 }

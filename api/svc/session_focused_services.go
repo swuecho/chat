@@ -24,7 +24,7 @@ type SessionHistoryMessage struct {
 type SessionSnapshot struct{ Session, Conversation json.RawMessage }
 type SessionHistoryQuery struct {
 	SessionUUID string
-	Page        PageRequest
+	Page        PageWindow
 }
 type ConversationMessagesPageQuery struct {
 	SessionUUID string
@@ -74,7 +74,8 @@ func (s *SessionConversationService) MessagesPage(ctx context.Context, query Con
 }
 
 func (s *SessionConversationService) History(ctx context.Context, query SessionHistoryQuery) ([]SessionHistoryMessage, error) {
-	rows, err := s.q.GetChatHistoryBySessionUUID(ctx, query.SessionUUID, query.Page.Page, query.Page.Size)
+	page := PageRequest{Page: query.Page.Offset/query.Page.Limit + 1, Size: query.Page.Limit}
+	rows, err := s.q.GetChatHistoryBySessionUUID(ctx, query.SessionUUID, page.Page, page.Size)
 	if err != nil {
 		return nil, err
 	}

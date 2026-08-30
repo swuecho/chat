@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -48,9 +47,9 @@ func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService
 
 // Register registers chat routes on the given router.
 func (h *ChatHandler) Register(router *mux.Router) {
-	router.HandleFunc("/chat_stream", h.ChatCompletionHandler).Methods(http.MethodPost)
-	router.HandleFunc("/chatbot", h.ChatBotCompletionHandler).Methods(http.MethodPost)
-	router.HandleFunc("/chat_instructions", h.GetChatInstructions).Methods(http.MethodGet)
+	router.HandleFunc("/chat_stream", streamEndpoint(h.ChatCompletionHandler)).Methods(http.MethodPost)
+	router.HandleFunc("/chatbot", streamEndpoint(h.ChatBotCompletionHandler)).Methods(http.MethodPost)
+	router.HandleFunc("/chat_instructions", endpoint(h.GetChatInstructions)).Methods(http.MethodGet)
 }
 
 // --- provider.Handler implementation ---
@@ -64,13 +63,13 @@ func (h *ChatHandler) Config() provider.Config {
 }
 
 // GetChatInstructions returns artifact instruction text.
-func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) {
+func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) error {
 	artifactInstruction, err := svc.LoadArtifactInstruction()
 	if err != nil {
 		slog.Warn("Failed to load artifact instruction", "error", err)
 		artifactInstruction = ""
 	}
-	json.NewEncoder(w).Encode(dto.ChatInstructionResponse{
+	return respondJSON(w, http.StatusOK, dto.ChatInstructionResponse{
 		ArtifactInstruction: artifactInstruction,
 	})
 }

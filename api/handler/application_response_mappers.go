@@ -19,6 +19,17 @@ func chatModelResponse(model sqlc_queries.ChatModel) chatModelHTTPResponse {
 		IsTitleModel: model.IsTitleModel}
 }
 
+func authUserResponse(user sqlc_queries.AuthUser) authUserHTTPResponse {
+	return authUserHTTPResponse{ID: user.ID, LastLogin: user.LastLogin,
+		IsSuperuser: user.IsSuperuser, Username: user.Username, FirstName: user.FirstName,
+		LastName: user.LastName, Email: user.Email, IsStaff: user.IsStaff,
+		IsActive: user.IsActive, DateJoined: user.DateJoined}
+}
+
+func updatedUserResponse(firstName, lastName, email string) updatedUserHTTPResponse {
+	return updatedUserHTTPResponse{FirstName: firstName, LastName: lastName, Email: email}
+}
+
 func chatModelResponses(models []svc.ChatModelWithUsage) []chatModelWithUsageHTTPResponse {
 	responses := make([]chatModelWithUsageHTTPResponse, 0, len(models))
 	for _, model := range models {

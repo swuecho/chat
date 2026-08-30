@@ -178,6 +178,21 @@ type updateSnapshotMetadataRequest struct {
 	Summary string `json:"summary"`
 }
 
+type pageRequest struct {
+	Page int32 `json:"page"`
+	Size int32 `json:"size"`
+}
+
+func (r *pageRequest) Validate() error {
+	if r.Page < 1 {
+		return fmt.Errorf("page must be positive")
+	}
+	if r.Size < 1 || r.Size > validation.MaxPageSize {
+		return fmt.Errorf("size must be between 1 and %d", validation.MaxPageSize)
+	}
+	return nil
+}
+
 func (r *createAPIKeyRequest) Validate() error {
 	r.Name = strings.TrimSpace(r.Name)
 	if len(r.Name) < 1 || len(r.Name) > 100 {

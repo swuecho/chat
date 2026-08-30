@@ -36,6 +36,33 @@ func TestJSONMarshalsBeforeCommitting(t *testing.T) {
 	}
 }
 
+func TestAdaptStreamUsesJSONErrorBeforeCommit(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/stream", nil)
+	AdaptStream(func(http.ResponseWriter, *http.Request) error {
+		return domain.Invalid("bad stream input")
+	})(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d", recorder.Code)
+	}
+	if !strings.Contains(recorder.Body.String(), `"detail":"bad stream input"`) {
+		t.Fatalf("body = %s", recorder.Body.String())
+	}
+}
+
+func TestAdaptStreamDoesNotAppendJSONAfterCommit(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/stream", nil)
+	AdaptStream(func(w http.ResponseWriter, _ *http.Request) error {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("data: first\n\n"))
+		return errors.New("late failure")
+	})(recorder, request)
+	if body := recorder.Body.String(); body != "data: first\n\n" {
+		t.Fatalf("body = %q; adapter appended a second protocol response", body)
+	}
+}
+
 func TestRouteAndPageParsing(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/?limit=25&offset=5", nil)
 	request = mux.SetURLVars(request, map[string]string{"id": "7", "uuid": "01990a45-8a36-7e51-bf7c-a8df8d6b8e91"})

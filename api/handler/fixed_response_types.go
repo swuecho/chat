@@ -28,6 +28,25 @@ type chatModelHTTPResponse struct {
 	IsTitleModel            bool   `json:"isTitleModel"`
 }
 
+type authUserHTTPResponse struct {
+	ID          int32     `json:"id"`
+	LastLogin   time.Time `json:"lastLogin"`
+	IsSuperuser bool      `json:"isSuperuser"`
+	Username    string    `json:"username"`
+	FirstName   string    `json:"firstName"`
+	LastName    string    `json:"lastName"`
+	Email       string    `json:"email"`
+	IsStaff     bool      `json:"isStaff"`
+	IsActive    bool      `json:"isActive"`
+	DateJoined  time.Time `json:"dateJoined"`
+}
+
+type updatedUserHTTPResponse struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
+}
+
 type chatModelWithUsageHTTPResponse struct {
 	chatModelHTTPResponse
 	LastUsageTime time.Time `json:"lastUsageTime,omitempty"`
@@ -46,8 +65,24 @@ type countHTTPResponse struct {
 	Count int64 `json:"count"`
 }
 
+type rateHTTPResponse struct {
+	Rate int32 `json:"rate"`
+}
+
 type messageHTTPStatusResponse struct {
 	Message string `json:"message"`
+}
+
+type fileUploadHTTPResponse struct {
+	URL  string `json:"url"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+	Size string `json:"size"`
+}
+
+type fileMetaHTTPResponse struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }
 
 type paginatedHTTPResponse[T any] struct {

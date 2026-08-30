@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/svc"
+	"github.com/swuecho/chat_backend/validation"
 )
 
 type ChatFileHandler struct {
@@ -23,39 +23,34 @@ func NewChatFileHandler(service *svc.ChatFileService) *ChatFileHandler {
 }
 
 func (h *ChatFileHandler) Register(router *mux.Router) {
-	router.HandleFunc("/upload", h.ReceiveFile).Methods(http.MethodPost)
-	router.HandleFunc("/chat_file/{uuid}/list", h.ChatFilesBySessionUUID).Methods(http.MethodGet)
-	router.HandleFunc("/download/{id}", h.DownloadFile).Methods(http.MethodGet)
-	router.HandleFunc("/download/{id}", h.DeleteFile).Methods(http.MethodDelete)
+	router.HandleFunc("/upload", endpoint(h.ReceiveFile)).Methods(http.MethodPost)
+	router.HandleFunc("/chat_file/{uuid}/list", endpoint(h.ChatFilesBySessionUUID)).Methods(http.MethodGet)
+	router.HandleFunc("/download/{id}", endpoint(h.DownloadFile)).Methods(http.MethodGet)
+	router.HandleFunc("/download/{id}", endpoint(h.DeleteFile)).Methods(http.MethodDelete)
 }
 
 const maxUploadSize = 32 << 20 // 32MB
 
-func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
+func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) error {
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(
-			fmt.Sprintf("file too large, max size is %d bytes", maxUploadSize)))
-		return
+		return dto.ErrValidationInvalidInput(fmt.Sprintf("file too large, max size is %d bytes", maxUploadSize))
 	}
 
 	sessionUUID := r.FormValue("session-uuid")
-	if sessionUUID == "" {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("missing session UUID"))
-		return
+	if err := validation.UUID("session-uuid", sessionUUID, true); err != nil {
+		return dto.ErrValidationInvalidInput(err.Error())
 	}
 
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("failed to read uploaded file").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrValidationInvalidInput("failed to read uploaded file").WithDebugInfo(err.Error())
 	}
 	defer file.Close()
 
@@ -66,8 +61,7 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, file); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("failed to read file data").WithDebugInfo(err.Error()))
-		return
+		return dto.ErrInternalUnexpected.WithDetail("failed to read file data").WithDebugInfo(err.Error())
 	}
 
 	chatFile, err := h.service.CreateChatUpload(r.Context(), svc.CreateChatFileInput{
@@ -78,32 +72,21 @@ func (h *ChatFileHandler) ReceiveFile(w http.ResponseWriter, r *http.Request) {
 		MimeType:        mimeType,
 	})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to create chat file record"))
-		return
+		return dto.WrapError(err, "failed to create chat file record")
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
-		"url":  fmt.Sprintf("/download/%d", chatFile.ID),
-		"name": header.Filename,
-		"type": mimeType,
-		"size": fmt.Sprintf("%d", header.Size),
-	})
+	return respondJSON(w, http.StatusCreated, fileUploadHTTPResponse{URL: fmt.Sprintf("/download/%d", chatFile.ID),
+		Name: header.Filename, Type: mimeType, Size: fmt.Sprintf("%d", header.Size)})
 }
 
-func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
-	fileID := mux.Vars(r)["id"]
-	fileIdInt, err := strconv.ParseInt(fileID, 10, 32)
+func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) error {
+	fileID, err := positiveInt32Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid file ID"))
-		return
+		return err
 	}
 
-	file, err := h.service.GetChatFile(r.Context(), int32(fileIdInt))
+	file, err := h.service.GetChatFile(r.Context(), fileID)
 	if err != nil {
-		dto.RespondWithAPIError(w, err)
-		return
+		return err
 	}
 
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
@@ -111,61 +94,49 @@ func (h *ChatFileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write(file.Data); err != nil {
 		slog.Info("Failed to write file data", "error", err)
 	}
+	return nil
 }
 
-func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
-	fileID := mux.Vars(r)["id"]
-	fileIdInt, err := strconv.ParseInt(fileID, 10, 32)
+func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) error {
+	fileID, err := positiveInt32Param(r, "id")
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("invalid file ID"))
-		return
+		return err
 	}
 
 	// Verify file ownership before deletion
-	file, err := h.service.GetChatFile(r.Context(), int32(fileIdInt))
+	file, err := h.service.GetChatFile(r.Context(), fileID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to get chat file"))
-		return
+		return dto.WrapError(err, "failed to get chat file")
 	}
 
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithDebugInfo(err.Error()))
-		return
+		return err
 	}
 	if file.UserID != userID {
-		dto.RespondWithAPIError(w, dto.ErrAuthAccessDenied.WithMessage("You do not own this file"))
-		return
+		return dto.ErrAuthAccessDenied.WithMessage("You do not own this file")
 	}
 
-	if err := h.service.DeleteChatFile(r.Context(), int32(fileIdInt)); err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to delete chat file"))
-		return
+	if err := h.service.DeleteChatFile(r.Context(), fileID); err != nil {
+		return dto.WrapError(err, "failed to delete chat file")
 	}
-	w.WriteHeader(http.StatusOK)
+	return respondStatus(w, http.StatusOK)
 }
 
-func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.Request) {
+func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.Request) error {
 	sessionUUID := mux.Vars(r)["uuid"]
-	userID, err := getUserID(r.Context())
+	userID, err := authenticatedUserID(r)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrAuthInvalidCredentials.WithMessage("missing or invalid user ID"))
-		return
+		return err
 	}
 
 	files, err := h.service.ListChatFilesBySession(r.Context(), sessionUUID, userID)
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "failed to list chat files for session"))
-		return
+		return dto.WrapError(err, "failed to list chat files for session")
 	}
-
-	type fileMeta struct {
-		ID   int32  `json:"id"`
-		Name string `json:"name"`
-	}
-	meta := make([]fileMeta, 0, len(files))
+	meta := make([]fileMetaHTTPResponse, 0, len(files))
 	for _, f := range files {
-		meta = append(meta, fileMeta{ID: f.ID, Name: f.Name})
+		meta = append(meta, fileMetaHTTPResponse{ID: f.ID, Name: f.Name})
 	}
-	json.NewEncoder(w).Encode(meta)
+	return respondJSON(w, http.StatusOK, meta)
 }

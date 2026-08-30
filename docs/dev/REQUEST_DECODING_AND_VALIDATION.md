@@ -28,16 +28,12 @@ The main pieces are:
 
 ## Strict JSON decoding
 
-Handlers must use the `DecodeJSON` helper re-exported by `api/handler/util.go`:
+Handlers must use the `DecodeJSON` helper re-exported by `api/handler/util.go` and return its error to the endpoint adapter:
 
 ```go
 var request createWidgetRequest
 if err := DecodeJSON(r, &request); err != nil {
-    dto.RespondWithAPIError(
-        w,
-        dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()),
-    )
-    return
+    return err
 }
 ```
 
@@ -162,25 +158,23 @@ The path value should normally be authoritative.
 
 ## Pagination
 
-Use the centralized query helpers instead of parsing `limit` or `offset` directly:
+Use the centralized typed query helper instead of parsing `limit` or `offset` directly:
 
 ```go
-limit, offset, err := getPaginationParams(r)
+page, err := httpx.ParsePage(r)
 if err != nil {
-    dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(err.Error()))
-    return
+    return err
 }
 ```
 
-`getPaginationParams` defaults to a limit of 100 and an offset of zero. It rejects malformed integers, limits outside `1..500`, and negative offsets.
+`httpx.ParsePage` defaults to a limit of 100 and an offset of zero. It rejects malformed integers, limits outside `1..500`, and negative offsets. Map it to `svc.PageWindow{Limit: page.Limit, Offset: page.Offset}` before invoking a service.
 
 For endpoints that only accept a limit:
 
 ```go
-limit, err := getLimitParam(r, 20)
+limit, err := httpx.ParseLimit(r, 20)
 if err != nil {
-    dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput(err.Error()))
-    return
+    return err
 }
 ```
 
@@ -283,3 +277,4 @@ Before registering a new JSON endpoint:
 10. Keep ownership and other business invariants in the service layer.
 11. Add boundary and handler tests.
 
+For the complete middleware, handler, service, response, and SSE lifecycle, see [HTTP Request and Response Pipeline](HTTP_REQUEST_RESPONSE_PIPELINE.md).
