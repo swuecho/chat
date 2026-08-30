@@ -58,7 +58,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		Model               string `json:"model"`
 		DefaultSystemPrompt string `json:"defaultSystemPrompt"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
@@ -87,7 +87,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 
 func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
 	var sessionReq dto.UpdateChatSessionRequest
-	if err := json.NewDecoder(r.Body).Decode(&sessionReq); err != nil {
+	if err := DecodeJSON(r, &sessionReq); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
@@ -165,7 +165,7 @@ func (h *ChatSessionHandler) updateChatSessionTopicByUUID(w http.ResponseWriter,
 	var req struct {
 		Topic string `json:"topic"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
@@ -187,7 +187,7 @@ func (h *ChatSessionHandler) updateSessionMaxLength(w http.ResponseWriter, r *ht
 	var req struct {
 		MaxLength int32 `json:"maxLength"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}

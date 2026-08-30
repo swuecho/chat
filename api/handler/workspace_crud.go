@@ -16,7 +16,7 @@ import (
 
 func (h *ChatWorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateWorkspaceRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}
@@ -115,7 +115,7 @@ func (h *ChatWorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Re
 	workspaceUUID := mux.Vars(r)["uuid"]
 
 	var req dto.UpdateWorkspaceRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request format").WithDebugInfo(err.Error()))
 		return
 	}

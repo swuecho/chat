@@ -34,7 +34,7 @@ func (h *ChatPromptHandler) Register(router *mux.Router) {
 
 func (h *ChatPromptHandler) CreateChatPrompt(w http.ResponseWriter, r *http.Request) {
 	var request chatPromptRequest
-	err := json.NewDecoder(r.Body).Decode(&request)
+	err := DecodeJSON(r, &request)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
@@ -108,7 +108,7 @@ func (h *ChatPromptHandler) UpdateChatPrompt(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	var request chatPromptRequest
-	err = json.NewDecoder(r.Body).Decode(&request)
+	err = DecodeJSON(r, &request)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
@@ -189,7 +189,7 @@ func (h *ChatPromptHandler) DeleteChatPromptByUUID(w http.ResponseWriter, r *htt
 
 func (h *ChatPromptHandler) UpdateChatPromptByUUID(w http.ResponseWriter, r *http.Request) {
 	var simpleMsg dto.SimpleChatMessage
-	err := json.NewDecoder(r.Body).Decode(&simpleMsg)
+	err := DecodeJSON(r, &simpleMsg)
 	if err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return

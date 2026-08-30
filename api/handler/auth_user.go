@@ -112,7 +112,7 @@ func (h *AuthUserHandler) RegisterPublicRoutes(router *mux.Router) {
 
 func (h *AuthUserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var request createAuthUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -145,7 +145,7 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var request updateAuthUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -160,7 +160,7 @@ func (h *AuthUserHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthUserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	var request updateAuthUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -181,7 +181,7 @@ type LoginParams struct {
 
 func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var params LoginParams
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	if err := DecodeJSON(r, &params); err != nil {
 		slog.Warn("Failed to decode signup", "error", err, "ip", r.RemoteAddr, "action", "signup_decode_error")
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request: unable to decode JSON body").WithDebugInfo(err.Error()))
 		return
@@ -226,7 +226,7 @@ func (h *AuthUserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthUserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var params LoginParams
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	if err := DecodeJSON(r, &params); err != nil {
 		slog.Warn("Failed to decode login", "error", err, "ip", r.RemoteAddr, "action", "login_decode_error")
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return

@@ -36,7 +36,7 @@ func (h *AdminHandler) RegisterRoutes(router *mux.Router) {
 
 func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var request createAuthUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -50,7 +50,7 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	var request updateAuthUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -64,7 +64,7 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
 	var pagination dto.Pagination
-	if err := json.NewDecoder(r.Body).Decode(&pagination); err != nil {
+	if err := DecodeJSON(r, &pagination); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -101,7 +101,7 @@ func (h *AdminHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
 	var rateLimitRequest RateLimitRequest
-	if err := json.NewDecoder(r.Body).Decode(&rateLimitRequest); err != nil {
+	if err := DecodeJSON(r, &rateLimitRequest); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/swuecho/chat_backend/auth"
@@ -25,7 +24,7 @@ type ChangePasswordRequest struct {
 // ResetPasswordHandler generates a temporary password and sends it via email.
 func (h *AuthUserHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	var req ResetPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -70,7 +69,7 @@ func sendPasswordResetEmail(email, tempPassword string) error {
 // ChangePasswordHandler updates the user's password.
 func (h *AuthUserHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
 	var req ChangePasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}

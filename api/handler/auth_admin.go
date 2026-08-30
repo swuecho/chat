@@ -32,7 +32,7 @@ type RateLimitRequest struct {
 // UserStatHandler returns paginated user statistics (admin only).
 func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request) {
 	var pagination dto.Pagination
-	if err := json.NewDecoder(r.Body).Decode(&pagination); err != nil {
+	if err := DecodeJSON(r, &pagination); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -70,7 +70,7 @@ func (h *AuthUserHandler) UserStatHandler(w http.ResponseWriter, r *http.Request
 // UpdateRateLimit updates a user's rate limit (admin only).
 func (h *AuthUserHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
 	var req RateLimitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to decode request body").WithDebugInfo(err.Error()))
 		return
 	}

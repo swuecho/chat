@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -39,7 +38,7 @@ func (h *BotAnswerHistoryHandler) CreateBotAnswerHistory(w http.ResponseWriter, 
 	}
 
 	var request createBotAnswerHistoryRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -141,7 +140,7 @@ func (h *BotAnswerHistoryHandler) UpdateBotAnswerHistory(w http.ResponseWriter, 
 		Answer     string `json:"answer"`
 		TokensUsed int32  `json:"tokensUsed"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	if err := DecodeJSON(r, &params); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body").WithDebugInfo(err.Error()))
 		return
 	}

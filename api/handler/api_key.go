@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -54,7 +53,7 @@ func (h *APIKeyHandler) create(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt         string `json:"expiresAt"`
 		RequestsPerMinute int32  `json:"requestsPerMinute"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Invalid request body"))
 		return
 	}

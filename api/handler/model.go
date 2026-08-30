@@ -69,7 +69,7 @@ func (h *ChatModelHandler) CreateChatModel(w http.ResponseWriter, r *http.Reques
 
 	var request createChatModelRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -112,7 +112,7 @@ func (h *ChatModelHandler) UpdateChatModel(w http.ResponseWriter, r *http.Reques
 	}
 
 	var request createChatModelRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -191,7 +191,7 @@ func (h *ChatModelHandler) SetTitleChatModel(w http.ResponseWriter, r *http.Requ
 	var input struct {
 		ModelID int32 `json:"modelId"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil || input.ModelID <= 0 {
+	if err := DecodeJSON(r, &input); err != nil || input.ModelID <= 0 {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("A valid enabled model is required"))
 		return
 	}

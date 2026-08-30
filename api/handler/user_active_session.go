@@ -91,7 +91,7 @@ func (h *UserActiveChatSessionHandler) CreateOrUpdateUserActiveChatSessionHandle
 	var reqBody struct {
 		ChatSessionUuid string `json:"chatSessionUuid"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+	if err := DecodeJSON(r, &reqBody); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}
@@ -149,7 +149,7 @@ func (h *UserActiveChatSessionHandler) SetWorkspaceActiveSessionHandler(w http.R
 	var requestBody struct {
 		ChatSessionUuid string `json:"chatSessionUuid"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+	if err := DecodeJSON(r, &requestBody); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}

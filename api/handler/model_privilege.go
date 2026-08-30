@@ -42,7 +42,7 @@ func (h *UserChatModelPrivilegeHandler) ListUserChatModelPrivileges(w http.Respo
 
 func (h *UserChatModelPrivilegeHandler) CreateUserChatModelPrivilege(w http.ResponseWriter, r *http.Request) {
 	var request chatModelPrivilegeRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}
@@ -94,7 +94,7 @@ func (h *UserChatModelPrivilegeHandler) UpdateUserChatModelPrivilege(w http.Resp
 	}
 
 	var request chatModelPrivilegeRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := DecodeJSON(r, &request); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("failed to parse request body"))
 		return
 	}

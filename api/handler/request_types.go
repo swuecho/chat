@@ -7,6 +7,10 @@ import (
 )
 
 type createChatModelRequest struct {
+	// ID, UserID, and IsTitleModel are accepted for compatibility with clients
+	// that submit a previously returned model object. The path and authenticated
+	// identity remain authoritative and these values are intentionally ignored.
+	ID                      int32  `json:"id"`
 	Name                    string `json:"name"`
 	Label                   string `json:"label"`
 	IsDefault               bool   `json:"isDefault"`
@@ -20,6 +24,8 @@ type createChatModelRequest struct {
 	HTTPTimeout             int32  `json:"httpTimeOut"`
 	APIType                 string `json:"apiType"`
 	IsEnable                bool   `json:"isEnable"`
+	UserID                  int32  `json:"userId"`
+	IsTitleModel            bool   `json:"isTitleModel"`
 }
 
 type createAuthUserRequest struct {

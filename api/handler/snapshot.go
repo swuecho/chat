@@ -68,7 +68,7 @@ func (h *ChatSnapshotHandler) UpdateChatBotSettings(w http.ResponseWriter, r *ht
 		Summary string `json:"summary"`
 		Model   string `json:"model"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -99,7 +99,7 @@ func (h *ChatSnapshotHandler) UpdateChatBotModel(w http.ResponseWriter, r *http.
 	var input struct {
 		Model string `json:"model"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
 		return
 	}
@@ -186,7 +186,7 @@ func (h *ChatSnapshotHandler) UpdateChatSnapshotMetaByUUID(w http.ResponseWriter
 		Title   string `json:"title"`
 		Summary string `json:"summary"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("Failed to parse request body").WithDebugInfo(err.Error()))
 		return
 	}

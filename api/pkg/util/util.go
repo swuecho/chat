@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -107,9 +108,40 @@ func LimitParam(r *http.Request, defaultLimit int32) int32 {
 	return int32(n)
 }
 
-// DecodeJSON decodes a JSON request body into the target value.
+// Validator is implemented by request types that can validate themselves after
+// successful JSON decoding.
+type Validator interface {
+	Validate() error
+}
+
+// DecodeJSON strictly decodes exactly one JSON object into target. Unknown
+// fields and trailing JSON values are rejected. If target implements Validator,
+// validation runs only after decoding succeeds.
 func DecodeJSON(r *http.Request, target any) error {
-	return json.NewDecoder(r.Body).Decode(target)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(target); err != nil {
+		if errors.Is(err, io.EOF) {
+			return errors.New("request body must not be empty")
+		}
+		return fmt.Errorf("decode request body: %w", err)
+	}
+
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return errors.New("request body must contain exactly one JSON value")
+		}
+		return fmt.Errorf("request body must contain exactly one JSON value: %w", err)
+	}
+
+	if validator, ok := target.(Validator); ok {
+		if err := validator.Validate(); err != nil {
+			return fmt.Errorf("validate request body: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // UserID extracts the authenticated user ID from the request context.
