@@ -449,6 +449,632 @@
           }
         ]
       }
+    },
+    "/api/workspaces": {
+      "get": {
+        "operationId": "listWorkspaces",
+        "summary": "List the authenticated user's workspaces",
+        "tags": [
+          "workspaces"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "items": {
+                    "properties": {
+                      "uuid": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "color": {
+                        "type": "string"
+                      },
+                      "icon": {
+                        "type": "string"
+                      },
+                      "isDefault": {
+                        "type": "boolean"
+                      },
+                      "orderPosition": {
+                        "type": "integer"
+                      },
+                      "sessionCount": {
+                        "type": "integer"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "uuid",
+                      "name",
+                      "description",
+                      "color",
+                      "icon",
+                      "isDefault",
+                      "orderPosition",
+                      "createdAt",
+                      "updatedAt"
+                    ]
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createWorkspace",
+        "summary": "Create a workspace",
+        "tags": [
+          "workspaces"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createWorkspaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/workspaces/auto-migrate": {
+      "post": {
+        "operationId": "autoMigrateLegacySessions",
+        "summary": "Migrate legacy sessions into the default workspace",
+        "tags": [
+          "workspaces"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/migrationHTTPResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/workspaces/default": {
+      "post": {
+        "operationId": "ensureDefaultWorkspace",
+        "summary": "Ensure the default workspace exists",
+        "tags": [
+          "workspaces"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/workspaces/{uuid}": {
+      "delete": {
+        "operationId": "deleteWorkspace",
+        "summary": "Delete a workspace",
+        "tags": [
+          "workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/messageHTTPStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "getWorkspace",
+        "summary": "Get a workspace",
+        "tags": [
+          "workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "updateWorkspace",
+        "summary": "Update a workspace",
+        "tags": [
+          "workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateWorkspaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/workspaces/{uuid}/reorder": {
+      "put": {
+        "operationId": "updateWorkspaceOrder",
+        "summary": "Update a workspace order position",
+        "tags": [
+          "workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateWorkspaceOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/workspaces/{uuid}/sessions": {
+      "get": {
+        "operationId": "listWorkspaceSessions",
+        "summary": "List chat sessions in a workspace",
+        "tags": [
+          "workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "items": {
+                    "properties": {
+                      "uuid": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "isEdit": {
+                        "type": "boolean"
+                      },
+                      "model": {
+                        "type": "string"
+                      },
+                      "workspaceUuid": {
+                        "type": "string"
+                      },
+                      "maxLength": {
+                        "type": "integer"
+                      },
+                      "temperature": {
+                        "type": "number"
+                      },
+                      "maxTokens": {
+                        "type": "integer"
+                      },
+                      "topP": {
+                        "type": "number"
+                      },
+                      "n": {
+                        "type": "integer"
+                      },
+                      "debug": {
+                        "type": "boolean"
+                      },
+                      "summarizeMode": {
+                        "type": "boolean"
+                      },
+                      "exploreMode": {
+                        "type": "boolean"
+                      },
+                      "artifactEnabled": {
+                        "type": "boolean"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "uuid",
+                      "title",
+                      "isEdit",
+                      "model",
+                      "workspaceUuid",
+                      "maxLength",
+                      "temperature",
+                      "maxTokens",
+                      "topP",
+                      "n",
+                      "debug",
+                      "summarizeMode",
+                      "exploreMode",
+                      "artifactEnabled",
+                      "createdAt",
+                      "updatedAt"
+                    ]
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createWorkspaceSession",
+        "summary": "Create a chat session in a workspace",
+        "tags": [
+          "workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createSessionInWorkspaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceSessionCreatedHTTPResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/workspaces/{uuid}/set-default": {
+      "put": {
+        "operationId": "setDefaultWorkspace",
+        "summary": "Set the default workspace",
+        "tags": [
+          "workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -581,6 +1207,54 @@
           "exploreMode"
         ]
       },
+      "WorkspaceResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "uuid": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "orderPosition": {
+            "type": "integer"
+          },
+          "sessionCount": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "uuid",
+          "name",
+          "description",
+          "color",
+          "icon",
+          "isDefault",
+          "orderPosition",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "chatSessionHTTPResponse": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "properties": {
@@ -693,6 +1367,135 @@
           "defaultSystemPrompt"
         ]
       },
+      "createSessionInWorkspaceRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1
+          },
+          "defaultSystemPrompt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model"
+        ]
+      },
+      "createWorkspaceRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "color": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ]
+      },
+      "messageHTTPStatusResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message"
+        ]
+      },
+      "migrationHTTPResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "hasLegacySessions": {
+            "type": "boolean"
+          },
+          "migratedSessions": {
+            "type": "integer"
+          },
+          "defaultWorkspace": {
+            "properties": {
+              "uuid": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "color": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string"
+              },
+              "isDefault": {
+                "type": "boolean"
+              },
+              "orderPosition": {
+                "type": "integer"
+              },
+              "sessionCount": {
+                "type": "integer"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "uuid",
+              "name",
+              "description",
+              "color",
+              "icon",
+              "isDefault",
+              "orderPosition",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "hasLegacySessions",
+          "migratedSessions"
+        ]
+      },
       "sessionCreatedHTTPResponse": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "properties": {
@@ -735,6 +1538,80 @@
         "type": "object",
         "required": [
           "topic"
+        ]
+      },
+      "updateWorkspaceOrderRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "orderPosition": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "orderPosition"
+        ]
+      },
+      "updateWorkspaceRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "color": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ]
+      },
+      "workspaceSessionCreatedHTTPResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "uuid": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "artifactEnabled": {
+            "type": "boolean"
+          },
+          "workspaceUuid": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "uuid",
+          "topic",
+          "model",
+          "artifactEnabled",
+          "workspaceUuid",
+          "createdAt"
         ]
       }
     },

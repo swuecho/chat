@@ -31,6 +31,19 @@ export interface UpdateChatSessionRequest {
   workspaceUuid?: string
 }
 
+export interface WorkspaceResponse {
+  uuid: string
+  name: string
+  description: string
+  color: string
+  icon: string
+  isDefault: boolean
+  orderPosition: number
+  sessionCount?: number
+  createdAt: string
+  updatedAt: string
+}
+
 export interface ChatSessionHttpResponse {
   id: number
   userId: number
@@ -59,6 +72,41 @@ export interface CreateChatSessionRequest {
   defaultSystemPrompt: string
 }
 
+export interface CreateSessionInWorkspaceRequest {
+  topic?: string
+  model: string
+  defaultSystemPrompt?: string
+}
+
+export interface CreateWorkspaceRequest {
+  name: string
+  description?: string
+  color?: string
+  icon?: string
+  isDefault?: boolean
+}
+
+export interface MessageHttpStatusResponse {
+  message: string
+}
+
+export interface MigrationHttpResponse {
+  hasLegacySessions: boolean
+  migratedSessions: number
+  defaultWorkspace?: {
+    uuid: string
+    name: string
+    description: string
+    color: string
+    icon: string
+    isDefault: boolean
+    orderPosition: number
+    sessionCount?: number
+    createdAt: string
+    updatedAt: string
+  }
+}
+
 export interface SessionCreatedHttpResponse {
   sessionUuid: string
 }
@@ -69,6 +117,26 @@ export interface UpdateSessionMaxLengthRequest {
 
 export interface UpdateSessionTopicRequest {
   topic: string
+}
+
+export interface UpdateWorkspaceOrderRequest {
+  orderPosition: number
+}
+
+export interface UpdateWorkspaceRequest {
+  name: string
+  description?: string
+  color?: string
+  icon?: string
+}
+
+export interface WorkspaceSessionCreatedHttpResponse {
+  uuid: string
+  topic: string
+  model: string
+  artifactEnabled: boolean
+  workspaceUuid: string
+  createdAt: string
 }
 
 export interface ListChatSessionsData {
@@ -294,6 +362,323 @@ export interface CreateOrUpdateChatSessionResponses {
 }
 
 export type CreateOrUpdateChatSessionResponse = CreateOrUpdateChatSessionResponses[keyof CreateOrUpdateChatSessionResponses]
+
+export interface ListWorkspacesData {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/workspaces'
+}
+
+export interface ListWorkspacesErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type ListWorkspacesError = ListWorkspacesErrors[keyof ListWorkspacesErrors]
+
+export interface ListWorkspacesResponses {
+  /**
+     * OK
+     */
+  200: Array<{
+    uuid: string
+    name: string
+    description: string
+    color: string
+    icon: string
+    isDefault: boolean
+    orderPosition: number
+    sessionCount?: number
+    createdAt: string
+    updatedAt: string
+  }>
+}
+
+export type ListWorkspacesResponse = ListWorkspacesResponses[keyof ListWorkspacesResponses]
+
+export interface CreateWorkspaceData {
+  body: CreateWorkspaceRequest
+  path?: never
+  query?: never
+  url: '/api/workspaces'
+}
+
+export interface CreateWorkspaceErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type CreateWorkspaceError = CreateWorkspaceErrors[keyof CreateWorkspaceErrors]
+
+export interface CreateWorkspaceResponses {
+  /**
+     * Created
+     */
+  201: WorkspaceResponse
+}
+
+export type CreateWorkspaceResponse = CreateWorkspaceResponses[keyof CreateWorkspaceResponses]
+
+export interface AutoMigrateLegacySessionsData {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/workspaces/auto-migrate'
+}
+
+export interface AutoMigrateLegacySessionsErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type AutoMigrateLegacySessionsError = AutoMigrateLegacySessionsErrors[keyof AutoMigrateLegacySessionsErrors]
+
+export interface AutoMigrateLegacySessionsResponses {
+  /**
+     * OK
+     */
+  200: MigrationHttpResponse
+}
+
+export type AutoMigrateLegacySessionsResponse = AutoMigrateLegacySessionsResponses[keyof AutoMigrateLegacySessionsResponses]
+
+export interface EnsureDefaultWorkspaceData {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/workspaces/default'
+}
+
+export interface EnsureDefaultWorkspaceErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type EnsureDefaultWorkspaceError = EnsureDefaultWorkspaceErrors[keyof EnsureDefaultWorkspaceErrors]
+
+export interface EnsureDefaultWorkspaceResponses {
+  /**
+     * OK
+     */
+  200: WorkspaceResponse
+}
+
+export type EnsureDefaultWorkspaceResponse = EnsureDefaultWorkspaceResponses[keyof EnsureDefaultWorkspaceResponses]
+
+export interface DeleteWorkspaceData {
+  body?: never
+  path: {
+    uuid: string
+  }
+  query?: never
+  url: '/api/workspaces/{uuid}'
+}
+
+export interface DeleteWorkspaceErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type DeleteWorkspaceError = DeleteWorkspaceErrors[keyof DeleteWorkspaceErrors]
+
+export interface DeleteWorkspaceResponses {
+  /**
+     * OK
+     */
+  200: MessageHttpStatusResponse
+}
+
+export type DeleteWorkspaceResponse = DeleteWorkspaceResponses[keyof DeleteWorkspaceResponses]
+
+export interface GetWorkspaceData {
+  body?: never
+  path: {
+    uuid: string
+  }
+  query?: never
+  url: '/api/workspaces/{uuid}'
+}
+
+export interface GetWorkspaceErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type GetWorkspaceError = GetWorkspaceErrors[keyof GetWorkspaceErrors]
+
+export interface GetWorkspaceResponses {
+  /**
+     * OK
+     */
+  200: WorkspaceResponse
+}
+
+export type GetWorkspaceResponse = GetWorkspaceResponses[keyof GetWorkspaceResponses]
+
+export interface UpdateWorkspaceData {
+  body: UpdateWorkspaceRequest
+  path: {
+    uuid: string
+  }
+  query?: never
+  url: '/api/workspaces/{uuid}'
+}
+
+export interface UpdateWorkspaceErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type UpdateWorkspaceError = UpdateWorkspaceErrors[keyof UpdateWorkspaceErrors]
+
+export interface UpdateWorkspaceResponses {
+  /**
+     * OK
+     */
+  200: WorkspaceResponse
+}
+
+export type UpdateWorkspaceResponse = UpdateWorkspaceResponses[keyof UpdateWorkspaceResponses]
+
+export interface UpdateWorkspaceOrderData {
+  body: UpdateWorkspaceOrderRequest
+  path: {
+    uuid: string
+  }
+  query?: never
+  url: '/api/workspaces/{uuid}/reorder'
+}
+
+export interface UpdateWorkspaceOrderErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type UpdateWorkspaceOrderError = UpdateWorkspaceOrderErrors[keyof UpdateWorkspaceOrderErrors]
+
+export interface UpdateWorkspaceOrderResponses {
+  /**
+     * OK
+     */
+  200: WorkspaceResponse
+}
+
+export type UpdateWorkspaceOrderResponse = UpdateWorkspaceOrderResponses[keyof UpdateWorkspaceOrderResponses]
+
+export interface ListWorkspaceSessionsData {
+  body?: never
+  path: {
+    uuid: string
+  }
+  query?: never
+  url: '/api/workspaces/{uuid}/sessions'
+}
+
+export interface ListWorkspaceSessionsErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type ListWorkspaceSessionsError = ListWorkspaceSessionsErrors[keyof ListWorkspaceSessionsErrors]
+
+export interface ListWorkspaceSessionsResponses {
+  /**
+     * OK
+     */
+  200: Array<{
+    uuid: string
+    title: string
+    isEdit: boolean
+    model: string
+    workspaceUuid: string
+    maxLength: number
+    temperature: number
+    maxTokens: number
+    topP: number
+    n: number
+    debug: boolean
+    summarizeMode: boolean
+    exploreMode: boolean
+    artifactEnabled: boolean
+    createdAt: string
+    updatedAt: string
+  }>
+}
+
+export type ListWorkspaceSessionsResponse = ListWorkspaceSessionsResponses[keyof ListWorkspaceSessionsResponses]
+
+export interface CreateWorkspaceSessionData {
+  body: CreateSessionInWorkspaceRequest
+  path: {
+    uuid: string
+  }
+  query?: never
+  url: '/api/workspaces/{uuid}/sessions'
+}
+
+export interface CreateWorkspaceSessionErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type CreateWorkspaceSessionError = CreateWorkspaceSessionErrors[keyof CreateWorkspaceSessionErrors]
+
+export interface CreateWorkspaceSessionResponses {
+  /**
+     * Created
+     */
+  201: WorkspaceSessionCreatedHttpResponse
+}
+
+export type CreateWorkspaceSessionResponse = CreateWorkspaceSessionResponses[keyof CreateWorkspaceSessionResponses]
+
+export interface SetDefaultWorkspaceData {
+  body?: never
+  path: {
+    uuid: string
+  }
+  query?: never
+  url: '/api/workspaces/{uuid}/set-default'
+}
+
+export interface SetDefaultWorkspaceErrors {
+  /**
+     * API error
+     */
+  default: ApiError
+}
+
+export type SetDefaultWorkspaceError = SetDefaultWorkspaceErrors[keyof SetDefaultWorkspaceErrors]
+
+export interface SetDefaultWorkspaceResponses {
+  /**
+     * OK
+     */
+  200: WorkspaceResponse
+}
+
+export type SetDefaultWorkspaceResponse = SetDefaultWorkspaceResponses[keyof SetDefaultWorkspaceResponses]
 
 export interface ClientOptions {
   baseUrl: `${string}://${string}` | (string & {})

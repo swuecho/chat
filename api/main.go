@@ -261,7 +261,7 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 
 	// Workspaces
 	workspaceService := svc.NewChatWorkspaceService(q)
-	handler.NewChatWorkspaceHandler(workspaceService).Register(userRouter)
+	handler.NewChatWorkspaceHandler(workspaceService).Register(userRouter, s.apiContract)
 
 	// Messages
 	chatMessageService := svc.NewChatMessageService(q)

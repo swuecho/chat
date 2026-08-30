@@ -47,8 +47,8 @@ and transparent provider proxies should continue using their specialized
 registration paths. `apicontract.NoBody` represents an absent JSON request or
 response body.
 
-All chat-session JSON endpoints use the registry. That resource is the reference
-implementation for migrating another handler group.
+All chat-session and workspace JSON endpoints use the registry. Those resources
+are the reference implementation for migrating another handler group.
 
 ## OpenAPI to TypeScript pipeline
 
@@ -69,6 +69,7 @@ same JWT initialization, proactive refresh, cookie, 401 retry, and thrown-error
 semantics as the existing Axios boundary. Import generated operations through
 that module rather than directly from `api/generated`.
 
-Migration is incremental: `api/chat_session.ts` uses generated operations for
-the session endpoints present in OpenAPI while its message-clearing call remains
-on Axios until that backend endpoint has a typed contract.
+Migration is incremental: `api/chat_session.ts` and `api/chat_workspace.ts` use
+generated operations for the endpoints present in OpenAPI while their
+message-clearing and active-session calls remain on Axios until those backend
+endpoints have typed contracts.

@@ -197,6 +197,7 @@ export const useSessionStore = defineStore('session-store', {
           title: newSession.topic || title,
           model: newSession.model || sessionModel,
           workspaceUuid: newSession.workspaceUuid || targetWorkspaceUuid,
+          isEdit: false,
         }
 
         // Add to workspace history
