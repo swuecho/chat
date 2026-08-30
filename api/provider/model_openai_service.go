@@ -11,6 +11,7 @@ import (
 	"time"
 
 	openai "github.com/sashabaranov/go-openai"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
 	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/models"
@@ -39,7 +40,7 @@ func (m *OpenAIChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 
 	config, err := GenOpenAIConfig(chatModel, m.h.Config())
 	if err != nil {
-		return nil, dto.ErrOpenAIConfigFailed.WithMessage("Failed to generate OpenAI config").WithDebugInfo(err.Error())
+		return nil, classifiedFailure("openai", "configure", domain.ProviderFailureConfiguration, false, err)
 	}
 
 	openaiReq := NewChatCompletionRequest(chatSession, chatCompletionMessages, input.Files, streamOutput)
@@ -69,7 +70,7 @@ func handleRegularResponse(ctx context.Context, ch chan<- StreamChunk, client *o
 	completion, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		slog.Info("OpenAI request failed", "model", req.Model, "configuredURL", configuredURL, "baseURL", baseURL, "error", err)
-		ch <- StreamChunk{Err: dto.ErrOpenAIRequestFailed.WithMessage("Failed to create chat completion").WithDebugInfo(err.Error())}
+		ch <- StreamChunk{Err: normalizeFailure("openai", "complete", err)}
 		return
 	}
 
@@ -94,7 +95,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 	stream, err := client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
 		slog.Info("OpenAI stream setup failed", "model", req.Model, "configuredURL", configuredURL, "baseURL", baseURL, "error", err)
-		ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Failed to create chat completion stream").WithDebugInfo(err.Error())}
+		ch <- StreamChunk{Err: normalizeFailure("openai", "open stream", err)}
 		return
 	}
 	defer func() {
@@ -137,7 +138,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 				if TextBuffer.String("\n") == "" && reasonBuffer.String("\n") == "" {
 					errMsg := fmt.Sprintf("stream closed without content; verify configured URL %q resolves to a valid OpenAI-compatible base URL %q and that model %q is valid", configuredURL, baseURL, req.Model)
 					slog.Info(errMsg)
-					ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Stream closed without content").WithDebugInfo(errMsg)}
+					ch <- StreamChunk{Err: classifiedFailure("openai", "read stream", domain.ProviderFailureInvalidResponse, false, errors.New(errMsg))}
 					return
 				}
 				llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answerID}
@@ -148,7 +149,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 				return
 			}
 			slog.Info("Stream error", "error", err)
-			ch <- StreamChunk{Err: dto.ErrOpenAIStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())}
+			ch <- StreamChunk{Err: normalizeFailure("openai", "read stream", err)}
 			return
 		}
 

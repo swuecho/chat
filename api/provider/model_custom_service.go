@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/domain"
 	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/models"
 )
@@ -69,7 +69,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrChatRequestFailed.WithMessage("Failed to create custom model request").WithDebugInfo(err.Error())}
+		ch <- StreamChunk{Err: classifiedFailure("custom", "create request", domain.ProviderFailureConfiguration, false, err)}
 		return
 	}
 
@@ -83,10 +83,14 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrChatRequestFailed.WithMessage("Failed to send custom model request").WithDebugInfo(err.Error())}
+		ch <- StreamChunk{Err: normalizeFailure("custom", "open stream", err)}
 		return
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		ch <- StreamChunk{Err: domain.NewProviderHTTPFailure("custom", "open stream", resp.StatusCode, fmt.Errorf("unexpected HTTP status %s", resp.Status))}
+		return
+	}
 
 	ioreader := bufio.NewReader(resp.Body)
 
@@ -116,7 +120,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 				fmt.Println("End of stream reached")
 				break
 			}
-			ch <- StreamChunk{Err: err}
+			ch <- StreamChunk{Err: normalizeFailure("custom", "read stream", err)}
 			return
 		}
 

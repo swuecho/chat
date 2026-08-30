@@ -314,6 +314,28 @@ func ToAPIError(err error) APIError {
 		return ErrInternalUnexpected
 	}
 
+	if failure, ok := domain.AsProviderFailure(err); ok {
+		var apiErr APIError
+		switch failure.Kind {
+		case domain.ProviderFailureInvalidRequest:
+			apiErr = ErrValidationInvalidInput("Provider rejected the request")
+		case domain.ProviderFailureAuthentication:
+			apiErr = ErrAuthInvalidCredentials.WithMessage("Provider authentication failed")
+		case domain.ProviderFailurePermission:
+			apiErr = ErrAuthAccessDenied.WithMessage("Provider denied access")
+		case domain.ProviderFailureRateLimited, domain.ProviderFailureUnavailable:
+			apiErr = ErrExternalUnavailable.WithMessage("Provider is temporarily unavailable")
+		case domain.ProviderFailureTimeout:
+			apiErr = WrapError(context.DeadlineExceeded, "provider request")
+		case domain.ProviderFailureCanceled:
+			apiErr = WrapError(context.Canceled, "provider request")
+		default:
+			apiErr = ErrInternalUnexpected.WithMessage("Provider request failed")
+		}
+		apiErr.DebugInfo = failure.Error()
+		return apiErr
+	}
+
 	if appErr, ok := domain.AsError(err); ok {
 		var apiErr APIError
 		switch appErr.Kind {

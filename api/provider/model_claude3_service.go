@@ -13,6 +13,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
 	claude "github.com/swuecho/chat_backend/llm/claude"
 	"github.com/swuecho/chat_backend/models"
@@ -73,12 +74,12 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 
 	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.URL, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		return nil, dto.ErrClaudeRequestFailed.WithDetail("failed to create HTTP request").WithDebugInfo(err.Error())
+		return nil, classifiedFailure("claude", "create request", domain.ProviderFailureConfiguration, false, err)
 	}
 
 	apiKey := os.Getenv(chatModel.APIAuthKey)
 	if apiKey == "" {
-		return nil, dto.ErrAuthInvalidCredentials.WithDetail(fmt.Sprintf("missing API key for model %s", chatSession.Model))
+		return nil, classifiedFailure("claude", "configure", domain.ProviderFailureConfiguration, false, fmt.Errorf("missing API key for model %s", chatSession.Model))
 	}
 
 	authHeaderName := chatModel.APIAuthHeader
@@ -126,14 +127,19 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 func doGenerateClaude3(ctx context.Context, client http.Client, req *http.Request) (*models.LLMAnswer, error) {
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, dto.ErrClaudeRequestFailed.WithMessage("Failed to process Claude request").WithDebugInfo(err.Error())
+		return nil, normalizeFailure("claude", "complete", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, domain.NewProviderHTTPFailure("claude", "complete", resp.StatusCode, fmt.Errorf("unexpected HTTP status %s", resp.Status))
 	}
 	var message claude.Response
 	if err := json.NewDecoder(resp.Body).Decode(&message); err != nil {
-		resp.Body.Close()
-		return nil, dto.ErrClaudeInvalidResponse.WithMessage("Failed to unmarshal Claude response").WithDebugInfo(err.Error())
+		return nil, classifiedFailure("claude", "decode response", domain.ProviderFailureInvalidResponse, false, err)
 	}
-	resp.Body.Close()
+	if len(message.Content) == 0 {
+		return nil, classifiedFailure("claude", "decode response", domain.ProviderFailureInvalidResponse, false, errors.New("response contains no content"))
+	}
 	firstMessage := message.Content[0].Text
 
 	return &models.LLMAnswer{
@@ -146,7 +152,12 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 	client := &http.Client{Timeout: 5 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrClaudeRequestFailed.WithMessage("Failed to process Claude streaming request").WithDebugInfo(err.Error())}
+		ch <- StreamChunk{Err: normalizeFailure("claude", "open stream", err)}
+		return
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		defer resp.Body.Close()
+		ch <- StreamChunk{Err: domain.NewProviderHTTPFailure("claude", "open stream", resp.StatusCode, fmt.Errorf("unexpected HTTP status %s", resp.Status))}
 		return
 	}
 
@@ -184,7 +195,7 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 				fmt.Println("End of stream reached")
 				break
 			}
-			ch <- StreamChunk{Err: err}
+			ch <- StreamChunk{Err: normalizeFailure("claude", "read stream", err)}
 			return
 		}
 		line = bytes.TrimPrefix(line, headerData)
@@ -193,7 +204,7 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 			break
 		}
 		if bytes.HasPrefix(line, []byte("{\"type\":\"error\"")) {
-			ch <- StreamChunk{Err: dto.ErrClaudeStreamFailed.WithMessage("Error in Claude API response").WithDebugInfo(string(line))}
+			ch <- StreamChunk{Err: classifiedFailure("claude", "read stream", domain.ProviderFailureInvalidResponse, false, errors.New(string(line)))}
 			return
 		}
 		if answerID == "" {

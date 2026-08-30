@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/llm/gemini"
 	"github.com/swuecho/chat_backend/models"
@@ -54,13 +55,13 @@ func (m *GeminiChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 	}
 	payloadBytes, err := gemini.GenGemminPayload(messages, geminiFiles)
 	if err != nil {
-		return nil, dto.ErrInternalUnexpected.WithMessage("Failed to generate Gemini payload").WithDebugInfo(err.Error())
+		return nil, classifiedFailure("gemini", "create payload", domain.ProviderFailureInvalidRequest, false, err)
 	}
 
 	url := gemini.BuildAPIURL(chatSession.Model, stream)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		return nil, dto.ErrInternalUnexpected.WithMessage("Failed to create Gemini API request").WithDebugInfo(err.Error())
+		return nil, classifiedFailure("gemini", "create request", domain.ProviderFailureConfiguration, false, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -78,11 +79,11 @@ func (m *GeminiChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 		defer close(ch)
 		llmAnswer, err := gemini.HandleRegularResponse(*m.client.client, req)
 		if err != nil {
-			ch <- StreamChunk{Err: err}
+			ch <- StreamChunk{Err: normalizeFailure("gemini", "complete", err)}
 			return
 		}
 		if llmAnswer == nil {
-			ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Empty response from Gemini")}
+			ch <- StreamChunk{Err: classifiedFailure("gemini", "decode response", domain.ProviderFailureInvalidResponse, false, errors.New("empty response"))}
 			return
 		}
 		ch <- StreamChunk{
@@ -179,7 +180,7 @@ func GenerateChatTitle(ctx context.Context, model ModelConfig, chatText string) 
 func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- StreamChunk, req *http.Request, answerID string) {
 	resp, err := m.client.client.Do(req)
 	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Failed to send Gemini API request").WithDebugInfo(err.Error())}
+		ch <- StreamChunk{Err: normalizeFailure("gemini", "open stream", err)}
 		return
 	}
 	defer resp.Body.Close()
@@ -195,11 +196,11 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- St
 		} else {
 			slog.Warn("API returned non-200 status", "statusCode", resp.StatusCode, "statusText", http.StatusText(resp.StatusCode), "body", string(errorBody))
 		}
-		ch <- StreamChunk{Err: dto.APIError{
-			HTTPCode: apiError.Error.Code,
-			Code:     apiError.Error.Status,
-			Message:  apiError.Error.Message,
-		}}
+		message := apiError.Error.Message
+		if message == "" {
+			message = http.StatusText(resp.StatusCode)
+		}
+		ch <- StreamChunk{Err: domain.NewProviderHTTPFailure("gemini", "open stream", resp.StatusCode, errors.New(message))}
 		return
 	}
 	ioreader := bufio.NewReader(resp.Body)
@@ -224,7 +225,7 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- St
 				}
 				return
 			}
-			ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Error reading stream").WithDebugInfo(err.Error())}
+			ch <- StreamChunk{Err: normalizeFailure("gemini", "read stream", err)}
 			return
 		}
 

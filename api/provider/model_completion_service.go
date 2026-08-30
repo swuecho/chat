@@ -9,6 +9,7 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/models"
 )
@@ -44,7 +45,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 
 	config, err := GenOpenAIConfig(chatModel, m.h.Config())
 	if err != nil {
-		ch <- StreamChunk{Err: err}
+		ch <- StreamChunk{Err: classifiedFailure("openai-completion", "configure", domain.ProviderFailureConfiguration, false, err)}
 		return
 	}
 
@@ -66,7 +67,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 
 	stream, err := client.CreateCompletionStream(ctx, req)
 	if err != nil {
-		ch <- StreamChunk{Err: dto.ErrInternalUnexpected.WithMessage("Failed to create completion stream").WithDebugInfo(err.Error())}
+		ch <- StreamChunk{Err: normalizeFailure("openai-completion", "open stream", err)}
 		return
 	}
 	defer stream.Close()
@@ -94,7 +95,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 		}
 
 		if err != nil {
-			ch <- StreamChunk{Err: dto.ErrChatStreamFailed.WithMessage("Stream error occurred").WithDebugInfo(err.Error())}
+			ch <- StreamChunk{Err: normalizeFailure("openai-completion", "read stream", err)}
 			return
 		}
 
