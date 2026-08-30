@@ -34,11 +34,8 @@ const options = computed(() => (modelQuery.data.value || [])
 </script>
 
 <template>
-  <div class="max-w-2xl">
-    <h1 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-      {{ t('admin.chat_model.title_model') }}
-    </h1>
-    <NCard>
+  <div class="max-w-xl">
+    <NCard size="small">
       <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
         {{ t('admin.chat_model.title_model_description') }}
       </p>

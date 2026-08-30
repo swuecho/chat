@@ -4,11 +4,10 @@
 // The data should be fetched from the backend using api 'GetUserData(page, page_size)'
 // The Rate Limit column should be editable, and the value should be updated in the backend using api 'UpdateRateLimit(user_email, rate_limit)'
 // vue3 code should be in <script lang="ts" setup> style.
-import { h, onMounted, reactive, ref } from 'vue'
-import { NDataTable, NInput, useMessage, NButton, NModal, NForm, NFormItem, useDialog, NCard } from 'naive-ui'
+import { computed, h, onMounted, reactive, ref } from 'vue'
+import { NButton, NCard, NDataTable, NEmpty, NForm, NFormItem, NInput, NModal, useMessage } from 'naive-ui'
 import { GetUserData, UpdateRateLimit, updateUserFullName } from '@/api'
 import { t } from '@/locales'
-import HoverButton from '@/components/common/HoverButton/index.vue'
 import UserAnalysisModal from '@/components/admin/UserAnalysisModal.vue'
 
 const ms_ui = useMessage()
@@ -36,74 +35,67 @@ const columns = [
   {
     title: t('admin.userEmail'),
     key: 'email',
-    width: 200,
+    width: 230,
     render: (row: UserData) => {
       return h('span', {
         class: 'cursor-pointer text-blue-600 hover:text-blue-800 hover:underline',
         onClick: () => {
           selectedUserEmail.value = row.email
           showAnalysisModal.value = true
-        }
+        },
       }, row.email)
-    }
+    },
   },
   {
     title: t('admin.name'),
     key: 'name',
-    width: 100,
+    width: 130,
     render: (row: UserData) => {
       return h('span', `${row.lastName}${row.firstName}`)
-    }
+    },
   },
 
   {
     title: t('admin.rateLimit10Min'),
     key: 'rateLimit',
-    width: 100,
+    width: 140,
+  },
+  {
+    title: t('admin.totalChatMessages'),
+    key: 'totalChatMessages',
+    width: 130,
+  },
+  {
+    title: t('admin.totalChatMessages3Days'),
+    key: 'totalChatMessages3Days',
+    width: 150,
   },
   {
     title: t('common.actions'),
     key: 'actions',
     width: 100,
-    render: (row: UserData) => {
-      return h(NButton, {
-        size: 'small',
-        onClick: () => {
-          editingUser.value = { ...row }
-          showEditModal.value = true
-        }
-      }, {
-        default: () => t('common.edit')
-      })
-    }
+    fixed: 'right' as const,
+    render: (row: UserData) => h(NButton, {
+      size: 'small',
+      secondary: true,
+      onClick: () => {
+        editingUser.value = { ...row }
+        showEditModal.value = true
+      },
+    }, { default: () => t('common.edit') }),
   },
-  {
-    title: t('admin.totalChatMessages'),
-    key: 'totalChatMessages',
-    width: 100,
-  },
-  {
-    title: t('admin.totalChatMessagesTokenCount'),
-    key: 'totalChatMessagesTokenCount',
-    width: 100,
-  },
-  {
-    title: t('admin.totalChatMessages3Days'),
-    key: 'totalChatMessages3Days',
-    width: 100,
-  },
-  {
-    title: t('admin.totalChatMessages3DaysTokenCount'),
-    key: 'totalChatMessages3DaysTokenCount',
-    width: 100,
-  },
-  {
-    title: t('admin.totalChatMessages3DaysAvgTokenCount'),
-    key: 'avgChatMessages3DaysTokenCount',
-    width: 100,
-  },
-
 ]
+
+const search = ref('')
+const filteredData = computed(() => {
+  const term = search.value.trim().toLowerCase()
+  if (!term)
+    return tableData.value
+  return tableData.value.filter(user =>
+    user.email.toLowerCase().includes(term)
+    || `${user.firstName} ${user.lastName}`.toLowerCase().includes(term),
+  )
+})
 
 const pagination = reactive({
   page: 1,
@@ -134,7 +126,8 @@ async function fetchData() {
       ms_ui.error(t(err.response.data.message))
     else
       ms_ui.error(t(err.response.data.message))
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -148,19 +141,21 @@ async function handleRefresh() {
 }
 
 async function handleSave() {
-  if (!editingUser.value) return
+  if (!editingUser.value)
+    return
 
   try {
     await updateUserFullName({
       firstName: editingUser.value.firstName,
       lastName: editingUser.value.lastName,
-      email: editingUser.value.email
+      email: editingUser.value.email,
     })
     await UpdateRateLimit(editingUser.value.email, parseInt(editingUser.value.rateLimit))
     ms_ui.success(t('common.updateSuccess'))
     showEditModal.value = false
     await fetchData()
-  } catch (error: any) {
+  }
+  catch (error: any) {
     ms_ui.error(error.message || t('common.updateFailed'))
   }
 }
@@ -168,9 +163,9 @@ async function handleSave() {
 
 <template>
   <UserAnalysisModal v-model:visible="showAnalysisModal" :user-email="selectedUserEmail" />
-  <NModal v-model:show="showEditModal">
-    <NCard style="width: 600px" :title="t('common.editUser')" :bordered="false" size="huge">
-      <NForm label-placement="left" label-width="auto">
+  <NModal v-model:show="showEditModal" preset="card" class="w-full max-w-lg" :title="t('common.editUser')">
+    <NCard :bordered="false" embedded>
+      <NForm label-placement="top">
         <NFormItem :label="t('admin.lastName')">
           <NInput v-model:value="editingUser!.lastName" />
         </NFormItem>
@@ -180,7 +175,7 @@ async function handleSave() {
         <NFormItem :label="t('admin.rateLimit10Min')">
           <NInput v-model:value="editingUser!.rateLimit" />
         </NFormItem>
-        <div class="flex justify-end gap-4">
+        <div class="flex justify-end gap-2 pt-2">
           <NButton @click="showEditModal = false">
             {{ t('common.cancel') }}
           </NButton>
@@ -191,19 +186,23 @@ async function handleSave() {
       </NForm>
     </NCard>
   </NModal>
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
-      {{ t('admin.userMessage') }}
-    </h1>
-    <HoverButton :tooltip="t('admin.refresh')" @click="handleRefresh">
-
-      <span class="text-xl text-[#4f555e] dark:text-white">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-          <path fill="currentColor"
-            d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
-        </svg>
-      </span>
-    </HoverButton>
+  <div class="admin-toolbar">
+    <NInput v-model:value="search" clearable class="max-w-xs" :placeholder="t('admin.searchUsers')" aria-label="Search users" />
+    <NButton :loading="loading" secondary @click="handleRefresh">
+      {{ t('admin.refresh') }}
+    </NButton>
   </div>
-  <NDataTable :loading="loading" remote :data="tableData" :columns="columns" :pagination="pagination" />
+  <NDataTable
+    size="small" :loading="loading" remote :data="filteredData" :columns="columns"
+    :pagination="pagination" :scroll-x="880" :single-line="false"
+  >
+    <template #empty>
+      <NEmpty :description="t('admin.noUsers')" />
+    </template>
+  </NDataTable>
 </template>
+
+<style scoped>
+.admin-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+@media (max-width: 640px) { .admin-toolbar { align-items: stretch; flex-direction: column; } }
+</style>

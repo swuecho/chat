@@ -1,5 +1,28 @@
 {
     "admin": {
+        "addRateLimit": "新增限額",
+        "deleteRateLimit": "刪除限額",
+        "deleteRateLimitConfirm": "刪除 {email} 的 {model} 限額？",
+        "noModels": "尚未設定模型",
+        "noRateLimits": "找不到限額",
+        "noUsers": "找不到用戶",
+        "rateLimitDeleted": "限額已刪除",
+        "searchRateLimits": "搜尋用戶或模型",
+        "searchUsers": "按姓名或電子郵件搜尋",
+        "shell": {
+            "administration": "管理後台",
+            "apiKeys": "API 金鑰",
+            "apiKeysDescription": "管理模型服務商使用的憑證。",
+            "backToChat": "返回聊天",
+            "controlCenter": "聊天控制中心",
+            "defaultDescription": "管理聊天應用程式。",
+            "manage": "管理",
+            "modelsDescription": "設定聊天中可用的模型。",
+            "openChat": "開啟聊天",
+            "rateLimitsDescription": "為用戶設定模型級使用限額。",
+            "titleModelDescription": "選擇用於產生對話標題的模型。",
+            "usersDescription": "查看帳戶、使用情況和存取限額。"
+        },
         "activityHistory": "活動歷史",
         "add_model": "添加模型",
         "add_user_model_rate_limit": "添加用戶會話數量",
