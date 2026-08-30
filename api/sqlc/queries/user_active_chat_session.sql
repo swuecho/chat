@@ -12,8 +12,8 @@ RETURNING *;
 -- name: GetUserActiveSession :one
 SELECT * FROM user_active_chat_session 
 WHERE user_id = $1 AND (
-    (workspace_id IS NULL AND $2::int IS NULL) OR 
-    (workspace_id = $2)
+    (workspace_id IS NULL AND sqlc.narg('workspace_id')::int IS NULL) OR
+    (workspace_id = sqlc.narg('workspace_id')::int)
 );
 
 -- name: GetAllUserActiveSessions :many
@@ -24,8 +24,8 @@ ORDER BY workspace_id NULLS FIRST, updated_at DESC;
 -- name: DeleteUserActiveSession :exec
 DELETE FROM user_active_chat_session
 WHERE user_id = $1 AND (
-    (workspace_id IS NULL AND $2::int IS NULL) OR 
-    (workspace_id = $2)
+    (workspace_id IS NULL AND sqlc.narg('workspace_id')::int IS NULL) OR
+    (workspace_id = sqlc.narg('workspace_id')::int)
 );
 
 -- name: DeleteUserActiveSessionBySession :exec

@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -33,7 +34,7 @@ func TestMigrateLegacyWorkspaceSessionsRepairsActiveSelection(t *testing.T) {
 		t.Fatalf("legacy sessions remaining = %d, error = %v", len(remaining), err)
 	}
 	active, err := q.GetUserActiveSession(context.Background(), sqlc_queries.GetUserActiveSessionParams{
-		UserID: userID, Column2: result.DefaultWorkspace.ID,
+		UserID: userID, WorkspaceID: sql.NullInt32{Int32: result.DefaultWorkspace.ID, Valid: true},
 	})
 	if err != nil {
 		t.Fatal(err)

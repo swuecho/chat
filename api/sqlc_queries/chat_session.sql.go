@@ -177,6 +177,7 @@ workspace_id = CASE WHEN EXCLUDED.workspace_id IS NOT NULL THEN EXCLUDED.workspa
 topic = CASE WHEN chat_session.topic IS NULL THEN EXCLUDED.topic ELSE chat_session.topic END,
 explore_mode = EXCLUDED.explore_mode,
 updated_at = now()
+WHERE chat_session.user_id = EXCLUDED.user_id
 returning id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, artifact_enabled, debug, explore_mode
 `
 

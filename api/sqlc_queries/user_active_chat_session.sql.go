@@ -13,18 +13,18 @@ import (
 const deleteUserActiveSession = `-- name: DeleteUserActiveSession :exec
 DELETE FROM user_active_chat_session
 WHERE user_id = $1 AND (
-    (workspace_id IS NULL AND $2::int IS NULL) OR 
-    (workspace_id = $2)
+    (workspace_id IS NULL AND $2::int IS NULL) OR
+    (workspace_id = $2::int)
 )
 `
 
 type DeleteUserActiveSessionParams struct {
-	UserID  int32 `json:"userId"`
-	Column2 int32 `json:"column2"`
+	UserID      int32         `json:"userId"`
+	WorkspaceID sql.NullInt32 `json:"workspaceId"`
 }
 
 func (q *Queries) DeleteUserActiveSession(ctx context.Context, arg DeleteUserActiveSessionParams) error {
-	_, err := q.db.ExecContext(ctx, deleteUserActiveSession, arg.UserID, arg.Column2)
+	_, err := q.db.ExecContext(ctx, deleteUserActiveSession, arg.UserID, arg.WorkspaceID)
 	return err
 }
 
@@ -82,18 +82,18 @@ func (q *Queries) GetAllUserActiveSessions(ctx context.Context, userID int32) ([
 const getUserActiveSession = `-- name: GetUserActiveSession :one
 SELECT id, user_id, chat_session_uuid, created_at, updated_at, workspace_id FROM user_active_chat_session 
 WHERE user_id = $1 AND (
-    (workspace_id IS NULL AND $2::int IS NULL) OR 
-    (workspace_id = $2)
+    (workspace_id IS NULL AND $2::int IS NULL) OR
+    (workspace_id = $2::int)
 )
 `
 
 type GetUserActiveSessionParams struct {
-	UserID  int32 `json:"userId"`
-	Column2 int32 `json:"column2"`
+	UserID      int32         `json:"userId"`
+	WorkspaceID sql.NullInt32 `json:"workspaceId"`
 }
 
 func (q *Queries) GetUserActiveSession(ctx context.Context, arg GetUserActiveSessionParams) (UserActiveChatSession, error) {
-	row := q.db.QueryRowContext(ctx, getUserActiveSession, arg.UserID, arg.Column2)
+	row := q.db.QueryRowContext(ctx, getUserActiveSession, arg.UserID, arg.WorkspaceID)
 	var i UserActiveChatSession
 	err := row.Scan(
 		&i.ID,

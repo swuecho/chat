@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/svc"
 )
 
 type uuidHTTPResponse struct {
@@ -61,6 +62,36 @@ type workspaceSessionHTTPResponse struct {
 	ArtifactEnabled bool    `json:"artifactEnabled"`
 	CreatedAt       string  `json:"createdAt"`
 	UpdatedAt       string  `json:"updatedAt"`
+}
+
+type chatSessionHTTPResponse struct {
+	ID              int32     `json:"id"`
+	UserID          int32     `json:"userId"`
+	UUID            string    `json:"uuid"`
+	Topic           string    `json:"topic"`
+	Active          bool      `json:"active"`
+	Model           string    `json:"model"`
+	MaxLength       int32     `json:"maxLength"`
+	Temperature     float64   `json:"temperature"`
+	TopP            float64   `json:"topP"`
+	MaxTokens       int32     `json:"maxTokens"`
+	N               int32     `json:"n"`
+	SummarizeMode   bool      `json:"summarizeMode"`
+	WorkspaceID     *int32    `json:"workspaceId"`
+	ArtifactEnabled bool      `json:"artifactEnabled"`
+	Debug           bool      `json:"debug"`
+	ExploreMode     bool      `json:"exploreMode"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+}
+
+func chatSessionResponse(session svc.ChatSession) chatSessionHTTPResponse {
+	return chatSessionHTTPResponse{ID: session.ID, UserID: session.UserID, UUID: session.UUID,
+		Topic: session.Topic, Active: session.Active, Model: session.Model, MaxLength: session.MaxLength,
+		Temperature: session.Temperature, TopP: session.TopP, MaxTokens: session.MaxTokens, N: session.N,
+		SummarizeMode: session.SummarizeMode, WorkspaceID: session.WorkspaceID,
+		ArtifactEnabled: session.ArtifactEnabled, Debug: session.Debug, ExploreMode: session.ExploreMode,
+		CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt}
 }
 
 type suggestionsHTTPResponse struct {

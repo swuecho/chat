@@ -18,7 +18,10 @@ import (
 type ChatSessionService struct {
 	q     *sqlc_queries.Queries
 	newID func() string
-	tx    SnapshotCopyTransactionManager
+	tx    interface {
+		SnapshotCopyTransactionManager
+		SessionSaveTransactionManager
+	}
 }
 
 type ChatSession struct {

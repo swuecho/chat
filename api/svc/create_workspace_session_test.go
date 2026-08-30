@@ -30,7 +30,7 @@ func TestCreateWorkspaceSessionCommitsCompleteAggregate(t *testing.T) {
 	if prompt.Content != "Stay focused" {
 		t.Fatalf("prompt = %q", prompt.Content)
 	}
-	active, err := q.GetUserActiveSession(context.Background(), sqlc_queries.GetUserActiveSessionParams{UserID: userID, Column2: workspace.ID})
+	active, err := q.GetUserActiveSession(context.Background(), sqlc_queries.GetUserActiveSessionParams{UserID: userID, WorkspaceID: sql.NullInt32{Int32: workspace.ID, Valid: true}})
 	if err != nil {
 		t.Fatal(err)
 	}

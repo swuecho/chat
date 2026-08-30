@@ -185,14 +185,14 @@ func (s *UserActiveChatSessionService) ownedSession(ctx context.Context, userID 
 
 // GetActiveSession retrieves the active session for a user in a specific workspace (or global if workspaceID is nil)
 func (s *UserActiveChatSessionService) GetActiveSession(ctx context.Context, query GetActiveSessionQuery) (ActiveSession, error) {
-	var workspaceParam int32
+	var workspaceParam sql.NullInt32
 	if query.WorkspaceID != nil {
-		workspaceParam = *query.WorkspaceID
+		workspaceParam = sql.NullInt32{Int32: *query.WorkspaceID, Valid: true}
 	}
 
 	session, err := s.q.GetUserActiveSession(ctx, sqlc.GetUserActiveSessionParams{
-		UserID:  query.UserID,
-		Column2: workspaceParam, // SQLC generated this awkward name due to the complex WHERE clause
+		UserID:      query.UserID,
+		WorkspaceID: workspaceParam,
 	})
 	if err != nil {
 		return ActiveSession{}, eris.Wrap(err, "failed to get active session")
@@ -215,14 +215,14 @@ func (s *UserActiveChatSessionService) GetAllActiveSessions(ctx context.Context,
 
 // DeleteActiveSession deletes the active session for a user in a specific workspace (or global if workspaceID is nil)
 func (s *UserActiveChatSessionService) DeleteActiveSession(ctx context.Context, command DeleteActiveSessionCommand) error {
-	var workspaceParam int32
+	var workspaceParam sql.NullInt32
 	if command.WorkspaceID != nil {
-		workspaceParam = *command.WorkspaceID
+		workspaceParam = sql.NullInt32{Int32: *command.WorkspaceID, Valid: true}
 	}
 
 	err := s.q.DeleteUserActiveSession(ctx, sqlc.DeleteUserActiveSessionParams{
-		UserID:  command.UserID,
-		Column2: workspaceParam, // SQLC generated this awkward name
+		UserID:      command.UserID,
+		WorkspaceID: workspaceParam,
 	})
 	if err != nil {
 		return eris.Wrap(err, "failed to delete active session")

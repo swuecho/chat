@@ -32,12 +32,26 @@ type SnapshotCopyUnitOfWork interface {
 	SetActiveSession(context.Context, int32, *int32, string) error
 }
 
+type SessionSaveUnitOfWork interface {
+	WorkspaceByUUID(context.Context, string) (Workspace, error)
+	DefaultWorkspaceByUserID(context.Context, int32) (Workspace, error)
+	CreateDefaultWorkspace(context.Context, int32, string) (Workspace, error)
+	InactiveSessionByUUID(context.Context, string) (ChatSession, error)
+	CreateOrUpdateSession(context.Context, CreateOrUpdateChatSessionInput) (ChatSession, error)
+	EnsureSystemPrompt(context.Context, string, int32, string, string) error
+	SetActiveSession(context.Context, int32, *int32, string) error
+}
+
 type WorkspaceTransactionManager interface {
 	WithinWorkspaceTransaction(context.Context, func(WorkspaceUnitOfWork) error) error
 }
 
 type SnapshotCopyTransactionManager interface {
 	WithinSnapshotCopyTransaction(context.Context, func(SnapshotCopyUnitOfWork) error) error
+}
+
+type SessionSaveTransactionManager interface {
+	WithinSessionSaveTransaction(context.Context, func(SessionSaveUnitOfWork) error) error
 }
 
 type sqlcTransactionManager struct{ q *sqlc_queries.Queries }
@@ -58,10 +72,26 @@ func (m *sqlcTransactionManager) WithinSnapshotCopyTransaction(ctx context.Conte
 	})
 }
 
+func (m *sqlcTransactionManager) WithinSessionSaveTransaction(ctx context.Context, fn func(SessionSaveUnitOfWork) error) error {
+	return m.q.InTransaction(ctx, func(q *sqlc_queries.Queries) error {
+		return fn(&sqlcUnitOfWork{q: q})
+	})
+}
+
 type sqlcUnitOfWork struct{ q *sqlc_queries.Queries }
 
 func (u *sqlcUnitOfWork) WorkspaceByUUID(ctx context.Context, uuid string) (Workspace, error) {
 	w, err := u.q.GetWorkspaceByUUID(ctx, uuid)
+	return workspaceFromRecord(w), err
+}
+
+func (u *sqlcUnitOfWork) DefaultWorkspaceByUserID(ctx context.Context, userID int32) (Workspace, error) {
+	w, err := u.q.GetDefaultWorkspaceByUserID(ctx, userID)
+	return workspaceFromRecord(w), err
+}
+
+func (u *sqlcUnitOfWork) CreateDefaultWorkspace(ctx context.Context, userID int32, uuid string) (Workspace, error) {
+	w, err := u.q.CreateDefaultWorkspace(ctx, sqlc_queries.CreateDefaultWorkspaceParams{Uuid: uuid, UserID: userID})
 	return workspaceFromRecord(w), err
 }
 

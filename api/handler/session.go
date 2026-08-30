@@ -10,16 +10,11 @@ import (
 )
 
 type ChatSessionHandler struct {
-	service         *svc.ChatSessionService
-	wsService       *svc.ChatWorkspaceService
-	activeSvc       *svc.UserActiveChatSessionService
-	conversationSvc *svc.SessionConversationService
+	service *svc.ChatSessionService
 }
 
-func NewChatSessionHandler(service *svc.ChatSessionService, wsService *svc.ChatWorkspaceService, activeSvc *svc.UserActiveChatSessionService, conversationSvc *svc.SessionConversationService) *ChatSessionHandler {
-	return &ChatSessionHandler{
-		service: service, wsService: wsService, activeSvc: activeSvc, conversationSvc: conversationSvc,
-	}
+func NewChatSessionHandler(service *svc.ChatSessionService) *ChatSessionHandler {
+	return &ChatSessionHandler{service: service}
 }
 
 func (h *ChatSessionHandler) Register(router *mux.Router) {
@@ -70,36 +65,19 @@ func (h *ChatSessionHandler) createChatSessionByUUID(w http.ResponseWriter, r *h
 		return
 	}
 
-	defaultWorkspace, err := h.wsService.EnsureDefaultWorkspaceExists(ctx, userID)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to ensure default workspace exists"))
-		return
-	}
-
-	workspaceID := defaultWorkspace.ID
-	session, err := h.service.CreateOrUpdateChatSessionByUUID(ctx, svc.CreateOrUpdateChatSessionInput{
-		UUID: req.Uuid, UserID: userID, Topic: req.Topic,
+	session, err := h.service.SaveSession(ctx, svc.SaveSessionCommand{
+		SessionUUID: req.Uuid, UserID: userID, Topic: req.Topic,
 		MaxLength: dto.DefaultMaxLength, Temperature: dto.DefaultTemperature,
 		Model: req.Model, MaxTokens: dto.DefaultMaxTokens, TopP: dto.DefaultTopP, N: dto.DefaultN,
 		Debug: false, SummarizeMode: false, ExploreMode: false, ArtifactEnabled: false,
-		WorkspaceID: &workspaceID,
+		EnsureSystemPrompt: true, DefaultSystemPrompt: req.DefaultSystemPrompt, ActivateGlobally: true,
 	})
 	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create or update chat session"))
+		dto.RespondWithAPIError(w, dto.ToAPIError(err))
 		return
 	}
 
-	if err := h.conversationSvc.EnsureSystemPrompt(ctx, session.UUID, userID, req.DefaultSystemPrompt); err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to create default system prompt"))
-		return
-	}
-
-	if _, err := h.activeSvc.UpsertActiveSession(ctx, svc.SetActiveSessionCommand{UserID: session.UserID, SessionUUID: session.UUID}); err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to update active user session"))
-		return
-	}
-
-	json.NewEncoder(w).Encode(session)
+	json.NewEncoder(w).Encode(chatSessionResponse(session))
 }
 
 func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
@@ -119,40 +97,21 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(w http.ResponseWrit
 		return
 	}
 
-	params := svc.CreateOrUpdateChatSessionInput{
-		UUID: sessionReq.Uuid, UserID: userID, Topic: sessionReq.Topic,
+	command := svc.SaveSessionCommand{
+		SessionUUID: sessionReq.Uuid, UserID: userID, Topic: sessionReq.Topic,
 		MaxLength: sessionReq.MaxLength, Temperature: sessionReq.Temperature,
 		Model: sessionReq.Model, TopP: sessionReq.TopP, N: sessionReq.N,
 		MaxTokens: sessionReq.MaxTokens, Debug: sessionReq.Debug,
 		SummarizeMode: sessionReq.SummarizeMode, ArtifactEnabled: sessionReq.ArtifactEnabled,
-		ExploreMode: sessionReq.ExploreMode,
+		ExploreMode: sessionReq.ExploreMode, WorkspaceUUID: sessionReq.WorkspaceUUID,
 	}
 
-	if sessionReq.WorkspaceUUID != "" {
-		workspace, err := h.wsService.GetWorkspaceByUUID(ctx, sessionReq.WorkspaceUUID)
-		if err != nil {
-			dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Invalid workspace UUID"))
-			return
-		}
-		params.WorkspaceID = &workspace.ID
-	} else {
-		defaultWS, err := h.wsService.EnsureDefaultWorkspaceExists(ctx, userID)
-		if err != nil {
-			dto.RespondWithAPIError(w, dto.WrapError(dto.MapDatabaseError(err), "Failed to ensure default workspace exists"))
-			return
-		}
-		params.WorkspaceID = &defaultWS.ID
-	}
-
-	session, err := h.service.CreateOrUpdateChatSessionByUUID(ctx, params)
+	session, err := h.service.SaveSession(ctx, command)
 	if err != nil {
-		apiErr := dto.ErrInternalUnexpected
-		apiErr.Detail = "Failed to create or update chat session"
-		apiErr.DebugInfo = err.Error()
-		dto.RespondWithAPIError(w, apiErr)
+		dto.RespondWithAPIError(w, dto.ToAPIError(err))
 		return
 	}
-	json.NewEncoder(w).Encode(session)
+	json.NewEncoder(w).Encode(chatSessionResponse(session))
 }
 
 func (h *ChatSessionHandler) deleteChatSessionByUUID(w http.ResponseWriter, r *http.Request) {
