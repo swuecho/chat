@@ -9,7 +9,13 @@ export default defineConfig({
   },
   plugins: [
     '@hey-api/typescript',
-    '@hey-api/sdk',
-    '@hey-api/client-fetch',
+    {
+      name: '@hey-api/sdk',
+      responseStyle: 'data',
+    },
+    {
+      name: '@hey-api/client-fetch',
+      throwOnError: true,
+    },
   ],
 })

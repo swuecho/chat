@@ -1,7 +1,14 @@
 import { v7 as uuidv7 } from 'uuid'
+import request from '../utils/request/axios'
 import { fetchDefaultChatModel } from './chat_model'
 import { toUpdateChatSessionPayload } from './chat_session_payload'
-import request from '@/utils/request/axios'
+import {
+  createChatSession as createChatSessionGenerated,
+  createOrUpdateChatSession,
+  deleteChatSession as deleteChatSessionGenerated,
+  listChatSessions,
+  updateChatSessionTopic,
+} from './generated_client'
 
 export const getChatSessionDefault = async (title: string): Promise<Chat.Session> => {
   const default_model = await fetchDefaultChatModel()
@@ -23,12 +30,8 @@ export const getChatSessionDefault = async (title: string): Promise<Chat.Session
 }
 
 export const getChatSessionsByUser = async () => {
-  console.log('getChatSessionsByUser called')
   try {
-    console.log('Making API request to /chat_sessions/user')
-    const response = await request.get('/chat_sessions/user')
-    console.log('API response received:', response.data)
-    return response.data
+    return await listChatSessions()
   }
   catch (error) {
     console.error('Error in getChatSessionsByUser:', error)
@@ -38,8 +41,7 @@ export const getChatSessionsByUser = async () => {
 
 export const deleteChatSession = async (uuid: string) => {
   try {
-    const response = await request.delete(`/uuid/chat_sessions/${uuid}`)
-    return response.data
+    return await deleteChatSessionGenerated({ path: { uuid } })
   }
   catch (error) {
     console.error(error)
@@ -54,13 +56,14 @@ export const createChatSession = async (
   defaultSystemPrompt?: string,
 ) => {
   try {
-    const response = await request.post('/uuid/chat_sessions', {
-      uuid,
-      topic: name,
-      model,
-      defaultSystemPrompt,
+    return await createChatSessionGenerated({
+      body: {
+        uuid,
+        topic: name,
+        model: model ?? '',
+        defaultSystemPrompt: defaultSystemPrompt ?? '',
+      },
     })
-    return response.data
   }
   catch (error) {
     console.error(error)
@@ -70,8 +73,7 @@ export const createChatSession = async (
 
 export const renameChatSession = async (uuid: string, name: string) => {
   try {
-    const response = await request.put(`/uuid/chat_sessions/topic/${uuid}`, { topic: name })
-    return response.data
+    return await updateChatSessionTopic({ path: { uuid }, body: { topic: name } })
   }
   catch (error) {
     console.error(error)
@@ -95,11 +97,10 @@ export const updateChatSession = async (sessionUuid: string, session_data: Chat.
     if (sessionUuid !== session_data.uuid)
       throw new Error('Session UUID does not match the update route')
 
-    const response = await request.put(
-      `/uuid/chat_sessions/${sessionUuid}`,
-      toUpdateChatSessionPayload(session_data),
-    )
-    return response.data
+    return await createOrUpdateChatSession({
+      path: { uuid: sessionUuid },
+      body: toUpdateChatSessionPayload(session_data),
+    })
   }
   catch (error) {
     console.error(error)

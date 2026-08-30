@@ -64,6 +64,11 @@ writes `api/openapi/openapi.json`. Hey API then reads that artifact and replaces
 `web/src/api/generated`. Both files are generated outputs and must not be edited
 manually. CI repeats the pipeline and fails when the committed output differs.
 
-The generated SDK is intentionally isolated from the existing handwritten Axios
-API modules. Before migrating a call site, configure its Fetch client with the
-same JWT refresh and error behavior currently provided by `utils/request/axios`.
+`web/src/api/generated_client.ts` configures the generated Fetch client with the
+same JWT initialization, proactive refresh, cookie, 401 retry, and thrown-error
+semantics as the existing Axios boundary. Import generated operations through
+that module rather than directly from `api/generated`.
+
+Migration is incremental: `api/chat_session.ts` uses generated operations for
+the session endpoints present in OpenAPI while its message-clearing call remains
+on Axios until that backend endpoint has a typed contract.

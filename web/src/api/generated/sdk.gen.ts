@@ -21,8 +21,9 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 /**
  * List the authenticated user's chat sessions
  */
-export const listChatSessions = <ThrowOnError extends boolean = false>(options?: Options<ListChatSessionsData, ThrowOnError>) => {
-  return (options?.client ?? _heyApiClient).get<ListChatSessionsResponses, ListChatSessionsErrors, ThrowOnError>({
+export const listChatSessions = <ThrowOnError extends boolean = true>(options?: Options<ListChatSessionsData, ThrowOnError>) => {
+  return (options?.client ?? _heyApiClient).get<ListChatSessionsResponses, ListChatSessionsErrors, ThrowOnError, 'data'>({
+    responseStyle: 'data',
     security: [
       {
         scheme: 'bearer',
@@ -37,8 +38,9 @@ export const listChatSessions = <ThrowOnError extends boolean = false>(options?:
 /**
  * Create a chat session from a snapshot
  */
-export const createChatSessionFromSnapshot = <ThrowOnError extends boolean = false>(options: Options<CreateChatSessionFromSnapshotData, ThrowOnError>) => {
-  return (options.client ?? _heyApiClient).post<CreateChatSessionFromSnapshotResponses, CreateChatSessionFromSnapshotErrors, ThrowOnError>({
+export const createChatSessionFromSnapshot = <ThrowOnError extends boolean = true>(options: Options<CreateChatSessionFromSnapshotData, ThrowOnError>) => {
+  return (options.client ?? _heyApiClient).post<CreateChatSessionFromSnapshotResponses, CreateChatSessionFromSnapshotErrors, ThrowOnError, 'data'>({
+    responseStyle: 'data',
     security: [
       {
         scheme: 'bearer',
@@ -53,8 +55,9 @@ export const createChatSessionFromSnapshot = <ThrowOnError extends boolean = fal
 /**
  * Create a chat session
  */
-export const createChatSession = <ThrowOnError extends boolean = false>(options: Options<CreateChatSessionData, ThrowOnError>) => {
-  return (options.client ?? _heyApiClient).post<CreateChatSessionResponses, CreateChatSessionErrors, ThrowOnError>({
+export const createChatSession = <ThrowOnError extends boolean = true>(options: Options<CreateChatSessionData, ThrowOnError>) => {
+  return (options.client ?? _heyApiClient).post<CreateChatSessionResponses, CreateChatSessionErrors, ThrowOnError, 'data'>({
+    responseStyle: 'data',
     security: [
       {
         scheme: 'bearer',
@@ -73,8 +76,9 @@ export const createChatSession = <ThrowOnError extends boolean = false>(options:
 /**
  * Update a chat session token limit
  */
-export const updateSessionMaxLength = <ThrowOnError extends boolean = false>(options: Options<UpdateSessionMaxLengthData, ThrowOnError>) => {
-  return (options.client ?? _heyApiClient).put<UpdateSessionMaxLengthResponses, UpdateSessionMaxLengthErrors, ThrowOnError>({
+export const updateSessionMaxLength = <ThrowOnError extends boolean = true>(options: Options<UpdateSessionMaxLengthData, ThrowOnError>) => {
+  return (options.client ?? _heyApiClient).put<UpdateSessionMaxLengthResponses, UpdateSessionMaxLengthErrors, ThrowOnError, 'data'>({
+    responseStyle: 'data',
     security: [
       {
         scheme: 'bearer',
@@ -93,8 +97,9 @@ export const updateSessionMaxLength = <ThrowOnError extends boolean = false>(opt
 /**
  * Update a chat session topic
  */
-export const updateChatSessionTopic = <ThrowOnError extends boolean = false>(options: Options<UpdateChatSessionTopicData, ThrowOnError>) => {
-  return (options.client ?? _heyApiClient).put<UpdateChatSessionTopicResponses, UpdateChatSessionTopicErrors, ThrowOnError>({
+export const updateChatSessionTopic = <ThrowOnError extends boolean = true>(options: Options<UpdateChatSessionTopicData, ThrowOnError>) => {
+  return (options.client ?? _heyApiClient).put<UpdateChatSessionTopicResponses, UpdateChatSessionTopicErrors, ThrowOnError, 'data'>({
+    responseStyle: 'data',
     security: [
       {
         scheme: 'bearer',
@@ -113,8 +118,9 @@ export const updateChatSessionTopic = <ThrowOnError extends boolean = false>(opt
 /**
  * Delete a chat session
  */
-export const deleteChatSession = <ThrowOnError extends boolean = false>(options: Options<DeleteChatSessionData, ThrowOnError>) => {
-  return (options.client ?? _heyApiClient).delete<DeleteChatSessionResponses, DeleteChatSessionErrors, ThrowOnError>({
+export const deleteChatSession = <ThrowOnError extends boolean = true>(options: Options<DeleteChatSessionData, ThrowOnError>) => {
+  return (options.client ?? _heyApiClient).delete<DeleteChatSessionResponses, DeleteChatSessionErrors, ThrowOnError, 'data'>({
+    responseStyle: 'data',
     security: [
       {
         scheme: 'bearer',
@@ -129,8 +135,9 @@ export const deleteChatSession = <ThrowOnError extends boolean = false>(options:
 /**
  * Get a chat session
  */
-export const getChatSession = <ThrowOnError extends boolean = false>(options: Options<GetChatSessionData, ThrowOnError>) => {
-  return (options.client ?? _heyApiClient).get<GetChatSessionResponses, GetChatSessionErrors, ThrowOnError>({
+export const getChatSession = <ThrowOnError extends boolean = true>(options: Options<GetChatSessionData, ThrowOnError>) => {
+  return (options.client ?? _heyApiClient).get<GetChatSessionResponses, GetChatSessionErrors, ThrowOnError, 'data'>({
+    responseStyle: 'data',
     security: [
       {
         scheme: 'bearer',
@@ -145,8 +152,9 @@ export const getChatSession = <ThrowOnError extends boolean = false>(options: Op
 /**
  * Create or update a chat session
  */
-export const createOrUpdateChatSession = <ThrowOnError extends boolean = false>(options: Options<CreateOrUpdateChatSessionData, ThrowOnError>) => {
-  return (options.client ?? _heyApiClient).put<CreateOrUpdateChatSessionResponses, CreateOrUpdateChatSessionErrors, ThrowOnError>({
+export const createOrUpdateChatSession = <ThrowOnError extends boolean = true>(options: Options<CreateOrUpdateChatSessionData, ThrowOnError>) => {
+  return (options.client ?? _heyApiClient).put<CreateOrUpdateChatSessionResponses, CreateOrUpdateChatSessionErrors, ThrowOnError, 'data'>({
+    responseStyle: 'data',
     security: [
       {
         scheme: 'bearer',
