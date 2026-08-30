@@ -1,5 +1,6 @@
 import { v7 as uuidv7 } from 'uuid'
 import { fetchDefaultChatModel } from './chat_model'
+import { toUpdateChatSessionPayload } from './chat_session_payload'
 import request from '@/utils/request/axios'
 
 export const getChatSessionDefault = async (title: string): Promise<Chat.Session> => {
@@ -91,7 +92,13 @@ export const clearSessionChatMessages = async (sessionUuid: string) => {
 
 export const updateChatSession = async (sessionUuid: string, session_data: Chat.Session) => {
   try {
-    const response = await request.put(`/uuid/chat_sessions/${sessionUuid}`, session_data)
+    if (sessionUuid !== session_data.uuid)
+      throw new Error('Session UUID does not match the update route')
+
+    const response = await request.put(
+      `/uuid/chat_sessions/${sessionUuid}`,
+      toUpdateChatSessionPayload(session_data),
+    )
     return response.data
   }
   catch (error) {
