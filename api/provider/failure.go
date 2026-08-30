@@ -3,6 +3,7 @@ package provider
 import (
 	"errors"
 
+	"github.com/cenkalti/backoff/v4"
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chat_backend/domain"
 )
@@ -21,6 +22,13 @@ func normalizeFailure(provider, operation string, err error) error {
 		return domain.NewProviderHTTPFailure(provider, operation, requestErr.HTTPStatusCode, err)
 	}
 	return domain.NewProviderFailure(provider, operation, err)
+}
+
+func stopRetryingUnlessProviderFailureIsRetryable(err error) error {
+	if err == nil || domain.IsProviderRetryable(err) {
+		return err
+	}
+	return backoff.Permanent(err)
 }
 
 func classifiedFailure(provider, operation string, kind domain.ProviderFailureKind, retryable bool, err error) error {

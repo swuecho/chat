@@ -39,12 +39,9 @@ type AnswerEvent struct {
 	Message            string          `json:"message,omitempty"`
 }
 
-// StreamEvent is retained as an alias while clients migrate to typed deltas.
-type StreamEvent = AnswerEvent
-
-// FlushStreamEvent emits a typed SSE event. A completed event must only be sent
+// FlushAnswerEvent emits a typed SSE event. A completed event must only be sent
 // after the corresponding database mutation has succeeded.
-func FlushStreamEvent(w http.ResponseWriter, eventType string, event AnswerEvent) error {
+func FlushAnswerEvent(w http.ResponseWriter, event AnswerEvent) error {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return fmt.Errorf("streaming unsupported")
@@ -53,7 +50,7 @@ func FlushStreamEvent(w http.ResponseWriter, eventType string, event AnswerEvent
 	if err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, data); err != nil {
+	if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.Type, data); err != nil {
 		return err
 	}
 	flusher.Flush()
@@ -85,7 +82,7 @@ func (s *AnswerEventWriter) Emit(event AnswerEvent) error {
 	if event.Type == AnswerEventCompleted && !event.Persisted {
 		return fmt.Errorf("completed answer event must be persisted")
 	}
-	if err := FlushStreamEvent(s.w, string(event.Type), event); err != nil {
+	if err := FlushAnswerEvent(s.w, event); err != nil {
 		return err
 	}
 	if IsTerminalAnswerEvent(event) {
