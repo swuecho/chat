@@ -33,9 +33,10 @@ valid only when `persisted` is true.
 
 ## Client flow
 
-`useStreamHandling.ts` reads bytes from the response body, normalizes CRLF to
-LF, and splits complete SSE frames on a blank line. It retains the final
-incomplete frame until more bytes arrive.
+`consumeAnswerEventStream()` in `utils/sse.ts` reads bytes from the response
+body, normalizes CRLF to LF, and splits complete SSE frames on a blank line. It
+retains the final incomplete frame until more bytes arrive. New answers and
+regenerated answers share this transport path.
 
 Each complete frame is passed to `readAnswerStreamEvent()` in `utils/sse.ts`.
 The parser requires:

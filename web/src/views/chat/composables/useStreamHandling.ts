@@ -1,7 +1,7 @@
 import { useAuthStore, useMessageStore } from '@/store'
 import { extractArtifacts } from '@/utils/artifacts'
 import { nowISO } from '@/utils/date'
-import { type AnswerStreamEvent, readAnswerStreamEvent } from '@/utils/sse'
+import { type AnswerStreamEvent, consumeAnswerEventStream } from '@/utils/sse'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { t } from '@/locales'
 import { getStreamingUrl } from '@/config/api'
@@ -56,23 +56,6 @@ export function useStreamHandling() {
     updateChat(sessionUuid, responseIndex, updateData)
   }
 
-  function processAnswerFrame(frame: string, responseIndex: number, onAnswerEvent: (event: AnswerStreamEvent, responseIndex: number) => void): boolean {
-    const event = readAnswerStreamEvent(frame)
-    if (!event)
-      throw new Error('Received an untyped answer stream frame')
-    if (event.type === 'failed' || event.type === 'canceled')
-      throw new Error(event.message || event.code || `Stream ${event.type}`)
-    if (event.type === 'completed') {
-      if (!event.persisted)
-        throw new Error('The response was not saved')
-      onAnswerEvent(event, responseIndex)
-      return true
-    }
-    if (event.type === 'started' || event.type === 'delta' || event.type === 'reasoning_delta' || event.type === 'suggested_questions')
-      onAnswerEvent(event, responseIndex)
-    return false
-  }
-
   async function streamChatResponse(
     sessionUuid: string,
     chatUuid: string,
@@ -122,41 +105,7 @@ export function useStreamHandling() {
       if (!response.body)
         throw new Error('Response body is null')
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let completed = false
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read()
-
-          if (done)
-            break
-
-          const chunk = decoder.decode(value, { stream: true })
-          buffer += chunk
-
-          // Process complete SSE messages (handle both \n\n and \r\n\r\n)
-          const normalizedBuffer = buffer.replace(/\r\n/g, '\n')
-          const lines = normalizedBuffer.split('\n\n')
-          // Keep the last potentially incomplete message in buffer
-          buffer = lines.pop() || ''
-
-          for (const line of lines)
-            completed = processAnswerFrame(line, responseIndex, onAnswerEvent) || completed
-        }
-
-        // Process any remaining data in buffer
-        if (buffer.trim())
-          completed = processAnswerFrame(buffer, responseIndex, onAnswerEvent) || completed
-
-        if (!completed)
-          throw new Error('The response stream ended before it was saved')
-      }
-      finally {
-        reader.releaseLock()
-      }
+      await consumeAnswerEventStream(response.body, event => onAnswerEvent(event, responseIndex))
     }
     catch (error) {
       if (error instanceof Error && error.name === 'AbortError')
@@ -214,41 +163,7 @@ export function useStreamHandling() {
       if (!response.body)
         throw new Error('Response body is null')
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let completed = false
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read()
-
-          if (done)
-            break
-
-          const chunk = decoder.decode(value, { stream: true })
-          buffer += chunk
-
-          // Process complete SSE messages (handle both \n\n and \r\n\r\n)
-          const normalizedBuffer = buffer.replace(/\r\n/g, '\n')
-          const lines = normalizedBuffer.split('\n\n')
-          // Keep the last potentially incomplete message in buffer
-          buffer = lines.pop() || ''
-
-          for (const line of lines)
-            completed = processAnswerFrame(line, updateIndex, onAnswerEvent) || completed
-        }
-
-        // Process any remaining data in buffer
-        if (buffer.trim())
-          completed = processAnswerFrame(buffer, updateIndex, onAnswerEvent) || completed
-
-        if (!completed)
-          throw new Error('The regenerated response stream ended before it was saved')
-      }
-      finally {
-        reader.releaseLock()
-      }
+      await consumeAnswerEventStream(response.body, event => onAnswerEvent(event, updateIndex))
     }
     catch (error) {
       if (error instanceof Error && error.name === 'AbortError')
