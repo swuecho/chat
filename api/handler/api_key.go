@@ -8,7 +8,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/apicontract"
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
@@ -18,13 +20,22 @@ func NewAPIKeyHandler(service *svc.APIKeyService) *APIKeyHandler {
 	return &APIKeyHandler{service: service}
 }
 
-func (h *APIKeyHandler) Register(r *mux.Router) {
+func (h *APIKeyHandler) Register(r *mux.Router, registry *apicontract.Registry) {
 	r.HandleFunc("/api-keys", endpoint(h.list)).Methods(http.MethodGet)
 	r.HandleFunc("/api-keys", endpoint(h.create)).Methods(http.MethodPost)
 	r.HandleFunc("/api-keys/{id}", endpoint(h.revoke)).Methods(http.MethodDelete)
 	r.HandleFunc("/api-keys/{id}/usage", endpoint(h.usage)).Methods(http.MethodGet)
 	r.HandleFunc("/api-keys/{id}/requests", endpoint(h.requests)).Methods(http.MethodGet)
 	r.HandleFunc("/api-keys/{id}/requests/{requestId}", endpoint(h.requestDetail)).Methods(http.MethodGet)
+	security := apicontract.BearerAuth()
+	tags := []string{"Admin API keys"}
+	apicontract.DocumentJSON[apicontract.NoBody, []svc.APIKeyView](registry, apicontract.Operation{Method: http.MethodGet, Path: "/admin/api-keys", OperationID: "listAPIKeys", Summary: "List virtual API keys", Tags: tags, SuccessStatus: http.StatusOK, Security: security})
+	apicontract.DocumentJSON[createAPIKeyRequest, svc.CreatedAPIKey](registry, apicontract.Operation{Method: http.MethodPost, Path: "/admin/api-keys", OperationID: "createAPIKey", Summary: "Create a virtual API key", Tags: tags, SuccessStatus: http.StatusCreated, Security: security})
+	idParameter := []apicontract.Parameter{apicontract.PositiveIntegerPathParameter("id")}
+	apicontract.DocumentJSON[apicontract.NoBody, apicontract.NoBody](registry, apicontract.Operation{Method: http.MethodDelete, Path: "/admin/api-keys/{id}", OperationID: "revokeAPIKey", Summary: "Revoke a virtual API key", Tags: tags, SuccessStatus: http.StatusNoContent, Security: security, Parameters: idParameter})
+	apicontract.DocumentJSON[apicontract.NoBody, []sqlc_queries.GatewayUsageByKeyRow](registry, apicontract.Operation{Method: http.MethodGet, Path: "/admin/api-keys/{id}/usage", OperationID: "getAPIKeyUsage", Summary: "Get virtual API key usage", Tags: tags, SuccessStatus: http.StatusOK, Security: security, Parameters: idParameter})
+	apicontract.DocumentJSON[apicontract.NoBody, []gatewayRequestSummaryHTTPResponse](registry, apicontract.Operation{Method: http.MethodGet, Path: "/admin/api-keys/{id}/requests", OperationID: "listAPIKeyRequests", Summary: "List gateway requests for an API key", Tags: tags, SuccessStatus: http.StatusOK, Security: security, Parameters: idParameter})
+	apicontract.DocumentJSON[apicontract.NoBody, gatewayRequestDetailHTTPResponse](registry, apicontract.Operation{Method: http.MethodGet, Path: "/admin/api-keys/{id}/requests/{requestId}", OperationID: "getAPIKeyRequest", Summary: "Get a gateway request", Tags: tags, SuccessStatus: http.StatusOK, Security: security, Parameters: []apicontract.Parameter{apicontract.PositiveIntegerPathParameter("id"), apicontract.PositiveIntegerPathParameter("requestId")}})
 }
 
 func (h *APIKeyHandler) list(w http.ResponseWriter, r *http.Request) error {
@@ -103,7 +114,20 @@ func (h *APIKeyHandler) requests(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return dto.ErrInternalUnexpected.WithDebugInfo(err.Error())
 	}
-	return respondJSON(w, http.StatusOK, requests)
+	response := make([]gatewayRequestSummaryHTTPResponse, len(requests))
+	for i, record := range requests {
+		var completedAt *time.Time
+		if record.CompletedAt.Valid {
+			completedAt = &record.CompletedAt.Time
+		}
+		response[i] = gatewayRequestSummaryHTTPResponse{ID: record.ID, RequestUUID: record.RequestUuid,
+			RequestedModel: record.RequestedModel, Provider: record.Provider, Status: record.Status, Stream: record.Stream,
+			PromptTokens: record.PromptTokens, CompletionTokens: record.CompletionTokens, TotalTokens: record.TotalTokens,
+			LatencyMs: record.LatencyMs, RequestBytes: record.RequestBytes, ResponseBytes: record.ResponseBytes,
+			RequestTruncated: record.RequestTruncated, ResponseTruncated: record.ResponseTruncated,
+			CreatedAt: record.CreatedAt, CompletedAt: completedAt, RetentionUntil: record.RetentionUntil, ErrorCode: record.ErrorCode}
+	}
+	return respondJSON(w, http.StatusOK, response)
 }
 
 type capturedSample struct {

@@ -4,15 +4,17 @@ import {
   createWorkspace as createWorkspaceGenerated,
   deleteWorkspace as deleteWorkspaceGenerated,
   ensureDefaultWorkspace as ensureDefaultWorkspaceGenerated,
+  getWorkspaceActiveSession as getWorkspaceActiveSessionGenerated,
   getWorkspace as getWorkspaceGenerated,
+  listWorkspaceActiveSessions,
   listWorkspaceSessions as listWorkspaceSessionsGenerated,
   listWorkspaces as listWorkspacesGenerated,
   setDefaultWorkspace as setDefaultWorkspaceGenerated,
+  setWorkspaceActiveSession as setWorkspaceActiveSessionGenerated,
   updateWorkspace as updateWorkspaceGenerated,
   updateWorkspaceOrder as updateWorkspaceOrderGenerated,
 } from './generated_client'
 import type { MigrationHttpResponse, WorkspaceSessionCreatedHttpResponse } from './generated_client'
-import request from '@/utils/request/axios'
 
 export interface CreateWorkspaceRequest {
   name: string
@@ -174,8 +176,7 @@ export const getSessionsByWorkspace = async (workspaceUuid: string): Promise<Cha
 // Get active session for a specific workspace
 export const getWorkspaceActiveSession = async (workspaceUuid: string) => {
   try {
-    const response = await request.get(`/workspaces/${workspaceUuid}/active-session`)
-    return response.data
+    return await getWorkspaceActiveSessionGenerated({ path: { workspaceUuid } })
   }
   catch (error) {
     console.error(`Error getting active session for workspace ${workspaceUuid}:`, error)
@@ -186,10 +187,10 @@ export const getWorkspaceActiveSession = async (workspaceUuid: string) => {
 // Set active session for a specific workspace
 export const setWorkspaceActiveSession = async (workspaceUuid: string, chatSessionUuid: string) => {
   try {
-    const response = await request.put(`/workspaces/${workspaceUuid}/active-session`, {
-      chatSessionUuid,
+    return await setWorkspaceActiveSessionGenerated({
+      path: { workspaceUuid },
+      body: { chatSessionUuid },
     })
-    return response.data
   }
   catch (error) {
     console.error(`Error setting active session for workspace ${workspaceUuid}:`, error)
@@ -200,8 +201,7 @@ export const setWorkspaceActiveSession = async (workspaceUuid: string, chatSessi
 // Get all workspace active sessions for the current user
 export const getAllWorkspaceActiveSessions = async () => {
   try {
-    const response = await request.get('/workspaces/active-sessions')
-    return response.data
+    return await listWorkspaceActiveSessions()
   }
   catch (error) {
     console.error('Error getting all workspace active sessions:', error)

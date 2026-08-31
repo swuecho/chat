@@ -111,6 +111,9 @@ func (r *Registry) schemaFor(t reflect.Type) (any, error) {
 	if t == reflect.TypeOf(NoBody{}) {
 		return nil, nil
 	}
+	if t == reflect.TypeOf(BinaryBody{}) {
+		return map[string]any{"type": "string", "format": "binary"}, nil
+	}
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
@@ -160,11 +163,11 @@ func (r *Registry) Document() Document {
 				Description: http.StatusText(op.SuccessStatus),
 			}}}
 		if registered.requestSchema != nil {
-			operation.RequestBody = &requestBodyObject{Required: true, Content: jsonContent(registered.requestSchema)}
+			operation.RequestBody = &requestBodyObject{Required: true, Content: mediaContent(op.RequestContentType, registered.requestSchema)}
 		}
 		response := operation.Responses[fmt.Sprint(op.SuccessStatus)]
 		if registered.responseSchema != nil {
-			response.Content = jsonContent(registered.responseSchema)
+			response.Content = mediaContent(op.ResponseContentType, registered.responseSchema)
 		}
 		operation.Responses[fmt.Sprint(op.SuccessStatus)] = response
 		operation.Responses["default"] = responseObject{Description: "API error", Content: jsonContent(map[string]any{"$ref": "#/components/schemas/APIError"})}
@@ -238,4 +241,11 @@ type mediaTypeObject struct {
 
 func jsonContent(schema any) map[string]mediaTypeObject {
 	return map[string]mediaTypeObject{"application/json": {Schema: schema}}
+}
+
+func mediaContent(contentType string, schema any) map[string]mediaTypeObject {
+	if contentType == "" {
+		contentType = "application/json"
+	}
+	return map[string]mediaTypeObject{contentType: {Schema: schema}}
 }

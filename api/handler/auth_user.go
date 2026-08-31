@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/apicontract"
 	"github.com/swuecho/chat_backend/auth"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/httpx"
@@ -95,17 +96,25 @@ func refreshTokenLifetimeForRequest(r *http.Request) time.Duration {
 
 // --- Route registration ---
 
-func (h *AuthUserHandler) Register(router *mux.Router) {
+func (h *AuthUserHandler) Register(router *mux.Router, registry *apicontract.Registry) {
 	router.HandleFunc("/users", endpoint(h.GetUserByID)).Methods(http.MethodGet)
 	router.HandleFunc("/users/{id}", endpoint(h.UpdateSelf)).Methods(http.MethodPut)
 	router.HandleFunc("/token_10years", endpoint(h.ForeverToken)).Methods(http.MethodGet)
+	apicontract.DocumentJSON[apicontract.NoBody, dto.TokenResult](registry, apicontract.Operation{
+		Method: http.MethodGet, Path: "/token_10years", OperationID: "createLongLivedToken", Summary: "Create a long-lived API token",
+		Tags: []string{"Authentication"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(),
+	})
 }
 
-func (h *AuthUserHandler) RegisterPublicRoutes(router *mux.Router) {
+func (h *AuthUserHandler) RegisterPublicRoutes(router *mux.Router, registry *apicontract.Registry) {
 	router.HandleFunc("/signup", endpoint(h.SignUp)).Methods(http.MethodPost)
 	router.HandleFunc("/login", endpoint(h.Login)).Methods(http.MethodPost)
 	router.HandleFunc("/auth/refresh", endpoint(h.RefreshToken)).Methods(http.MethodPost)
 	router.HandleFunc("/logout", endpoint(h.Logout)).Methods(http.MethodPost)
+	apicontract.DocumentJSON[LoginParams, dto.TokenResult](registry, apicontract.Operation{Method: http.MethodPost, Path: "/signup", OperationID: "signUp", Summary: "Create an account", Tags: []string{"Authentication"}, SuccessStatus: http.StatusCreated})
+	apicontract.DocumentJSON[LoginParams, dto.TokenResult](registry, apicontract.Operation{Method: http.MethodPost, Path: "/login", OperationID: "login", Summary: "Log in", Tags: []string{"Authentication"}, SuccessStatus: http.StatusOK})
+	apicontract.DocumentJSON[apicontract.NoBody, dto.TokenResult](registry, apicontract.Operation{Method: http.MethodPost, Path: "/auth/refresh", OperationID: "refreshAccessToken", Summary: "Refresh an access token", Tags: []string{"Authentication"}, SuccessStatus: http.StatusOK})
+	apicontract.DocumentJSON[apicontract.NoBody, apicontract.NoBody](registry, apicontract.Operation{Method: http.MethodPost, Path: "/logout", OperationID: "logout", Summary: "Log out", Tags: []string{"Authentication"}, SuccessStatus: http.StatusOK})
 }
 
 // --- CRUD handlers ---

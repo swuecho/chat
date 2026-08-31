@@ -1,4 +1,11 @@
-import request from '@/utils/request/axios'
+import {
+  createApiKey as createApiKeyRequest,
+  getApiKeyRequest,
+  getApiKeyUsage,
+  listApiKeyRequests,
+  listApiKeys,
+  revokeApiKey as revokeApiKeyRequest,
+} from '@/api/generated_client'
 
 export interface VirtualApiKey {
   id: number
@@ -54,11 +61,21 @@ export interface GatewayRequestDetail extends GatewayRequestSummary {
   responseCapture: CapturedSample
 }
 
-const adminKeysPath = '/admin/api-keys'
+export const fetchApiKeys = async (): Promise<VirtualApiKey[]> =>
+  await listApiKeys() as VirtualApiKey[]
 
-export const fetchApiKeys = async (): Promise<VirtualApiKey[]> => (await request.get(adminKeysPath)).data
-export const createApiKey = async (data: { name: string; requestsPerMinute: number; expiresAt?: string }): Promise<VirtualApiKey> => (await request.post(adminKeysPath, data)).data
-export const revokeApiKey = async (id: number): Promise<void> => { await request.delete(`${adminKeysPath}/${id}`) }
-export const fetchApiKeyUsage = async (id: number): Promise<ApiKeyUsage[]> => (await request.get(`${adminKeysPath}/${id}/usage`)).data
-export const fetchGatewayRequests = async (keyId: number): Promise<GatewayRequestSummary[]> => (await request.get(`${adminKeysPath}/${keyId}/requests`)).data
-export const fetchGatewayRequest = async (keyId: number, requestId: number): Promise<GatewayRequestDetail> => (await request.get(`${adminKeysPath}/${keyId}/requests/${requestId}`)).data
+export const createApiKey = async (data: { name: string; requestsPerMinute: number; expiresAt?: string }): Promise<VirtualApiKey> =>
+  await createApiKeyRequest({ body: { ...data, expiresAt: data.expiresAt ?? '' } }) as VirtualApiKey
+
+export const revokeApiKey = async (id: number): Promise<void> => {
+  await revokeApiKeyRequest({ path: { id } })
+}
+
+export const fetchApiKeyUsage = async (id: number): Promise<ApiKeyUsage[]> =>
+  await getApiKeyUsage({ path: { id } }) as ApiKeyUsage[]
+
+export const fetchGatewayRequests = async (keyId: number): Promise<GatewayRequestSummary[]> =>
+  await listApiKeyRequests({ path: { id: keyId } }) as GatewayRequestSummary[]
+
+export const fetchGatewayRequest = async (keyId: number, requestId: number): Promise<GatewayRequestDetail> =>
+  await getApiKeyRequest({ path: { id: keyId, requestId } }) as GatewayRequestDetail

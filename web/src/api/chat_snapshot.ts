@@ -1,31 +1,25 @@
-import request from '@/utils/request/axios'
+import {
+  createChatBot as createChatBotRequest,
+  createChatSessionFromSnapshot,
+  createChatSnapshot as createChatSnapshotRequest,
+  deleteChatSnapshot,
+  getChatSnapshot,
+  listChatSnapshots,
+  searchChatSnapshots,
+  updateChatBotModel as updateChatBotModelRequest,
+  updateChatBotSettings as updateChatBotSettingsRequest,
+  updateChatSnapshot as updateChatSnapshotRequest,
+} from '@/api/generated_client'
+import type { UpdateChatSnapshotData } from '@/api/generated/types.gen'
 
-export const createChatSnapshot = async (uuid: string): Promise<any> => {
-  try {
-    const response = await request.post(`/uuid/chat_snapshot/${uuid}`)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+export const createChatSnapshot = (uuid: string) =>
+  createChatSnapshotRequest({ path: { uuid } })
 
-export const createChatBot = async (uuid: string): Promise<any> => {
-  try {
-    const response = await request.post(`/uuid/chat_bot/${uuid}`)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+export const createChatBot = (uuid: string) =>
+  createChatBotRequest({ path: { uuid } })
 
-export const updateChatBotModel = async (uuid: string, model: string): Promise<any> => {
-  const response = await request.put(`/uuid/chat_bot/${uuid}/model`, { model })
-  return response.data
-}
+export const updateChatBotModel = (uuid: string, model: string) =>
+  updateChatBotModelRequest({ path: { uuid }, body: { model } })
 
 export interface UpdateChatBotSettingsRequest {
   title: string
@@ -33,111 +27,40 @@ export interface UpdateChatBotSettingsRequest {
   model: string
 }
 
-export const updateChatBotSettings = async (
-  uuid: string,
-  settings: UpdateChatBotSettingsRequest,
-): Promise<any> => {
-  const response = await request.put(`/uuid/chat_bot/${uuid}/settings`, settings)
-  return response.data
-}
+export const updateChatBotSettings = (uuid: string, settings: UpdateChatBotSettingsRequest) =>
+  updateChatBotSettingsRequest({ path: { uuid }, body: settings })
 
-export const fetchChatSnapshot = async (uuid: string): Promise<any> => {
-  try {
-    const response = await request.get(`/uuid/chat_snapshot/${uuid}`)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+export const fetchChatSnapshot = (uuid: string) =>
+  getChatSnapshot({ path: { uuid } })
 
-export const fetchSnapshotAll = async (page = 1, pageSize = 20): Promise<any> => {
-  try {
-    const response = await request.get(`/uuid/chat_snapshot/all?type=snapshot&page=${page}&page_size=${pageSize}`)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+export const fetchSnapshotAll = (page = 1, pageSize = 20) =>
+  listChatSnapshots({
+    query: { type: 'snapshot', limit: pageSize, offset: (page - 1) * pageSize },
+  })
 
 export const fetchSnapshotAllData = async (page = 1, pageSize = 20): Promise<Snapshot.Snapshot[]> => {
-  try {
-    const response = await fetchSnapshotAll(page, pageSize)
-    // Handle response format: { data: [...], total: n } or just the array
-    return Array.isArray(response) ? response : (response.data ?? [])
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
+  const response = await fetchSnapshotAll(page, pageSize)
+  return response.items as Snapshot.Snapshot[]
 }
 
-export const fetchChatbotAll = async (): Promise<any> => {
-  try {
-    const response = await request.get('/uuid/chat_snapshot/all?type=chatbot')
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
+export const fetchChatbotAll = async (): Promise<Snapshot.Snapshot[]> => {
+  const response = await listChatSnapshots({ query: { type: 'chatbot' } })
+  return response.items as Snapshot.Snapshot[]
 }
 
-export const fetchChatbotAllData = async (): Promise<Snapshot.Snapshot[]> => {
-  try {
-    const response = await fetchChatbotAll()
-    // Handle response format: { data: [...], total: n } or just the array
-    return Array.isArray(response) ? response : (response.data ?? [])
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+export const fetchChatbotAllData = fetchChatbotAll
 
-export const chatSnapshotSearch = async (search: string): Promise<any> => {
-  try {
-    const response = await request.get(`/uuid/chat_snapshot_search?search=${search}`)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+export const chatSnapshotSearch = (search: string) =>
+  searchChatSnapshots({ query: { search } })
 
-export const updateChatSnapshot = async (uuid: string, data: any): Promise<any> => {
-  try {
-    const response = await request.put(`/uuid/chat_snapshot/${uuid}`, data)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+export const updateChatSnapshot = (uuid: string, data: UpdateChatSnapshotData['body']) =>
+  updateChatSnapshotRequest({ path: { uuid }, body: data })
 
-export const fetchSnapshotDelete = async (uuid: string): Promise<any> => {
-  try {
-    const response = await request.delete(`/uuid/chat_snapshot/${uuid}`)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
-// CreateSessionFromSnapshot
-export const CreateSessionFromSnapshot = async (snapshot_uuid: string) => {
-  try {
-    const response = await request.post(`/uuid/chat_session_from_snapshot/${snapshot_uuid}`)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
+export const fetchSnapshotDelete = (uuid: string) =>
+  deleteChatSnapshot({ path: { uuid } })
+
+// Keep the legacy export name while using the generated operation underneath.
+export const CreateSessionFromSnapshot = async (snapshotUUID: string) => {
+  const response = await createChatSessionFromSnapshot({ path: { uuid: snapshotUUID } })
+  return { ...response, SessionUuid: response.sessionUuid }
 }

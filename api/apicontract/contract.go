@@ -15,18 +15,23 @@ import (
 // NoBody marks an operation that has no JSON request body or response body.
 type NoBody struct{}
 
+// BinaryBody documents an opaque binary request or response body.
+type BinaryBody []byte
+
 // Operation describes the HTTP-specific metadata that cannot be inferred from
 // Go request and response types.
 type Operation struct {
-	Method        string
-	Path          string
-	OperationID   string
-	Summary       string
-	Description   string
-	Tags          []string
-	SuccessStatus int
-	Parameters    []Parameter
-	Security      []map[string][]string
+	Method              string
+	Path                string
+	OperationID         string
+	Summary             string
+	Description         string
+	Tags                []string
+	SuccessStatus       int
+	Parameters          []Parameter
+	Security            []map[string][]string
+	RequestContentType  string
+	ResponseContentType string
 }
 
 // Parameter documents a path, query, or header parameter.
@@ -41,6 +46,34 @@ type Parameter struct {
 // UUIDPathParameter describes a required UUID path segment.
 func UUIDPathParameter(name string) Parameter {
 	return Parameter{Name: name, In: "path", Required: true, Schema: map[string]any{"type": "string", "format": "uuid"}}
+}
+
+// PositiveIntegerPathParameter describes a required positive integer path segment.
+func PositiveIntegerPathParameter(name string) Parameter {
+	return Parameter{Name: name, In: "path", Required: true, Schema: map[string]any{"type": "integer", "minimum": 1}}
+}
+
+// StringPathParameter describes a required string path segment.
+func StringPathParameter(name string) Parameter {
+	return Parameter{Name: name, In: "path", Required: true, Schema: map[string]any{"type": "string"}}
+}
+
+// IntegerQueryParameter describes an optional bounded integer query value.
+func IntegerQueryParameter(name string, minimum int, maximum *int) Parameter {
+	schema := map[string]any{"type": "integer", "minimum": minimum}
+	if maximum != nil {
+		schema["maximum"] = *maximum
+	}
+	return Parameter{Name: name, In: "query", Schema: schema}
+}
+
+// StringQueryParameter describes an optional string query value.
+func StringQueryParameter(name string, allowedValues ...string) Parameter {
+	schema := map[string]any{"type": "string"}
+	if len(allowedValues) > 0 {
+		schema["enum"] = allowedValues
+	}
+	return Parameter{Name: name, In: "query", Schema: schema}
 }
 
 // BearerAuth requires the standard bearer authentication scheme configured on
@@ -78,6 +111,15 @@ func RegisterJSON[Input, Output any](router *mux.Router, registry *Registry, op 
 		}
 		return httpx.JSON(w, op.SuccessStatus, output)
 	})).Methods(op.Method)
+}
+
+// DocumentJSON records a typed JSON operation without installing a route.
+// It supports legacy handlers whose runtime behavior cannot yet be represented
+// by RegisterJSON, such as endpoints with more than one success status.
+func DocumentJSON[Input, Output any](registry *Registry, op Operation) {
+	if err := addOperation[Input, Output](registry, op); err != nil {
+		panic(err)
+	}
 }
 
 func validateOperation(op Operation) error {

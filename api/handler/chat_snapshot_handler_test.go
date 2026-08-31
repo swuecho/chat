@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/apiopenapi"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 	"gotest.tools/v3/assert"
@@ -21,7 +22,7 @@ func TestChatSnapshot(t *testing.T) {
 	h := NewChatSnapshotHandler(svc.NewChatSnapshotService(q))
 
 	router := mux.NewRouter()
-	h.Register(router)
+	h.Register(router, apiopenapi.NewRegistry())
 
 	userID := 1
 	snapshotUUID := NewUUID()

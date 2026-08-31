@@ -102,6 +102,27 @@ type snapshotPageHTTPResponse struct {
 	Total    int64                         `json:"total"`
 }
 
+type snapshotListHTTPResponse struct {
+	Items  []snapshotSummaryHTTPResponse `json:"items"`
+	Total  int64                         `json:"total"`
+	Limit  int32                         `json:"limit"`
+	Offset int32                         `json:"offset"`
+}
+
+type userStatsPageHTTPResponse struct {
+	Items  []UserStat `json:"items"`
+	Total  int64      `json:"total"`
+	Limit  int32      `json:"limit"`
+	Offset int32      `json:"offset"`
+}
+
+type sessionHistoryPageHTTPResponse struct {
+	Items  []svc.SessionHistoryInfo `json:"items"`
+	Total  int64                    `json:"total"`
+	Limit  int32                    `json:"limit"`
+	Offset int32                    `json:"offset"`
+}
+
 type migrationHTTPResponse struct {
 	HasLegacySessions bool                   `json:"hasLegacySessions"`
 	MigratedSessions  int                    `json:"migratedSessions"`
@@ -197,6 +218,27 @@ type gatewayRequestDetailHTTPResponse struct {
 	RetentionUntil         time.Time       `json:"retentionUntil"`
 	RequestCapture         capturedSample  `json:"requestCapture"`
 	ResponseCapture        capturedSample  `json:"responseCapture"`
+}
+
+type gatewayRequestSummaryHTTPResponse struct {
+	ID                int64      `json:"id"`
+	RequestUUID       uuid.UUID  `json:"requestUuid"`
+	RequestedModel    string     `json:"requestedModel"`
+	Provider          string     `json:"provider"`
+	Status            string     `json:"status"`
+	Stream            bool       `json:"stream"`
+	PromptTokens      int32      `json:"promptTokens"`
+	CompletionTokens  int32      `json:"completionTokens"`
+	TotalTokens       int32      `json:"totalTokens"`
+	LatencyMs         int64      `json:"latencyMs"`
+	RequestBytes      int64      `json:"requestBytes"`
+	ResponseBytes     int64      `json:"responseBytes"`
+	RequestTruncated  bool       `json:"requestTruncated"`
+	ResponseTruncated bool       `json:"responseTruncated"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	CompletedAt       *time.Time `json:"completedAt"`
+	RetentionUntil    time.Time  `json:"retentionUntil"`
+	ErrorCode         string     `json:"errorCode"`
 }
 
 type openAIErrorDetail struct {

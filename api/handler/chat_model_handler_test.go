@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/gorilla/mux"
 	"github.com/samber/lo"
+	"github.com/swuecho/chat_backend/apiopenapi"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 	"gotest.tools/v3/assert"
@@ -74,7 +75,7 @@ func TestChatModelTest(t *testing.T) {
 	q := sqlc_queries.New(testDB)
 	h := NewChatModelHandler(svc.NewChatModelService(q))
 	router := mux.NewRouter()
-	h.Register(router)
+	h.Register(router, apiopenapi.NewRegistry())
 	clearChatModelsIfExists(q)
 
 	admin, expectedResults := createTwoChatModel(q)

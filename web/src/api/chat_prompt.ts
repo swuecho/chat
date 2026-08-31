@@ -1,4 +1,8 @@
-import request from '@/utils/request/axios'
+import {
+  createChatPrompt as createChatPromptGenerated,
+  deleteChatPrompt as deleteChatPromptGenerated,
+  updateChatPrompt as updateChatPromptGenerated,
+} from './generated_client'
 
 export interface CreateChatPromptPayload {
   uuid: string
@@ -13,8 +17,7 @@ export interface CreateChatPromptPayload {
 
 export const createChatPrompt = async (payload: CreateChatPromptPayload) => {
   try {
-    const response = await request.post('/chat_prompts', payload)
-    return response.data
+    return await createChatPromptGenerated({ body: payload })
   }
   catch (error) {
     console.error(error)
@@ -24,8 +27,7 @@ export const createChatPrompt = async (payload: CreateChatPromptPayload) => {
 
 export const deleteChatPrompt = async (uuid: string) => {
   try {
-    const response = await request.delete(`/uuid/chat_prompts/${uuid}`)
-    return response.data
+    return await deleteChatPromptGenerated({ path: { uuid } })
   }
   catch (error) {
     console.error(error)
@@ -35,8 +37,7 @@ export const deleteChatPrompt = async (uuid: string) => {
 
 export const updateChatPrompt = async (chat: Chat.Message) => {
   try {
-    const response = await request.put(`/uuid/chat_prompts/${chat.uuid}`, chat)
-    return response.data
+    return await updateChatPromptGenerated({ path: { uuid: chat.uuid }, body: chat })
   }
   catch (error) {
     console.error(error)

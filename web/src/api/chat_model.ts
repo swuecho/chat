@@ -1,84 +1,48 @@
-import request from '@/utils/request/axios'
+import {
+  createChatModel as createChatModelRequest,
+  deleteChatModel as deleteChatModelRequest,
+  getDefaultChatModel,
+  getTitleChatModel,
+  listChatModels,
+  setTitleChatModel,
+  updateChatModel as updateChatModelRequest,
+} from '@/api/generated_client'
+import type { CreateChatModelData } from '@/api/generated/types.gen'
 
-export const fetchChatModel = async () => {
-  try {
-    const response = await request.get('/chat_model')
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+type ChatModelInput = CreateChatModelData['body']
 
-export const updateChatModel = async (id: number, chatModel: any) => {
-  try {
-    const response = await request.put(`/chat_model/${id}`, chatModel)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+export const fetchChatModel = () => listChatModels()
 
-export const deleteChatModel = async (id: number) => {
-  try {
-    const response = await request.delete(`/chat_model/${id}`)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
-export const createChatModel = async (chatModel: any) => {
-  try {
-    const response = await request.post('/chat_model', chatModel)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
+export const updateChatModel = (id: number, chatModel: ChatModelInput) =>
+  updateChatModelRequest({ path: { id }, body: chatModel })
+
+export const deleteChatModel = (id: number) =>
+  deleteChatModelRequest({ path: { id } })
+
+export const createChatModel = (chatModel: ChatModelInput) =>
+  createChatModelRequest({ body: chatModel })
 
 export const fetchDefaultChatModel = async () => {
   try {
-    const response = await request.get('/chat_model/default')
-    return response.data
+    return await getDefaultChatModel()
   }
-  catch (error: any) {
-    console.error('Failed to fetch default chat model:', error)
-    
-    // If default model API fails, try to get all models and use the first enabled one
-    if (error.response?.data?.code === 'RES_001' || error.response?.status === 500) {
-      console.warn('Default model not found, falling back to first available model')
-      try {
-        const allModelsResponse = await request.get('/chat_model')
-        const enabledModels = allModelsResponse.data?.filter((model: any) => model.isEnable) || []
-        
-        if (enabledModels.length > 0) {
-          // Sort by order number and return first one
-          enabledModels.sort((a: any, b: any) => (a.orderNumber || 0) - (b.orderNumber || 0))
-          console.log('Using fallback model:', enabledModels[0].name)
-          return enabledModels[0]
-        }
-      } catch (fallbackError) {
-        console.error('Failed to fetch fallback model:', fallbackError)
-      }
+  catch (error) {
+    console.warn('Default model not found, falling back to first available model')
+    try {
+      const models = await listChatModels()
+      const enabledModels = models.filter(model => model.isEnable)
+        .sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0))
+      if (enabledModels.length > 0)
+        return enabledModels[0]
     }
-    
+    catch (fallbackError) {
+      console.error('Failed to fetch fallback model:', fallbackError)
+    }
     throw error
   }
 }
 
-export const fetchTitleChatModel = async () => {
-  const response = await request.get('/chat_model/title-default')
-  return response.data
-}
+export const fetchTitleChatModel = () => getTitleChatModel()
 
-export const updateTitleChatModel = async (modelId: number) => {
-  const response = await request.put('/chat_model/title-default', { modelId })
-  return response.data
-}
+export const updateTitleChatModel = (modelId: number) =>
+  setTitleChatModel({ body: { modelId } })

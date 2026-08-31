@@ -22,7 +22,23 @@ func main() {
 	// Registration records contracts only. Services are not invoked while the
 	// router is assembled, so generation has no database dependency.
 	handler.NewChatSessionHandler(nil).Register(router, registry)
+	handler.NewChatMessageHandler(nil, nil, nil, nil).Register(router, registry)
+	handler.NewChatPromptHandler(nil).Register(router, registry)
+	handler.NewUserActiveChatSessionHandler(nil, nil).Register(router, registry)
 	handler.NewChatWorkspaceHandler(nil).Register(router, registry)
+	handler.NewChatCommentHandler(nil).Register(router, registry)
+	handler.NewChatHandler(nil, nil, nil, nil, nil, nil, nil, nil, "", "").Register(router, registry)
+	handler.NewBotAnswerHistoryHandler(nil).Register(router, registry)
+	handler.NewChatFileHandler(nil).Register(router, registry)
+	handler.NewChatModelHandler(nil).Register(router, registry)
+	handler.NewChatSnapshotHandler(nil).Register(router, registry)
+	authHandler := handler.NewAuthUserHandler(nil, "", "", 0)
+	authHandler.Register(router, registry)
+	authHandler.RegisterPublicRoutes(router, registry)
+	handler.NewUserChatModelPrivilegeHandler(nil).Register(router, registry)
+	handler.NewAPIKeyHandler(nil).Register(router, registry)
+	handler.NewAdminHandler(nil, nil, 0).RegisterRoutes(router, registry)
+	handler.RegisterTTSContract(registry)
 
 	document, err := registry.MarshalJSON()
 	if err != nil {

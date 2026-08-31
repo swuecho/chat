@@ -1,6 +1,6 @@
 import { v7 as uuidv7 } from 'uuid'
-import request from '../utils/request/axios'
 import { fetchDefaultChatModel } from './chat_model'
+import { clearChatMessagesBySessionUUID } from './chat_message'
 import { toUpdateChatSessionPayload } from './chat_session_payload'
 import {
   createChatSession as createChatSessionGenerated,
@@ -82,14 +82,7 @@ export const renameChatSession = async (uuid: string, name: string) => {
 }
 
 export const clearSessionChatMessages = async (sessionUuid: string) => {
-  try {
-    const response = await request.delete(`/uuid/chat_messages/chat_sessions/${sessionUuid}`)
-    return response.data
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
+  return clearChatMessagesBySessionUUID(sessionUuid)
 }
 
 export const updateChatSession = async (sessionUuid: string, session_data: Chat.Session) => {

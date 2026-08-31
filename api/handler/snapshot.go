@@ -4,9 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/apicontract"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/httpx"
 	"github.com/swuecho/chat_backend/svc"
+	"github.com/swuecho/chat_backend/validation"
 )
 
 type ChatSnapshotHandler struct {
@@ -17,7 +19,7 @@ func NewChatSnapshotHandler(service *svc.ChatSnapshotService) *ChatSnapshotHandl
 	return &ChatSnapshotHandler{Service: service}
 }
 
-func (h *ChatSnapshotHandler) Register(router *mux.Router) {
+func (h *ChatSnapshotHandler) Register(router *mux.Router, registry *apicontract.Registry) {
 	router.HandleFunc("/uuid/chat_snapshot/all", endpoint(h.ChatSnapshotMetaByUserID)).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_snapshot/{uuid}", endpoint(h.GetChatSnapshot)).Methods(http.MethodGet)
 	router.HandleFunc("/uuid/chat_snapshot/{uuid}", endpoint(h.CreateChatSnapshot)).Methods(http.MethodPost)
@@ -27,6 +29,26 @@ func (h *ChatSnapshotHandler) Register(router *mux.Router) {
 	router.HandleFunc("/uuid/chat_bot/{uuid}", endpoint(h.CreateChatBot)).Methods(http.MethodPost)
 	router.HandleFunc("/uuid/chat_bot/{uuid}/model", endpoint(h.UpdateChatBotModel)).Methods(http.MethodPut)
 	router.HandleFunc("/uuid/chat_bot/{uuid}/settings", endpoint(h.UpdateChatBotSettings)).Methods(http.MethodPut)
+
+	secured := func(op apicontract.Operation) apicontract.Operation {
+		op.Tags = []string{"Snapshots"}
+		op.Security = apicontract.BearerAuth()
+		return op
+	}
+	uuidParameter := []apicontract.Parameter{apicontract.UUIDPathParameter("uuid")}
+	maxPageSize := validation.MaxPageSize
+	apicontract.DocumentJSON[apicontract.NoBody, snapshotListHTTPResponse](registry, secured(apicontract.Operation{Method: http.MethodGet, Path: "/uuid/chat_snapshot/all", OperationID: "listChatSnapshots", Summary: "List chat snapshots", SuccessStatus: http.StatusOK, Parameters: []apicontract.Parameter{
+		apicontract.StringQueryParameter("type", "snapshot", "chatbot"),
+		apicontract.IntegerQueryParameter("limit", 1, &maxPageSize), apicontract.IntegerQueryParameter("offset", 0, nil),
+	}}))
+	apicontract.DocumentJSON[apicontract.NoBody, snapshotHTTPResponse](registry, secured(apicontract.Operation{Method: http.MethodGet, Path: "/uuid/chat_snapshot/{uuid}", OperationID: "getChatSnapshot", Summary: "Get a chat snapshot", SuccessStatus: http.StatusOK, Parameters: uuidParameter}))
+	apicontract.DocumentJSON[apicontract.NoBody, uuidHTTPResponse](registry, secured(apicontract.Operation{Method: http.MethodPost, Path: "/uuid/chat_snapshot/{uuid}", OperationID: "createChatSnapshot", Summary: "Create a chat snapshot", SuccessStatus: http.StatusCreated, Parameters: uuidParameter}))
+	apicontract.DocumentJSON[updateSnapshotMetadataRequest, snapshotHTTPResponse](registry, secured(apicontract.Operation{Method: http.MethodPut, Path: "/uuid/chat_snapshot/{uuid}", OperationID: "updateChatSnapshot", Summary: "Update chat snapshot metadata", SuccessStatus: http.StatusOK, Parameters: uuidParameter}))
+	apicontract.DocumentJSON[apicontract.NoBody, apicontract.NoBody](registry, secured(apicontract.Operation{Method: http.MethodDelete, Path: "/uuid/chat_snapshot/{uuid}", OperationID: "deleteChatSnapshot", Summary: "Delete a chat snapshot", SuccessStatus: http.StatusOK, Parameters: uuidParameter}))
+	apicontract.DocumentJSON[apicontract.NoBody, []snapshotSearchHTTPResponse](registry, secured(apicontract.Operation{Method: http.MethodGet, Path: "/uuid/chat_snapshot_search", OperationID: "searchChatSnapshots", Summary: "Search chat snapshots", SuccessStatus: http.StatusOK, Parameters: []apicontract.Parameter{apicontract.StringQueryParameter("search")}}))
+	apicontract.DocumentJSON[apicontract.NoBody, uuidHTTPResponse](registry, secured(apicontract.Operation{Method: http.MethodPost, Path: "/uuid/chat_bot/{uuid}", OperationID: "createChatBot", Summary: "Create a chat bot", SuccessStatus: http.StatusCreated, Parameters: uuidParameter}))
+	apicontract.DocumentJSON[updateBotModelRequest, snapshotHTTPResponse](registry, secured(apicontract.Operation{Method: http.MethodPut, Path: "/uuid/chat_bot/{uuid}/model", OperationID: "updateChatBotModel", Summary: "Update a chat bot model", SuccessStatus: http.StatusOK, Parameters: uuidParameter}))
+	apicontract.DocumentJSON[updateBotSettingsRequest, snapshotHTTPResponse](registry, secured(apicontract.Operation{Method: http.MethodPut, Path: "/uuid/chat_bot/{uuid}/settings", OperationID: "updateChatBotSettings", Summary: "Update chat bot settings", SuccessStatus: http.StatusOK, Parameters: uuidParameter}))
 }
 
 func (h *ChatSnapshotHandler) CreateChatSnapshot(w http.ResponseWriter, r *http.Request) error {

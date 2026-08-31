@@ -1,10 +1,9 @@
-import request from '@/utils/request/axios'
+import { getChatInstructions } from '@/api/generated_client'
 
 export interface ChatInstructions {
   artifactInstruction: string
 }
 
 export const fetchChatInstructions = async (): Promise<ChatInstructions> => {
-  const response = await request.get('/chat_instructions')
-  return response.data
+  return getChatInstructions()
 }

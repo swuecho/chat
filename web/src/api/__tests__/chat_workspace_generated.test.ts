@@ -25,7 +25,6 @@ const generated = vi.hoisted(() => ({
 }))
 
 vi.mock('../generated_client', () => generated)
-vi.mock('@/utils/request/axios', () => ({ default: { delete: vi.fn(), get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 
 describe('chat workspace generated client migration', () => {
   beforeEach(() => vi.clearAllMocks())

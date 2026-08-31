@@ -12,7 +12,7 @@ const generated = vi.hoisted(() => ({
 
 vi.mock('../generated_client', () => generated)
 vi.mock('../chat_model', () => ({ fetchDefaultChatModel: vi.fn() }))
-vi.mock('../../utils/request/axios', () => ({ default: { delete: vi.fn() } }))
+vi.mock('../chat_message', () => ({ clearChatMessagesBySessionUUID: vi.fn() }))
 
 describe('chat session generated client migration', () => {
   beforeEach(() => vi.clearAllMocks())

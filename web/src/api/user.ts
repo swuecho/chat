@@ -1,8 +1,7 @@
-import request from '@/utils/request/axios'
+import { login, signUp } from '@/api/generated_client'
 export async function fetchLogin(email: string, password: string) {
   try {
-    const response = await request.post('/login', { email, password })
-    return response.data
+    return await login({ body: { email, password } })
   }
   catch (error) {
     console.error(error)
@@ -12,8 +11,7 @@ export async function fetchLogin(email: string, password: string) {
 
 export async function fetchSignUp(email: string, password: string) {
   try {
-    const response = await request.post('/signup', { email, password })
-    return response.data
+    return await signUp({ body: { email, password } })
   }
   catch (error) {
     console.error(error)

@@ -227,28 +227,29 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 
 	// Public
 	apiRouter.HandleFunc("/tts", handler.HandleTTSRequest)
+	handler.RegisterTTSContract(s.apiContract)
 	apiRouter.HandleFunc("/errors", dto.ErrorCatalogHandler)
 
 	// Chat models
 	chatModelService := svc.NewChatModelService(q)
-	handler.NewChatModelHandler(chatModelService).Register(userRouter)
+	handler.NewChatModelHandler(chatModelService).Register(userRouter, s.apiContract)
 	apiKeyService := svc.NewAPIKeyService(q)
-	handler.NewAPIKeyHandler(apiKeyService).Register(adminRouter)
+	handler.NewAPIKeyHandler(apiKeyService).Register(adminRouter, s.apiContract)
 
 	// Auth
 	authUserService := svc.NewAuthUserService(q, jwtSecret, rateLimit)
 	authHandler := handler.NewAuthUserHandler(authUserService, jwtSecret, jwtAudience, rateLimit)
-	authHandler.Register(userRouter)
-	authHandler.RegisterPublicRoutes(apiRouter)
+	authHandler.Register(userRouter, s.apiContract)
+	authHandler.RegisterPublicRoutes(apiRouter, s.apiContract)
 
 	// Admin
 	adminAuthService := svc.NewAuthUserService(q, jwtSecret, rateLimit)
 	adminSessionService := svc.NewSessionAdminQueryService(q)
-	handler.NewAdminHandler(adminAuthService, adminSessionService, rateLimit).RegisterRoutes(adminRouter)
+	handler.NewAdminHandler(adminAuthService, adminSessionService, rateLimit).RegisterRoutes(adminRouter, s.apiContract)
 
 	// Prompts
 	chatPromptService := svc.NewChatPromptService(q)
-	handler.NewChatPromptHandler(chatPromptService).Register(userRouter)
+	handler.NewChatPromptHandler(chatPromptService).Register(userRouter, s.apiContract)
 
 	// Sessions
 	chatSessionService := svc.NewChatSessionService(q)
@@ -257,7 +258,7 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	// Active sessions
 	activeSessionService := svc.NewUserActiveChatSessionService(q)
 	activeWorkspaceService := svc.NewChatWorkspaceService(q)
-	handler.NewUserActiveChatSessionHandler(activeSessionService, activeWorkspaceService).Register(userRouter)
+	handler.NewUserActiveChatSessionHandler(activeSessionService, activeWorkspaceService).Register(userRouter, s.apiContract)
 
 	// Workspaces
 	workspaceService := svc.NewChatWorkspaceService(q)
@@ -268,11 +269,11 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	chatMessageSessionService := svc.NewChatSessionService(q)
 	chatMessageConversationService := svc.NewSessionConversationService(q)
 	messageSuggestionService := svc.NewChatService(q, openAIKey, openAIProxy)
-	handler.NewChatMessageHandler(chatMessageService, chatMessageSessionService, chatMessageConversationService, messageSuggestionService).Register(userRouter)
+	handler.NewChatMessageHandler(chatMessageService, chatMessageSessionService, chatMessageConversationService, messageSuggestionService).Register(userRouter, s.apiContract)
 
 	// Snapshots
 	chatSnapshotService := svc.NewChatSnapshotService(q)
-	handler.NewChatSnapshotHandler(chatSnapshotService).Register(userRouter)
+	handler.NewChatSnapshotHandler(chatSnapshotService).Register(userRouter, s.apiContract)
 
 	// Chat stream
 	chatService := svc.NewChatService(q, openAIKey, openAIProxy)
@@ -282,23 +283,23 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 	chatSnapshotQueryService := svc.NewSessionSnapshotQueryService(q)
 	chatModelRuntimeService := svc.NewSessionModelService(q)
 	chatBotHistoryService := svc.NewSessionBotHistoryService(q)
-	handler.NewChatHandler(chatService, chatStreamSessionService, chatConversationService, chatRateLimitService, chatSnapshotQueryService, chatModelRuntimeService, chatBotHistoryService, s.rateLimiter, openAIKey, openAIProxy).Register(userRouter)
+	handler.NewChatHandler(chatService, chatStreamSessionService, chatConversationService, chatRateLimitService, chatSnapshotQueryService, chatModelRuntimeService, chatBotHistoryService, s.rateLimiter, openAIKey, openAIProxy).Register(userRouter, s.apiContract)
 
 	// Model privileges
 	chatModelPrivilegeService := svc.NewChatModelPrivilegeService(q)
-	handler.NewUserChatModelPrivilegeHandler(chatModelPrivilegeService).Register(userRouter)
+	handler.NewUserChatModelPrivilegeHandler(chatModelPrivilegeService).Register(userRouter, s.apiContract)
 
 	// Files
 	chatFileService := svc.NewChatFileService(q)
-	handler.NewChatFileHandler(chatFileService).Register(userRouter)
+	handler.NewChatFileHandler(chatFileService).Register(userRouter, s.apiContract)
 
 	// Comments
 	chatCommentService := svc.NewChatCommentService(q)
-	handler.NewChatCommentHandler(chatCommentService).Register(userRouter)
+	handler.NewChatCommentHandler(chatCommentService).Register(userRouter, s.apiContract)
 
 	// Bot history
 	botAnswerHistoryService := svc.NewBotAnswerHistoryService(q)
-	handler.NewBotAnswerHistoryHandler(botAnswerHistoryService).Register(userRouter)
+	handler.NewBotAnswerHistoryHandler(botAnswerHistoryService).Register(userRouter, s.apiContract)
 }
 
 // healthCheck returns server health status.

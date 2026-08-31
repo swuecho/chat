@@ -1,10 +1,5 @@
-import request from '@/utils/request/axios'
+import { createLongLivedToken } from '@/api/generated_client'
 
 export async function fetchAPIToken() {
-        try {
-                const response = await request.get('/token_10years')
-                return response.data
-        } catch (error) {
-                throw error
-        }
+  return createLongLivedToken()
 }

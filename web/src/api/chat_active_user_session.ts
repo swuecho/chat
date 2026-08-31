@@ -1,10 +1,8 @@
-// getUserActiveChatSession
-import request from '@/utils/request/axios'
+import { getActiveChatSession, setActiveChatSession } from './generated_client'
 
 export const getUserActiveChatSession = async () => {
   try {
-    const response = await request.get('/uuid/user_active_chat_session')
-    return response.data
+    return await getActiveChatSession()
   }
   catch (error) {
     console.error(error)
@@ -15,10 +13,7 @@ export const getUserActiveChatSession = async () => {
 // createOrUpdateUserActiveChatSession
 export const createOrUpdateUserActiveChatSession = async (chatSessionUuid: string) => {
   try {
-    const response = await request.put('/uuid/user_active_chat_session', {
-      chatSessionUuid,
-    })
-    return response.data
+    return await setActiveChatSession({ body: { chatSessionUuid } })
   }
   catch (error) {
     console.error(error)
