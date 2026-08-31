@@ -59,6 +59,37 @@ jobs:
       - name: Check for generated-code drift
         run: git diff --exit-code -- api/sqlc_queries
 
+  api-client-generated-code:
+    name: OpenAPI and TypeScript client
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Regenerate OpenAPI and TypeScript client
+        run: npm run generate:api
+        working-directory: web
+
+      - name: Check for generated-code drift
+        run: git diff --exit-code -- api/openapi/openapi.json web/src/api/generated
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -94,4 +125,3 @@ jobs:
 
       - name: Check locale keys
         run: python3 scripts/locale_missing_key.py web/src/locales --base zh-CN
-

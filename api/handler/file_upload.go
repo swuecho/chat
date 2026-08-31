@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/apicontract"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/svc"
 	"github.com/swuecho/chat_backend/validation"
@@ -18,15 +19,31 @@ type ChatFileHandler struct {
 	service *svc.ChatFileService
 }
 
+type uploadFileContractRequest struct {
+	File        apicontract.BinaryBody `json:"file" jsonschema:"required,format=binary"`
+	SessionUUID string                 `json:"session-uuid" jsonschema:"required,format=uuid"`
+}
+
 func NewChatFileHandler(service *svc.ChatFileService) *ChatFileHandler {
 	return &ChatFileHandler{service: service}
 }
 
-func (h *ChatFileHandler) Register(router *mux.Router) {
+func (h *ChatFileHandler) Register(router *mux.Router, registry *apicontract.Registry) {
 	router.HandleFunc("/upload", endpoint(h.ReceiveFile)).Methods(http.MethodPost)
-	router.HandleFunc("/chat_file/{uuid}/list", endpoint(h.ChatFilesBySessionUUID)).Methods(http.MethodGet)
+	apicontract.DocumentJSON[uploadFileContractRequest, fileUploadHTTPResponse](registry, apicontract.Operation{
+		Method: http.MethodPost, Path: "/upload", OperationID: "uploadChatFile", Summary: "Upload a chat file",
+		Tags: []string{"Files"}, SuccessStatus: http.StatusCreated, Security: apicontract.BearerAuth(), RequestContentType: "multipart/form-data",
+	})
+	apicontract.RegisterJSON(router, registry, apicontract.Operation{
+		Method: http.MethodGet, Path: "/chat_file/{uuid}/list", OperationID: "listChatFiles",
+		Summary: "List files for a chat session", Tags: []string{"Files"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(),
+		Parameters: []apicontract.Parameter{apicontract.UUIDPathParameter("uuid")},
+	}, h.chatFilesBySessionUUID)
 	router.HandleFunc("/download/{id}", endpoint(h.DownloadFile)).Methods(http.MethodGet)
 	router.HandleFunc("/download/{id}", endpoint(h.DeleteFile)).Methods(http.MethodDelete)
+	idParameter := []apicontract.Parameter{apicontract.PositiveIntegerPathParameter("id")}
+	apicontract.DocumentJSON[apicontract.NoBody, apicontract.BinaryBody](registry, apicontract.Operation{Method: http.MethodGet, Path: "/download/{id}", OperationID: "downloadChatFile", Summary: "Download a chat file", Tags: []string{"Files"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(), Parameters: idParameter, ResponseContentType: "application/octet-stream"})
+	apicontract.DocumentJSON[apicontract.NoBody, apicontract.NoBody](registry, apicontract.Operation{Method: http.MethodDelete, Path: "/download/{id}", OperationID: "deleteChatFile", Summary: "Delete a chat file", Tags: []string{"Files"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(), Parameters: idParameter})
 }
 
 const maxUploadSize = 32 << 20 // 32MB
@@ -123,20 +140,20 @@ func (h *ChatFileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) err
 	return respondStatus(w, http.StatusOK)
 }
 
-func (h *ChatFileHandler) ChatFilesBySessionUUID(w http.ResponseWriter, r *http.Request) error {
+func (h *ChatFileHandler) chatFilesBySessionUUID(r *http.Request, _ apicontract.NoBody) ([]fileMetaHTTPResponse, error) {
 	sessionUUID := mux.Vars(r)["uuid"]
 	userID, err := authenticatedUserID(r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	files, err := h.service.ListChatFilesBySession(r.Context(), sessionUUID, userID)
 	if err != nil {
-		return dto.WrapError(err, "failed to list chat files for session")
+		return nil, dto.WrapError(err, "failed to list chat files for session")
 	}
 	meta := make([]fileMetaHTTPResponse, 0, len(files))
 	for _, f := range files {
 		meta = append(meta, fileMetaHTTPResponse{ID: f.ID, Name: f.Name})
 	}
-	return respondJSON(w, http.StatusOK, meta)
+	return meta, nil
 }

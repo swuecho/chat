@@ -4,9 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/apicontract"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/httpx"
 	"github.com/swuecho/chat_backend/svc"
+	"github.com/swuecho/chat_backend/validation"
 )
 
 type AdminHandler struct {
@@ -23,7 +25,7 @@ func NewAdminHandler(service *svc.AuthUserService, sessionSvc *svc.SessionAdminQ
 	}
 }
 
-func (h *AdminHandler) RegisterRoutes(router *mux.Router) {
+func (h *AdminHandler) RegisterRoutes(router *mux.Router, registry *apicontract.Registry) {
 	router.HandleFunc("/users", endpoint(h.CreateUser)).Methods(http.MethodPost)
 	router.HandleFunc("/users", endpoint(h.UpdateUser)).Methods(http.MethodPut)
 	router.HandleFunc("/rate_limit", endpoint(h.UpdateRateLimit)).Methods(http.MethodPost)
@@ -31,6 +33,16 @@ func (h *AdminHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/user_analysis/{email}", endpoint(h.UserAnalysisHandler)).Methods(http.MethodGet)
 	router.HandleFunc("/user_session_history/{email}", endpoint(h.UserSessionHistoryHandler)).Methods(http.MethodGet)
 	router.HandleFunc("/session_messages/{sessionUuid}", endpoint(h.SessionMessagesHandler)).Methods(http.MethodGet)
+	security := apicontract.BearerAuth()
+	tags := []string{"Admin users"}
+	apicontract.DocumentJSON[updateAuthUserRequest, authUserHTTPResponse](registry, apicontract.Operation{Method: http.MethodPut, Path: "/admin/users", OperationID: "updateAdminUser", Summary: "Update a user", Tags: tags, SuccessStatus: http.StatusOK, Security: security})
+	apicontract.DocumentJSON[RateLimitRequest, rateHTTPResponse](registry, apicontract.Operation{Method: http.MethodPost, Path: "/admin/rate_limit", OperationID: "updateUserRateLimit", Summary: "Update a user rate limit", Tags: tags, SuccessStatus: http.StatusOK, Security: security})
+	apicontract.DocumentJSON[pageRequest, userStatsPageHTTPResponse](registry, apicontract.Operation{Method: http.MethodPost, Path: "/admin/user_stats", OperationID: "getUserStats", Summary: "Get user statistics", Tags: tags, SuccessStatus: http.StatusOK, Security: security})
+	emailParameter := []apicontract.Parameter{apicontract.StringPathParameter("email")}
+	apicontract.DocumentJSON[apicontract.NoBody, svc.UserAnalysisData](registry, apicontract.Operation{Method: http.MethodGet, Path: "/admin/user_analysis/{email}", OperationID: "getUserAnalysis", Summary: "Get user analysis", Tags: tags, SuccessStatus: http.StatusOK, Security: security, Parameters: emailParameter})
+	maxPageSize := validation.MaxPageSize
+	apicontract.DocumentJSON[apicontract.NoBody, sessionHistoryPageHTTPResponse](registry, apicontract.Operation{Method: http.MethodGet, Path: "/admin/user_session_history/{email}", OperationID: "getUserSessionHistory", Summary: "Get user session history", Tags: tags, SuccessStatus: http.StatusOK, Security: security, Parameters: []apicontract.Parameter{apicontract.StringPathParameter("email"), apicontract.IntegerQueryParameter("limit", 1, &maxPageSize), apicontract.IntegerQueryParameter("offset", 0, nil)}})
+	apicontract.DocumentJSON[apicontract.NoBody, []adminMessageHTTPResponse](registry, apicontract.Operation{Method: http.MethodGet, Path: "/admin/session_messages/{sessionUuid}", OperationID: "getAdminSessionMessages", Summary: "Get messages for a session", Tags: tags, SuccessStatus: http.StatusOK, Security: security, Parameters: []apicontract.Parameter{apicontract.UUIDPathParameter("sessionUuid")}})
 }
 
 func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) error {

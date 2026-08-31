@@ -1,11 +1,14 @@
 import { defineStore } from 'pinia'
 import { watch } from 'vue'
 import { getExpiresIn, getToken, removeExpiresIn, removeToken, setExpiresIn, setToken } from './helper'
+import { createClient } from '@/api/generated/client'
+import { refreshAccessToken } from '@/api/generated/sdk.gen'
 
 let activeRefreshPromise: Promise<string | void> | null = null
+const refreshClient = createClient({ credentials: 'include', throwOnError: true })
 
 export interface AuthState {
-  token: string | null  // Access token stored in memory
+  token: string | null // Access token stored in memory
   expiresIn: number | null
   isRefreshing: boolean // Track if token refresh is in progress
   isInitialized: boolean // Track if auth state has been initialized
@@ -38,12 +41,13 @@ export const useAuthStore = defineStore('auth-store', {
     },
     needPermission(): boolean {
       return this.isInitialized && !this.isInitializing && !this.isValid
-    }
+    },
   },
 
   actions: {
     async initializeAuth() {
-      if (this.isInitialized || this.isInitializing) return
+      if (this.isInitialized || this.isInitializing)
+        return
 
       this.isInitializing = true
 
@@ -52,20 +56,21 @@ export const useAuthStore = defineStore('auth-store', {
         if (this.expiresIn) {
           const tokenMissing = !this.token
           const expired = this.expiresIn <= now
-          if (tokenMissing || expired || this.needsRefresh) {
-            console.log('Token expired or about to expire, refreshing...')
+          if (tokenMissing || expired || this.needsRefresh)
             await this.refreshToken()
-          }
-        } else if (this.token) {
+        }
+        else if (this.token) {
           // Clear expired token
           this.removeToken()
           this.removeExpiresIn()
         }
-      } catch (error) {
+      }
+      catch (error) {
         // Clear invalid state on error
         this.removeToken()
         this.removeExpiresIn()
-      } finally {
+      }
+      finally {
         this.isInitializing = false
         this.isInitialized = true
       }
@@ -82,38 +87,24 @@ export const useAuthStore = defineStore('auth-store', {
       if (this.isRefreshing && activeRefreshPromise)
         return activeRefreshPromise
 
-      console.log('Starting token refresh...')
       this.isRefreshing = true
 
       const refreshOperation = (async () => {
         try {
-          // Call refresh endpoint - refresh token is sent automatically via httpOnly cookie
-          const response = await fetch('/api/auth/refresh', {
-            method: 'POST',
-            credentials: 'include', // Include httpOnly cookies
-          })
-
-          console.log('Refresh response status:', response.status)
-
-          if (response.ok) {
-            const data = await response.json()
-            console.log('Token refresh successful, setting new token')
-            this.setToken(data.accessToken)
-            this.setExpiresIn(data.expiresIn)
-            return data.accessToken as string
-          }
-
-          // Refresh failed - user needs to login again
-          console.log('Token refresh failed, removing tokens')
-          this.removeToken()
-          this.removeExpiresIn()
-          throw new Error('Token refresh failed')
-        } catch (error) {
+          // Use a standalone generated client to avoid the authenticated
+          // client's refresh interceptor recursively calling this action.
+          const data = await refreshAccessToken({ client: refreshClient })
+          this.setToken(data.accessToken)
+          this.setExpiresIn(data.expiresIn)
+          return data.accessToken
+        }
+        catch (error) {
           console.error('Token refresh error:', error)
           this.removeToken()
           this.removeExpiresIn()
           throw error
-        } finally {
+        }
+        finally {
           this.isRefreshing = false
           activeRefreshPromise = null
         }
@@ -131,14 +122,14 @@ export const useAuthStore = defineStore('auth-store', {
       removeExpiresIn()
     },
     async waitForInitialization(timeoutMs = 10000) {
-      if (!this.isInitializing) {
+      if (!this.isInitializing)
         return
-      }
 
       await new Promise<void>((resolve) => {
         let stopWatcher: (() => void) | null = null
         const timeoutId = setTimeout(() => {
-          if (stopWatcher) stopWatcher()
+          if (stopWatcher)
+            stopWatcher()
           resolve()
         }, timeoutMs)
 
@@ -147,11 +138,12 @@ export const useAuthStore = defineStore('auth-store', {
           (isInit) => {
             if (!isInit) {
               clearTimeout(timeoutId)
-              if (stopWatcher) stopWatcher()
+              if (stopWatcher)
+                stopWatcher()
               resolve()
             }
           },
-          { immediate: false }
+          { immediate: false },
         )
       })
     },

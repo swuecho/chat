@@ -1,4 +1,20 @@
-import request from '@/utils/request/axios'
+import {
+  autoMigrateLegacySessions as autoMigrateLegacySessionsGenerated,
+  createWorkspaceSession as createSessionInWorkspaceGenerated,
+  createWorkspace as createWorkspaceGenerated,
+  deleteWorkspace as deleteWorkspaceGenerated,
+  ensureDefaultWorkspace as ensureDefaultWorkspaceGenerated,
+  getWorkspaceActiveSession as getWorkspaceActiveSessionGenerated,
+  getWorkspace as getWorkspaceGenerated,
+  listWorkspaceActiveSessions,
+  listWorkspaceSessions as listWorkspaceSessionsGenerated,
+  listWorkspaces as listWorkspacesGenerated,
+  setDefaultWorkspace as setDefaultWorkspaceGenerated,
+  setWorkspaceActiveSession as setWorkspaceActiveSessionGenerated,
+  updateWorkspace as updateWorkspaceGenerated,
+  updateWorkspaceOrder as updateWorkspaceOrderGenerated,
+} from './generated_client'
+import type { MigrationHttpResponse, WorkspaceSessionCreatedHttpResponse } from './generated_client'
 
 export interface CreateWorkspaceRequest {
   name: string
@@ -24,9 +40,7 @@ export interface CreateSessionInWorkspaceRequest {
 // Get all workspaces for the current user
 export const getWorkspaces = async (): Promise<Chat.Workspace[]> => {
   try {
-    const response = await request.get('/workspaces')
-    // Handle null response from API
-    return response.data || []
+    return (await listWorkspacesGenerated()) as unknown as Chat.Workspace[]
   }
   catch (error) {
     console.error('Error fetching workspaces:', error)
@@ -37,8 +51,7 @@ export const getWorkspaces = async (): Promise<Chat.Workspace[]> => {
 // Get a specific workspace by UUID
 export const getWorkspace = async (uuid: string): Promise<Chat.Workspace> => {
   try {
-    const response = await request.get(`/workspaces/${uuid}`)
-    return response.data
+    return (await getWorkspaceGenerated({ path: { uuid } })) as unknown as Chat.Workspace
   }
   catch (error) {
     console.error(`Error fetching workspace ${uuid}:`, error)
@@ -49,8 +62,7 @@ export const getWorkspace = async (uuid: string): Promise<Chat.Workspace> => {
 // Create a new workspace
 export const createWorkspace = async (data: CreateWorkspaceRequest): Promise<Chat.Workspace> => {
   try {
-    const response = await request.post('/workspaces', data)
-    return response.data
+    return (await createWorkspaceGenerated({ body: data })) as unknown as Chat.Workspace
   }
   catch (error) {
     console.error('Error creating workspace:', error)
@@ -61,8 +73,7 @@ export const createWorkspace = async (data: CreateWorkspaceRequest): Promise<Cha
 // Update an existing workspace
 export const updateWorkspace = async (uuid: string, data: UpdateWorkspaceRequest): Promise<Chat.Workspace> => {
   try {
-    const response = await request.put(`/workspaces/${uuid}`, data)
-    return response.data
+    return (await updateWorkspaceGenerated({ path: { uuid }, body: data })) as unknown as Chat.Workspace
   }
   catch (error) {
     console.error(`Error updating workspace ${uuid}:`, error)
@@ -73,7 +84,7 @@ export const updateWorkspace = async (uuid: string, data: UpdateWorkspaceRequest
 // Delete a workspace
 export const deleteWorkspace = async (uuid: string): Promise<void> => {
   try {
-    await request.delete(`/workspaces/${uuid}`)
+    await deleteWorkspaceGenerated({ path: { uuid } })
   }
   catch (error) {
     console.error(`Error deleting workspace ${uuid}:`, error)
@@ -84,8 +95,7 @@ export const deleteWorkspace = async (uuid: string): Promise<void> => {
 // Update workspace order
 export const updateWorkspaceOrder = async (uuid: string, orderPosition: number): Promise<Chat.Workspace> => {
   try {
-    const response = await request.put(`/workspaces/${uuid}/reorder`, { orderPosition })
-    return response.data
+    return (await updateWorkspaceOrderGenerated({ path: { uuid }, body: { orderPosition } })) as unknown as Chat.Workspace
   }
   catch (error) {
     console.error(`Error updating workspace order ${uuid}:`, error)
@@ -96,8 +106,7 @@ export const updateWorkspaceOrder = async (uuid: string, orderPosition: number):
 // Set workspace as default
 export const setDefaultWorkspace = async (uuid: string): Promise<Chat.Workspace> => {
   try {
-    const response = await request.put(`/workspaces/${uuid}/set-default`)
-    return response.data
+    return (await setDefaultWorkspaceGenerated({ path: { uuid } })) as unknown as Chat.Workspace
   }
   catch (error) {
     console.error(`Error setting default workspace ${uuid}:`, error)
@@ -108,14 +117,13 @@ export const setDefaultWorkspace = async (uuid: string): Promise<Chat.Workspace>
 // Ensure user has a default workspace
 export const ensureDefaultWorkspace = async (): Promise<Chat.Workspace> => {
   try {
-    const response = await request.post('/workspaces/default')
-    return response.data
+    return (await ensureDefaultWorkspaceGenerated()) as unknown as Chat.Workspace
   }
   catch (error: any) {
     console.error('Error ensuring default workspace:', error)
-    
+
     // If backend fails to ensure default workspace, try creating one manually
-    if (error.response?.data?.code === 'RES_001') {
+    if (error?.code === 'RES_001') {
       console.warn('Backend failed to ensure default workspace, creating manually...')
       try {
         return await createWorkspace({
@@ -123,7 +131,7 @@ export const ensureDefaultWorkspace = async (): Promise<Chat.Workspace> => {
           description: 'Default workspace',
           color: '#6366f1',
           icon: 'folder',
-          isDefault: true
+          isDefault: true,
         })
       }
       catch (createError) {
@@ -131,16 +139,22 @@ export const ensureDefaultWorkspace = async (): Promise<Chat.Workspace> => {
         throw createError
       }
     }
-    
+
     throw error
   }
 }
 
 // Create a session in a specific workspace
-export const createSessionInWorkspace = async (workspaceUuid: string, data: CreateSessionInWorkspaceRequest) => {
+export const createSessionInWorkspace = async (workspaceUuid: string, data: CreateSessionInWorkspaceRequest): Promise<WorkspaceSessionCreatedHttpResponse> => {
   try {
-    const response = await request.post(`/workspaces/${workspaceUuid}/sessions`, data)
-    return response.data
+    return (await createSessionInWorkspaceGenerated({
+      path: { uuid: workspaceUuid },
+      body: {
+        topic: data.topic,
+        model: data.model ?? '',
+        defaultSystemPrompt: data.defaultSystemPrompt ?? '',
+      },
+    })) as unknown as WorkspaceSessionCreatedHttpResponse
   }
   catch (error) {
     console.error(`Error creating session in workspace ${workspaceUuid}:`, error)
@@ -149,10 +163,9 @@ export const createSessionInWorkspace = async (workspaceUuid: string, data: Crea
 }
 
 // Get all sessions in a workspace
-export const getSessionsByWorkspace = async (workspaceUuid: string) => {
+export const getSessionsByWorkspace = async (workspaceUuid: string): Promise<Chat.Session[]> => {
   try {
-    const response = await request.get(`/workspaces/${workspaceUuid}/sessions`)
-    return response.data
+    return (await listWorkspaceSessionsGenerated({ path: { uuid: workspaceUuid } })) as unknown as Chat.Session[]
   }
   catch (error) {
     console.error(`Error fetching sessions for workspace ${workspaceUuid}:`, error)
@@ -163,8 +176,7 @@ export const getSessionsByWorkspace = async (workspaceUuid: string) => {
 // Get active session for a specific workspace
 export const getWorkspaceActiveSession = async (workspaceUuid: string) => {
   try {
-    const response = await request.get(`/workspaces/${workspaceUuid}/active-session`)
-    return response.data
+    return await getWorkspaceActiveSessionGenerated({ path: { workspaceUuid } })
   }
   catch (error) {
     console.error(`Error getting active session for workspace ${workspaceUuid}:`, error)
@@ -175,10 +187,10 @@ export const getWorkspaceActiveSession = async (workspaceUuid: string) => {
 // Set active session for a specific workspace
 export const setWorkspaceActiveSession = async (workspaceUuid: string, chatSessionUuid: string) => {
   try {
-    const response = await request.put(`/workspaces/${workspaceUuid}/active-session`, {
-      chatSessionUuid
+    return await setWorkspaceActiveSessionGenerated({
+      path: { workspaceUuid },
+      body: { chatSessionUuid },
     })
-    return response.data
   }
   catch (error) {
     console.error(`Error setting active session for workspace ${workspaceUuid}:`, error)
@@ -189,8 +201,7 @@ export const setWorkspaceActiveSession = async (workspaceUuid: string, chatSessi
 // Get all workspace active sessions for the current user
 export const getAllWorkspaceActiveSessions = async () => {
   try {
-    const response = await request.get('/workspaces/active-sessions')
-    return response.data
+    return await listWorkspaceActiveSessions()
   }
   catch (error) {
     console.error('Error getting all workspace active sessions:', error)
@@ -199,10 +210,9 @@ export const getAllWorkspaceActiveSessions = async () => {
 }
 
 // Auto-migrate legacy sessions to default workspace
-export const autoMigrateLegacySessions = async () => {
+export const autoMigrateLegacySessions = async (): Promise<MigrationHttpResponse> => {
   try {
-    const response = await request.post('/workspaces/auto-migrate')
-    return response.data
+    return (await autoMigrateLegacySessionsGenerated()) as unknown as MigrationHttpResponse
   }
   catch (error) {
     console.error('Error auto-migrating legacy sessions:', error)

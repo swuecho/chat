@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/swuecho/chat_backend/svc"
 	"github.com/swuecho/chat_backend/validation"
@@ -90,9 +91,9 @@ type createBotAnswerHistoryRequest struct {
 }
 
 type createChatSessionRequest struct {
-	UUID                string `json:"uuid"`
-	Topic               string `json:"topic"`
-	Model               string `json:"model"`
+	UUID                string `json:"uuid" jsonschema:"required,format=uuid"`
+	Topic               string `json:"topic" jsonschema:"maxLength=200"`
+	Model               string `json:"model" jsonschema:"required,minLength=1,maxLength=200"`
 	DefaultSystemPrompt string `json:"defaultSystemPrompt"`
 }
 
@@ -106,8 +107,66 @@ func (r *createChatSessionRequest) Validate() error {
 	return validation.ModelName("model", r.Model, true)
 }
 
+type createWorkspaceRequest struct {
+	Name        string `json:"name" jsonschema:"required,minLength=1,maxLength=200"`
+	Description string `json:"description,omitempty" jsonschema:"maxLength=2000"`
+	Color       string `json:"color,omitempty" jsonschema:"maxLength=100"`
+	Icon        string `json:"icon,omitempty" jsonschema:"maxLength=100"`
+	IsDefault   bool   `json:"isDefault,omitempty"`
+}
+
+func (r *createWorkspaceRequest) Validate() error {
+	return validateWorkspaceName(r.Name)
+}
+
+type updateWorkspaceRequest struct {
+	Name        string `json:"name" jsonschema:"required,minLength=1,maxLength=200"`
+	Description string `json:"description,omitempty" jsonschema:"maxLength=2000"`
+	Color       string `json:"color,omitempty" jsonschema:"maxLength=100"`
+	Icon        string `json:"icon,omitempty" jsonschema:"maxLength=100"`
+}
+
+func (r *updateWorkspaceRequest) Validate() error {
+	return validateWorkspaceName(r.Name)
+}
+
+type updateWorkspaceOrderRequest struct {
+	OrderPosition int32 `json:"orderPosition" jsonschema:"minimum=0"`
+}
+
+func (r *updateWorkspaceOrderRequest) Validate() error {
+	if r.OrderPosition < 0 {
+		return fmt.Errorf("orderPosition must not be negative")
+	}
+	return nil
+}
+
+type createSessionInWorkspaceRequest struct {
+	Topic               string `json:"topic,omitempty" jsonschema:"maxLength=200"`
+	Model               string `json:"model" jsonschema:"required,minLength=1,maxLength=200"`
+	DefaultSystemPrompt string `json:"defaultSystemPrompt,omitempty"`
+}
+
+func (r *createSessionInWorkspaceRequest) Validate() error {
+	if err := validation.Topic(r.Topic, false); err != nil {
+		return err
+	}
+	return validation.ModelName("model", r.Model, true)
+}
+
+func validateWorkspaceName(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if utf8.RuneCountInString(name) > 200 {
+		return fmt.Errorf("name must be at most 200 characters")
+	}
+	return nil
+}
+
 type updateSessionTopicRequest struct {
-	Topic string `json:"topic"`
+	Topic string `json:"topic" jsonschema:"required,minLength=1,maxLength=200"`
 }
 
 func (r *updateSessionTopicRequest) Validate() error {
@@ -115,7 +174,7 @@ func (r *updateSessionTopicRequest) Validate() error {
 }
 
 type updateSessionMaxLengthRequest struct {
-	MaxLength int32 `json:"maxLength"`
+	MaxLength int32 `json:"maxLength" jsonschema:"minimum=1,maximum=1000000"`
 }
 
 type setTitleModelRequest struct {

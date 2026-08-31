@@ -6,8 +6,18 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/swuecho/chat_backend/apicontract"
 	"github.com/swuecho/chat_backend/dto"
 )
+
+// RegisterTTSContract documents the binary text-to-speech response.
+func RegisterTTSContract(registry *apicontract.Registry) {
+	apicontract.DocumentJSON[apicontract.NoBody, apicontract.BinaryBody](registry, apicontract.Operation{
+		Method: http.MethodGet, Path: "/tts", OperationID: "textToSpeech", Summary: "Generate speech audio",
+		Tags: []string{"Audio"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(),
+		Parameters: []apicontract.Parameter{apicontract.StringQueryParameter("text")}, ResponseContentType: "audio/mpeg",
+	})
+}
 
 // HandleTTSRequest proxies TTS requests to the TTS backend service.
 func HandleTTSRequest(w http.ResponseWriter, r *http.Request) {

@@ -4,7 +4,7 @@ import { nowISO } from '@/utils/date'
 import { type AnswerStreamEvent, consumeAnswerEventStream } from '@/utils/sse'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { t } from '@/locales'
-import { getStreamingUrl } from '@/config/api'
+import { openChatStream } from '@/api/chat_stream'
 
 interface ErrorResponse {
   code: number
@@ -76,36 +76,9 @@ export function useStreamHandling() {
         throw new Error(t('error.NotAuthorized') || 'Please log in first')
       }
     }
-    const token = authStore.getToken
-
     try {
-      const response = await fetch(getStreamingUrl('/chat_stream'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
-          regenerate: false,
-          prompt: message,
-          sessionUuid,
-          chatUuid,
-          stream: true,
-        }),
-        signal: abortSignal,
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(handleStreamError(errorText))
-      }
-
-      if (!response.body)
-        throw new Error('Response body is null')
-
-      await consumeAnswerEventStream(response.body, event => onAnswerEvent(event, responseIndex))
+      const stream = await openChatStream({ regenerate: false, prompt: message, sessionUuid, chatUuid, stream: true }, abortSignal)
+      await consumeAnswerEventStream(stream, event => onAnswerEvent(event, responseIndex))
     }
     catch (error) {
       if (error instanceof Error && error.name === 'AbortError')
@@ -134,36 +107,9 @@ export function useStreamHandling() {
         throw new Error(t('error.NotAuthorized') || 'Please log in first')
       }
     }
-    const token = authStore.getToken
-
     try {
-      const response = await fetch(getStreamingUrl('/chat_stream'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
-          regenerate: isRegenerate,
-          prompt: '',
-          sessionUuid,
-          chatUuid,
-          stream: true,
-        }),
-        signal: abortSignal,
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(handleStreamError(errorText))
-      }
-
-      if (!response.body)
-        throw new Error('Response body is null')
-
-      await consumeAnswerEventStream(response.body, event => onAnswerEvent(event, updateIndex))
+      const stream = await openChatStream({ regenerate: isRegenerate, prompt: '', sessionUuid, chatUuid, stream: true }, abortSignal)
+      await consumeAnswerEventStream(stream, event => onAnswerEvent(event, updateIndex))
     }
     catch (error) {
       if (error instanceof Error && error.name === 'AbortError')

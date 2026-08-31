@@ -2,11 +2,14 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/swuecho/chat_backend/apicontract"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/httpx"
 	"github.com/swuecho/chat_backend/svc"
+	"github.com/swuecho/chat_backend/validation"
 )
 
 type BotAnswerHistoryHandler struct {
@@ -17,14 +20,44 @@ func NewBotAnswerHistoryHandler(service *svc.BotAnswerHistoryService) *BotAnswer
 	return &BotAnswerHistoryHandler{service: service}
 }
 
-func (h *BotAnswerHistoryHandler) Register(router *mux.Router) {
+type botAnswerHistoryResponse struct {
+	ID           int32     `json:"id"`
+	BotUUID      string    `json:"botUuid"`
+	UserID       int32     `json:"userId"`
+	Prompt       string    `json:"prompt"`
+	Answer       string    `json:"answer"`
+	Model        string    `json:"model"`
+	TokensUsed   int32     `json:"tokensUsed"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	UserUsername string    `json:"userUsername"`
+	UserEmail    string    `json:"userEmail"`
+}
+
+type botAnswerHistoryPageResponse struct {
+	Items  []botAnswerHistoryResponse `json:"items"`
+	Total  int64                      `json:"total"`
+	Limit  int32                      `json:"limit"`
+	Offset int32                      `json:"offset"`
+}
+
+func (h *BotAnswerHistoryHandler) Register(router *mux.Router, registry *apicontract.Registry) {
 	router.HandleFunc("/bot_answer_history", endpoint(h.CreateBotAnswerHistory)).Methods(http.MethodPost)
 	router.HandleFunc("/bot_answer_history/{id}", endpoint(h.GetBotAnswerHistoryByID)).Methods(http.MethodGet)
-	router.HandleFunc("/bot_answer_history/bot/{bot_uuid}", endpoint(h.GetBotAnswerHistoryByBotUUID)).Methods(http.MethodGet)
+	maxPageSize := validation.MaxPageSize
+	apicontract.RegisterJSON(router, registry, apicontract.Operation{
+		Method: http.MethodGet, Path: "/bot_answer_history/bot/{bot_uuid}", OperationID: "listBotAnswerHistory",
+		Summary: "List answer history for a bot", Tags: []string{"Bot history"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(),
+		Parameters: []apicontract.Parameter{apicontract.UUIDPathParameter("bot_uuid"), apicontract.IntegerQueryParameter("limit", 1, &maxPageSize), apicontract.IntegerQueryParameter("offset", 0, nil)},
+	}, h.getBotAnswerHistoryByBotUUID)
 	router.HandleFunc("/bot_answer_history/user/{user_id}", endpoint(h.GetBotAnswerHistoryByUserID)).Methods(http.MethodGet)
 	router.HandleFunc("/bot_answer_history/{id}", endpoint(h.UpdateBotAnswerHistory)).Methods(http.MethodPut)
 	router.HandleFunc("/bot_answer_history/{id}", endpoint(h.DeleteBotAnswerHistory)).Methods(http.MethodDelete)
-	router.HandleFunc("/bot_answer_history/bot/{bot_uuid}/count", endpoint(h.GetBotAnswerHistoryCountByBotUUID)).Methods(http.MethodGet)
+	apicontract.RegisterJSON(router, registry, apicontract.Operation{
+		Method: http.MethodGet, Path: "/bot_answer_history/bot/{bot_uuid}/count", OperationID: "countBotAnswerHistory",
+		Summary: "Count answer history entries for a bot", Tags: []string{"Bot history"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(),
+		Parameters: []apicontract.Parameter{apicontract.UUIDPathParameter("bot_uuid")},
+	}, h.getBotAnswerHistoryCountByBotUUID)
 	router.HandleFunc("/bot_answer_history/user/{user_id}/count", endpoint(h.GetBotAnswerHistoryCountByUserID)).Methods(http.MethodGet)
 	router.HandleFunc("/bot_answer_history/bot/{bot_uuid}/latest", endpoint(h.GetLatestBotAnswerHistoryByBotUUID)).Methods(http.MethodGet)
 }
@@ -63,22 +96,26 @@ func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByID(w http.ResponseWriter,
 	return respondJSON(w, http.StatusOK, history)
 }
 
-func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByBotUUID(w http.ResponseWriter, r *http.Request) error {
+func (h *BotAnswerHistoryHandler) getBotAnswerHistoryByBotUUID(r *http.Request, _ apicontract.NoBody) (botAnswerHistoryPageResponse, error) {
 	botUUID := mux.Vars(r)["bot_uuid"]
 	page, err := httpx.ParsePage(r)
 	if err != nil {
-		return err
+		return botAnswerHistoryPageResponse{}, err
 	}
 	history, err := h.service.GetBotAnswerHistoryByBotUUID(r.Context(), svc.BotAnswerHistoryPageQuery{BotUUID: botUUID, Page: svc.PageWindow{Limit: page.Limit, Offset: page.Offset}})
 	if err != nil {
-		return dto.WrapError(err, "Failed to get bot answer history")
+		return botAnswerHistoryPageResponse{}, dto.WrapError(err, "Failed to get bot answer history")
 	}
 
 	totalCount, err := h.service.GetBotAnswerHistoryCountByBotUUID(r.Context(), botUUID)
 	if err != nil {
-		return dto.WrapError(err, "Failed to get bot answer history count")
+		return botAnswerHistoryPageResponse{}, dto.WrapError(err, "Failed to get bot answer history count")
 	}
-	return respondJSON(w, http.StatusOK, pageResponse(history, totalCount, page))
+	items := make([]botAnswerHistoryResponse, len(history))
+	for i, item := range history {
+		items[i] = botAnswerHistoryResponse{ID: item.ID, BotUUID: item.BotUuid, UserID: item.UserID, Prompt: item.Prompt, Answer: item.Answer, Model: item.Model, TokensUsed: item.TokensUsed, CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt, UserUsername: item.UserUsername, UserEmail: item.UserEmail}
+	}
+	return botAnswerHistoryPageResponse{Items: items, Total: totalCount, Limit: page.Limit, Offset: page.Offset}, nil
 }
 
 func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryByUserID(w http.ResponseWriter, r *http.Request) error {
@@ -129,13 +166,13 @@ func (h *BotAnswerHistoryHandler) DeleteBotAnswerHistory(w http.ResponseWriter, 
 	return noContent(w)
 }
 
-func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByBotUUID(w http.ResponseWriter, r *http.Request) error {
+func (h *BotAnswerHistoryHandler) getBotAnswerHistoryCountByBotUUID(r *http.Request, _ apicontract.NoBody) (countHTTPResponse, error) {
 	botUUID := mux.Vars(r)["bot_uuid"]
 	count, err := h.service.GetBotAnswerHistoryCountByBotUUID(r.Context(), botUUID)
 	if err != nil {
-		return dto.WrapError(err, "Failed to get bot answer history count")
+		return countHTTPResponse{}, dto.WrapError(err, "Failed to get bot answer history count")
 	}
-	return respondJSON(w, http.StatusOK, countHTTPResponse{Count: count})
+	return countHTTPResponse{Count: count}, nil
 }
 
 func (h *BotAnswerHistoryHandler) GetBotAnswerHistoryCountByUserID(w http.ResponseWriter, r *http.Request) error {

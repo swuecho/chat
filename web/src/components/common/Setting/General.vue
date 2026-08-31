@@ -1,13 +1,12 @@
 <script lang="ts" setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { NButton, NInput, useMessage } from 'naive-ui'
 import type { Theme } from '@/store/modules/app/helper'
 import { SvgIcon } from '@/components/common'
 import { useAppStore, useUserStore } from '@/store'
 import type { UserInfo } from '@/store/modules/user/helper'
 import { t } from '@/locales'
-import request from '@/utils/request/axios'
-
+import { fetchAPIToken } from '@/api/token'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -52,15 +51,10 @@ function copyToClipboard() {
 
 onMounted(async () => {
   try {
-    const response = await request.get('/token_10years')
-    console.log(response)
-    if (response.status=== 200) {
-      apiToken.value = response.data.accessToken
-    }
-    else {
-      ms.error('Failed to fetch API token')
-    }
-  } catch (error) {
+    const response = await fetchAPIToken()
+    apiToken.value = response.accessToken
+  }
+  catch (error) {
     ms.error('Error fetching API token')
   }
 })
@@ -96,8 +90,10 @@ function updateUserInfo(options: Partial<UserInfo>) {
         <span class="flex-shrink-0 w-[100px]">{{ $t('setting.theme') }}</span>
         <div class="flex flex-wrap items-center gap-4">
           <template v-for="item of themeOptions" :key="item.key">
-            <NButton size="small" :type="item.key === theme ? 'primary' : undefined"
-              @click="appStore.setTheme(item.key)">
+            <NButton
+              size="small" :type="item.key === theme ? 'primary' : undefined"
+              @click="appStore.setTheme(item.key)"
+            >
               <template #icon>
                 <SvgIcon :icon="item.icon" />
               </template>

@@ -8,6 +8,7 @@ import (
 	"golang.org/x/time/rate"
 	"log/slog"
 
+	"github.com/swuecho/chat_backend/apicontract"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/svc"
@@ -46,10 +47,17 @@ func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService
 }
 
 // Register registers chat routes on the given router.
-func (h *ChatHandler) Register(router *mux.Router) {
+func (h *ChatHandler) Register(router *mux.Router, registry *apicontract.Registry) {
 	router.HandleFunc("/chat_stream", streamEndpoint(h.ChatCompletionHandler)).Methods(http.MethodPost)
+	apicontract.DocumentJSON[ChatRequest, apicontract.BinaryBody](registry, apicontract.Operation{
+		Method: http.MethodPost, Path: "/chat_stream", OperationID: "streamChat", Summary: "Stream a chat completion",
+		Tags: []string{"Chat"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(), ResponseContentType: "text/event-stream",
+	})
 	router.HandleFunc("/chatbot", streamEndpoint(h.ChatBotCompletionHandler)).Methods(http.MethodPost)
-	router.HandleFunc("/chat_instructions", endpoint(h.GetChatInstructions)).Methods(http.MethodGet)
+	apicontract.RegisterJSON(router, registry, apicontract.Operation{
+		Method: http.MethodGet, Path: "/chat_instructions", OperationID: "getChatInstructions",
+		Summary: "Get chat artifact instructions", Tags: []string{"Chat"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(),
+	}, h.getChatInstructions)
 }
 
 // --- provider.Handler implementation ---
@@ -63,13 +71,13 @@ func (h *ChatHandler) Config() provider.Config {
 }
 
 // GetChatInstructions returns artifact instruction text.
-func (h *ChatHandler) GetChatInstructions(w http.ResponseWriter, r *http.Request) error {
+func (h *ChatHandler) getChatInstructions(_ *http.Request, _ apicontract.NoBody) (dto.ChatInstructionResponse, error) {
 	artifactInstruction, err := svc.LoadArtifactInstruction()
 	if err != nil {
 		slog.Warn("Failed to load artifact instruction", "error", err)
 		artifactInstruction = ""
 	}
-	return respondJSON(w, http.StatusOK, dto.ChatInstructionResponse{
+	return dto.ChatInstructionResponse{
 		ArtifactInstruction: artifactInstruction,
-	})
+	}, nil
 }
