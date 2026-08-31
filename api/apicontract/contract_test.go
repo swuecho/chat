@@ -28,6 +28,10 @@ type widgetResponse struct {
 	Name string `json:"name"`
 }
 
+type uploadRequest struct {
+	File apicontract.BinaryBody `json:"file" jsonschema:"required,format=binary"`
+}
+
 func TestRegisterJSONUsesTypedRuntimePipelineAndDocument(t *testing.T) {
 	registry := apicontract.NewRegistry(apicontract.Info{Title: "Test", Version: "1"}, apicontract.WithPathPrefix("/api"))
 	router := mux.NewRouter()
@@ -112,6 +116,34 @@ func TestRegisterJSONSupportsBodylessOperations(t *testing.T) {
 	}
 	if strings.Contains(string(document), "requestBody") {
 		t.Fatalf("bodyless operation documented a request body: %s", document)
+	}
+}
+
+func TestDocumentJSONSupportsMultipartAndBinaryMedia(t *testing.T) {
+	registry := apicontract.NewRegistry(apicontract.Info{Title: "Test", Version: "1"})
+	apicontract.DocumentJSON[uploadRequest, apicontract.BinaryBody](registry, apicontract.Operation{
+		Method: http.MethodPost, Path: "/files", OperationID: "uploadFile", SuccessStatus: http.StatusCreated,
+		RequestContentType: "multipart/form-data", ResponseContentType: "application/octet-stream",
+	})
+
+	document, err := registry.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal(document, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	operation := decoded["paths"].(map[string]any)["/files"].(map[string]any)["post"].(map[string]any)
+	requestContent := operation["requestBody"].(map[string]any)["content"].(map[string]any)
+	if _, ok := requestContent["multipart/form-data"]; !ok {
+		t.Fatalf("multipart request content missing: %s", document)
+	}
+	response := operation["responses"].(map[string]any)["201"].(map[string]any)
+	responseContent := response["content"].(map[string]any)
+	binarySchema := responseContent["application/octet-stream"].(map[string]any)["schema"].(map[string]any)
+	if binarySchema["format"] != "binary" {
+		t.Fatalf("binary response schema missing: %s", document)
 	}
 }
 
