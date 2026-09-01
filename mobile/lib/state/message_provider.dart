@@ -179,7 +179,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
   Future<String?> regenerateMessage({
     required String messageId,
   }) async {
-    final targetMessage = state.messages.where((message) => message.id == messageId);
+    final targetMessage =
+        state.messages.where((message) => message.id == messageId);
     if (targetMessage.isEmpty) {
       return 'Message not found.';
     }
@@ -193,7 +194,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
         .where((item) => item.sessionId == message.sessionId)
         .toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    final sessionIndex = sessionMessages.indexWhere((item) => item.id == messageId);
+    final sessionIndex =
+        sessionMessages.indexWhere((item) => item.id == messageId);
     if (sessionIndex == -1) {
       return 'Message not found.';
     }
@@ -227,7 +229,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
       suggestedQuestionsLoading: message.suggestedQuestionsLoading,
     );
 
-    final globalIndex = state.messages.indexWhere((item) => item.id == messageId);
+    final globalIndex =
+        state.messages.indexWhere((item) => item.id == messageId);
     if (globalIndex == -1) {
       return 'Message not found.';
     }
@@ -298,49 +301,50 @@ class MessageNotifier extends StateNotifier<MessageState> {
     );
   }
 
-  void _handleStreamEvent(String sessionId, String tempId, AnswerStreamEvent event) {
-      final answerId = event.answerId;
-      final messageIndex = state.messages.indexWhere(
-        (message) =>
-            message.id == tempId || (answerId != null && message.id == answerId),
-      );
-      if (messageIndex == -1) {
-        return;
-      }
+  void _handleStreamEvent(
+      String sessionId, String tempId, AnswerStreamEvent event) {
+    final answerId = event.answerId;
+    final messageIndex = state.messages.indexWhere(
+      (message) =>
+          message.id == tempId || (answerId != null && message.id == answerId),
+    );
+    if (messageIndex == -1) {
+      return;
+    }
 
-      final existing = state.messages[messageIndex];
-      final appendsDelta = event.type == AnswerStreamEventType.delta ||
-          event.type == AnswerStreamEventType.reasoningDelta;
-      final newContent =
-          existing.content + (appendsDelta ? event.delta ?? '' : '');
-      final newQuestions = event.type == AnswerStreamEventType.suggestedQuestions
-          ? event.suggestedQuestions
-          : null;
-      final questions = newQuestions ?? existing.suggestedQuestions;
-      final loading = newQuestions != null
-          ? false
-          : existing.suggestedQuestionsLoading;
-      final batches = newQuestions != null
-          ? [newQuestions]
-          : existing.suggestedQuestionsBatches;
-      final currentBatch =
-          newQuestions != null ? batches.length - 1 : existing.currentSuggestedQuestionsBatch;
-      final updated = ChatMessage(
-        id: answerId ?? existing.id,
-        sessionId: existing.sessionId,
-        role: existing.role,
-        content: newContent,
-        createdAt: existing.createdAt,
-        loading: event.type != AnswerStreamEventType.completed,
-        suggestedQuestions: questions,
-        suggestedQuestionsLoading: loading,
-        suggestedQuestionsBatches: batches,
-        currentSuggestedQuestionsBatch: currentBatch,
-        suggestedQuestionsGenerating: existing.suggestedQuestionsGenerating,
-      );
-      final updatedMessages = [...state.messages];
-      updatedMessages[messageIndex] = updated;
-      state = state.copyWith(messages: updatedMessages);
+    final existing = state.messages[messageIndex];
+    final appendsDelta = event.type == AnswerStreamEventType.delta ||
+        event.type == AnswerStreamEventType.reasoningDelta;
+    final newContent =
+        existing.content + (appendsDelta ? event.delta ?? '' : '');
+    final newQuestions = event.type == AnswerStreamEventType.suggestedQuestions
+        ? event.suggestedQuestions
+        : null;
+    final questions = newQuestions ?? existing.suggestedQuestions;
+    final loading =
+        newQuestions != null ? false : existing.suggestedQuestionsLoading;
+    final batches = newQuestions != null
+        ? [newQuestions]
+        : existing.suggestedQuestionsBatches;
+    final currentBatch = newQuestions != null
+        ? batches.length - 1
+        : existing.currentSuggestedQuestionsBatch;
+    final updated = ChatMessage(
+      id: answerId ?? existing.id,
+      sessionId: existing.sessionId,
+      role: existing.role,
+      content: newContent,
+      createdAt: existing.createdAt,
+      loading: event.type != AnswerStreamEventType.completed,
+      suggestedQuestions: questions,
+      suggestedQuestionsLoading: loading,
+      suggestedQuestionsBatches: batches,
+      currentSuggestedQuestionsBatch: currentBatch,
+      suggestedQuestionsGenerating: existing.suggestedQuestionsGenerating,
+    );
+    final updatedMessages = [...state.messages];
+    updatedMessages[messageIndex] = updated;
+    state = state.copyWith(messages: updatedMessages);
   }
 
   void _replaceMessageContent(String messageId, String content) {
@@ -440,11 +444,11 @@ class MessageNotifier extends StateNotifier<MessageState> {
           suggestedQuestionsGenerating: false,
         );
         const errorMessage = 'Please log in first.';
-        state = state.copyWith(messages: updatedMessages, errorMessage: errorMessage);
+        state = state.copyWith(
+            messages: updatedMessages, errorMessage: errorMessage);
         return errorMessage;
       }
-      final response =
-          await _api.generateMoreSuggestions(messageId: messageId);
+      final response = await _api.generateMoreSuggestions(messageId: messageId);
       final newSuggestions = response.newSuggestions;
       final batches = [
         ...existing.suggestedQuestionsBatches,
@@ -481,7 +485,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
         currentSuggestedQuestionsBatch: existing.currentSuggestedQuestionsBatch,
         suggestedQuestionsGenerating: false,
       );
-      state = state.copyWith(messages: updatedMessages, errorMessage: errorMessage);
+      state =
+          state.copyWith(messages: updatedMessages, errorMessage: errorMessage);
       return errorMessage;
     }
   }
@@ -557,9 +562,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
       } else {
         await _api.deleteMessage(messageId);
       }
-      final updatedMessages = state.messages
-          .where((message) => message.id != messageId)
-          .toList();
+      final updatedMessages =
+          state.messages.where((message) => message.id != messageId).toList();
       state = state.copyWith(messages: updatedMessages);
       return null;
     } catch (error) {
@@ -570,7 +574,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
   }
 
   Future<String?> toggleMessagePin(String messageId) async {
-    final index = state.messages.indexWhere((message) => message.id == messageId);
+    final index =
+        state.messages.indexWhere((message) => message.id == messageId);
     if (index == -1) {
       return 'Message not found.';
     }
@@ -589,7 +594,7 @@ class MessageNotifier extends StateNotifier<MessageState> {
         return 'Please log in first.';
       }
       await _api.updateMessage(
-        messageId: messageId,
+        message: updatedMessage,
         isPinned: newPinStatus,
       );
       return null;
@@ -598,7 +603,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
       final revertedMessages = [...state.messages];
       revertedMessages[index] = message;
       final errorMessage = formatApiError(error);
-      state = state.copyWith(messages: revertedMessages, errorMessage: errorMessage);
+      state = state.copyWith(
+          messages: revertedMessages, errorMessage: errorMessage);
       return errorMessage;
     }
   }
@@ -606,7 +612,8 @@ class MessageNotifier extends StateNotifier<MessageState> {
   void _setLatestAssistantLoading(String sessionId, bool loading) {
     final index = state.messages.lastIndexWhere(
       (message) =>
-          message.sessionId == sessionId && message.role == MessageRole.assistant,
+          message.sessionId == sessionId &&
+          message.role == MessageRole.assistant,
     );
     if (index == -1) {
       return;
@@ -632,9 +639,7 @@ final messageProvider = StateNotifierProvider<MessageNotifier, MessageState>(
 final messagesForSessionProvider =
     Provider.family<List<ChatMessage>, String>((ref, sessionId) {
   final messages = ref.watch(messageProvider).messages;
-  return messages
-      .where((message) => message.sessionId == sessionId)
-      .toList()
+  return messages.where((message) => message.sessionId == sessionId).toList()
     ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 });
 

@@ -24,6 +24,60 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('mobile regressions', () {
+    test('prompt creation matches the strict transport contract', () async {
+      late Map<String, dynamic> body;
+      final api = ChatApi(
+        baseUrl: 'https://example.com',
+        client: _TestHttpClient((request) async {
+          body = jsonDecode((request as http.Request).body)
+              as Map<String, dynamic>;
+          return _jsonResponse(200, {
+            'uuid': 'prompt-1',
+            'content': 'Be concise',
+            'updatedAt': '2025-01-01T12:00:00Z',
+          });
+        }),
+      );
+
+      await api.createChatPrompt(
+        sessionId: 'session-1',
+        promptId: 'prompt-1',
+        content: 'Be concise',
+      );
+
+      expect(body['score'], 0);
+      expect(body.keys, isNot(contains('userId')));
+      expect(body.keys, isNot(contains('createdBy')));
+      expect(body.keys, isNot(contains('updatedBy')));
+    });
+
+    test('message updates send the complete strict transport body', () async {
+      late Map<String, dynamic> body;
+      final api = ChatApi(
+        baseUrl: 'https://example.com',
+        client: _TestHttpClient((request) async {
+          body = jsonDecode((request as http.Request).body)
+              as Map<String, dynamic>;
+          return _jsonResponse(200, {});
+        }),
+      );
+      final message = ChatMessage(
+        id: 'message-1',
+        sessionId: 'session-1',
+        role: MessageRole.assistant,
+        content: 'Hello',
+        createdAt: DateTime.utc(2025, 1, 1, 12),
+      );
+
+      await api.updateMessage(message: message, isPinned: true);
+
+      expect(body, containsPair('uuid', 'message-1'));
+      expect(body, containsPair('text', 'Hello'));
+      expect(body, containsPair('isPin', true));
+      expect(body, containsPair('inversion', false));
+      expect(body, containsPair('isPrompt', false));
+    });
+
     testWidgets('logout clears cached provider state',
         (WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({
@@ -36,65 +90,65 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(authProvider.notifier).state = AuthState(
-            accessToken: 'token',
-            isLoading: false,
-            isHydrating: false,
-            expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
-            refreshCookie: 'refresh_token=abc',
-          );
+        accessToken: 'token',
+        isLoading: false,
+        isHydrating: false,
+        expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
+        refreshCookie: 'refresh_token=abc',
+      );
       container.read(workspaceProvider.notifier).state = const WorkspaceState(
-            workspaces: [
-              Workspace(
-                id: 'w1',
-                name: 'General',
-                colorHex: '#111111',
-                iconName: 'folder',
-                isDefault: true,
-              ),
-            ],
-            activeWorkspaceId: 'w1',
-            isLoading: false,
-          );
+        workspaces: [
+          Workspace(
+            id: 'w1',
+            name: 'General',
+            colorHex: '#111111',
+            iconName: 'folder',
+            isDefault: true,
+          ),
+        ],
+        activeWorkspaceId: 'w1',
+        isLoading: false,
+      );
       container.read(sessionProvider.notifier).state = SessionState(
-            sessions: [
-              ChatSession(
-                id: 's1',
-                workspaceId: 'w1',
-                title: 'Session A',
-                model: 'gpt-4',
-                updatedAt: DateTime(2025),
-              ),
-            ],
-            isLoading: false,
-          );
+        sessions: [
+          ChatSession(
+            id: 's1',
+            workspaceId: 'w1',
+            title: 'Session A',
+            model: 'gpt-4',
+            updatedAt: DateTime(2025),
+          ),
+        ],
+        isLoading: false,
+      );
       container.read(messageProvider.notifier).state = MessageState(
-            messages: [
-              ChatMessage(
-                id: 'm1',
-                sessionId: 's1',
-                role: MessageRole.user,
-                content: 'hello',
-                createdAt: DateTime(2025),
-              ),
-            ],
-            isLoading: false,
-            sendingSessionIds: const {},
-          );
+        messages: [
+          ChatMessage(
+            id: 'm1',
+            sessionId: 's1',
+            role: MessageRole.user,
+            content: 'hello',
+            createdAt: DateTime(2025),
+          ),
+        ],
+        isLoading: false,
+        sendingSessionIds: const {},
+      );
       container.read(modelProvider.notifier).state = const ModelState(
-            models: [
-              ChatModel(
-                id: 1,
-                name: 'gpt-4',
-                label: 'GPT-4',
-                apiType: 'openai',
-                isDefault: true,
-                isEnabled: true,
-                orderNumber: 1,
-              ),
-            ],
-            activeModelName: 'gpt-4',
-            isLoading: false,
-          );
+        models: [
+          ChatModel(
+            id: 1,
+            name: 'gpt-4',
+            label: 'GPT-4',
+            apiType: 'openai',
+            isDefault: true,
+            isEnabled: true,
+            orderNumber: 1,
+          ),
+        ],
+        activeModelName: 'gpt-4',
+        isLoading: false,
+      );
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -127,9 +181,11 @@ void main() {
       expect(modelState.activeModelName, isNull);
     });
 
-    test('regenerate keeps other sessions intact when messages are interleaved', () async {
+    test('regenerate keeps other sessions intact when messages are interleaved',
+        () async {
       final client = _TestHttpClient((request) async {
-        if (request.method == 'POST' && request.url.path == '/api/chat_stream') {
+        if (request.method == 'POST' &&
+            request.url.path == '/api/chat_stream') {
           return _streamResponse(
             200,
             'event: delta\n'
@@ -162,39 +218,39 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(authProvider.notifier).state = AuthState(
-            accessToken: 'token',
-            isLoading: false,
-            isHydrating: false,
-            expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
-            refreshCookie: 'refresh_token=abc',
-          );
+        accessToken: 'token',
+        isLoading: false,
+        isHydrating: false,
+        expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
+        refreshCookie: 'refresh_token=abc',
+      );
       container.read(messageProvider.notifier).state = MessageState(
-            messages: [
-              ChatMessage(
-                id: 'u1',
-                sessionId: 's1',
-                role: MessageRole.user,
-                content: 'prompt',
-                createdAt: DateTime(2025, 1, 1, 12, 0, 0),
-              ),
-              ChatMessage(
-                id: 'u2',
-                sessionId: 's2',
-                role: MessageRole.user,
-                content: 'other session',
-                createdAt: DateTime(2025, 1, 1, 12, 0, 1),
-              ),
-              ChatMessage(
-                id: 'a1',
-                sessionId: 's1',
-                role: MessageRole.assistant,
-                content: 'old reply',
-                createdAt: DateTime(2025, 1, 1, 12, 0, 2),
-              ),
-            ],
-            isLoading: false,
-            sendingSessionIds: const {},
-          );
+        messages: [
+          ChatMessage(
+            id: 'u1',
+            sessionId: 's1',
+            role: MessageRole.user,
+            content: 'prompt',
+            createdAt: DateTime(2025, 1, 1, 12, 0, 0),
+          ),
+          ChatMessage(
+            id: 'u2',
+            sessionId: 's2',
+            role: MessageRole.user,
+            content: 'other session',
+            createdAt: DateTime(2025, 1, 1, 12, 0, 1),
+          ),
+          ChatMessage(
+            id: 'a1',
+            sessionId: 's1',
+            role: MessageRole.assistant,
+            content: 'old reply',
+            createdAt: DateTime(2025, 1, 1, 12, 0, 2),
+          ),
+        ],
+        isLoading: false,
+        sendingSessionIds: const {},
+      );
 
       final error =
           await container.read(messageProvider.notifier).regenerateMessage(
@@ -205,7 +261,8 @@ void main() {
       final sessionOneAssistants = messages
           .where(
             (message) =>
-                message.sessionId == 's1' && message.role == MessageRole.assistant,
+                message.sessionId == 's1' &&
+                message.role == MessageRole.assistant,
           )
           .toList();
 
@@ -216,7 +273,8 @@ void main() {
       expect(messages.where((message) => message.id == 'a1'), isEmpty);
     });
 
-    test('create session refresh beats a stale earlier session fetch', () async {
+    test('create session refresh beats a stale earlier session fetch',
+        () async {
       final fetchCompleter = Completer<http.StreamedResponse>();
       var fetchCount = 0;
       final client = _TestHttpClient((request) async {
@@ -280,25 +338,29 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(authProvider.notifier).state = AuthState(
-            accessToken: 'token',
-            isLoading: false,
-            isHydrating: false,
-            expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
-            refreshCookie: 'refresh_token=abc',
-          );
+        accessToken: 'token',
+        isLoading: false,
+        isHydrating: false,
+        expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
+        refreshCookie: 'refresh_token=abc',
+      );
 
       final loadFuture =
           container.read(sessionProvider.notifier).loadSessions('w1');
 
-      final created = await container.read(sessionProvider.notifier).createSession(
-            workspaceId: 'w1',
-            title: 'New Chat',
-            model: 'gpt-4',
-          );
+      final created =
+          await container.read(sessionProvider.notifier).createSession(
+                workspaceId: 'w1',
+                title: 'New Chat',
+                model: 'gpt-4',
+              );
 
       expect(created, isNotNull);
       expect(
-        container.read(sessionProvider).sessions.where((session) => session.id == 's-new'),
+        container
+            .read(sessionProvider)
+            .sessions
+            .where((session) => session.id == 's-new'),
         hasLength(1),
       );
 
@@ -307,7 +369,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(
-        container.read(sessionProvider).sessions.where((session) => session.id == 's-new'),
+        container
+            .read(sessionProvider)
+            .sessions
+            .where((session) => session.id == 's-new'),
         hasLength(1),
       );
       expect(fetchCount, 2);
@@ -407,12 +472,12 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(authProvider.notifier).state = AuthState(
-            accessToken: 'token',
-            isLoading: false,
-            isHydrating: false,
-            expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
-            refreshCookie: 'refresh_token=abc',
-          );
+        accessToken: 'token',
+        isLoading: false,
+        isHydrating: false,
+        expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
+        refreshCookie: 'refresh_token=abc',
+      );
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -518,39 +583,39 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(authProvider.notifier).state = AuthState(
-            accessToken: 'token',
-            isLoading: false,
-            isHydrating: false,
-            expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
-            refreshCookie: 'refresh_token=abc',
-          );
+        accessToken: 'token',
+        isLoading: false,
+        isHydrating: false,
+        expiresIn: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
+        refreshCookie: 'refresh_token=abc',
+      );
       container.read(sessionProvider.notifier).state = SessionState(
-            sessions: [
-              ChatSession(
-                id: 's1',
-                workspaceId: 'w1',
-                title: 'Session A',
-                model: 'gpt-4',
-                updatedAt: DateTime(2025),
-              ),
-            ],
-            isLoading: false,
-          );
+        sessions: [
+          ChatSession(
+            id: 's1',
+            workspaceId: 'w1',
+            title: 'Session A',
+            model: 'gpt-4',
+            updatedAt: DateTime(2025),
+          ),
+        ],
+        isLoading: false,
+      );
       container.read(modelProvider.notifier).state = const ModelState(
-            models: [
-              ChatModel(
-                id: 1,
-                name: 'gpt-4',
-                label: 'GPT-4',
-                apiType: 'openai',
-                isDefault: true,
-                isEnabled: true,
-                orderNumber: 1,
-              ),
-            ],
-            activeModelName: 'gpt-4',
-            isLoading: false,
-          );
+        models: [
+          ChatModel(
+            id: 1,
+            name: 'gpt-4',
+            label: 'GPT-4',
+            apiType: 'openai',
+            isDefault: true,
+            isEnabled: true,
+            orderNumber: 1,
+          ),
+        ],
+        activeModelName: 'gpt-4',
+        isLoading: false,
+      );
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -579,7 +644,8 @@ void main() {
 class _TestHttpClient extends http.BaseClient {
   _TestHttpClient(this._handler);
 
-  final Future<http.StreamedResponse> Function(http.BaseRequest request) _handler;
+  final Future<http.StreamedResponse> Function(http.BaseRequest request)
+      _handler;
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {

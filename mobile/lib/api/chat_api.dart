@@ -148,12 +148,11 @@ class ChatApi {
         'role': 'system',
         'content': content,
         'tokenCount': 0,
-        'userId': 0,
-        'createdBy': 0,
-        'updatedBy': 0,
+        'score': 0,
       }),
     );
-    debugPrint('Create chat prompt response ${response.statusCode}: ${response.body}');
+    debugPrint(
+        'Create chat prompt response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _parseApiError(response.statusCode, response.body);
@@ -186,7 +185,8 @@ class ChatApi {
     final uri = Uri.parse('$baseUrl/api/uuid/chat_prompts/$promptId');
     debugPrint('DELETE $uri');
     final response = await _client.delete(uri, headers: _defaultHeaders());
-    debugPrint('Delete chat prompt response ${response.statusCode}: ${response.body}');
+    debugPrint(
+        'Delete chat prompt response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _parseApiError(response.statusCode, response.body);
@@ -226,12 +226,14 @@ class ChatApi {
     void processFrame(String frame) {
       if (frame.trim().isEmpty) return;
       if (completed) {
-        throw const FormatException('Received an answer stream event after completion');
+        throw const FormatException(
+            'Received an answer stream event after completion');
       }
       final event = AnswerStreamEvent.parseFrame(frame);
       if (event.type == AnswerStreamEventType.failed ||
           event.type == AnswerStreamEventType.canceled) {
-        throw Exception(event.message ?? event.code ?? 'Stream ${event.type.name}');
+        throw Exception(
+            event.message ?? event.code ?? 'Stream ${event.type.name}');
       }
       if (event.type == AnswerStreamEventType.completed) {
         if (event.persisted != true) {
@@ -309,7 +311,8 @@ class ChatApi {
         'workspaceUuid': workspaceUuid,
       }),
     );
-    debugPrint('Update session response ${response.statusCode}: ${response.body}');
+    debugPrint(
+        'Update session response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _parseApiError(response.statusCode, response.body);
@@ -319,8 +322,8 @@ class ChatApi {
   Future<SuggestionsResponse> generateMoreSuggestions({
     required String messageId,
   }) async {
-    final uri =
-        Uri.parse('$baseUrl/api/uuid/chat_messages/$messageId/generate-suggestions');
+    final uri = Uri.parse(
+        '$baseUrl/api/uuid/chat_messages/$messageId/generate-suggestions');
     debugPrint('POST $uri');
     final response = await _client.post(uri, headers: _defaultHeaders());
     debugPrint('Suggestions response ${response.statusCode}: ${response.body}');
@@ -337,10 +340,12 @@ class ChatApi {
   }
 
   Future<void> clearSessionMessages(String sessionId) async {
-    final uri = Uri.parse('$baseUrl/api/uuid/chat_messages/chat_sessions/$sessionId');
+    final uri =
+        Uri.parse('$baseUrl/api/uuid/chat_messages/chat_sessions/$sessionId');
     debugPrint('DELETE $uri');
     final response = await _client.delete(uri, headers: _defaultHeaders());
-    debugPrint('Clear session messages response ${response.statusCode}: ${response.body}');
+    debugPrint(
+        'Clear session messages response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _parseApiError(response.statusCode, response.body);
@@ -368,10 +373,12 @@ class ChatApi {
     int page = 1,
     int pageSize = 20,
   }) async {
-    final uri = Uri.parse('$baseUrl/api/uuid/chat_snapshot/all?type=snapshot&page=$page&page_size=$pageSize');
+    final uri = Uri.parse(
+        '$baseUrl/api/uuid/chat_snapshot/all?type=snapshot&page=$page&page_size=$pageSize');
     debugPrint('GET $uri');
     final response = await _client.get(uri, headers: _defaultHeaders());
-    debugPrint('Snapshot list response ${response.statusCode}: ${response.body}');
+    debugPrint(
+        'Snapshot list response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _parseApiError(response.statusCode, response.body);
@@ -408,7 +415,8 @@ class ChatApi {
     final uri = Uri.parse('$baseUrl/api/uuid/chat_sessions/$sessionId');
     debugPrint('DELETE $uri');
     final response = await _client.delete(uri, headers: _defaultHeaders());
-    debugPrint('Delete session response ${response.statusCode}: ${response.body}');
+    debugPrint(
+        'Delete session response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _parseApiError(response.statusCode, response.body);
@@ -419,7 +427,8 @@ class ChatApi {
     final uri = Uri.parse('$baseUrl/api/uuid/chat_messages/$messageId');
     debugPrint('DELETE $uri');
     final response = await _client.delete(uri, headers: _defaultHeaders());
-    debugPrint('Delete message response ${response.statusCode}: ${response.body}');
+    debugPrint(
+        'Delete message response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _parseApiError(response.statusCode, response.body);
@@ -427,19 +436,28 @@ class ChatApi {
   }
 
   Future<void> updateMessage({
-    required String messageId,
+    required ChatMessage message,
     required bool isPinned,
   }) async {
+    final messageId = message.id;
     final uri = Uri.parse('$baseUrl/api/uuid/chat_messages/$messageId');
     debugPrint('PUT $uri');
     final response = await _client.put(
       uri,
       headers: _defaultHeaders(),
       body: jsonEncode({
+        'uuid': message.id,
+        'dateTime': message.createdAt.toUtc().toIso8601String(),
+        'text': message.content,
+        'inversion': message.role == MessageRole.user,
+        'error': false,
+        'loading': false,
         'isPin': isPinned,
+        'isPrompt': message.role == MessageRole.system,
       }),
     );
-    debugPrint('Update message response ${response.statusCode}: ${response.body}');
+    debugPrint(
+        'Update message response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _parseApiError(response.statusCode, response.body);
@@ -461,7 +479,8 @@ class ChatApi {
         'model': model,
       }),
     );
-    debugPrint('Create session response ${response.statusCode}: ${response.body}');
+    debugPrint(
+        'Create session response ${response.statusCode}: ${response.body}');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _parseApiError(response.statusCode, response.body);
@@ -498,7 +517,8 @@ class ChatApi {
       } else {
         headers['Cookie'] = 'refresh_token=$cookie';
       }
-      debugPrint('Sending Cookie header: ${headers['Cookie']!.length > 50 ? '${headers['Cookie']!.substring(0, 50)}...' : headers['Cookie']}');
+      debugPrint(
+          'Sending Cookie header: ${headers['Cookie']!.length > 50 ? '${headers['Cookie']!.substring(0, 50)}...' : headers['Cookie']}');
     }
     return headers;
   }
@@ -577,7 +597,8 @@ class ChatApi {
       return null;
     }
 
-    debugPrint('Extracted refresh cookie: ${cookie.length > 50 ? '${cookie.substring(0, 50)}...' : cookie}');
+    debugPrint(
+        'Extracted refresh cookie: ${cookie.length > 50 ? '${cookie.substring(0, 50)}...' : cookie}');
     return cookie;
   }
 
