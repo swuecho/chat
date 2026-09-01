@@ -1,22 +1,8 @@
-export interface UpdateChatSessionPayload {
-  uuid: string
-  topic: string
-  maxLength: number
-  temperature: number
-  model: string
-  topP: number
-  n: number
-  maxTokens: number
-  debug: boolean
-  summarizeMode: boolean
-  exploreMode: boolean
-  artifactEnabled: boolean
-  workspaceUuid?: string
-}
+import type { UpdateChatSessionRequest } from './generated_client'
 
 // Keep the UI model out of the transport contract. Strict backend decoding
 // intentionally rejects view-only fields such as title and isEdit.
-export function toUpdateChatSessionPayload(session: Chat.Session): UpdateChatSessionPayload {
+export function toUpdateChatSessionPayload(session: Chat.Session): UpdateChatSessionRequest {
   if (!session.model)
     throw new Error('Cannot update a session without a model')
   if (session.maxTokens == null || session.maxTokens < 1)

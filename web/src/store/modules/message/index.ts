@@ -94,9 +94,7 @@ export const useMessageStore = defineStore('message-store', {
                 role: 'system',
                 content: defaultPrompt,
                 tokenCount: Math.max(1, Math.ceil(defaultPrompt.length / 4)),
-                userId: 0,
-                createdBy: 0,
-                updatedBy: 0,
+                score: 0,
               },
             })
 

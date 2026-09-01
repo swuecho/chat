@@ -3,36 +3,12 @@ import { computed, h, ref, watch } from 'vue'
 import { NButton, NCard, NDataTable, NModal, NProgress, NSpin, NTabPane, NTabs, useMessage } from 'naive-ui'
 import SessionSnapshotModal from './SessionSnapshotModal.vue'
 import { getUserAnalysis, getUserSessionHistory } from '@/api/generated_client'
+import type { UserAnalysisData } from '@/api/generated_client'
 import { t } from '@/locales'
 
 interface Props {
   visible: boolean
   userEmail: string
-}
-
-interface UserAnalysisData {
-  userInfo: {
-    email: string
-    totalMessages: number
-    totalTokens: number
-    totalSessions: number
-    messages3Days: number
-    tokens3Days: number
-    rateLimit: number
-  }
-  modelUsage: Array<{
-    model: string
-    messageCount: number
-    tokenCount: number
-    percentage: number
-    lastUsed: string
-  }>
-  recentActivity: Array<{
-    date: string
-    messages: number
-    tokens: number
-    sessions: number
-  }>
 }
 
 const props = defineProps<Props>()

@@ -25,7 +25,7 @@ export function useWorkspaceRouting() {
 
   // Generate workspace-aware URL for a session
   function getSessionUrl(sessionUuid: string, workspaceUuid?: string): string {
-    const workspace = workspaceUuid || workspaceStore.activeWorkspace
+    const workspace = workspaceUuid || workspaceStore.activeWorkspaceUuid
     const session = sessionStore.getChatSessionByUuid(sessionUuid)
 
     // Use session's workspace if available, otherwise use provided or active workspace
@@ -46,7 +46,7 @@ export function useWorkspaceRouting() {
 
   // Navigate to session with workspace context
   async function navigateToSession(sessionUuid: string, workspaceUuid?: string) {
-    const workspace = workspaceUuid || workspaceStore.activeWorkspace
+    const workspace = workspaceUuid || workspaceStore.activeWorkspaceUuid
     const session = sessionStore.getChatSessionByUuid(sessionUuid)
 
     // Use session's workspace if available, otherwise use default workspace
@@ -101,8 +101,8 @@ export function useWorkspaceRouting() {
 
   // Sync URL with current state (useful for redirects after workspace changes)
   async function syncUrlWithState() {
-    const activeSession = sessionStore.active
-    const activeWorkspace = workspaceStore.activeWorkspace
+    const activeSession = sessionStore.activeSessionUuid
+    const activeWorkspace = workspaceStore.activeWorkspaceUuid
 
     // If we have an active session and workspace, ensure URL is correct
     if (activeSession && activeWorkspace) {
@@ -121,10 +121,10 @@ export function useWorkspaceRouting() {
     const sessionFromUrl = currentSessionFromUrl.value
 
     // Update store state to match URL
-    if (workspaceFromUrl && workspaceFromUrl !== workspaceStore.activeWorkspace)
+    if (workspaceFromUrl && workspaceFromUrl !== workspaceStore.activeWorkspaceUuid)
       workspaceStore.setActiveWorkspace(workspaceFromUrl)
 
-    if (sessionFromUrl && sessionFromUrl !== sessionStore.active) {
+    if (sessionFromUrl && sessionFromUrl !== sessionStore.activeSessionUuid) {
       const session = sessionStore.getChatSessionByUuid(sessionFromUrl)
       if (session)
         sessionStore.setActiveSessionWithoutNavigation(session.workspaceUuid, sessionFromUrl)

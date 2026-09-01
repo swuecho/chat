@@ -4,7 +4,7 @@ import { NForm, NSelect, useMessage } from 'naive-ui'
 import { differenceInDays, formatDistanceToNow } from 'date-fns'
 import { useSessionStore } from '@/store'
 import { useChatModels } from '@/hooks/useChatModels'
-import type { ChatModel } from '@/types/chat-models'
+import type { ChatModelHttpResponse as ChatModel } from '@/api/generated_client'
 import { API_TYPES, API_TYPE_DISPLAY_NAMES } from '@/constants/apiTypes'
 
 const props = defineProps<{

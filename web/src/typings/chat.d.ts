@@ -8,8 +8,9 @@ declare namespace Chat {
 		language?: string // for code artifacts
 	}
 
-	interface Message {
-		uuid: string,
+	type MessageTransport = import('../api/generated/types.gen').SimpleChatMessage
+	interface Message extends Partial<MessageTransport> {
+		uuid: MessageTransport['uuid'],
 		dateTime: string
 		text: string
 		model?: string
@@ -26,8 +27,9 @@ declare namespace Chat {
 		suggestedQuestionsGenerating?: boolean
 	}
 
-	interface Session {
-		uuid: string
+	type SessionTransport = import('../api/generated/types.gen').ChatSessionHttpResponse
+	interface Session extends Partial<SessionTransport> {
+		uuid: SessionTransport['uuid']
 		title: string
 		isEdit: boolean
 		maxLength?: number
@@ -43,19 +45,7 @@ declare namespace Chat {
 		workspaceUuid?: string
 	}
 
-	interface Workspace {
-		uuid: string
-		name: string
-		description?: string
-		color: string
-		icon: string
-		isDefault: boolean
-		isTitleModel?: boolean
-		orderPosition?: number
-		sessionCount?: number
-		createdAt: string
-		updatedAt: string
-	}
+	type Workspace = import('../api/generated/types.gen').WorkspaceResponse & { isTitleModel?: boolean }
 
 	interface ActiveSession {
 		sessionUuid: string | null
@@ -93,31 +83,9 @@ declare namespace Chat {
 		text: string
 	}
 
-	interface ChatModel {
-		id?: number
-		apiAuthHeader: string
-		apiAuthKey: string
-		apiType: string
-		isDefault: boolean
-		label: string
-		name: string
-		url: string
-		enablePerModeRatelimit: boolean,
-		isEnable: boolean,
-		maxToken?: string,
-		defaultToken?: string,
-		orderNumber?: string,
-		httpTimeOut?: number
+	type ChatModel = import('../api/generated/types.gen').ChatModelHttpResponse
 
-	}
-
-	interface ChatModelPrivilege {
-		id: string
-		chatModelName: string
-		fullName: string
-		userEmail: string
-		rateLimit: string
-	}
+	type ChatModelPrivilege = import('../api/generated/types.gen').ChatModelPrivilege
 
 	interface Comment {
 		uuid: string

@@ -3,6 +3,7 @@ import { computed, watch } from 'vue'
 import { NButton, NCard, NModal, NSpace, NSpin, useMessage } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import { getAdminSessionMessages } from '@/api/generated_client'
+import type { GetAdminSessionMessagesResponse } from '@/api/generated_client'
 import { HoverButton, SvgIcon } from '@/components/common'
 import TextComponent from '@/views/components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
@@ -17,18 +18,7 @@ interface Props {
   userEmail: string
 }
 
-interface ChatMessage {
-  id: number
-  uuid: string
-  role: string
-  content: string
-  reasoningContent: string
-  model: string
-  tokenCount: number
-  userID: number
-  createdAt: string
-  updatedAt: string
-}
+type ChatMessage = GetAdminSessionMessagesResponse[number]
 
 const props = defineProps<Props>()
 const emit = defineEmits<{

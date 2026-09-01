@@ -29,7 +29,7 @@ import { useSessionStore } from '@/store'
 import { getChatInstructions, listChatModels } from '@/api/generated_client'
 
 import { API_TYPES, API_TYPE_DISPLAY_NAMES } from '@/constants/apiTypes'
-import type { ChatModel } from '@/types/chat-models'
+import type { ChatModelHttpResponse as ChatModel } from '@/api/generated_client'
 
 const props = defineProps<{
   uuid: string
