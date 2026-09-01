@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { NButton, NCard, NModal, NForm, NFormItem, NInput, NSwitch, NSelect, useMessage, NBadge, useDialog, NSpin } from 'naive-ui'
 import { t } from '@/locales'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { updateChatModel, deleteChatModel } from '@/api'
+import { deleteChatModel, updateChatModel } from '@/api/generated_client'
 import copy from 'copy-to-clipboard'
 import { API_TYPE_OPTIONS, API_TYPE_DISPLAY_NAMES } from '@/constants/apiTypes'
 
@@ -58,7 +58,7 @@ const apiTypeBadgeType = computed(() => {
 const apiTypeOptions = API_TYPE_OPTIONS
 
 const chatModelMutation = useMutation({
-  mutationFn: (variables: { id: number, data: any }) => updateChatModel(variables.id, variables.data),
+  mutationFn: (variables: { id: number, data: any }) => updateChatModel({ path: { id: variables.id }, body: variables.data }),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['chat_models'] })
     ms_ui.success(t('admin.chat_model.update_success'))
@@ -70,7 +70,7 @@ const chatModelMutation = useMutation({
 })
 
 const deteteModelMutation = useMutation({
-  mutationFn: (id: number) => deleteChatModel(id),
+  mutationFn: (id: number) => deleteChatModel({ path: { id } }),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['chat_models'] })
     ms_ui.success(t('admin.chat_model.delete_success'))

@@ -3,7 +3,7 @@ import { computed, h, onMounted, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NButton, NDataTable, NEmpty, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import AddChatModelForm from './addChatModelForm.vue'
-import { DeleteUserChatModelPrivilege, ListUserChatModelPrivilege, UpdateUserChatModelPrivilege } from '@/api'
+import { deleteUserChatModelPrivilege, listUserChatModelPrivileges, updateUserChatModelPrivilege } from '@/api/generated_client'
 import { SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 
@@ -22,7 +22,7 @@ onMounted(async () => {
 async function refreshData() {
   loading.value = true
   try {
-    data.value = await ListUserChatModelPrivilege()
+    data.value = await listUserChatModelPrivileges()
   }
   finally {
     loading.value = false
@@ -30,7 +30,7 @@ async function refreshData() {
 }
 
 async function updateRow(row: Chat.ChatModelPrivilege) {
-  await UpdateUserChatModelPrivilege(row.id, { ...row, rateLimit: parseInt(row.rateLimit) })
+  await updateUserChatModelPrivilege({ path: { id: Number(row.id) }, body: { ...row, rateLimit: parseInt(row.rateLimit) } })
   message.success(t('common.updateSuccess'))
 }
 
@@ -110,7 +110,7 @@ function confirmDelete(row: Chat.ChatModelPrivilege) {
 }
 
 async function deleteRow(row: Chat.ChatModelPrivilege) {
-  await DeleteUserChatModelPrivilege(row.id)
+  await deleteUserChatModelPrivilege({ path: { id: Number(row.id) } })
   message.success(t('admin.rateLimitDeleted'))
   await refreshData()
 }

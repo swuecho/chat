@@ -1,18 +1,20 @@
 import { defineStore } from 'pinia'
 import { router } from '@/router'
 import {
-  getWorkspaces,
-  createWorkspace,
-  updateWorkspace,
-  deleteWorkspace,
   ensureDefaultWorkspace,
-  setDefaultWorkspace,
-  updateWorkspaceOrder as updateWorkspaceOrderApi,
-  autoMigrateLegacySessions,
-  getAllWorkspaceActiveSessions,
   getChatSessionDefault,
-  getWorkspace,
 } from '@/api'
+import {
+  autoMigrateLegacySessions,
+  createWorkspace as createWorkspaceRequest,
+  deleteWorkspace as deleteWorkspaceRequest,
+  getWorkspace as getWorkspaceRequest,
+  listWorkspaceActiveSessions,
+  listWorkspaces,
+  setDefaultWorkspace as setDefaultWorkspaceRequest,
+  updateWorkspace as updateWorkspaceRequest,
+  updateWorkspaceOrder as updateWorkspaceOrderRequest,
+} from '@/api/generated_client'
 
 import { useSessionStore } from '@/store/modules/session'
 import { t } from '@/locales'
@@ -177,7 +179,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       if (existing)
         return existing
 
-      const workspace = await getWorkspace(workspaceUuid)
+      const workspace = await getWorkspaceRequest({ path: { uuid: workspaceUuid } }) as Chat.Workspace
       this.upsertWorkspace(workspace)
       return workspace
     },
@@ -224,7 +226,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
     // Load additional workspaces on demand (for workspace selector)
     async loadAllWorkspaces() {
       try {
-        const allWorkspaces = await getWorkspaces()
+        const allWorkspaces = await listWorkspaces() as Chat.Workspace[]
         // Replace workspaces array with all workspaces (this is for workspace selector)
         // Keep the active workspace UUID as is
         this.workspaces = allWorkspaces
@@ -244,7 +246,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
     async syncWorkspaceActiveSessions(urlWorkspaceUuid?: string, urlSessionUuid?: string) {
       try {
-        const backendSessions = await getAllWorkspaceActiveSessions()
+        const backendSessions = await listWorkspaceActiveSessions()
 
         // Build workspace active sessions mapping
         this.workspaceActiveSessions = {}
@@ -378,7 +380,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
     async syncWorkspaces() {
       try {
         this.isLoading = true
-        const workspaces = await getWorkspaces()
+        const workspaces = await listWorkspaces() as Chat.Workspace[]
         this.workspaces = workspaces
 
         // Ensure we have a default workspace
@@ -435,7 +437,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       if (!workspace) {
         try {
           console.log(`Loading workspace ${workspaceUuid} on-demand...`)
-          workspace = await getWorkspace(workspaceUuid)
+          workspace = await getWorkspaceRequest({ path: { uuid: workspaceUuid } }) as Chat.Workspace
           this.upsertWorkspace(workspace)
           console.log(`✅ Loaded workspace on-demand: ${workspace.name}`)
         } catch (error) {
@@ -515,12 +517,12 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
     async createWorkspace(name: string, description: string = '', color: string = '#6366f1', icon: string = 'folder') {
       try {
-        const newWorkspace = await createWorkspace({
+        const newWorkspace = await createWorkspaceRequest({ body: {
           name,
           description,
           color,
           icon,
-        })
+        } }) as Chat.Workspace
         this.workspaces.push(newWorkspace)
 
         // Automatically create a default session for the new workspace
@@ -543,7 +545,10 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
     async updateWorkspace(workspaceUuid: string, updates: any) {
       try {
-        const updatedWorkspace = await updateWorkspace(workspaceUuid, updates)
+        const updatedWorkspace = await updateWorkspaceRequest({
+          path: { uuid: workspaceUuid },
+          body: updates,
+        }) as Chat.Workspace
         const index = this.workspaces.findIndex(w => w.uuid === workspaceUuid)
         if (index !== -1) {
           this.workspaces[index] = updatedWorkspace
@@ -557,7 +562,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
     async deleteWorkspace(workspaceUuid: string) {
       try {
-        await deleteWorkspace(workspaceUuid)
+        await deleteWorkspaceRequest({ path: { uuid: workspaceUuid } })
         this.workspaces = this.workspaces.filter(w => w.uuid !== workspaceUuid)
 
         // Remove from active sessions tracking
@@ -582,7 +587,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
     async setDefaultWorkspace(workspaceUuid: string) {
       try {
-        await setDefaultWorkspace(workspaceUuid)
+        await setDefaultWorkspaceRequest({ path: { uuid: workspaceUuid } })
         // Update local state
         this.workspaces.forEach(workspace => {
           workspace.isDefault = workspace.uuid === workspaceUuid
@@ -601,7 +606,10 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         }
 
         // Persist order positions to backend
-        const updatePromises = workspaceUuids.map((uuid, index) => updateWorkspaceOrderApi(uuid, index))
+        const updatePromises = workspaceUuids.map((uuid, index) => updateWorkspaceOrderRequest({
+          path: { uuid },
+          body: { orderPosition: index },
+        }))
         await Promise.all(updatePromises)
 
         // Reorder locally to reflect saved order

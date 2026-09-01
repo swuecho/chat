@@ -1,7 +1,7 @@
 import { type Ref, ref } from 'vue'
 import { useDialog, useMessage } from 'naive-ui'
 import { v4 as uuidv4 } from 'uuid'
-import { createChatBot, createChatSnapshot } from '@/api'
+import { createChatBot, createChatSnapshot } from '@/api/generated_client'
 import { useAppStore, useMessageStore, useSessionStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChat } from '@/views/chat/hooks/useChat'
@@ -50,7 +50,7 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
 
     snapshotLoading.value = true
     try {
-      const snapshot = await createChatSnapshot(sessionUuid)
+      const snapshot = await createChatSnapshot({ path: { uuid: sessionUuid } })
       const snapshot_uuid = snapshot.uuid
       window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
       nui_msg.success(t('chat.snapshotSuccess'))
@@ -72,7 +72,7 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
 
     botLoading.value = true
     try {
-      const snapshot = await createChatBot(sessionUuid)
+      const snapshot = await createChatBot({ path: { uuid: sessionUuid } })
       const snapshot_uuid = snapshot.uuid
       window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
       nui_msg.success(t('chat.botSuccess'))

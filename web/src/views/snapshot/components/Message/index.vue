@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { NDropdown, NInput, NModal, useMessage } from 'naive-ui'
 import Comment from '../Comment/index.vue'
-import { createChatComment } from '@/api/comment'
+import { createChatComment } from '@/api/generated_client'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import TextComponent from '@/views//components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
@@ -55,7 +55,10 @@ const options = [
 ]
 
 const mutation = useMutation({
-  mutationFn: () => createChatComment(props.sessionUuid, props.uuid, commentContent.value),
+  mutationFn: () => createChatComment({
+    path: { sessionUUID: props.sessionUuid, messageUUID: props.uuid },
+    body: { content: commentContent.value },
+  }),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['conversationComments', props.sessionUuid] })
   },

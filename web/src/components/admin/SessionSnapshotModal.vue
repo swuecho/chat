@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { NSpin, NModal, NCard, useMessage, NButton, NSpace } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
-import { getSessionMessagesForAdmin } from '@/api'
+import { getAdminSessionMessages } from '@/api/generated_client'
 import { HoverButton, SvgIcon } from '@/components/common'
 import TextComponent from '@/views/components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'
@@ -47,7 +47,7 @@ const { data: messages, isLoading, error } = useQuery({
   queryKey: ['sessionMessages', props.sessionId],
   queryFn: async () => {
     if (!props.sessionId) return []
-    return await getSessionMessagesForAdmin(props.sessionId)
+    return await getAdminSessionMessages({ path: { sessionUuid: props.sessionId } })
   },
   enabled: computed(() => props.visible && !!props.sessionId),
 })

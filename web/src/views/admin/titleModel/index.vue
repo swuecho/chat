@@ -2,21 +2,21 @@
 import { computed } from 'vue'
 import { NCard, NSelect, useMessage } from 'naive-ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { fetchChatModel, fetchTitleChatModel, updateTitleChatModel } from '@/api'
+import { getTitleChatModel, listChatModels, setTitleChatModel } from '@/api/generated_client'
 import { t } from '@/locales'
 
 const message = useMessage()
 const queryClient = useQueryClient()
 
-const modelQuery = useQuery({ queryKey: ['chat_models'], queryFn: fetchChatModel })
+const modelQuery = useQuery({ queryKey: ['chat_models'], queryFn: () => listChatModels() })
 const titleModelQuery = useQuery({
   queryKey: ['title_chat_model'],
-  queryFn: fetchTitleChatModel,
+  queryFn: () => getTitleChatModel(),
   retry: false,
 })
 
 const updateMutation = useMutation({
-  mutationFn: updateTitleChatModel,
+  mutationFn: (modelId: number) => setTitleChatModel({ body: { modelId } }),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['title_chat_model'] })
     queryClient.invalidateQueries({ queryKey: ['chat_models'] })

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { NButton, NForm, NFormItem, NInput, NSwitch, NSelect, useMessage } from 'naive-ui'
-import { createChatModel } from '@/api'
+import { createChatModel } from '@/api/generated_client'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { t } from '@/locales'
 import { API_TYPE_OPTIONS, API_TYPES, type ApiType } from '@/constants/apiTypes'
@@ -101,7 +101,7 @@ interface Emit {
 
 
 const createChatModelMutation = useMutation({
-  mutationFn: (formData: FormData) => createChatModel(formData),
+  mutationFn: (formData: FormData) => createChatModel({ body: formData }),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['chat_models'] })
   },

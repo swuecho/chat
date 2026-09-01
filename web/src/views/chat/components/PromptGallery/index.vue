@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue'
 import { NTabs, NTabPane } from 'naive-ui'
 import { usePromptStore } from '@/store/modules'
-import { fetchChatbotAll, fetchChatSnapshot } from '@/api'
+import { fetchChatbotAll } from '@/api/chat_snapshot'
+import { getChatSnapshot } from '@/api/generated_client'
 import { useQuery } from '@tanstack/vue-query'
 import PromptCards from './PromptCards.vue'
 import { SvgIcon } from '@/components/common'
@@ -47,7 +48,7 @@ const activeTab = ref('prompts')
 
 const handleUsePrompt = (key: string, prompt: string, uuid?: string) => {
         if (uuid) {
-                fetchChatSnapshot(uuid).then((data) => {
+                getChatSnapshot({ path: { uuid } }).then((data) => {
                         emit('usePrompt', key, data.conversation[0].text)
                 })
         } else {

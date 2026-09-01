@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { NInput, NList, NListItem } from 'naive-ui'
 import { debounce } from 'lodash-es'
-import { chatSnapshotSearch } from '@/api'
+import { searchChatSnapshots } from '@/api/generated_client'
 
 interface SearchRecord {
   uuid: string
@@ -14,7 +14,7 @@ const searchText = ref('')
 const results = ref<SearchRecord[]>([])
 
 const search = async () => {
-  results.value = await chatSnapshotSearch(searchText.value)
+  results.value = await searchChatSnapshots({ query: { search: searchText.value } })
 }
 
 const debouncedSearch = debounce(search, 200)

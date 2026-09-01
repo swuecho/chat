@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { NButton, NForm, NFormItem, NInput, NSelect } from 'naive-ui'
 import { onMounted, ref } from 'vue'
-import { CreateUserChatModelPrivilege, fetchChatModel } from '@/api'
+import { createUserChatModelPrivilege, listChatModels } from '@/api/generated_client'
 
 interface ChatModelPrivilege {
   chatModelName: string
@@ -28,18 +28,18 @@ async function submitForm() {
 
 async function addRow(form: ChatModelPrivilege) {
   // create a new chat model, the name is randon string
-  const chatModel = await CreateUserChatModelPrivilege({
+  const chatModel = await createUserChatModelPrivilege({ body: {
     userEmail: form.userEmail,
     chatModelName: form.chatModelName,
     rateLimit: parseInt(form.rateLimit, 10),
-  })
+  } })
   // add it to the data array
   return chatModel
 }
 
 const limitEnabledModels = ref<SelectOption[]>([])
 onMounted(async () => {
-  limitEnabledModels.value = (await fetchChatModel()).filter((x: any) => x.enablePerModeRatelimit)
+  limitEnabledModels.value = (await listChatModels()).filter((x: any) => x.enablePerModeRatelimit)
     .map((x: any) => {
       return {
         value: x.name,

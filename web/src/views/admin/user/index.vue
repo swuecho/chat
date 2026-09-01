@@ -6,7 +6,7 @@
 // vue3 code should be in <script lang="ts" setup> style.
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { NButton, NCard, NDataTable, NEmpty, NForm, NFormItem, NInput, NModal, useMessage } from 'naive-ui'
-import { GetUserData, UpdateRateLimit, updateUserFullName } from '@/api'
+import { getUserStats, updateAdminUser, updateUserRateLimit } from '@/api/generated_client'
 import { t } from '@/locales'
 import UserAnalysisModal from '@/components/admin/UserAnalysisModal.vue'
 
@@ -117,7 +117,7 @@ const pagination = reactive({
 async function fetchData() {
   loading.value = true
   try {
-    const { data, total } = await GetUserData(pagination.page, pagination.pageSize)
+    const { data, total } = await getUserStats({ body: { page: pagination.page, size: pagination.pageSize } })
     tableData.value = data
     pagination.itemCount = total
   }
@@ -145,12 +145,14 @@ async function handleSave() {
     return
 
   try {
-    await updateUserFullName({
+    await updateAdminUser({ body: {
       firstName: editingUser.value.firstName,
       lastName: editingUser.value.lastName,
       email: editingUser.value.email,
+    } })
+    await updateUserRateLimit({
+      body: { email: editingUser.value.email, rateLimit: parseInt(editingUser.value.rateLimit) },
     })
-    await UpdateRateLimit(editingUser.value.email, parseInt(editingUser.value.rateLimit))
     ms_ui.success(t('common.updateSuccess'))
     showEditModal.value = false
     await fetchData()

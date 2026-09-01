@@ -22,8 +22,7 @@ import Header from '../snapshot/components/Header/index.vue'
 import Message from './components/Message/index.vue'
 import AnswerHistory from './components/AnswerHistory.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
-import { CreateSessionFromSnapshot, fetchChatSnapshot, updateChatBotSettings } from '@/api/chat_snapshot'
-import { fetchChatModel } from '@/api/chat_model'
+import { CreateSessionFromSnapshot } from '@/api/chat_snapshot'
 import type { ChatModel } from '@/types/chat-models'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
@@ -31,7 +30,7 @@ import { t } from '@/locales'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useSessionStore } from '@/store'
 import { generateAPIHelper } from '@/service/snapshot'
-import { fetchAPIToken } from '@/api/token'
+import { createLongLivedToken, getChatSnapshot, listChatModels, updateChatBotSettings } from '@/api/generated_client'
 
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
@@ -48,12 +47,12 @@ const { uuid } = route.params as { uuid: string }
 
 const { data: snapshot_data, isLoading } = useQuery({
   queryKey: ['chatSnapshot', uuid],
-  queryFn: async () => await fetchChatSnapshot(uuid),
+  queryFn: () => getChatSnapshot({ path: { uuid } }),
 })
 
 const { data: chatModels, isLoading: modelsLoading } = useQuery<ChatModel[]>({
   queryKey: ['chat_models'],
-  queryFn: fetchChatModel,
+  queryFn: () => listChatModels(),
   enabled: computed(() => Boolean(authStore.getToken)),
 })
 
@@ -113,11 +112,11 @@ async function saveSettings() {
 
   settingsSaving.value = true
   try {
-    const updated = await updateChatBotSettings(uuid, {
+    const updated = await updateChatBotSettings({ path: { uuid }, body: {
       title: settingsForm.value.title.trim(),
       summary: settingsForm.value.summary.trim(),
       model: settingsForm.value.model,
-    })
+    } })
     snapshot_data.value = updated
     settingsVisible.value = false
     nui_msg.success(t('bot.settingsUpdateSuccess'))
@@ -135,7 +134,7 @@ const activeTab = ref('conversation')
 const apiToken = ref('')
 
 onMounted(async () => {
-  const data = await fetchAPIToken()
+  const data = await createLongLivedToken()
   apiToken.value = data.accessToken
 })
 

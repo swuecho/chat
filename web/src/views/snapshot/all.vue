@@ -2,7 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useDialog, useMessage, NModal, NPagination } from 'naive-ui'
 import Search from './components/Search.vue'
-import { fetchSnapshotAll, fetchSnapshotDelete, fetchSnapshotAllData } from '@/api'
+import { fetchSnapshotAll, fetchSnapshotAllData } from '@/api/chat_snapshot'
+import { deleteChatSnapshot } from '@/api/generated_client'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { getSnapshotPostLinks } from '@/service/snapshot'
 import { t } from '@/locales'
@@ -58,7 +59,7 @@ function handleDelete(post: Snapshot.PostLink) {
     negativeText: t('common.no'),
     onPositiveClick: async () => {
       try {
-        await fetchSnapshotDelete(post.uuid)
+        await deleteChatSnapshot({ path: { uuid: post.uuid } })
         await refreshSnapshot()
         message.success(t('chat_snapshot.deleteSuccess'))
       } catch (error) {

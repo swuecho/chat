@@ -2,12 +2,9 @@ import { defineStore } from 'pinia'
 import { v7 as uuidv7 } from 'uuid'
 import { useSessionStore } from '../session'
 import {
-  clearSessionChatMessages,
   deleteChatData,
-  generateMoreSuggestions,
-  getChatMessagesBySessionUUID,
 } from '@/api'
-import { createChatPrompt } from '@/api/chat_prompt'
+import { createChatPrompt, deleteChatHistory, generateMessageSuggestions, getChatHistory } from '@/api/generated_client'
 import { getDefaultSystemPrompt } from '@/constants/chat'
 import { nowISO } from '@/utils/date'
 
@@ -64,7 +61,7 @@ export const useMessageStore = defineStore('message-store', {
       this.isLoading[sessionUuid] = true
 
       try {
-        const messageData = await getChatMessagesBySessionUUID(sessionUuid)
+        const messageData = await getChatHistory({ path: { uuid: sessionUuid } })
         const normalizedMessages = Array.isArray(messageData) ? messageData : []
 
         // Initialize batching structure for messages with suggested questions
@@ -92,7 +89,7 @@ export const useMessageStore = defineStore('message-store', {
         if (!hasSystemPrompt) {
           try {
             const defaultPrompt = getDefaultSystemPrompt()
-            const prompt = await createChatPrompt({
+            const prompt = await createChatPrompt({ body: {
               uuid: uuidv7(),
               chatSessionUuid: sessionUuid,
               role: 'system',
@@ -101,7 +98,7 @@ export const useMessageStore = defineStore('message-store', {
               userId: 0,
               createdBy: 0,
               updatedBy: 0,
-            })
+            } })
 
             const promptMessage: Chat.Message = {
               uuid: prompt.uuid,
@@ -203,7 +200,7 @@ export const useMessageStore = defineStore('message-store', {
 
     async clearSessionMessages(sessionUuid: string) {
       try {
-        await clearSessionChatMessages(sessionUuid)
+        await deleteChatHistory({ path: { uuid: sessionUuid } })
         // Keep the first message (system prompt) and clear the rest
         const messages = this.chat[sessionUuid] || []
         if (messages.length > 0)
@@ -317,7 +314,7 @@ export const useMessageStore = defineStore('message-store', {
         // Set generating state for the message
         this.updateMessage(sessionUuid, messageUuid, { suggestedQuestionsGenerating: true })
 
-        const response = await generateMoreSuggestions(messageUuid)
+        const response = await generateMessageSuggestions({ path: { uuid: messageUuid } })
         const { newSuggestions } = response
 
         // Get existing message

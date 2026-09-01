@@ -1,7 +1,7 @@
 <script setup lang='ts'>
 import { computed, reactive, ref } from 'vue'
 import { NButton, NForm, NFormItemRow, NInput, NModal, NTabPane, NTabs, useMessage } from 'naive-ui'
-import { fetchLogin, fetchSignUp } from '@/api'
+import { login, signUp } from '@/api/generated_client'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store'
 import Icon403 from '@/icons/403.vue'
@@ -55,7 +55,7 @@ async function handleLogin() {
 
   loading.value = true
   try {
-    const { accessToken, expiresIn } = await fetchLogin(user_email_v, user_password_v)
+    const { accessToken, expiresIn } = await login({ body: { email: user_email_v, password: user_password_v } })
     authStore.setToken(accessToken)
     authStore.setExpiresIn(expiresIn)
     ms.success(t('common.loginSuccess'))
@@ -106,7 +106,7 @@ async function handleSignup() {
   }
   loading.value = true
   try {
-    const { accessToken, expiresIn } = await fetchSignUp(user_email_v, user_password_v)
+    const { accessToken, expiresIn } = await signUp({ body: { email: user_email_v, password: user_password_v } })
     authStore.setToken(accessToken)
     authStore.setExpiresIn(expiresIn)
     ms.success('success')

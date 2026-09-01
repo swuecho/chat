@@ -2,7 +2,7 @@
 import { useRoute } from 'vue-router'
 import { nextTick, ref } from 'vue'
 import { HoverButton, SvgIcon } from '@/components/common'
-import { updateChatSnapshot } from '@/api'
+import { updateChatSnapshot } from '@/api/generated_client'
 import {  NMarquee } from 'naive-ui'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 
@@ -37,7 +37,10 @@ function handleChatHome() {
 }
 
 const { mutate } = useMutation({
-  mutationFn: async (variables: { uuid: string, title: string }) => await updateChatSnapshot(variables.uuid, { title: variables.title }),
+  mutationFn: (variables: { uuid: string, title: string }) => updateChatSnapshot({
+    path: { uuid: variables.uuid },
+    body: { title: variables.title },
+  }),
   onSuccess: (data) => {
     queryClient.setQueriesData({ queryKey: ['chatSnapshot', uuid] }, data)
   },

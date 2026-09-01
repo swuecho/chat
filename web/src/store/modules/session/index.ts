@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia'
 import { router } from '@/router'
 import {
-  createChatSession,
-  deleteChatSession,
-  renameChatSession,
   updateChatSession,
-  getSessionsByWorkspace,
-  createSessionInWorkspace,
-} from '@/api'
+} from '@/api/chat_session'
+import {
+  createChatSession,
+  createWorkspaceSession,
+  deleteChatSession,
+  listWorkspaceSessions,
+  updateChatSessionTopic,
+} from '@/api/generated_client'
 import { getDefaultSystemPrompt } from '@/constants/chat'
 import { useWorkspaceStore } from '../workspace'
 
@@ -83,7 +85,7 @@ export const useSessionStore = defineStore('session-store', {
     async syncWorkspaceSessions(workspaceUuid: string) {
       try {
         this.isLoading = true
-        const sessions = await getSessionsByWorkspace(workspaceUuid)
+        const sessions = await listWorkspaceSessions({ path: { uuid: workspaceUuid } })
 
         // Map topic to title for frontend compatibility
         const sessionsWithTitle = sessions.map((session: any) => ({
@@ -113,7 +115,7 @@ export const useSessionStore = defineStore('session-store', {
         }
 
         console.log('Loading sessions for active workspace:', workspaceStore.activeWorkspaceUuid)
-        const sessions = await getSessionsByWorkspace(workspaceStore.activeWorkspaceUuid)
+        const sessions = await listWorkspaceSessions({ path: { uuid: workspaceStore.activeWorkspaceUuid } })
 
         // Map topic to title for frontend compatibility
         const sessionsWithTitle = sessions.map((session: any) => ({
@@ -140,7 +142,7 @@ export const useSessionStore = defineStore('session-store', {
 
         // Sync sessions for all workspaces
         for (const workspace of workspaceStore.workspaces) {
-          const sessions = await getSessionsByWorkspace(workspace.uuid)
+          const sessions = await listWorkspaceSessions({ path: { uuid: workspace.uuid } })
 
           // Map topic to title for frontend compatibility
           const sessionsWithTitle = sessions.map((session: any) => ({
@@ -185,11 +187,11 @@ export const useSessionStore = defineStore('session-store', {
           }
         }
 
-        const newSession = await createSessionInWorkspace(targetWorkspaceUuid, {
+        const newSession = await createWorkspaceSession({ path: { uuid: targetWorkspaceUuid }, body: {
           topic: title,
           model: sessionModel,
           defaultSystemPrompt: getDefaultSystemPrompt(),
-        })
+        } })
 
         // Map topic to title for frontend compatibility
         const sessionWithTitle = {
@@ -220,7 +222,12 @@ export const useSessionStore = defineStore('session-store', {
 
     async createLegacySession(session: Chat.Session) {
       try {
-        await createChatSession(session.uuid, session.title, session.model, getDefaultSystemPrompt())
+        await createChatSession({ body: {
+          uuid: session.uuid,
+          topic: session.title,
+          model: session.model ?? '',
+          defaultSystemPrompt: getDefaultSystemPrompt(),
+        } })
 
         // Refresh workspace sessions to get updated list from backend
         const workspaceUuid = session.workspaceUuid
@@ -253,7 +260,7 @@ export const useSessionStore = defineStore('session-store', {
             // Update backend - use the appropriate API method
             if (updates.title !== undefined) {
               // If only title is changing, use the rename endpoint
-              await renameChatSession(uuid, sessions[index].title)
+              await updateChatSessionTopic({ path: { uuid }, body: { topic: sessions[index].title } })
             } else {
               // For other updates (like model), use the full update endpoint
               await updateChatSession(uuid, sessions[index])
@@ -305,7 +312,7 @@ export const useSessionStore = defineStore('session-store', {
         }
 
         // Delete from backend
-        await deleteChatSession(sessionUuid)
+        await deleteChatSession({ path: { uuid: sessionUuid } })
 
         // Clear active session if it was deleted
         if (this.activeSessionUuid === sessionUuid) {

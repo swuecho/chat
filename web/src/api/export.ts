@@ -1,4 +1,4 @@
-import { getChatMessagesBySessionUUID } from './chat_message'
+import { getChatHistory } from './generated_client'
 
 function format_chat_md(chat: Chat.Message): string {
   return `<sup><kbd><var>${chat.dateTime}</var></kbd></sup>:\n ${chat.text}`
@@ -6,7 +6,7 @@ function format_chat_md(chat: Chat.Message): string {
 
 export const fetchMarkdown = async (uuid: string) => {
   try {
-    const chatData = await getChatMessagesBySessionUUID(uuid)
+    const chatData = await getChatHistory({ path: { uuid } })
     /*
           uuid: string,
           dateTime: string
@@ -34,7 +34,7 @@ export const fetchMarkdown = async (uuid: string) => {
 
 export const fetchConversationSnapshot = async (uuid: string): Promise<Chat.Message[]> => {
   try {
-    const chatData = await getChatMessagesBySessionUUID(uuid)
+    const chatData = await getChatHistory({ path: { uuid } })
     /*
           uuid: string,
           dateTime: string

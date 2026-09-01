@@ -6,7 +6,8 @@ import html2canvas from 'html2canvas'
 import Message from './components/Message/index.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
 import Header from './components/Header/index.vue'
-import { CreateSessionFromSnapshot, fetchChatSnapshot } from '@/api/chat_snapshot'
+import { CreateSessionFromSnapshot } from '@/api/chat_snapshot'
+import { getChatSnapshot, listSessionComments } from '@/api/generated_client'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
@@ -14,7 +15,6 @@ import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useSessionStore } from '@/store'
 import { useQuery } from '@tanstack/vue-query'
-import { getConversationComments } from '@/api/comment'
 
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
@@ -31,12 +31,12 @@ const { uuid } = route.params as { uuid: string }
 
 const { data: snapshot_data, isLoading } = useQuery({
   queryKey: ['chatSnapshot', uuid],
-  queryFn: async () => await fetchChatSnapshot(uuid),
+  queryFn: () => getChatSnapshot({ path: { uuid } }),
 })
 
 const { data: comments } = useQuery({
   queryKey: ['conversationComments', uuid],
-  queryFn: async () => await getConversationComments(uuid),
+  queryFn: () => listSessionComments({ path: { sessionUUID: uuid } }),
 })
 
 function handleExport() {

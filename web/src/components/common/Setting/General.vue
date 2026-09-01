@@ -6,7 +6,7 @@ import { SvgIcon } from '@/components/common'
 import { useAppStore, useUserStore } from '@/store'
 import type { UserInfo } from '@/store/modules/user/helper'
 import { t } from '@/locales'
-import { fetchAPIToken } from '@/api/token'
+import { createLongLivedToken } from '@/api/generated_client'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -51,7 +51,7 @@ function copyToClipboard() {
 
 onMounted(async () => {
   try {
-    const response = await fetchAPIToken()
+    const response = await createLongLivedToken()
     apiToken.value = response.accessToken
   }
   catch (error) {

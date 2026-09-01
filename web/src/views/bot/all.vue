@@ -4,10 +4,10 @@ import { NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import { useRouter } from 'vue-router'
 import copy from 'copy-to-clipboard'
 import Search from '../snapshot/components/Search.vue'
-import { fetchChatSnapshot, fetchChatbotAllData, fetchSnapshotDelete } from '@/api'
+import { fetchChatbotAllData } from '@/api/chat_snapshot'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { generateAPIHelper, getBotPostLinks } from '@/service/snapshot'
-import { fetchAPIToken } from '@/api/token'
+import { createLongLivedToken, deleteChatSnapshot, getChatSnapshot } from '@/api/generated_client'
 import { fetchBotRunCount } from '@/api/bot_answer_history'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store'
@@ -32,7 +32,7 @@ const botRunCounts = ref<Record<string, number>>({})
 onMounted(async () => {
   await authStore.initializeAuth()
   await refreshSnapshot()
-  const data = await fetchAPIToken()
+  const data = await createLongLivedToken()
   apiToken.value = data.accessToken
 })
 
@@ -67,7 +67,7 @@ function handleDelete(post: Snapshot.PostLink) {
     negativeText: t('common.no'),
     onPositiveClick: async () => {
       try {
-        await fetchSnapshotDelete(post.uuid)
+        await deleteChatSnapshot({ path: { uuid: post.uuid } })
         await refreshSnapshot()
         message.success(t('chat_snapshot.deleteSuccess'))
       }
@@ -126,7 +126,7 @@ async function findBotById() {
 
   botIdSearchLoading.value = true
   try {
-    const bot = await fetchChatSnapshot(botId)
+    const bot = await getChatSnapshot({ path: { uuid: botId } })
     if (bot.typ !== 'chatbot')
       throw new Error('The ID does not belong to a bot')
 

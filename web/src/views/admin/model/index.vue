@@ -3,7 +3,7 @@ import { ref, toRaw, watch } from 'vue'
 import { NButton, NEmpty, NModal, NSkeleton } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import AddModelForm from './AddModelForm.vue'
-import { fetchChatModel } from '@/api'
+import { listChatModels } from '@/api/generated_client'
 import { SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 import ModelCard from '@/components/admin/ModelCard.vue'
@@ -12,7 +12,7 @@ const dialogVisible = ref(false)
 
 const modelQuery = useQuery({
   queryKey: ['chat_models'],
-  queryFn: fetchChatModel,
+  queryFn: () => listChatModels(),
 })
 
 const isLoading = modelQuery.isPending

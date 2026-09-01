@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ref, watch, computed, h } from 'vue'
 import { NModal, NCard, NTabs, NTabPane, NSpin, NStatistic, NProgress, NDataTable, useMessage, NButton } from 'naive-ui'
-import { getUserAnalysis, getUserSessionHistory } from '@/api'
+import { getUserAnalysis, getUserSessionHistory } from '@/api/generated_client'
 import SessionSnapshotModal from './SessionSnapshotModal.vue'
 import { t } from '@/locales'
 
@@ -81,7 +81,7 @@ watch(() => props.visible, (newVal) => {
 async function fetchUserAnalysis() {
   loading.value = true
   try {
-    const response = await getUserAnalysis(props.userEmail)
+    const response = await getUserAnalysis({ path: { email: props.userEmail } })
     analysisData.value = response
   } catch (error: any) {
     message.error(error.message || t('common.fetchFailed'))
@@ -93,11 +93,13 @@ async function fetchUserAnalysis() {
 async function fetchSessionHistory() {
   sessionLoading.value = true
   try {
-    const response = await getUserSessionHistory(
-      props.userEmail, 
-      sessionPagination.value.page, 
-      sessionPagination.value.pageSize
-    )
+    const response = await getUserSessionHistory({
+      path: { email: props.userEmail },
+      query: {
+        limit: sessionPagination.value.pageSize,
+        offset: (sessionPagination.value.page - 1) * sessionPagination.value.pageSize,
+      },
+    })
     sessionHistoryData.value = response.data
     sessionPagination.value.itemCount = response.total
   } catch (error: any) {

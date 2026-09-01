@@ -3,7 +3,7 @@ import { computed, h, onMounted, ref } from 'vue'
 import { NButton, NDataTable, NDescriptions, NDescriptionsItem, NEmpty, NFormItem, NInput, NInputNumber, NModal, NSpace, NTabPane, NTabs, NTag, useDialog, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import copy from 'copy-to-clipboard'
-import { createApiKey, fetchApiKeyUsage, fetchApiKeys, fetchGatewayRequest, fetchGatewayRequests, revokeApiKey } from '@/api/api_keys'
+import { createApiKey, getApiKeyRequest, getApiKeyUsage, listApiKeyRequests, listApiKeys, revokeApiKey } from '@/api/generated_client'
 import type { ApiKeyUsage, CapturedSample, GatewayRequestDetail, GatewayRequestSummary, VirtualApiKey } from '@/api/api_keys'
 import { useAuthStore } from '@/store'
 
@@ -39,7 +39,7 @@ const formatDate = (value: string | null) => value ? new Date(value).toLocaleStr
 async function loadKeys() {
   loading.value = true
   try {
-    keys.value = await fetchApiKeys()
+    keys.value = await listApiKeys() as VirtualApiKey[]
   }
   finally {
     loading.value = false
@@ -52,7 +52,9 @@ async function createKey() {
     return
   }
   try {
-    const result = await createApiKey({ name: form.value.name.trim(), requestsPerMinute: form.value.requestsPerMinute })
+    const result = await createApiKey({
+      body: { name: form.value.name.trim(), requestsPerMinute: form.value.requestsPerMinute, expiresAt: '' },
+    }) as VirtualApiKey
     createdSecret.value = result.key || ''
     showCreate.value = false
     showSecret.value = true
@@ -71,7 +73,7 @@ function confirmRevoke(key: VirtualApiKey) {
     positiveText: 'Revoke',
     negativeText: 'Cancel',
     onPositiveClick: async () => {
-      await revokeApiKey(key.id)
+      await revokeApiKey({ path: { id: key.id } })
       message.success('API key revoked')
       await loadKeys()
     },
@@ -79,7 +81,7 @@ function confirmRevoke(key: VirtualApiKey) {
 }
 
 async function openUsage(key: VirtualApiKey) {
-  usage.value = await fetchApiKeyUsage(key.id)
+  usage.value = await getApiKeyUsage({ path: { id: key.id } }) as ApiKeyUsage[]
   showUsage.value = true
 }
 
@@ -88,7 +90,7 @@ async function openRequests(key: VirtualApiKey) {
   showRequests.value = true
   requestLoading.value = true
   try {
-    requests.value = await fetchGatewayRequests(key.id)
+    requests.value = await listApiKeyRequests({ path: { id: key.id } }) as GatewayRequestSummary[]
   }
   catch {
     message.error('Could not load gateway requests')
@@ -105,7 +107,9 @@ async function inspectRequest(row: GatewayRequestSummary) {
   detailLoading.value = true
   requestDetail.value = null
   try {
-    requestDetail.value = await fetchGatewayRequest(selectedKey.value.id, row.id)
+    requestDetail.value = await getApiKeyRequest({
+      path: { id: selectedKey.value.id, requestId: row.id },
+    }) as GatewayRequestDetail
   }
   catch {
     message.error('Could not load request details')
