@@ -30,7 +30,7 @@ const (
 // AnswerEvent is the typed protocol shared by streaming adapters. Completed,
 // failed, and canceled are terminal events.
 type AnswerEvent struct {
-	Type               AnswerEventType `json:"type"`
+	Type               AnswerEventType `json:"type" jsonschema:"enum=started,enum=delta,enum=reasoning_delta,enum=suggested_questions,enum=completed,enum=failed,enum=canceled"`
 	AnswerID           string          `json:"answerId,omitempty"`
 	Delta              string          `json:"delta,omitempty"`
 	SuggestedQuestions []string        `json:"suggestedQuestions,omitempty"`

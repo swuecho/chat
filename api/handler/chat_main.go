@@ -49,7 +49,7 @@ func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService
 // Register registers chat routes on the given router.
 func (h *ChatHandler) Register(router *mux.Router, registry *apicontract.Registry) {
 	router.HandleFunc("/chat_stream", streamEndpoint(h.ChatCompletionHandler)).Methods(http.MethodPost)
-	apicontract.DocumentJSON[ChatRequest, apicontract.BinaryBody](registry, apicontract.Operation{
+	apicontract.DocumentJSON[ChatRequest, provider.AnswerEvent](registry, apicontract.Operation{
 		Method: http.MethodPost, Path: "/chat_stream", OperationID: "streamChat", Summary: "Stream a chat completion",
 		Tags: []string{"Chat"}, SuccessStatus: http.StatusOK, Security: apicontract.BearerAuth(), ResponseContentType: "text/event-stream",
 	})

@@ -1,7 +1,7 @@
 import { useAuthStore, useMessageStore } from '@/store'
 import { extractArtifacts } from '@/utils/artifacts'
 import { nowISO } from '@/utils/date'
-import { type AnswerStreamEvent, consumeAnswerEventStream } from '@/utils/sse'
+import { type AnswerStreamEvent, consumeAnswerEvents } from '@/utils/sse'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { t } from '@/locales'
 import { openChatStream } from '@/api/chat_stream'
@@ -78,7 +78,7 @@ export function useStreamHandling() {
     }
     try {
       const stream = await openChatStream({ regenerate: false, prompt: message, sessionUuid, chatUuid, stream: true }, abortSignal)
-      await consumeAnswerEventStream(stream, event => onAnswerEvent(event, responseIndex))
+      await consumeAnswerEvents(stream, event => onAnswerEvent(event, responseIndex))
     }
     catch (error) {
       if (error instanceof Error && error.name === 'AbortError')
@@ -109,7 +109,7 @@ export function useStreamHandling() {
     }
     try {
       const stream = await openChatStream({ regenerate: isRegenerate, prompt: '', sessionUuid, chatUuid, stream: true }, abortSignal)
-      await consumeAnswerEventStream(stream, event => onAnswerEvent(event, updateIndex))
+      await consumeAnswerEvents(stream, event => onAnswerEvent(event, updateIndex))
     }
     catch (error) {
       if (error instanceof Error && error.name === 'AbortError')

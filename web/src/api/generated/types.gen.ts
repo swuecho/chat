@@ -10,6 +10,16 @@ export type ApiError = {
     message: string;
 };
 
+export type AnswerEvent = {
+    type: 'started' | 'delta' | 'reasoning_delta' | 'suggested_questions' | 'completed' | 'failed' | 'canceled';
+    answerId?: string;
+    delta?: string;
+    suggestedQuestions?: Array<string>;
+    persisted: boolean;
+    code?: string;
+    message?: string;
+};
+
 export type ChatInstructionResponse = {
     artifactInstruction: string;
 };
@@ -1478,7 +1488,7 @@ export type StreamChatResponses = {
     /**
      * OK
      */
-    200: Blob | File;
+    200: AnswerEvent;
 };
 
 export type StreamChatResponse = StreamChatResponses[keyof StreamChatResponses];

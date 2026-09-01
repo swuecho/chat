@@ -1832,8 +1832,7 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "format": "binary",
-                  "type": "string"
+                  "$ref": "#/components/schemas/AnswerEvent"
                 }
               }
             }
@@ -4579,6 +4578,50 @@
           "message"
         ],
         "type": "object"
+      },
+      "AnswerEvent": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "started",
+              "delta",
+              "reasoning_delta",
+              "suggested_questions",
+              "completed",
+              "failed",
+              "canceled"
+            ]
+          },
+          "answerId": {
+            "type": "string"
+          },
+          "delta": {
+            "type": "string"
+          },
+          "suggestedQuestions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "persisted": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "persisted"
+        ]
       },
       "ChatInstructionResponse": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",

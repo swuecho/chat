@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { consumeAnswerEventStream, readAnswerStreamEvent } from '../sse'
+import { consumeAnswerEventStream, consumeAnswerEvents, readAnswerStreamEvent } from '../sse'
 
 const encoder = new TextEncoder()
 
@@ -101,6 +101,30 @@ describe('consumeAnswerEventStream', () => {
     )
     await expect(consumeAnswerEventStream(stream, () => {})).rejects.toThrow(
       'Received an answer stream event after completion',
+    )
+  })
+})
+
+describe('consumeAnswerEvents', () => {
+  it('consumes the generated client async stream through durable completion', async () => {
+    const received: string[] = []
+    async function* events() {
+      yield { type: 'delta' as const, delta: 'hello', persisted: false }
+      yield { type: 'completed' as const, persisted: true }
+    }
+
+    await consumeAnswerEvents(events(), event => received.push(event.type))
+
+    expect(received).toEqual(['delta', 'completed'])
+  })
+
+  it('rejects a generated stream that ends before durable completion', async () => {
+    async function* events() {
+      yield { type: 'delta' as const, delta: 'partial', persisted: false }
+    }
+
+    await expect(consumeAnswerEvents(events(), () => {})).rejects.toThrow(
+      'The response stream ended before it was saved',
     )
   })
 })

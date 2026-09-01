@@ -24,6 +24,29 @@ const eventTypes = new Set<AnswerStreamEventType>([
   'completed', 'failed', 'canceled',
 ])
 
+export async function consumeAnswerEvents(
+  events: AsyncIterable<AnswerStreamEvent>,
+  onEvent: AnswerStreamEventHandler,
+): Promise<void> {
+  let completed = false
+  for await (const event of events) {
+    if (completed)
+      throw new Error('Received an answer stream event after completion')
+    if (!eventTypes.has(event.type))
+      throw new Error('Received an untyped answer stream event')
+    if (event.type === 'failed' || event.type === 'canceled')
+      throw new Error(event.message || event.code || `Stream ${event.type}`)
+    if (event.type === 'completed') {
+      if (!event.persisted)
+        throw new Error('The response was not saved')
+      completed = true
+    }
+    await onEvent(event)
+  }
+  if (!completed)
+    throw new Error('The response stream ended before it was saved')
+}
+
 export function readAnswerStreamEvent(frame: string): AnswerStreamEvent | null {
   const normalized = frame.replace(/\r\n/g, '\n')
   const eventType = normalized

@@ -11,6 +11,16 @@ const test_email = randomEmail();
 
 const pool = new Pool(db_config);
 
+async function waitForDebugSetting(userId: number, timeout = 10000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const sessions = await selectChatSessionsByUserId(pool, userId);
+    if (sessions[0]?.debug)
+      return sessions[0];
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  return (await selectChatSessionsByUserId(pool, userId))[0];
+}
 
 test('test', async ({ page }) => {
   await page.goto('/');
@@ -45,12 +55,8 @@ test('test', async ({ page }) => {
   await page.waitForTimeout(300);
   // click the debug switch
   await page.getByTestId('debug_mode').click();
-  // sleep 1s
-  await page.waitForTimeout(1000);
-  const sessions_2 = await selectChatSessionsByUserId(pool, user.id);
-  const new_sesion_2 = sessions_2[0]
+  const new_sesion_2 = await waitForDebugSetting(user.id);
   expect(new_sesion_2.temperature).toBe(1);
   expect(new_sesion_2.n).toBe(1);
   expect(new_sesion_2.debug).toBe(true);
 });
-
