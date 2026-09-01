@@ -187,11 +187,14 @@ export const useSessionStore = defineStore('session-store', {
           }
         }
 
-        const newSession = await createWorkspaceSession({ path: { uuid: targetWorkspaceUuid }, body: {
-          topic: title,
-          model: sessionModel,
-          defaultSystemPrompt: getDefaultSystemPrompt(),
-        } })
+        const newSession = await createWorkspaceSession({
+          path: { uuid: targetWorkspaceUuid },
+          body: {
+            topic: title,
+            model: sessionModel ?? '',
+            defaultSystemPrompt: getDefaultSystemPrompt(),
+          },
+        })
 
         // Map topic to title for frontend compatibility
         const sessionWithTitle = {
@@ -222,12 +225,14 @@ export const useSessionStore = defineStore('session-store', {
 
     async createLegacySession(session: Chat.Session) {
       try {
-        await createChatSession({ body: {
-          uuid: session.uuid,
-          topic: session.title,
-          model: session.model ?? '',
-          defaultSystemPrompt: getDefaultSystemPrompt(),
-        } })
+        await createChatSession({
+          body: {
+            uuid: session.uuid,
+            topic: session.title,
+            model: session.model ?? '',
+            defaultSystemPrompt: getDefaultSystemPrompt(),
+          },
+        })
 
         // Refresh workspace sessions to get updated list from backend
         const workspaceUuid = session.workspaceUuid

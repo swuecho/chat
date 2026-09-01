@@ -1,221 +1,24 @@
-import {
-  autoMigrateLegacySessions as autoMigrateLegacySessionsGenerated,
-  createWorkspaceSession as createSessionInWorkspaceGenerated,
-  createWorkspace as createWorkspaceGenerated,
-  deleteWorkspace as deleteWorkspaceGenerated,
-  ensureDefaultWorkspace as ensureDefaultWorkspaceGenerated,
-  getWorkspaceActiveSession as getWorkspaceActiveSessionGenerated,
-  getWorkspace as getWorkspaceGenerated,
-  listWorkspaceActiveSessions,
-  listWorkspaceSessions as listWorkspaceSessionsGenerated,
-  listWorkspaces as listWorkspacesGenerated,
-  setDefaultWorkspace as setDefaultWorkspaceGenerated,
-  setWorkspaceActiveSession as setWorkspaceActiveSessionGenerated,
-  updateWorkspace as updateWorkspaceGenerated,
-  updateWorkspaceOrder as updateWorkspaceOrderGenerated,
-} from './generated_client'
-import type { MigrationHttpResponse, WorkspaceSessionCreatedHttpResponse } from './generated_client'
+import { createWorkspace, ensureDefaultWorkspace as ensureDefaultWorkspaceRequest } from './generated_client'
 
-export interface CreateWorkspaceRequest {
-  name: string
-  description?: string
-  color?: string
-  icon?: string
-  isDefault?: boolean
-}
-
-export interface UpdateWorkspaceRequest {
-  name: string
-  description?: string
-  color?: string
-  icon?: string
-}
-
-export interface CreateSessionInWorkspaceRequest {
-  topic: string
-  model?: string
-  defaultSystemPrompt?: string
-}
-
-// Get all workspaces for the current user
-export const getWorkspaces = async (): Promise<Chat.Workspace[]> => {
+// This adapter is intentionally a workflow rather than a second API surface:
+// older servers can fail to create the default workspace, so the UI falls back
+// to the equivalent explicit create operation.
+export async function ensureDefaultWorkspace(): Promise<Chat.Workspace> {
   try {
-    return (await listWorkspacesGenerated()) as unknown as Chat.Workspace[]
-  }
-  catch (error) {
-    console.error('Error fetching workspaces:', error)
-    throw error
-  }
-}
-
-// Get a specific workspace by UUID
-export const getWorkspace = async (uuid: string): Promise<Chat.Workspace> => {
-  try {
-    return (await getWorkspaceGenerated({ path: { uuid } })) as unknown as Chat.Workspace
-  }
-  catch (error) {
-    console.error(`Error fetching workspace ${uuid}:`, error)
-    throw error
-  }
-}
-
-// Create a new workspace
-export const createWorkspace = async (data: CreateWorkspaceRequest): Promise<Chat.Workspace> => {
-  try {
-    return (await createWorkspaceGenerated({ body: data })) as unknown as Chat.Workspace
-  }
-  catch (error) {
-    console.error('Error creating workspace:', error)
-    throw error
-  }
-}
-
-// Update an existing workspace
-export const updateWorkspace = async (uuid: string, data: UpdateWorkspaceRequest): Promise<Chat.Workspace> => {
-  try {
-    return (await updateWorkspaceGenerated({ path: { uuid }, body: data })) as unknown as Chat.Workspace
-  }
-  catch (error) {
-    console.error(`Error updating workspace ${uuid}:`, error)
-    throw error
-  }
-}
-
-// Delete a workspace
-export const deleteWorkspace = async (uuid: string): Promise<void> => {
-  try {
-    await deleteWorkspaceGenerated({ path: { uuid } })
-  }
-  catch (error) {
-    console.error(`Error deleting workspace ${uuid}:`, error)
-    throw error
-  }
-}
-
-// Update workspace order
-export const updateWorkspaceOrder = async (uuid: string, orderPosition: number): Promise<Chat.Workspace> => {
-  try {
-    return (await updateWorkspaceOrderGenerated({ path: { uuid }, body: { orderPosition } })) as unknown as Chat.Workspace
-  }
-  catch (error) {
-    console.error(`Error updating workspace order ${uuid}:`, error)
-    throw error
-  }
-}
-
-// Set workspace as default
-export const setDefaultWorkspace = async (uuid: string): Promise<Chat.Workspace> => {
-  try {
-    return (await setDefaultWorkspaceGenerated({ path: { uuid } })) as unknown as Chat.Workspace
-  }
-  catch (error) {
-    console.error(`Error setting default workspace ${uuid}:`, error)
-    throw error
-  }
-}
-
-// Ensure user has a default workspace
-export const ensureDefaultWorkspace = async (): Promise<Chat.Workspace> => {
-  try {
-    return (await ensureDefaultWorkspaceGenerated()) as unknown as Chat.Workspace
+    return await ensureDefaultWorkspaceRequest() as Chat.Workspace
   }
   catch (error: any) {
-    console.error('Error ensuring default workspace:', error)
+    if (error?.code !== 'RES_001')
+      throw error
 
-    // If backend fails to ensure default workspace, try creating one manually
-    if (error?.code === 'RES_001') {
-      console.warn('Backend failed to ensure default workspace, creating manually...')
-      try {
-        return await createWorkspace({
-          name: 'General',
-          description: 'Default workspace',
-          color: '#6366f1',
-          icon: 'folder',
-          isDefault: true,
-        })
-      }
-      catch (createError) {
-        console.error('Failed to create fallback default workspace:', createError)
-        throw createError
-      }
-    }
-
-    throw error
-  }
-}
-
-// Create a session in a specific workspace
-export const createSessionInWorkspace = async (workspaceUuid: string, data: CreateSessionInWorkspaceRequest): Promise<WorkspaceSessionCreatedHttpResponse> => {
-  try {
-    return (await createSessionInWorkspaceGenerated({
-      path: { uuid: workspaceUuid },
+    return await createWorkspace({
       body: {
-        topic: data.topic,
-        model: data.model ?? '',
-        defaultSystemPrompt: data.defaultSystemPrompt ?? '',
+        name: 'General',
+        description: 'Default workspace',
+        color: '#6366f1',
+        icon: 'folder',
+        isDefault: true,
       },
-    })) as unknown as WorkspaceSessionCreatedHttpResponse
-  }
-  catch (error) {
-    console.error(`Error creating session in workspace ${workspaceUuid}:`, error)
-    throw error
-  }
-}
-
-// Get all sessions in a workspace
-export const getSessionsByWorkspace = async (workspaceUuid: string): Promise<Chat.Session[]> => {
-  try {
-    return (await listWorkspaceSessionsGenerated({ path: { uuid: workspaceUuid } })) as unknown as Chat.Session[]
-  }
-  catch (error) {
-    console.error(`Error fetching sessions for workspace ${workspaceUuid}:`, error)
-    throw error
-  }
-}
-
-// Get active session for a specific workspace
-export const getWorkspaceActiveSession = async (workspaceUuid: string) => {
-  try {
-    return await getWorkspaceActiveSessionGenerated({ path: { workspaceUuid } })
-  }
-  catch (error) {
-    console.error(`Error getting active session for workspace ${workspaceUuid}:`, error)
-    throw error
-  }
-}
-
-// Set active session for a specific workspace
-export const setWorkspaceActiveSession = async (workspaceUuid: string, chatSessionUuid: string) => {
-  try {
-    return await setWorkspaceActiveSessionGenerated({
-      path: { workspaceUuid },
-      body: { chatSessionUuid },
-    })
-  }
-  catch (error) {
-    console.error(`Error setting active session for workspace ${workspaceUuid}:`, error)
-    throw error
-  }
-}
-
-// Get all workspace active sessions for the current user
-export const getAllWorkspaceActiveSessions = async () => {
-  try {
-    return await listWorkspaceActiveSessions()
-  }
-  catch (error) {
-    console.error('Error getting all workspace active sessions:', error)
-    throw error
-  }
-}
-
-// Auto-migrate legacy sessions to default workspace
-export const autoMigrateLegacySessions = async (): Promise<MigrationHttpResponse> => {
-  try {
-    return (await autoMigrateLegacySessionsGenerated()) as unknown as MigrationHttpResponse
-  }
-  catch (error) {
-    console.error('Error auto-migrating legacy sessions:', error)
-    throw error
+    }) as Chat.Workspace
   }
 }

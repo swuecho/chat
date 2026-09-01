@@ -28,11 +28,13 @@ async function submitForm() {
 
 async function addRow(form: ChatModelPrivilege) {
   // create a new chat model, the name is randon string
-  const chatModel = await createUserChatModelPrivilege({ body: {
-    userEmail: form.userEmail,
-    chatModelName: form.chatModelName,
-    rateLimit: parseInt(form.rateLimit, 10),
-  } })
+  const chatModel = await createUserChatModelPrivilege({
+    body: {
+      userEmail: form.userEmail,
+      chatModelName: form.chatModelName,
+      rateLimit: parseInt(form.rateLimit, 10),
+    },
+  })
   // add it to the data array
   return chatModel
 }

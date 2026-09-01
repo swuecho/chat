@@ -28,7 +28,7 @@ import Message from './Message/index.vue';
 import { computed, ref } from 'vue';
 import { useMessageStore, useSessionStore } from '@/store';
 import { useChat } from '@/views/chat/hooks/useChat'
-import { updateChatData } from '@/api'
+import { updateChatData } from '@/api/content'
 import { useDialog } from 'naive-ui'
 import { useCopyCode } from '@/views/chat/hooks/useCopyCode'
 import { useErrorHandling } from '../composables/useErrorHandling'

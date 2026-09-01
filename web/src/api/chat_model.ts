@@ -1,26 +1,7 @@
 import {
-  createChatModel as createChatModelRequest,
-  deleteChatModel as deleteChatModelRequest,
   getDefaultChatModel,
-  getTitleChatModel,
   listChatModels,
-  setTitleChatModel,
-  updateChatModel as updateChatModelRequest,
 } from '@/api/generated_client'
-import type { CreateChatModelData } from '@/api/generated/types.gen'
-
-type ChatModelInput = CreateChatModelData['body']
-
-export const fetchChatModel = () => listChatModels()
-
-export const updateChatModel = (id: number, chatModel: ChatModelInput) =>
-  updateChatModelRequest({ path: { id }, body: chatModel })
-
-export const deleteChatModel = (id: number) =>
-  deleteChatModelRequest({ path: { id } })
-
-export const createChatModel = (chatModel: ChatModelInput) =>
-  createChatModelRequest({ body: chatModel })
 
 export const fetchDefaultChatModel = async () => {
   try {
@@ -41,8 +22,3 @@ export const fetchDefaultChatModel = async () => {
     throw error
   }
 }
-
-export const fetchTitleChatModel = () => getTitleChatModel()
-
-export const updateTitleChatModel = (modelId: number) =>
-  setTitleChatModel({ body: { modelId } })

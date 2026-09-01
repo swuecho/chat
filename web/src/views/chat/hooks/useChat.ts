@@ -1,4 +1,4 @@
-import { updateChatData } from '@/api'
+import { updateChatData } from '@/api/content'
 import { useMessageStore } from '@/store'
 import { nowISO } from '@/utils/date'
 

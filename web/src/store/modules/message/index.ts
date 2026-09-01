@@ -1,9 +1,7 @@
 import { defineStore } from 'pinia'
 import { v7 as uuidv7 } from 'uuid'
 import { useSessionStore } from '../session'
-import {
-  deleteChatData,
-} from '@/api'
+import { deleteChatData } from '@/api/content'
 import { createChatPrompt, deleteChatHistory, generateMessageSuggestions, getChatHistory } from '@/api/generated_client'
 import { getDefaultSystemPrompt } from '@/constants/chat'
 import { nowISO } from '@/utils/date'

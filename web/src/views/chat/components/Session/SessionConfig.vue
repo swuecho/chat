@@ -29,7 +29,7 @@ import {
 } from '@vicons/material'
 import { debounce, isEqual } from 'lodash-es'
 import { useSessionStore, useAppStore } from '@/store'
-import { fetchChatInstructions, fetchChatModel } from '@/api'
+import { getChatInstructions, listChatModels } from '@/api/generated_client'
 
 import { useQuery } from "@tanstack/vue-query";
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
@@ -55,13 +55,13 @@ const props = defineProps<{
 
 const { data, isLoading } = useQuery({
   queryKey: ['chat_models'],
-  queryFn: fetchChatModel,
+  queryFn: () => listChatModels(),
   staleTime: 10 * 60 * 1000,
 })
 
 const { data: instructionData, isLoading: isInstructionLoading } = useQuery({
   queryKey: ['chat_instructions'],
-  queryFn: fetchChatInstructions,
+  queryFn: () => getChatInstructions(),
   staleTime: 10 * 60 * 1000,
 })
 

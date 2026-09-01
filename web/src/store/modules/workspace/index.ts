@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia'
 import { router } from '@/router'
-import {
-  ensureDefaultWorkspace,
-  getChatSessionDefault,
-} from '@/api'
+import { ensureDefaultWorkspace } from '@/api/chat_workspace'
 import {
   autoMigrateLegacySessions,
   createWorkspace as createWorkspaceRequest,

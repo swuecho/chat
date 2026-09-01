@@ -1,16 +1,20 @@
-import { deleteChatMessage, updateChatMessage } from './chat_message'
-import { deleteChatPrompt, updateChatPrompt } from './chat_prompt'
+import {
+  deleteChatMessage,
+  deleteChatPrompt,
+  updateChatMessage,
+  updateChatPrompt,
+} from './generated_client'
 
 export const deleteChatData = async (chat: Chat.Message) => {
   if (chat?.isPrompt)
-    await deleteChatPrompt(chat.uuid)
+    await deleteChatPrompt({ path: { uuid: chat.uuid } })
   else
-    await deleteChatMessage(chat.uuid)
+    await deleteChatMessage({ path: { uuid: chat.uuid } })
 }
 
 export const updateChatData = async (chat: Chat.Message) => {
   if (chat?.isPrompt)
-    await updateChatPrompt(chat)
+    await updateChatPrompt({ path: { uuid: chat.uuid }, body: chat })
   else
-    await updateChatMessage(chat)
+    await updateChatMessage({ path: { uuid: chat.uuid }, body: chat })
 }

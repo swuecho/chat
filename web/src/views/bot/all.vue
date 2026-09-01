@@ -7,8 +7,7 @@ import Search from '../snapshot/components/Search.vue'
 import { fetchChatbotAllData } from '@/api/chat_snapshot'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { generateAPIHelper, getBotPostLinks } from '@/service/snapshot'
-import { createLongLivedToken, deleteChatSnapshot, getChatSnapshot } from '@/api/generated_client'
-import { fetchBotRunCount } from '@/api/bot_answer_history'
+import { countBotAnswerHistory, createLongLivedToken, deleteChatSnapshot, getChatSnapshot } from '@/api/generated_client'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store'
 import Permission from '@/views/components/Permission.vue'
@@ -43,8 +42,8 @@ async function refreshSnapshot() {
   // Fetch run counts for all bots
   const runCountPromises = bots.map(async (bot) => {
     try {
-      const count = await fetchBotRunCount(bot.uuid)
-      return { uuid: bot.uuid, count }
+      const result = await countBotAnswerHistory({ path: { bot_uuid: bot.uuid } })
+      return { uuid: bot.uuid, count: result.count }
     }
     catch (error) {
       console.warn(`Failed to fetch run count for bot ${bot.uuid}:`, error)

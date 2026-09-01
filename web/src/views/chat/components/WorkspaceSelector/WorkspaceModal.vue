@@ -15,7 +15,7 @@ import {
 import { SvgIcon } from '@/components/common'
 import { useWorkspaceStore } from '@/store/modules/workspace'
 import { t } from '@/locales'
-import type { CreateWorkspaceRequest, UpdateWorkspaceRequest } from '@/api'
+import type { CreateWorkspaceRequest, UpdateWorkspaceRequest } from '@/api/generated_client'
 
 interface Props {
   visible: boolean

@@ -112,11 +112,14 @@ async function saveSettings() {
 
   settingsSaving.value = true
   try {
-    const updated = await updateChatBotSettings({ path: { uuid }, body: {
-      title: settingsForm.value.title.trim(),
-      summary: settingsForm.value.summary.trim(),
-      model: settingsForm.value.model,
-    } })
+    const updated = await updateChatBotSettings({
+      path: { uuid },
+      body: {
+        title: settingsForm.value.title.trim(),
+        summary: settingsForm.value.summary.trim(),
+        model: settingsForm.value.model,
+      },
+    })
     snapshot_data.value = updated
     settingsVisible.value = false
     nui_msg.success(t('bot.settingsUpdateSuccess'))

@@ -1,13 +1,8 @@
 import { v7 as uuidv7 } from 'uuid'
 import { fetchDefaultChatModel } from './chat_model'
-import { clearChatMessagesBySessionUUID } from './chat_message'
 import { toUpdateChatSessionPayload } from './chat_session_payload'
 import {
-  createChatSession as createChatSessionGenerated,
   createOrUpdateChatSession,
-  deleteChatSession as deleteChatSessionGenerated,
-  listChatSessions,
-  updateChatSessionTopic,
 } from './generated_client'
 
 export const getChatSessionDefault = async (title: string): Promise<Chat.Session> => {
@@ -27,62 +22,6 @@ export const getChatSessionDefault = async (title: string): Promise<Chat.Session
     exploreMode: true,
     artifactEnabled: false,
   }
-}
-
-export const getChatSessionsByUser = async () => {
-  try {
-    return await listChatSessions()
-  }
-  catch (error) {
-    console.error('Error in getChatSessionsByUser:', error)
-    throw error
-  }
-}
-
-export const deleteChatSession = async (uuid: string) => {
-  try {
-    return await deleteChatSessionGenerated({ path: { uuid } })
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
-
-export const createChatSession = async (
-  uuid: string,
-  name: string,
-  model: string | undefined,
-  defaultSystemPrompt?: string,
-) => {
-  try {
-    return await createChatSessionGenerated({
-      body: {
-        uuid,
-        topic: name,
-        model: model ?? '',
-        defaultSystemPrompt: defaultSystemPrompt ?? '',
-      },
-    })
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
-
-export const renameChatSession = async (uuid: string, name: string) => {
-  try {
-    return await updateChatSessionTopic({ path: { uuid }, body: { topic: name } })
-  }
-  catch (error) {
-    console.error(error)
-    throw error
-  }
-}
-
-export const clearSessionChatMessages = async (sessionUuid: string) => {
-  return clearChatMessagesBySessionUUID(sessionUuid)
 }
 
 export const updateChatSession = async (sessionUuid: string, session_data: Chat.Session) => {
