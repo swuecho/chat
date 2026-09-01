@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toUpdateChatSessionPayload } from '../chat_session_payload'
+import { toUpdateChatSessionPayload } from '../../store/modules/session/payload'
 
 describe('toUpdateChatSessionPayload', () => {
   it('maps the UI session to the strict writable API contract', () => {

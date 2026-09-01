@@ -1,4 +1,4 @@
-import type { UpdateChatSessionRequest } from './generated_client'
+import type { UpdateChatSessionRequest } from '@/api/generated_client'
 
 // Keep the UI model out of the transport contract. Strict backend decoding
 // intentionally rejects view-only fields such as title and isEdit.

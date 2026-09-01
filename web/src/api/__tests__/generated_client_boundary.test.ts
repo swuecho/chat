@@ -31,10 +31,7 @@ describe('generated API client boundary', () => {
 
   it('keeps UI calls on the configured generated client or a behavior adapter', () => {
     const behaviorAdapters = new Set([
-      'api_keys', // shared view-only types
-      'chat_file', // upload/download and UI file metadata
       'chat_model', // default-model fallback
-      'chat_session', // UI model mapping and new-session defaults
       'chat_stream', // ReadableStream parsing
       'chat_workspace', // compatibility fallback for old servers
       'content', // prompt/message dispatch

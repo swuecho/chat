@@ -1,17 +1,26 @@
 import { defineStore } from 'pinia'
 import { useWorkspaceStore } from '../workspace'
+import { toUpdateChatSessionPayload } from './payload'
 import { router } from '@/router'
 import {
-  updateChatSession,
-} from '@/api/chat_session'
-import {
   createChatSession,
+  createOrUpdateChatSession,
   createWorkspaceSession,
   deleteChatSession,
   listWorkspaceSessions,
   updateChatSessionTopic,
 } from '@/api/generated_client'
 import { getDefaultSystemPrompt } from '@/constants/chat'
+
+async function persistChatSession(sessionUuid: string, session: Chat.Session) {
+  if (sessionUuid !== session.uuid)
+    throw new Error('Session UUID does not match the update route')
+
+  return createOrUpdateChatSession({
+    path: { uuid: sessionUuid },
+    body: toUpdateChatSessionPayload(session),
+  })
+}
 
 export interface SessionState {
   workspaceHistory: Record<string, Chat.Session[]> // workspaceUuid -> sessions
@@ -278,7 +287,7 @@ export const useSessionStore = defineStore('session-store', {
             }
             else {
               // For other updates (like model), use the full update endpoint
-              await updateChatSession(uuid, sessions[index])
+              await persistChatSession(uuid, sessions[index])
             }
 
             return sessions[index]
@@ -293,7 +302,7 @@ export const useSessionStore = defineStore('session-store', {
           if (session) {
             console.log('Found session via getter, updating')
             const updatedSession = { ...session, ...updates }
-            await updateChatSession(uuid, updatedSession)
+            await persistChatSession(uuid, updatedSession)
             return updatedSession
           }
         }
