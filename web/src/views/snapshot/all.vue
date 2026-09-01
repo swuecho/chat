@@ -2,8 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { NModal, NPagination, useDialog, useMessage } from 'naive-ui'
 import Search from './components/Search.vue'
-import { fetchSnapshotAll, fetchSnapshotAllData } from '@/api/chat_snapshot'
-import { deleteChatSnapshot } from '@/api/generated_client'
+import { deleteChatSnapshot, listChatSnapshots } from '@/api/generated_client'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { getSnapshotPostLinks } from '@/service/snapshot'
 import { t } from '@/locales'
@@ -33,13 +32,12 @@ function postUrl(uuid: string): string {
 
 async function refreshSnapshot() {
   try {
-    const [response, snapshots] = await Promise.all([
-      fetchSnapshotAll(page.value, pageSize.value),
-      fetchSnapshotAllData(page.value, pageSize.value),
-    ])
-    postsByYearMonth.value = getSnapshotPostLinks(snapshots)
+    const response = await listChatSnapshots({
+      query: { type: 'snapshot', limit: pageSize.value, offset: (page.value - 1) * pageSize.value },
+    })
+    postsByYearMonth.value = getSnapshotPostLinks(response.items)
     // Update total count from response
-    totalCount.value = response.total || snapshots.length || 0
+    totalCount.value = response.total || response.items.length
   }
   catch (error) {
     console.error('Failed to fetch snapshots:', error)

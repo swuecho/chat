@@ -4,10 +4,10 @@ import { NButton, NInput, NModal, useDialog, useMessage } from 'naive-ui'
 import { useRouter } from 'vue-router'
 import copy from 'copy-to-clipboard'
 import Search from '../snapshot/components/Search.vue'
-import { fetchChatbotAllData } from '@/api/chat_snapshot'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { generateAPIHelper, getBotPostLinks } from '@/service/snapshot'
-import { countBotAnswerHistory, createLongLivedToken, deleteChatSnapshot, getChatSnapshot } from '@/api/generated_client'
+import { countBotAnswerHistory, createLongLivedToken, deleteChatSnapshot, getChatSnapshot, listChatSnapshots } from '@/api/generated_client'
+import type { SnapshotListHttpResponse } from '@/api/generated_client'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store'
 import Permission from '@/views/components/Permission.vue'
@@ -36,7 +36,7 @@ onMounted(async () => {
 })
 
 async function refreshSnapshot() {
-  const bots: Snapshot.Snapshot[] = await fetchChatbotAllData()
+  const { items: bots }: SnapshotListHttpResponse = await listChatSnapshots({ query: { type: 'chatbot' } })
   postsByYearMonth.value = getBotPostLinks(bots)
 
   // Fetch run counts for all bots

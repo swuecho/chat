@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NPagination, NSpin } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import Message from './Message/index.vue'
-import { fetchBotAnswerHistory } from '@/api/bot_answer_history'
+import { listBotAnswerHistory } from '@/api/generated_client'
 import { SvgIcon } from '@/components/common'
 
 const props = defineProps<{
@@ -14,22 +14,16 @@ const { t } = useI18n()
 const page = ref(1)
 const pageSize = ref(10)
 
-const { data: historyData, isLoading: isHistoryLoading, refetch } = useQuery({
-  queryKey: ['botAnswerHistory', props.botUuid, page.value, pageSize.value],
-  queryFn: async () => await fetchBotAnswerHistory(props.botUuid, page.value, pageSize.value),
-})
-
-// Watch pageSize changes and reset to page 1
-watch(pageSize, () => {
-  page.value = 1
-})
-
-// Watch page changes and refetch
-watch(page, () => {
-  refetch()
+const { data: historyData, isLoading: isHistoryLoading } = useQuery({
+  queryKey: computed(() => ['botAnswerHistory', props.botUuid, page.value, pageSize.value]),
+  queryFn: () => listBotAnswerHistory({
+    path: { bot_uuid: props.botUuid },
+    query: { limit: pageSize.value, offset: (page.value - 1) * pageSize.value },
+  }),
 })
 
 const model = computed(() => '') // This should be passed from parent or fetched
+const pageCount = computed(() => Math.ceil((historyData.value?.total ?? 0) / pageSize.value))
 </script>
 
 <template>
@@ -64,15 +58,15 @@ const model = computed(() => '') // This should be passed from parent or fetched
           </div>
         </div>
       </div>
-      <div v-if="historyData?.totalPages && historyData?.totalPages > 1" class="flex justify-center my-4">
+      <div v-if="pageCount > 1" class="flex justify-center my-4">
         <NPagination
           v-model:page="page"
-          :page-count="historyData?.totalPages"
+          :page-count="pageCount"
           :page-size="pageSize"
           show-size-picker
           :page-sizes="[10, 20, 50]"
           @update:page="page = $event"
-          @update:page-size="pageSize = $event"
+          @update:page-size="page = 1; pageSize = $event"
         />
       </div>
       <div v-if="historyData?.items == null || historyData?.items?.length === 0" class="flex flex-col items-center justify-center h-64 text-neutral-400">

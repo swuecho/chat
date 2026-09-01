@@ -1,4 +1,7 @@
 import { displayLocaleDate, formatYearMonth } from '@/utils/date'
+import type { SnapshotListHttpResponse } from '@/api/generated_client'
+
+type SnapshotListItem = SnapshotListHttpResponse['items'][number]
 
 export function generateAPIHelper(uuid: string, apiToken: string, origin: string) {
   const data = {
@@ -9,20 +12,20 @@ export function generateAPIHelper(uuid: string, apiToken: string, origin: string
   return `curl -X POST ${origin}/api/chatbot -H "Content-Type: application/json" -H "Authorization: Bearer ${apiToken}" -d '${JSON.stringify(data)}'`
 }
 
-export function getChatbotPosts(posts: Snapshot.Snapshot[]) {
+export function getChatbotPosts(posts: SnapshotListItem[]) {
   return posts
-    .filter((post: Snapshot.Snapshot) => post.typ === 'chatbot')
-    .map((post: Snapshot.Snapshot): Snapshot.PostLink => ({
+    .filter(post => post.typ === 'chatbot')
+    .map((post): Snapshot.PostLink => ({
       uuid: post.uuid,
       date: displayLocaleDate(post.createdAt),
       title: post.title,
     }))
 }
 
-export function getSnapshotPosts(posts: Snapshot.Snapshot[]) {
+export function getSnapshotPosts(posts: SnapshotListItem[]) {
   return posts
-    .filter((post: Snapshot.Snapshot) => post.typ === 'snapshot')
-    .map((post: Snapshot.Snapshot): Snapshot.PostLink => ({
+    .filter(post => post.typ === 'snapshot')
+    .map((post): Snapshot.PostLink => ({
       uuid: post.uuid,
       date: displayLocaleDate(post.createdAt),
       title: post.title,
@@ -41,12 +44,12 @@ export function postsByYearMonthTransform(posts: Snapshot.PostLink[]) {
   }, init)
 }
 
-export function getSnapshotPostLinks(snapshots: Snapshot.Snapshot[]): Record<string, Snapshot.PostLink[]> {
+export function getSnapshotPostLinks(snapshots: SnapshotListItem[]): Record<string, Snapshot.PostLink[]> {
   const snapshotPosts = getSnapshotPosts(snapshots)
   return postsByYearMonthTransform(snapshotPosts)
 }
 
-export function getBotPostLinks(bots: Snapshot.Snapshot[]): Record<string, Snapshot.PostLink[]> {
+export function getBotPostLinks(bots: SnapshotListItem[]): Record<string, Snapshot.PostLink[]> {
   const chatbotPosts = getChatbotPosts(bots)
   return postsByYearMonthTransform(chatbotPosts)
 }

@@ -22,15 +22,13 @@ import Header from '../snapshot/components/Header/index.vue'
 import Message from './components/Message/index.vue'
 import AnswerHistory from './components/AnswerHistory.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
-import { CreateSessionFromSnapshot } from '@/api/chat_snapshot'
-import type { ChatModelHttpResponse as ChatModel } from '@/api/generated_client'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useSessionStore } from '@/store'
 import { generateAPIHelper } from '@/service/snapshot'
-import { createLongLivedToken, getChatSnapshot, listChatModels, updateChatBotSettings } from '@/api/generated_client'
+import { type ChatModelHttpResponse as ChatModel, createChatSessionFromSnapshot, createLongLivedToken, getChatSnapshot, listChatModels, updateChatBotSettings } from '@/api/generated_client'
 
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
@@ -211,10 +209,10 @@ async function handleChat() {
   if (!authStore.getToken)
     nui_msg.error(t('common.ask_user_register'))
   window.open('/', '_blank')
-  const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
-  const session = sessionStore.getChatSessionByUuid(SessionUuid)
+  const { sessionUuid } = await createChatSessionFromSnapshot({ path: { uuid } })
+  const session = sessionStore.getChatSessionByUuid(sessionUuid)
   if (session)
-    sessionStore.setActiveSessionWithoutNavigation(session.workspaceUuid, SessionUuid)
+    sessionStore.setActiveSessionWithoutNavigation(session.workspaceUuid, sessionUuid)
 }
 
 const footerClass = computed(() => {

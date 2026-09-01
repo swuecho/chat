@@ -100,36 +100,9 @@ declare namespace Chat {
 }
 
 declare namespace Snapshot {
-
-	interface Snapshot {
-		uuid: string;
-		userId: number;
-		title: string;
-		summary: string;
-		model: string;
-		tags: Record<string, unknown>;
-		createdAt: string;
-		typ: 'chatbot' | 'snapshot';
-	}
-
 	interface PostLink {
 		uuid: string;
 		date: string;
 		title: string;
 	}
-}
-
-declare namespace Bot {
-	interface BotAnswerHistory {
-		id: number
-		botUuid: string
-		userId: number
-		prompt: string
-		answer: string
-		model: string
-		tokensUsed: number
-		createdAt: string
-		updatedAt: string
-	}
-
 }

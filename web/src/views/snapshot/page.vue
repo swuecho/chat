@@ -7,8 +7,7 @@ import { useQuery } from '@tanstack/vue-query'
 import Message from './components/Message/index.vue'
 import Header from './components/Header/index.vue'
 import { useCopyCode } from '@/hooks/useCopyCode'
-import { CreateSessionFromSnapshot } from '@/api/chat_snapshot'
-import { getChatSnapshot, listSessionComments } from '@/api/generated_client'
+import { createChatSessionFromSnapshot, getChatSnapshot, listSessionComments } from '@/api/generated_client'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
@@ -141,10 +140,10 @@ async function handleChat() {
   if (!authStore.getToken)
     nui_msg.error(t('common.ask_user_register'))
   window.open('/', '_blank')
-  const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
-  const session = sessionStore.getChatSessionByUuid(SessionUuid)
+  const { sessionUuid } = await createChatSessionFromSnapshot({ path: { uuid } })
+  const session = sessionStore.getChatSessionByUuid(sessionUuid)
   if (session)
-    sessionStore.setActiveSessionWithoutNavigation(session.workspaceUuid, SessionUuid)
+    sessionStore.setActiveSessionWithoutNavigation(session.workspaceUuid, sessionUuid)
 }
 
 const footerClass = computed(() => {
