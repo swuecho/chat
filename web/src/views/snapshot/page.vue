@@ -1,11 +1,12 @@
 <script lang='ts' setup>
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { useDialog, useMessage, NSpin } from 'naive-ui'
+import { NSpin, useDialog, useMessage } from 'naive-ui'
 import html2canvas from 'html2canvas'
+import { useQuery } from '@tanstack/vue-query'
 import Message from './components/Message/index.vue'
-import { useCopyCode } from '@/hooks/useCopyCode'
 import Header from './components/Header/index.vue'
+import { useCopyCode } from '@/hooks/useCopyCode'
 import { CreateSessionFromSnapshot } from '@/api/chat_snapshot'
 import { getChatSnapshot, listSessionComments } from '@/api/generated_client'
 import { HoverButton, SvgIcon } from '@/components/common'
@@ -14,7 +15,6 @@ import { t } from '@/locales'
 import { genTempDownloadLink } from '@/utils/download'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useSessionStore } from '@/store'
-import { useQuery } from '@tanstack/vue-query'
 
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
@@ -40,7 +40,6 @@ const { data: comments } = useQuery({
 })
 
 function handleExport() {
-
   const dialogBox = dialog.warning({
     title: t('chat.exportImage'),
     content: t('chat.exportImageConfirm'),
@@ -87,7 +86,7 @@ const chatToMarkdown = () => {
     loading?: boolean
     isPrompt?: boolean
     */
-    const chatData = snapshot_data.value.conversation;
+    const chatData = snapshot_data.value.conversation
     const markdown = chatData.map((chat: Chat.Message) => {
       if (chat.isPrompt)
         return `**system** ${format_chat_md(chat)}`
@@ -141,12 +140,11 @@ function handleMarkdown() {
 async function handleChat() {
   if (!authStore.getToken)
     nui_msg.error(t('common.ask_user_register'))
-  window.open(`/`, '_blank')
+  window.open('/', '_blank')
   const { SessionUuid }: { SessionUuid: string } = await CreateSessionFromSnapshot(uuid)
   const session = sessionStore.getChatSessionByUuid(SessionUuid)
-  if (session) {
+  if (session)
     sessionStore.setActiveSessionWithoutNavigation(session.workspaceUuid, SessionUuid)
-  }
 }
 
 const footerClass = computed(() => {
@@ -160,7 +158,8 @@ const scrollRef = ref<HTMLElement | null>(null)
 
 function onScrollToTop() {
   const container = scrollRef.value
-  if (!container) return
+  if (!container)
+    return
 
   console.log('Current scroll position:', container.scrollTop)
 
@@ -190,12 +189,16 @@ function onScrollToTop() {
       <Header :title="snapshot_data.title" typ="snapshot" />
       <main class="flex flex-1 min-h-0 overflow-hidden">
         <div ref="scrollRef" class="flex-1 overflow-y-auto" style="scroll-behavior: smooth;">
-          <div id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
-            :class="[isMobile ? 'p-2' : 'p-4']">
-            <Message v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
+          <div
+            id="image-wrapper" class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
+            :class="[isMobile ? 'p-2' : 'p-4']"
+          >
+            <Message
+              v-for="(item, index) of snapshot_data.conversation" :key="index" :date-time="item.dateTime"
               :model="item?.model || snapshot_data.model" :text="item.text" :inversion="item.inversion"
               :error="item.error" :loading="item.loading" :index="index" :uuid="item.uuid" :session-uuid="uuid"
-              :comments="comments" :artifacts="item.artifacts" />
+              :comments="comments" :artifacts="item.artifacts"
+            />
           </div>
         </div>
       </main>

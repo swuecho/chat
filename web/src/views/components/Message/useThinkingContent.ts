@@ -1,20 +1,17 @@
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { parseThinkingContent } from './thinkingParser'
-import type { 
-  ThinkingContent, 
-  ThinkingParseResult, 
-  ThinkingComposableReturn, 
-  UseThinkingContentOptions 
+import type {
+  ThinkingComposableReturn,
+  ThinkingParseResult,
+  UseThinkingContentOptions,
 } from './types/thinking'
 
 export function useThinkingContent(
-  text: string | undefined, 
-  options: UseThinkingContentOptions = {}
+  text: string | undefined,
+  options: UseThinkingContentOptions = {},
 ): ThinkingComposableReturn {
   const {
     defaultExpanded = true,
-    enableCache = true,
-    parserConfig = {}
   } = options
 
   const isExpanded = ref(defaultExpanded)
@@ -28,7 +25,7 @@ export function useThinkingContent(
         hasThinking: false,
         thinkingContent: { content: '', isExpanded: defaultExpanded },
         answerContent: '',
-        rawText: ''
+        rawText: '',
       }
       return
     }
@@ -49,16 +46,14 @@ export function useThinkingContent(
   // Methods
   const toggleExpanded = () => {
     isExpanded.value = !isExpanded.value
-    if (thinkingContent.value) {
+    if (thinkingContent.value)
       thinkingContent.value.isExpanded = isExpanded.value
-    }
   }
 
   const setExpanded = (expanded: boolean) => {
     isExpanded.value = expanded
-    if (thinkingContent.value) {
+    if (thinkingContent.value)
       thinkingContent.value.isExpanded = expanded
-    }
   }
 
   const refreshParse = () => {
@@ -77,29 +72,28 @@ export function useThinkingContent(
     setExpanded,
     parsedResult,
     refreshParse,
-    updateText
+    updateText,
   }
 }
 
 // Composable for managing multiple thinking contents
 export function useMultipleThinkingContent(
   texts: Array<{ id: string; text: string }>,
-  options: UseThinkingContentOptions = {}
+  options: UseThinkingContentOptions = {},
 ) {
   const thinkingStates = ref(new Map<string, ThinkingComposableReturn>())
 
   const getThinkingState = (id: string, text: string) => {
-    if (!thinkingStates.value.has(id)) {
+    if (!thinkingStates.value.has(id))
       thinkingStates.value.set(id, useThinkingContent(text, options))
-    }
+
     return thinkingStates.value.get(id)!
   }
 
   const updateText = (id: string, newText: string) => {
     const state = thinkingStates.value.get(id)
-    if (state) {
+    if (state)
       state.updateText(newText)
-    }
   }
 
   const removeThinkingState = (id: string) => {
@@ -115,7 +109,7 @@ export function useMultipleThinkingContent(
     updateText,
     removeThinkingState,
     clearAllStates,
-    states: thinkingStates
+    states: thinkingStates,
   }
 }
 
@@ -130,8 +124,8 @@ export function useThinkingStats() {
     if (parsedResult.hasThinking) {
       totalWithThinking.value++
       const thinkingLength = parsedResult.thinkingContent.content.length
-      averageThinkingLength.value = 
-        (averageThinkingLength.value * (totalWithThinking.value - 1) + thinkingLength) / totalWithThinking.value
+      averageThinkingLength.value
+        = (averageThinkingLength.value * (totalWithThinking.value - 1) + thinkingLength) / totalWithThinking.value
     }
   }
 
@@ -139,7 +133,7 @@ export function useThinkingStats() {
     totalParsed: totalParsed.value,
     totalWithThinking: totalWithThinking.value,
     thinkingRate: totalParsed.value > 0 ? (totalWithThinking.value / totalParsed.value) * 100 : 0,
-    averageThinkingLength: Math.round(averageThinkingLength.value)
+    averageThinkingLength: Math.round(averageThinkingLength.value),
   }))
 
   const resetStats = () => {
@@ -151,6 +145,6 @@ export function useThinkingStats() {
   return {
     updateStats,
     getStats,
-    resetStats
+    resetStats,
   }
 }

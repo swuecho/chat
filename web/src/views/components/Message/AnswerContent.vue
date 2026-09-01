@@ -15,7 +15,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   inversion: false,
-  isMarkdown: true
+  isMarkdown: true,
 })
 
 const { isMobile } = useBasicLayout()
@@ -47,10 +47,9 @@ const wrapClass = computed(() => {
 })
 
 const renderedContent = computed(() => {
-  if (!props.isMarkdown || props.inversion) {
+  if (!props.isMarkdown || props.inversion)
     return props.content
-  }
-  
+
   const escapedText = escapeBrackets(escapeDollarNumber(props.content))
   return mdi.render(escapedText)
 })

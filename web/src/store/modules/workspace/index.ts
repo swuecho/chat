@@ -9,8 +9,8 @@ import {
   listWorkspaceActiveSessions,
   listWorkspaces,
   setDefaultWorkspace as setDefaultWorkspaceRequest,
-  updateWorkspace as updateWorkspaceRequest,
   updateWorkspaceOrder as updateWorkspaceOrderRequest,
+  updateWorkspace as updateWorkspaceRequest,
 } from '@/api/generated_client'
 
 import { useSessionStore } from '@/store/modules/session'
@@ -36,9 +36,9 @@ export const useWorkspaceStore = defineStore('workspace-store', {
   getters: {
     getWorkspaceByUuid(state) {
       return (uuid?: string) => {
-        if (uuid) {
+        if (uuid)
           return state.workspaces.find(workspace => workspace.uuid === uuid)
-        }
+
         return null
       }
     },
@@ -48,9 +48,9 @@ export const useWorkspaceStore = defineStore('workspace-store', {
     },
 
     activeWorkspace(state) {
-      if (state.activeWorkspaceUuid) {
+      if (state.activeWorkspaceUuid)
         return state.workspaces.find(workspace => workspace.uuid === state.activeWorkspaceUuid)
-      }
+
       return null
     },
 
@@ -71,10 +71,10 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         // Step 1: Handle legacy session migration (if needed)
         try {
           const migrationResult = await autoMigrateLegacySessions()
-          if (migrationResult.hasLegacySessions && migrationResult.migratedSessions > 0) {
+          if (migrationResult.hasLegacySessions && migrationResult.migratedSessions > 0)
             console.log(`🔄 Auto-migrated ${migrationResult.migratedSessions} legacy sessions to default workspace`)
-          }
-        } catch (migrationError) {
+        }
+        catch (migrationError) {
           console.warn('⚠️ Legacy session migration failed:', migrationError)
         }
 
@@ -96,7 +96,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
         console.log('✅ Optimized workspace initialization completed')
         return activeWorkspace
-      } catch (error) {
+      }
+      catch (error) {
         console.error('❌ Error in optimized workspace initialization:', error)
         throw error
       }
@@ -119,11 +120,13 @@ export const useWorkspaceStore = defineStore('workspace-store', {
               console.log('🔄 Refreshing page after migration')
               window.location.reload()
               return // Exit early since we're refreshing
-            } else {
+            }
+            else {
               console.log('🔄 Skipping refresh - already on workspace route')
             }
           }
-        } catch (migrationError) {
+        }
+        catch (migrationError) {
           console.warn('⚠️ Legacy session migration failed:', migrationError)
           // Continue with normal sync - don't block the app
         }
@@ -154,7 +157,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         await this.handleInitialNavigation(urlWorkspaceUuid || undefined, urlSessionUuid || undefined, isOnDefaultRoute)
 
         console.log('✅ Application initialization completed successfully')
-      } catch (error) {
+      }
+      catch (error) {
         console.error('❌ Error in initializeApplication:', error)
         throw error
       }
@@ -162,13 +166,12 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
     upsertWorkspace(workspace: Chat.Workspace) {
       const index = this.workspaces.findIndex(w => w.uuid === workspace.uuid)
-      if (index >= 0) {
+      if (index >= 0)
         this.workspaces[index] = workspace
-      } else if (this.workspaces.length === 0) {
+      else if (this.workspaces.length === 0)
         this.workspaces = [workspace]
-      } else {
+      else
         this.workspaces.push(workspace)
-      }
     },
 
     async ensureWorkspaceLoaded(workspaceUuid: string) {
@@ -192,7 +195,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
             const workspace = await this.ensureWorkspaceLoaded(targetWorkspaceUuid)
             this.activeWorkspaceUuid = workspace.uuid
             return workspace
-          } catch (error) {
+          }
+          catch (error) {
             console.warn(`Failed to load specific workspace ${targetWorkspaceUuid}, falling back to default`, error)
           }
         }
@@ -212,10 +216,12 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
         console.log('✅ Loaded default workspace:', defaultWorkspace.name)
         return defaultWorkspace
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to load active workspace:', error)
         throw error
-      } finally {
+      }
+      finally {
         this.isLoading = false
       }
     },
@@ -230,12 +236,12 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         // Ensure activeWorkspaceUuid is still valid
         if (this.activeWorkspaceUuid && !allWorkspaces.find(w => w.uuid === this.activeWorkspaceUuid)) {
           const defaultWs = allWorkspaces.find(w => w.isDefault) || allWorkspaces[0]
-          if (defaultWs) {
+          if (defaultWs)
             this.activeWorkspaceUuid = defaultWs.uuid
-          }
         }
         return allWorkspaces
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to load all workspaces:', error)
         throw error
       }
@@ -252,9 +258,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         for (const session of backendSessions) {
           if (session.workspaceUuid) {
             this.workspaceActiveSessions[session.workspaceUuid] = session.chatSessionUuid
-            if (!globalActiveSession) {
+            if (!globalActiveSession)
               globalActiveSession = session
-            }
           }
         }
 
@@ -265,20 +270,23 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
           try {
             await this.ensureWorkspaceLoaded(urlWorkspaceUuid)
-          } catch (error) {
+          }
+          catch (error) {
             console.warn('⚠️ Failed to load workspace from URL:', error)
           }
 
           // Set active session in session store
           const sessionStore = useSessionStore()
           sessionStore.setActiveSessionWithoutNavigation(urlWorkspaceUuid, urlSessionUuid)
-        } else if (urlWorkspaceUuid) {
+        }
+        else if (urlWorkspaceUuid) {
           this.activeWorkspaceUuid = urlWorkspaceUuid
           console.log('✅ Used workspace from URL (no session):', urlWorkspaceUuid)
 
           try {
             await this.ensureWorkspaceLoaded(urlWorkspaceUuid)
-          } catch (error) {
+          }
+          catch (error) {
             console.warn('⚠️ Failed to load workspace from URL:', error)
           }
 
@@ -289,13 +297,15 @@ export const useWorkspaceStore = defineStore('workspace-store', {
             sessionStore.setActiveSessionWithoutNavigation(urlWorkspaceUuid, activeSessionForWorkspace)
             console.log('✅ Restored active session for workspace:', activeSessionForWorkspace)
           }
-        } else if (globalActiveSession?.workspaceUuid) {
+        }
+        else if (globalActiveSession?.workspaceUuid) {
           this.activeWorkspaceUuid = globalActiveSession.workspaceUuid
           console.log('✅ Used workspace from backend:', globalActiveSession.workspaceUuid)
 
           try {
             await this.ensureWorkspaceLoaded(globalActiveSession.workspaceUuid)
-          } catch (error) {
+          }
+          catch (error) {
             console.warn('⚠️ Failed to load active workspace from backend state:', error)
           }
 
@@ -304,7 +314,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           sessionStore.setActiveSessionWithoutNavigation(globalActiveSession.workspaceUuid, globalActiveSession.chatSessionUuid)
           console.log('✅ Restored active session from backend:', globalActiveSession.chatSessionUuid)
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.warn('⚠️ Failed to sync workspace active sessions:', error)
       }
     },
@@ -355,7 +366,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           await sessionStore.setActiveSession(session.workspaceUuid || this.activeWorkspaceUuid, urlSessionUuid)
           console.log('✅ Set active session from URL:', urlSessionUuid)
         }
-      } else if (this.activeWorkspaceUuid) {
+      }
+      else if (this.activeWorkspaceUuid) {
         // Find a session to activate in the active workspace
         const workspaceSessions = sessionStore.getSessionsByWorkspace(this.activeWorkspaceUuid)
         if (workspaceSessions.length > 0) {
@@ -369,7 +381,7 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         console.log('✅ Navigating from default route to active workspace')
         await router.push({
           name: 'WorkspaceChat',
-          params: { workspaceUuid: this.activeWorkspaceUuid }
+          params: { workspaceUuid: this.activeWorkspaceUuid },
         })
       }
     },
@@ -382,19 +394,20 @@ export const useWorkspaceStore = defineStore('workspace-store', {
 
         // Ensure we have a default workspace
         const defaultWorkspace = this.workspaces.find(workspace => workspace.isDefault) || null
-        if (!defaultWorkspace) {
+        if (!defaultWorkspace)
           await this.ensureDefaultWorkspace()
-        }
 
         // Set active workspace if not already set
         if (!this.activeWorkspaceUuid && this.workspaces.length > 0) {
           const defaultWs = this.workspaces.find(workspace => workspace.isDefault) || this.workspaces[0]
           this.activeWorkspaceUuid = defaultWs.uuid
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to sync workspaces:', error)
         throw error
-      } finally {
+      }
+      finally {
         this.isLoading = false
       }
     },
@@ -411,13 +424,15 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           const new_chat_text = t('chat.new')
           await sessionStore.createSessionInWorkspace(new_chat_text, defaultWorkspace.uuid)
           console.log(`✅ Created default session for default workspace: ${defaultWorkspace.name}`)
-        } catch (sessionError) {
+        }
+        catch (sessionError) {
           console.warn(`⚠️ Failed to create default session for default workspace ${defaultWorkspace.name}:`, sessionError)
           // Don't throw here - workspace creation should succeed even if session creation fails
         }
 
         return defaultWorkspace
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to ensure default workspace:', error)
         throw error
       }
@@ -437,7 +452,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           workspace = await getWorkspaceRequest({ path: { uuid: workspaceUuid } }) as Chat.Workspace
           this.upsertWorkspace(workspace)
           console.log(`✅ Loaded workspace on-demand: ${workspace.name}`)
-        } catch (error) {
+        }
+        catch (error) {
           console.error(`Failed to load workspace ${workspaceUuid}:`, error)
           throw new Error(`Workspace ${workspaceUuid} not found`)
         }
@@ -465,8 +481,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       const activeSessionForWorkspace = this.workspaceActiveSessions[workspaceUuid]
       const hasSessions = sessionsAfterLoad.length > 0
       const isStoredSessionValid = Boolean(
-        activeSessionForWorkspace &&
-        sessionsAfterLoad.some(session => session.uuid === activeSessionForWorkspace)
+        activeSessionForWorkspace
+        && sessionsAfterLoad.some(session => session.uuid === activeSessionForWorkspace),
       )
 
       console.log('🔍 Active session for workspace:', activeSessionForWorkspace, 'isValid:', isStoredSessionValid)
@@ -474,12 +490,14 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       if (isStoredSessionValid && activeSessionForWorkspace) {
         sessionStore.setActiveSessionWithoutNavigation(workspaceUuid, activeSessionForWorkspace)
         console.log('✅ Restored previously active session')
-      } else if (hasSessions) {
+      }
+      else if (hasSessions) {
         const firstSession = sessionsAfterLoad[0]
         console.log('🔄 Selecting first available session as active:', firstSession.title)
         sessionStore.setActiveSessionWithoutNavigation(workspaceUuid, firstSession.uuid)
         console.log('✅ Set first session as active')
-      } else {
+      }
+      else {
         console.log('⚠️ No sessions available in workspace; clearing active session state')
         this.clearActiveSessionForWorkspace(workspaceUuid)
         sessionStore.activeSessionUuid = null
@@ -501,7 +519,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         const session = sessionStore.getChatSessionByUuid(pending.sessionUuid)
         if (session) {
           sessionStore.setActiveSession(pending.workspaceUuid, pending.sessionUuid)
-        } else {
+        }
+        else {
           // Session no longer exists, clear the tracking
           delete this.workspaceActiveSessions[pending.workspaceUuid]
         }
@@ -512,14 +531,16 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       }
     },
 
-    async createWorkspace(name: string, description: string = '', color: string = '#6366f1', icon: string = 'folder') {
+    async createWorkspace(name: string, description = '', color = '#6366f1', icon = 'folder') {
       try {
-        const newWorkspace = await createWorkspaceRequest({ body: {
-          name,
-          description,
-          color,
-          icon,
-        } }) as Chat.Workspace
+        const newWorkspace = await createWorkspaceRequest({
+          body: {
+            name,
+            description,
+            color,
+            icon,
+          },
+        }) as Chat.Workspace
         this.workspaces.push(newWorkspace)
 
         // Automatically create a default session for the new workspace
@@ -528,13 +549,15 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           const new_chat_text = t('chat.new')
           await sessionStore.createSessionInWorkspace(new_chat_text, newWorkspace.uuid)
           console.log(`✅ Created default session for new workspace: ${newWorkspace.name}`)
-        } catch (sessionError) {
+        }
+        catch (sessionError) {
           console.warn(`⚠️ Failed to create default session for workspace ${newWorkspace.name}:`, sessionError)
           // Don't throw here - workspace creation should succeed even if session creation fails
         }
 
         return newWorkspace
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to create workspace:', error)
         throw error
       }
@@ -547,11 +570,12 @@ export const useWorkspaceStore = defineStore('workspace-store', {
           body: updates,
         }) as Chat.Workspace
         const index = this.workspaces.findIndex(w => w.uuid === workspaceUuid)
-        if (index !== -1) {
+        if (index !== -1)
           this.workspaces[index] = updatedWorkspace
-        }
+
         return updatedWorkspace
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to update workspace:', error)
         throw error
       }
@@ -568,15 +592,15 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         // If we deleted the active workspace, switch to default
         if (this.activeWorkspaceUuid === workspaceUuid) {
           const defaultWorkspace = this.workspaces.find(workspace => workspace.isDefault) || null
-          if (defaultWorkspace) {
+          if (defaultWorkspace)
             this.activeWorkspaceUuid = defaultWorkspace.uuid
-          } else if (this.workspaces.length > 0) {
+          else if (this.workspaces.length > 0)
             this.activeWorkspaceUuid = this.workspaces[0].uuid
-          } else {
+          else
             this.activeWorkspaceUuid = null
-          }
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to delete workspace:', error)
         throw error
       }
@@ -586,10 +610,11 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       try {
         await setDefaultWorkspaceRequest({ path: { uuid: workspaceUuid } })
         // Update local state
-        this.workspaces.forEach(workspace => {
+        this.workspaces.forEach((workspace) => {
           workspace.isDefault = workspace.uuid === workspaceUuid
         })
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to set default workspace:', error)
         throw error
       }
@@ -613,9 +638,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         const reorderedWorkspaces: Chat.Workspace[] = []
         workspaceUuids.forEach((uuid, index) => {
           const workspace = this.workspaces.find(w => w.uuid === uuid)
-          if (workspace) {
+          if (workspace)
             reorderedWorkspaces.push({ ...workspace, orderPosition: index })
-          }
         })
 
         // If we couldn't build a valid reordered list, avoid wiping the current state
@@ -625,7 +649,8 @@ export const useWorkspaceStore = defineStore('workspace-store', {
         }
 
         this.workspaces = reorderedWorkspaces
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to update workspace order:', error)
         throw error
       }
@@ -653,18 +678,18 @@ export const useWorkspaceStore = defineStore('workspace-store', {
       }
 
       // Only skip if route params already match exactly
-      if (currentRoute.name === 'WorkspaceChat' &&
-          currentWorkspaceUuid === workspaceUuid &&
-          currentSessionUuid === targetSessionUuid) {
+      if (currentRoute.name === 'WorkspaceChat'
+          && currentWorkspaceUuid === workspaceUuid
+          && currentSessionUuid === targetSessionUuid) {
         console.log('Already on exact target route, skipping navigation')
         return
       }
 
       // Skip stale navigations that no longer match the latest requested session
       const sessionStore = useSessionStore()
-      if (targetSessionUuid &&
-          sessionStore.lastRequestedSessionUuid !== targetSessionUuid &&
-          sessionStore.lastRequestedSessionUuid !== null) {
+      if (targetSessionUuid
+          && sessionStore.lastRequestedSessionUuid !== targetSessionUuid
+          && sessionStore.lastRequestedSessionUuid !== null) {
         console.log('Navigation target differs from last requested session, skipping stale navigation')
         return
       }

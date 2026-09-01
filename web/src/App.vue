@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { NConfigProvider } from 'naive-ui'
+import { VueQueryDevtools } from '@tanstack/vue-query-devtools'
 import { NaiveProvider } from '@/components/common'
 import { useTheme } from '@/hooks/useTheme'
 import { useLanguage } from '@/hooks/useLanguage'
-import { VueQueryDevtools } from '@tanstack/vue-query-devtools'
-
 
 const { theme, themeOverrides } = useTheme()
 const { language } = useLanguage()

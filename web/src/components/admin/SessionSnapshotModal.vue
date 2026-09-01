@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue'
-import { NSpin, NModal, NCard, useMessage, NButton, NSpace } from 'naive-ui'
+import { computed, watch } from 'vue'
+import { NButton, NCard, NModal, NSpace, NSpin, useMessage } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import { getAdminSessionMessages } from '@/api/generated_client'
 import { HoverButton, SvgIcon } from '@/components/common'
@@ -39,14 +39,15 @@ const message = useMessage()
 
 const show = computed({
   get: () => props.visible,
-  set: (visible: boolean) => emit('update:visible', visible)
+  set: (visible: boolean) => emit('update:visible', visible),
 })
 
 // Fetch session messages when modal opens
 const { data: messages, isLoading, error } = useQuery({
   queryKey: ['sessionMessages', props.sessionId],
   queryFn: async () => {
-    if (!props.sessionId) return []
+    if (!props.sessionId)
+      return []
     return await getAdminSessionMessages({ path: { sessionUuid: props.sessionId } })
   },
   enabled: computed(() => props.visible && !!props.sessionId),
@@ -54,8 +55,9 @@ const { data: messages, isLoading, error } = useQuery({
 
 // Format messages for display
 const formattedMessages = computed(() => {
-  if (!messages.value) return []
-  
+  if (!messages.value)
+    return []
+
   return messages.value.map((msg: ChatMessage, index: number) => ({
     uuid: msg.uuid,
     index,
@@ -65,7 +67,7 @@ const formattedMessages = computed(() => {
     inversion: msg.role === 'user' || (msg.role === 'system' && index === 0),
     error: false,
     loading: false,
-    tokenCount: msg.tokenCount
+    tokenCount: msg.tokenCount,
   }))
 })
 
@@ -78,9 +80,8 @@ function handleCopy(text: string) {
 // Scroll to top
 function scrollToTop() {
   const container = document.querySelector('.session-snapshot-content')
-  if (container) {
+  if (container)
     container.scrollTo({ top: 0, behavior: 'smooth' })
-  }
 }
 
 // Calculate total tokens
@@ -91,7 +92,8 @@ const totalTokens = computed(() => {
 // Format date safely
 function formatMessageDate(dateString: string) {
   try {
-    if (!dateString) return ''
+    if (!dateString)
+      return ''
     // Handle different date formats from backend
     const date = new Date(dateString)
     if (isNaN(date.getTime())) {
@@ -99,7 +101,8 @@ function formatMessageDate(dateString: string) {
       return dateString
     }
     return displayLocaleDate(date.toISOString())
-  } catch (error) {
+  }
+  catch (error) {
     console.warn('Invalid date format:', dateString)
     return dateString
   }
@@ -107,19 +110,18 @@ function formatMessageDate(dateString: string) {
 
 // Watch for errors
 watch(error, (newError) => {
-  if (newError) {
+  if (newError)
     message.error(t('common.fetchFailed'))
-  }
 })
 </script>
 
 <template>
   <NModal v-model:show="show" :style="{ width: ['100vw', '90vw', '1200px'] }">
-    <NCard 
-      role="dialog" 
-      aria-modal="true" 
+    <NCard
+      role="dialog"
+      aria-modal="true"
       :title="`${t('admin.sessionSnapshot')} - ${sessionId.slice(0, 8)}...`"
-      :bordered="false" 
+      :bordered="false"
       size="huge"
       class="session-snapshot-modal"
     >
@@ -128,79 +130,79 @@ watch(error, (newError) => {
           <span class="text-sm text-gray-500">
             {{ t('admin.model') }}: {{ sessionModel }}
           </span>
-          <span class="text-sm text-gray-500" v-if="!isLoading">
+          <span v-if="!isLoading" class="text-sm text-gray-500">
             {{ t('admin.totalTokens') }}: {{ totalTokens }}
           </span>
         </NSpace>
       </template>
-      
+
       <NSpin :show="isLoading">
         <div class="session-snapshot-content" style="max-height: 70vh; overflow-y: auto;">
           <div v-if="formattedMessages.length === 0 && !isLoading" class="text-center py-8 text-gray-500">
             {{ t('common.noData') }}
           </div>
-          
+
           <div v-else class="space-y-4">
             <div
-              v-for="message in formattedMessages"
-              :key="message.uuid"
+              v-for="chatMessage in formattedMessages"
+              :key="chatMessage.uuid"
               class="flex w-full"
-              :class="[message.inversion ? 'flex-row-reverse' : 'flex-row']"
+              :class="[chatMessage.inversion ? 'flex-row-reverse' : 'flex-row']"
             >
               <div
                 class="flex items-start space-x-2"
                 :class="[
-                  message.inversion ? 'flex-row-reverse space-x-reverse ml-4' : 'mr-4'
+                  chatMessage.inversion ? 'flex-row-reverse space-x-reverse ml-4' : 'mr-4',
                 ]"
               >
                 <!-- Avatar -->
                 <div class="flex-shrink-0">
-                  <AvatarComponent :image="message.inversion" />
+                  <AvatarComponent :image="chatMessage.inversion" />
                 </div>
-                
+
                 <!-- Message Content -->
                 <div
                   class="max-w-[calc(100%-3rem)] rounded-lg px-4 py-3 relative group"
                   :class="[
-                    message.inversion
+                    chatMessage.inversion
                       ? 'text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100',
                   ]"
                 >
                   <!-- Copy Button -->
                   <div
                     class="absolute -top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    :class="[message.inversion ? '-left-2' : '-right-2']"
+                    :class="[chatMessage.inversion ? '-left-2' : '-right-2']"
                   >
-                    <HoverButton @click="handleCopy(message.text)" size="small">
+                    <HoverButton size="small" @click="handleCopy(chatMessage.text)">
                       <SvgIcon icon="ri:file-copy-2-line" />
                     </HoverButton>
                   </div>
-                  
+
                   <!-- Message Text -->
                   <div class="message-content">
                     <TextComponent
                       ref="textRef"
-                      :inversion="message.inversion"
-                      :error="message.error"
-                      :text="message.text"
-                      :loading="message.loading"
-                      :model="message.model"
+                      :inversion="chatMessage.inversion"
+                      :error="chatMessage.error"
+                      :text="chatMessage.text"
+                      :loading="chatMessage.loading"
+                      :model="chatMessage.model"
                       :as-raw-text="false"
                     />
                   </div>
-                  
+
                   <!-- Message Info -->
-                  <div 
+                  <div
                     class="text-xs opacity-70 mt-2 flex items-center gap-2"
-                    :class="[message.inversion ? 'text-blue-100' : 'text-gray-500']"
+                    :class="[chatMessage.inversion ? 'text-blue-100' : 'text-gray-500']"
                   >
-                    <span>{{ formatMessageDate(message.dateTime) }}</span>
-                    <span v-if="message.tokenCount">
-                      • {{ message.tokenCount }} {{ t('admin.tokens') }}
+                    <span>{{ formatMessageDate(chatMessage.dateTime) }}</span>
+                    <span v-if="chatMessage.tokenCount">
+                      • {{ chatMessage.tokenCount }} {{ t('admin.tokens') }}
                     </span>
-                    <span v-if="!message.inversion && message.model">
-                      • {{ message.model }}
+                    <span v-if="!chatMessage.inversion && chatMessage.model">
+                      • {{ chatMessage.model }}
                     </span>
                   </div>
                 </div>
@@ -209,19 +211,19 @@ watch(error, (newError) => {
           </div>
         </div>
       </NSpin>
-      
+
       <!-- Footer with actions -->
       <template #footer>
         <div class="flex justify-between items-center">
           <NSpace>
-            <NButton @click="scrollToTop" size="small" secondary>
+            <NButton size="small" secondary @click="scrollToTop">
               <template #icon>
                 <SvgIcon icon="ri:arrow-up-line" />
               </template>
               {{ t('chat.backToTop') }}
             </NButton>
           </NSpace>
-          
+
           <NSpace>
             <span class="text-sm text-gray-500">
               {{ t('admin.userEmail') }}: {{ userEmail }}

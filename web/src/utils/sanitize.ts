@@ -11,9 +11,8 @@ const stripUnsafeAttributes = (element: Element) => {
       continue
     }
 
-    if ((name === 'href' || name === 'src' || name === 'xlink:href') && value.startsWith('javascript:')) {
+    if ((name === 'href' || name === 'src' || name === 'xlink:href') && value.startsWith('javascript:'))
       element.removeAttribute(attr.name)
-    }
   }
 }
 
@@ -25,11 +24,11 @@ const sanitizeElementTree = (root: Element, blockedTags: Set<string>) => {
   let current = walker.currentNode as Element
   while (current) {
     const tagName = current.tagName.toLowerCase()
-    if (blockedTags.has(tagName)) {
+    if (blockedTags.has(tagName))
       toRemove.push(current)
-    } else {
+    else
       stripUnsafeAttributes(current)
-    }
+
     current = walker.nextNode() as Element
   }
 
@@ -42,7 +41,8 @@ export const sanitizeHtml = (input: string): string => {
     const doc = parser.parseFromString(input, 'text/html')
     sanitizeElementTree(doc.body, BLOCKED_TAGS)
     return doc.body.innerHTML
-  } catch {
+  }
+  catch {
     return ''
   }
 }
@@ -52,10 +52,12 @@ export const sanitizeSvg = (input: string): string => {
     const parser = new DOMParser()
     const doc = parser.parseFromString(input, 'image/svg+xml')
     const root = doc.documentElement
-    if (!root) return ''
+    if (!root)
+      return ''
     sanitizeElementTree(root, BLOCKED_SVG_TAGS)
     return new XMLSerializer().serializeToString(root)
-  } catch {
+  }
+  catch {
     return ''
   }
 }

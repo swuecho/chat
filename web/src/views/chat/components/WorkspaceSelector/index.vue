@@ -1,19 +1,17 @@
 <script setup lang="ts">
-import { computed, ref, h, onMounted, watch, nextTick } from 'vue'
+import { computed, h, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NDropdown, NIcon, NText, NTooltip, useMessage } from 'naive-ui'
+import { NDropdown, useMessage } from 'naive-ui'
 import type { DropdownOption } from 'naive-ui'
-import { SvgIcon } from '@/components/common'
-import { useWorkspaceStore } from '@/store/modules/workspace'
-import { useSessionStore } from '@/store/modules/session'
-import { t } from '@/locales'
 import WorkspaceModal from './WorkspaceModal.vue'
 import WorkspaceManagementModal from './WorkspaceManagementModal.vue'
+import { SvgIcon } from '@/components/common'
+import { useWorkspaceStore } from '@/store/modules/workspace'
+import { t } from '@/locales'
 
 const router = useRouter()
 
 const workspaceStore = useWorkspaceStore()
-const sessionStore = useSessionStore()
 const message = useMessage()
 
 const showCreateModal = ref(false)
@@ -32,7 +30,8 @@ watch([activeWorkspace, workspaces], async ([active, spaces]) => {
     await nextTick()
     try {
       await workspaceStore.loadAllWorkspaces()
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to auto-load workspaces:', error)
     }
   }
@@ -45,7 +44,8 @@ onMounted(async () => {
 
   try {
     await workspaceStore.loadAllWorkspaces()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Failed to load workspaces on mount:', error)
   }
 })
@@ -55,7 +55,8 @@ async function handleDropdownVisibilityChange(visible: boolean) {
   if (visible && workspaces.value.length <= 1) {
     try {
       await workspaceStore.loadAllWorkspaces()
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to load workspaces on dropdown open:', error)
     }
   }
@@ -66,19 +67,19 @@ async function handleBeforeShow() {
   if (workspaces.value.length <= 1) {
     try {
       await workspaceStore.loadAllWorkspaces()
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to load workspaces before show:', error)
     }
   }
 }
 
-
 // Icon mapping - convert icon value to full icon string
 const getWorkspaceIconString = (iconValue: string) => {
   // If already has prefix, return as is
-  if (iconValue.includes(':')) {
+  if (iconValue.includes(':'))
     return iconValue
-  }
+
   // Otherwise add material-symbols prefix
   return `material-symbols:${iconValue}`
 }
@@ -92,7 +93,7 @@ const dropdownOptions = computed((): DropdownOption[] => {
     })),
     { type: 'divider', key: 'divider1' },
     { key: 'create-workspace', label: t('workspace.create'), icon: () => h(SvgIcon, { icon: 'material-symbols:add' }) },
-    { key: 'manage-workspaces', label: t('workspace.manage'), icon: () => h(SvgIcon, { icon: 'material-symbols:settings' }) }
+    { key: 'manage-workspaces', label: t('workspace.manage'), icon: () => h(SvgIcon, { icon: 'material-symbols:settings' }) },
   ]
   return options
 })
@@ -101,9 +102,11 @@ async function handleDropdownSelect(key: string) {
   console.log('🔄 Dropdown select triggered, key:', key)
   if (key === 'create-workspace') {
     showCreateModal.value = true
-  } else if (key === 'manage-workspaces') {
+  }
+  else if (key === 'manage-workspaces') {
     showManagementModal.value = true
-  } else {
+  }
+  else {
     // Switch to selected workspace
     console.log('🔄 Switching to workspace:', key)
     try {
@@ -122,7 +125,8 @@ async function handleDropdownSelect(key: string) {
       console.log('✅ Navigation completed')
 
       message.success('Workspace switched successfully')
-    } catch (error) {
+    }
+    catch (error) {
       console.error('❌ Error switching workspace:', error)
       message.error('Failed to switch workspace')
     }
@@ -149,9 +153,11 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
 
 <template>
   <div class="workspace-selector">
-    <NDropdown :options="dropdownOptions" trigger="click" placement="bottom-start" @select="handleDropdownSelect"
-      class="workspace-dropdown" :width="'trigger'" @update:visible="handleDropdownVisibilityChange"
-      @before-show="handleBeforeShow">
+    <NDropdown
+      :options="dropdownOptions" trigger="click" placement="bottom-start" class="workspace-dropdown"
+      width="trigger" @select="handleDropdownSelect" @update:visible="handleDropdownVisibilityChange"
+      @before-show="handleBeforeShow"
+    >
       <div class="workspace-button">
         <div class="workspace-icon" :style="{ color: activeWorkspace?.color || '#6366f1' }">
           <SvgIcon v-if="activeWorkspace" :icon="getWorkspaceIconString(activeWorkspace.icon)" />
@@ -175,8 +181,10 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
     <WorkspaceModal v-model:visible="showCreateModal" mode="create" @workspace-created="handleWorkspaceCreated" />
 
     <!-- Edit Workspace Modal -->
-    <WorkspaceModal v-model:visible="showEditModal" mode="edit" :workspace="editingWorkspace"
-      @workspace-updated="handleWorkspaceUpdated" />
+    <WorkspaceModal
+      v-model:visible="showEditModal" mode="edit" :workspace="editingWorkspace"
+      @workspace-updated="handleWorkspaceUpdated"
+    />
 
     <!-- Workspace Management Modal -->
     <WorkspaceManagementModal v-model:visible="showManagementModal" />

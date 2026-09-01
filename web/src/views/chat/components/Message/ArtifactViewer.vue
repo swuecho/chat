@@ -1,12 +1,6 @@
-<template>
-  <ArtifactViewerBase 
-    :artifacts="artifacts"
-  />
-</template>
-
 <script lang="ts" setup>
-import { type Artifact } from '@/utils/artifacts'
 import ArtifactViewerBase from './ArtifactViewerBase.vue'
+import { type Artifact } from '@/utils/artifacts'
 
 interface Props {
   artifacts: Artifact[]
@@ -15,6 +9,12 @@ interface Props {
 
 defineProps<Props>()
 </script>
+
+<template>
+  <ArtifactViewerBase
+    :artifacts="artifacts"
+  />
+</template>
 
 <style scoped>
 /* Import styles from the base component if needed */

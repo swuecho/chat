@@ -87,16 +87,18 @@ export const useMessageStore = defineStore('message-store', {
         if (!hasSystemPrompt) {
           try {
             const defaultPrompt = getDefaultSystemPrompt()
-            const prompt = await createChatPrompt({ body: {
-              uuid: uuidv7(),
-              chatSessionUuid: sessionUuid,
-              role: 'system',
-              content: defaultPrompt,
-              tokenCount: Math.max(1, Math.ceil(defaultPrompt.length / 4)),
-              userId: 0,
-              createdBy: 0,
-              updatedBy: 0,
-            } })
+            const prompt = await createChatPrompt({
+              body: {
+                uuid: uuidv7(),
+                chatSessionUuid: sessionUuid,
+                role: 'system',
+                content: defaultPrompt,
+                tokenCount: Math.max(1, Math.ceil(defaultPrompt.length / 4)),
+                userId: 0,
+                createdBy: 0,
+                updatedBy: 0,
+              },
+            })
 
             const promptMessage: Chat.Message = {
               uuid: prompt.uuid,

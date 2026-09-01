@@ -2,8 +2,8 @@
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, ref, watch } from 'vue'
 import { NButton, NCard, NDataTable, NDivider, NGi, NGrid, NInput, NLayoutContent, NMessageProvider, NModal, NPopconfirm, NSpace, NTabPane, NTabs, useMessage } from 'naive-ui'
-import PromptRecommend from '@/assets/recommend.json'
 import { SvgIcon } from '..'
+import PromptRecommend from '@/assets/recommend.json'
 import { usePromptStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { isASCII } from '@/utils/is'
@@ -203,7 +203,7 @@ const downloadPromptTemplate = async () => {
 const renderTemplate = () => {
   const [keyLimit, valueLimit] = isMobile.value ? [6, 9] : [15, 50]
   return promptList.value.map((item: { key: string; value: string }) => {
-    let factor = isASCII(item.key) ? 10 : 1
+    const factor = isASCII(item.key) ? 10 : 1
     return {
       renderKey: item.key.length <= keyLimit ? item.key : `${item.key.substring(0, keyLimit * factor)}...`,
       renderValue: item.value.length <= valueLimit ? item.value : `${item.value.substring(0, valueLimit * factor)}...`,
@@ -283,7 +283,7 @@ watch(
         <div class="space-y-4">
           <NTabs type="segment">
             <NTabPane name="local" tab="本地管理">
-                <NSpace justify="end">
+              <NSpace justify="end">
                 <NButton type="primary" @click="changeShowModal('add')">
                   {{ $t('prompt.add') }}
                 </NButton>
@@ -295,34 +295,40 @@ watch(
                 </NButton>
                 <NPopconfirm @positive-click="clearPromptTemplate">
                   <template #trigger>
-                  <NButton>
-                    {{ $t('prompt.clear') }}
-                  </NButton>
+                    <NButton>
+                      {{ $t('prompt.clear') }}
+                    </NButton>
                   </template>
                   {{ $t('prompt.confirmClear') }}
                 </NPopconfirm>
               </NSpace>
               <br>
-              <NDataTable :max-height="400" :columns="columns" :data="renderTemplate()" :pagination="pagination"
-                :bordered="false" />
+              <NDataTable
+                :max-height="400" :columns="columns" :data="renderTemplate()" :pagination="pagination"
+                :bordered="false"
+              />
             </NTabPane>
             <NTabPane name="downloadOnline" :tab="$t('prompt.downloadOnline')">
               {{ $t('prompt.downloadOnlineWarning') }}<br><br>
               <NGrid x-gap="12" y-gap="12" :cols="24">
-              <NGi :span="isMobile ? 18 : 22">
-                <NInput v-model:value="downloadURL" :placeholder="$t('prompt.enterJsonUrl')" />
-              </NGi>
-              <NGi>
-                <NButton strong secondary :disabled="downloadDisabled" @click="downloadPromptTemplate()">
-                {{ $t('prompt.downloadOnline') }}
-                </NButton>
+                <NGi :span="isMobile ? 18 : 22">
+                  <NInput v-model:value="downloadURL" :placeholder="$t('prompt.enterJsonUrl')" />
+                </NGi>
+                <NGi>
+                  <NButton strong secondary :disabled="downloadDisabled" @click="downloadPromptTemplate()">
+                    {{ $t('prompt.downloadOnline') }}
+                  </NButton>
                 </NGi>
               </NGrid>
               <NDivider />
-              <NLayoutContent v-if="isMobile" style="height: 360px" content-style=" background:none;"
-                :native-scrollbar="false">
-                <NCard v-for="info in promptRecommendList" :key="info.key" :title="info.key" style="margin: 5px;" embedded
-                  :bordered="true">
+              <NLayoutContent
+                v-if="isMobile" style="height: 360px" content-style=" background:none;"
+                :native-scrollbar="false"
+              >
+                <NCard
+                  v-for="info in promptRecommendList" :key="info.key" :title="info.key" style="margin: 5px;" embedded
+                  :bordered="true"
+                >
                   {{ info.desc }}
                   <template #footer>
                     <NSpace justify="end">
@@ -338,8 +344,10 @@ watch(
                   </template>
                 </NCard>
               </NLayoutContent>
-              <NLayoutContent v-else style="height: 360px" content-style="padding: 10px; background:none;"
-                :native-scrollbar="false">
+              <NLayoutContent
+                v-else style="height: 360px" content-style="padding: 10px; background:none;"
+                :native-scrollbar="false"
+              >
                 <NGrid x-gap="12" y-gap="12" :cols="isMobile ? 1 : 3">
                   <NGi v-for="info in promptRecommendList" :key="info.key">
                     <NCard :title="info.key" embedded :bordered="true">
@@ -372,16 +380,22 @@ watch(
           <NInput v-model:value="tempPromptKey" placeholder="搜索模版标题" />
           模板内容
           <NInput v-model:value="tempPromptValue" placeholder="请输入提示词" type="textarea" />
-          <NButton strong secondary :style="{ width: '100%' }" :disabled="inputStatus"
-            @click="() => { modalMode === 'add' ? addPromptTemplate() : modifyPromptTemplate() }">
+          <NButton
+            strong secondary :style="{ width: '100%' }" :disabled="inputStatus"
+            @click="() => { modalMode === 'add' ? addPromptTemplate() : modifyPromptTemplate() }"
+          >
             确定
           </NButton>
         </NSpace>
         <NSpace v-if="modalMode === 'local_import'" vertical>
-          <NInput v-model:value="tempPromptValue" placeholder="请粘贴json文件内容" :autosize="{ minRows: 3, maxRows: 15 }"
-            type="textarea" />
-          <NButton strong secondary :style="{ width: '100%' }" :disabled="inputStatus"
-            @click="() => { importPromptTemplate() }">
+          <NInput
+            v-model:value="tempPromptValue" placeholder="请粘贴json文件内容" :autosize="{ minRows: 3, maxRows: 15 }"
+            type="textarea"
+          />
+          <NButton
+            strong secondary :style="{ width: '100%' }" :disabled="inputStatus"
+            @click="() => { importPromptTemplate() }"
+          >
             导入
           </NButton>
         </NSpace>

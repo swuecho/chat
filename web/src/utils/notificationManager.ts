@@ -1,4 +1,4 @@
-import { ref, computed, h } from 'vue'
+import { computed, h, ref } from 'vue'
 import { useMessage } from 'naive-ui'
 import EnhancedNotification from '@/components/common/EnhancedNotification.vue'
 
@@ -42,7 +42,8 @@ class NotificationManager {
   }
 
   private showNotification(notification: QueuedNotification) {
-    if (!this.messageInstance) return
+    if (!this.messageInstance)
+      return
 
     const { id, options } = notification
     this.activeNotifications.value.add(id)
@@ -55,12 +56,11 @@ class NotificationManager {
       onLeave: () => {
         this.activeNotifications.value.delete(id)
         this.processQueue()
-      }
+      },
     }
 
-    if (options.action) {
+    if (options.action)
       notificationOptions.action = options.action
-    }
 
     try {
       // Use enhanced notification if requested
@@ -74,17 +74,19 @@ class NotificationManager {
           onClose: () => {
             this.activeNotifications.value.delete(id)
             this.processQueue()
-          }
+          },
         })
-        
+
         showFn(content, {
           ...notificationOptions,
-          closable: false // Let the component handle closing
+          closable: false, // Let the component handle closing
         })
-      } else {
+      }
+      else {
         showFn(options.message, notificationOptions)
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to show notification:', error)
       this.activeNotifications.value.delete(id)
       this.processQueue()
@@ -92,12 +94,12 @@ class NotificationManager {
   }
 
   private processQueue() {
-    if (!this.queueEnabled || !this.canShowNotification()) return
+    if (!this.queueEnabled || !this.canShowNotification())
+      return
 
     const nextNotification = this.queue.value.shift()
-    if (nextNotification) {
+    if (nextNotification)
       this.showNotification(nextNotification)
-    }
   }
 
   show(options: NotificationOptions): string {
@@ -105,14 +107,13 @@ class NotificationManager {
     const notification: QueuedNotification = {
       id,
       options,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
-    if (this.canShowNotification()) {
+    if (this.canShowNotification())
       this.showNotification(notification)
-    } else {
+    else
       this.queue.value.push(notification)
-    }
 
     return id
   }
@@ -155,7 +156,7 @@ class NotificationManager {
       message,
       type,
       persistent: true,
-      action
+      action,
     })
   }
 
@@ -170,7 +171,8 @@ class NotificationManager {
     if (this.messageInstance) {
       try {
         this.messageInstance.destroyAll()
-      } catch (error) {
+      }
+      catch (error) {
         console.warn('Failed to clear notifications:', error)
       }
     }
@@ -180,7 +182,7 @@ class NotificationManager {
     return {
       queued: this.queue.value.length,
       active: this.activeNotifications.value.size,
-      maxConcurrent: this.maxConcurrent
+      maxConcurrent: this.maxConcurrent,
     }
   }
 
@@ -205,11 +207,10 @@ export const notificationManager = new NotificationManager()
 // Vue composable for easy usage in components
 export function useNotification() {
   const message = useMessage()
-  
+
   // Initialize message instance if not already set
-  if (!notificationManager['messageInstance']) {
+  if (!notificationManager.messageInstance)
     notificationManager.setMessageInstance(message)
-  }
 
   return {
     show: notificationManager.show.bind(notificationManager),
@@ -223,7 +224,7 @@ export function useNotification() {
     enhancedInfo: notificationManager.enhancedInfo.bind(notificationManager),
     persistent: notificationManager.persistent.bind(notificationManager),
     clear: notificationManager.clear.bind(notificationManager),
-    stats: computed(() => notificationManager.getStats())
+    stats: computed(() => notificationManager.getStats()),
   }
 }
 

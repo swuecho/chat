@@ -1,5 +1,5 @@
 <script lang='ts' setup>
-import { computed, watch, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Conversation from './components/Conversation.vue'
 import { useWorkspaceStore } from '@/store/modules/workspace'
@@ -23,9 +23,8 @@ const workspaceUuid = computed(() => {
 const sessionUuid = computed(() => {
   // First try to get sessionUuid from props or route params
   const urlSessionUuid = props.uuid || (route.params.uuid as string)
-  if (urlSessionUuid) {
+  if (urlSessionUuid)
     return urlSessionUuid
-  }
 
   // If no session in URL, use the active session from session store
   return sessionStore.activeSessionUuid || ''
@@ -34,10 +33,10 @@ const sessionUuid = computed(() => {
 // Set active workspace when workspace is specified in URL
 watch(workspaceUuid, (newWorkspaceUuid, oldWorkspaceUuid) => {
   // Only update if workspace actually changed and not during initial navigation
-  if (newWorkspaceUuid &&
-      newWorkspaceUuid !== oldWorkspaceUuid &&
-      newWorkspaceUuid !== workspaceStore.activeWorkspace?.uuid &&
-      !sessionStore.isSwitchingSession) {
+  if (newWorkspaceUuid
+      && newWorkspaceUuid !== oldWorkspaceUuid
+      && newWorkspaceUuid !== workspaceStore.activeWorkspace?.uuid
+      && !sessionStore.isSwitchingSession) {
     console.log('Setting active workspace from URL:', newWorkspaceUuid)
     workspaceStore.setActiveWorkspace(newWorkspaceUuid)
   }
@@ -45,16 +44,14 @@ watch(workspaceUuid, (newWorkspaceUuid, oldWorkspaceUuid) => {
 
 // Watch for pending session restores and handle them
 watch(() => workspaceStore.pendingSessionRestore, (pending) => {
-  if (pending) {
+  if (pending)
     workspaceStore.restoreActiveSession()
-  }
 })
 
 // Handle initial workspace setting on mount
 onMounted(() => {
-  if (workspaceUuid.value && workspaceUuid.value !== workspaceStore.activeWorkspace?.uuid) {
+  if (workspaceUuid.value && workspaceUuid.value !== workspaceStore.activeWorkspace?.uuid)
     workspaceStore.setActiveWorkspace(workspaceUuid.value)
-  }
 })
 </script>
 

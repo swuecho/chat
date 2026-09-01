@@ -20,7 +20,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/prompt/new',
     name: 'Prompt',
-    component: () => import('@/views/prompt/creator.vue')
+    component: () => import('@/views/prompt/creator.vue'),
   },
   {
     path: '/bot',
@@ -73,7 +73,7 @@ const routes: RouteRecordRaw[] = [
         path: 'api_keys',
         name: 'AdminApiKeys',
         component: () => import('@/views/apiKeys/index.vue'),
-      }
+      },
     ],
   },
   {
@@ -89,10 +89,10 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/workspace/:workspaceUuid',
-        redirect: to => {
+        redirect: (to) => {
           // Redirect workspace-only URLs to include /chat
           return `/workspace/${to.params.workspaceUuid}/chat`
-        }
+        },
       },
       {
         path: '/',

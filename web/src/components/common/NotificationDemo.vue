@@ -1,86 +1,7 @@
-<template>
-  <div class="notification-demo">
-    <n-card title="Notification System Demo">
-      <n-space vertical>
-        <div class="demo-section">
-          <h3>Enhanced Notifications (with Banner)</h3>
-          <n-space>
-            <n-button @click="showEnhancedSuccess" type="success">Enhanced Success</n-button>
-            <n-button @click="showEnhancedError" type="error">Enhanced Error</n-button>
-            <n-button @click="showEnhancedWarning" type="warning">Enhanced Warning</n-button>
-            <n-button @click="showEnhancedInfo" type="info">Enhanced Info</n-button>
-          </n-space>
-        </div>
-
-        <div class="demo-section">
-          <h3>Basic Notifications</h3>
-          <n-space>
-            <n-button @click="showSuccess" type="success">Success</n-button>
-            <n-button @click="showError" type="error">Error</n-button>
-            <n-button @click="showWarning" type="warning">Warning</n-button>
-            <n-button @click="showInfo" type="info">Info</n-button>
-          </n-space>
-        </div>
-
-        <div class="demo-section">
-          <h3>Persistent Notifications</h3>
-          <n-space>
-            <n-button @click="showPersistentError" type="error">Persistent Error</n-button>
-            <n-button @click="showPersistentWarning" type="warning">Persistent Warning</n-button>
-          </n-space>
-        </div>
-
-        <div class="demo-section">
-          <h3>Action Notifications</h3>
-          <n-space>
-            <n-button @click="showActionError" type="error">Error with Action</n-button>
-            <n-button @click="showActionSuccess" type="success">Success with Action</n-button>
-          </n-space>
-        </div>
-
-        <div class="demo-section">
-          <h3>Batch Notifications</h3>
-          <n-space>
-            <n-button @click="showBatch" type="primary">Show Batch (5)</n-button>
-            <n-button @click="clearAll" type="default">Clear All</n-button>
-          </n-space>
-        </div>
-
-        <div class="demo-section">
-          <h3>Network Status</h3>
-          <n-space>
-            <n-button @click="simulateOffline" type="warning">Simulate Offline</n-button>
-            <n-button @click="simulateOnline" type="success">Simulate Online</n-button>
-          </n-space>
-        </div>
-
-        <div class="demo-section">
-          <h3>Error Simulation</h3>
-          <n-space>
-            <n-button @click="simulateNetworkError" type="error">Network Error</n-button>
-            <n-button @click="simulateTimeout" type="warning">Timeout Error</n-button>
-            <n-button @click="simulateAuthError" type="error">Auth Error</n-button>
-            <n-button @click="simulateServerError" type="error">Server Error</n-button>
-          </n-space>
-        </div>
-
-        <div class="demo-section">
-          <h3>Notification Stats</h3>
-          <n-space vertical>
-            <div>Queued: {{ stats.queued }}</div>
-            <div>Active: {{ stats.active }}</div>
-            <div>Max Concurrent: {{ stats.maxConcurrent }}</div>
-          </n-space>
-        </div>
-      </n-space>
-    </n-card>
-  </div>
-</template>
-
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useNotification } from '@/utils/notificationManager'
 import { useErrorHandling } from '@/views/chat/composables/useErrorHandling'
-import { ref } from 'vue'
 
 const notification = useNotification()
 const { handleApiError } = useErrorHandling()
@@ -92,8 +13,8 @@ function showEnhancedSuccess() {
   notification.enhancedSuccess('Operation Completed', 'Your file has been successfully uploaded and processed.', {
     action: {
       text: 'View File',
-      onClick: () => notification.info('Opening file viewer...')
-    }
+      onClick: () => notification.info('Opening file viewer...'),
+    },
   })
 }
 
@@ -101,8 +22,8 @@ function showEnhancedError() {
   notification.enhancedError('Connection Failed', 'Unable to connect to the server. Please check your internet connection and try again.', {
     action: {
       text: 'Retry',
-      onClick: () => notification.enhancedSuccess('Connected', 'Successfully reconnected to the server.')
-    }
+      onClick: () => notification.enhancedSuccess('Connected', 'Successfully reconnected to the server.'),
+    },
   })
 }
 
@@ -110,8 +31,8 @@ function showEnhancedWarning() {
   notification.enhancedWarning('Storage Space Low', 'You are running low on storage space. Consider removing unused files to free up space.', {
     action: {
       text: 'Clean Up',
-      onClick: () => notification.enhancedInfo('Cleanup Started', 'Storage cleanup process has been initiated.')
-    }
+      onClick: () => notification.enhancedInfo('Cleanup Started', 'Storage cleanup process has been initiated.'),
+    },
   })
 }
 
@@ -140,14 +61,14 @@ function showInfo() {
 function showPersistentError() {
   notification.persistent('This is a persistent error message. It will stay until you close it.', 'error', {
     text: 'Retry',
-    onClick: () => notification.success('Retried successfully!')
+    onClick: () => notification.success('Retried successfully!'),
   })
 }
 
 function showPersistentWarning() {
   notification.persistent('This is a persistent warning message.', 'warning', {
     text: 'Dismiss',
-    onClick: () => notification.info('Warning dismissed')
+    onClick: () => notification.info('Warning dismissed'),
   })
 }
 
@@ -157,8 +78,8 @@ function showActionError() {
     duration: 8000,
     action: {
       text: 'Retry',
-      onClick: () => notification.success('Changes saved successfully!')
-    }
+      onClick: () => notification.success('Changes saved successfully!'),
+    },
   })
 }
 
@@ -166,8 +87,8 @@ function showActionSuccess() {
   notification.success('File uploaded successfully!', {
     action: {
       text: 'View File',
-      onClick: () => notification.info('Opening file...')
-    }
+      onClick: () => notification.info('Opening file...'),
+    },
   })
 }
 
@@ -178,7 +99,7 @@ function showBatch() {
     { type: 'error', text: 'Item 2 failed' },
     { type: 'warning', text: 'Item 3 has warnings' },
     { type: 'info', text: 'Item 4 processed' },
-    { type: 'success', text: 'Item 5 completed' }
+    { type: 'success', text: 'Item 5 completed' },
   ]
 
   messages.forEach((msg, index) => {
@@ -197,7 +118,7 @@ function clearAll() {
 function simulateOffline() {
   notification.persistent('You are offline. Please check your internet connection.', 'error', {
     text: 'Retry',
-    onClick: () => notification.success('Connection restored!')
+    onClick: () => notification.success('Connection restored!'),
   })
 }
 
@@ -226,7 +147,7 @@ function simulateAuthError() {
   error.message = 'Authentication failed'
   error.response = {
     status: 401,
-    data: { message: 'Invalid credentials' }
+    data: { message: 'Invalid credentials' },
   }
   handleApiError(error, 'demo')
 }
@@ -237,11 +158,130 @@ function simulateServerError() {
   error.message = 'Internal server error'
   error.response = {
     status: 500,
-    data: { message: 'Something went wrong on our end' }
+    data: { message: 'Something went wrong on our end' },
   }
   handleApiError(error, 'demo')
 }
 </script>
+
+<template>
+  <div class="notification-demo">
+    <n-card title="Notification System Demo">
+      <n-space vertical>
+        <div class="demo-section">
+          <h3>Enhanced Notifications (with Banner)</h3>
+          <n-space>
+            <n-button type="success" @click="showEnhancedSuccess">
+              Enhanced Success
+            </n-button>
+            <n-button type="error" @click="showEnhancedError">
+              Enhanced Error
+            </n-button>
+            <n-button type="warning" @click="showEnhancedWarning">
+              Enhanced Warning
+            </n-button>
+            <n-button type="info" @click="showEnhancedInfo">
+              Enhanced Info
+            </n-button>
+          </n-space>
+        </div>
+
+        <div class="demo-section">
+          <h3>Basic Notifications</h3>
+          <n-space>
+            <n-button type="success" @click="showSuccess">
+              Success
+            </n-button>
+            <n-button type="error" @click="showError">
+              Error
+            </n-button>
+            <n-button type="warning" @click="showWarning">
+              Warning
+            </n-button>
+            <n-button type="info" @click="showInfo">
+              Info
+            </n-button>
+          </n-space>
+        </div>
+
+        <div class="demo-section">
+          <h3>Persistent Notifications</h3>
+          <n-space>
+            <n-button type="error" @click="showPersistentError">
+              Persistent Error
+            </n-button>
+            <n-button type="warning" @click="showPersistentWarning">
+              Persistent Warning
+            </n-button>
+          </n-space>
+        </div>
+
+        <div class="demo-section">
+          <h3>Action Notifications</h3>
+          <n-space>
+            <n-button type="error" @click="showActionError">
+              Error with Action
+            </n-button>
+            <n-button type="success" @click="showActionSuccess">
+              Success with Action
+            </n-button>
+          </n-space>
+        </div>
+
+        <div class="demo-section">
+          <h3>Batch Notifications</h3>
+          <n-space>
+            <n-button type="primary" @click="showBatch">
+              Show Batch (5)
+            </n-button>
+            <n-button type="default" @click="clearAll">
+              Clear All
+            </n-button>
+          </n-space>
+        </div>
+
+        <div class="demo-section">
+          <h3>Network Status</h3>
+          <n-space>
+            <n-button type="warning" @click="simulateOffline">
+              Simulate Offline
+            </n-button>
+            <n-button type="success" @click="simulateOnline">
+              Simulate Online
+            </n-button>
+          </n-space>
+        </div>
+
+        <div class="demo-section">
+          <h3>Error Simulation</h3>
+          <n-space>
+            <n-button type="error" @click="simulateNetworkError">
+              Network Error
+            </n-button>
+            <n-button type="warning" @click="simulateTimeout">
+              Timeout Error
+            </n-button>
+            <n-button type="error" @click="simulateAuthError">
+              Auth Error
+            </n-button>
+            <n-button type="error" @click="simulateServerError">
+              Server Error
+            </n-button>
+          </n-space>
+        </div>
+
+        <div class="demo-section">
+          <h3>Notification Stats</h3>
+          <n-space vertical>
+            <div>Queued: {{ stats.queued }}</div>
+            <div>Active: {{ stats.active }}</div>
+            <div>Max Concurrent: {{ stats.maxConcurrent }}</div>
+          </n-space>
+        </div>
+      </n-space>
+    </n-card>
+  </div>
+</template>
 
 <style scoped>
 .notification-demo {

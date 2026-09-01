@@ -1,12 +1,11 @@
 <script setup lang='ts'>
-import { computed, watch, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { NLayout, NLayoutContent } from 'naive-ui'
 import { useRouter } from 'vue-router'
 import Sider from './sider/index.vue'
 import Permission from '@/views/components/Permission.vue'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useAppStore, useAuthStore, useSessionStore, useWorkspaceStore } from '@/store'
-
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -34,7 +33,8 @@ onMounted(async () => {
 
       await workspaceStore.initializeActiveWorkspace(targetWorkspaceUuid)
       console.log('✅ Active workspace initialized on mount')
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to initialize active workspace on mount:', error)
     }
   }
@@ -70,7 +70,8 @@ watch(() => authStore.isValid, async (isValid) => {
       // Initialize only the active workspace instead of all workspaces
       await workspaceStore.initializeActiveWorkspace()
       console.log('Active workspace initialized after auth state change')
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to initialize active workspace after auth state change:', error)
     }
   }

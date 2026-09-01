@@ -1,20 +1,18 @@
 <script setup lang='ts'>
 import type { CSSProperties } from 'vue'
-import { computed, watch, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
-import { NButton, NLayoutSider, NTooltip, NButtonGroup } from 'naive-ui'
+import { NButton, NButtonGroup, NLayoutSider, NTooltip } from 'naive-ui'
+import WorkspaceSelector from '../../components/WorkspaceSelector/index.vue'
 import List from './List.vue'
 import Footer from './Footer.vue'
-import WorkspaceSelector from '../../components/WorkspaceSelector/index.vue'
-import { useAppStore, useSessionStore, useWorkspaceStore } from '@/store'
+import { useAppStore, useSessionStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
-import { SvgIcon } from '@/components/common'
-import { PromptStore } from '@/components/common'
+import { PromptStore, SvgIcon } from '@/components/common'
 
 const appStore = useAppStore()
 const sessionStore = useSessionStore()
-const workspaceStore = useWorkspaceStore()
 
 const { isMobile, isBigScreen } = useBasicLayout()
 const show = ref(false)
@@ -28,7 +26,8 @@ async function handleAdd() {
     await sessionStore.createNewSession(new_chat_text)
     if (isMobile.value)
       appStore.setSiderCollapsed(true)
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Failed to create new session:', error)
   }
 }
@@ -56,7 +55,6 @@ const mobileSafeArea = computed(() => {
   return {}
 })
 
-
 watch(
   isMobile,
   (val) => {
@@ -68,8 +66,6 @@ watch(
   },
 )
 
-
-
 function openBotAll() {
   window.open('/#/bot_all', '_blank')
 }
@@ -77,13 +73,14 @@ function openBotAll() {
 function openAllSnapshot() {
   window.open('/#/snapshot_all', '_blank')
 }
-
 </script>
 
 <template>
-  <NLayoutSider :collapsed="collapsed" :collapsed-width="0" :width="isBigScreen ? 360 : 260"
+  <NLayoutSider
+    :collapsed="collapsed" :collapsed-width="0" :width="isBigScreen ? 360 : 260"
     :show-trigger="isMobile ? false : 'arrow-circle'" collapse-mode="transform" position="absolute" bordered
-    :style="getMobileClass" @update-collapsed="handleUpdateCollapsed">
+    :style="getMobileClass" @update-collapsed="handleUpdateCollapsed"
+  >
     <div class="flex flex-col h-full" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
         <div class="px-3 pt-3 pb-2 space-y-3">

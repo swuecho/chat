@@ -10,11 +10,10 @@ function getBaseUrl(): string {
 // Generate shareable URL for a session within a workspace
 export function generateSessionUrl(sessionUuid: string, workspaceUuid?: string): string {
   const baseUrl = getBaseUrl()
-  
-  if (workspaceUuid) {
+
+  if (workspaceUuid)
     return `${baseUrl}/#/workspace/${workspaceUuid}/chat/${sessionUuid}`
-  }
-  
+
   return `${baseUrl}/#/chat/${sessionUuid}`
 }
 
@@ -29,26 +28,27 @@ export function parseWorkspaceUrl(url: string): { workspaceUuid?: string; sessio
   try {
     const urlObj = new URL(url)
     const hash = urlObj.hash.substring(1) // Remove the # character
-    
+
     // Match patterns: /workspace/:workspaceUuid/chat/:sessionUuid? or /chat/:sessionUuid?
     const workspaceMatch = hash.match(/^\/workspace\/([^\/]+)\/chat\/?([^\/]+)?/)
     const chatMatch = hash.match(/^\/chat\/?([^\/]+)?/)
-    
+
     if (workspaceMatch) {
       return {
         workspaceUuid: workspaceMatch[1],
-        sessionUuid: workspaceMatch[2]
+        sessionUuid: workspaceMatch[2],
       }
     }
-    
+
     if (chatMatch) {
       return {
-        sessionUuid: chatMatch[1]
+        sessionUuid: chatMatch[1],
       }
     }
-    
+
     return {}
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error parsing workspace URL:', error)
     return {}
   }
@@ -66,7 +66,8 @@ export async function copyUrlToClipboard(url: string): Promise<boolean> {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(url)
       return true
-    } else {
+    }
+    else {
       // Fallback for older browsers or non-HTTPS
       const textArea = document.createElement('textarea')
       textArea.value = url
@@ -76,12 +77,13 @@ export async function copyUrlToClipboard(url: string): Promise<boolean> {
       document.body.appendChild(textArea)
       textArea.focus()
       textArea.select()
-      
+
       const success = document.execCommand('copy')
       document.body.removeChild(textArea)
       return success
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Failed to copy URL to clipboard:', error)
     return false
   }
@@ -116,15 +118,15 @@ export function createWorkspaceSlug(name: string): string {
 
 // Social sharing URLs
 export const socialShareUrls = {
-  twitter: (url: string, text: string = 'Check out this chat workspace') => 
+  twitter: (url: string, text = 'Check out this chat workspace') =>
     `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
-    
-  facebook: (url: string) => 
+
+  facebook: (url: string) =>
     `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-    
-  linkedin: (url: string, title: string = 'Chat Workspace') => 
+
+  linkedin: (url: string, title = 'Chat Workspace') =>
     `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`,
-    
-  email: (url: string, subject: string = 'Chat Workspace', body: string = 'Check out this workspace:') => 
-    `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}%20${encodeURIComponent(url)}`
+
+  email: (url: string, subject = 'Chat Workspace', body = 'Check out this workspace:') =>
+    `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}%20${encodeURIComponent(url)}`,
 }

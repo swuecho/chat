@@ -1,31 +1,3 @@
-<template>
-  <div class="artifact-header">
-    <div class="artifact-title">
-      <Icon :icon="getArtifactIcon(artifact.type)" class="artifact-icon" />
-      <span class="artifact-title-text">{{ artifact.title }}</span>
-      <span class="artifact-type">({{ artifact.type }})</span>
-    </div>
-    <div class="artifact-actions">
-      <NButton size="small" @click="$emit('toggle-expand', artifact.uuid)">
-        <span class="hidden sm:inline">{{ isExpanded ? 'Collapse' : 'Expand' }}</span>
-        <Icon :icon="isExpanded ? 'ri:arrow-up-line' : 'ri:arrow-down-line'" class="sm:hidden" />
-      </NButton>
-
-      <NButton
-        v-if="artifact.type === 'html'"
-        size="small"
-        @click="$emit('open-in-new-window', artifact.content)"
-        title="Open in new window">
-        <Icon icon="ri:external-link-line" />
-      </NButton>
-
-      <NButton size="small" @click="$emit('copy-content', artifact.content)">
-        <Icon icon="ri:file-copy-line" />
-      </NButton>
-    </div>
-  </div>
-</template>
-
 <script lang="ts" setup>
 import { Icon } from '@iconify/vue'
 import { NButton } from 'naive-ui'
@@ -56,6 +28,35 @@ const getArtifactIcon = (type: string) => {
   return iconMap[type] || 'ri:file-line'
 }
 </script>
+
+<template>
+  <div class="artifact-header">
+    <div class="artifact-title">
+      <Icon :icon="getArtifactIcon(artifact.type)" class="artifact-icon" />
+      <span class="artifact-title-text">{{ artifact.title }}</span>
+      <span class="artifact-type">({{ artifact.type }})</span>
+    </div>
+    <div class="artifact-actions">
+      <NButton size="small" @click="$emit('toggle-expand', artifact.uuid)">
+        <span class="hidden sm:inline">{{ isExpanded ? 'Collapse' : 'Expand' }}</span>
+        <Icon :icon="isExpanded ? 'ri:arrow-up-line' : 'ri:arrow-down-line'" class="sm:hidden" />
+      </NButton>
+
+      <NButton
+        v-if="artifact.type === 'html'"
+        size="small"
+        title="Open in new window"
+        @click="$emit('open-in-new-window', artifact.content)"
+      >
+        <Icon icon="ri:external-link-line" />
+      </NButton>
+
+      <NButton size="small" @click="$emit('copy-content', artifact.content)">
+        <Icon icon="ri:file-copy-line" />
+      </NButton>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .artifact-header {

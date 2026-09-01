@@ -17,7 +17,7 @@ function registerNaiveTools() {
   window.$dialog = useDialog()
   window.$message = useMessage()
   window.$notification = useNotification()
-  
+
   // Initialize notification manager
   notificationManager.setMessageInstance(window.$message)
 }
@@ -30,8 +30,8 @@ function handleNetworkStatus() {
       closable: true,
       action: {
         text: 'Retry',
-        onClick: () => window.location.reload()
-      }
+        onClick: () => window.location.reload(),
+      },
     })
   }
 }
@@ -40,9 +40,9 @@ onMounted(() => {
   window.addEventListener('online', () => {
     window.$message?.success('You are back online!', { duration: 3000 })
   })
-  
+
   window.addEventListener('offline', handleNetworkStatus)
-  
+
   // Check initial network status
   handleNetworkStatus()
 })
@@ -66,9 +66,9 @@ const NaiveProviderContent = defineComponent({
 <template>
   <NLoadingBarProvider>
     <NDialogProvider>
-      <NNotificationProvider :max="5" :placement="'top-right'">
-        <NMessageProvider 
-          :placement="'top-right'" 
+      <NNotificationProvider :max="5" placement="top-right">
+        <NMessageProvider
+          placement="top-right"
           :max="3"
           :duration="5000"
           :closable="true"

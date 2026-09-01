@@ -91,90 +91,8 @@ interface ExecutionResult {
 **1. Enhanced ArtifactViewer.vue**
 
 ```vue
-<template>
-  <div class="artifact-viewer" :class="{ 'executable': isExecutable }">
-    <!-- Existing code display -->
-    <div class="artifact-header">
-      <span class="artifact-title">{{ artifact.title }}</span>
-      <div class="artifact-actions">
-        <button v-if="isExecutable" 
-                @click="runCode" 
-                :disabled="running"
-                class="run-button">
-          <Icon name="play" v-if="!running" />
-          <Icon name="spinner" v-else spinning />
-          {{ running ? 'Running...' : 'Run Code' }}
-        </button>
-        <button @click="toggleExpanded">
-          {{ expanded ? 'Collapse' : 'Expand' }}
-        </button>
-        <button @click="copyContent">Copy</button>
-      </div>
-    </div>
-
-    <div v-if="expanded" class="artifact-content">
-      <!-- Code editor/viewer -->
-      <div class="code-content">
-        <CodeEditor 
-          v-if="editable"
-          v-model="editableContent"
-          :language="artifact.language"
-          :readonly="!editable"
-        />
-        <CodeViewer 
-          v-else
-          :content="artifact.content"
-          :language="artifact.language"
-        />
-      </div>
-
-      <!-- Execution controls -->
-      <div v-if="isExecutable" class="execution-controls">
-        <div class="control-bar">
-          <button @click="runCode" :disabled="running" class="primary">
-            Run Code
-          </button>
-          <button @click="clearOutput" :disabled="!hasOutput">
-            Clear Output
-          </button>
-          <button @click="toggleEditor" class="secondary">
-            {{ editable ? 'View Mode' : 'Edit Mode' }}
-          </button>
-        </div>
-        
-        <div class="execution-info" v-if="lastExecution">
-          <span class="execution-time">
-            Executed in {{ lastExecution.execution_time_ms }}ms
-          </span>
-          <span class="execution-status" :class="lastExecution.status">
-            {{ lastExecution.status }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Output area -->
-      <div v-if="hasOutput" class="execution-output">
-        <div class="output-header">
-          <span class="output-title">Output</span>
-          <button @click="clearOutput" class="clear-btn">×</button>
-        </div>
-        <div class="output-content">
-          <div v-for="result in currentOutput" 
-               :key="result.id" 
-               class="output-line"
-               :class="result.type">
-            <span class="output-type">{{ result.type }}</span>
-            <span class="output-content">{{ result.content }}</span>
-            <span class="output-time">{{ formatTime(result.timestamp) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { CodeRunner } from '@/services/codeRunner'
 import { ExecutableArtifact, ExecutionResult } from '@/typings/chat'
 
@@ -189,9 +107,9 @@ const editable = ref(false)
 const editableContent = ref(props.artifact.content)
 const currentOutput = ref<ExecutionResult[]>([])
 
-const isExecutable = computed(() => 
-  props.artifact.type === 'executable-code' && 
-  ['javascript', 'python', 'typescript'].includes(props.artifact.language)
+const isExecutable = computed(() =>
+  props.artifact.type === 'executable-code'
+  && ['javascript', 'python', 'typescript'].includes(props.artifact.language)
 )
 
 const hasOutput = computed(() => currentOutput.value.length > 0)
@@ -202,29 +120,32 @@ const lastExecution = computed(() => {
 })
 
 async function runCode() {
-  if (running.value) return
-  
+  if (running.value)
+    return
+
   running.value = true
   currentOutput.value = []
-  
+
   try {
     const code = editable.value ? editableContent.value : props.artifact.content
     const results = await codeRunner.execute(props.artifact.language, code)
     currentOutput.value = results
-    
+
     // Emit execution event for parent components
     emit('execution-complete', {
       artifact: props.artifact,
-      results: results
+      results
     })
-  } catch (error) {
+  }
+  catch (error) {
     currentOutput.value = [{
       id: Date.now().toString(),
       type: 'error',
       content: error.message,
       timestamp: new Date().toISOString()
     }]
-  } finally {
+  }
+  finally {
     running.value = false
   }
 }
@@ -243,11 +164,101 @@ function formatTime(timestamp: string) {
 
 onMounted(() => {
   // Auto-expand executable artifacts
-  if (isExecutable.value) {
+  if (isExecutable.value)
     expanded.value = true
-  }
+
 })
 </script>
+
+<template>
+  <div class="artifact-viewer" :class="{ executable: isExecutable }">
+    <!-- Existing code display -->
+    <div class="artifact-header">
+      <span class="artifact-title">{{ artifact.title }}</span>
+      <div class="artifact-actions">
+        <button
+          v-if="isExecutable"
+          :disabled="running"
+          class="run-button"
+          @click="runCode"
+        >
+          <Icon v-if="!running" name="play" />
+          <Icon v-else name="spinner" spinning />
+          {{ running ? 'Running...' : 'Run Code' }}
+        </button>
+        <button @click="toggleExpanded">
+          {{ expanded ? 'Collapse' : 'Expand' }}
+        </button>
+        <button @click="copyContent">
+          Copy
+        </button>
+      </div>
+    </div>
+
+    <div v-if="expanded" class="artifact-content">
+      <!-- Code editor/viewer -->
+      <div class="code-content">
+        <CodeEditor
+          v-if="editable"
+          v-model="editableContent"
+          :language="artifact.language"
+          :readonly="!editable"
+        />
+        <CodeViewer
+          v-else
+          :content="artifact.content"
+          :language="artifact.language"
+        />
+      </div>
+
+      <!-- Execution controls -->
+      <div v-if="isExecutable" class="execution-controls">
+        <div class="control-bar">
+          <button :disabled="running" class="primary" @click="runCode">
+            Run Code
+          </button>
+          <button :disabled="!hasOutput" @click="clearOutput">
+            Clear Output
+          </button>
+          <button class="secondary" @click="toggleEditor">
+            {{ editable ? 'View Mode' : 'Edit Mode' }}
+          </button>
+        </div>
+
+        <div v-if="lastExecution" class="execution-info">
+          <span class="execution-time">
+            Executed in {{ lastExecution.execution_time_ms }}ms
+          </span>
+          <span class="execution-status" :class="lastExecution.status">
+            {{ lastExecution.status }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Output area -->
+      <div v-if="hasOutput" class="execution-output">
+        <div class="output-header">
+          <span class="output-title">Output</span>
+          <button class="clear-btn" @click="clearOutput">
+            ×
+          </button>
+        </div>
+        <div class="output-content">
+          <div
+            v-for="result in currentOutput"
+            :key="result.id"
+            class="output-line"
+            :class="result.type"
+          >
+            <span class="output-type">{{ result.type }}</span>
+            <span class="output-content">{{ result.content }}</span>
+            <span class="output-time">{{ formatTime(result.timestamp) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 ```
 
 **2. Code Runner Service**

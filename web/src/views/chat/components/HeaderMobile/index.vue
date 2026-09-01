@@ -43,7 +43,8 @@ function handleAdd() {
 
 <template>
   <header
-    class="sticky top-0 left-0 right-0 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur">
+    class="sticky top-0 left-0 right-0 z-30 border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 backdrop-blur"
+  >
     <div class="relative flex items-center justify-between min-w-0 overflow-hidden h-14 px-2">
       <div class="flex items-center">
         <button class="flex items-center justify-center w-11 h-11" @click="handleUpdateCollapsed">
@@ -53,8 +54,10 @@ function handleAdd() {
       </div>
       <NTooltip placement="bottom">
         <template #trigger>
-          <h1 class="flex-1 px-3 pr-5 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap"
-            @dblclick="onScrollToTop">
+          <h1
+            class="flex-1 px-3 pr-5 overflow-hidden cursor-pointer select-none text-ellipsis whitespace-nowrap"
+            @dblclick="onScrollToTop"
+          >
             {{ currentChatSession?.title ?? '' }}
           </h1>
         </template>
@@ -76,7 +79,6 @@ function handleAdd() {
             <SvgIcon icon="material-symbols:add-circle-outline" />
           </span>
         </HoverButton>
-   
       </div>
     </div>
   </header>

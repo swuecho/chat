@@ -1,5 +1,4 @@
 <script setup lang='ts'>
-
 import { NAvatar } from 'naive-ui'
 import { computed } from 'vue'
 import defaultAvatar from '@/assets/avatar.jpg'
@@ -12,8 +11,8 @@ const { isOnline } = useOnlineStatus()
 
 // Compute the border color class based on the online status
 const borderColorClass = computed(() =>
-  isOnline.value ? 'border-green-500' : 'border-red-500'
-);
+  isOnline.value ? 'border-green-500' : 'border-red-500',
+)
 
 const userStore = useUserStore()
 const userInfo = computed(() => userStore.userInfo)
@@ -21,7 +20,7 @@ const userInfo = computed(() => userStore.userInfo)
 
 <template>
   <div class="flex items-center overflow-hidden">
-    <div :class='["w-10", "h-10", "overflow-hidden", "rounded-full", "shrink-0", "border-2", borderColorClass]'>
+    <div class="w-10 h-10 overflow-hidden rounded-full shrink-0 border-2" :class="[borderColorClass]">
       <NAvatar size="large" round :src="defaultAvatar" />
     </div>
     <div class="flex-1 min-w-0 ml-2">

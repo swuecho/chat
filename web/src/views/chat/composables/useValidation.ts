@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { t } from '@/locales'
 
 interface ValidationRule {
@@ -12,20 +12,18 @@ interface ValidationResult {
 }
 
 export function useValidation() {
-  
   const createValidator = (rules: ValidationRule[]) => {
     return (value: any): ValidationResult => {
       const errors: string[] = []
-      
+
       for (const rule of rules) {
-        if (!rule.validator(value)) {
+        if (!rule.validator(value))
           errors.push(rule.message)
-        }
       }
-      
+
       return {
         isValid: errors.length === 0,
-        errors
+        errors,
       }
     }
   }
@@ -34,66 +32,72 @@ export function useValidation() {
   const rules = {
     required: (message?: string): ValidationRule => ({
       validator: (value: any) => {
-        if (typeof value === 'string') return value.trim().length > 0
+        if (typeof value === 'string')
+          return value.trim().length > 0
         return value != null && value !== ''
       },
-      message: message || t('validation.required') || 'This field is required'
+      message: message || t('validation.required') || 'This field is required',
     }),
 
     minLength: (min: number, message?: string): ValidationRule => ({
       validator: (value: string) => !value || value.length >= min,
-      message: message || t('validation.minLength', { min }) || `Minimum length is ${min} characters`
+      message: message || t('validation.minLength', { min }) || `Minimum length is ${min} characters`,
     }),
 
     maxLength: (max: number, message?: string): ValidationRule => ({
       validator: (value: string) => !value || value.length <= max,
-      message: message || t('validation.maxLength', { max }) || `Maximum length is ${max} characters`
+      message: message || t('validation.maxLength', { max }) || `Maximum length is ${max} characters`,
     }),
 
     email: (message?: string): ValidationRule => ({
       validator: (value: string) => {
-        if (!value) return true
+        if (!value)
+          return true
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         return emailRegex.test(value)
       },
-      message: message || t('validation.email') || 'Please enter a valid email address'
+      message: message || t('validation.email') || 'Please enter a valid email address',
     }),
 
     url: (message?: string): ValidationRule => ({
       validator: (value: string) => {
-        if (!value) return true
-        try {
-          new URL(value)
+        if (!value)
           return true
-        } catch {
+        try {
+          const parsed = new URL(value)
+          if (!parsed.protocol)
+            return false
+          return true
+        }
+        catch {
           return false
         }
       },
-      message: message || t('validation.url') || 'Please enter a valid URL'
+      message: message || t('validation.url') || 'Please enter a valid URL',
     }),
 
     pattern: (regex: RegExp, message: string): ValidationRule => ({
       validator: (value: string) => !value || regex.test(value),
-      message
+      message,
     }),
 
     custom: (validator: (value: any) => boolean, message: string): ValidationRule => ({
       validator,
-      message
-    })
+      message,
+    }),
   }
 
   // Form field validation
   function useField<T>(
     initialValue: T,
-    validationRules: ValidationRule[] = []
+    validationRules: ValidationRule[] = [],
   ) {
     const value = ref<T>(initialValue)
     const touched = ref(false)
     const errors = ref<string[]>([])
-    
+
     const validator = createValidator(validationRules)
-    
+
     const isValid = computed(() => errors.value.length === 0)
     const hasErrors = computed(() => errors.value.length > 0)
     const showErrors = computed(() => touched.value && hasErrors.value)
@@ -116,9 +120,8 @@ export function useValidation() {
 
     // Validate on value change
     watch(value, () => {
-      if (touched.value) {
+      if (touched.value)
         validate()
-      }
     })
 
     return {
@@ -129,7 +132,7 @@ export function useValidation() {
       showErrors,
       validate,
       touch,
-      reset
+      reset,
     }
   }
 
@@ -137,9 +140,9 @@ export function useValidation() {
   function validateChatMessage(message: string): ValidationResult {
     const messageRules = [
       rules.required('Message cannot be empty'),
-      rules.maxLength(10000, 'Message is too long (max 10,000 characters)')
+      rules.maxLength(10000, 'Message is too long (max 10,000 characters)'),
     ]
-    
+
     return createValidator(messageRules)(message)
   }
 
@@ -149,10 +152,10 @@ export function useValidation() {
       rules.required('Session UUID is required'),
       rules.pattern(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-        'Invalid UUID format'
-      )
+        'Invalid UUID format',
+      ),
     ]
-    
+
     return createValidator(uuidRules)(uuid)
   }
 
@@ -160,21 +163,21 @@ export function useValidation() {
   function validateFileUpload(
     file: File,
     maxSize: number = 10 * 1024 * 1024, // 10MB
-    allowedTypes: string[] = []
+    allowedTypes: string[] = [],
   ): ValidationResult {
     const fileRules = [
       rules.custom(
         () => file.size <= maxSize,
-        `File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`
-      )
+        `File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`,
+      ),
     ]
 
     if (allowedTypes.length > 0) {
       fileRules.push(
         rules.custom(
           () => allowedTypes.some(type => file.type.includes(type)),
-          `File type not allowed. Allowed types: ${allowedTypes.join(', ')}`
-        )
+          `File type not allowed. Allowed types: ${allowedTypes.join(', ')}`,
+        ),
       )
     }
 
@@ -187,6 +190,6 @@ export function useValidation() {
     useField,
     validateChatMessage,
     validateSessionUuid,
-    validateFileUpload
+    validateFileUpload,
   }
 }

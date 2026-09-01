@@ -1,57 +1,49 @@
 <script lang="ts" setup>
 import type { Ref } from 'vue'
-import { computed, ref, watch, h, nextTick } from 'vue'
-import type { FormInst, CollapseInst } from 'naive-ui'
+import { computed, nextTick, ref, watch } from 'vue'
 import {
-  NForm,
-  NFormItem,
+  NCollapse,
+  NCollapseItem,
+  NIcon,
   NInput,
   NRadio,
   NRadioGroup,
   NSlider,
-  NSpace,
   NSpin,
   NSwitch,
-  NCollapse,
-  NCollapseItem,
-  NIcon,
-  NTooltip
 } from 'naive-ui'
 import {
-  SettingsOutlined,
-  PsychologyOutlined,
-  TuneOutlined,
-  ExtensionOutlined,
-  ExploreOutlined,
   BugReportOutlined,
+  ExploreOutlined,
+  ExtensionOutlined,
+  MemoryOutlined,
+  PsychologyOutlined,
+  SettingsOutlined,
   SpeedOutlined,
-  MemoryOutlined
+  TuneOutlined,
 } from '@vicons/material'
 import { debounce, isEqual } from 'lodash-es'
-import { useSessionStore, useAppStore } from '@/store'
+import { useQuery } from '@tanstack/vue-query'
+import { differenceInDays, formatDistanceToNow } from 'date-fns'
+import { useSessionStore } from '@/store'
 import { getChatInstructions, listChatModels } from '@/api/generated_client'
 
-import { useQuery } from "@tanstack/vue-query";
-import { formatDistanceToNow, differenceInDays } from 'date-fns'
-import { API_TYPE_DISPLAY_NAMES, API_TYPES } from '@/constants/apiTypes'
+import { API_TYPES, API_TYPE_DISPLAY_NAMES } from '@/constants/apiTypes'
 import type { ChatModel } from '@/types/chat-models'
-
-
-
-// format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now
-const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp)
-  const days = differenceInDays(new Date(), date)
-  if (days > 30) {
-    return 'a month ago'
-  }
-  return formatDistanceToNow(date, { addSuffix: true })
-}
 
 const props = defineProps<{
   uuid: string
 }>()
 
+// format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now
+const formatTimestamp = (timestamp: string) => {
+  const date = new Date(timestamp)
+  const days = differenceInDays(new Date(), date)
+  if (days > 30)
+    return 'a month ago'
+
+  return formatDistanceToNow(date, { addSuffix: true })
+}
 
 const { data, isLoading } = useQuery({
   queryKey: ['chat_models'],
@@ -67,16 +59,17 @@ const { data: instructionData, isLoading: isInstructionLoading } = useQuery({
 
 // Group models by API type/provider
 const chatModelOptionsByProvider = computed(() => {
-  if (!data?.value) return []
+  if (!data?.value)
+    return []
 
   const enabledModels = data.value.filter((x: ChatModel) => x.isEnable)
 
   // Group models by apiType
   const modelsByApiType = enabledModels.reduce((acc, model) => {
     const apiType = model.apiType || 'unknown'
-    if (!acc[apiType]) {
+    if (!acc[apiType])
       acc[apiType] = []
-    }
+
     acc[apiType].push(model)
     return acc
   }, {} as Record<string, ChatModel[]>)
@@ -98,7 +91,7 @@ const chatModelOptionsByProvider = computed(() => {
   })
 
   // Create grouped structure
-  return sortedApiTypes.map(apiType => {
+  return sortedApiTypes.map((apiType) => {
     const models = modelsByApiType[apiType]
     const apiTypeName = apiTypeConfig[apiType as keyof typeof apiTypeConfig]?.name
       || apiType.charAt(0).toUpperCase() + apiType.slice(1)
@@ -109,13 +102,12 @@ const chatModelOptionsByProvider = computed(() => {
     return {
       type: apiType,
       label: apiTypeName,
-      models: models,
+      models,
     }
   })
 })
 
 const sessionStore = useSessionStore()
-const appStore = useAppStore()
 
 const session = computed(() => sessionStore.getChatSessionByUuid(props.uuid))
 
@@ -133,9 +125,11 @@ interface ModelType {
 }
 
 const defaultModel = computed(() => {
-  if (!data?.value) return 'gpt-3.5-turbo'
+  if (!data?.value)
+    return 'gpt-3.5-turbo'
   const defaultModels = data.value.filter((x: any) => x.isDefault && x.isEnable)
-  if (defaultModels.length === 0) return 'gpt-3.5-turbo'
+  if (defaultModels.length === 0)
+    return 'gpt-3.5-turbo'
   // Sort by order_number to ensure deterministic selection
   defaultModels.sort((a: any, b: any) => (a.orderNumber || 0) - (b.orderNumber || 0))
   return defaultModels[0]?.name || 'gpt-3.5-turbo'
@@ -157,9 +151,6 @@ const modelRef: Ref<ModelType> = ref({
 const artifactInstruction = computed(() => instructionData.value?.artifactInstruction ?? '')
 const showInstructionPanel = computed(() => modelRef.value.artifactEnabled)
 
-const formRef = ref<FormInst | null>(null)
-const collapseRef = ref<CollapseInst | null>(null)
-
 // Flag to prevent circular updates
 let isUpdatingFromSession = false
 
@@ -168,9 +159,8 @@ const expandedNames = ref<string[]>(['modes'])
 
 const debouneUpdate = debounce(async (model: ModelType) => {
   // Prevent update if we're currently updating from session
-  if (isUpdatingFromSession) {
+  if (isUpdatingFromSession)
     return
-  }
 
   sessionStore.updateSession(props.uuid, {
     maxLength: model.contextCount,
@@ -220,27 +210,21 @@ watch(session, (newSession) => {
   }
 }, { deep: true, immediate: true })
 
-
-
 const tokenUpperLimit = computed(() => {
   if (data && data.value) {
-    for (let modelConfig of data.value) {
-      if (modelConfig.name == modelRef.value.chatModel) {
+    for (const modelConfig of data.value) {
+      if (modelConfig.name === modelRef.value.chatModel)
         return modelConfig.maxToken
-      }
-
     }
-
   }
   return 1024 * 4
 })
 
 const defaultToken = computed(() => {
   if (data && data.value) {
-    for (let modelConfig of data.value) {
-      if (modelConfig.name == modelRef.value.chatModel) {
+    for (const modelConfig of data.value) {
+      if (modelConfig.name === modelRef.value.chatModel)
         return modelConfig.defaultToken
-      }
     }
   }
   return 2048
@@ -267,19 +251,25 @@ const defaultToken = computed(() => {
         <NRadioGroup v-else v-model:value="modelRef.chatModel" class="model-radio-group">
           <div v-for="providerGroup in chatModelOptionsByProvider" :key="providerGroup.type" class="provider-card">
             <div class="provider-header">
-              <div class="provider-label">{{ providerGroup.label }}</div>
-              <div class="provider-count">{{ providerGroup.models.length }} {{ $t('chat.models') }}</div>
+              <div class="provider-label">
+                {{ providerGroup.label }}
+              </div>
+              <div class="provider-count">
+                {{ providerGroup.models.length }} {{ $t('chat.models') }}
+              </div>
             </div>
             <div class="model-grid">
               <div
                 v-for="model in providerGroup.models"
                 :key="model.name"
-                :class="['model-card', { active: modelRef.chatModel === model.name }]"
+                class="model-card" :class="[{ active: modelRef.chatModel === model.name }]"
                 @click="modelRef.chatModel = model.name"
               >
                 <NRadio :value="model.name" :checked="modelRef.chatModel === model.name" class="model-radio" />
                 <div class="model-info">
-                  <div class="model-name">{{ model.label }}</div>
+                  <div class="model-name">
+                    {{ model.label }}
+                  </div>
                   <div class="model-meta">
                     <span class="model-timestamp">{{ formatTimestamp(model.lastUsageTime) }}</span>
                   </div>
@@ -301,14 +291,18 @@ const defaultToken = computed(() => {
         <div class="modes-grid">
           <!-- Artifact Mode -->
           <div
-            :class="['mode-card', { enabled: modelRef.artifactEnabled }]"
+            class="mode-card" :class="[{ enabled: modelRef.artifactEnabled }]"
             @click="modelRef.artifactEnabled = !modelRef.artifactEnabled"
           >
             <div class="mode-header">
               <NIcon :component="ExtensionOutlined" :size="24" class="mode-icon" />
               <div class="mode-info">
-                <div class="mode-name">{{ $t('chat.artifactMode') }}</div>
-                <div class="mode-description">{{ $t('chat.artifactModeDescription') }}</div>
+                <div class="mode-name">
+                  {{ $t('chat.artifactMode') }}
+                </div>
+                <div class="mode-description">
+                  {{ $t('chat.artifactModeDescription') }}
+                </div>
               </div>
             </div>
             <NSwitch v-model:value="modelRef.artifactEnabled" data-testid="artifact_mode" size="medium" @click.stop />
@@ -316,14 +310,18 @@ const defaultToken = computed(() => {
 
           <!-- Explore Mode -->
           <div
-            :class="['mode-card', { enabled: modelRef.exploreMode }]"
+            class="mode-card" :class="[{ enabled: modelRef.exploreMode }]"
             @click="modelRef.exploreMode = !modelRef.exploreMode"
           >
             <div class="mode-header">
               <NIcon :component="ExploreOutlined" :size="24" class="mode-icon" />
               <div class="mode-info">
-                <div class="mode-name">{{ $t('chat.exploreMode') }}</div>
-                <div class="mode-description">{{ $t('chat.exploreModeDescription') }}</div>
+                <div class="mode-name">
+                  {{ $t('chat.exploreMode') }}
+                </div>
+                <div class="mode-description">
+                  {{ $t('chat.exploreModeDescription') }}
+                </div>
               </div>
             </div>
             <NSwitch v-model:value="modelRef.exploreMode" data-testid="explore_mode" size="medium" @click.stop />
@@ -343,7 +341,9 @@ const defaultToken = computed(() => {
           <template v-else>
             <!-- Artifact Instructions -->
             <div v-if="modelRef.artifactEnabled && artifactInstruction" class="instruction-block">
-              <div class="instruction-label">{{ $t('chat.artifactInstructionTitle') }}</div>
+              <div class="instruction-label">
+                {{ $t('chat.artifactInstructionTitle') }}
+              </div>
               <NInput
                 class="instruction-input"
                 :value="artifactInstruction"
@@ -372,7 +372,9 @@ const defaultToken = computed(() => {
                 <NIcon :component="MemoryOutlined" size="16" />
                 <span class="slider-label">{{ $t('chat.contextCount', { contextCount: modelRef.contextCount }) }}</span>
               </div>
-              <div class="slider-value">{{ modelRef.contextCount }}</div>
+              <div class="slider-value">
+                {{ modelRef.contextCount }}
+              </div>
             </div>
             <NSlider
               v-model:value="modelRef.contextCount"
@@ -391,7 +393,9 @@ const defaultToken = computed(() => {
                 <NIcon :component="SpeedOutlined" size="16" />
                 <span class="slider-label">{{ $t('chat.temperature') }}</span>
               </div>
-              <div class="slider-value">{{ modelRef.temperature.toFixed(2) }}</div>
+              <div class="slider-value">
+                {{ modelRef.temperature.toFixed(2) }}
+              </div>
             </div>
             <NSlider
               v-model:value="modelRef.temperature"
@@ -410,7 +414,9 @@ const defaultToken = computed(() => {
                 <NIcon :component="TuneOutlined" size="16" />
                 <span class="slider-label">{{ $t('chat.topP') }}</span>
               </div>
-              <div class="slider-value">{{ modelRef.topP.toFixed(2) }}</div>
+              <div class="slider-value">
+                {{ modelRef.topP.toFixed(2) }}
+              </div>
             </div>
             <NSlider
               v-model:value="modelRef.topP"
@@ -429,7 +435,9 @@ const defaultToken = computed(() => {
                 <NIcon :component="MemoryOutlined" size="16" />
                 <span class="slider-label">{{ $t('chat.maxTokens') }}</span>
               </div>
-              <div class="slider-value">{{ modelRef.maxTokens }}</div>
+              <div class="slider-value">
+                {{ modelRef.maxTokens }}
+              </div>
             </div>
             <NSlider
               v-model:value="modelRef.maxTokens"
@@ -449,7 +457,9 @@ const defaultToken = computed(() => {
                 <NIcon :component="PsychologyOutlined" size="16" />
                 <span class="slider-label">{{ $t('chat.N') }}</span>
               </div>
-              <div class="slider-value">{{ modelRef.n }}</div>
+              <div class="slider-value">
+                {{ modelRef.n }}
+              </div>
             </div>
             <NSlider
               v-model:value="modelRef.n"
@@ -466,13 +476,16 @@ const defaultToken = computed(() => {
             <div class="debug-header">
               <NIcon :component="BugReportOutlined" size="20" />
               <div class="debug-info">
-                <div class="debug-label">{{ $t('chat.debug') }}</div>
-                <div class="debug-description">{{ $t('chat.debugDescription') }}</div>
+                <div class="debug-label">
+                  {{ $t('chat.debug') }}
+                </div>
+                <div class="debug-description">
+                  {{ $t('chat.debugDescription') }}
+                </div>
               </div>
             </div>
             <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode" size="medium" />
           </div>
-
         </div>
       </NCollapseItem>
     </NCollapse>

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { NButton, NForm, NFormItem, NInput, NSwitch, NSelect, useMessage } from 'naive-ui'
-import { createChatModel } from '@/api/generated_client'
+import { NButton, NForm, NFormItem, NInput, NSelect, NSwitch, useMessage } from 'naive-ui'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { createChatModel } from '@/api/generated_client'
 import { t } from '@/locales'
-import { API_TYPE_OPTIONS, API_TYPES, type ApiType } from '@/constants/apiTypes'
-
-const queryClient = useQueryClient()
+import { API_TYPES, API_TYPE_OPTIONS, type ApiType } from '@/constants/apiTypes'
 
 const emit = defineEmits<Emit>()
+
+const queryClient = useQueryClient()
 
 interface FormData {
   name: string
@@ -39,15 +39,13 @@ const defaultFormData: FormData = {
   orderNumber: 0,
   defaultToken: 0,
   maxToken: 0,
-  apiType: API_TYPES.OPENAI
+  apiType: API_TYPES.OPENAI,
 }
 
 const formData = ref<FormData>({ ...defaultFormData })
 
 // API Type options (imported from constants)
 const apiTypeOptions = API_TYPE_OPTIONS
-
-
 
 function clearForm() {
   formData.value = { ...defaultFormData }
@@ -57,39 +55,37 @@ function clearForm() {
 
 function populateFromJson() {
   try {
-    if (!jsonInput.value.trim()) {
+    if (!jsonInput.value.trim())
       throw new Error('Please paste JSON configuration')
-    }
 
     const jsonData = JSON.parse(jsonInput.value)
-    
+
     // Validate required fields
     const requiredFields = ['name', 'label', 'url']
     const missingFields = requiredFields.filter(field => !jsonData[field])
-    
-    if (missingFields.length > 0) {
+
+    if (missingFields.length > 0)
       throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
-    }
 
     // Validate number fields
     const numberFields = ['orderNumber', 'defaultToken', 'maxToken']
-    numberFields.forEach(field => {
-      if (jsonData[field] && isNaN(jsonData[field])) {
+    numberFields.forEach((field) => {
+      if (jsonData[field] && isNaN(jsonData[field]))
         throw new Error(`${field} must be a number`)
-      }
     })
 
     // Update form data with validation
     formData.value = {
       ...defaultFormData, // Reset to defaults first
-      ...jsonData,        // Override with JSON values
+      ...jsonData, // Override with JSON values
       orderNumber: jsonData.orderNumber || 0,
       defaultToken: jsonData.defaultToken || 0,
-      maxToken: jsonData.maxToken || 0
+      maxToken: jsonData.maxToken || 0,
     }
-    
+
     ms_ui.success('Form populated successfully from JSON')
-  } catch (error) {
+  }
+  catch (error) {
     ms_ui.error(`Error: ${(error as Error).message}`)
     console.error('JSON parse error:', error)
   }
@@ -98,7 +94,6 @@ function populateFromJson() {
 interface Emit {
   (e: 'newRowAdded'): void
 }
-
 
 const createChatModelMutation = useMutation({
   mutationFn: (formData: FormData) => createChatModel({ body: formData }),
@@ -156,30 +151,30 @@ async function addRow() {
     </NFormItem>
 
     <div class="flex gap-2 mt-4">
-      <NButton 
-        type="info" 
-        secondary 
-        strong 
-        @click="populateFromJson"
+      <NButton
+        type="info"
+        secondary
+        strong
         class="flex-1"
+        @click="populateFromJson"
       >
         {{ t('admin.chat_model.populate_form') }}
       </NButton>
-      <NButton 
-        type="warning" 
-        secondary 
-        strong 
-        @click="clearForm"
+      <NButton
+        type="warning"
+        secondary
+        strong
         class="flex-1"
+        @click="clearForm"
       >
         {{ t('admin.chat_model.clear_form') }}
       </NButton>
-      <NButton 
-        type="primary" 
-        secondary 
-        strong 
-        @click="addRow"
+      <NButton
+        type="primary"
+        secondary
+        strong
         class="flex-1"
+        @click="addRow"
       >
         {{ t('common.confirm') }}
       </NButton>

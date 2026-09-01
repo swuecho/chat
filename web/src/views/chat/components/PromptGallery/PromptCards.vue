@@ -1,9 +1,7 @@
 <script lang="ts" setup>
-import { NCard, NButton, NSpace } from 'naive-ui'
+import { NButton, NCard, NSpace } from 'naive-ui'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { SvgIcon } from '@/components/common'
-
-const { isMobile } = useBasicLayout()
 
 defineProps<{
   prompts: any[]
@@ -12,6 +10,8 @@ defineProps<{
 const emit = defineEmits<{
   (ev: 'usePrompt', key: string, prompt: string, uuid?: string): void
 }>()
+
+const { isMobile } = useBasicLayout()
 </script>
 
 <template>
@@ -40,7 +40,7 @@ const emit = defineEmits<{
           class="!bg-primary-400 hover:!bg-primary-500 dark:!bg-primary-500 dark:hover:!bg-primary-600"
           @click="emit('usePrompt', prompt.key, prompt.value, prompt?.uuid)"
         >
-        <SvgIcon icon="material-symbols:play-arrow"/>
+          <SvgIcon icon="material-symbols:play-arrow" />
         </NButton>
       </template>
       <div class="line-clamp-2 leading-6 overflow-hidden text-ellipsis text-gray-600 dark:text-gray-300">

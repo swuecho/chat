@@ -1,54 +1,12 @@
-<template>
-  <div class="enhanced-notification" :class="notificationClass">
-    <div class="notification-banner" :class="bannerClass">
-      <div class="banner-content">
-        <div class="banner-icon">
-          <component :is="iconComponent" :size="16" />
-        </div>
-        <div class="banner-title">{{ title }}</div>
-        <div class="banner-actions" v-if="closable">
-          <n-button 
-            quaternary 
-            circle 
-            size="tiny" 
-            @click="handleClose"
-            class="close-button"
-          >
-            <template #icon>
-              <n-icon><CloseIcon /></n-icon>
-            </template>
-          </n-button>
-        </div>
-      </div>
-    </div>
-    
-    <div class="notification-content" v-if="content || $slots.default">
-      <div class="content-text" v-if="content">{{ content }}</div>
-      <slot v-else />
-      
-      <div class="content-actions" v-if="action">
-        <n-button 
-          :type="actionButtonType" 
-          size="small" 
-          @click="handleAction"
-          class="action-button"
-        >
-          {{ action.text }}
-        </n-button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
 import { NButton, NIcon } from 'naive-ui'
-import { 
-  CheckmarkCircle as SuccessIcon,
+import {
+  Close as CloseIcon,
   CloseCircle as ErrorIcon,
-  Warning as WarningIcon,
   InformationCircle as InfoIcon,
-  Close as CloseIcon
+  CheckmarkCircle as SuccessIcon,
+  Warning as WarningIcon,
 } from '@vicons/ionicons5'
 
 interface NotificationAction {
@@ -70,7 +28,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   type: 'info',
-  closable: true
+  closable: true,
 })
 
 const emit = defineEmits<Emits>()
@@ -80,7 +38,7 @@ const iconComponent = computed(() => {
     success: SuccessIcon,
     error: ErrorIcon,
     warning: WarningIcon,
-    info: InfoIcon
+    info: InfoIcon,
   }
   return icons[props.type]
 })
@@ -92,9 +50,9 @@ const bannerClass = computed(() => `banner-${props.type}`)
 const actionButtonType = computed(() => {
   const buttonTypes = {
     success: 'success',
-    error: 'error', 
+    error: 'error',
     warning: 'warning',
-    info: 'primary'
+    info: 'primary',
   }
   return buttonTypes[props.type]
 })
@@ -103,7 +61,7 @@ const titles = {
   success: 'Success',
   error: 'Error',
   warning: 'Warning',
-  info: 'Information'
+  info: 'Information',
 }
 
 const title = computed(() => props.title || titles[props.type])
@@ -113,11 +71,56 @@ function handleClose() {
 }
 
 function handleAction() {
-  if (props.action) {
+  if (props.action)
     props.action.onClick()
-  }
 }
 </script>
+
+<template>
+  <div class="enhanced-notification" :class="notificationClass">
+    <div class="notification-banner" :class="bannerClass">
+      <div class="banner-content">
+        <div class="banner-icon">
+          <component :is="iconComponent" :size="16" />
+        </div>
+        <div class="banner-title">
+          {{ title }}
+        </div>
+        <div v-if="closable" class="banner-actions">
+          <NButton
+            quaternary
+            circle
+            size="tiny"
+            class="close-button"
+            @click="handleClose"
+          >
+            <template #icon>
+              <NIcon><CloseIcon /></NIcon>
+            </template>
+          </NButton>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="content || $slots.default" class="notification-content">
+      <div v-if="content" class="content-text">
+        {{ content }}
+      </div>
+      <slot v-else />
+
+      <div v-if="action" class="content-actions">
+        <NButton
+          :type="actionButtonType"
+          size="small"
+          class="action-button"
+          @click="handleAction"
+        >
+          {{ action.text }}
+        </NButton>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .enhanced-notification {

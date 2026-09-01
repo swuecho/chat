@@ -1,6 +1,5 @@
-import { expect, describe, it, beforeAll } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { displayLocaleDate } from '../date'
-
 
 describe('displayLocaleDate', () => {
   beforeAll(() => {
@@ -25,5 +24,4 @@ describe('displayLocaleDate', () => {
     const result = displayLocaleDate(invalidDate)
     expect(result).toBe('Invalid DateTime')
   })
-
 })

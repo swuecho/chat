@@ -56,9 +56,8 @@ class Logger {
   }
 
   private log(level: LogLevel, message: string, context?: string, data?: any): void {
-    if (!this.shouldLog(level)) {
+    if (!this.shouldLog(level))
       return
-    }
 
     const entry = this.createLogEntry(level, message, context, data)
     this.logs.push(entry)
@@ -66,7 +65,7 @@ class Logger {
     // Only log to console in development or for errors/warnings
     if (!this.isProduction || level >= LogLevel.ERROR) {
       const formattedMessage = this.formatMessage(entry)
-      
+
       switch (level) {
         case LogLevel.DEBUG:
           console.debug(formattedMessage)
@@ -114,7 +113,7 @@ class Logger {
     this.debug(`Store action: ${action}`, store, data)
   }
 
-  logPerformance(metric: string, value: number, unit: string = 'ms'): void {
+  logPerformance(metric: string, value: number, unit = 'ms'): void {
     this.debug(`Performance: ${metric} = ${value}${unit}`, 'Performance', { metric, value, unit })
   }
 
@@ -124,9 +123,9 @@ class Logger {
 
   // Get logs for debugging
   getLogs(level?: LogLevel): LogEntry[] {
-    if (level !== undefined) {
+    if (level !== undefined)
       return this.logs.filter(log => log.level >= level)
-    }
+
     return [...this.logs]
   }
 

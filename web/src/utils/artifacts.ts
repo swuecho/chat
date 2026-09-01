@@ -25,7 +25,7 @@ export function extractArtifacts(content: string): Artifact[] {
       type: 'html',
       title,
       content: artifactContent,
-      language: 'html'
+      language: 'html',
     }
     artifacts.push(artifact)
   }
@@ -43,7 +43,7 @@ export function extractArtifacts(content: string): Artifact[] {
       type: 'svg',
       title,
       content: artifactContent,
-      language: 'svg'
+      language: 'svg',
     }
     artifacts.push(artifact)
   }
@@ -61,7 +61,7 @@ export function extractArtifacts(content: string): Artifact[] {
       type: 'mermaid',
       title,
       content: artifactContent,
-      language: 'mermaid'
+      language: 'mermaid',
     }
     artifacts.push(artifact)
   }
@@ -79,7 +79,7 @@ export function extractArtifacts(content: string): Artifact[] {
       type: 'json',
       title,
       content: artifactContent,
-      language: 'json'
+      language: 'json',
     }
     artifacts.push(artifact)
   }
@@ -94,16 +94,15 @@ export function extractArtifacts(content: string): Artifact[] {
     const artifactContent = match[3].trim()
 
     // Skip if already processed as HTML, SVG, Mermaid, or JSON
-    if (language === 'html' || language === 'svg' || language === 'mermaid' || language === 'json') {
+    if (language === 'html' || language === 'svg' || language === 'mermaid' || language === 'json')
       continue
-    }
 
     const artifact: Artifact = {
       uuid: generateUUID(),
       type: 'code',
       title,
       content: artifactContent,
-      language
+      language,
     }
     artifacts.push(artifact)
   }
@@ -118,16 +117,15 @@ export function extractArtifacts(content: string): Artifact[] {
     const artifactContent = match[3].trim()
 
     // Skip if already processed as HTML, SVG, Mermaid, JSON, or executable
-    if (language === 'html' || language === 'svg' || language === 'mermaid' || language === 'json') {
+    if (language === 'html' || language === 'svg' || language === 'mermaid' || language === 'json')
       continue
-    }
 
     const artifact: Artifact = {
       uuid: generateUUID(),
       type: 'code',
       title,
       content: artifactContent,
-      language
+      language,
     }
     artifacts.push(artifact)
   }

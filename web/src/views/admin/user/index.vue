@@ -145,11 +145,13 @@ async function handleSave() {
     return
 
   try {
-    await updateAdminUser({ body: {
-      firstName: editingUser.value.firstName,
-      lastName: editingUser.value.lastName,
-      email: editingUser.value.email,
-    } })
+    await updateAdminUser({
+      body: {
+        firstName: editingUser.value.firstName,
+        lastName: editingUser.value.lastName,
+        email: editingUser.value.email,
+      },
+    })
     await updateUserRateLimit({
       body: { email: editingUser.value.email, rateLimit: parseInt(editingUser.value.rateLimit) },
     })

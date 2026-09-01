@@ -54,4 +54,4 @@ export function isFile<T extends File>(value: T | unknown): value is T {
   return Object.prototype.toString.call(value) === '[object File]'
 }
 
-export const isASCII = (str: string) => /^[\x00-\x7F]*$/.test(str)
+export const isASCII = (str: string) => [...str].every(char => char.codePointAt(0)! <= 0x7F)

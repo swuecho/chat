@@ -1,5 +1,5 @@
 // src/composables/useSlashToFocus.ts
-import { onMounted, onBeforeUnmount, type Ref, toRaw } from 'vue';
+import { type Ref, onBeforeUnmount, onMounted } from 'vue'
 
 /**
  * Custom composable to intercept the '/' key globally and focus a target input.
@@ -7,42 +7,37 @@ import { onMounted, onBeforeUnmount, type Ref, toRaw } from 'vue';
  * @param targetInputRef - A Vue ref pointing to the input element to focus.
  */
 export function useSlashToFocus(targetInputRef: Ref<HTMLInputElement | null>): void {
+  const handleGlobalKeyPress = (event: KeyboardEvent): void => {
+    // Ensure the ref is pointing to an element
+    if (!targetInputRef.value)
+      return
 
-        const handleGlobalKeyPress = (event: KeyboardEvent): void => {
+    const activeElement = document.activeElement // This is already a raw element
 
-                // Ensure the ref is pointing to an element
-                if (!targetInputRef.value) {
-                        return;
-                }
+    // Check if the pressed key is '/'
+    if (event.key === '/') {
+      // If the target input is already focused, allow the '/' to be typed
+      // Compare the raw target element with the active element
+      const isTypingInInput = activeElement && (
+        activeElement.tagName === 'INPUT'
+                                || activeElement.tagName === 'TEXTAREA')
 
-                const activeElement = document.activeElement; // This is already a raw element
+      if (isTypingInInput)
+        return
 
-                // Check if the pressed key is '/'
-                if (event.key === '/') {
-                        // If the target input is already focused, allow the '/' to be typed
-                        // Compare the raw target element with the active element
-                        const isTypingInInput = activeElement && (
-                                activeElement.tagName === 'INPUT' ||
-                                activeElement.tagName === 'TEXTAREA');
+      // Prevent default behavior (e.g., typing '/' into another focused input or browser's quick find)
+      event.preventDefault()
 
-                        if (isTypingInInput) {
-                                return;
-                        }
+      // Focus the target input (using the original ref.value which is fine for DOM methods)
+      targetInputRef.value.focus()
+    }
+  }
 
-                        // Prevent default behavior (e.g., typing '/' into another focused input or browser's quick find)
-                        event.preventDefault();
+  onMounted(() => {
+    window.addEventListener('keydown', handleGlobalKeyPress)
+  })
 
-                        // Focus the target input (using the original ref.value which is fine for DOM methods)
-                        targetInputRef.value.focus();
-                }
-        };
-
-
-        onMounted(() => {
-                window.addEventListener('keydown', handleGlobalKeyPress);
-        });
-
-        onBeforeUnmount(() => {
-                window.removeEventListener('keydown', handleGlobalKeyPress);
-        });
+  onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleGlobalKeyPress)
+  })
 }

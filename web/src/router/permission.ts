@@ -49,16 +49,14 @@ export function setupPageGuard(router: Router) {
       // Sync active session from URL without triggering another navigation
       if (to.params.uuid) {
         const sessionUuid = to.params.uuid as string
-        if (sessionUuid !== sessionStore.activeSessionUuid) {
+        if (sessionUuid !== sessionStore.activeSessionUuid)
           sessionStore.setActiveSessionWithoutNavigation(workspaceUuid, sessionUuid)
-        }
       }
     }
 
     // Handle default route - let store sync handle navigation to default workspace
-    if (to.name === 'DefaultWorkspace') {
+    if (to.name === 'DefaultWorkspace')
       console.log('On default route, letting store handle workspace navigation')
-    }
 
     next()
   })

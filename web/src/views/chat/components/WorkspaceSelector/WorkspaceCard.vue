@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h } from 'vue'
 import {
-  NCard,
-  NButton,
-  NDropdown,
-  NTooltip,
   NBadge,
+  NButton,
+  NCard,
+  NDropdown,
   NTag,
-  useMessage
+  useMessage,
 } from 'naive-ui'
 import type { DropdownOption } from 'naive-ui'
 import { SvgIcon } from '@/components/common'
 import { useSessionStore, useWorkspaceStore } from '@/store'
 import { t } from '@/locales'
+
+// Import h function for rendering icons in dropdown
 
 interface Props {
   workspace: Chat.Workspace
@@ -27,7 +28,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  dragMode: false
+  dragMode: false,
 })
 const emit = defineEmits<Emits>()
 
@@ -37,9 +38,9 @@ const message = useMessage()
 
 // Icon mapping - convert icon value to full icon string
 const getWorkspaceIconString = (iconValue: string) => {
-  if (iconValue.includes(':')) {
+  if (iconValue.includes(':'))
     return iconValue
-  }
+
   return `material-symbols:${iconValue}`
 }
 
@@ -55,22 +56,22 @@ const dropdownOptions = computed((): DropdownOption[] => [
   {
     key: 'edit',
     label: t('common.edit'),
-    icon: () => h(SvgIcon, { icon: 'material-symbols:edit' })
+    icon: () => h(SvgIcon, { icon: 'material-symbols:edit' }),
   },
   {
     key: 'duplicate',
     label: t('workspace.duplicate'),
-    icon: () => h(SvgIcon, { icon: 'material-symbols:content-copy' })
+    icon: () => h(SvgIcon, { icon: 'material-symbols:content-copy' }),
   },
   {
     key: 'set-default',
     label: t('workspace.setAsDefault'),
     icon: () => h(SvgIcon, { icon: 'material-symbols:star' }),
-    disabled: props.workspace.isDefault
+    disabled: props.workspace.isDefault,
   },
   {
     type: 'divider',
-    key: 'divider'
+    key: 'divider',
   },
   {
     key: 'delete',
@@ -78,9 +79,9 @@ const dropdownOptions = computed((): DropdownOption[] => [
     icon: () => h(SvgIcon, { icon: 'material-symbols:delete' }),
     disabled: props.workspace.isDefault,
     props: {
-      style: 'color: #ef4444;'
-    }
-  }
+      style: 'color: #ef4444;',
+    },
+  },
 ])
 
 function handleDropdownSelect(key: string) {
@@ -105,27 +106,26 @@ function handleDropdownSelect(key: string) {
 }
 
 async function handleSwitchToWorkspace() {
-  if (isActive.value) return
-  
+  if (isActive.value)
+    return
+
   try {
     await workspaceStore.setActiveWorkspace(props.workspace.uuid)
     message.success(t('workspace.switchedTo', { name: props.workspace.name }))
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Failed to switch workspace:', error)
     message.error(t('workspace.switchError'))
   }
 }
-
-// Import h function for rendering icons in dropdown
-import { h } from 'vue'
 </script>
 
 <template>
-  <NCard 
-    class="workspace-card" 
-    :class="{ 
+  <NCard
+    class="workspace-card"
+    :class="{
       'workspace-card--active': isActive,
-      'workspace-card--drag-mode': dragMode
+      'workspace-card--drag-mode': dragMode,
     }"
     size="small"
     :hoverable="!dragMode"
@@ -133,7 +133,7 @@ import { h } from 'vue'
     <!-- Header with icon and actions -->
     <div class="workspace-card__header">
       <div class="workspace-card__icon-container">
-        <div 
+        <div
           class="workspace-card__icon"
           :style="{ color: workspace.color }"
         >
@@ -142,16 +142,16 @@ import { h } from 'vue'
         <NBadge v-if="isActive" :value="t('workspace.active')" type="success" />
         <NBadge v-else-if="workspace.isDefault" :value="t('workspace.default')" type="info" />
       </div>
-      
+
       <div class="workspace-card__actions">
-        <div 
-          v-if="dragMode" 
+        <div
+          v-if="dragMode"
           class="workspace-card__drag-handle"
           :title="t('workspace.dragToReorder')"
         >
           <SvgIcon icon="material-symbols:drag-indicator" />
         </div>
-        
+
         <NDropdown
           v-if="!dragMode"
           :options="dropdownOptions"
@@ -171,7 +171,9 @@ import { h } from 'vue'
     <!-- Workspace content -->
     <div class="workspace-card__content" @click="handleSwitchToWorkspace">
       <div class="workspace-card__title">
-        <h3 class="workspace-card__name">{{ workspace.name }}</h3>
+        <h3 class="workspace-card__name">
+          {{ workspace.name }}
+        </h3>
         <div class="workspace-card__meta">
           <span class="workspace-card__session-count">
             {{ t('workspace.sessionCount', { count: sessionCount }) }}
@@ -192,7 +194,7 @@ import { h } from 'vue'
             {{ t('workspace.active') }}
           </NTag>
         </div>
-        
+
         <div class="workspace-card__date">
           {{ t('workspace.lastUpdated') }}: {{ new Date(workspace.updatedAt).toLocaleDateString() }}
         </div>
@@ -353,11 +355,11 @@ import { h } from 'vue'
   .workspace-card__icon {
     background: rgba(255, 255, 255, 0.05);
   }
-  
+
   .workspace-card:hover {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   }
-  
+
   .workspace-card--active {
     background: linear-gradient(135deg, rgba(24, 160, 88, 0.1) 0%, rgba(24, 160, 88, 0.05) 100%);
   }

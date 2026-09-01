@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore, useWorkspaceStore } from '@/store'
 
 export function useWorkspaceRouting() {
@@ -27,16 +27,16 @@ export function useWorkspaceRouting() {
   function getSessionUrl(sessionUuid: string, workspaceUuid?: string): string {
     const workspace = workspaceUuid || workspaceStore.activeWorkspace
     const session = sessionStore.getChatSessionByUuid(sessionUuid)
-    
+
     // Use session's workspace if available, otherwise use provided or active workspace
     const targetWorkspace = session?.workspaceUuid || workspace || workspaceStore.getDefaultWorkspace?.uuid
-    
-    if (targetWorkspace) {
+
+    if (targetWorkspace)
       return `/#/workspace/${targetWorkspace}/chat/${sessionUuid}`
-    }
+
     // Fallback to default workspace if none found
     const defaultWorkspace = workspaceStore.getDefaultWorkspace
-    return defaultWorkspace ? `/#/workspace/${defaultWorkspace.uuid}/chat/${sessionUuid}` : `/#/`
+    return defaultWorkspace ? `/#/workspace/${defaultWorkspace.uuid}/chat/${sessionUuid}` : '/#/'
   }
 
   // Generate workspace URL (without session)
@@ -48,19 +48,20 @@ export function useWorkspaceRouting() {
   async function navigateToSession(sessionUuid: string, workspaceUuid?: string) {
     const workspace = workspaceUuid || workspaceStore.activeWorkspace
     const session = sessionStore.getChatSessionByUuid(sessionUuid)
-    
+
     // Use session's workspace if available, otherwise use default workspace
     const targetWorkspace = session?.workspaceUuid || workspace || workspaceStore.getDefaultWorkspace?.uuid
-    
+
     if (targetWorkspace) {
       await router.push({
         name: 'WorkspaceChat',
         params: {
           workspaceUuid: targetWorkspace,
-          uuid: sessionUuid
-        }
+          uuid: sessionUuid,
+        },
       })
-    } else {
+    }
+    else {
       // Fallback to default route if no workspace found
       await router.push({ name: 'DefaultWorkspace' })
     }
@@ -70,34 +71,31 @@ export function useWorkspaceRouting() {
   async function navigateToWorkspace(workspaceUuid: string) {
     await router.push({
       name: 'WorkspaceChat',
-      params: { workspaceUuid }
+      params: { workspaceUuid },
     })
   }
 
   // Navigate to first session in workspace, or workspace itself if no sessions
   async function navigateToWorkspaceOrFirstSession(workspaceUuid: string) {
     const workspaceSessions = sessionStore.getSessionsByWorkspace(workspaceUuid)
-    
-    if (workspaceSessions.length > 0) {
+
+    if (workspaceSessions.length > 0)
       await navigateToSession(workspaceSessions[0].uuid, workspaceUuid)
-    } else {
+    else
       await navigateToWorkspace(workspaceUuid)
-    }
   }
 
   // Check if current route matches the expected workspace/session
   function isCurrentRoute(sessionUuid?: string, workspaceUuid?: string): boolean {
     const currentSession = currentSessionFromUrl.value
     const currentWorkspace = currentWorkspaceFromUrl.value
-    
-    if (sessionUuid && sessionUuid !== currentSession) {
+
+    if (sessionUuid && sessionUuid !== currentSession)
       return false
-    }
-    
-    if (workspaceUuid && workspaceUuid !== currentWorkspace) {
+
+    if (workspaceUuid && workspaceUuid !== currentWorkspace)
       return false
-    }
-    
+
     return true
   }
 
@@ -105,15 +103,14 @@ export function useWorkspaceRouting() {
   async function syncUrlWithState() {
     const activeSession = sessionStore.active
     const activeWorkspace = workspaceStore.activeWorkspace
-    
+
     // If we have an active session and workspace, ensure URL is correct
     if (activeSession && activeWorkspace) {
       const session = sessionStore.getChatSessionByUuid(activeSession)
       if (session && session.workspaceUuid === activeWorkspace) {
         // Check if current URL doesn't match expected workspace-aware URL
-        if (!isCurrentRoute(activeSession, activeWorkspace)) {
+        if (!isCurrentRoute(activeSession, activeWorkspace))
           await navigateToSession(activeSession, activeWorkspace)
-        }
       }
     }
   }
@@ -122,17 +119,15 @@ export function useWorkspaceRouting() {
   function handleRouteChange() {
     const workspaceFromUrl = currentWorkspaceFromUrl.value
     const sessionFromUrl = currentSessionFromUrl.value
-    
+
     // Update store state to match URL
-    if (workspaceFromUrl && workspaceFromUrl !== workspaceStore.activeWorkspace) {
+    if (workspaceFromUrl && workspaceFromUrl !== workspaceStore.activeWorkspace)
       workspaceStore.setActiveWorkspace(workspaceFromUrl)
-    }
-    
+
     if (sessionFromUrl && sessionFromUrl !== sessionStore.active) {
       const session = sessionStore.getChatSessionByUuid(sessionFromUrl)
-      if (session) {
+      if (session)
         sessionStore.setActiveSessionWithoutNavigation(session.workspaceUuid, sessionFromUrl)
-      }
     }
   }
 
@@ -141,7 +136,7 @@ export function useWorkspaceRouting() {
     currentWorkspaceFromUrl,
     currentSessionFromUrl,
     isWorkspaceRoute,
-    
+
     // Methods
     getSessionUrl,
     getWorkspaceUrl,
@@ -150,6 +145,6 @@ export function useWorkspaceRouting() {
     navigateToWorkspaceOrFirstSession,
     isCurrentRoute,
     syncUrlWithState,
-    handleRouteChange
+    handleRouteChange,
   }
 }

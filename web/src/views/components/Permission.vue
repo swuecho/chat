@@ -154,17 +154,23 @@ async function handleSignup() {
           <NTabPane name="signin" :tab="t('common.login')" :tab-props="{ title: 'signintab' }">
             <NForm :show-label="false">
               <NFormItemRow label="邮箱">
-                <NInput v-model:value="LoginData.email" data-testid="email" type="text" :minlength="6"
-                  :placeholder="$t('common.email_placeholder')" />
+                <NInput
+                  v-model:value="LoginData.email" data-testid="email" type="text" :minlength="6"
+                  :placeholder="$t('common.email_placeholder')"
+                />
               </NFormItemRow>
               <NFormItemRow label="密码">
-                <NInput v-model:value="LoginData.password" data-testid="password" type="password" :minlength="6"
-                  show-password-on="click" :placeholder="$t('common.password_placeholder')" />
+                <NInput
+                  v-model:value="LoginData.password" data-testid="password" type="password" :minlength="6"
+                  show-password-on="click" :placeholder="$t('common.password_placeholder')"
+                />
               </NFormItemRow>
             </NForm>
             <div class="flex justify-between">
-              <NButton type="primary" block secondary strong data-testid="login" :disabled="login_not_filled"
-                :loading="loading" @click="handleLogin">
+              <NButton
+                type="primary" block secondary strong data-testid="login" :disabled="login_not_filled"
+                :loading="loading" @click="handleLogin"
+              >
                 {{ $t('common.login') }}
               </NButton>
             </div>
@@ -172,21 +178,29 @@ async function handleSignup() {
           <NTabPane name="signup" :tab="t('common.signup')" :tab-props="{ title: 'signuptab' }">
             <NForm :show-label="false">
               <NFormItemRow label="邮箱">
-                <NInput v-model:value="RegisterData.email" data-testid="signup_email" type="text" :minlength="6"
-                  :placeholder="$t('common.email_placeholder')" />
+                <NInput
+                  v-model:value="RegisterData.email" data-testid="signup_email" type="text" :minlength="6"
+                  :placeholder="$t('common.email_placeholder')"
+                />
               </NFormItemRow>
               <NFormItemRow label="密码">
-                <NInput v-model:value="RegisterData.password" data-testid="signup_password" type="password"
-                  :minlength="6" show-password-on="click" :placeholder="$t('common.password_placeholder')" />
+                <NInput
+                  v-model:value="RegisterData.password" data-testid="signup_password" type="password"
+                  :minlength="6" show-password-on="click" :placeholder="$t('common.password_placeholder')"
+                />
               </NFormItemRow>
               <NFormItemRow label="确认密码">
-                <NInput v-model:value="RegisterData.repwd" data-testid="repwd" type="password" :minlength="6"
-                  show-password-on="click" :placeholder="$t('common.password_placeholder')" />
+                <NInput
+                  v-model:value="RegisterData.repwd" data-testid="repwd" type="password" :minlength="6"
+                  show-password-on="click" :placeholder="$t('common.password_placeholder')"
+                />
               </NFormItemRow>
             </NForm>
             <div class="flex justify-between">
-              <NButton type="primary" block secondary strong data-testid="signup" :disabled="register_not_filled"
-                :loading="loading" @click="handleSignup">
+              <NButton
+                type="primary" block secondary strong data-testid="signup" :disabled="register_not_filled"
+                :loading="loading" @click="handleSignup"
+              >
                 {{ $t('common.signup') }}
               </NButton>
             </div>

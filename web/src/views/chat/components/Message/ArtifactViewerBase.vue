@@ -1,36 +1,11 @@
-<template>
-  <div v-if="artifacts && artifacts.length > 0" class="artifact-container" data-test-role="artifact-viewer">
-    <div v-for="artifact in artifacts" :key="artifact.uuid" class="artifact-item">
-      <ArtifactHeader
-        :artifact="artifact"
-        :is-expanded="isExpanded(artifact.uuid)"
-        @toggle-expand="toggleExpanded"
-        @copy-content="copyContent"
-        @open-in-new-window="openInNewWindow"
-      />
-
-      <ArtifactContent
-        v-if="isExpanded(artifact.uuid)"
-        :artifact="artifact"
-        :is-editing="isEditing(artifact.uuid)"
-        :editable-content="editableContent[artifact.uuid]"
-        @toggle-edit="toggleEdit"
-        @save-edit="saveEdit"
-        @cancel-edit="cancelEdit"
-        @update-editable-content="updateEditableContent"
-      />
-    </div>
-  </div>
-</template>
-
 <script lang="ts" setup>
 import { reactive, ref } from 'vue'
 import { useMessage } from 'naive-ui'
+import ArtifactHeader from './ArtifactHeader.vue'
+import ArtifactContent from './ArtifactContent.vue'
 import { type Artifact } from '@/utils/artifacts'
 import { copyText } from '@/utils/format'
 import { sanitizeHtml } from '@/utils/sanitize'
-import ArtifactHeader from './ArtifactHeader.vue'
-import ArtifactContent from './ArtifactContent.vue'
 
 interface Props {
   artifacts: Artifact[]
@@ -56,20 +31,22 @@ const toggleExpanded = (uuid: string) => {
 
 const copyContent = async (content: string) => {
   try {
-    if (navigator.clipboard?.writeText) {
+    if (navigator.clipboard?.writeText)
       await navigator.clipboard.writeText(content)
-    } else {
+    else
       copyText({ text: content, origin: true })
-    }
+
     message.success('Content copied to clipboard')
-  } catch {
+  }
+  catch {
     message.error('Failed to copy content')
   }
 }
 
 const openInNewWindow = (content: string) => {
   const newWindow = window.open('', '_blank')
-  if (!newWindow) return
+  if (!newWindow)
+    return
 
   newWindow.document.write(sanitizeHtml(content))
   newWindow.document.close()
@@ -99,6 +76,31 @@ const updateEditableContent = (uuid: string, content: string) => {
   editableContent[uuid] = content
 }
 </script>
+
+<template>
+  <div v-if="artifacts && artifacts.length > 0" class="artifact-container" data-test-role="artifact-viewer">
+    <div v-for="artifact in artifacts" :key="artifact.uuid" class="artifact-item">
+      <ArtifactHeader
+        :artifact="artifact"
+        :is-expanded="isExpanded(artifact.uuid)"
+        @toggle-expand="toggleExpanded"
+        @copy-content="copyContent"
+        @open-in-new-window="openInNewWindow"
+      />
+
+      <ArtifactContent
+        v-if="isExpanded(artifact.uuid)"
+        :artifact="artifact"
+        :is-editing="isEditing(artifact.uuid)"
+        :editable-content="editableContent[artifact.uuid]"
+        @toggle-edit="toggleEdit"
+        @save-edit="saveEdit"
+        @cancel-edit="cancelEdit"
+        @update-editable-content="updateEditableContent"
+      />
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .artifact-container {

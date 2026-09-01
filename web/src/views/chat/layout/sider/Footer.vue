@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, h, ref, watch } from 'vue'
 import { NDropdown } from 'naive-ui'
 import { HoverButton, SvgIcon, UserAvatar } from '@/components/common'
-import { useAppStore, useAuthStore, useUserStore, useMessageStore, useSessionStore, useWorkspaceStore } from '@/store'
+import { useAppStore, useAuthStore, useMessageStore, useSessionStore, useUserStore, useWorkspaceStore } from '@/store'
 import { isAdmin } from '@/utils/jwt'
 import { t } from '@/locales'
 const Setting = defineAsyncComponent(() => import('@/components/common/Setting/index.vue'))
@@ -32,10 +32,6 @@ function handleChangelang() {
 
 function openAdminPanel() {
   window.open('/#/admin/user', '_blank')
-}
-
-function openSnapshotAll() {
-  window.open('/#/snapshot_all', '_blank')
 }
 
 function handleSetting() {

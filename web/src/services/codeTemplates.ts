@@ -3,7 +3,7 @@
  * Manages pre-built code templates and user-defined snippets
  */
 
-import { reactive, computed } from 'vue'
+import { computed, reactive } from 'vue'
 
 export interface CodeTemplate {
   id: string
@@ -51,9 +51,9 @@ class CodeTemplatesService {
   }
 
   static getInstance(): CodeTemplatesService {
-    if (!CodeTemplatesService.instance) {
+    if (!CodeTemplatesService.instance)
       CodeTemplatesService.instance = new CodeTemplatesService()
-    }
+
     return CodeTemplatesService.instance
   }
 
@@ -82,9 +82,9 @@ console.log('Welcome to JavaScript!')`,
         examples: [
           {
             output: 'Hello, World!\nWelcome to JavaScript!',
-            description: 'Simple console output'
-          }
-        ]
+            description: 'Simple console output',
+          },
+        ],
       },
       {
         id: 'js-async-fetch',
@@ -127,7 +127,7 @@ main()`,
         estimatedRunTime: 1200,
         isBuiltIn: true,
         usageCount: 0,
-        rating: 4.5
+        rating: 4.5,
       },
       {
         id: 'js-canvas-animation',
@@ -177,7 +177,7 @@ animate()`,
         estimatedRunTime: 10000,
         isBuiltIn: true,
         usageCount: 0,
-        rating: 4.8
+        rating: 4.8,
       },
       {
         id: 'js-data-structures',
@@ -282,7 +282,7 @@ console.log('Search for 12:', binarySearch(sortedArray, 12))`,
         estimatedRunTime: 200,
         isBuiltIn: true,
         usageCount: 0,
-        rating: 4.7
+        rating: 4.7,
       },
       // Python Templates
       {
@@ -312,7 +312,7 @@ print(f"Max: {max(numbers)}")`,
         isBuiltIn: true,
         usageCount: 0,
         rating: 5,
-        requirements: []
+        requirements: [],
       },
       {
         id: 'py-data-analysis',
@@ -366,7 +366,7 @@ print(df[['Name', 'Salary_USD', 'Salary_EUR']])`,
         requirements: ['pandas', 'numpy'],
         isBuiltIn: true,
         usageCount: 0,
-        rating: 4.6
+        rating: 4.6,
       },
       {
         id: 'py-matplotlib-plots',
@@ -415,7 +415,7 @@ print("- Green dotted line: sin(x)*cos(x)")`,
         requirements: ['matplotlib', 'numpy'],
         isBuiltIn: true,
         usageCount: 0,
-        rating: 4.8
+        rating: 4.8,
       },
       {
         id: 'py-machine-learning',
@@ -483,8 +483,8 @@ print("Machine learning model trained and visualized successfully!")`,
         requirements: ['scikit-learn', 'matplotlib', 'numpy'],
         isBuiltIn: true,
         usageCount: 0,
-        rating: 4.9
-      }
+        rating: 4.9,
+      },
     ]
 
     this.templates.push(...builtInTemplates)
@@ -502,7 +502,7 @@ print("Machine learning model trained and visualized successfully!")`,
         description: 'Fundamental programming concepts',
         icon: 'ri:book-line',
         color: '#4ECDC4',
-        templates: this.templates.filter(t => t.category === 'basics')
+        templates: this.templates.filter(t => t.category === 'basics'),
       },
       {
         id: 'async',
@@ -510,7 +510,7 @@ print("Machine learning model trained and visualized successfully!")`,
         description: 'Asynchronous programming patterns',
         icon: 'ri:time-line',
         color: '#45B7D1',
-        templates: this.templates.filter(t => t.category === 'async')
+        templates: this.templates.filter(t => t.category === 'async'),
       },
       {
         id: 'graphics',
@@ -518,7 +518,7 @@ print("Machine learning model trained and visualized successfully!")`,
         description: 'Canvas graphics and animations',
         icon: 'ri:palette-line',
         color: '#FF6B6B',
-        templates: this.templates.filter(t => t.category === 'graphics')
+        templates: this.templates.filter(t => t.category === 'graphics'),
       },
       {
         id: 'algorithms',
@@ -526,7 +526,7 @@ print("Machine learning model trained and visualized successfully!")`,
         description: 'Data structures and algorithms',
         icon: 'ri:mind-map',
         color: '#96CEB4',
-        templates: this.templates.filter(t => t.category === 'algorithms')
+        templates: this.templates.filter(t => t.category === 'algorithms'),
       },
       {
         id: 'data-science',
@@ -534,7 +534,7 @@ print("Machine learning model trained and visualized successfully!")`,
         description: 'Data analysis and manipulation',
         icon: 'ri:bar-chart-line',
         color: '#FFEAA7',
-        templates: this.templates.filter(t => t.category === 'data-science')
+        templates: this.templates.filter(t => t.category === 'data-science'),
       },
       {
         id: 'visualization',
@@ -542,7 +542,7 @@ print("Machine learning model trained and visualized successfully!")`,
         description: 'Charts and plots',
         icon: 'ri:line-chart-line',
         color: '#DDA0DD',
-        templates: this.templates.filter(t => t.category === 'visualization')
+        templates: this.templates.filter(t => t.category === 'visualization'),
       },
       {
         id: 'machine-learning',
@@ -550,8 +550,8 @@ print("Machine learning model trained and visualized successfully!")`,
         description: 'ML algorithms and models',
         icon: 'ri:brain-line',
         color: '#FFA07A',
-        templates: this.templates.filter(t => t.category === 'machine-learning')
-      }
+        templates: this.templates.filter(t => t.category === 'machine-learning'),
+      },
     )
   }
 
@@ -597,31 +597,28 @@ print("Machine learning model trained and visualized successfully!")`,
     // Text search
     if (query.trim()) {
       const searchTerm = query.toLowerCase()
-      results = results.filter(template => 
-        template.name.toLowerCase().includes(searchTerm) ||
-        template.description.toLowerCase().includes(searchTerm) ||
-        template.tags.some(tag => tag.toLowerCase().includes(searchTerm)) ||
-        template.code.toLowerCase().includes(searchTerm)
+      results = results.filter(template =>
+        template.name.toLowerCase().includes(searchTerm)
+        || template.description.toLowerCase().includes(searchTerm)
+        || template.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+        || template.code.toLowerCase().includes(searchTerm),
       )
     }
 
     // Apply filters
     if (filters) {
-      if (filters.language) {
+      if (filters.language)
         results = results.filter(t => t.language.toLowerCase() === filters.language!.toLowerCase())
-      }
-      
-      if (filters.category) {
+
+      if (filters.category)
         results = results.filter(t => t.category === filters.category)
-      }
-      
-      if (filters.difficulty) {
+
+      if (filters.difficulty)
         results = results.filter(t => t.difficulty === filters.difficulty)
-      }
-      
+
       if (filters.tags && filters.tags.length > 0) {
-        results = results.filter(t => 
-          filters.tags!.some(tag => t.tags.includes(tag))
+        results = results.filter(t =>
+          filters.tags!.some(tag => t.tags.includes(tag)),
         )
       }
     }
@@ -634,7 +631,7 @@ print("Machine learning model trained and visualized successfully!")`,
    */
   getCategories(): TemplateCategory[] {
     // Update template counts
-    this.categories.forEach(category => {
+    this.categories.forEach((category) => {
       category.templates = this.templates.filter(t => t.category === category.id)
     })
     return [...this.categories]
@@ -664,19 +661,19 @@ print("Machine learning model trained and visualized successfully!")`,
   addTemplate(template: Omit<CodeTemplate, 'id' | 'createdAt' | 'updatedAt' | 'isBuiltIn' | 'usageCount'>): string {
     const id = this.generateId()
     const now = new Date().toISOString()
-    
+
     const newTemplate: CodeTemplate = {
       id,
       ...template,
       createdAt: now,
       updatedAt: now,
       isBuiltIn: false,
-      usageCount: 0
+      usageCount: 0,
     }
-    
+
     this.templates.push(newTemplate)
     this.saveUserTemplates()
-    
+
     return id
   }
 
@@ -685,13 +682,12 @@ print("Machine learning model trained and visualized successfully!")`,
    */
   updateTemplate(id: string, updates: Partial<CodeTemplate>): boolean {
     const template = this.templates.find(t => t.id === id)
-    if (!template || template.isBuiltIn) {
+    if (!template || template.isBuiltIn)
       return false
-    }
-    
+
     Object.assign(template, updates, { updatedAt: new Date().toISOString() })
     this.saveUserTemplates()
-    
+
     return true
   }
 
@@ -700,13 +696,12 @@ print("Machine learning model trained and visualized successfully!")`,
    */
   deleteTemplate(id: string): boolean {
     const index = this.templates.findIndex(t => t.id === id)
-    if (index === -1 || this.templates[index].isBuiltIn) {
+    if (index === -1 || this.templates[index].isBuiltIn)
       return false
-    }
-    
+
     this.templates.splice(index, 1)
     this.saveUserTemplates()
-    
+
     return true
   }
 
@@ -726,13 +721,12 @@ print("Machine learning model trained and visualized successfully!")`,
    */
   rateTemplate(id: string, rating: number): boolean {
     const template = this.templates.find(t => t.id === id)
-    if (!template || rating < 1 || rating > 5) {
+    if (!template || rating < 1 || rating > 5)
       return false
-    }
-    
+
     template.rating = rating
     this.saveUserTemplates()
-    
+
     return true
   }
 
@@ -750,14 +744,13 @@ print("Machine learning model trained and visualized successfully!")`,
   importTemplates(jsonData: string): boolean {
     try {
       const importedTemplates = JSON.parse(jsonData) as CodeTemplate[]
-      
+
       // Validate imported data
-      if (!Array.isArray(importedTemplates)) {
+      if (!Array.isArray(importedTemplates))
         throw new Error('Invalid format: expected array')
-      }
-      
+
       // Add imported templates
-      importedTemplates.forEach(template => {
+      importedTemplates.forEach((template) => {
         const existingTemplate = this.templates.find(t => t.id === template.id)
         if (!existingTemplate) {
           template.isBuiltIn = false
@@ -765,10 +758,11 @@ print("Machine learning model trained and visualized successfully!")`,
           this.templates.push(template)
         }
       })
-      
+
       this.saveUserTemplates()
       return true
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to import templates:', error)
       return false
     }
@@ -782,7 +776,8 @@ print("Machine learning model trained and visualized successfully!")`,
     try {
       const userTemplates = this.templates.filter(t => !t.isBuiltIn)
       localStorage.setItem(this.userTemplatesKey, JSON.stringify(userTemplates))
-    } catch (error) {
+    }
+    catch (error) {
       console.warn('Failed to save user templates:', error)
     }
   }
@@ -794,7 +789,8 @@ print("Machine learning model trained and visualized successfully!")`,
         const userTemplates = JSON.parse(stored) as CodeTemplate[]
         this.templates.push(...userTemplates)
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.warn('Failed to load user templates:', error)
     }
   }
@@ -820,6 +816,6 @@ export function useCodeTemplates() {
     incrementUsage: codeTemplates.incrementUsage.bind(codeTemplates),
     rateTemplate: codeTemplates.rateTemplate.bind(codeTemplates),
     exportTemplates: codeTemplates.exportTemplates.bind(codeTemplates),
-    importTemplates: codeTemplates.importTemplates.bind(codeTemplates)
+    importTemplates: codeTemplates.importTemplates.bind(codeTemplates),
   }
 }

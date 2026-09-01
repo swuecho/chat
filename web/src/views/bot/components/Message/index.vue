@@ -38,7 +38,6 @@ const options = [
   },
 ]
 
-
 function handleSelect(key: 'copyText') {
   switch (key) {
     case 'copyText':
@@ -53,12 +52,18 @@ const code = computed(() => {
 
 <template>
   <div class="chat-message">
-    <p class="text-xs text-[#b4bbc4] text-center">{{ displayLocaleDate(dateTime) }}</p>
+    <p class="text-xs text-[#b4bbc4] text-center">
+      {{ displayLocaleDate(dateTime) }}
+    </p>
     <div class="flex w-full mb-6 overflow-hidden" :class="[{ 'flex-row-reverse': inversion }]">
-      <div class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
-        :class="[inversion ? 'ml-2' : 'mr-2']">
-        <div class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
-          :class="[inversion ? 'ml-2' : 'mr-2']">
+      <div
+        class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
+        :class="[inversion ? 'ml-2' : 'mr-2']"
+      >
+        <div
+          class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
+          :class="[inversion ? 'ml-2' : 'mr-2']"
+        >
           <AvatarComponent :inversion="inversion" :model="model" />
         </div>
       </div>
@@ -67,10 +72,12 @@ const code = computed(() => {
           {{ !inversion ? model : userInfo.name || $t('setting.defaultName') }}
         </p>
         <div class="flex items-end gap-1 mt-2" :class="[inversion ? 'flex-row-reverse' : 'flex-row']">
-          <TextComponent ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
-            :code="code" :loading="loading" :idex="index" />
+          <TextComponent
+            ref="textRef" class="message-text" :inversion="inversion" :error="error" :text="text"
+            :code="code" :loading="loading" :idex="index"
+          />
           <div class="flex flex-col">
-            <!-- 
+            <!--
           <button
             v-if="!inversion"
             class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
@@ -91,5 +98,4 @@ const code = computed(() => {
       </div>
     </div>
   </div>
-
 </template>

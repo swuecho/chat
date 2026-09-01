@@ -7,7 +7,7 @@ export function useChat() {
 
   const getChatByUuidAndIndex = (uuid: string, index: number) => {
     const messages = messageStore.getChatSessionDataByUuid(uuid)
-    return messages && messages[index] ? messages[index] : null
+    return messages?.[index] ?? null
   }
 
   const addChat = (uuid: string, chat: Chat.Message) => {
@@ -16,28 +16,25 @@ export function useChat() {
 
   const deleteChat = (uuid: string, index: number) => {
     const messages = messageStore.getChatSessionDataByUuid(uuid)
-    if (messages && messages[index]) {
+    if (messages && messages[index])
       messageStore.removeMessage(uuid, messages[index].uuid)
-    }
   }
 
   const updateChat = (uuid: string, index: number, chat: Chat.Message) => {
     const messages = messageStore.getChatSessionDataByUuid(uuid)
-    if (messages && messages[index]) {
+    if (messages && messages[index])
       messageStore.updateMessage(uuid, messages[index].uuid, chat)
-    }
   }
 
   const updateChatPartial = (uuid: string, index: number, chat: Partial<Chat.Message>) => {
     const messages = messageStore.getChatSessionDataByUuid(uuid)
-    if (messages && messages[index]) {
+    if (messages && messages[index])
       messageStore.updateMessage(uuid, messages[index].uuid, chat)
-    }
   }
 
   const updateChatText = async (uuid: string, index: number, text: string) => {
     const messages = messageStore.getChatSessionDataByUuid(uuid)
-    const chat = messages && messages[index] ? messages[index] : null
+    const chat = messages?.[index] ?? null
     if (!chat)
       return
     chat.text = text

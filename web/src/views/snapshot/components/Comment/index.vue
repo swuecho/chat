@@ -11,8 +11,10 @@ defineProps<Props>()
 </script>
 
 <template>
-  <div class="comment-item mb-3 p-2 bg-gray-50 dark:bg-gray-600 rounded-lg w-1/2" 
-       :class="[inversion ? 'ml-auto' : 'mr-auto']">
+  <div
+    class="comment-item mb-3 p-2 bg-gray-50 dark:bg-gray-600 rounded-lg w-1/2"
+    :class="[inversion ? 'ml-auto' : 'mr-auto']"
+  >
     <NTooltip>
       <template #trigger>
         <div class="text-xs text-gray-600 dark:text-gray-300 overflow-hidden whitespace-nowrap overflow-ellipsis">

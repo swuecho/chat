@@ -5,7 +5,6 @@ import zhCN from './zh-CN.json'
 import zhTW from './zh-TW.json'
 import type { Language } from '@/store/modules/app/helper'
 
-
 const i18n = createI18n({
   locale: navigator.language.split('-')[0],
   fallbackLocale: 'en',
@@ -18,11 +17,10 @@ const i18n = createI18n({
 })
 
 export function t(key: string, values?: Record<string, string>) {
-  if (values) {
-  return i18n.global.t(key, values)
-  } else {
+  if (values)
+    return i18n.global.t(key, values)
+  else
     return i18n.global.t(key)
-  }
 }
 
 export function setLocale(locale: Language) {

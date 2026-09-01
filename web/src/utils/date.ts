@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon';
+import { DateTime } from 'luxon'
 
 export function nowISO(): string {
   return DateTime.now().toISO() || ''
@@ -12,7 +12,6 @@ export function getCurrentDate() {
 
 // 2025-03-05T12:48:11.990824Z 2025-02-26T08:58:48Z
 export function displayLocaleDate(ts: string) {
-
   const dateObj = DateTime.fromISO(ts)
 
   const dateString = dateObj.toFormat('D t')

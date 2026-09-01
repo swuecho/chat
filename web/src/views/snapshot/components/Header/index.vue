@@ -1,14 +1,13 @@
 <script lang="ts" setup>
 import { useRoute } from 'vue-router'
 import { nextTick, ref } from 'vue'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { updateChatSnapshot } from '@/api/generated_client'
-import {  NMarquee } from 'naive-ui'
-import { useMutation, useQueryClient } from '@tanstack/vue-query'
-
-const queryClient = useQueryClient()
 
 const props = defineProps<Props>()
+
+const queryClient = useQueryClient()
 
 const route = useRoute()
 
@@ -25,11 +24,10 @@ const titleRef = ref(null)
 
 function handleHome() {
   const typ = props.typ
-  if (typ === 'snapshot') {
+  if (typ === 'snapshot')
     window.open('#/snapshot_all', '_blank')
-  } else if (typ === 'chatbot') {
+  else if (typ === 'chatbot')
     window.open('#/bot_all', '_blank')
-  }
 }
 
 function handleChatHome() {
@@ -37,7 +35,7 @@ function handleChatHome() {
 }
 
 const { mutate } = useMutation({
-  mutationFn: (variables: { uuid: string, title: string }) => updateChatSnapshot({
+  mutationFn: (variables: { uuid: string; title: string }) => updateChatSnapshot({
     path: { uuid: variables.uuid },
     body: { title: variables.title },
   }),
@@ -47,9 +45,8 @@ const { mutate } = useMutation({
 })
 
 const updateTitle = (uuid: string, title: string) => {
-  mutate({ uuid: uuid, title: title })
+  mutate({ uuid, title })
 }
-
 
 async function handleEdit(e: Event) {
   const title_value = (e.target as HTMLInputElement).innerText
@@ -68,16 +65,19 @@ async function handleEditTitle() {
 
 <template>
   <header
-    class="sticky h-16 flex items-center justify-between border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur  overflow-hidden">
+    class="sticky h-16 flex items-center justify-between border-b dark:border-neutral-800 bg-white/80 dark:bg-black/20 dark:text-white backdrop-blur  overflow-hidden"
+  >
     <div class="flex items-center ml-1 md:ml-10 flex-1 min-w-0">
       <div class="flex-shrink-0">
         <HoverButton :tooltip="$t('common.edit')" @click="handleEditTitle">
           <SvgIcon icon="ic:baseline-edit" />
         </HoverButton>
       </div>
-      <h1 ref="titleRef" class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap min-w-0 px-2"
+      <h1
+        ref="titleRef" class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap min-w-0 px-2"
         :class="[isEditing ? 'shadow-green-100 leading-8' : '']" :contenteditable="isEditing" @blur="handleEdit"
-        @dblclick="handleEditTitle">
+        @dblclick="handleEditTitle"
+      >
         {{ title ?? '' }}
       </h1>
     </div>
@@ -97,7 +97,6 @@ async function handleEditTitle() {
 </template>
 
 <style lang="css" scoped>
-
 h1[contenteditable] {
   padding: 0.15rem 0.5rem;
   border-radius: 0.15rem;

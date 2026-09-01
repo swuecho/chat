@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useWorkspaceStore } from '../workspace'
 import { router } from '@/router'
 import {
   updateChatSession,
@@ -11,7 +12,6 @@ import {
   updateChatSessionTopic,
 } from '@/api/generated_client'
 import { getDefaultSystemPrompt } from '@/constants/chat'
-import { useWorkspaceStore } from '../workspace'
 
 export interface SessionState {
   workspaceHistory: Record<string, Chat.Session[]> // workspaceUuid -> sessions
@@ -41,7 +41,8 @@ export const useSessionStore = defineStore('session-store', {
           // Search across all workspace histories
           for (const sessions of Object.values(state.workspaceHistory)) {
             const session = sessions.find(item => item.uuid === uuid)
-            if (session) return session
+            if (session)
+              return session
           }
         }
         return null
@@ -50,7 +51,8 @@ export const useSessionStore = defineStore('session-store', {
 
     getSessionsByWorkspace(state) {
       return (workspaceUuid?: string) => {
-        if (!workspaceUuid) return []
+        if (!workspaceUuid)
+          return []
         return state.workspaceHistory[workspaceUuid] || []
       }
     },
@@ -60,7 +62,8 @@ export const useSessionStore = defineStore('session-store', {
         // Search across all workspace histories
         for (const sessions of Object.values(state.workspaceHistory)) {
           const session = sessions.find(item => item.uuid === state.activeSessionUuid)
-          if (session) return session
+          if (session)
+            return session
         }
       }
       return null
@@ -72,9 +75,8 @@ export const useSessionStore = defineStore('session-store', {
         // Search across all workspace histories
         for (const sessions of Object.values(this.workspaceHistory)) {
           const session = sessions.find(item => item.uuid === sessionUuid)
-          if (session && session.workspaceUuid) {
+          if (session && session.workspaceUuid)
             return `/#/workspace/${session.workspaceUuid}/chat/${sessionUuid}`
-          }
         }
         return `/#/chat/${sessionUuid}`
       }
@@ -90,15 +92,17 @@ export const useSessionStore = defineStore('session-store', {
         // Map topic to title for frontend compatibility
         const sessionsWithTitle = sessions.map((session: any) => ({
           ...session,
-          title: session.topic || session.title || 'Untitled'
+          title: session.topic || session.title || 'Untitled',
         }))
 
         this.workspaceHistory[workspaceUuid] = sessionsWithTitle
         return sessionsWithTitle
-      } catch (error) {
+      }
+      catch (error) {
         console.error(`Failed to sync sessions for workspace ${workspaceUuid}:`, error)
         throw error
-      } finally {
+      }
+      finally {
         this.isLoading = false
       }
     },
@@ -120,17 +124,19 @@ export const useSessionStore = defineStore('session-store', {
         // Map topic to title for frontend compatibility
         const sessionsWithTitle = sessions.map((session: any) => ({
           ...session,
-          title: session.topic || session.title || 'Untitled'
+          title: session.topic || session.title || 'Untitled',
         }))
 
         this.workspaceHistory[workspaceStore.activeWorkspaceUuid] = sessionsWithTitle
         console.log(`✅ Loaded ${sessionsWithTitle.length} sessions for active workspace`)
 
         return sessionsWithTitle
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to sync active workspace sessions:', error)
         throw error
-      } finally {
+      }
+      finally {
         this.isLoading = false
       }
     },
@@ -147,23 +153,24 @@ export const useSessionStore = defineStore('session-store', {
           // Map topic to title for frontend compatibility
           const sessionsWithTitle = sessions.map((session: any) => ({
             ...session,
-            title: session.topic || session.title || 'Untitled'
+            title: session.topic || session.title || 'Untitled',
           }))
 
           this.workspaceHistory[workspace.uuid] = sessionsWithTitle
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to sync all workspace sessions:', error)
         throw error
-      } finally {
+      }
+      finally {
         this.isLoading = false
       }
     },
 
     async createSessionInWorkspace(title: string, workspaceUuid?: string, model?: string) {
-      if (this.isCreatingSession) {
+      if (this.isCreatingSession)
         return null
-      }
 
       this.isCreatingSession = true
 
@@ -171,9 +178,8 @@ export const useSessionStore = defineStore('session-store', {
         const workspaceStore = useWorkspaceStore()
         const targetWorkspaceUuid = workspaceUuid || workspaceStore.activeWorkspaceUuid
 
-        if (!targetWorkspaceUuid) {
+        if (!targetWorkspaceUuid)
           throw new Error('No workspace available for session creation')
-        }
 
         // Get default model if none provided
         let sessionModel = model
@@ -182,7 +188,8 @@ export const useSessionStore = defineStore('session-store', {
             const { fetchDefaultChatModel } = await import('@/api/chat_model')
             const defaultModel = await fetchDefaultChatModel()
             sessionModel = defaultModel.name
-          } catch (error) {
+          }
+          catch (error) {
             console.warn('Failed to fetch default model, proceeding without model:', error)
           }
         }
@@ -206,19 +213,21 @@ export const useSessionStore = defineStore('session-store', {
         }
 
         // Add to workspace history
-        if (!this.workspaceHistory[targetWorkspaceUuid]) {
+        if (!this.workspaceHistory[targetWorkspaceUuid])
           this.workspaceHistory[targetWorkspaceUuid] = []
-        }
+
         this.workspaceHistory[targetWorkspaceUuid].unshift(sessionWithTitle)
 
         // Set as active session
         await this.setActiveSession(targetWorkspaceUuid, sessionWithTitle.uuid)
 
         return sessionWithTitle
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to create session in workspace:', error)
         throw error
-      } finally {
+      }
+      finally {
         this.isCreatingSession = false
       }
     },
@@ -236,13 +245,13 @@ export const useSessionStore = defineStore('session-store', {
 
         // Refresh workspace sessions to get updated list from backend
         const workspaceUuid = session.workspaceUuid
-        if (workspaceUuid) {
+        if (workspaceUuid)
           await this.syncWorkspaceSessions(workspaceUuid)
-        }
 
         await this.setActiveSession(workspaceUuid || null, session.uuid)
         return session
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to create legacy session:', error)
         throw error
       }
@@ -266,7 +275,8 @@ export const useSessionStore = defineStore('session-store', {
             if (updates.title !== undefined) {
               // If only title is changing, use the rename endpoint
               await updateChatSessionTopic({ path: { uuid }, body: { topic: sessions[index].title } })
-            } else {
+            }
+            else {
               // For other updates (like model), use the full update endpoint
               await updateChatSession(uuid, sessions[index])
             }
@@ -286,12 +296,14 @@ export const useSessionStore = defineStore('session-store', {
             await updateChatSession(uuid, updatedSession)
             return updatedSession
           }
-        } catch (backendError) {
+        }
+        catch (backendError) {
           console.error('Backend update also failed:', backendError)
         }
 
         throw new Error(`Session ${uuid} not found`)
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to update session:', error)
         throw error
       }
@@ -312,7 +324,7 @@ export const useSessionStore = defineStore('session-store', {
         if (workspaceUuid) {
           // Remove from workspace history
           this.workspaceHistory[workspaceUuid] = this.workspaceHistory[workspaceUuid].filter(
-            session => session.uuid !== sessionUuid
+            session => session.uuid !== sessionUuid,
           )
         }
 
@@ -320,16 +332,16 @@ export const useSessionStore = defineStore('session-store', {
         await deleteChatSession({ path: { uuid: sessionUuid } })
 
         // Clear active session if it was deleted
-        if (this.activeSessionUuid === sessionUuid) {
+        if (this.activeSessionUuid === sessionUuid)
           await this.setNextActiveSession(workspaceUuid)
-        }
 
         // Clear from workspace active sessions
         if (workspaceUuid) {
           const workspaceStore = useWorkspaceStore()
           workspaceStore.clearActiveSessionForWorkspace(workspaceUuid)
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to delete session:', error)
         throw error
       }
@@ -340,9 +352,8 @@ export const useSessionStore = defineStore('session-store', {
       const currentSessionUuid = currentRoute.params.uuid as string
 
       // Already active and URL is in sync — nothing to do
-      if (this.activeSessionUuid === sessionUuid && currentSessionUuid === sessionUuid) {
+      if (this.activeSessionUuid === sessionUuid && currentSessionUuid === sessionUuid)
         return
-      }
 
       // Store is in sync but URL is not — navigate without re-entering the switch flow
       if (this.activeSessionUuid === sessionUuid) {
@@ -350,7 +361,8 @@ export const useSessionStore = defineStore('session-store', {
         this.isSwitchingSession = true
         try {
           await this.navigateToSession(sessionUuid)
-        } finally {
+        }
+        finally {
           this.isSwitchingSession = false
         }
         return
@@ -390,10 +402,12 @@ export const useSessionStore = defineStore('session-store', {
 
         // Navigate to the session
         await this.navigateToSession(sessionUuid)
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to set active session:', error)
         throw error
-      } finally {
+      }
+      finally {
         this.isSwitchingSession = false
       }
     },
@@ -414,7 +428,8 @@ export const useSessionStore = defineStore('session-store', {
         // Set first available session in the same workspace
         const nextSession = this.workspaceHistory[workspaceUuid][0]
         await this.setActiveSession(workspaceUuid, nextSession.uuid)
-      } else {
+      }
+      else {
         // Find any available session
         for (const [wUuid, sessions] of Object.entries(this.workspaceHistory)) {
           if (sessions.length > 0) {
@@ -435,7 +450,7 @@ export const useSessionStore = defineStore('session-store', {
       }
 
       this.isNavigating = true
-      
+
       try {
         const session = this.getChatSessionByUuid(sessionUuid)
         if (session && session.workspaceUuid) {
@@ -443,7 +458,7 @@ export const useSessionStore = defineStore('session-store', {
           const currentRoute = router.currentRoute.value
           const currentWorkspaceUuid = currentRoute.params.workspaceUuid as string
           const currentSessionUuid = currentRoute.params.uuid as string
-          
+
           if (currentWorkspaceUuid === session.workspaceUuid && currentSessionUuid === sessionUuid) {
             console.log('Already on correct route, skipping navigation')
             return
@@ -451,7 +466,8 @@ export const useSessionStore = defineStore('session-store', {
 
           const workspaceStore = useWorkspaceStore()
           await workspaceStore.navigateToWorkspace(session.workspaceUuid, sessionUuid)
-        } else {
+        }
+        else {
           // If session doesn't have a workspace, try to assign it to the default workspace
           const workspaceStore = useWorkspaceStore()
           const defaultWorkspace = workspaceStore.workspaces.find(w => w.isDefault) || workspaceStore.workspaces[0]
@@ -459,13 +475,15 @@ export const useSessionStore = defineStore('session-store', {
           if (defaultWorkspace) {
             console.log('Session without workspace, navigating to default workspace:', defaultWorkspace.uuid)
             await workspaceStore.navigateToWorkspace(defaultWorkspace.uuid, sessionUuid)
-          } else {
+          }
+          else {
             // Last resort: navigate to default route
             console.log('No workspace available, navigating to default route')
             await router.push({ name: 'DefaultWorkspace' })
           }
         }
-      } finally {
+      }
+      finally {
         this.isNavigating = false
       }
     },
@@ -476,17 +494,16 @@ export const useSessionStore = defineStore('session-store', {
 
       // Clear active session if it was in this workspace
       const activeSession = this.activeSession
-      if (activeSession && activeSession.workspaceUuid === workspaceUuid) {
+      if (activeSession && activeSession.workspaceUuid === workspaceUuid)
         this.activeSessionUuid = null
-      }
     },
 
     // Helper method to get all sessions across all workspaces
     getAllSessions() {
       const allSessions: Chat.Session[] = []
-      for (const sessions of Object.values(this.workspaceHistory)) {
+      for (const sessions of Object.values(this.workspaceHistory))
         allSessions.push(...sessions)
-      }
+
       return allSessions
     },
 
@@ -500,9 +517,8 @@ export const useSessionStore = defineStore('session-store', {
       const workspaceStore = useWorkspaceStore()
       const targetWorkspaceUuid = workspaceUuid || workspaceStore.activeWorkspaceUuid
 
-      if (!targetWorkspaceUuid) {
+      if (!targetWorkspaceUuid)
         throw new Error('No workspace available for session creation')
-      }
 
       const sessionTitle = title || 'New Chat'
       return await this.createSessionInWorkspace(sessionTitle, targetWorkspaceUuid, model)

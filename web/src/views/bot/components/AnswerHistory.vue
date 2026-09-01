@@ -1,17 +1,16 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NSpin, NPagination } from 'naive-ui'
-import Message from './Message/index.vue'
+import { NPagination, NSpin } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
+import Message from './Message/index.vue'
 import { fetchBotAnswerHistory } from '@/api/bot_answer_history'
-import { SvgIcon } from '@/components/common';
+import { SvgIcon } from '@/components/common'
 
-const { t } = useI18n()
 const props = defineProps<{
   botUuid: string
 }>()
-
+const { t } = useI18n()
 const page = ref(1)
 const pageSize = ref(10)
 
@@ -47,25 +46,25 @@ const model = computed(() => '') // This should be passed from parent or fetched
               {{ new Date(item.createdAt).toLocaleString() }}
             </div>
             <!-- User Prompt -->
-            <Message 
-              :date-time="item.createdAt" 
-              :model="model" 
+            <Message
+              :date-time="item.createdAt"
+              :model="model"
               :text="item.prompt"
-              :inversion="true" 
-              :index="index" 
+              :inversion="true"
+              :index="index"
             />
             <!-- Bot Answer -->
-            <Message 
-              :date-time="item.createdAt" 
-              :model="model" 
+            <Message
+              :date-time="item.createdAt"
+              :model="model"
               :text="item.answer"
-              :inversion="false" 
-              :index="index" 
+              :inversion="false"
+              :index="index"
             />
           </div>
         </div>
       </div>
-      <div class="flex justify-center my-4" v-if="historyData?.totalPages && historyData?.totalPages > 1">
+      <div v-if="historyData?.totalPages && historyData?.totalPages > 1" class="flex justify-center my-4">
         <NPagination
           v-model:page="page"
           :page-count="historyData?.totalPages"

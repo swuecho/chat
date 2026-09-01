@@ -1,4 +1,4 @@
-import { ref, computed, watch, type Ref } from 'vue'
+import { type Ref, computed, ref, watch } from 'vue'
 
 /**
  * Debounce utility for search input
@@ -8,9 +8,9 @@ export function useDebounce<T>(value: Ref<T> | T, delay: number) {
   const isRef = value && typeof value === 'object' && '__v_isRef' in value
   const initialValue = isRef ? (value as Ref<T>).value : value as T
   const debouncedValue = ref<T>(initialValue)
-  
+
   let timeoutId: NodeJS.Timeout
-  
+
   if (isRef) {
     // If it's a ref, watch the ref directly
     watch(value as Ref<T>, (newValue) => {
@@ -19,7 +19,8 @@ export function useDebounce<T>(value: Ref<T> | T, delay: number) {
         debouncedValue.value = newValue
       }, delay)
     }, { immediate: true })
-  } else {
+  }
+  else {
     // If it's a raw value, watch it as a getter
     watch(() => value, (newValue) => {
       clearTimeout(timeoutId)
@@ -28,7 +29,7 @@ export function useDebounce<T>(value: Ref<T> | T, delay: number) {
       }, delay)
     }, { immediate: true })
   }
-  
+
   return debouncedValue
 }
 
@@ -38,34 +39,34 @@ export function useDebounce<T>(value: Ref<T> | T, delay: number) {
 export function useVirtualList<T>(
   items: T[],
   itemHeight: number,
-  containerHeight: number
+  containerHeight: number,
 ) {
   const scrollTop = ref(0)
-  
+
   const visibleItems = computed(() => {
     const startIndex = Math.floor(scrollTop.value / itemHeight)
     const endIndex = Math.min(
       startIndex + Math.ceil(containerHeight / itemHeight) + 1,
-      items.length
+      items.length,
     )
-    
+
     return {
       startIndex,
       endIndex,
       items: items.slice(startIndex, endIndex),
       offsetY: startIndex * itemHeight,
-      totalHeight: items.length * itemHeight
+      totalHeight: items.length * itemHeight,
     }
   })
-  
+
   const handleScroll = (event: Event) => {
     const target = event.target as HTMLElement
     scrollTop.value = target.scrollTop
   }
-  
+
   return {
     visibleItems,
-    handleScroll
+    handleScroll,
   }
 }
 
@@ -74,10 +75,10 @@ export function useVirtualList<T>(
  */
 export function useThrottle<T extends (...args: any[]) => any>(
   fn: T,
-  delay: number
+  delay: number,
 ): T {
   let lastCall = 0
-  
+
   return ((...args: Parameters<T>) => {
     const now = Date.now()
     if (now - lastCall >= delay) {

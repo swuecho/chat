@@ -67,7 +67,6 @@ const text = computed(() => {
   return value
 })
 
-
 function highlightBlock(str: string, lang?: string) {
   return `<pre class="code-block-wrapper"><div class="code-block-header"><span class="code-block-header__lang">${lang}</span><span class="code-block-header__copy">${t('chat.copyCode')}</span></div><code class="hljs code-block-body ${lang}">${str}</code></pre>`
 }
@@ -92,7 +91,7 @@ defineExpose({ textRef })
             showBorder: true,
             borderColor: 'border-lime-600',
             maxLines: 20,
-            enableCopy: true
+            enableCopy: true,
           }"
           @toggle="toggleExpanded"
         />

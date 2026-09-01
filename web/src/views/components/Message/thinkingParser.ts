@@ -1,4 +1,4 @@
-import type { ThinkingParseResult, ThinkingCacheEntry, ThinkingParserConfig } from './types/thinking'
+import type { ThinkingCacheEntry, ThinkingParseResult, ThinkingParserConfig } from './types/thinking'
 
 class ThinkingParser {
   private cache: Map<string, ThinkingCacheEntry> = new Map()
@@ -10,7 +10,7 @@ class ThinkingParser {
       cacheTTL: 5 * 60 * 1000, // 5 minutes
       enableLogging: false,
       thinkingTagPattern: /<think>(.*?)<\/think>/gs,
-      ...config
+      ...config,
     }
   }
 
@@ -19,16 +19,16 @@ class ThinkingParser {
     const cacheKey = this.generateCacheKey(text)
     const cached = this.getFromCache(cacheKey)
     if (cached) {
-      if (this.config.enableLogging) {
+      if (this.config.enableLogging)
         console.log('Cache hit for thinking content')
-      }
+
       return cached
     }
 
     // Parse thinking content
     const thinkingContents: string[] = []
     let answerContent = text
-    
+
     // Check for complete thinking tags first
     const completeMatch = text.match(this.config.thinkingTagPattern)
     if (completeMatch) {
@@ -37,11 +37,12 @@ class ThinkingParser {
         thinkingContents.push(content.trim())
         return ''
       })
-    } else {
+    }
+    else {
       // Check for incomplete thinking tags (opening without closing)
       const openingTagMatch = text.match(/<think>/)
       const closingTagMatch = text.match(/<\/think>/)
-      
+
       if (openingTagMatch && !closingTagMatch) {
         // Incomplete: has opening tag but no closing tag
         // Extract content after opening tag as thinking content
@@ -50,7 +51,8 @@ class ThinkingParser {
         // Always add content, even if empty - this indicates we're in thinking mode
         thinkingContents.push(content)
         answerContent = text.substring(0, openingTagIndex)
-      } else if (!openingTagMatch && closingTagMatch) {
+      }
+      else if (!openingTagMatch && closingTagMatch) {
         // Incomplete: has closing tag but no opening tag
         // Treat everything before closing tag as thinking content
         const closingTagIndex = text.indexOf('</think>')
@@ -63,20 +65,20 @@ class ThinkingParser {
     }
 
     const thinkingContentStr = thinkingContents.map(content => content.trim()).join('\n\n')
-    
+
     // We have thinking if there's content OR if we found an incomplete opening tag
     const hasThinkingContent = thinkingContents.length > 0
-    
+
     const result: ThinkingParseResult = {
       hasThinking: hasThinkingContent,
       thinkingContent: {
         content: thinkingContentStr,
         isExpanded: true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       answerContent,
-      rawText: text
+      rawText: text,
     }
 
     // Cache the result
@@ -86,7 +88,7 @@ class ThinkingParser {
       console.log('Parsed thinking content:', {
         hasThinking: result.hasThinking,
         thinkingLength: thinkingContentStr.length,
-        answerLength: answerContent.length
+        answerLength: answerContent.length,
       })
     }
 
@@ -106,7 +108,8 @@ class ThinkingParser {
 
   private getFromCache(key: string): ThinkingParseResult | null {
     const entry = this.cache.get(key)
-    if (!entry) return null
+    if (!entry)
+      return null
 
     // Check TTL
     const now = Date.now()
@@ -120,14 +123,13 @@ class ThinkingParser {
 
   private setToCache(key: string, result: ThinkingParseResult): void {
     // Clean up cache if it's too large
-    if (this.cache.size >= this.config.cacheSize) {
+    if (this.cache.size >= this.config.cacheSize)
       this.cleanupCache()
-    }
 
     this.cache.set(key, {
       rawText: result.rawText,
       parsedResult: result,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     })
   }
 
@@ -135,27 +137,25 @@ class ThinkingParser {
     // Remove oldest entries
     const entries = Array.from(this.cache.entries())
     const toRemove = entries.slice(0, Math.floor(this.config.cacheSize * 0.3))
-    
+
     toRemove.forEach(([key]) => {
       this.cache.delete(key)
     })
 
-    if (this.config.enableLogging) {
+    if (this.config.enableLogging)
       console.log(`Cleaned up ${toRemove.length} cache entries`)
-    }
   }
 
   clearCache(): void {
     this.cache.clear()
-    if (this.config.enableLogging) {
+    if (this.config.enableLogging)
       console.log('Thinking parser cache cleared')
-    }
   }
 
   getCacheStats(): { size: number; hitRate: number } {
     return {
       size: this.cache.size,
-      hitRate: 0 // Could be enhanced with hit tracking
+      hitRate: 0, // Could be enhanced with hit tracking
     }
   }
 }

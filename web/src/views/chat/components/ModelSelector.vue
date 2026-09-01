@@ -1,36 +1,35 @@
 <script lang="ts" setup>
-import { computed, ref, watch, h } from 'vue'
-import { NSelect, NForm, useMessage } from 'naive-ui'
+import { computed, h, ref, watch } from 'vue'
+import { NForm, NSelect, useMessage } from 'naive-ui'
+import { differenceInDays, formatDistanceToNow } from 'date-fns'
 import { useSessionStore } from '@/store'
 import { useChatModels } from '@/hooks/useChatModels'
-import { formatDistanceToNow, differenceInDays } from 'date-fns'
 import type { ChatModel } from '@/types/chat-models'
-import { API_TYPE_DISPLAY_NAMES, API_TYPES } from '@/constants/apiTypes'
-
-const sessionStore = useSessionStore()
-const message = useMessage()
-const { useChatModelsQuery } = useChatModels()
+import { API_TYPES, API_TYPE_DISPLAY_NAMES } from '@/constants/apiTypes'
 
 const props = defineProps<{
   uuid: string
   model: string | undefined
 }>()
+const sessionStore = useSessionStore()
+const message = useMessage()
+const { useChatModelsQuery } = useChatModels()
 
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(props.uuid))
 const { data, isLoading, isError } = useChatModelsQuery()
 
 const formatTimestamp = (timestamp?: string) => {
-  if (!timestamp) {
+  if (!timestamp)
     return 'Never used'
-  }
+
   const date = new Date(timestamp)
-  if (Number.isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime()))
     return 'Never used'
-  }
+
   const days = differenceInDays(new Date(), date)
-  if (days > 30) {
+  if (days > 30)
     return 'a month ago'
-  }
+
   return formatDistanceToNow(date, { addSuffix: true })
 }
 
@@ -44,14 +43,15 @@ const optionFromModel = (model: ChatModel) => ({
 })
 
 const chatModelOptions = computed(() => {
-  if (!data?.value) return []
+  if (!data?.value)
+    return []
 
   const enabledModels = data.value.filter((x: ChatModel) => x.isEnable)
   const modelsByApiType = enabledModels.reduce((acc, model) => {
     const apiType = model.apiType || 'unknown'
-    if (!acc[apiType]) {
+    if (!acc[apiType])
       acc[apiType] = []
-    }
+
     acc[apiType].push(model)
     return acc
   }, {} as Record<string, ChatModel[]>)
@@ -70,7 +70,7 @@ const chatModelOptions = computed(() => {
     return orderA - orderB
   })
 
-  return sortedApiTypes.map(apiType => {
+  return sortedApiTypes.map((apiType) => {
     const models = modelsByApiType[apiType]
     const apiTypeName = apiTypeConfig[apiType as keyof typeof apiTypeConfig]?.name
       || apiType.charAt(0).toUpperCase() + apiType.slice(1)
@@ -87,11 +87,13 @@ const chatModelOptions = computed(() => {
 })
 
 const defaultModel = computed(() => {
-  if (!data?.value) return undefined
+  if (!data?.value)
+    return undefined
   const defaultModels = data.value.filter((x: ChatModel) => x.isDefault && x.isEnable)
   if (!defaultModels.length) {
     const enabledModels = data.value.filter((x: ChatModel) => x.isEnable)
-    if (!enabledModels.length) return undefined
+    if (!enabledModels.length)
+      return undefined
     enabledModels.sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0))
     return enabledModels[0]?.name
   }
@@ -105,13 +107,15 @@ const isUpdating = ref(false)
 const programmaticValue = ref<string | undefined>(undefined)
 
 const setSelectedProgrammatically = (value: string | undefined) => {
-  if (selectedModel.value === value) return
+  if (selectedModel.value === value)
+    return
   programmaticValue.value = value
   selectedModel.value = value
 }
 
 watch([chatSession, defaultModel], ([session, defaultModelValue]) => {
-  if (!session && !defaultModelValue) return
+  if (!session && !defaultModelValue)
+    return
   const nextModel = session?.model ?? defaultModelValue
   if (!initialized.value) {
     setSelectedProgrammatically(nextModel)
@@ -119,9 +123,8 @@ watch([chatSession, defaultModel], ([session, defaultModelValue]) => {
     return
   }
 
-  if (session?.model && session.model !== selectedModel.value) {
+  if (session?.model && session.model !== selectedModel.value)
     setSelectedProgrammatically(session.model)
-  }
 }, { immediate: true })
 
 const handleUserUpdate = async (newModel: string | undefined) => {
@@ -130,14 +133,12 @@ const handleUserUpdate = async (newModel: string | undefined) => {
     return
   }
 
-  if (!initialized.value || !newModel) {
+  if (!initialized.value || !newModel)
     return
-  }
 
   const currentSessionModel = chatSession.value?.model
-  if (currentSessionModel === newModel) {
+  if (currentSessionModel === newModel)
     return
-  }
 
   const previousModel = currentSessionModel ?? defaultModel.value
   isUpdating.value = true
@@ -147,11 +148,13 @@ const handleUserUpdate = async (newModel: string | undefined) => {
     const selected = data?.value?.find((model: ChatModel) => model.name === newModel)
     const displayName = selected?.label || newModel
     message.success(`Model updated to ${displayName}`)
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Failed to update session model:', error)
     message.error('Failed to update model selection')
     setSelectedProgrammatically(previousModel)
-  } finally {
+  }
+  finally {
     isUpdating.value = false
   }
 }

@@ -1,4 +1,4 @@
-export type ToolCall = {
+export interface ToolCall {
   name: string
   arguments: Record<string, unknown>
 }
@@ -13,10 +13,10 @@ export const extractToolCalls = (text: string) => {
   cleanedText = cleanedText.replace(toolCallRegex, (_, jsonPayload) => {
     try {
       const parsed = JSON.parse(jsonPayload.trim())
-      if (parsed && typeof parsed === 'object' && parsed.name) {
+      if (parsed && typeof parsed === 'object' && parsed.name)
         calls.push(parsed as ToolCall)
-      }
-    } catch {
+    }
+    catch {
       // Ignore malformed tool calls.
     }
     return ''

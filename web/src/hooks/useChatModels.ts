@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient, useMutation } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useAuthStore } from '@/store'
 import { createChatModel, deleteChatModel, listChatModels, updateChatModel } from '@/api/generated_client'

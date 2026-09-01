@@ -1,24 +1,21 @@
 <script setup lang="ts">
-import { computed, ref, h } from 'vue'
+import { computed, ref } from 'vue'
 import {
-  NModal,
-  NCard,
   NButton,
-  NSpace,
-  NInput,
+  NCard,
+  NEmpty,
   NGrid,
   NGridItem,
-  NEmpty,
-  NIcon,
+  NInput,
+  NModal,
   NSwitch,
-  useMessage
+  useMessage,
 } from 'naive-ui'
-import { SvgIcon } from '@/components/common'
-import { useWorkspaceStore } from '@/store/modules/workspace'
-import { useSessionStore } from '@/store/modules/session'
-import { t } from '@/locales'
 import WorkspaceCard from './WorkspaceCard.vue'
 import WorkspaceModal from './WorkspaceModal.vue'
+import { SvgIcon } from '@/components/common'
+import { useWorkspaceStore } from '@/store/modules/workspace'
+import { t } from '@/locales'
 
 interface Props {
   visible: boolean
@@ -32,7 +29,6 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const workspaceStore = useWorkspaceStore()
-const sessionStore = useSessionStore()
 const message = useMessage()
 
 const searchQuery = ref('')
@@ -45,20 +41,19 @@ const dragOverIndex = ref<number | null>(null)
 
 const isVisible = computed({
   get: () => props.visible,
-  set: (value) => emit('update:visible', value)
+  set: value => emit('update:visible', value),
 })
 
 const workspaces = computed(() => workspaceStore.workspaces)
 
 const filteredWorkspaces = computed(() => {
-  if (!searchQuery.value.trim()) {
+  if (!searchQuery.value.trim())
     return workspaces.value
-  }
-  
+
   const query = searchQuery.value.toLowerCase()
-  return workspaces.value.filter(workspace => 
-    workspace.name.toLowerCase().includes(query) ||
-    workspace.description?.toLowerCase().includes(query)
+  return workspaces.value.filter(workspace =>
+    workspace.name.toLowerCase().includes(query)
+    || workspace.description?.toLowerCase().includes(query),
   )
 })
 
@@ -104,9 +99,10 @@ function handleWorkspaceUpdated(workspace: Chat.Workspace) {
 }
 
 // Drag and drop handlers
-function handleDragStart(event: DragEvent, workspace: Chat.Workspace, index: number) {
-  if (!dragMode.value) return
-  
+function handleDragStart(event: DragEvent, workspace: Chat.Workspace) {
+  if (!dragMode.value)
+    return
+
   draggedWorkspace.value = workspace
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
@@ -115,32 +111,34 @@ function handleDragStart(event: DragEvent, workspace: Chat.Workspace, index: num
 }
 
 function handleDragOver(event: DragEvent, index: number) {
-  if (!dragMode.value) return
-  
+  if (!dragMode.value)
+    return
+
   event.preventDefault()
   dragOverIndex.value = index
-  if (event.dataTransfer) {
+  if (event.dataTransfer)
     event.dataTransfer.dropEffect = 'move'
-  }
 }
 
 function handleDragLeave() {
-  if (!dragMode.value) return
+  if (!dragMode.value)
+    return
   dragOverIndex.value = null
 }
 
 function handleDrop(event: DragEvent, targetIndex: number) {
-  if (!dragMode.value || !draggedWorkspace.value) return
-  
+  if (!dragMode.value || !draggedWorkspace.value)
+    return
+
   event.preventDefault()
-  
+
   const draggedIndex = filteredWorkspaces.value.findIndex(w => w.uuid === draggedWorkspace.value!.uuid)
-  
+
   if (draggedIndex !== -1 && draggedIndex !== targetIndex) {
     // Reorder workspaces
     reorderWorkspaces(draggedIndex, targetIndex)
   }
-  
+
   // Reset drag state
   draggedWorkspace.value = null
   dragOverIndex.value = null
@@ -177,10 +175,11 @@ async function reorderWorkspaces(fromIndex: number, toIndex: number) {
     console.log('📋 New order:', reorderedWorkspaces.map((w, i) => `${i}: ${w.name}`))
 
     await workspaceStore.updateWorkspaceOrder(reorderedWorkspaces.map(w => w.uuid))
-    
+
     message.success(t('workspace.reorderSuccess'))
     console.log('✅ Workspace reordering completed')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('❌ Failed to reorder workspaces:', error)
     message.error(t('workspace.reorderError'))
   }
@@ -189,12 +188,12 @@ async function reorderWorkspaces(fromIndex: number, toIndex: number) {
 
 <template>
   <NModal v-model:show="isVisible" :mask-closable="false" class="workspace-management-modal">
-    <NCard 
-      :title="t('workspace.manage')" 
-      class="w-full max-w-5xl" 
-      :bordered="false" 
-      size="small" 
-      role="dialog" 
+    <NCard
+      :title="t('workspace.manage')"
+      class="w-full max-w-5xl"
+      :bordered="false"
+      size="small"
+      role="dialog"
       aria-modal="true"
     >
       <template #header-extra>
@@ -219,18 +218,18 @@ async function reorderWorkspaces(fromIndex: number, toIndex: number) {
                 <SvgIcon icon="material-symbols:search" />
               </template>
             </NInput>
-            
+
             <div class="flex items-center gap-2">
               <SvgIcon icon="material-symbols:drag-indicator" class="text-sm" />
               <span class="text-sm">{{ t('workspace.reorderMode') }}</span>
-              <NSwitch 
-                v-model:value="dragMode" 
+              <NSwitch
+                v-model:value="dragMode"
                 size="small"
                 :round="false"
               />
             </div>
           </div>
-          
+
           <NButton type="primary" @click="handleCreateWorkspace">
             <template #icon>
               <SvgIcon icon="material-symbols:add" />
@@ -262,14 +261,14 @@ async function reorderWorkspaces(fromIndex: number, toIndex: number) {
         </NEmpty>
 
         <NGrid v-else :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
-          <NGridItem 
-            v-for="(workspace, index) in filteredWorkspaces" 
+          <NGridItem
+            v-for="(workspace, index) in filteredWorkspaces"
             :key="workspace.uuid"
             class="workspace-grid-item"
-            :class="{ 
+            :class="{
               'workspace-grid-item--drag-mode': dragMode,
               'workspace-grid-item--drag-over': dragOverIndex === index,
-              'workspace-grid-item--dragging': draggedWorkspace?.uuid === workspace.uuid
+              'workspace-grid-item--dragging': draggedWorkspace?.uuid === workspace.uuid,
             }"
             :draggable="dragMode"
             @dragstart="handleDragStart($event, workspace, index)"

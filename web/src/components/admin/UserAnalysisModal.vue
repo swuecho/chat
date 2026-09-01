@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { ref, watch, computed, h } from 'vue'
-import { NModal, NCard, NTabs, NTabPane, NSpin, NStatistic, NProgress, NDataTable, useMessage, NButton } from 'naive-ui'
-import { getUserAnalysis, getUserSessionHistory } from '@/api/generated_client'
+import { computed, h, ref, watch } from 'vue'
+import { NButton, NCard, NDataTable, NModal, NProgress, NSpin, NTabPane, NTabs, useMessage } from 'naive-ui'
 import SessionSnapshotModal from './SessionSnapshotModal.vue'
+import { getUserAnalysis, getUserSessionHistory } from '@/api/generated_client'
 import { t } from '@/locales'
 
 interface Props {
@@ -62,20 +62,19 @@ const sessionPagination = ref({
     sessionPagination.value.pageSize = pageSize
     sessionPagination.value.page = 1
     fetchSessionHistory()
-  }
+  },
 })
 
 const show = computed({
   get: () => props.visible,
-  set: (visible: boolean) => emit('update:visible', visible)
+  set: (visible: boolean) => emit('update:visible', visible),
 })
 
 // Watch for when modal opens to fetch data
 watch(() => props.visible, (newVal) => {
-  if (newVal && props.userEmail) {
+  if (newVal && props.userEmail)
     fetchUserAnalysis()
     // Don't fetch session history immediately - let it load when tab is accessed
-  }
 })
 
 async function fetchUserAnalysis() {
@@ -83,9 +82,11 @@ async function fetchUserAnalysis() {
   try {
     const response = await getUserAnalysis({ path: { email: props.userEmail } })
     analysisData.value = response
-  } catch (error: any) {
+  }
+  catch (error: any) {
     message.error(error.message || t('common.fetchFailed'))
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -102,18 +103,19 @@ async function fetchSessionHistory() {
     })
     sessionHistoryData.value = response.data
     sessionPagination.value.itemCount = response.total
-  } catch (error: any) {
+  }
+  catch (error: any) {
     message.error(error.message || t('common.fetchFailed'))
-  } finally {
+  }
+  finally {
     sessionLoading.value = false
   }
 }
 
 // Handle tab change to load session history when needed
 function handleTabChange(value: string) {
-  if (value === 'sessions') {
+  if (value === 'sessions')
     fetchSessionHistory()
-  }
 }
 
 // Handle session ID click to show snapshot
@@ -127,43 +129,43 @@ const modelUsageColumns = [
   { title: t('admin.model'), key: 'model', width: 120 },
   { title: t('admin.messages'), key: 'messageCount', width: 100 },
   { title: t('admin.tokens'), key: 'tokenCount', width: 100 },
-  { 
-    title: t('admin.usage'), 
-    key: 'percentage', 
+  {
+    title: t('admin.usage'),
+    key: 'percentage',
     width: 100,
-    render: (row: any) => `${row.percentage.toFixed(2)}%`
+    render: (row: any) => `${row.percentage.toFixed(2)}%`,
   },
-  { title: t('admin.lastUsed'), key: 'lastUsed', width: 120 }
+  { title: t('admin.lastUsed'), key: 'lastUsed', width: 120 },
 ]
 
 const activityColumns = [
   { title: t('admin.date'), key: 'date', width: 120 },
   { title: t('admin.messages'), key: 'messages', width: 100 },
   { title: t('admin.tokens'), key: 'tokens', width: 100 },
-  { title: t('admin.sessions'), key: 'sessions', width: 100 }
+  { title: t('admin.sessions'), key: 'sessions', width: 100 },
 ]
 
 const sessionColumns = [
-  { 
-    title: t('admin.sessionId'), 
-    key: 'sessionId', 
+  {
+    title: t('admin.sessionId'),
+    key: 'sessionId',
     width: 120,
     render: (row: any) => {
       return h(NButton, {
         text: true,
         type: 'primary',
         size: 'small',
-        onClick: () => handleSessionClick(row.sessionId, row.model)
+        onClick: () => handleSessionClick(row.sessionId, row.model),
       }, {
-        default: () => row.sessionId.slice(0, 8) + '...'
+        default: () => `${row.sessionId.slice(0, 8)}...`,
       })
-    }
+    },
   },
   { title: t('admin.model'), key: 'model', width: 120 },
   { title: t('admin.messages'), key: 'messageCount', width: 100 },
   { title: t('admin.tokens'), key: 'tokenCount', width: 100 },
   { title: t('admin.created'), key: 'createdAt', width: 150 },
-  { title: t('admin.updated'), key: 'updatedAt', width: 150 }
+  { title: t('admin.updated'), key: 'updatedAt', width: 150 },
 ]
 
 // Helper function to get consistent model colors
@@ -175,50 +177,53 @@ function getModelColor(modelName: string): string {
     'Claude-3-Haiku': '#8b5cf6',
     'Claude-3-Opus': '#ec4899',
     'Gemini': '#f59e0b',
-    'Llama': '#ef4444'
+    'Llama': '#ef4444',
   }
-  
+
   // Find matching color by checking if model name contains any key
   for (const [key, color] of Object.entries(colorMap)) {
-    if (modelName.toLowerCase().includes(key.toLowerCase())) {
+    if (modelName.toLowerCase().includes(key.toLowerCase()))
       return color
-    }
   }
-  
+
   // Default color for unknown models
   return '#6b7280'
 }
 </script>
 
 <template>
-  <SessionSnapshotModal 
+  <SessionSnapshotModal
     v-model:visible="showSessionSnapshot"
     :session-id="selectedSessionId"
     :session-model="selectedSessionModel"
     :user-email="userEmail"
   />
   <NModal v-model:show="show" :style="{ width: ['95vw', '1400px'] }" class="elegant-modal">
-    <NCard 
-      role="dialog" 
-      aria-modal="true" 
+    <NCard
+      role="dialog"
+      aria-modal="true"
       :title="`${t('admin.userAnalysis')} - ${userEmail}`"
-      :bordered="false" 
+      :bordered="false"
       size="huge"
       class="elegant-card"
     >
       <template #header>
         <div class="flex items-center gap-3">
-          <div class="w-2 h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+          <div class="w-2 h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full" />
           <div>
-            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('admin.userAnalysis') }}</h2>
-            <p class="text-sm text-gray-500 font-mono">{{ userEmail }}</p>
+            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">
+              {{ t('admin.userAnalysis') }}
+            </h2>
+            <p class="text-sm text-gray-500 font-mono">
+              {{ userEmail }}
+            </p>
           </div>
         </div>
       </template>
-      
+
       <NSpin :show="loading">
         <div v-if="analysisData" class="space-y-6">
-          <NTabs type="line" animated @update:value="handleTabChange" class="elegant-tabs">
+          <NTabs type="line" animated class="elegant-tabs" @update:value="handleTabChange">
             <!-- Overview Tab -->
             <NTabPane name="overview" :tab="t('admin.overview')">
               <!-- Key Metrics Cards -->
@@ -227,60 +232,70 @@ function getModelColor(modelName: string): string {
                   <div class="flex items-center justify-between mb-3">
                     <div class="p-2 bg-blue-500 rounded-lg">
                       <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </div>
                     <span class="text-2xl font-bold text-blue-700 dark:text-blue-300">{{ analysisData.userInfo.totalMessages.toLocaleString() }}</span>
                   </div>
-                  <p class="text-sm font-medium text-blue-600 dark:text-blue-400">{{ t('admin.totalMessages') }}</p>
+                  <p class="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    {{ t('admin.totalMessages') }}
+                  </p>
                 </div>
-                
+
                 <div class="metric-card bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800">
                   <div class="flex items-center justify-between mb-3">
                     <div class="p-2 bg-emerald-500 rounded-lg">
                       <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
                     </div>
                     <span class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{{ analysisData.userInfo.totalTokens.toLocaleString() }}</span>
                   </div>
-                  <p class="text-sm font-medium text-emerald-600 dark:text-emerald-400">{{ t('admin.totalTokens') }}</p>
+                  <p class="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    {{ t('admin.totalTokens') }}
+                  </p>
                 </div>
-                
+
                 <div class="metric-card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-6 border border-purple-200 dark:border-purple-800">
                   <div class="flex items-center justify-between mb-3">
                     <div class="p-2 bg-purple-500 rounded-lg">
                       <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </div>
                     <span class="text-2xl font-bold text-purple-700 dark:text-purple-300">{{ analysisData.userInfo.totalSessions.toLocaleString() }}</span>
                   </div>
-                  <p class="text-sm font-medium text-purple-600 dark:text-purple-400">{{ t('admin.totalSessions') }}</p>
+                  <p class="text-sm font-medium text-purple-600 dark:text-purple-400">
+                    {{ t('admin.totalSessions') }}
+                  </p>
                 </div>
-                
+
                 <div class="metric-card bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-6 border border-amber-200 dark:border-amber-800">
                   <div class="flex items-center justify-between mb-3">
                     <div class="p-2 bg-amber-500 rounded-lg">
                       <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <span class="text-2xl font-bold text-amber-700 dark:text-amber-300">{{ analysisData.userInfo.rateLimit }}/10min</span>
                   </div>
-                  <p class="text-sm font-medium text-amber-600 dark:text-amber-400">{{ t('admin.rateLimit') }}</p>
+                  <p class="text-sm font-medium text-amber-600 dark:text-amber-400">
+                    {{ t('admin.rateLimit') }}
+                  </p>
                 </div>
               </div>
-              
+
               <!-- Recent Activity Section -->
               <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 mb-8">
                 <div class="flex items-center gap-3 mb-6">
                   <div class="p-2 bg-indigo-500 rounded-lg">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   </div>
-                  <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">{{ t('admin.recent3Days') }}</h3>
+                  <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    {{ t('admin.recent3Days') }}
+                  </h3>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div class="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
@@ -303,21 +318,23 @@ function getModelColor(modelName: string): string {
                 <div class="flex items-center gap-3 mb-6">
                   <div class="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                   </div>
-                  <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">{{ t('admin.modelUsageDistribution') }}</h3>
+                  <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    {{ t('admin.modelUsageDistribution') }}
+                  </h3>
                 </div>
                 <div class="space-y-4">
                   <div v-for="model in analysisData.modelUsage" :key="model.model" class="model-usage-item group">
                     <div class="flex items-center gap-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                       <div class="flex items-center gap-3 min-w-0 flex-1">
-                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getModelColor(model.model) }"></div>
+                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getModelColor(model.model) }" />
                         <span class="font-medium text-gray-800 dark:text-gray-200 truncate">{{ model.model }}</span>
                       </div>
                       <div class="flex-1 mx-4">
-                        <NProgress 
-                          :percentage="model.percentage" 
+                        <NProgress
+                          :percentage="model.percentage"
                           :show-indicator="false"
                           :color="getModelColor(model.model)"
                           :height="8"
@@ -338,8 +355,8 @@ function getModelColor(modelName: string): string {
             <!-- Model Usage Tab -->
             <NTabPane name="models" :tab="t('admin.modelUsage')">
               <div class="bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                <NDataTable 
-                  :data="analysisData.modelUsage" 
+                <NDataTable
+                  :data="analysisData.modelUsage"
                   :columns="modelUsageColumns"
                   :pagination="false"
                   size="medium"
@@ -352,8 +369,8 @@ function getModelColor(modelName: string): string {
             <!-- Activity History Tab -->
             <NTabPane name="activity" :tab="t('admin.activityHistory')">
               <div class="bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                <NDataTable 
-                  :data="analysisData.recentActivity" 
+                <NDataTable
+                  :data="analysisData.recentActivity"
                   :columns="activityColumns"
                   :pagination="{ pageSize: 10 }"
                   size="medium"
@@ -367,8 +384,8 @@ function getModelColor(modelName: string): string {
             <NTabPane name="sessions" :tab="t('admin.sessionHistory')">
               <div class="bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
                 <NSpin :show="sessionLoading">
-                  <NDataTable 
-                    :data="sessionHistoryData" 
+                  <NDataTable
+                    :data="sessionHistoryData"
                     :columns="sessionColumns"
                     :pagination="sessionPagination"
                     :remote="true"
