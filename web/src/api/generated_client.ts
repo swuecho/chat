@@ -24,7 +24,10 @@ async function accessToken(): Promise<string | undefined> {
   return authStore.getToken ?? undefined
 }
 
-async function authenticatedFetch(request: Request): Promise<Response> {
+async function authenticatedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const request = (input instanceof Request && init === undefined)
+    ? input
+    : new Request(input, init)
   // Keep an unused clone because the body of the request passed to fetch may
   // no longer be reusable when a 401 response arrives.
   const retryRequest = request.clone()
