@@ -1,10 +1,8 @@
 package handler
 
 import (
-	"encoding/json"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/svc"
 )
@@ -193,36 +191,36 @@ type suggestionsHTTPResponse struct {
 }
 
 type gatewayRequestDetailHTTPResponse struct {
-	ID                     int64           `json:"id"`
-	RequestUUID            uuid.UUID       `json:"requestUuid"`
-	RequestedModel         string          `json:"requestedModel"`
-	Provider               string          `json:"provider"`
-	Status                 string          `json:"status"`
-	Stream                 bool            `json:"stream"`
-	PromptTokens           int32           `json:"promptTokens"`
-	CompletionTokens       int32           `json:"completionTokens"`
-	TotalTokens            int32           `json:"totalTokens"`
-	LatencyMs              int64           `json:"latencyMs"`
-	ProviderRequestID      string          `json:"providerRequestId"`
-	ErrorCode              string          `json:"errorCode"`
-	RequestBytes           int64           `json:"requestBytes"`
-	ResponseBytes          int64           `json:"responseBytes"`
-	RequestSHA256          string          `json:"requestSha256"`
-	ResponseSHA256         string          `json:"responseSha256"`
-	RequestTruncated       bool            `json:"requestTruncated"`
-	ResponseTruncated      bool            `json:"responseTruncated"`
-	RequestClassification  json.RawMessage `json:"requestClassification"`
-	ResponseClassification json.RawMessage `json:"responseClassification"`
-	CreatedAt              time.Time       `json:"createdAt"`
-	CompletedAt            *time.Time      `json:"completedAt"`
-	RetentionUntil         time.Time       `json:"retentionUntil"`
-	RequestCapture         capturedSample  `json:"requestCapture"`
-	ResponseCapture        capturedSample  `json:"responseCapture"`
+	ID                     int64                         `json:"id"`
+	RequestUUID            string                        `json:"requestUuid" jsonschema:"format=uuid"`
+	RequestedModel         string                        `json:"requestedModel"`
+	Provider               string                        `json:"provider"`
+	Status                 string                        `json:"status"`
+	Stream                 bool                          `json:"stream"`
+	PromptTokens           int32                         `json:"promptTokens"`
+	CompletionTokens       int32                         `json:"completionTokens"`
+	TotalTokens            int32                         `json:"totalTokens"`
+	LatencyMs              int64                         `json:"latencyMs"`
+	ProviderRequestID      string                        `json:"providerRequestId"`
+	ErrorCode              string                        `json:"errorCode"`
+	RequestBytes           int64                         `json:"requestBytes"`
+	ResponseBytes          int64                         `json:"responseBytes"`
+	RequestSHA256          string                        `json:"requestSha256"`
+	ResponseSHA256         string                        `json:"responseSha256"`
+	RequestTruncated       bool                          `json:"requestTruncated"`
+	ResponseTruncated      bool                          `json:"responseTruncated"`
+	RequestClassification  gatewayRequestClassification  `json:"requestClassification"`
+	ResponseClassification gatewayResponseClassification `json:"responseClassification"`
+	CreatedAt              time.Time                     `json:"createdAt"`
+	CompletedAt            *time.Time                    `json:"completedAt" jsonschema:"nullable"`
+	RetentionUntil         time.Time                     `json:"retentionUntil"`
+	RequestCapture         capturedSample                `json:"requestCapture"`
+	ResponseCapture        capturedSample                `json:"responseCapture"`
 }
 
 type gatewayRequestSummaryHTTPResponse struct {
 	ID                int64      `json:"id"`
-	RequestUUID       uuid.UUID  `json:"requestUuid"`
+	RequestUUID       string     `json:"requestUuid" jsonschema:"format=uuid"`
 	RequestedModel    string     `json:"requestedModel"`
 	Provider          string     `json:"provider"`
 	Status            string     `json:"status"`
@@ -236,7 +234,7 @@ type gatewayRequestSummaryHTTPResponse struct {
 	RequestTruncated  bool       `json:"requestTruncated"`
 	ResponseTruncated bool       `json:"responseTruncated"`
 	CreatedAt         time.Time  `json:"createdAt"`
-	CompletedAt       *time.Time `json:"completedAt"`
+	CompletedAt       *time.Time `json:"completedAt" jsonschema:"nullable"`
 	RetentionUntil    time.Time  `json:"retentionUntil"`
 	ErrorCode         string     `json:"errorCode"`
 }

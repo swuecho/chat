@@ -4,8 +4,18 @@ import { NButton, NDataTable, NDescriptions, NDescriptionsItem, NEmpty, NFormIte
 import type { DataTableColumns } from 'naive-ui'
 import copy from 'copy-to-clipboard'
 import { createApiKey, getApiKeyRequest, getApiKeyUsage, listApiKeyRequests, listApiKeys, revokeApiKey } from '@/api/generated_client'
-import type { ApiKeyUsage, CapturedSample, GatewayRequestDetail, GatewayRequestSummary, VirtualApiKey } from '@/api/api_keys'
+import type {
+  GatewayRequestDetailHttpResponse,
+  GetApiKeyUsageResponse,
+  ListApiKeyRequestsResponse,
+  ListApiKeysResponse,
+} from '@/api/generated_client'
 import { useAuthStore } from '@/store'
+
+type VirtualApiKey = ListApiKeysResponse[number]
+type ApiKeyUsage = GetApiKeyUsageResponse[number]
+type GatewayRequestSummary = ListApiKeyRequestsResponse[number]
+type CapturedSample = GatewayRequestDetailHttpResponse['requestCapture']
 
 const authStore = useAuthStore()
 const message = useMessage()
@@ -21,7 +31,7 @@ const requestLoading = ref(false)
 const detailLoading = ref(false)
 const selectedKey = ref<VirtualApiKey | null>(null)
 const requests = ref<GatewayRequestSummary[]>([])
-const requestDetail = ref<GatewayRequestDetail | null>(null)
+const requestDetail = ref<GatewayRequestDetailHttpResponse | null>(null)
 const createdSecret = ref('')
 const usage = ref<ApiKeyUsage[]>([])
 const form = ref({ name: '', requestsPerMinute: 60 })
@@ -39,7 +49,7 @@ const formatDate = (value: string | null) => value ? new Date(value).toLocaleStr
 async function loadKeys() {
   loading.value = true
   try {
-    keys.value = await listApiKeys() as VirtualApiKey[]
+    keys.value = await listApiKeys()
   }
   finally {
     loading.value = false
@@ -54,7 +64,7 @@ async function createKey() {
   try {
     const result = await createApiKey({
       body: { name: form.value.name.trim(), requestsPerMinute: form.value.requestsPerMinute, expiresAt: '' },
-    }) as VirtualApiKey
+    })
     createdSecret.value = result.key || ''
     showCreate.value = false
     showSecret.value = true
@@ -81,7 +91,7 @@ function confirmRevoke(key: VirtualApiKey) {
 }
 
 async function openUsage(key: VirtualApiKey) {
-  usage.value = await getApiKeyUsage({ path: { id: key.id } }) as ApiKeyUsage[]
+  usage.value = await getApiKeyUsage({ path: { id: key.id } })
   showUsage.value = true
 }
 
@@ -90,7 +100,7 @@ async function openRequests(key: VirtualApiKey) {
   showRequests.value = true
   requestLoading.value = true
   try {
-    requests.value = await listApiKeyRequests({ path: { id: key.id } }) as GatewayRequestSummary[]
+    requests.value = await listApiKeyRequests({ path: { id: key.id } })
   }
   catch {
     message.error('Could not load gateway requests')
@@ -109,7 +119,7 @@ async function inspectRequest(row: GatewayRequestSummary) {
   try {
     requestDetail.value = await getApiKeyRequest({
       path: { id: selectedKey.value.id, requestId: row.id },
-    }) as GatewayRequestDetail
+    })
   }
   catch {
     message.error('Could not load request details')
@@ -134,7 +144,7 @@ function displayCapture(capture?: CapturedSample): string {
   }
 }
 
-const displayJSON = (value?: Record<string, unknown>) => JSON.stringify(value ?? {}, null, 2)
+const displayJSON = (value?: unknown) => JSON.stringify(value ?? {}, null, 2)
 
 function copySecret() {
   copy(createdSecret.value)

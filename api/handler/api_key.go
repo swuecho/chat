@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -120,7 +121,7 @@ func (h *APIKeyHandler) requests(w http.ResponseWriter, r *http.Request) error {
 		if record.CompletedAt.Valid {
 			completedAt = &record.CompletedAt.Time
 		}
-		response[i] = gatewayRequestSummaryHTTPResponse{ID: record.ID, RequestUUID: record.RequestUuid,
+		response[i] = gatewayRequestSummaryHTTPResponse{ID: record.ID, RequestUUID: record.RequestUuid.String(),
 			RequestedModel: record.RequestedModel, Provider: record.Provider, Status: record.Status, Stream: record.Stream,
 			PromptTokens: record.PromptTokens, CompletionTokens: record.CompletionTokens, TotalTokens: record.TotalTokens,
 			LatencyMs: record.LatencyMs, RequestBytes: record.RequestBytes, ResponseBytes: record.ResponseBytes,
@@ -141,6 +142,14 @@ func sampleForAPI(sample []byte) capturedSample {
 		return capturedSample{Encoding: "utf-8", Text: string(sample)}
 	}
 	return capturedSample{Encoding: "base64", Base64: base64.StdEncoding.EncodeToString(sample)}
+}
+
+func classificationForAPI[T any](value json.RawMessage) T {
+	var classification T
+	if len(value) == 0 || json.Unmarshal(value, &classification) != nil {
+		return classification
+	}
+	return classification
 }
 
 func (h *APIKeyHandler) requestDetail(w http.ResponseWriter, r *http.Request) error {
@@ -164,13 +173,14 @@ func (h *APIKeyHandler) requestDetail(w http.ResponseWriter, r *http.Request) er
 	if record.CompletedAt.Valid {
 		completedAt = &record.CompletedAt.Time
 	}
-	return respondJSON(w, http.StatusOK, gatewayRequestDetailHTTPResponse{ID: record.ID, RequestUUID: record.RequestUuid,
+	return respondJSON(w, http.StatusOK, gatewayRequestDetailHTTPResponse{ID: record.ID, RequestUUID: record.RequestUuid.String(),
 		RequestedModel: record.RequestedModel, Provider: record.Provider, Status: record.Status, Stream: record.Stream,
 		PromptTokens: record.PromptTokens, CompletionTokens: record.CompletionTokens, TotalTokens: record.TotalTokens,
 		LatencyMs: record.LatencyMs, ProviderRequestID: record.ProviderRequestID, ErrorCode: record.ErrorCode,
 		RequestBytes: record.RequestBytes, ResponseBytes: record.ResponseBytes, RequestSHA256: record.RequestSha256,
 		ResponseSHA256: record.ResponseSha256, RequestTruncated: record.RequestTruncated, ResponseTruncated: record.ResponseTruncated,
-		RequestClassification: record.RequestClassification, ResponseClassification: record.ResponseClassification,
-		CreatedAt: record.CreatedAt, CompletedAt: completedAt, RetentionUntil: record.RetentionUntil,
+		RequestClassification:  classificationForAPI[gatewayRequestClassification](record.RequestClassification),
+		ResponseClassification: classificationForAPI[gatewayResponseClassification](record.ResponseClassification),
+		CreatedAt:              record.CreatedAt, CompletedAt: completedAt, RetentionUntil: record.RetentionUntil,
 		RequestCapture: sampleForAPI(record.RequestSample), ResponseCapture: sampleForAPI(record.ResponseSample)})
 }

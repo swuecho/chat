@@ -22,8 +22,8 @@ type APIKeyView struct {
 	KeyPrefix         string     `json:"keyPrefix"`
 	Status            string     `json:"status"`
 	RequestsPerMinute int32      `json:"requestsPerMinute"`
-	ExpiresAt         *time.Time `json:"expiresAt"`
-	LastUsedAt        *time.Time `json:"lastUsedAt"`
+	ExpiresAt         *time.Time `json:"expiresAt" jsonschema:"nullable"`
+	LastUsedAt        *time.Time `json:"lastUsedAt" jsonschema:"nullable"`
 	CreatedAt         time.Time  `json:"createdAt"`
 }
 

@@ -38,12 +38,26 @@
                         "type": "integer"
                       },
                       "expiresAt": {
-                        "type": "string",
-                        "format": "date-time"
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "lastUsedAt": {
-                        "type": "string",
-                        "format": "date-time"
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "createdAt": {
                         "type": "string",
@@ -201,12 +215,8 @@
                         "type": "integer"
                       },
                       "requestUuid": {
-                        "items": {
-                          "type": "integer"
-                        },
-                        "type": "array",
-                        "maxItems": 16,
-                        "minItems": 16
+                        "type": "string",
+                        "format": "uuid"
                       },
                       "requestedModel": {
                         "type": "string"
@@ -249,8 +259,15 @@
                         "format": "date-time"
                       },
                       "completedAt": {
-                        "type": "string",
-                        "format": "date-time"
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "retentionUntil": {
                         "type": "string",
@@ -4687,12 +4704,26 @@
             "type": "integer"
           },
           "expiresAt": {
-            "type": "string",
-            "format": "date-time"
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "lastUsedAt": {
-            "type": "string",
-            "format": "date-time"
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -5736,12 +5767,8 @@
             "type": "integer"
           },
           "requestUuid": {
-            "items": {
-              "type": "integer"
-            },
-            "type": "array",
-            "maxItems": 16,
-            "minItems": 16
+            "type": "string",
+            "format": "uuid"
           },
           "requestedModel": {
             "type": "string"
@@ -5791,15 +5818,80 @@
           "responseTruncated": {
             "type": "boolean"
           },
-          "requestClassification": true,
-          "responseClassification": true,
+          "requestClassification": {
+            "properties": {
+              "format": {
+                "type": "string"
+              },
+              "message_count": {
+                "type": "integer"
+              },
+              "roles": {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              "multimodal": {
+                "type": "boolean"
+              },
+              "has_tools": {
+                "type": "boolean"
+              },
+              "has_response_format": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "format",
+              "has_tools",
+              "has_response_format"
+            ]
+          },
+          "responseClassification": {
+            "properties": {
+              "stream": {
+                "type": "boolean"
+              },
+              "status_code": {
+                "type": "integer"
+              },
+              "content_type": {
+                "type": "string"
+              },
+              "content_encoding": {
+                "type": "string"
+              },
+              "successful": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "stream",
+              "status_code",
+              "content_type",
+              "content_encoding",
+              "successful"
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
           },
           "completedAt": {
-            "type": "string",
-            "format": "date-time"
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "retentionUntil": {
             "type": "string",

@@ -45,8 +45,8 @@ export type CreatedApiKey = {
     keyPrefix: string;
     status: string;
     requestsPerMinute: number;
-    expiresAt: string;
-    lastUsedAt: string;
+    expiresAt: string | null;
+    lastUsedAt: string | null;
     createdAt: string;
     key: string;
 };
@@ -313,24 +313,7 @@ export type FileUploadHttpResponse = {
 
 export type GatewayRequestDetailHttpResponse = {
     id: number;
-    requestUuid: [
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number
-    ];
+    requestUuid: string;
     requestedModel: string;
     provider: string;
     status: string;
@@ -347,8 +330,25 @@ export type GatewayRequestDetailHttpResponse = {
     responseSha256: string;
     requestTruncated: boolean;
     responseTruncated: boolean;
+    requestClassification: {
+        format: string;
+        message_count?: number;
+        roles?: {
+            [key: string]: number;
+        };
+        multimodal?: boolean;
+        has_tools: boolean;
+        has_response_format: boolean;
+    };
+    responseClassification: {
+        stream: boolean;
+        status_code: number;
+        content_type: string;
+        content_encoding: string;
+        successful: boolean;
+    };
     createdAt: string;
-    completedAt: string;
+    completedAt: string | null;
     retentionUntil: string;
     requestCapture: {
         encoding: string;
@@ -587,8 +587,8 @@ export type ListApiKeysResponses = {
         keyPrefix: string;
         status: string;
         requestsPerMinute: number;
-        expiresAt: string;
-        lastUsedAt: string;
+        expiresAt: string | null;
+        lastUsedAt: string | null;
         createdAt: string;
     }>;
 };
@@ -671,24 +671,7 @@ export type ListApiKeyRequestsResponses = {
      */
     200: Array<{
         id: number;
-        requestUuid: [
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number,
-            number
-        ];
+        requestUuid: string;
         requestedModel: string;
         provider: string;
         status: string;
@@ -702,7 +685,7 @@ export type ListApiKeyRequestsResponses = {
         requestTruncated: boolean;
         responseTruncated: boolean;
         createdAt: string;
-        completedAt: string;
+        completedAt: string | null;
         retentionUntil: string;
         errorCode: string;
     }>;
