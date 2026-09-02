@@ -97,7 +97,7 @@ func TestGenerateAnswerPersistsBeforeReturningSuccess(t *testing.T) {
 		{ID: "generate-answer-response", Content: "durable "},
 		{ID: "generate-answer-response", Content: "answer"},
 		{Done: true, FinalAnswer: &models.LLMAnswer{AnswerId: "generate-answer-response", Answer: "durable answer"}},
-	}}}, generateAnswerChunkSink{delivered: &delivered}, noChatLogs{})
+	}}}, generateAnswerChunkSink{delivered: &delivered}, noChatLogs{}, nil)
 	result, err := useCase.Execute(ctx, GenerateAnswerCommand{
 		Session: chatSessionFromRecord(sessionRecord), RequestUUID: "generate-answer-request", UserID: user.ID,
 	})

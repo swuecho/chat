@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/swuecho/chat_backend/models"
@@ -48,19 +49,21 @@ func (allowChatLogs) ShouldLogChat([]models.Message) bool { return true }
 // GenerateAnswerUseCase owns the provider-to-persistence lifecycle.
 type GenerateAnswerUseCase struct {
 	chat      *ChatService
+	lifecycle ChatRequestLifecycle
 	models    ModelSelector
 	chunks    AnswerChunkSink
 	logPolicy ChatLogPolicy
+	audit     ChatAuditLogger
 }
 
-func NewGenerateAnswerUseCase(chat *ChatService, models ModelSelector, chunks AnswerChunkSink, logPolicy ChatLogPolicy) *GenerateAnswerUseCase {
+func NewGenerateAnswerUseCase(chat *ChatService, models ModelSelector, chunks AnswerChunkSink, logPolicy ChatLogPolicy, audit ChatAuditLogger) *GenerateAnswerUseCase {
 	if chunks == nil {
 		chunks = discardAnswerChunks{}
 	}
 	if logPolicy == nil {
 		logPolicy = allowChatLogs{}
 	}
-	return &GenerateAnswerUseCase{chat: chat, models: models, chunks: chunks, logPolicy: logPolicy}
+	return &GenerateAnswerUseCase{chat: chat, lifecycle: chat, models: models, chunks: chunks, logPolicy: logPolicy, audit: audit}
 }
 
 type GenerateAnswerResult struct {
@@ -87,7 +90,11 @@ func (u *GenerateAnswerUseCase) Execute(ctx context.Context, command GenerateAns
 	fail := func(code string, err error) (GenerateAnswerResult, error) {
 		failureCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
-		_ = u.chat.MarkChatRequestFailed(failureCtx, command.RequestUUID, command.Session.UUID, command.UserID, code)
+		if code == "canceled" {
+			_ = u.lifecycle.Cancel(failureCtx, command.RequestUUID, command.Session.UUID, command.UserID, code)
+		} else {
+			_ = u.lifecycle.Fail(failureCtx, command.RequestUUID, command.Session.UUID, command.UserID, code)
+		}
 		return GenerateAnswerResult{}, generationError(code, err)
 	}
 
@@ -98,7 +105,7 @@ func (u *GenerateAnswerUseCase) Execute(ctx context.Context, command GenerateAns
 	if err != nil {
 		return fail("message_collection_failed", err)
 	}
-	if err := u.chat.MarkChatRequestStreaming(ctx, command.RequestUUID, command.Session.UUID, command.UserID); err != nil {
+	if err := u.lifecycle.StartStreaming(ctx, command.RequestUUID, command.Session.UUID, command.UserID); err != nil {
 		return fail("request_state_failed", err)
 	}
 
@@ -126,8 +133,10 @@ func (u *GenerateAnswerUseCase) Execute(ctx context.Context, command GenerateAns
 		return fail("empty_answer", errors.New("provider returned no final answer"))
 	}
 
-	if u.logPolicy.ShouldLogChat(messages) {
-		u.chat.LogChat(ctx, command.Session, messages, answer.ReasoningContent+answer.Answer)
+	if u.logPolicy.ShouldLogChat(messages) && u.audit != nil {
+		if err := u.audit.LogChat(ctx, command.Session, messages, answer.ReasoningContent+answer.Answer); err != nil {
+			slog.Warn("failed to persist chat audit log", "error", err, "requestUUID", command.RequestUUID)
+		}
 	}
 	message, err := u.chat.CompleteChatRequestWithSuggestedQuestions(ctx, command.RequestUUID, command.Session.UUID, answer.AnswerId, answer.Answer, answer.ReasoningContent, command.Session.Model, command.UserID, command.BaseURL, command.Session.SummarizeMode, command.Session.ExploreMode, messages)
 	if err != nil {

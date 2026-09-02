@@ -19,7 +19,7 @@ SET status = 'pending',
     error_code = '',
     attempt_count = chat_request.attempt_count + 1,
     updated_at = now()
-WHERE chat_request.status IN ('failed', 'cancelled')
+WHERE chat_request.status IN ('failed', 'canceled', 'cancelled')
 RETURNING id, uuid, chat_session_uuid, user_id, status, assistant_uuid, error_code, attempt_count, created_at, updated_at
 `
 
@@ -48,19 +48,28 @@ func (q *Queries) ClaimChatRequest(ctx context.Context, arg ClaimChatRequestPara
 }
 
 const completeChatRequestWithMessage = `-- name: CompleteChatRequestWithMessage :one
-WITH saved_message AS (
+WITH eligible_request AS (
+    SELECT id
+    FROM chat_request
+    WHERE chat_request.uuid = $1
+      AND chat_request.chat_session_uuid = $2
+      AND chat_request.user_id = $3
+      AND chat_request.status IN ('pending', 'streaming')
+    FOR UPDATE
+),
+saved_message AS (
     INSERT INTO chat_message (
         chat_session_uuid, uuid, role, content, reasoning_content, model,
         token_count, score, user_id, created_by, updated_by, llm_summary,
         raw, artifacts, suggested_questions
     )
-    VALUES (
-        $1, $2, 'assistant',
-        $3, $4, $5,
-        $6, $7, $8,
-        $9, $10, $11,
-        $12, $13, $14
-    )
+    SELECT
+        $2, $4, 'assistant',
+        $5, $6, $7,
+        $8, $9, $3,
+        $10, $11, $12,
+        $13, $14, $15
+    FROM eligible_request
     ON CONFLICT (chat_session_uuid, uuid) WHERE is_deleted = false DO UPDATE
     SET uuid = EXCLUDED.uuid
     RETURNING id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions
@@ -71,10 +80,10 @@ completed_request AS (
         assistant_uuid = (SELECT saved_message.uuid FROM saved_message),
         error_code = '',
         updated_at = now()
-    WHERE chat_request.uuid = $15
-      AND chat_request.chat_session_uuid = $1
-      AND chat_request.user_id = $8
-      AND chat_request.status IN ('pending', 'streaming')
+    WHERE chat_request.uuid = $1
+      AND chat_request.chat_session_uuid = $2
+      AND chat_request.user_id = $3
+      AND chat_request.id IN (SELECT id FROM eligible_request)
     RETURNING id
 )
 SELECT saved_message.id, saved_message.uuid, saved_message.chat_session_uuid, saved_message.role, saved_message.content, saved_message.reasoning_content, saved_message.model, saved_message.llm_summary, saved_message.score, saved_message.user_id, saved_message.created_at, saved_message.updated_at, saved_message.created_by, saved_message.updated_by, saved_message.is_deleted, saved_message.is_pin, saved_message.token_count, saved_message.raw, saved_message.artifacts, saved_message.suggested_questions
@@ -83,21 +92,21 @@ JOIN completed_request ON true
 `
 
 type CompleteChatRequestWithMessageParams struct {
+	RequestUuid        string          `json:"requestUuid"`
 	ChatSessionUuid    string          `json:"chatSessionUuid"`
+	UserID             int32           `json:"userId"`
 	MessageUuid        string          `json:"messageUuid"`
 	Content            string          `json:"content"`
 	ReasoningContent   string          `json:"reasoningContent"`
 	Model              string          `json:"model"`
 	TokenCount         int32           `json:"tokenCount"`
 	Score              float64         `json:"score"`
-	UserID             int32           `json:"userId"`
 	CreatedBy          int32           `json:"createdBy"`
 	UpdatedBy          int32           `json:"updatedBy"`
 	LlmSummary         string          `json:"llmSummary"`
 	Raw                json.RawMessage `json:"raw"`
 	Artifacts          json.RawMessage `json:"artifacts"`
 	SuggestedQuestions json.RawMessage `json:"suggestedQuestions"`
-	RequestUuid        string          `json:"requestUuid"`
 }
 
 type CompleteChatRequestWithMessageRow struct {
@@ -125,21 +134,21 @@ type CompleteChatRequestWithMessageRow struct {
 
 func (q *Queries) CompleteChatRequestWithMessage(ctx context.Context, arg CompleteChatRequestWithMessageParams) (CompleteChatRequestWithMessageRow, error) {
 	row := q.db.QueryRowContext(ctx, completeChatRequestWithMessage,
+		arg.RequestUuid,
 		arg.ChatSessionUuid,
+		arg.UserID,
 		arg.MessageUuid,
 		arg.Content,
 		arg.ReasoningContent,
 		arg.Model,
 		arg.TokenCount,
 		arg.Score,
-		arg.UserID,
 		arg.CreatedBy,
 		arg.UpdatedBy,
 		arg.LlmSummary,
 		arg.Raw,
 		arg.Artifacts,
 		arg.SuggestedQuestions,
-		arg.RequestUuid,
 	)
 	var i CompleteChatRequestWithMessageRow
 	err := row.Scan(
@@ -199,13 +208,42 @@ func (q *Queries) GetChatRequest(ctx context.Context, arg GetChatRequestParams) 
 	return i, err
 }
 
-const markChatRequestFailed = `-- name: MarkChatRequestFailed :exec
+const markChatRequestCanceled = `-- name: MarkChatRequestCanceled :execrows
+UPDATE chat_request
+SET status = 'canceled', error_code = $4, updated_at = now()
+WHERE uuid = $1
+  AND chat_session_uuid = $2
+  AND user_id = $3
+  AND status IN ('pending', 'streaming')
+`
+
+type MarkChatRequestCanceledParams struct {
+	Uuid            string `json:"uuid"`
+	ChatSessionUuid string `json:"chatSessionUuid"`
+	UserID          int32  `json:"userId"`
+	ErrorCode       string `json:"errorCode"`
+}
+
+func (q *Queries) MarkChatRequestCanceled(ctx context.Context, arg MarkChatRequestCanceledParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markChatRequestCanceled,
+		arg.Uuid,
+		arg.ChatSessionUuid,
+		arg.UserID,
+		arg.ErrorCode,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const markChatRequestFailed = `-- name: MarkChatRequestFailed :execrows
 UPDATE chat_request
 SET status = 'failed', error_code = $4, updated_at = now()
 WHERE uuid = $1
   AND chat_session_uuid = $2
   AND user_id = $3
-  AND status <> 'completed'
+  AND status IN ('pending', 'streaming')
 `
 
 type MarkChatRequestFailedParams struct {
@@ -215,17 +253,20 @@ type MarkChatRequestFailedParams struct {
 	ErrorCode       string `json:"errorCode"`
 }
 
-func (q *Queries) MarkChatRequestFailed(ctx context.Context, arg MarkChatRequestFailedParams) error {
-	_, err := q.db.ExecContext(ctx, markChatRequestFailed,
+func (q *Queries) MarkChatRequestFailed(ctx context.Context, arg MarkChatRequestFailedParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markChatRequestFailed,
 		arg.Uuid,
 		arg.ChatSessionUuid,
 		arg.UserID,
 		arg.ErrorCode,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
-const markChatRequestStreaming = `-- name: MarkChatRequestStreaming :exec
+const markChatRequestStreaming = `-- name: MarkChatRequestStreaming :execrows
 UPDATE chat_request
 SET status = 'streaming', updated_at = now()
 WHERE uuid = $1
@@ -240,7 +281,10 @@ type MarkChatRequestStreamingParams struct {
 	UserID          int32  `json:"userId"`
 }
 
-func (q *Queries) MarkChatRequestStreaming(ctx context.Context, arg MarkChatRequestStreamingParams) error {
-	_, err := q.db.ExecContext(ctx, markChatRequestStreaming, arg.Uuid, arg.ChatSessionUuid, arg.UserID)
-	return err
+func (q *Queries) MarkChatRequestStreaming(ctx context.Context, arg MarkChatRequestStreamingParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markChatRequestStreaming, arg.Uuid, arg.ChatSessionUuid, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

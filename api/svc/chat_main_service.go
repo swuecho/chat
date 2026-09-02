@@ -1,23 +1,16 @@
 package svc
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log/slog"
-	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	_ "embed"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
-	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chat_backend/domain"
-	"github.com/swuecho/chat_backend/llm/gemini"
 	models "github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/pkg/util"
 	"github.com/swuecho/chat_backend/provider"
@@ -30,6 +23,8 @@ type ChatService struct {
 	newID        func() string
 	openAIKey    string
 	openAIProxy  string
+	suggestions  SuggestionGenerator
+	audit        ChatAuditLogger
 }
 
 //go:embed artifact_instruction.txt
@@ -37,8 +32,12 @@ var artifactInstructionText string
 
 // NewChatService creates a new ChatService with database queries and OpenAI configuration.
 func NewChatService(q *sqlc_queries.Queries, openAIKey, openAIProxy string) *ChatService {
-	return &ChatService{q: q, modelCatalog: newLLMModelCatalog(q), newID: util.NewUUID, openAIKey: openAIKey, openAIProxy: openAIProxy}
+	return &ChatService{q: q, modelCatalog: newLLMModelCatalog(q), newID: util.NewUUID, openAIKey: openAIKey, openAIProxy: openAIProxy,
+		suggestions: NewLLMSuggestionGenerator(q, openAIKey, openAIProxy), audit: NewSQLChatAuditLogger(q)}
 }
+
+func (s *ChatService) SuggestionGenerator() SuggestionGenerator { return s.suggestions }
+func (s *ChatService) AuditLogger() ChatAuditLogger             { return s.audit }
 
 func (s *ChatService) ProviderModel(ctx context.Context, name string) (provider.ModelConfig, error) {
 	return s.modelCatalog.get(ctx, name)
@@ -62,9 +61,43 @@ func (s *ChatService) ProviderRequest(ctx context.Context, session ChatSession, 
 }
 
 func (s *ChatService) MarkChatRequestFailed(ctx context.Context, requestUUID, sessionUUID string, userID int32, code string) error {
-	return s.q.MarkChatRequestFailed(ctx, sqlc_queries.MarkChatRequestFailedParams{
+	rows, err := s.q.MarkChatRequestFailed(ctx, sqlc_queries.MarkChatRequestFailedParams{
 		Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID, ErrorCode: code,
 	})
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return transitionError(requestUUID, ChatRequestFailed)
+	}
+	return nil
+}
+
+func (s *ChatService) MarkChatRequestCanceled(ctx context.Context, requestUUID, sessionUUID string, userID int32, code string) error {
+	rows, err := s.q.MarkChatRequestCanceled(ctx, sqlc_queries.MarkChatRequestCanceledParams{Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID, ErrorCode: code})
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return transitionError(requestUUID, ChatRequestCanceled)
+	}
+	return nil
+}
+
+func (s *ChatService) Claim(ctx context.Context, requestUUID, sessionUUID string, userID int32) error {
+	return s.ClaimChatRequest(ctx, requestUUID, sessionUUID, userID)
+}
+func (s *ChatService) State(ctx context.Context, requestUUID, sessionUUID string, userID int32) (ChatRequestState, error) {
+	return s.GetChatRequest(ctx, requestUUID, sessionUUID, userID)
+}
+func (s *ChatService) StartStreaming(ctx context.Context, requestUUID, sessionUUID string, userID int32) error {
+	return s.MarkChatRequestStreaming(ctx, requestUUID, sessionUUID, userID)
+}
+func (s *ChatService) Fail(ctx context.Context, requestUUID, sessionUUID string, userID int32, code string) error {
+	return s.MarkChatRequestFailed(ctx, requestUUID, sessionUUID, userID, code)
+}
+func (s *ChatService) Cancel(ctx context.Context, requestUUID, sessionUUID string, userID int32, code string) error {
+	return s.MarkChatRequestCanceled(ctx, requestUUID, sessionUUID, userID, code)
 }
 
 func (s *ChatService) ClaimChatRequest(ctx context.Context, requestUUID, sessionUUID string, userID int32) error {
@@ -75,14 +108,15 @@ func (s *ChatService) ClaimChatRequest(ctx context.Context, requestUUID, session
 }
 
 type ChatRequestState struct {
-	UUID, SessionUUID, Status, AssistantUUID, ErrorCode string
+	UUID, SessionUUID, AssistantUUID, ErrorCode string
+	Status                                      ChatRequestStatus
 }
 
 func (s *ChatService) GetChatRequest(ctx context.Context, requestUUID, sessionUUID string, userID int32) (ChatRequestState, error) {
 	r, err := s.q.GetChatRequest(ctx, sqlc_queries.GetChatRequestParams{
 		Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID,
 	})
-	return ChatRequestState{UUID: r.Uuid, SessionUUID: r.ChatSessionUuid, Status: r.Status,
+	return ChatRequestState{UUID: r.Uuid, SessionUUID: r.ChatSessionUuid, Status: ChatRequestStatus(r.Status),
 		AssistantUUID: r.AssistantUuid, ErrorCode: r.ErrorCode}, err
 }
 
@@ -92,9 +126,16 @@ func (s *ChatService) GetChatMessageByUUID(ctx context.Context, uuid string, use
 }
 
 func (s *ChatService) MarkChatRequestStreaming(ctx context.Context, requestUUID, sessionUUID string, userID int32) error {
-	return s.q.MarkChatRequestStreaming(ctx, sqlc_queries.MarkChatRequestStreamingParams{
+	rows, err := s.q.MarkChatRequestStreaming(ctx, sqlc_queries.MarkChatRequestStreamingParams{
 		Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID,
 	})
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return transitionError(requestUUID, ChatRequestStreaming)
+	}
+	return nil
 }
 
 // loadArtifactInstruction loads the artifact instruction from file.
@@ -303,7 +344,7 @@ func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Cont
 	// Generate suggested questions if explore mode is enabled and role is assistant
 	suggestedQuestions := json.RawMessage([]byte("[]"))
 	if exploreMode && messages != nil {
-		questions := s.GenerateSuggestedQuestions(ctx, content, messages)
+		questions := s.suggestions.GenerateSuggestions(ctx, content, messages)
 		if questionsJSON, err := json.Marshal(questions); err == nil {
 			suggestedQuestions = questionsJSON
 		} else {
@@ -332,203 +373,6 @@ func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Cont
 		return ChatMessage{}, eris.Wrap(err, "failed to complete chat request ")
 	}
 	return chatMessageFromRecord(sqlc_queries.ChatMessage(message)), nil
-}
-
-// generateSuggestedQuestions generates follow-up questions based on the conversation context
-func (s *ChatService) GenerateSuggestedQuestions(ctx context.Context, content string, messages []models.Message) []string {
-	// Create a simplified prompt to generate follow-up questions
-	prompt := `Based on the following conversation, generate 3 thoughtful follow-up questions that would help explore the topic further. Return only the questions, one per line, without numbering or bullet points.
-
-Conversation context:
-`
-
-	// Add the last few messages for context (limit to avoid token overflow)
-	contextMessages := messages
-	if len(messages) > 6 {
-		contextMessages = messages[len(messages)-6:]
-	}
-
-	for _, msg := range contextMessages {
-		prompt += fmt.Sprintf("%s: %s\n", msg.Role, msg.Content)
-	}
-
-	prompt += fmt.Sprintf("assistant: %s\n\nGenerate 3 follow-up questions:", content)
-
-	// Use the preferred models (deepseek-chat or gemini-2.0-flash) to generate suggestions
-	questions := s.callLLMForSuggestions(ctx, prompt)
-
-	// Parse the response into individual questions
-	lines := strings.Split(strings.TrimSpace(questions), "\n")
-	var result []string
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" && len(result) < 3 {
-			// Clean up any numbering or bullet points that might remain
-			line = strings.TrimPrefix(line, "1. ")
-			line = strings.TrimPrefix(line, "2. ")
-			line = strings.TrimPrefix(line, "3. ")
-			line = strings.TrimPrefix(line, "- ")
-			line = strings.TrimPrefix(line, "• ")
-			result = append(result, line)
-		}
-	}
-
-	return result
-}
-
-// callLLMForSuggestions makes a simple API call to generate suggested questions
-func (s *ChatService) callLLMForSuggestions(ctx context.Context, prompt string) string {
-	// Get all models and find preferred models for suggestions
-	allModels, err := s.q.ListChatModels(ctx)
-	if err != nil {
-		slog.Warn("Failed to list models for suggestions", "error", err)
-		return ""
-	}
-
-	// Filter for enabled models and prioritize deepseek-chat or gemini-2.0-flash
-	var selectedModel sqlc_queries.ChatModel
-	var foundPreferred bool
-
-	// First pass: look for preferred models
-	for _, model := range allModels {
-		if !model.IsEnable {
-			continue
-		}
-		modelNameLower := strings.ToLower(model.Name)
-		if strings.Contains(modelNameLower, "deepseek-chat") || strings.Contains(modelNameLower, "gemini-2.0-flash") {
-			selectedModel = model
-			foundPreferred = true
-			break
-		}
-	}
-
-	// Second pass: fallback to any gemini or openai model if preferred not found
-	if !foundPreferred {
-		for _, model := range allModels {
-			if !model.IsEnable {
-				continue
-			}
-			apiType := strings.ToLower(model.ApiType)
-			modelName := strings.ToLower(model.Name)
-
-			// Prefer gemini models, then openai
-			if apiType == "gemini" || (apiType == "openai" && strings.Contains(modelName, "gpt")) {
-				selectedModel = model
-				break
-			}
-		}
-	}
-
-	if selectedModel.ID == 0 {
-		slog.Warn("No suitable models available for suggestions")
-		return ""
-	}
-
-	// Use different API calls based on model type
-	apiType := strings.ToLower(selectedModel.ApiType)
-	modelName := strings.ToLower(selectedModel.Name)
-
-	if apiType == "gemini" || strings.Contains(modelName, "gemini") {
-		return s.callGeminiForSuggestions(ctx, selectedModel, prompt)
-	} else if strings.Contains(modelName, "deepseek") || apiType == "openai" {
-		return s.callOpenAICompatibleForSuggestions(ctx, selectedModel, prompt)
-	}
-
-	slog.Warn("Unsupported model type for suggestions", "apiType", selectedModel.ApiType)
-	return ""
-}
-
-// callGeminiForSuggestions makes a Gemini API call for suggestions
-func (s *ChatService) callGeminiForSuggestions(ctx context.Context, model sqlc_queries.ChatModel, prompt string) string {
-	// Validate API key
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		slog.Warn("GEMINI_API_KEY environment variable not set")
-		return ""
-	}
-
-	// Create messages for Gemini
-	messages := []models.Message{
-		{
-			Role:    "user",
-			Content: prompt,
-		},
-	}
-
-	// Generate Gemini payload
-	payloadBytes, err := gemini.GenGemminPayload(messages, nil)
-	if err != nil {
-		slog.Warn("Failed to generate Gemini payload for suggestions", "error", err)
-		return ""
-	}
-
-	// Build URL
-	url := gemini.BuildAPIURL(model.Name, false)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		slog.Warn("Failed to create Gemini request for suggestions", "error", err)
-		return ""
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Make the API call with timeout
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	answer, err := gemini.HandleRegularResponse(http.Client{Timeout: 30 * time.Second}, req)
-	if err != nil {
-		slog.Warn("Failed to get Gemini response for suggestions", "error", err)
-		return ""
-	}
-
-	if answer == nil || answer.Answer == "" {
-		slog.Warn("Empty response from Gemini for suggestions")
-		return ""
-	}
-
-	return answer.Answer
-}
-
-// callOpenAICompatibleForSuggestions makes an OpenAI-compatible API call for suggestions (including deepseek)
-func (s *ChatService) callOpenAICompatibleForSuggestions(ctx context.Context, model sqlc_queries.ChatModel, prompt string) string {
-	// Generate OpenAI client configuration
-	config, err := provider.GenOpenAIConfig(providerModel(model), provider.Config{OpenAIKey: s.openAIKey, OpenAIProxy: s.openAIProxy})
-	if err != nil {
-		slog.Warn("Failed to generate OpenAI configuration for suggestions", "error", err)
-		return ""
-	}
-
-	client := openai.NewClientWithConfig(config)
-
-	// Create a simple chat completion request for generating suggestions
-	req := openai.ChatCompletionRequest{
-		Model:       model.Name,
-		Temperature: 0.7,
-		Messages: []openai.ChatCompletionMessage{
-			{
-				Role:    "user",
-				Content: prompt,
-			},
-		},
-		MaxTokens: 200, // Keep suggestions concise
-	}
-
-	// Make the API call with timeout
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	resp, err := client.CreateChatCompletion(ctx, req)
-	if err != nil {
-		slog.Warn("Failed to generate suggested questions", "model", model.Name, "error", err)
-		return ""
-	}
-
-	if len(resp.Choices) == 0 {
-		slog.Warn("No response choices for suggested questions", "model", model.Name)
-		return ""
-	}
-
-	return resp.Choices[0].Message.Content
 }
 
 // UpdateChatMessageContent updates the content of an existing chat message.
@@ -565,31 +409,4 @@ func (s *ChatService) UpdateChatMessageSuggestions(ctx context.Context, uuid str
 		UserID:             userID,
 	})
 	return err
-}
-
-// logChat creates a chat log entry for analytics and debugging.
-// Logs the session, messages, and LLM response for audit purposes.
-func (s *ChatService) LogChat(ctx context.Context, chatSession ChatSession, msgs []models.Message, answerText string) {
-	// log chat
-	sessionRaw := chatSession.ToRawMessage()
-	if sessionRaw == nil {
-		slog.Info("failed to marshal chat session")
-		return
-	}
-	question, err := json.Marshal(msgs)
-	if err != nil {
-		slog.Warn("Failed to marshal chat messages", "error", err)
-		return // Skip logging if marshalling fails
-	}
-	answerRaw, err := json.Marshal(answerText)
-	if err != nil {
-		slog.Warn("Failed to marshal answer", "error", err)
-		return // Skip logging if marshalling fails
-	}
-
-	s.q.CreateChatLog(ctx, sqlc_queries.CreateChatLogParams{
-		Session:  *sessionRaw,
-		Question: question,
-		Answer:   answerRaw,
-	})
 }

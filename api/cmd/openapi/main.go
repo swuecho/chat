@@ -27,7 +27,7 @@ func main() {
 	handler.NewUserActiveChatSessionHandler(nil, nil).Register(router, registry)
 	handler.NewChatWorkspaceHandler(nil).Register(router, registry)
 	handler.NewChatCommentHandler(nil).Register(router, registry)
-	handler.NewChatHandler(nil, nil, nil, nil, nil, nil, nil, nil, "", "").Register(router, registry)
+	handler.NewChatHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil, "", "").Register(router, registry)
 	handler.NewBotAnswerHistoryHandler(nil).Register(router, registry)
 	handler.NewChatFileHandler(nil).Register(router, registry)
 	handler.NewChatModelHandler(nil).Register(router, registry)

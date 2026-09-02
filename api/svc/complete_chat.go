@@ -24,15 +24,17 @@ type CompleteChatResult struct {
 
 type CompleteChatUseCase struct {
 	chat         *ChatService
+	lifecycle    ChatRequestLifecycle
 	sessions     *ChatSessionService
 	conversation *SessionConversationService
 	models       ModelSelector
 	chunks       AnswerChunkSink
 	logPolicy    ChatLogPolicy
+	audit        ChatAuditLogger
 }
 
-func NewCompleteChatUseCase(chat *ChatService, sessions *ChatSessionService, conversation *SessionConversationService, models ModelSelector, chunks AnswerChunkSink, logPolicy ChatLogPolicy) *CompleteChatUseCase {
-	return &CompleteChatUseCase{chat: chat, sessions: sessions, conversation: conversation, models: models, chunks: chunks, logPolicy: logPolicy}
+func NewCompleteChatUseCase(chat *ChatService, sessions *ChatSessionService, conversation *SessionConversationService, models ModelSelector, chunks AnswerChunkSink, logPolicy ChatLogPolicy, audit ChatAuditLogger) *CompleteChatUseCase {
+	return &CompleteChatUseCase{chat: chat, lifecycle: chat, sessions: sessions, conversation: conversation, models: models, chunks: chunks, logPolicy: logPolicy, audit: audit}
 }
 
 func (u *CompleteChatUseCase) Execute(ctx context.Context, command CompleteChatCommand) (CompleteChatResult, error) {
@@ -46,15 +48,15 @@ func (u *CompleteChatUseCase) Execute(ctx context.Context, command CompleteChatC
 	}
 	baseURL, _ := provider.GetModelBaseURL(model.URL)
 
-	if err := u.chat.ClaimChatRequest(ctx, command.RequestUUID, session.UUID, command.UserID); err != nil {
+	if err := u.lifecycle.Claim(ctx, command.RequestUUID, session.UUID, command.UserID); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return CompleteChatResult{}, err
 		}
-		request, reconcileErr := u.chat.GetChatRequest(ctx, command.RequestUUID, session.UUID, command.UserID)
+		request, reconcileErr := u.lifecycle.State(ctx, command.RequestUUID, session.UUID, command.UserID)
 		if reconcileErr != nil {
 			return CompleteChatResult{}, reconcileErr
 		}
-		if request.Status != "completed" || request.AssistantUUID == "" {
+		if request.Status != ChatRequestCompleted || request.AssistantUUID == "" {
 			return CompleteChatResult{Session: session, InProgress: true}, nil
 		}
 		message, loadErr := u.chat.GetChatMessageByUUID(ctx, request.AssistantUUID, command.UserID)
@@ -66,18 +68,18 @@ func (u *CompleteChatUseCase) Execute(ctx context.Context, command CompleteChatC
 
 	hasPrompt, err := u.conversation.HasSystemPrompt(ctx, session.UUID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		_ = u.chat.MarkChatRequestFailed(ctx, command.RequestUUID, session.UUID, command.UserID, "prompt_persistence_failed")
+		_ = u.lifecycle.Fail(ctx, command.RequestUUID, session.UUID, command.UserID, "prompt_persistence_failed")
 		return CompleteChatResult{}, err
 	}
 	if !hasPrompt {
 		if _, err := u.chat.CreateChatPromptSimple(ctx, session.UUID, defaultSystemPromptText, command.UserID); err != nil {
-			_ = u.chat.MarkChatRequestFailed(ctx, command.RequestUUID, session.UUID, command.UserID, "prompt_persistence_failed")
+			_ = u.lifecycle.Fail(ctx, command.RequestUUID, session.UUID, command.UserID, "prompt_persistence_failed")
 			return CompleteChatResult{}, err
 		}
 	}
 	if command.Prompt != "" {
 		if _, err := u.chat.CreateChatMessageSimple(ctx, session.UUID, command.RequestUUID, "user", command.Prompt, "", session.Model, command.UserID, baseURL, session.SummarizeMode); err != nil {
-			_ = u.chat.MarkChatRequestFailed(ctx, command.RequestUUID, session.UUID, command.UserID, "prompt_persistence_failed")
+			_ = u.lifecycle.Fail(ctx, command.RequestUUID, session.UUID, command.UserID, "prompt_persistence_failed")
 			return CompleteChatResult{}, err
 		}
 		if !hasPrompt {
@@ -90,7 +92,7 @@ func (u *CompleteChatUseCase) Execute(ctx context.Context, command CompleteChatC
 			}
 		}
 	}
-	answer, err := NewGenerateAnswerUseCase(u.chat, u.models, u.chunks, u.logPolicy).Execute(ctx, GenerateAnswerCommand{Session: session, RequestUUID: command.RequestUUID, UserID: command.UserID, BaseURL: baseURL, Stream: command.Stream})
+	answer, err := NewGenerateAnswerUseCase(u.chat, u.models, u.chunks, u.logPolicy, u.audit).Execute(ctx, GenerateAnswerCommand{Session: session, RequestUUID: command.RequestUUID, UserID: command.UserID, BaseURL: baseURL, Stream: command.Stream})
 	if err != nil {
 		return CompleteChatResult{}, err
 	}

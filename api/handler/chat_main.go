@@ -23,6 +23,7 @@ type ChatHandler struct {
 	snapshotSvc     *svc.SessionSnapshotQueryService
 	modelSvc        *svc.SessionModelService
 	botHistorySvc   *svc.SessionBotHistoryService
+	useCases        *svc.ChatUseCaseFactory
 	rateLimiter     *rate.Limiter
 	openAIKey       string
 	openAIProxy     string
@@ -31,7 +32,7 @@ type ChatHandler struct {
 const sessionTitleGenerationTimeout = 30 * time.Second
 
 // NewChatHandler creates a new ChatHandler.
-func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService, conversationSvc *svc.SessionConversationService, rateLimitSvc *svc.SessionRateLimitService, snapshotSvc *svc.SessionSnapshotQueryService, modelSvc *svc.SessionModelService, botHistorySvc *svc.SessionBotHistoryService, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
+func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService, conversationSvc *svc.SessionConversationService, rateLimitSvc *svc.SessionRateLimitService, snapshotSvc *svc.SessionSnapshotQueryService, modelSvc *svc.SessionModelService, botHistorySvc *svc.SessionBotHistoryService, useCases *svc.ChatUseCaseFactory, rateLimiter *rate.Limiter, openAIKey, openAIProxy string) *ChatHandler {
 	return &ChatHandler{
 		service:         service,
 		sessionSvc:      sessionSvc,
@@ -40,6 +41,7 @@ func NewChatHandler(service *svc.ChatService, sessionSvc *svc.ChatSessionService
 		snapshotSvc:     snapshotSvc,
 		modelSvc:        modelSvc,
 		botHistorySvc:   botHistorySvc,
+		useCases:        useCases,
 		rateLimiter:     rateLimiter,
 		openAIKey:       openAIKey,
 		openAIProxy:     openAIProxy,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 
 	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
@@ -28,16 +29,17 @@ type GenerateBotAnswerUseCase struct {
 	chunks    AnswerChunkSink
 	logPolicy ChatLogPolicy
 	history   BotAnswerHistoryWriter
+	audit     ChatAuditLogger
 }
 
-func NewGenerateBotAnswerUseCase(chat *ChatService, models ModelSelector, chunks AnswerChunkSink, logPolicy ChatLogPolicy, history BotAnswerHistoryWriter) *GenerateBotAnswerUseCase {
+func NewGenerateBotAnswerUseCase(chat *ChatService, models ModelSelector, chunks AnswerChunkSink, logPolicy ChatLogPolicy, history BotAnswerHistoryWriter, audit ChatAuditLogger) *GenerateBotAnswerUseCase {
 	if chunks == nil {
 		chunks = discardAnswerChunks{}
 	}
 	if logPolicy == nil {
 		logPolicy = allowChatLogs{}
 	}
-	return &GenerateBotAnswerUseCase{chat: chat, models: models, chunks: chunks, logPolicy: logPolicy, history: history}
+	return &GenerateBotAnswerUseCase{chat: chat, models: models, chunks: chunks, logPolicy: logPolicy, history: history, audit: audit}
 }
 
 func (u *GenerateBotAnswerUseCase) Execute(ctx context.Context, command GenerateBotAnswerCommand) (models.LLMAnswer, error) {
@@ -66,8 +68,10 @@ func (u *GenerateBotAnswerUseCase) Execute(ctx context.Context, command Generate
 		Prompt: command.Question, Answer: answer.Answer, Model: command.Session.Model, TokensUsed: int32(len(answer.Answer)) / tokenEstimateRatio}); err != nil {
 		return models.LLMAnswer{}, err
 	}
-	if u.logPolicy.ShouldLogChat(messages) {
-		u.chat.LogChat(ctx, command.Session, messages, answer.Answer)
+	if u.logPolicy.ShouldLogChat(messages) && u.audit != nil {
+		if err := u.audit.LogChat(ctx, command.Session, messages, answer.Answer); err != nil {
+			slog.Warn("failed to persist bot chat audit log", "error", err)
+		}
 	}
 	return *answer, nil
 }
@@ -85,21 +89,23 @@ type RegenerateAnswerResult struct {
 }
 
 type RegenerateAnswerUseCase struct {
-	chat      *ChatService
-	sessions  *ChatSessionService
-	models    ModelSelector
-	chunks    AnswerChunkSink
-	logPolicy ChatLogPolicy
+	chat        *ChatService
+	sessions    *ChatSessionService
+	models      ModelSelector
+	chunks      AnswerChunkSink
+	logPolicy   ChatLogPolicy
+	suggestions SuggestionGenerator
+	audit       ChatAuditLogger
 }
 
-func NewRegenerateAnswerUseCase(chat *ChatService, sessions *ChatSessionService, models ModelSelector, chunks AnswerChunkSink, logPolicy ChatLogPolicy) *RegenerateAnswerUseCase {
+func NewRegenerateAnswerUseCase(chat *ChatService, sessions *ChatSessionService, models ModelSelector, chunks AnswerChunkSink, logPolicy ChatLogPolicy, suggestions SuggestionGenerator, audit ChatAuditLogger) *RegenerateAnswerUseCase {
 	if chunks == nil {
 		chunks = discardAnswerChunks{}
 	}
 	if logPolicy == nil {
 		logPolicy = allowChatLogs{}
 	}
-	return &RegenerateAnswerUseCase{chat: chat, sessions: sessions, models: models, chunks: chunks, logPolicy: logPolicy}
+	return &RegenerateAnswerUseCase{chat: chat, sessions: sessions, models: models, chunks: chunks, logPolicy: logPolicy, suggestions: suggestions, audit: audit}
 }
 
 func (u *RegenerateAnswerUseCase) Execute(ctx context.Context, command RegenerateAnswerCommand) (RegenerateAnswerResult, error) {
@@ -134,12 +140,14 @@ func (u *RegenerateAnswerUseCase) Execute(ctx context.Context, command Regenerat
 	if err := u.chat.UpdateChatMessageContent(ctx, command.MessageUUID, command.UserID, answer.Answer); err != nil {
 		return RegenerateAnswerResult{}, err
 	}
-	if u.logPolicy.ShouldLogChat(messages) {
-		u.chat.LogChat(ctx, session, messages, answer.Answer)
+	if u.logPolicy.ShouldLogChat(messages) && u.audit != nil {
+		if err := u.audit.LogChat(ctx, session, messages, answer.Answer); err != nil {
+			slog.Warn("failed to persist regenerated chat audit log", "error", err)
+		}
 	}
 	var suggested json.RawMessage
 	if session.ExploreMode {
-		questions := u.chat.GenerateSuggestedQuestions(ctx, answer.Answer, messages)
+		questions := u.suggestions.GenerateSuggestions(ctx, answer.Answer, messages)
 		if len(questions) > 0 {
 			suggested, err = json.Marshal(questions)
 			if err != nil {

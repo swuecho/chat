@@ -20,15 +20,15 @@ type ChatMessageHandler struct {
 	service         *svc.ChatMessageService
 	sessionSvc      *svc.ChatSessionService
 	conversationSvc *svc.SessionConversationService
-	chatService     *svc.ChatService
+	suggestions     svc.SuggestionGenerator
 }
 
-func NewChatMessageHandler(service *svc.ChatMessageService, sessionSvc *svc.ChatSessionService, conversationSvc *svc.SessionConversationService, chatService *svc.ChatService) *ChatMessageHandler {
+func NewChatMessageHandler(service *svc.ChatMessageService, sessionSvc *svc.ChatSessionService, conversationSvc *svc.SessionConversationService, suggestions svc.SuggestionGenerator) *ChatMessageHandler {
 	return &ChatMessageHandler{
 		service:         service,
 		sessionSvc:      sessionSvc,
 		conversationSvc: conversationSvc,
-		chatService:     chatService,
+		suggestions:     suggestions,
 	}
 }
 
@@ -304,7 +304,7 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(r *http.Request, _ apicontr
 		})
 	}
 
-	newSuggestions := h.chatService.GenerateSuggestedQuestions(r.Context(), message.Content, msgs)
+	newSuggestions := h.suggestions.GenerateSuggestions(r.Context(), message.Content, msgs)
 	if len(newSuggestions) == 0 {
 		return suggestionsHTTPResponse{}, dto.CreateAPIError(dto.ErrInternalUnexpected, "Failed to generate suggestions", "no suggestions returned")
 	}

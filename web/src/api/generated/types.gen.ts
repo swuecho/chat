@@ -755,10 +755,10 @@ export type GetApiKeyUsageResponses = {
      */
     200: Array<{
         requestedModel: string;
-        requestCount: number;
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
+        RequestCount: number;
+        PromptTokens: number;
+        CompletionTokens: number;
+        TotalTokens: number;
     }>;
 };
 

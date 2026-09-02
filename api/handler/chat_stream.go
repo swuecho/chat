@@ -138,7 +138,7 @@ func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessi
 		events = provider.NewAnswerEventWriter(w)
 		chunks = answerEventChunkSink{events: events}
 	}
-	useCase := svc.NewCompleteChatUseCase(h.service, h.sessionSvc, h.conversationSvc, h, chunks, h)
+	useCase := h.useCases.Complete(h, chunks, h)
 	result, err := useCase.Execute(ctx, svc.CompleteChatCommand{SessionUUID: sessionUuid, RequestUUID: chatUuid, Prompt: question, UserID: userID, Stream: streamOutput})
 	if err != nil {
 		slog.Error("error completing chat", "error", err)
@@ -197,7 +197,7 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 		events = provider.NewAnswerEventWriter(w)
 		chunks = answerEventChunkSink{events: events}
 	}
-	useCase := svc.NewGenerateBotAnswerUseCase(h.service, h, chunks, h, h.botHistorySvc)
+	useCase := h.useCases.Bot(h, chunks, h)
 	answer, err := useCase.Execute(ctx, svc.GenerateBotAnswerCommand{Session: session, Messages: msgs,
 		SnapshotUUID: snapshotUuid, Question: question, UserID: userID, Stream: streamOutput})
 	if err != nil {
@@ -232,7 +232,7 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		events = provider.NewAnswerEventWriter(w)
 		chunks = answerEventChunkSink{events: events}
 	}
-	useCase := svc.NewRegenerateAnswerUseCase(h.service, h.sessionSvc, h, chunks, h)
+	useCase := h.useCases.Regenerate(h, chunks, h)
 	result, err := useCase.Execute(ctx, svc.RegenerateAnswerCommand{SessionUUID: sessionUuid, MessageUUID: chatUuid, UserID: userID, Stream: stream})
 	if err != nil {
 		slog.Error("error regenerating answer", "error", err)
