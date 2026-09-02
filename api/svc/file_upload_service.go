@@ -15,6 +15,10 @@ type ChatFileService struct {
 	q *sqlc_queries.Queries
 }
 
+type ChatFile sqlc_queries.ChatFile
+type ChatFileDetail sqlc_queries.GetChatFileByIDRow
+type ChatFileSummary sqlc_queries.ListChatFilesBySessionUUIDRow
+
 // NewChatFileService creates a new ChatFileService instance
 func NewChatFileService(q *sqlc_queries.Queries) *ChatFileService {
 	return &ChatFileService{q: q}
@@ -31,36 +35,36 @@ type CreateChatFileInput struct {
 }
 
 // CreateChatUpload handles creating a new chat file upload
-func (s *ChatFileService) CreateChatUpload(ctx context.Context, input CreateChatFileInput) (sqlc_queries.ChatFile, error) {
+func (s *ChatFileService) CreateChatUpload(ctx context.Context, input CreateChatFileInput) (ChatFile, error) {
 	// Validate input
 	if input.ChatSessionUuid == "" {
-		return sqlc_queries.ChatFile{}, domain.Invalid("missing session UUID")
+		return ChatFile{}, domain.Invalid("missing session UUID")
 	}
 	if input.UserID <= 0 {
-		return sqlc_queries.ChatFile{}, domain.Invalid("invalid user ID")
+		return ChatFile{}, domain.Invalid("invalid user ID")
 	}
 	if input.Name == "" {
-		return sqlc_queries.ChatFile{}, domain.Invalid("missing file name")
+		return ChatFile{}, domain.Invalid("missing file name")
 	}
 	if len(input.Data) == 0 {
-		return sqlc_queries.ChatFile{}, domain.Invalid("empty file data")
+		return ChatFile{}, domain.Invalid("empty file data")
 	}
 
 	slog.Info("Creating chat file upload", "session", input.ChatSessionUuid, "userID", input.UserID)
 
 	upload, err := s.q.CreateChatFile(ctx, sqlc_queries.CreateChatFileParams(input))
 	if err != nil {
-		return sqlc_queries.ChatFile{}, domain.Internal("failed to create chat file", err)
+		return ChatFile{}, domain.Internal("failed to create chat file", err)
 	}
 
 	slog.Info("Created chat file upload", "id", upload.ID)
-	return upload, nil
+	return ChatFile(upload), nil
 }
 
 // GetChatFile retrieves a chat file by ID
-func (s *ChatFileService) GetChatFile(ctx context.Context, id int32) (sqlc_queries.GetChatFileByIDRow, error) {
+func (s *ChatFileService) GetChatFile(ctx context.Context, id int32) (ChatFileDetail, error) {
 	if id <= 0 {
-		return sqlc_queries.GetChatFileByIDRow{}, domain.Invalid("invalid file ID")
+		return ChatFileDetail{}, domain.Invalid("invalid file ID")
 	}
 
 	slog.Info("Retrieving chat file", "id", id)
@@ -68,12 +72,12 @@ func (s *ChatFileService) GetChatFile(ctx context.Context, id int32) (sqlc_queri
 	file, err := s.q.GetChatFileByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return sqlc_queries.GetChatFileByIDRow{}, domain.NotFound("Chat file", err)
+			return ChatFileDetail{}, domain.NotFound("Chat file", err)
 		}
-		return sqlc_queries.GetChatFileByIDRow{}, domain.Internal("failed to get chat file", err)
+		return ChatFileDetail{}, domain.Internal("failed to get chat file", err)
 	}
 
-	return file, nil
+	return ChatFileDetail(file), nil
 }
 
 // DeleteChatFile deletes a chat file by ID
@@ -93,7 +97,7 @@ func (s *ChatFileService) DeleteChatFile(ctx context.Context, id int32) error {
 }
 
 // ListChatFilesBySession retrieves chat files for a session
-func (s *ChatFileService) ListChatFilesBySession(ctx context.Context, sessionUUID string, userID int32) ([]sqlc_queries.ListChatFilesBySessionUUIDRow, error) {
+func (s *ChatFileService) ListChatFilesBySession(ctx context.Context, sessionUUID string, userID int32) ([]ChatFileSummary, error) {
 	if sessionUUID == "" {
 		return nil, domain.Invalid("missing session UUID")
 	}
@@ -111,5 +115,9 @@ func (s *ChatFileService) ListChatFilesBySession(ctx context.Context, sessionUUI
 		return nil, domain.Internal("failed to list chat files", err)
 	}
 
-	return files, nil
+	result := make([]ChatFileSummary, len(files))
+	for i, file := range files {
+		result[i] = ChatFileSummary(file)
+	}
+	return result, nil
 }

@@ -19,12 +19,48 @@ type GenerateAnswerCommand struct {
 	Stream      bool
 }
 
-// GenerateAnswerDependencies are request-scoped capabilities supplied by the
-// transport composition root. They keep HTTP details out of the use case.
-type GenerateAnswerDependencies struct {
-	SelectModel func([]models.Message) provider.ChatModel
-	OnChunk     func(provider.StreamChunk) error
-	ShouldLog   func([]models.Message) bool
+// ModelSelector resolves the provider implementation for an application
+// request. Implementations may enforce access and rate-limit policy.
+type ModelSelector interface {
+	SelectModel(context.Context, ChatSession, []models.Message) (provider.ChatModel, error)
+}
+
+// AnswerChunkSink receives provider chunks without coupling the application
+// workflow to HTTP or SSE.
+type AnswerChunkSink interface {
+	WriteAnswerChunk(context.Context, provider.StreamChunk) error
+}
+
+// ChatLogPolicy decides whether a conversation should be written to the audit
+// log (for example, demo/test conversations are excluded).
+type ChatLogPolicy interface {
+	ShouldLogChat([]models.Message) bool
+}
+
+type discardAnswerChunks struct{}
+
+func (discardAnswerChunks) WriteAnswerChunk(context.Context, provider.StreamChunk) error { return nil }
+
+type allowChatLogs struct{}
+
+func (allowChatLogs) ShouldLogChat([]models.Message) bool { return true }
+
+// GenerateAnswerUseCase owns the provider-to-persistence lifecycle.
+type GenerateAnswerUseCase struct {
+	chat      *ChatService
+	models    ModelSelector
+	chunks    AnswerChunkSink
+	logPolicy ChatLogPolicy
+}
+
+func NewGenerateAnswerUseCase(chat *ChatService, models ModelSelector, chunks AnswerChunkSink, logPolicy ChatLogPolicy) *GenerateAnswerUseCase {
+	if chunks == nil {
+		chunks = discardAnswerChunks{}
+	}
+	if logPolicy == nil {
+		logPolicy = allowChatLogs{}
+	}
+	return &GenerateAnswerUseCase{chat: chat, models: models, chunks: chunks, logPolicy: logPolicy}
 }
 
 type GenerateAnswerResult struct {
@@ -47,30 +83,36 @@ func generationError(code string, err error) error {
 
 // GenerateAnswer owns the provider-to-persistence lifecycle. Successful return
 // guarantees that the final answer has been durably stored.
-func (s *ChatService) GenerateAnswer(ctx context.Context, command GenerateAnswerCommand, deps GenerateAnswerDependencies) (GenerateAnswerResult, error) {
+func (u *GenerateAnswerUseCase) Execute(ctx context.Context, command GenerateAnswerCommand) (GenerateAnswerResult, error) {
 	fail := func(code string, err error) (GenerateAnswerResult, error) {
 		failureCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
-		_ = s.MarkChatRequestFailed(failureCtx, command.RequestUUID, command.Session.UUID, command.UserID, code)
+		_ = u.chat.MarkChatRequestFailed(failureCtx, command.RequestUUID, command.Session.UUID, command.UserID, code)
 		return GenerateAnswerResult{}, generationError(code, err)
 	}
 
-	if deps.SelectModel == nil {
+	if u.models == nil {
 		return fail("provider_selection_failed", errors.New("model selector is required"))
 	}
-	messages, err := s.GetAskMessages(ctx, command.Session, command.RequestUUID, false)
+	messages, err := u.chat.GetAskMessages(ctx, command.Session, command.RequestUUID, false)
 	if err != nil {
 		return fail("message_collection_failed", err)
 	}
-	if err := s.MarkChatRequestStreaming(ctx, command.RequestUUID, command.Session.UUID, command.UserID); err != nil {
+	if err := u.chat.MarkChatRequestStreaming(ctx, command.RequestUUID, command.Session.UUID, command.UserID); err != nil {
 		return fail("request_state_failed", err)
 	}
 
-	request, err := s.ProviderRequest(ctx, command.Session, messages, command.RequestUUID, false, command.Stream)
+	request, err := u.chat.ProviderRequest(ctx, command.Session, messages, command.RequestUUID, false, command.Stream)
 	if err != nil {
 		return fail("provider_request_failed", err)
 	}
-	answer, err := provider.ConsumeStream(ctx, deps.SelectModel(messages), request, deps.OnChunk)
+	model, err := u.models.SelectModel(ctx, command.Session, messages)
+	if err != nil {
+		return fail("provider_selection_failed", err)
+	}
+	answer, err := provider.ConsumeStream(ctx, model, request, func(chunk provider.StreamChunk) error {
+		return u.chunks.WriteAnswerChunk(ctx, chunk)
+	})
 	if err != nil {
 		code := "generation_failed"
 		if errors.Is(err, context.Canceled) {
@@ -84,10 +126,10 @@ func (s *ChatService) GenerateAnswer(ctx context.Context, command GenerateAnswer
 		return fail("empty_answer", errors.New("provider returned no final answer"))
 	}
 
-	if deps.ShouldLog == nil || deps.ShouldLog(messages) {
-		s.LogChat(ctx, command.Session, messages, answer.ReasoningContent+answer.Answer)
+	if u.logPolicy.ShouldLogChat(messages) {
+		u.chat.LogChat(ctx, command.Session, messages, answer.ReasoningContent+answer.Answer)
 	}
-	message, err := s.CompleteChatRequestWithSuggestedQuestions(ctx, command.RequestUUID, command.Session.UUID, answer.AnswerId, answer.Answer, answer.ReasoningContent, command.Session.Model, command.UserID, command.BaseURL, command.Session.SummarizeMode, command.Session.ExploreMode, messages)
+	message, err := u.chat.CompleteChatRequestWithSuggestedQuestions(ctx, command.RequestUUID, command.Session.UUID, answer.AnswerId, answer.Answer, answer.ReasoningContent, command.Session.Model, command.UserID, command.BaseURL, command.Session.SummarizeMode, command.Session.ExploreMode, messages)
 	if err != nil {
 		return fail("persistence_failed", err)
 	}

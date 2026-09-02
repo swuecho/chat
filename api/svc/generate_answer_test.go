@@ -14,6 +14,23 @@ type generateAnswerModel struct {
 	chunks []provider.StreamChunk
 }
 
+type generateAnswerModelSelector struct{ model provider.ChatModel }
+
+func (s generateAnswerModelSelector) SelectModel(context.Context, ChatSession, []models.Message) (provider.ChatModel, error) {
+	return s.model, nil
+}
+
+type generateAnswerChunkSink struct{ delivered *string }
+
+func (s generateAnswerChunkSink) WriteAnswerChunk(_ context.Context, chunk provider.StreamChunk) error {
+	*s.delivered += chunk.Content
+	return nil
+}
+
+type noChatLogs struct{}
+
+func (noChatLogs) ShouldLogChat([]models.Message) bool { return false }
+
 func (m generateAnswerModel) Stream(ctx context.Context, _ provider.Request) (<-chan provider.StreamChunk, error) {
 	ch := make(chan provider.StreamChunk, len(m.chunks))
 	go func() {
@@ -76,18 +93,13 @@ func TestGenerateAnswerPersistsBeforeReturningSuccess(t *testing.T) {
 
 	service := NewChatService(q, "", "")
 	var delivered string
-	result, err := service.GenerateAnswer(ctx, GenerateAnswerCommand{
+	useCase := NewGenerateAnswerUseCase(service, generateAnswerModelSelector{model: generateAnswerModel{chunks: []provider.StreamChunk{
+		{ID: "generate-answer-response", Content: "durable "},
+		{ID: "generate-answer-response", Content: "answer"},
+		{Done: true, FinalAnswer: &models.LLMAnswer{AnswerId: "generate-answer-response", Answer: "durable answer"}},
+	}}}, generateAnswerChunkSink{delivered: &delivered}, noChatLogs{})
+	result, err := useCase.Execute(ctx, GenerateAnswerCommand{
 		Session: chatSessionFromRecord(sessionRecord), RequestUUID: "generate-answer-request", UserID: user.ID,
-	}, GenerateAnswerDependencies{
-		SelectModel: func([]models.Message) provider.ChatModel {
-			return generateAnswerModel{chunks: []provider.StreamChunk{
-				{ID: "generate-answer-response", Content: "durable "},
-				{ID: "generate-answer-response", Content: "answer"},
-				{Done: true, FinalAnswer: &models.LLMAnswer{AnswerId: "generate-answer-response", Answer: "durable answer"}},
-			}}
-		},
-		OnChunk:   func(chunk provider.StreamChunk) error { delivered += chunk.Content; return nil },
-		ShouldLog: func([]models.Message) bool { return false },
 	})
 	if err != nil {
 		t.Fatal(err)

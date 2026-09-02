@@ -23,6 +23,8 @@ type ChatModelPrivilege struct {
 	RateLimit     int32  `json:"rateLimit"`
 }
 
+type UserChatModelPrivilege sqlc_queries.UserChatModelPrivilege
+
 func (s *ChatModelPrivilegeService) List(ctx context.Context) ([]ChatModelPrivilege, error) {
 	rows, err := s.q.ListUserChatModelPrivilegesRateLimit(ctx)
 	if err != nil {
@@ -71,6 +73,11 @@ func (s *ChatModelPrivilegeService) Delete(ctx context.Context, id int32) error 
 	return s.q.DeleteUserChatModelPrivilege(ctx, id)
 }
 
-func (s *ChatModelPrivilegeService) ListByUserID(ctx context.Context, userID int32) ([]sqlc_queries.UserChatModelPrivilege, error) {
-	return s.q.ListUserChatModelPrivilegesByUserID(ctx, userID)
+func (s *ChatModelPrivilegeService) ListByUserID(ctx context.Context, userID int32) ([]UserChatModelPrivilege, error) {
+	rows, err := s.q.ListUserChatModelPrivilegesByUserID(ctx, userID)
+	result := make([]UserChatModelPrivilege, len(rows))
+	for i, row := range rows {
+		result[i] = UserChatModelPrivilege(row)
+	}
+	return result, err
 }

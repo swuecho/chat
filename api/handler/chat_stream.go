@@ -129,45 +129,77 @@ func (h *ChatHandler) ChatCompletionHandler(w http.ResponseWriter, r *http.Reque
 
 // genAnswer orchestrates the full chat completion flow.
 func genAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessionUuid, chatUuid, question string, userID int32, streamOutput bool) {
-	chatSession, _, baseURL, ok := h.validateChatSession(ctx, w, sessionUuid, userID)
-	if !ok {
+	var events *provider.AnswerEventWriter
+	var chunks svc.AnswerChunkSink
+	if streamOutput {
+		if _, err := setupSSEStream(w); err != nil {
+			return
+		}
+		events = provider.NewAnswerEventWriter(w)
+		chunks = answerEventChunkSink{events: events}
+	}
+	useCase := svc.NewCompleteChatUseCase(h.service, h.sessionSvc, h.conversationSvc, h, chunks, h)
+	result, err := useCase.Execute(ctx, svc.CompleteChatCommand{SessionUUID: sessionUuid, RequestUUID: chatUuid, Prompt: question, UserID: userID, Stream: streamOutput})
+	if err != nil {
+		slog.Error("error completing chat", "error", err)
+		if streamOutput {
+			_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventFailed, Code: generationErrorCode(err), Message: "Failed to generate answer"})
+			return
+		}
+		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
 		return
 	}
-	slog.Info("Processing chat session", "sessionUUID", chatSession.UUID, "userID", userID, "model", chatSession.Model)
-
-	if !h.claimOrReplayChatRequest(ctx, w, *chatSession, chatUuid, userID, streamOutput) {
+	if result.InProgress {
+		if streamOutput {
+			_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventFailed, Code: "request_in_progress", Message: "This request is already being processed"})
+		} else {
+			dto.RespondWithAPIError(w, dto.ErrValidationInvalidInput("This request is already being processed"))
+		}
 		return
 	}
-
-	if !h.handlePromptCreation(ctx, w, chatSession, chatUuid, question, userID, baseURL) {
-		h.failChatRequest(chatSession.UUID, chatUuid, userID, "prompt_persistence_failed")
+	answerID, content := result.Answer.Answer.AnswerId, result.Answer.Answer.Answer
+	if result.Replay != nil {
+		answerID, content = result.Replay.UUID, result.Replay.Content
+		if streamOutput {
+			_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventDelta, AnswerID: answerID, Delta: content})
+		}
+	}
+	if !streamOutput {
+		_ = json.NewEncoder(w).Encode(ChatCompletionResponse{ID: answerID, Object: "chat.completion", Choices: []Choice{{Message: openai.ChatCompletionMessage{Content: content}}}})
 		return
 	}
+	if len(result.Answer.SuggestedQuestions) > 0 {
+		h.sendSuggestedQuestionsStream(events, answerID, result.Answer.SuggestedQuestions)
+	}
+	_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventCompleted, AnswerID: answerID, Persisted: true})
+	if result.Replay == nil {
+		h.launchSessionTitleGeneration(&result.Session, userID)
+	}
+}
 
-	h.generateAndSaveAnswer(ctx, w, chatSession, chatUuid, userID, baseURL, streamOutput)
+func generationErrorCode(err error) string {
+	var generationErr *svc.GenerateAnswerError
+	if errors.As(err, &generationErr) {
+		return generationErr.Code
+	}
+	return "generation_failed"
 }
 
 // genBotAnswer generates a bot answer from a snapshot conversation.
 func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, session svc.ChatSession, messages []dto.SimpleChatMessage, snapshotUuid, question string, userID int32, streamOutput bool) {
-	if _, err := h.modelSvc.ByName(ctx, session.Model); err != nil {
-		dto.RespondWithAPIError(w, dto.ErrResourceNotFound("Chat model: "+session.Model).WithDebugInfo(err.Error()))
-		return
-	}
-
 	msgs := simpleChatMessagesToMessages(messages)
-	msgs = append(msgs, models.Message{Role: "user", Content: question})
-
-	model := h.chooseChatModel(ctx, session, msgs)
-	providerRequest, err := h.service.ProviderRequest(ctx, session, msgs, "", false, streamOutput)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to prepare model request"))
-		return
-	}
 	var events *provider.AnswerEventWriter
+	var chunks svc.AnswerChunkSink
 	if streamOutput {
+		if _, err := setupSSEStream(w); err != nil {
+			return
+		}
 		events = provider.NewAnswerEventWriter(w)
+		chunks = answerEventChunkSink{events: events}
 	}
-	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest, events)
+	useCase := svc.NewGenerateBotAnswerUseCase(h.service, h, chunks, h, h.botHistorySvc)
+	answer, err := useCase.Execute(ctx, svc.GenerateBotAnswerCommand{Session: session, Messages: msgs,
+		SnapshotUUID: snapshotUuid, Question: question, UserID: userID, Stream: streamOutput})
 	if err != nil {
 		if streamOutput {
 			eventType := provider.AnswerEventFailed
@@ -181,50 +213,27 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 		return
 	}
 
-	if err := h.botHistorySvc.Save(ctx, svc.CreateBotAnswerHistoryInput{
-		BotUUID:    snapshotUuid,
-		UserID:     userID,
-		Prompt:     question,
-		Answer:     LLMAnswer.Answer,
-		Model:      session.Model,
-		TokensUsed: int32(len(LLMAnswer.Answer)) / 4,
-	}); err != nil {
-		slog.Info("Failed to save bot answer history", "error", err)
-		if streamOutput {
-			_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventFailed, AnswerID: LLMAnswer.AnswerId, Code: "persistence_failed", Message: "Failed to save bot answer"})
-		}
-		return
-	}
 	if streamOutput {
-		_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventCompleted, AnswerID: LLMAnswer.AnswerId, Persisted: true})
-	}
-
-	if !isTest(msgs) {
-		h.service.LogChat(ctx, session, msgs, LLMAnswer.Answer)
+		_ = events.Emit(provider.AnswerEvent{Type: provider.AnswerEventCompleted, AnswerID: answer.AnswerId, Persisted: true})
+	} else {
+		_ = json.NewEncoder(w).Encode(ChatCompletionResponse{ID: answer.AnswerId, Object: "chat.completion",
+			Choices: []Choice{{Message: openai.ChatCompletionMessage{Content: answer.Answer}}}})
 	}
 }
 
 // regenerateAnswer regenerates the last assistant response.
 func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context, sessionUuid, chatUuid string, userID int32, stream bool) {
-	chatSession, _, _, ok := h.validateChatSession(ctx, w, sessionUuid, userID)
-	if !ok {
-		return
+	var events *provider.AnswerEventWriter
+	var chunks svc.AnswerChunkSink
+	if stream {
+		if _, err := setupSSEStream(w); err != nil {
+			return
+		}
+		events = provider.NewAnswerEventWriter(w)
+		chunks = answerEventChunkSink{events: events}
 	}
-
-	msgs, err := h.service.GetAskMessages(ctx, *chatSession, chatUuid, true)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to get chat messages").WithDebugInfo(err.Error()))
-		return
-	}
-
-	model := h.chooseChatModel(ctx, *chatSession, msgs)
-	providerRequest, err := h.service.ProviderRequest(ctx, *chatSession, msgs, chatUuid, true, stream)
-	if err != nil {
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to prepare model request"))
-		return
-	}
-	events := provider.NewAnswerEventWriter(w)
-	LLMAnswer, err := streamFromModel(model, ctx, w, providerRequest, events)
+	useCase := svc.NewRegenerateAnswerUseCase(h.service, h.sessionSvc, h, chunks, h)
+	result, err := useCase.Execute(ctx, svc.RegenerateAnswerCommand{SessionUUID: sessionUuid, MessageUUID: chatUuid, UserID: userID, Stream: stream})
 	if err != nil {
 		slog.Error("error regenerating answer", "error", err)
 		if stream {
@@ -245,29 +254,12 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 		return
 	}
 
-	h.service.LogChat(ctx, *chatSession, msgs, LLMAnswer.Answer)
-
-	if err := h.service.UpdateChatMessageContent(ctx, chatUuid, userID, LLMAnswer.Answer); err != nil {
-		if stream {
-			_ = events.Emit(provider.AnswerEvent{
-				Type: provider.AnswerEventFailed, AnswerID: chatUuid, Code: "persistence_failed", Message: "Failed to save regenerated answer",
-			})
-			return
-		}
-		dto.RespondWithAPIError(w, dto.ErrInternalUnexpected.WithDetail("Failed to update message").WithDebugInfo(err.Error()))
-		return
+	if !stream {
+		_ = json.NewEncoder(w).Encode(ChatCompletionResponse{ID: result.Answer.AnswerId, Object: "chat.completion",
+			Choices: []Choice{{Message: openai.ChatCompletionMessage{Content: result.Answer.Answer}}}})
 	}
-
-	if chatSession.ExploreMode {
-		suggested := h.service.GenerateSuggestedQuestions(ctx, LLMAnswer.Answer, msgs)
-		if len(suggested) > 0 {
-			if questionsJSON, err := json.Marshal(suggested); err == nil {
-				h.service.UpdateChatMessageSuggestions(ctx, chatUuid, userID, questionsJSON)
-				if stream {
-					h.sendSuggestedQuestionsStream(events, LLMAnswer.AnswerId, questionsJSON)
-				}
-			}
-		}
+	if stream && len(result.SuggestedQuestions) > 0 {
+		h.sendSuggestedQuestionsStream(events, result.Answer.AnswerId, result.SuggestedQuestions)
 	}
 	if stream {
 		_ = events.Emit(provider.AnswerEvent{

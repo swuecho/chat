@@ -5,21 +5,20 @@ import (
 	"time"
 
 	"github.com/swuecho/chat_backend/domain"
-	"github.com/swuecho/chat_backend/sqlc_queries"
 	"github.com/swuecho/chat_backend/svc"
 )
 
-func chatModelResponse(model sqlc_queries.ChatModel) chatModelHTTPResponse {
+func chatModelResponse(model svc.ChatModel) chatModelHTTPResponse {
 	return chatModelHTTPResponse{ID: model.ID, Name: model.Name, Label: model.Label,
-		IsDefault: model.IsDefault, URL: model.Url, APIAuthHeader: model.ApiAuthHeader,
-		APIAuthKey: model.ApiAuthKey, UserID: model.UserID,
-		EnablePerModelRateLimit: model.EnablePerModeRatelimit, MaxToken: model.MaxToken,
+		IsDefault: model.IsDefault, URL: model.URL, APIAuthHeader: model.APIAuthHeader,
+		APIAuthKey: model.APIAuthKey, UserID: model.UserID,
+		EnablePerModelRateLimit: model.EnablePerModelRateLimit, MaxToken: model.MaxToken,
 		DefaultToken: model.DefaultToken, OrderNumber: model.OrderNumber,
-		HTTPTimeout: model.HttpTimeOut, IsEnable: model.IsEnable, APIType: model.ApiType,
+		HTTPTimeout: model.HTTPTimeout, IsEnable: model.IsEnable, APIType: model.APIType,
 		IsTitleModel: model.IsTitleModel}
 }
 
-func authUserResponse(user sqlc_queries.AuthUser) authUserHTTPResponse {
+func authUserResponse(user svc.AuthUser) authUserHTTPResponse {
 	return authUserHTTPResponse{ID: user.ID, LastLogin: user.LastLogin,
 		IsSuperuser: user.IsSuperuser, Username: user.Username, FirstName: user.FirstName,
 		LastName: user.LastName, Email: user.Email, IsStaff: user.IsStaff,

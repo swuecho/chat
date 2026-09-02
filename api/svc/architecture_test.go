@@ -235,6 +235,75 @@ func TestConvertedServiceAPIsDoNotExposeSQLCTypes(t *testing.T) {
 	}
 }
 
+func TestNoExportedServiceMethodExposesSQLCTypes(t *testing.T) {
+	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		files := token.NewFileSet()
+		file, err := parser.ParseFile(files, path, nil, 0)
+		if err != nil {
+			return err
+		}
+		for _, declaration := range file.Decls {
+			fn, ok := declaration.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil || !fn.Name.IsExported() {
+				continue
+			}
+			ast.Inspect(fn.Type, func(node ast.Node) bool {
+				selector, ok := node.(*ast.SelectorExpr)
+				if !ok {
+					return true
+				}
+				pkg, ok := selector.X.(*ast.Ident)
+				if ok && pkg.Name == "sqlc_queries" {
+					position := files.Position(selector.Pos())
+					t.Errorf("%s:%d exported service method %s exposes generated SQLC type %s", path, position.Line, fn.Name.Name, selector.Sel.Name)
+				}
+				return true
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestApplicationDependencyStructsDoNotContainFunctionFields(t *testing.T) {
+	files := token.NewFileSet()
+	packages, err := parser.ParseDir(files, ".", func(info os.FileInfo) bool { return !strings.HasSuffix(info.Name(), "_test.go") }, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range packages["svc"].Files {
+		for _, declaration := range file.Decls {
+			gen, ok := declaration.(*ast.GenDecl)
+			if !ok || gen.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range gen.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || (!strings.HasSuffix(typeSpec.Name.Name, "Dependencies") && !strings.HasSuffix(typeSpec.Name.Name, "UseCase")) {
+					continue
+				}
+				structure, ok := typeSpec.Type.(*ast.StructType)
+				if !ok {
+					continue
+				}
+				for _, field := range structure.Fields.List {
+					if _, ok := field.Type.(*ast.FuncType); ok {
+						t.Errorf("%s contains a function field; use a named interface", typeSpec.Name.Name)
+					}
+				}
+			}
+		}
+	}
+}
+
 func TestApplicationServicesDoNotManageSQLCTransactionsDirectly(t *testing.T) {
 	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
 		if err != nil {

@@ -67,20 +67,28 @@ func (s *ChatService) MarkChatRequestFailed(ctx context.Context, requestUUID, se
 	})
 }
 
-func (s *ChatService) ClaimChatRequest(ctx context.Context, requestUUID, sessionUUID string, userID int32) (sqlc_queries.ChatRequest, error) {
-	return s.q.ClaimChatRequest(ctx, sqlc_queries.ClaimChatRequestParams{
+func (s *ChatService) ClaimChatRequest(ctx context.Context, requestUUID, sessionUUID string, userID int32) error {
+	_, err := s.q.ClaimChatRequest(ctx, sqlc_queries.ClaimChatRequestParams{
 		Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID,
 	})
+	return err
 }
 
-func (s *ChatService) GetChatRequest(ctx context.Context, requestUUID, sessionUUID string, userID int32) (sqlc_queries.ChatRequest, error) {
-	return s.q.GetChatRequest(ctx, sqlc_queries.GetChatRequestParams{
+type ChatRequestState struct {
+	UUID, SessionUUID, Status, AssistantUUID, ErrorCode string
+}
+
+func (s *ChatService) GetChatRequest(ctx context.Context, requestUUID, sessionUUID string, userID int32) (ChatRequestState, error) {
+	r, err := s.q.GetChatRequest(ctx, sqlc_queries.GetChatRequestParams{
 		Uuid: requestUUID, ChatSessionUuid: sessionUUID, UserID: userID,
 	})
+	return ChatRequestState{UUID: r.Uuid, SessionUUID: r.ChatSessionUuid, Status: r.Status,
+		AssistantUUID: r.AssistantUuid, ErrorCode: r.ErrorCode}, err
 }
 
-func (s *ChatService) GetChatMessageByUUID(ctx context.Context, uuid string, userID int32) (sqlc_queries.ChatMessage, error) {
-	return s.q.GetChatMessageByUUID(ctx, sqlc_queries.GetChatMessageByUUIDParams{Uuid: uuid, UserID: userID})
+func (s *ChatService) GetChatMessageByUUID(ctx context.Context, uuid string, userID int32) (ChatMessage, error) {
+	m, err := s.q.GetChatMessageByUUID(ctx, sqlc_queries.GetChatMessageByUUIDParams{Uuid: uuid, UserID: userID})
+	return chatMessageFromRecord(m), err
 }
 
 func (s *ChatService) MarkChatRequestStreaming(ctx context.Context, requestUUID, sessionUUID string, userID int32) error {
@@ -189,7 +197,7 @@ func (s *ChatService) GetAskMessages(ctx context.Context, chatSession ChatSessio
 
 // CreateChatPromptSimple creates a new chat prompt for a session.
 // This is typically used to start a new conversation with a system message.
-func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUuid string, newQuestion string, userID int32) (sqlc_queries.ChatPrompt, error) {
+func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUuid string, newQuestion string, userID int32) (ChatPrompt, error) {
 	tokenCount, err := provider.GetTokenCount(newQuestion)
 	if err != nil {
 		slog.Warn("Failed to get token count for prompt", "error", err)
@@ -206,7 +214,7 @@ func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUui
 			UpdatedBy:       userID,
 			TokenCount:      int32(tokenCount),
 		})
-	return chatPrompt, err
+	return chatPromptFromRecord(chatPrompt), err
 }
 
 // CreateChatMessageSimple creates a new chat message with optional summarization and artifact extraction.
@@ -222,7 +230,7 @@ func (s *ChatService) CreateChatPromptSimple(ctx context.Context, chatSessionUui
 //   - is_summarize_mode: Whether to enable automatic summarization
 //
 // Returns created message or error.
-func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode bool) (sqlc_queries.ChatMessage, error) {
+func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, uuid, role, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode bool) (ChatMessage, error) {
 	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		slog.Warn("Failed to get token count", "error", err)
@@ -263,14 +271,14 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 	}
 	message, err := s.q.CreateChatMessage(ctx, chatMessage)
 	if err != nil {
-		return sqlc_queries.ChatMessage{}, eris.Wrap(err, "failed to create message ")
+		return ChatMessage{}, eris.Wrap(err, "failed to create message ")
 	}
-	return message, nil
+	return chatMessageFromRecord(message), nil
 }
 
 // CompleteChatRequestWithSuggestedQuestions atomically saves the assistant
 // message and marks its originating request completed.
-func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Context, requestUuid, sessionUuid, uuid, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode, exploreMode bool, messages []models.Message) (sqlc_queries.CompleteChatRequestWithMessageRow, error) {
+func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Context, requestUuid, sessionUuid, uuid, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode, exploreMode bool, messages []models.Message) (ChatMessage, error) {
 	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		slog.Warn("Failed to get token count", "error", err)
@@ -321,9 +329,9 @@ func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Cont
 	}
 	message, err := s.q.CompleteChatRequestWithMessage(ctx, params)
 	if err != nil {
-		return sqlc_queries.CompleteChatRequestWithMessageRow{}, eris.Wrap(err, "failed to complete chat request ")
+		return ChatMessage{}, eris.Wrap(err, "failed to complete chat request ")
 	}
-	return message, nil
+	return chatMessageFromRecord(sqlc_queries.ChatMessage(message)), nil
 }
 
 // generateSuggestedQuestions generates follow-up questions based on the conversation context

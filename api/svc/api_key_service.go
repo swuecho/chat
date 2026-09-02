@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"time"
 
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -30,6 +31,28 @@ type APIKeyView struct {
 type CreatedAPIKey struct {
 	APIKeyView
 	Key string `json:"key"`
+}
+
+type APIKeyUsage struct {
+	RequestedModel                                            string `json:"requestedModel"`
+	RequestCount, PromptTokens, CompletionTokens, TotalTokens int64
+	LastUsedAt                                                any `json:"lastUsedAt"`
+}
+
+type GatewayRequestView struct {
+	ID                                                          int64
+	RequestUUID                                                 string
+	RequestedModel, Provider, Status                            string
+	Stream                                                      bool
+	PromptTokens, CompletionTokens, TotalTokens                 int32
+	LatencyMs, RequestBytes, ResponseBytes                      int64
+	ProviderRequestID, ErrorCode, RequestSHA256, ResponseSHA256 string
+	RequestSample, ResponseSample                               []byte
+	RequestTruncated, ResponseTruncated                         bool
+	RequestClassification, ResponseClassification               json.RawMessage
+	CreatedAt                                                   time.Time
+	CompletedAt                                                 *time.Time
+	RetentionUntil                                              time.Time
 }
 
 func apiKeyView(key sqlc_queries.VirtualApiKey) APIKeyView {
@@ -83,11 +106,19 @@ func (s *APIKeyService) Revoke(ctx context.Context, id int64, userID int32) (int
 	return s.q.RevokeVirtualAPIKey(ctx, sqlc_queries.RevokeVirtualAPIKeyParams{ID: id, UserID: userID})
 }
 
-func (s *APIKeyService) Usage(ctx context.Context, id int64, userID int32) ([]sqlc_queries.GatewayUsageByKeyRow, error) {
+func (s *APIKeyService) Usage(ctx context.Context, id int64, userID int32) ([]APIKeyUsage, error) {
 	if _, err := s.q.VirtualAPIKeyByIDAndUser(ctx, sqlc_queries.VirtualAPIKeyByIDAndUserParams{ID: id, UserID: userID}); err != nil {
 		return nil, err
 	}
-	return s.q.GatewayUsageByKey(ctx, sqlc_queries.GatewayUsageByKeyParams{ApiKeyID: id, UserID: userID})
+	rows, err := s.q.GatewayUsageByKey(ctx, sqlc_queries.GatewayUsageByKeyParams{ApiKeyID: id, UserID: userID})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]APIKeyUsage, len(rows))
+	for i, row := range rows {
+		result[i] = APIKeyUsage{RequestedModel: row.RequestedModel, RequestCount: row.RequestCount, PromptTokens: row.PromptTokens, CompletionTokens: row.CompletionTokens, TotalTokens: row.TotalTokens, LastUsedAt: row.LastUsedAt}
+	}
+	return result, nil
 }
 
 type APIKeyRequestsQuery struct {
@@ -96,13 +127,30 @@ type APIKeyRequestsQuery struct {
 	Limit  int32
 }
 
-func (s *APIKeyService) Requests(ctx context.Context, query APIKeyRequestsQuery) ([]sqlc_queries.ListGatewayRequestsByKeyRow, error) {
+func (s *APIKeyService) Requests(ctx context.Context, query APIKeyRequestsQuery) ([]GatewayRequestView, error) {
 	if _, err := s.q.VirtualAPIKeyByIDAndUser(ctx, sqlc_queries.VirtualAPIKeyByIDAndUserParams{ID: query.KeyID, UserID: query.UserID}); err != nil {
 		return nil, err
 	}
-	return s.q.ListGatewayRequestsByKey(ctx, sqlc_queries.ListGatewayRequestsByKeyParams{ApiKeyID: query.KeyID, UserID: query.UserID, Limit: query.Limit})
+	rows, err := s.q.ListGatewayRequestsByKey(ctx, sqlc_queries.ListGatewayRequestsByKeyParams{ApiKeyID: query.KeyID, UserID: query.UserID, Limit: query.Limit})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]GatewayRequestView, len(rows))
+	for i, row := range rows {
+		var completed *time.Time
+		if row.CompletedAt.Valid {
+			completed = &row.CompletedAt.Time
+		}
+		result[i] = GatewayRequestView{ID: row.ID, RequestUUID: row.RequestUuid.String(), RequestedModel: row.RequestedModel, Provider: row.Provider, Status: row.Status, Stream: row.Stream, PromptTokens: row.PromptTokens, CompletionTokens: row.CompletionTokens, TotalTokens: row.TotalTokens, LatencyMs: row.LatencyMs, RequestBytes: row.RequestBytes, ResponseBytes: row.ResponseBytes, RequestTruncated: row.RequestTruncated, ResponseTruncated: row.ResponseTruncated, CreatedAt: row.CreatedAt, CompletedAt: completed, RetentionUntil: row.RetentionUntil, ErrorCode: row.ErrorCode}
+	}
+	return result, nil
 }
 
-func (s *APIKeyService) RequestDetail(ctx context.Context, requestID, keyID int64, userID int32) (sqlc_queries.GatewayRequest, error) {
-	return s.q.GatewayRequestByIDAndUser(ctx, sqlc_queries.GatewayRequestByIDAndUserParams{ID: requestID, ApiKeyID: keyID, UserID: userID})
+func (s *APIKeyService) RequestDetail(ctx context.Context, requestID, keyID int64, userID int32) (GatewayRequestView, error) {
+	r, err := s.q.GatewayRequestByIDAndUser(ctx, sqlc_queries.GatewayRequestByIDAndUserParams{ID: requestID, ApiKeyID: keyID, UserID: userID})
+	var completed *time.Time
+	if r.CompletedAt.Valid {
+		completed = &r.CompletedAt.Time
+	}
+	return GatewayRequestView{ID: r.ID, RequestUUID: r.RequestUuid.String(), RequestedModel: r.RequestedModel, Provider: r.Provider, Status: r.Status, Stream: r.Stream, PromptTokens: r.PromptTokens, CompletionTokens: r.CompletionTokens, TotalTokens: r.TotalTokens, LatencyMs: r.LatencyMs, ProviderRequestID: r.ProviderRequestID, ErrorCode: r.ErrorCode, RequestBytes: r.RequestBytes, ResponseBytes: r.ResponseBytes, RequestSHA256: r.RequestSha256, ResponseSHA256: r.ResponseSha256, RequestSample: r.RequestSample, ResponseSample: r.ResponseSample, RequestTruncated: r.RequestTruncated, ResponseTruncated: r.ResponseTruncated, RequestClassification: r.RequestClassification, ResponseClassification: r.ResponseClassification, CreatedAt: r.CreatedAt, CompletedAt: completed, RetentionUntil: r.RetentionUntil}, err
 }

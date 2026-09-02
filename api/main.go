@@ -36,7 +36,7 @@ type server struct {
 	cfg            config.AppConfig
 	db             *sql.DB
 	q              *sqlc_queries.Queries
-	jwtSecret      sqlc_queries.JwtSecret
+	jwtSecret      svc.JWTSecret
 	rateLimiter    *rate.Limiter
 	requestTracker *middleware.LastRequestTracker
 	apiContract    *apicontract.Registry

@@ -18,6 +18,18 @@ type AuthUserService struct {
 	defaultLimit int32
 }
 
+type AuthUser sqlc_queries.AuthUser
+type UserStats sqlc_queries.GetUserStatsRow
+type UpdatedAuthUser sqlc_queries.UpdateAuthUserRow
+type UpdatedAuthUserByEmail sqlc_queries.UpdateAuthUserByEmailRow
+
+func (u AuthUser) Role() string {
+	if u.IsSuperuser {
+		return "admin"
+	}
+	return "user"
+}
+
 type CreateAuthUserInput struct {
 	Email       string
 	Password    string
@@ -50,11 +62,11 @@ func NewAuthUserService(q *sqlc_queries.Queries, jwtSecret string, defaultLimit 
 }
 
 // CreateAuthUser creates a new authentication user record.
-func (s *AuthUserService) CreateAuthUser(ctx context.Context, input CreateAuthUserInput) (sqlc_queries.AuthUser, error) {
+func (s *AuthUserService) CreateAuthUser(ctx context.Context, input CreateAuthUserInput) (AuthUser, error) {
 	auth_user_params := sqlc_queries.CreateAuthUserParams(input)
 	totalUserCount, err := s.q.GetTotalActiveUserCount(ctx)
 	if err != nil {
-		return sqlc_queries.AuthUser{}, errors.New("failed to retrieve total user count")
+		return AuthUser{}, errors.New("failed to retrieve total user count")
 	}
 	if totalUserCount == 0 {
 		auth_user_params.IsSuperuser = true
@@ -62,45 +74,49 @@ func (s *AuthUserService) CreateAuthUser(ctx context.Context, input CreateAuthUs
 	}
 	auth_user, err := s.q.CreateAuthUser(ctx, auth_user_params)
 	if err != nil {
-		return sqlc_queries.AuthUser{}, err
+		return AuthUser{}, err
 	}
-	return auth_user, nil
+	return AuthUser(auth_user), nil
 }
 
 // GetAuthUserByID returns an authentication user record by ID.
-func (s *AuthUserService) GetAuthUserByID(ctx context.Context, id int32) (sqlc_queries.AuthUser, error) {
+func (s *AuthUserService) GetAuthUserByID(ctx context.Context, id int32) (AuthUser, error) {
 	auth_user, err := s.q.GetAuthUserByID(ctx, id)
 	if err != nil {
-		return sqlc_queries.AuthUser{}, errors.New("failed to retrieve authentication user")
+		return AuthUser{}, errors.New("failed to retrieve authentication user")
 	}
-	return auth_user, nil
+	return AuthUser(auth_user), nil
 }
 
 // GetAllAuthUsers returns all authentication user records.
-func (s *AuthUserService) GetAllAuthUsers(ctx context.Context) ([]sqlc_queries.AuthUser, error) {
+func (s *AuthUserService) GetAllAuthUsers(ctx context.Context) ([]AuthUser, error) {
 	auth_users, err := s.q.GetAllAuthUsers(ctx)
 	if err != nil {
 		return nil, errors.New("failed to retrieve authentication users")
 	}
-	return auth_users, nil
+	result := make([]AuthUser, len(auth_users))
+	for i, user := range auth_users {
+		result[i] = AuthUser(user)
+	}
+	return result, nil
 }
 
-func (s *AuthUserService) Authenticate(ctx context.Context, email, password string) (sqlc_queries.AuthUser, error) {
+func (s *AuthUserService) Authenticate(ctx context.Context, email, password string) (AuthUser, error) {
 	user, err := s.q.GetUserByEmail(ctx, email)
 	if err != nil {
-		return sqlc_queries.AuthUser{}, err
+		return AuthUser{}, err
 	}
 	if !auth.ValidatePassword(password, user.Password) {
-		return sqlc_queries.AuthUser{}, domain.Unauthorized("invalid credentials")
+		return AuthUser{}, domain.Unauthorized("invalid credentials")
 	}
-	return user, nil
+	return AuthUser(user), nil
 }
 
 // backend api
 // GetUserStat(page, page_size) -> {data: [{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}], total: 100}
 // GetTotalUserCount
 // GetUserStat(page, page_size) ->[{user_email, total_sessions, total_messages, total_sessions_3_days, total_messages_3_days, rate_limit}]
-func (s *AuthUserService) GetUserStats(ctx context.Context, p PageRequest, defaultRateLimit int32) ([]sqlc_queries.GetUserStatsRow, int64, error) {
+func (s *AuthUserService) GetUserStats(ctx context.Context, p PageRequest, defaultRateLimit int32) ([]UserStats, int64, error) {
 	auth_users_stat, err := s.q.GetUserStats(ctx,
 		sqlc_queries.GetUserStatsParams{
 			Offset:           p.Offset(),
@@ -114,7 +130,11 @@ func (s *AuthUserService) GetUserStats(ctx context.Context, p PageRequest, defau
 	if err != nil {
 		return nil, 0, errors.New("failed to retrieve total active user count")
 	}
-	return auth_users_stat, total, nil
+	result := make([]UserStats, len(auth_users_stat))
+	for i, stat := range auth_users_stat {
+		result[i] = UserStats(stat)
+	}
+	return result, total, nil
 }
 
 // UpdateRateLimit(user_email, rate_limit) -> { rate_limit: 100 }
@@ -132,18 +152,21 @@ func (s *AuthUserService) UpdateRateLimit(ctx context.Context, user_email string
 
 // get ratelimit for user_id
 // UpdateAuthUser wraps the raw query for handler use.
-func (s *AuthUserService) UpdateAuthUser(ctx context.Context, input UpdateAuthUserInput) (sqlc_queries.UpdateAuthUserRow, error) {
-	return s.q.UpdateAuthUser(ctx, sqlc_queries.UpdateAuthUserParams(input))
+func (s *AuthUserService) UpdateAuthUser(ctx context.Context, input UpdateAuthUserInput) (UpdatedAuthUser, error) {
+	r, err := s.q.UpdateAuthUser(ctx, sqlc_queries.UpdateAuthUserParams(input))
+	return UpdatedAuthUser(r), err
 }
 
 // UpdateAuthUserByEmail wraps the raw query for handler use.
-func (s *AuthUserService) UpdateAuthUserByEmail(ctx context.Context, input UpdateAuthUserByEmailInput) (sqlc_queries.UpdateAuthUserByEmailRow, error) {
-	return s.q.UpdateAuthUserByEmail(ctx, sqlc_queries.UpdateAuthUserByEmailParams(input))
+func (s *AuthUserService) UpdateAuthUserByEmail(ctx context.Context, input UpdateAuthUserByEmailInput) (UpdatedAuthUserByEmail, error) {
+	r, err := s.q.UpdateAuthUserByEmail(ctx, sqlc_queries.UpdateAuthUserByEmailParams(input))
+	return UpdatedAuthUserByEmail(r), err
 }
 
 // GetUserByEmail wraps the raw query for handler use.
-func (s *AuthUserService) GetUserByEmail(ctx context.Context, email string) (sqlc_queries.AuthUser, error) {
-	return s.q.GetUserByEmail(ctx, email)
+func (s *AuthUserService) GetUserByEmail(ctx context.Context, email string) (AuthUser, error) {
+	r, err := s.q.GetUserByEmail(ctx, email)
+	return AuthUser(r), err
 }
 
 // UpdateUserPassword wraps the raw query for handler use.

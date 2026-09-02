@@ -17,23 +17,25 @@ type JWTSecretService struct {
 	q *sqlc_queries.Queries
 }
 
+type JWTSecret sqlc_queries.JwtSecret
+
 // NewJWTSecretService creates a new JWTSecretService.
 func NewJWTSecretService(q *sqlc_queries.Queries) *JWTSecretService {
 	return &JWTSecretService{q: q}
 }
 
 // GetJWTSecret returns a jwt_secret by name.
-func (s *JWTSecretService) GetJwtSecret(ctx context.Context, name string) (sqlc_queries.JwtSecret, error) {
+func (s *JWTSecretService) GetJwtSecret(ctx context.Context, name string) (JWTSecret, error) {
 	secret, err := s.q.GetJwtSecret(ctx, name)
 	if err != nil {
-		return sqlc_queries.JwtSecret{}, eris.Wrap(err, "failed to get secret ")
+		return JWTSecret{}, eris.Wrap(err, "failed to get secret ")
 	}
-	return secret, nil
+	return JWTSecret(secret), nil
 }
 
 // GetOrCreateJwtSecret returns a jwt_secret by name.
 // if jwt_secret does not exist, create it
-func (s *JWTSecretService) GetOrCreateJwtSecret(ctx context.Context, name string) (sqlc_queries.JwtSecret, error) {
+func (s *JWTSecretService) GetOrCreateJwtSecret(ctx context.Context, name string) (JWTSecret, error) {
 	secret, err := s.q.GetJwtSecret(ctx, name)
 	if err != nil {
 		// no row found, create it
@@ -45,11 +47,11 @@ func (s *JWTSecretService) GetOrCreateJwtSecret(ctx context.Context, name string
 				Audience: aud_str,
 			})
 			if err != nil {
-				return sqlc_queries.JwtSecret{}, eris.Wrap(err, "failed to create secret ")
+				return JWTSecret{}, eris.Wrap(err, "failed to create secret ")
 			}
 		} else {
-			return sqlc_queries.JwtSecret{}, eris.Wrap(err, "failed to create secret ")
+			return JWTSecret{}, eris.Wrap(err, "failed to create secret ")
 		}
 	}
-	return secret, nil
+	return JWTSecret(secret), nil
 }

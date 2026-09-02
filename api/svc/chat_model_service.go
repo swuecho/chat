@@ -45,8 +45,22 @@ type UpdateChatModelInput struct {
 	ApiType                string
 }
 
+type ChatModel struct {
+	ID                                                         int32
+	Name, Label, URL, APIAuthHeader, APIAuthKey, APIType       string
+	IsDefault, IsEnable, IsTitleModel, EnablePerModelRateLimit bool
+	UserID, MaxToken, DefaultToken, OrderNumber, HTTPTimeout   int32
+}
+
+func chatModelFromRecord(m sqlc_queries.ChatModel) ChatModel {
+	return ChatModel{ID: m.ID, Name: m.Name, Label: m.Label, URL: m.Url, APIAuthHeader: m.ApiAuthHeader,
+		APIAuthKey: m.ApiAuthKey, APIType: m.ApiType, IsDefault: m.IsDefault, IsEnable: m.IsEnable,
+		IsTitleModel: m.IsTitleModel, EnablePerModelRateLimit: m.EnablePerModeRatelimit, UserID: m.UserID,
+		MaxToken: m.MaxToken, DefaultToken: m.DefaultToken, OrderNumber: m.OrderNumber, HTTPTimeout: m.HttpTimeOut}
+}
+
 type ChatModelWithUsage struct {
-	sqlc_queries.ChatModel
+	ChatModel
 	LastUsageTime time.Time `json:"lastUsageTime,omitempty"`
 	MessageCount  int64     `json:"messageCount"`
 }
@@ -67,35 +81,41 @@ func (s *ChatModelService) ListSystemWithUsage(ctx context.Context, interval str
 	result := make([]ChatModelWithUsage, len(models))
 	for i, model := range models {
 		usage := usageByModel[model.Name]
-		result[i] = ChatModelWithUsage{ChatModel: model, LastUsageTime: usage.LatestMessageTime, MessageCount: usage.MessageCount}
+		result[i] = ChatModelWithUsage{ChatModel: chatModelFromRecord(model), LastUsageTime: usage.LatestMessageTime, MessageCount: usage.MessageCount}
 	}
 	return result, nil
 }
 
-func (s *ChatModelService) ByID(ctx context.Context, id int32) (sqlc_queries.ChatModel, error) {
-	return s.q.ChatModelByID(ctx, id)
+func (s *ChatModelService) ByID(ctx context.Context, id int32) (ChatModel, error) {
+	m, err := s.q.ChatModelByID(ctx, id)
+	return chatModelFromRecord(m), err
 }
 
-func (s *ChatModelService) Create(ctx context.Context, input CreateChatModelInput) (sqlc_queries.ChatModel, error) {
-	return s.q.CreateChatModel(ctx, sqlc_queries.CreateChatModelParams(input))
+func (s *ChatModelService) Create(ctx context.Context, input CreateChatModelInput) (ChatModel, error) {
+	m, err := s.q.CreateChatModel(ctx, sqlc_queries.CreateChatModelParams(input))
+	return chatModelFromRecord(m), err
 }
 
-func (s *ChatModelService) Update(ctx context.Context, input UpdateChatModelInput) (sqlc_queries.ChatModel, error) {
-	return s.q.UpdateChatModel(ctx, sqlc_queries.UpdateChatModelParams(input))
+func (s *ChatModelService) Update(ctx context.Context, input UpdateChatModelInput) (ChatModel, error) {
+	m, err := s.q.UpdateChatModel(ctx, sqlc_queries.UpdateChatModelParams(input))
+	return chatModelFromRecord(m), err
 }
 
 func (s *ChatModelService) Delete(ctx context.Context, id, userID int32) error {
 	return s.q.DeleteChatModel(ctx, sqlc_queries.DeleteChatModelParams{ID: id, UserID: userID})
 }
 
-func (s *ChatModelService) Default(ctx context.Context) (sqlc_queries.ChatModel, error) {
-	return s.q.GetDefaultChatModel(ctx)
+func (s *ChatModelService) Default(ctx context.Context) (ChatModel, error) {
+	m, err := s.q.GetDefaultChatModel(ctx)
+	return chatModelFromRecord(m), err
 }
 
-func (s *ChatModelService) TitleModel(ctx context.Context) (sqlc_queries.ChatModel, error) {
-	return s.q.GetTitleChatModel(ctx)
+func (s *ChatModelService) TitleModel(ctx context.Context) (ChatModel, error) {
+	m, err := s.q.GetTitleChatModel(ctx)
+	return chatModelFromRecord(m), err
 }
 
-func (s *ChatModelService) SetTitleModel(ctx context.Context, modelID, userID int32) (sqlc_queries.ChatModel, error) {
-	return s.q.SetTitleChatModel(ctx, sqlc_queries.SetTitleChatModelParams{ModelID: modelID, UserID: userID})
+func (s *ChatModelService) SetTitleModel(ctx context.Context, modelID, userID int32) (ChatModel, error) {
+	m, err := s.q.SetTitleChatModel(ctx, sqlc_queries.SetTitleChatModelParams{ModelID: modelID, UserID: userID})
+	return chatModelFromRecord(m), err
 }

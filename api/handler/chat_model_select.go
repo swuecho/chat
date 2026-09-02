@@ -48,6 +48,11 @@ func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSessi
 	}
 }
 
+// SelectModel implements svc.ModelSelector for chat-generation use cases.
+func (h *ChatHandler) SelectModel(ctx context.Context, session svc.ChatSession, msgs []models.Message) (provider.ChatModel, error) {
+	return h.chooseChatModel(ctx, session, msgs), nil
+}
+
 // isTest returns true if any message starts with the test demo prefix.
 func isTest(msgs []models.Message) bool {
 	for _, msg := range msgs {
@@ -57,6 +62,9 @@ func isTest(msgs []models.Message) bool {
 	}
 	return false
 }
+
+// ShouldLogChat implements svc.ChatLogPolicy.
+func (h *ChatHandler) ShouldLogChat(msgs []models.Message) bool { return !isTest(msgs) }
 
 // CheckModelAccess verifies the user hasn't exceeded per-model rate limits.
 // Returns nil if access is allowed, or an error (dto.APIError) if denied.
