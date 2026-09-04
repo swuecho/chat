@@ -280,7 +280,7 @@ function handleUseQuestion(question: string) {
           </NSpin>
 
           <HoverButton
-            v-if="!isMobile && isArtifactEnabled" :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'"
+            v-if="isArtifactEnabled" :tooltip="showArtifactGallery ? 'Hide Gallery' : 'Show Gallery'"
             @click="toggleArtifactGallery"
           >
             <span class="text-xl text-[#4b9e5f] dark:text-white">

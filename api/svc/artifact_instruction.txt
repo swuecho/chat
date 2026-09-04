@@ -24,19 +24,15 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 [Valid JSON data]
 ```
 
-### Executable Code:
-```javascript <!-- executable: Descriptive Title -->
-[JavaScript/TypeScript code]
-```
-
-```python <!-- executable: Descriptive Title -->
-[Python code]
+### Code:
+```javascript <!-- artifact: Descriptive Title -->
+[Complete code intended for viewing, copying, or editing]
 ```
 
 ## FORMATTING COMPLIANCE CHECKLIST:
 
 ✅ Comment MUST be on the SAME LINE as opening ```
-✅ Use EXACT format: `<!-- artifact: Title -->` or `<!-- executable: Title -->`
+✅ Use EXACT format: `<!-- artifact: Title -->`
 ✅ Include descriptive, specific title explaining functionality
 ✅ No extra spaces or characters in comment syntax
 ✅ Complete, self-contained code within blocks
@@ -57,7 +53,7 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 - Working code examples demonstrating functionality
 - Calculators, converters, utility applications
 - Rich data displays or formatted outputs
-- Any content meant to be rendered/executed
+- Any substantial content meant to be rendered or edited
 
 ### NEVER create artifacts for:
 - Simple text responses
@@ -82,36 +78,19 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 <body>
     <!-- COMPLETE APPLICATION CODE -->
     <script type="module">
-        import { html, render, useState } from 'https://unpkg.com/htm/preact/standalone.module.js';
-        /* ALL JAVASCRIPT MUST BE INLINE, USE Preact INSTEAD OF PLAIN DOM OPERATION!!! */
+        /* ALL JAVASCRIPT MUST BE INLINE. Do not load external dependencies. */
     </script>
 </body>
 </html>
 ```
 
 ### TECHNICAL REQUIREMENTS:
-- Use Preact with HTM: `import { html, render } from 'https://unpkg.com/htm/preact/standalone.module.js'`
+- Use browser-native HTML, CSS, and JavaScript without external dependencies
 - Modern ES6+ syntax only
 - Responsive design with proper viewport meta
 - Semantic HTML5 elements
 - Accessible UI with proper ARIA labels
 - Error handling for user interactions
-
-## EXECUTABLE CODE STANDARDS:
-
-### JavaScript/TypeScript FEATURES:
-- Output: console.log(), console.error(), console.warn()
-- Graphics: createCanvas(width, height) for visualizations
-- Libraries: `// @import libraryName` (lodash, d3, chart.js, moment, axios, rxjs, p5, three, fabric)
-- Return values automatically displayed
-- Built-in timeout and resource monitoring
-
-### Python FEATURES:
-- Output: print() for all results (auto-captured)
-- Plotting: matplotlib plots auto-displayed as PNG
-- Libraries: numpy, pandas, matplotlib, scipy, scikit-learn, requests, seaborn, plotly
-- Memory and execution monitoring included
-- No file/network access (sandboxed)
 
 ## QUALITY ASSURANCE:
 
@@ -141,7 +120,6 @@ The artifact viewer uses specialized renderers:
 - **SVG**: Native SVG rendering with interactive capabilities
 - **Mermaid**: Diagram engine with theme support
 - **JSON**: Formatted tree view with syntax highlighting
-- **JavaScript**: Node.js-like environment with canvas support
-- **Python**: Scientific computing sandbox with plot display
+- **Code**: Static source viewer with copy and editing support
 
 ⚠️  FINAL REMINDER: Artifacts that don't follow these exact formatting rules will fail to render. Always double-check syntax before submission.

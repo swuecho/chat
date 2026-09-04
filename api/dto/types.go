@@ -92,15 +92,16 @@ type TokenResult struct {
 type Artifact = domain.Artifact
 
 type SimpleChatMessage struct {
-	Uuid      string     `json:"uuid"`
-	DateTime  string     `json:"dateTime"`
-	Text      string     `json:"text"`
-	Inversion bool       `json:"inversion"`
-	Error     bool       `json:"error"`
-	Loading   bool       `json:"loading"`
-	IsPin     bool       `json:"isPin"`
-	IsPrompt  bool       `json:"isPrompt"`
-	Artifacts []Artifact `json:"artifacts,omitempty"`
+	Uuid               string     `json:"uuid"`
+	DateTime           string     `json:"dateTime"`
+	Text               string     `json:"text"`
+	Inversion          bool       `json:"inversion"`
+	Error              bool       `json:"error"`
+	Loading            bool       `json:"loading"`
+	IsPin              bool       `json:"isPin"`
+	IsPrompt           bool       `json:"isPrompt"`
+	Artifacts          []Artifact `json:"artifacts,omitempty"`
+	SuggestedQuestions []string   `json:"suggestedQuestions,omitempty"`
 }
 
 func (msg SimpleChatMessage) GetRole() string {

@@ -5,6 +5,7 @@ import { Icon } from '@iconify/vue'
 import ArtifactViewer from './Message/ArtifactViewer.vue'
 import ArtifactEditor from './Message/ArtifactEditor.vue'
 import { useMessageStore, useSessionStore } from '@/store'
+import { updateChatData } from '@/api/content'
 
 interface ArtifactRecord {
   uuid: string
@@ -137,19 +138,28 @@ const editArtifact = (artifact: ArtifactRecord) => {
   showEditModal.value = true
 }
 
-const duplicateArtifact = (artifact: ArtifactRecord) => {
-  artifacts.value.unshift({
+const duplicateArtifact = async (artifact: ArtifactRecord) => {
+  if (!artifact.sessionUuid || !artifact.messageUuid)
+    return
+  const sessionMessages = messageStore.getChatSessionDataByUuid(artifact.sessionUuid)
+  const targetMessage = sessionMessages?.find(entry => entry.uuid === artifact.messageUuid)
+  if (!targetMessage)
+    return
+  const duplicate: Chat.Artifact = {
     ...artifact,
     uuid: `${artifact.uuid}-copy-${Date.now()}`,
-    id: `${artifact.id}-copy-${Date.now()}`,
     title: `${artifact.title} (Copy)`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    sessionUuid: undefined,
-    messageUuid: undefined,
-    sessionTitle: undefined,
-  })
-  message.success('Artifact duplicated successfully')
+  }
+  targetMessage.artifacts = [...(targetMessage.artifacts || []), duplicate]
+  try {
+    await updateChatData(targetMessage)
+    loadArtifacts()
+    message.success('Artifact duplicated successfully')
+  }
+  catch {
+    targetMessage.artifacts = targetMessage.artifacts.filter(entry => entry.uuid !== duplicate.uuid)
+    message.error('Failed to duplicate artifact')
+  }
 }
 
 const deleteArtifact = (artifact: ArtifactRecord) => {
@@ -158,12 +168,22 @@ const deleteArtifact = (artifact: ArtifactRecord) => {
     content: `Delete "${artifact.title}"?`,
     positiveText: 'Delete',
     negativeText: 'Cancel',
-    onPositiveClick: () => {
+    onPositiveClick: async () => {
       if (artifact.sessionUuid && artifact.messageUuid) {
         const sessionMessages = messageStore.getChatSessionDataByUuid(artifact.sessionUuid)
         const targetMessage = sessionMessages?.find(entry => entry.uuid === artifact.messageUuid)
-        if (targetMessage?.artifacts)
+        if (targetMessage?.artifacts) {
+          const previousArtifacts = targetMessage.artifacts
           targetMessage.artifacts = targetMessage.artifacts.filter(entry => entry.uuid !== artifact.uuid)
+          try {
+            await updateChatData(targetMessage)
+          }
+          catch {
+            targetMessage.artifacts = previousArtifacts
+            message.error('Failed to delete artifact')
+            return
+          }
+        }
       }
 
       artifacts.value = artifacts.value.filter(entry => entry.id !== artifact.id)
@@ -172,7 +192,7 @@ const deleteArtifact = (artifact: ArtifactRecord) => {
   })
 }
 
-const saveEdit = () => {
+const saveEdit = async () => {
   if (!editingArtifact.value || !originalArtifact.value)
     return
 
@@ -181,9 +201,18 @@ const saveEdit = () => {
     const targetMessage = sessionMessages?.find(entry => entry.uuid === editingArtifact.value?.messageUuid)
     const targetArtifact = targetMessage?.artifacts?.find(entry => entry.uuid === editingArtifact.value?.uuid)
     if (targetArtifact) {
+      const previous = { ...targetArtifact }
       targetArtifact.title = editingArtifact.value.title
       targetArtifact.content = editingArtifact.value.content
       targetArtifact.language = editingArtifact.value.language
+      try {
+        await updateChatData(targetMessage!)
+      }
+      catch {
+        Object.assign(targetArtifact, previous)
+        message.error('Failed to save artifact')
+        return
+      }
     }
   }
 
@@ -487,6 +516,26 @@ watch(
 .gallery-icon,
 .type-icon {
   font-size: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .artifact-gallery {
+    padding: 0.75rem;
+  }
+
+  .gallery-header,
+  .card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .artifact-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-actions {
+    flex-wrap: wrap;
+  }
 }
 
 .modal-actions {

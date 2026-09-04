@@ -16,3 +16,22 @@ func TestExtractArtifactsUsesInjectedIDGenerator(t *testing.T) {
 		t.Fatalf("unexpected artifact: %#v", artifacts[0])
 	}
 }
+
+func TestExtractArtifactsTreatsLegacyExecutableMarkerAsStaticCode(t *testing.T) {
+	artifacts := extractArtifacts("```python <!-- executable: Report -->\nprint('hello')\n```", func() string { return "artifact-id" })
+
+	if len(artifacts) != 1 {
+		t.Fatalf("expected one artifact, got %d", len(artifacts))
+	}
+	if artifacts[0].Type != "code" || artifacts[0].Language != "python" {
+		t.Fatalf("expected static Python code artifact, got %#v", artifacts[0])
+	}
+}
+
+func TestExtractArtifactsAcceptsCaseInsensitiveLanguageAndCRLF(t *testing.T) {
+	artifacts := extractArtifacts("```HTML <!-- artifact: Demo -->\r\n<p>Hello</p>\r\n```", func() string { return "artifact-id" })
+
+	if len(artifacts) != 1 || artifacts[0].Type != "html" {
+		t.Fatalf("expected HTML artifact, got %#v", artifacts)
+	}
+}

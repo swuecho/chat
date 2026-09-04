@@ -37,7 +37,7 @@ export function useStreamHandling() {
 
     if ((event.type === 'delta' || event.type === 'reasoning_delta') && event.delta) {
       newText += event.delta
-      artifacts = extractArtifacts(newText)
+      artifacts = extractArtifacts(newText, artifacts)
     }
 
     const updateData: any = {

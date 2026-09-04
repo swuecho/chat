@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
+import { ref } from 'vue'
 import { useMessage } from 'naive-ui'
 import ArtifactHeader from './ArtifactHeader.vue'
 import ArtifactContent from './ArtifactContent.vue'
@@ -15,11 +15,7 @@ defineProps<Props>()
 
 const message = useMessage()
 const expandedArtifacts = ref<Set<string>>(new Set())
-const editingArtifacts = ref<Set<string>>(new Set())
-const editableContent = reactive<Record<string, string>>({})
-
 const isExpanded = (uuid: string) => expandedArtifacts.value.has(uuid)
-const isEditing = (uuid: string) => editingArtifacts.value.has(uuid)
 
 const toggleExpanded = (uuid: string) => {
   if (expandedArtifacts.value.has(uuid)) {
@@ -51,30 +47,6 @@ const openInNewWindow = (content: string) => {
   newWindow.document.write(sanitizeHtml(content))
   newWindow.document.close()
 }
-
-const toggleEdit = (uuid: string, content: string) => {
-  if (editingArtifacts.value.has(uuid)) {
-    editingArtifacts.value.delete(uuid)
-    return
-  }
-
-  editingArtifacts.value.add(uuid)
-  editableContent[uuid] = content
-}
-
-const saveEdit = (uuid: string) => {
-  editingArtifacts.value.delete(uuid)
-  message.success('Changes saved')
-}
-
-const cancelEdit = (uuid: string) => {
-  editingArtifacts.value.delete(uuid)
-  delete editableContent[uuid]
-}
-
-const updateEditableContent = (uuid: string, content: string) => {
-  editableContent[uuid] = content
-}
 </script>
 
 <template>
@@ -91,12 +63,6 @@ const updateEditableContent = (uuid: string, content: string) => {
       <ArtifactContent
         v-if="isExpanded(artifact.uuid)"
         :artifact="artifact"
-        :is-editing="isEditing(artifact.uuid)"
-        :editable-content="editableContent[artifact.uuid]"
-        @toggle-edit="toggleEdit"
-        @save-edit="saveEdit"
-        @cancel-edit="cancelEdit"
-        @update-editable-content="updateEditableContent"
       />
     </div>
   </div>

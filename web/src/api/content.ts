@@ -17,6 +17,7 @@ function toSimpleChatMessage(chat: Chat.Message): SimpleChatMessage {
     isPin: chat.isPin ?? false,
     isPrompt: chat.isPrompt ?? false,
     artifacts: chat.artifacts,
+    suggestedQuestions: chat.suggestedQuestions,
   }
 }
 

@@ -14,7 +14,6 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:modelValue': [value: string]
-  'run': []
 }>()
 
 const message = useMessage()
@@ -155,12 +154,6 @@ const onKeyDown = (event: KeyboardEvent) => {
   if (event.ctrlKey && event.key === 'y') {
     event.preventDefault()
     redo()
-  }
-
-  // Handle Ctrl+Enter (run)
-  if (event.ctrlKey && event.key === 'Enter') {
-    event.preventDefault()
-    emit('run')
   }
 }
 

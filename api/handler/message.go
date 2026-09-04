@@ -174,8 +174,17 @@ func (h *ChatMessageHandler) UpdateChatMessageByUUID(r *http.Request, simpleMsg 
 	if err != nil {
 		return messageHTTPResponse{}, err
 	}
+	artifacts, err := json.Marshal(simpleMsg.Artifacts)
+	if err != nil {
+		return messageHTTPResponse{}, dto.ErrValidationInvalidInput("invalid artifacts").WithDebugInfo(err.Error())
+	}
+	suggestedQuestions, err := json.Marshal(simpleMsg.SuggestedQuestions)
+	if err != nil {
+		return messageHTTPResponse{}, dto.ErrValidationInvalidInput("invalid suggested questions").WithDebugInfo(err.Error())
+	}
 	message, err := h.service.UpdateChatMessageByUUID(r.Context(), svc.UpdateChatMessageByUUIDInput{
-		UUID: simpleMsg.Uuid, Content: simpleMsg.Text, TokenCount: int32(tokenCount), IsPin: simpleMsg.IsPin, UserID: userID,
+		UUID: simpleMsg.Uuid, Content: simpleMsg.Text, TokenCount: int32(tokenCount), IsPin: simpleMsg.IsPin,
+		Artifacts: artifacts, SuggestedQuestions: suggestedQuestions, UserID: userID,
 	})
 	if err != nil {
 		return messageHTTPResponse{}, dto.WrapError(dto.MapDatabaseError(err), "Failed to update chat message")

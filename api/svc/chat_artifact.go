@@ -13,7 +13,7 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 
 	// Pattern for HTML artifacts (check specific types first)
 	// Example: ```html <!-- artifact: Interactive Demo -->
-	htmlArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `html\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	htmlArtifactRegex := regexp.MustCompile(`(?is)` + "```" + `html\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n` + "```")
 	htmlMatches := htmlArtifactRegex.FindAllStringSubmatch(content, -1)
 
 	for _, match := range htmlMatches {
@@ -31,7 +31,7 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 
 	// Pattern for SVG artifacts
 	// Example: ```svg <!-- artifact: Logo Design -->
-	svgArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `svg\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	svgArtifactRegex := regexp.MustCompile(`(?is)` + "```" + `svg\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n` + "```")
 	svgMatches := svgArtifactRegex.FindAllStringSubmatch(content, -1)
 
 	for _, match := range svgMatches {
@@ -50,7 +50,7 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 
 	// Pattern for Mermaid diagrams
 	// Example: ```mermaid <!-- artifact: Flow Chart -->
-	mermaidArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `mermaid\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	mermaidArtifactRegex := regexp.MustCompile(`(?is)` + "```" + `mermaid\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n` + "```")
 	mermaidMatches := mermaidArtifactRegex.FindAllStringSubmatch(content, -1)
 
 	for _, match := range mermaidMatches {
@@ -69,7 +69,7 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 
 	// Pattern for JSON artifacts
 	// Example: ```json <!-- artifact: API Response -->
-	jsonArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `json\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	jsonArtifactRegex := regexp.MustCompile(`(?is)` + "```" + `json\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n` + "```")
 	jsonMatches := jsonArtifactRegex.FindAllStringSubmatch(content, -1)
 
 	for _, match := range jsonMatches {
@@ -88,11 +88,11 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 
 	// Pattern for executable code artifacts
 	// Example: ```javascript <!-- executable: Calculator -->
-	executableArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `(\w+)?\s*<!--\s*executable:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	executableArtifactRegex := regexp.MustCompile(`(?is)` + "```" + `([\w+-]+)?\s*<!--\s*executable:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n` + "```")
 	executableMatches := executableArtifactRegex.FindAllStringSubmatch(content, -1)
 
 	for _, match := range executableMatches {
-		language := match[1]
+		language := strings.ToLower(match[1])
 		title := strings.TrimSpace(match[2])
 		artifactContent := strings.TrimSpace(match[3])
 
@@ -105,11 +105,12 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 			language = "javascript" // Default to JavaScript for executable code
 		}
 
-		// Only create executable artifacts for supported languages
+		// Execution is intentionally out of scope. Preserve legacy executable
+		// markers as ordinary code artifacts so they always remain viewable.
 		if isExecutableLanguage(language) {
 			artifact := domain.Artifact{
 				UUID:     newID(),
-				Type:     "executable-code",
+				Type:     "code",
 				Title:    title,
 				Content:  artifactContent,
 				Language: language,
@@ -120,11 +121,11 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 
 	// Pattern for general code artifacts (exclude html and svg which are handled above)
 	// Example: ```javascript <!-- artifact: React Component -->
-	codeArtifactRegex := regexp.MustCompile(`(?s)` + "```" + `(\w+)?\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\n(.*?)\n` + "```")
+	codeArtifactRegex := regexp.MustCompile(`(?is)` + "```" + `([\w+-]+)?\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n` + "```")
 	matches := codeArtifactRegex.FindAllStringSubmatch(content, -1)
 
 	for _, match := range matches {
-		language := match[1]
+		language := strings.ToLower(match[1])
 		title := strings.TrimSpace(match[2])
 		artifactContent := strings.TrimSpace(match[3])
 
@@ -137,18 +138,9 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 			language = "text"
 		}
 
-		// Check if this should be an executable artifact for supported languages
-		artifactType := "code"
-		if isExecutableLanguage(language) {
-			// For supported languages, make them executable by default if they contain certain patterns
-			if containsExecutablePatterns(artifactContent) {
-				artifactType = "executable-code"
-			}
-		}
-
 		artifact := domain.Artifact{
 			UUID:     newID(),
-			Type:     artifactType,
+			Type:     "code",
 			Title:    title,
 			Content:  artifactContent,
 			Language: language,

@@ -87,6 +87,7 @@ export type SimpleChatMessage = {
         content: string;
         language?: string;
     }>;
+    suggestedQuestions?: Array<string>;
 };
 
 export type TokenResult = {
