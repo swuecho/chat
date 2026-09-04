@@ -9,6 +9,7 @@ import {
   NInput,
   NModal,
   NSwitch,
+  useDialog,
   useMessage,
 } from 'naive-ui'
 import WorkspaceCard from './WorkspaceCard.vue'
@@ -30,6 +31,7 @@ const emit = defineEmits<Emits>()
 
 const workspaceStore = useWorkspaceStore()
 const message = useMessage()
+const dialog = useDialog()
 
 const searchQuery = ref('')
 const showCreateModal = ref(false)
@@ -72,18 +74,72 @@ function handleEditWorkspace(workspace: Chat.Workspace) {
 }
 
 function handleDeleteWorkspace(workspace: Chat.Workspace) {
-  // TODO: Implement delete functionality
-  message.info(`Delete ${workspace.name} - Feature coming soon!`)
+  if (workspace.isDefault) {
+    message.warning(t('workspace.cannotDeleteDefault'))
+    return
+  }
+
+  dialog.warning({
+    title: t('common.warning'),
+    content: t('workspace.deleteConfirmNamed', { name: workspace.name }),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+    async onPositiveClick() {
+      try {
+        await workspaceStore.deleteWorkspace(workspace.uuid)
+        message.success(t('workspace.deleted'))
+      }
+      catch (error) {
+        console.error('Failed to delete workspace:', error)
+        message.error(t('workspace.deleteError'))
+      }
+    },
+  })
 }
 
-function handleDuplicateWorkspace(workspace: Chat.Workspace) {
-  // TODO: Implement duplicate functionality
-  message.info(`Duplicate ${workspace.name} - Feature coming soon!`)
+function duplicateName(workspace: Chat.Workspace): string {
+  const baseName = t('workspace.copyName', { name: workspace.name })
+  const firstCandidate = baseName.slice(0, 50)
+  const existingNames = new Set(workspaces.value.map(item => item.name.toLocaleLowerCase()))
+  if (!existingNames.has(firstCandidate.toLocaleLowerCase()))
+    return firstCandidate
+
+  for (let copyNumber = 2; ; copyNumber++) {
+    const suffix = ` ${copyNumber}`
+    const candidate = `${baseName.slice(0, 50 - suffix.length)}${suffix}`
+    if (!existingNames.has(candidate.toLocaleLowerCase()))
+      return candidate
+  }
 }
 
-function handleSetDefaultWorkspace(workspace: Chat.Workspace) {
-  // TODO: Implement set default functionality
-  message.info(`Set ${workspace.name} as default - Feature coming soon!`)
+async function handleDuplicateWorkspace(workspace: Chat.Workspace) {
+  try {
+    const duplicate = await workspaceStore.createWorkspace(
+      duplicateName(workspace),
+      workspace.description || '',
+      workspace.color,
+      workspace.icon,
+    )
+    message.success(t('workspace.duplicateSuccess', { name: duplicate.name }))
+  }
+  catch (error) {
+    console.error('Failed to duplicate workspace:', error)
+    message.error(t('workspace.duplicateError'))
+  }
+}
+
+async function handleSetDefaultWorkspace(workspace: Chat.Workspace) {
+  if (workspace.isDefault)
+    return
+
+  try {
+    await workspaceStore.setDefaultWorkspace(workspace.uuid)
+    message.success(t('workspace.defaultSuccess', { name: workspace.name }))
+  }
+  catch (error) {
+    console.error('Failed to set default workspace:', error)
+    message.error(t('workspace.defaultError'))
+  }
 }
 
 async function handleWorkspaceCreated(workspace: Chat.Workspace) {
