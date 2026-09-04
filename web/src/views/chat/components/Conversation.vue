@@ -239,9 +239,9 @@ function handleUseQuestion(question: string) {
             </div>
           </template>
         </div>
-        <div v-else class="h-full">
-          <ArtifactGallery />
-        </div>
+        <KeepAlive>
+          <ArtifactGallery v-if="showArtifactGallery" class="h-full" @close="showArtifactGallery = false" />
+        </KeepAlive>
         <JumpToBottom
           v-if="dataSources.length > 1 && !showArtifactGallery" target-selector="#scrollRef"
           :scroll-threshold-show="200"

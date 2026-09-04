@@ -19,6 +19,9 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 	for _, match := range htmlMatches {
 		title := strings.TrimSpace(match[1])
 		artifactContent := strings.TrimSpace(match[2])
+		if len(title) > maxArtifactTitleBytes || len(artifactContent) > maxArtifactContentBytes {
+			continue
+		}
 		artifact := domain.Artifact{
 			UUID:     newID(),
 			Type:     "html",
@@ -38,6 +41,9 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 		title := strings.TrimSpace(match[1])
 		artifactContent := strings.TrimSpace(match[2])
 
+		if len(title) > maxArtifactTitleBytes || len(artifactContent) > maxArtifactContentBytes {
+			continue
+		}
 		artifact := domain.Artifact{
 			UUID:     newID(),
 			Type:     "svg",
@@ -57,6 +63,9 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 		title := strings.TrimSpace(match[1])
 		artifactContent := strings.TrimSpace(match[2])
 
+		if len(title) > maxArtifactTitleBytes || len(artifactContent) > maxArtifactContentBytes {
+			continue
+		}
 		artifact := domain.Artifact{
 			UUID:     newID(),
 			Type:     "mermaid",
@@ -76,6 +85,9 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 		title := strings.TrimSpace(match[1])
 		artifactContent := strings.TrimSpace(match[2])
 
+		if len(title) > maxArtifactTitleBytes || len(artifactContent) > maxArtifactContentBytes {
+			continue
+		}
 		artifact := domain.Artifact{
 			UUID:     newID(),
 			Type:     "json",
@@ -105,6 +117,9 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 			language = "text"
 		}
 
+		if len(title) > maxArtifactTitleBytes || len(artifactContent) > maxArtifactContentBytes {
+			continue
+		}
 		artifact := domain.Artifact{
 			UUID:     newID(),
 			Type:     "code",

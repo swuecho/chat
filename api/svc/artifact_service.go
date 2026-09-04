@@ -5,11 +5,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/pkg/util"
 	"github.com/swuecho/chat_backend/sqlc_queries"
+)
+
+const (
+	maxArtifactTitleBytes   = 200
+	maxArtifactContentBytes = 1024 * 1024
 )
 
 type ArtifactRecord struct {
@@ -63,6 +69,20 @@ func (s *ArtifactService) List(ctx context.Context, query ArtifactPageQuery) (Ar
 }
 
 func (s *ArtifactService) Update(ctx context.Context, command UpdateArtifactCommand) error {
+	command.Title = strings.TrimSpace(command.Title)
+	command.Language = strings.ToLower(strings.TrimSpace(command.Language))
+	if command.Title == "" {
+		return domain.Invalid("artifact title is required")
+	}
+	if len(command.Title) > maxArtifactTitleBytes {
+		return domain.Invalid("artifact title is too long")
+	}
+	if len(command.Content) > maxArtifactContentBytes {
+		return domain.Invalid("artifact content exceeds the 1 MB limit")
+	}
+	if len(command.Language) > 64 {
+		return domain.Invalid("artifact language is too long")
+	}
 	_, err := s.q.UpdateArtifact(ctx, sqlc_queries.UpdateArtifactParams{ArtifactUuid: command.UUID, Title: command.Title,
 		Content: command.Content, Language: command.Language, UserID: command.UserID})
 	if errors.Is(err, sql.ErrNoRows) {

@@ -5,7 +5,6 @@ import ArtifactHeader from './ArtifactHeader.vue'
 import ArtifactContent from './ArtifactContent.vue'
 import { type Artifact } from '@/utils/artifacts'
 import { copyText } from '@/utils/format'
-import { sanitizeHtml } from '@/utils/sanitize'
 
 interface Props {
   artifacts: Artifact[]
@@ -39,13 +38,16 @@ const copyContent = async (content: string) => {
   }
 }
 
-const openInNewWindow = (content: string) => {
-  const newWindow = window.open('', '_blank')
-  if (!newWindow)
-    return
-
-  newWindow.document.write(sanitizeHtml(content))
-  newWindow.document.close()
+const downloadContent = (artifact: Artifact) => {
+  const extensions: Record<string, string> = { javascript: 'js', typescript: 'ts', python: 'py', markdown: 'md', text: 'txt' }
+  const extension = extensions[artifact.language || ''] || artifact.language || artifact.type || 'txt'
+  const filename = (artifact.title || 'artifact').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '') || 'artifact'
+  const url = URL.createObjectURL(new Blob([artifact.content], { type: 'text/plain;charset=utf-8' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `${filename}.${extension}`
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 </script>
 
@@ -57,7 +59,7 @@ const openInNewWindow = (content: string) => {
         :is-expanded="isExpanded(artifact.uuid)"
         @toggle-expand="toggleExpanded"
         @copy-content="copyContent"
-        @open-in-new-window="openInNewWindow"
+        @download-content="downloadContent"
       />
 
       <ArtifactContent

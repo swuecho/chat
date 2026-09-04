@@ -13,7 +13,7 @@ defineProps<Props>()
 defineEmits<{
   'toggle-expand': [uuid: string]
   'copy-content': [content: string]
-  'open-in-new-window': [content: string]
+  'download-content': [artifact: Artifact]
 }>()
 
 const getArtifactIcon = (type: string) => {
@@ -38,20 +38,15 @@ const getArtifactIcon = (type: string) => {
     </div>
     <div class="artifact-actions">
       <NButton size="small" @click="$emit('toggle-expand', artifact.uuid)">
-        <span class="hidden sm:inline">{{ isExpanded ? 'Collapse' : 'Expand' }}</span>
+        <span class="hidden sm:inline">{{ isExpanded ? $t('artifact.collapse') : $t('artifact.expand') }}</span>
         <Icon :icon="isExpanded ? 'ri:arrow-up-line' : 'ri:arrow-down-line'" class="sm:hidden" />
       </NButton>
 
-      <NButton
-        v-if="artifact.type === 'html'"
-        size="small"
-        title="Open in new window"
-        @click="$emit('open-in-new-window', artifact.content)"
-      >
-        <Icon icon="ri:external-link-line" />
+      <NButton size="small" :title="$t('artifact.download')" :aria-label="$t('artifact.download')" @click="$emit('download-content', artifact)">
+        <Icon icon="ri:download-line" />
       </NButton>
 
-      <NButton size="small" @click="$emit('copy-content', artifact.content)">
+      <NButton size="small" :title="$t('artifact.copy')" :aria-label="$t('artifact.copy')" @click="$emit('copy-content', artifact.content)">
         <Icon icon="ri:file-copy-line" />
       </NButton>
     </div>

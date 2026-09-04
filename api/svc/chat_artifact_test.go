@@ -1,6 +1,9 @@
 package svc
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestExtractArtifactsUsesInjectedIDGenerator(t *testing.T) {
 	nextID := func() string { return "artifact-id" }
@@ -30,5 +33,12 @@ func TestExtractArtifactsAcceptsCaseInsensitiveLanguageAndCRLF(t *testing.T) {
 
 	if len(artifacts) != 1 || artifacts[0].Type != "html" {
 		t.Fatalf("expected HTML artifact, got %#v", artifacts)
+	}
+}
+
+func TestExtractArtifactsSkipsOversizedContent(t *testing.T) {
+	content := "```text <!-- artifact: Too large -->\n" + strings.Repeat("x", maxArtifactContentBytes+1) + "\n```"
+	if artifacts := extractArtifacts(content, func() string { return "artifact-id" }); len(artifacts) != 0 {
+		t.Fatalf("expected oversized artifact to be skipped, got %#v", artifacts)
 	}
 }

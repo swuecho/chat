@@ -3,11 +3,31 @@ package svc
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/swuecho/chat_backend/pkg/util"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
+
+func TestArtifactServiceRejectsInvalidUpdates(t *testing.T) {
+	service := NewArtifactService(nil)
+	for _, test := range []struct {
+		name    string
+		command UpdateArtifactCommand
+	}{
+		{name: "blank title", command: UpdateArtifactCommand{Title: "  "}},
+		{name: "long title", command: UpdateArtifactCommand{Title: strings.Repeat("a", maxArtifactTitleBytes+1)}},
+		{name: "large content", command: UpdateArtifactCommand{Title: "Valid", Content: strings.Repeat("a", maxArtifactContentBytes+1)}},
+		{name: "long language", command: UpdateArtifactCommand{Title: "Valid", Language: strings.Repeat("a", 65)}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if err := service.Update(context.Background(), test.command); err == nil {
+				t.Fatal("expected validation error")
+			}
+		})
+	}
+}
 
 func TestArtifactServiceCatalogAndMutations(t *testing.T) {
 	ctx := context.Background()
@@ -38,8 +58,14 @@ func TestArtifactServiceCatalogAndMutations(t *testing.T) {
 	if err := service.Update(ctx, UpdateArtifactCommand{UUID: artifactUUID, Title: "Forbidden", Content: "changed", Language: "html", UserID: 2}); err == nil {
 		t.Fatal("another user updated the artifact")
 	}
+	if _, err := service.Duplicate(ctx, artifactUUID, 2); err == nil {
+		t.Fatal("another user duplicated the artifact")
+	}
+	if err := service.Delete(ctx, artifactUUID, 2); err == nil {
+		t.Fatal("another user deleted the artifact")
+	}
 
-	if err := service.Update(ctx, UpdateArtifactCommand{UUID: artifactUUID, Title: "Updated", Content: "<p>two</p>", Language: "html", UserID: 1}); err != nil {
+	if err := service.Update(ctx, UpdateArtifactCommand{UUID: artifactUUID, Title: "  Updated  ", Content: "<p>two</p>", Language: " HTML ", UserID: 1}); err != nil {
 		t.Fatal(err)
 	}
 	duplicateUUID, err := service.Duplicate(ctx, artifactUUID, 1)

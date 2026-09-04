@@ -6,6 +6,8 @@ import ArtifactViewer from './Message/ArtifactViewer.vue'
 import ArtifactEditor from './Message/ArtifactEditor.vue'
 import { useMessageStore, useSessionStore } from '@/store'
 import { deleteArtifact as deleteArtifactRequest, duplicateArtifact as duplicateArtifactRequest, listArtifacts, updateArtifact } from '@/api/generated_client'
+import { useWorkspaceRouting } from '@/hooks/useWorkspaceRouting'
+import { t } from '@/locales'
 
 interface ArtifactRecord {
   uuid: string
@@ -21,15 +23,17 @@ interface ArtifactRecord {
   sessionTitle?: string
 }
 
+const emit = defineEmits<{ close: [] }>()
+
 const message = useMessage()
 const dialog = useDialog()
 const messageStore = useMessageStore()
 const sessionStore = useSessionStore()
+const { navigateToSession } = useWorkspaceRouting()
 
 const showFilters = ref(false)
 const showPreviewModal = ref(false)
 const showEditModal = ref(false)
-const showViewModal = ref(false)
 
 const searchQuery = ref('')
 const selectedType = ref('')
@@ -42,17 +46,21 @@ const loading = ref(false)
 
 const artifacts = ref<ArtifactRecord[]>([])
 const previewingArtifact = ref<ArtifactRecord | null>(null)
-const viewingArtifact = ref<ArtifactRecord | null>(null)
 const editingArtifact = ref<ArtifactRecord | null>(null)
 const originalArtifact = ref<ArtifactRecord | null>(null)
+const canSaveEdit = computed(() => Boolean(
+  editingArtifact.value?.title.trim()
+  && new Blob([editingArtifact.value.title]).size <= 200
+  && new Blob([editingArtifact.value.content]).size <= 1024 * 1024,
+))
 
 const typeOptions = computed(() => [
-  { label: 'All Types', value: '' },
+  { label: t('artifact.allTypes'), value: '' },
   ...['code', 'html', 'svg', 'mermaid', 'json', 'markdown'].map(type => ({ label: type, value: type })),
 ])
 
 const languageOptions = computed(() => [
-  { label: 'All Languages', value: '' },
+  { label: t('artifact.allLanguages'), value: '' },
   ...['javascript', 'typescript', 'python', 'html', 'svg', 'mermaid', 'json', 'markdown', 'text'].map(language => ({
     label: language,
     value: language,
@@ -60,7 +68,7 @@ const languageOptions = computed(() => [
 ])
 
 const sessionOptions = computed(() => [
-  { label: 'All Sessions', value: '' },
+  { label: t('artifact.allSessions'), value: '' },
   ...sessionStore.getAllSessions().map(session => ({
     label: session.title,
     value: session.uuid,
@@ -92,10 +100,6 @@ const truncateCode = (code: string, limit: number) => (
   code.length <= limit ? code : `${code.slice(0, limit)}...`
 )
 
-const isViewableArtifact = (artifact: ArtifactRecord) => (
-  ['html', 'svg', 'mermaid', 'json', 'markdown'].includes(artifact.type)
-)
-
 const toViewerArtifact = (artifact: ArtifactRecord): Chat.Artifact => ({
   uuid: artifact.uuid,
   type: artifact.type,
@@ -115,17 +119,31 @@ const previewArtifact = (artifact: ArtifactRecord) => {
   showPreviewModal.value = true
 }
 
-const viewArtifact = (artifact: ArtifactRecord) => {
-  viewingArtifact.value = artifact
-  showViewModal.value = true
-}
-
 const editArtifact = (artifact: ArtifactRecord) => {
   previewingArtifact.value = null
   showPreviewModal.value = false
   originalArtifact.value = artifact
   editingArtifact.value = { ...artifact }
   showEditModal.value = true
+}
+
+const downloadArtifact = (artifact: ArtifactRecord) => {
+  const extensions: Record<string, string> = { javascript: 'js', typescript: 'ts', python: 'py', markdown: 'md', text: 'txt' }
+  const extension = extensions[artifact.language || ''] || artifact.language || artifact.type || 'txt'
+  const filename = (artifact.title || 'artifact').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '') || 'artifact'
+  const url = URL.createObjectURL(new Blob([artifact.content], { type: 'text/plain;charset=utf-8' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `${filename}.${extension}`
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+const openSourceChat = async (artifact: ArtifactRecord) => {
+  if (artifact.sessionUuid) {
+    await navigateToSession(artifact.sessionUuid)
+    emit('close')
+  }
 }
 
 const duplicateArtifact = async (artifact: ArtifactRecord) => {
@@ -142,19 +160,19 @@ const duplicateArtifact = async (artifact: ArtifactRecord) => {
       }]
     }
     await loadArtifacts()
-    message.success('Artifact duplicated successfully')
+    message.success(t('artifact.duplicateSuccess'))
   }
   catch {
-    message.error('Failed to duplicate artifact')
+    message.error(t('artifact.duplicateFailed'))
   }
 }
 
 const deleteArtifact = (artifact: ArtifactRecord) => {
   dialog.warning({
-    title: 'Delete Artifact',
-    content: `Delete "${artifact.title}"?`,
-    positiveText: 'Delete',
-    negativeText: 'Cancel',
+    title: t('artifact.delete'),
+    content: t('artifact.deleteConfirm', { title: artifact.title }),
+    positiveText: t('artifact.delete'),
+    negativeText: t('artifact.cancel'),
     onPositiveClick: async () => {
       try {
         await deleteArtifactRequest({ path: { uuid: artifact.uuid } })
@@ -162,10 +180,10 @@ const deleteArtifact = (artifact: ArtifactRecord) => {
         if (targetMessage?.artifacts)
           targetMessage.artifacts = targetMessage.artifacts.filter(entry => entry.uuid !== artifact.uuid)
         await loadArtifacts()
-        message.success('Artifact deleted successfully')
+        message.success(t('artifact.deleteSuccess'))
       }
       catch {
-        message.error('Failed to delete artifact')
+        message.error(t('artifact.deleteFailed'))
       }
     },
   })
@@ -193,7 +211,7 @@ const saveEdit = async () => {
     }
   }
   catch {
-    message.error('Failed to save artifact')
+    message.error(t('artifact.saveFailed'))
     return
   }
 
@@ -206,7 +224,7 @@ const saveEdit = async () => {
   editingArtifact.value = null
   originalArtifact.value = null
   await loadArtifacts()
-  message.success('Artifact saved successfully')
+  message.success(t('artifact.saveSuccess'))
 }
 
 const cancelEdit = () => {
@@ -246,7 +264,7 @@ const loadArtifacts = async () => {
     artifacts.value = result.items.map(artifact => ({ ...artifact, id: artifact.uuid }))
   }
   catch {
-    message.error('Failed to load artifacts')
+    message.error(t('artifact.loadFailed'))
   }
   finally {
     loading.value = false
@@ -283,7 +301,7 @@ watch(searchQuery, () => {
     <div class="gallery-header">
       <div class="gallery-title">
         <Icon icon="ri:gallery-line" class="gallery-icon" />
-        <h2>Artifact Gallery</h2>
+        <h2>{{ $t('artifact.gallery') }}</h2>
         <NBadge :value="totalArtifacts" type="info" />
       </div>
       <div class="gallery-actions">
@@ -291,20 +309,20 @@ watch(searchQuery, () => {
           <template #icon>
             <Icon icon="ri:filter-line" />
           </template>
-          Filters
+          {{ $t('artifact.filters') }}
         </NButton>
         <NButton size="small" @click="exportArtifacts">
           <template #icon>
             <Icon icon="ri:download-line" />
           </template>
-          Export Page
+          {{ $t('artifact.exportPage') }}
         </NButton>
       </div>
     </div>
 
     <div v-if="showFilters" class="filters-panel">
       <div class="filters-grid">
-        <NInput v-model:value="searchQuery" placeholder="Search artifacts..." clearable>
+        <NInput v-model:value="searchQuery" :placeholder="$t('artifact.search')" clearable>
           <template #prefix>
             <Icon icon="ri:search-line" />
           </template>
@@ -318,8 +336,8 @@ watch(searchQuery, () => {
     <NSpin :show="loading">
       <div v-if="filteredArtifacts.length === 0" class="empty-state">
         <Icon icon="ri:folder-open-line" class="empty-icon" />
-        <h3>No artifacts found</h3>
-        <p>Artifacts created in chat messages will appear here.</p>
+        <h3>{{ $t('artifact.empty') }}</h3>
+        <p>{{ $t('artifact.emptyDescription') }}</p>
       </div>
 
       <div v-else class="artifact-grid">
@@ -330,27 +348,32 @@ watch(searchQuery, () => {
               <span>{{ artifact.type }}</span>
             </div>
             <div class="card-actions">
-              <NButton size="tiny" circle @click="previewArtifact(artifact)">
+              <NButton size="tiny" circle :title="$t('artifact.preview')" :aria-label="$t('artifact.preview')" @click="previewArtifact(artifact)">
                 <template #icon>
                   <Icon icon="ri:eye-line" />
                 </template>
               </NButton>
-              <NButton v-if="isViewableArtifact(artifact)" size="tiny" circle @click="viewArtifact(artifact)">
+              <NButton size="tiny" circle :title="$t('artifact.openChat')" :aria-label="$t('artifact.openChat')" @click="openSourceChat(artifact)">
                 <template #icon>
                   <Icon icon="ri:external-link-line" />
                 </template>
               </NButton>
-              <NButton size="tiny" circle @click="editArtifact(artifact)">
+              <NButton size="tiny" circle :title="$t('artifact.edit')" :aria-label="$t('artifact.edit')" @click="editArtifact(artifact)">
                 <template #icon>
                   <Icon icon="ri:edit-line" />
                 </template>
               </NButton>
-              <NButton size="tiny" circle @click="duplicateArtifact(artifact)">
+              <NButton size="tiny" circle :title="$t('artifact.duplicate')" :aria-label="$t('artifact.duplicate')" @click="duplicateArtifact(artifact)">
                 <template #icon>
                   <Icon icon="ri:file-copy-line" />
                 </template>
               </NButton>
-              <NButton size="tiny" circle type="error" @click="deleteArtifact(artifact)">
+              <NButton size="tiny" circle :title="$t('artifact.download')" :aria-label="$t('artifact.download')" @click="downloadArtifact(artifact)">
+                <template #icon>
+                  <Icon icon="ri:download-line" />
+                </template>
+              </NButton>
+              <NButton size="tiny" circle type="error" :title="$t('artifact.delete')" :aria-label="$t('artifact.delete')" @click="deleteArtifact(artifact)">
                 <template #icon>
                   <Icon icon="ri:delete-bin-line" />
                 </template>
@@ -360,7 +383,7 @@ watch(searchQuery, () => {
 
           <div class="card-content">
             <h4 class="artifact-title">
-              {{ artifact.title || 'Untitled' }}
+              {{ artifact.title || $t('artifact.untitled') }}
             </h4>
             <div class="artifact-meta">
               <span>{{ formatDate(artifact.createdAt) }}</span>
@@ -378,15 +401,15 @@ watch(searchQuery, () => {
     </NSpin>
 
     <NModal v-model:show="showPreviewModal" :mask-closable="false">
-      <NCard style="width: 90vw; max-width: 1200px; max-height: 90vh" :title="previewingArtifact?.title || 'Artifact Preview'">
+      <NCard class="artifact-modal" :title="previewingArtifact?.title || $t('artifact.preview')">
         <ArtifactViewer v-if="previewingArtifact" :artifacts="[toViewerArtifact(previewingArtifact)]" />
         <template #footer>
           <div class="modal-actions">
             <NButton @click="showPreviewModal = false">
-              Close
+              {{ $t('artifact.close') }}
             </NButton>
             <NButton v-if="previewingArtifact" type="primary" @click="editArtifact(previewingArtifact)">
-              Edit
+              {{ $t('artifact.edit') }}
             </NButton>
           </div>
         </template>
@@ -394,34 +417,22 @@ watch(searchQuery, () => {
     </NModal>
 
     <NModal v-model:show="showEditModal" :mask-closable="false">
-      <NCard style="width: 90vw; max-width: 1200px; max-height: 90vh" :title="editingArtifact?.title || 'Edit Artifact'">
+      <NCard class="artifact-modal" :title="editingArtifact?.title || $t('artifact.edit')">
         <ArtifactEditor
           v-if="editingArtifact"
           v-model="editingArtifact.content"
           :language="editingArtifact.language || 'text'"
           :title="editingArtifact.title"
-          :artifact-id="editingArtifact.id"
+          @update:language="editingArtifact.language = $event"
+          @update:title="editingArtifact.title = $event"
         />
         <template #footer>
           <div class="modal-actions">
             <NButton @click="cancelEdit">
-              Cancel
+              {{ $t('artifact.cancel') }}
             </NButton>
-            <NButton type="primary" @click="saveEdit">
-              Save Changes
-            </NButton>
-          </div>
-        </template>
-      </NCard>
-    </NModal>
-
-    <NModal v-model:show="showViewModal" :mask-closable="false">
-      <NCard style="width: 90vw; max-width: 1200px; max-height: 90vh" :title="viewingArtifact?.title || 'View Artifact'">
-        <ArtifactViewer v-if="viewingArtifact" :artifacts="[toViewerArtifact(viewingArtifact)]" />
-        <template #footer>
-          <div class="modal-actions">
-            <NButton @click="showViewModal = false">
-              Close
+            <NButton type="primary" :disabled="!canSaveEdit" @click="saveEdit">
+              {{ $t('artifact.save') }}
             </NButton>
           </div>
         </template>
@@ -433,6 +444,12 @@ watch(searchQuery, () => {
 <style scoped>
 .artifact-gallery {
   padding: 1rem;
+}
+
+.artifact-modal {
+  width: min(1200px, 94vw);
+  max-height: 92vh;
+  overflow: auto;
 }
 
 .gallery-header,

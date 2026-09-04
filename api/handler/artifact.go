@@ -75,7 +75,7 @@ func (h *ArtifactHandler) list(r *http.Request, _ apicontract.NoBody) (artifactP
 	result, err := h.service.List(r.Context(), svc.ArtifactPageQuery{UserID: userID, Limit: page.Limit, Offset: page.Offset,
 		Search: strings.TrimSpace(r.URL.Query().Get("search")), Type: r.URL.Query().Get("type"), Language: r.URL.Query().Get("language"), SessionUUID: r.URL.Query().Get("sessionUuid")})
 	if err != nil {
-		return artifactPageHTTPResponse{}, dto.WrapError(dto.MapDatabaseError(err), "Failed to list artifacts")
+		return artifactPageHTTPResponse{}, dto.ToAPIError(err)
 	}
 	items := make([]artifactHTTPResponse, 0, len(result.Items))
 	for _, item := range result.Items {
@@ -96,7 +96,7 @@ func (h *ArtifactHandler) update(r *http.Request, request updateArtifactRequest)
 	}
 	err = h.service.Update(r.Context(), svc.UpdateArtifactCommand{UUID: mux.Vars(r)["uuid"], Title: request.Title, Content: request.Content, Language: request.Language, UserID: userID})
 	if err != nil {
-		return apicontract.NoBody{}, dto.WrapError(dto.MapDatabaseError(err), "Failed to update artifact")
+		return apicontract.NoBody{}, dto.ToAPIError(err)
 	}
 	return apicontract.NoBody{}, nil
 }
@@ -108,7 +108,7 @@ func (h *ArtifactHandler) delete(r *http.Request, _ apicontract.NoBody) (apicont
 	}
 	err = h.service.Delete(r.Context(), mux.Vars(r)["uuid"], userID)
 	if err != nil {
-		return apicontract.NoBody{}, dto.WrapError(dto.MapDatabaseError(err), "Failed to delete artifact")
+		return apicontract.NoBody{}, dto.ToAPIError(err)
 	}
 	return apicontract.NoBody{}, nil
 }
@@ -120,7 +120,7 @@ func (h *ArtifactHandler) duplicate(r *http.Request, _ apicontract.NoBody) (uuid
 	}
 	uuid, err := h.service.Duplicate(r.Context(), mux.Vars(r)["uuid"], userID)
 	if err != nil {
-		return uuidHTTPResponse{}, dto.WrapError(dto.MapDatabaseError(err), "Failed to duplicate artifact")
+		return uuidHTTPResponse{}, dto.ToAPIError(err)
 	}
 	return uuidHTTPResponse{UUID: uuid}, nil
 }

@@ -47,6 +47,20 @@ export const sanitizeHtml = (input: string): string => {
   }
 }
 
+export const sanitizeHtmlDocument = (input: string): string => {
+  try {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(input, 'text/html')
+    sanitizeElementTree(doc.documentElement, BLOCKED_TAGS)
+    const policy = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data: blob:">'
+    doc.head.insertAdjacentHTML('afterbegin', policy)
+    return `<!doctype html>${doc.documentElement.outerHTML}`
+  }
+  catch {
+    return ''
+  }
+}
+
 export const sanitizeSvg = (input: string): string => {
   try {
     const parser = new DOMParser()

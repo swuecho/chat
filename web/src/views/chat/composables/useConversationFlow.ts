@@ -6,7 +6,7 @@ import { useValidation } from './useValidation'
 import { useChat } from '@/views/chat/hooks/useChat'
 import { nowISO } from '@/utils/date'
 import type { AnswerStreamEvent } from '@/utils/sse'
-import { useSessionStore } from '@/store'
+import { useMessageStore, useSessionStore } from '@/store'
 
 interface ChatMessage {
   uuid: string
@@ -30,6 +30,7 @@ export function useConversationFlow(
   const { handleApiError, showErrorNotification } = useErrorHandling()
   const { validateChatMessage } = useValidation()
   const sessionStore = useSessionStore()
+  const messageStore = useMessageStore()
 
   async function refreshSessionTitle(sessionUuid: string): Promise<void> {
     const session = sessionStore.getChatSessionByUuid(sessionUuid)
@@ -158,6 +159,7 @@ export function useConversationFlow(
     }
 
     loading.value = true
+    let streamCompleted = false
     abortController.value = new AbortController()
     const responseIndex = await initializeChatResponse(dataSources)
     const handleAnswerEvent = async (event: AnswerStreamEvent, index: number) => {
@@ -174,6 +176,7 @@ export function useConversationFlow(
         handleAnswerEvent,
         abortController.value.signal,
       )
+      streamCompleted = true
     }
     catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -203,6 +206,7 @@ export function useConversationFlow(
             handleAnswerEvent,
             abortController.value.signal,
           )
+          streamCompleted = true
           return
         }
         catch (reconciliationError) {
@@ -214,6 +218,16 @@ export function useConversationFlow(
       handleStreamingError(error, responseIndex, dataSources)
     }
     finally {
+      if (streamCompleted) {
+        try {
+          // Streaming extraction is provisional. Reload the persisted message so
+          // server-generated artifact IDs and content are authoritative.
+          await messageStore.syncChatMessages(sessionUuid)
+        }
+        catch (error) {
+          console.error('Failed to reconcile persisted artifacts:', error)
+        }
+      }
       loading.value = false
       abortController.value = null
 
