@@ -247,6 +247,7 @@ See documentation: `docs/add_model_en.md` and `docs/add_model_zh.md`
 - Local development: `docs/dev_locally_en.md`, `docs/dev_locally_zh.md`
 - Deployment: `docs/deployment_en.md`, `docs/deployment_zh.md`
 - Ollama integration: `docs/ollama_en.md`, `docs/ollama_zh.md`
+- llmman integration (Ollama API on port 17434): `docs/llmman_en.md`
 - Snapshots vs ChatBots: `docs/snapshots_vs_chatbots_en.md`
 - Adding models: `docs/add_model_en.md`
 - Dev documentation: `docs/dev/` (VFS, error handling, integration guides)

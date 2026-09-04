@@ -52,6 +52,7 @@
 - [添加新模型指南](https://github.com/swuecho/chat/blob/master/docs/add_model_zh.md)
 - [快照 vs 聊天机器人](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_zh.md)
 - [使用本地Ollama](https://github.com/swuecho/chat/blob/master/docs/ollama_zh.md)
+- [使用本地llmman](https://github.com/swuecho/chat/blob/master/docs/llmman_en.md)
 - [OpenAI 兼容网关](https://github.com/swuecho/chat/blob/master/docs/gateway_en.md)
 - [论坛](https://github.com/swuecho/chat/discussions)
 
@@ -94,6 +95,7 @@
 - [Adding New Models Guide](https://github.com/swuecho/chat/blob/master/docs/add_model_en.md)
 - [Snapshots vs ChatBots](https://github.com/swuecho/chat/blob/master/docs/snapshots_vs_chatbots_en.md)
 - [Using Local Ollama](https://github.com/swuecho/chat/blob/master/docs/ollama_en.md)
+- [Using Local llmman](https://github.com/swuecho/chat/blob/master/docs/llmman_en.md)
 - [OpenAI-Compatible Gateway](https://github.com/swuecho/chat/blob/master/docs/gateway_en.md)
 - [Community Discussions](https://github.com/swuecho/chat/discussions)
 
