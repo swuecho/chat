@@ -1,7 +1,7 @@
 <script setup lang='ts'>
 import { computed, ref } from 'vue'
 import { NButton, NCard, NInput, NModal } from 'naive-ui'
-import ArtifactViewer from './ArtifactViewer.vue'
+import ArtifactViewer from './ArtifactViewerBase.vue'
 import SuggestedQuestions from './SuggestedQuestions.vue'
 import TextComponent from '@/views/components/Message/Text.vue'
 import AvatarComponent from '@/views/components/Avatar/MessageAvatar.vue'

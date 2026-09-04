@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { NBadge, NButton, NCard, NInput, NModal, NPagination, NSelect, NSpin, useDialog, useMessage } from 'naive-ui'
 import { Icon } from '@iconify/vue'
-import ArtifactViewer from './Message/ArtifactViewer.vue'
+import ArtifactViewer from './Message/ArtifactViewerBase.vue'
 import ArtifactEditor from './Message/ArtifactEditor.vue'
 import { useMessageStore, useSessionStore } from '@/store'
 import { deleteArtifact as deleteArtifactRequest, duplicateArtifact as duplicateArtifactRequest, listArtifacts, updateArtifact } from '@/api/generated_client'

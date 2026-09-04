@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	openai "github.com/sashabaranov/go-openai"
@@ -280,6 +279,3 @@ func simpleChatMessagesToMessages(simpleChatMessages []dto.SimpleChatMessage) []
 	}
 	return messages
 }
-
-// Ensure fmt is referenced (used transitively by imported packages for debug prints).
-var _ = fmt.Println
