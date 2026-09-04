@@ -24,16 +24,20 @@ CREATE TABLE IF NOT EXISTS chat_model (
   api_auth_key TEXT DEFAULT '' NOT NULL,
   user_id INTEGER NOT NULL default 1,
   enable_per_mode_ratelimit BOOLEAN DEFAULT false NOT NULL,
-  max_token INTEGER NOT NULL default 120,
-  default_token INTEGER NOT NULL default 120,
+  max_token INTEGER,
+  default_token INTEGER,
   order_number INTEGER NOT NULL default 1,
   http_time_out INTEGER NOT NULL default 120
 );
 
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS user_id INTEGER NOT NULL default 1;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS enable_per_mode_ratelimit BOOLEAN DEFAULT false NOT NULL;
-ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS max_token INTEGER NOT NULL default 4096;
-ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS default_token INTEGER NOT NULL default 2048;
+ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS max_token INTEGER;
+ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS default_token INTEGER;
+ALTER TABLE chat_model ALTER COLUMN max_token DROP DEFAULT;
+ALTER TABLE chat_model ALTER COLUMN max_token DROP NOT NULL;
+ALTER TABLE chat_model ALTER COLUMN default_token DROP DEFAULT;
+ALTER TABLE chat_model ALTER COLUMN default_token DROP NOT NULL;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS order_number INTEGER NOT NULL default 1;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS http_time_out INTEGER NOT NULL default 120;
 ALTER TABLE chat_model ADD COLUMN IF NOT EXISTS is_enable BOOLEAN DEFAULT true NOT NULL;

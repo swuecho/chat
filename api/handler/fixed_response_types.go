@@ -17,8 +17,8 @@ type chatModelHTTPResponse struct {
 	APIAuthKey              string `json:"apiAuthKey"`
 	UserID                  int32  `json:"userId"`
 	EnablePerModelRateLimit bool   `json:"enablePerModeRatelimit"`
-	MaxToken                int32  `json:"maxToken"`
-	DefaultToken            int32  `json:"defaultToken"`
+	MaxToken                *int32 `json:"maxToken,omitempty"`
+	DefaultToken            *int32 `json:"defaultToken,omitempty"`
 	OrderNumber             int32  `json:"orderNumber"`
 	HTTPTimeout             int32  `json:"httpTimeOut"`
 	IsEnable                bool   `json:"isEnable"`

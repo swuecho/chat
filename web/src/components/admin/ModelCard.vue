@@ -88,8 +88,8 @@ function handleUpdate() {
       data: {
         ...editData.value,
         orderNumber: parseInt(editData.value.orderNumber?.toString() || '0'),
-        defaultToken: parseInt(editData.value.defaultToken || '0'),
-        maxToken: parseInt(editData.value.maxToken || '0'),
+        defaultToken: editData.value.defaultToken,
+        maxToken: editData.value.maxToken,
       },
     }
     chatModelMutation.mutate(updatedData)
@@ -137,8 +137,6 @@ function copyJson() {
     enablePerModeRatelimit: editData.value.enablePerModeRatelimit,
     isEnable: editData.value.isEnable,
     orderNumber: editData.value.orderNumber,
-    defaultToken: editData.value.defaultToken,
-    maxToken: editData.value.maxToken,
   }
 
   const text = JSON.stringify(dataToCopy, null, 2)
@@ -285,22 +283,6 @@ function copyJson() {
                   />
                 </NFormItem>
               </div>
-            </div>
-
-            <!-- Token Configuration -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <NFormItem :label="t('admin.chat_model.defaultToken')">
-                <NInput
-                  v-model:value="editData.defaultToken" placeholder="1000"
-                  :disabled="chatModelMutation.isPending.value"
-                />
-              </NFormItem>
-              <NFormItem :label="t('admin.chat_model.maxToken')">
-                <NInput
-                  v-model:value="editData.maxToken" placeholder="4000"
-                  :disabled="chatModelMutation.isPending.value"
-                />
-              </NFormItem>
             </div>
           </NForm>
         </NSpin>

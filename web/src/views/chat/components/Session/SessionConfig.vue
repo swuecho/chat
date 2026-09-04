@@ -13,7 +13,6 @@ import {
   NSwitch,
 } from 'naive-ui'
 import {
-  BugReportOutlined,
   ExploreOutlined,
   ExtensionOutlined,
   MemoryOutlined,
@@ -209,27 +208,6 @@ watch(session, (newSession) => {
     }
   }
 }, { deep: true, immediate: true })
-
-const tokenUpperLimit = computed(() => {
-  if (data && data.value) {
-    for (const modelConfig of data.value) {
-      if (modelConfig.name === modelRef.value.chatModel)
-        return modelConfig.maxToken
-    }
-  }
-  return 1024 * 4
-})
-
-const defaultToken = computed(() => {
-  if (data && data.value) {
-    for (const modelConfig of data.value) {
-      if (modelConfig.name === modelRef.value.chatModel)
-        return modelConfig.defaultToken
-    }
-  }
-  return 2048
-})
-// 1. how to fix the NSelect error?
 </script>
 
 <template>
@@ -405,86 +383,6 @@ const defaultToken = computed(() => {
               :tooltip="false"
               class="config-slider"
             />
-          </div>
-
-          <!-- Top P -->
-          <div class="slider-control">
-            <div class="slider-header">
-              <div class="slider-label-group">
-                <NIcon :component="TuneOutlined" size="16" />
-                <span class="slider-label">{{ $t('chat.topP') }}</span>
-              </div>
-              <div class="slider-value">
-                {{ modelRef.topP.toFixed(2) }}
-              </div>
-            </div>
-            <NSlider
-              v-model:value="modelRef.topP"
-              :min="0"
-              :max="1"
-              :step="0.01"
-              :tooltip="false"
-              class="config-slider"
-            />
-          </div>
-
-          <!-- Max Tokens -->
-          <div class="slider-control">
-            <div class="slider-header">
-              <div class="slider-label-group">
-                <NIcon :component="MemoryOutlined" size="16" />
-                <span class="slider-label">{{ $t('chat.maxTokens') }}</span>
-              </div>
-              <div class="slider-value">
-                {{ modelRef.maxTokens }}
-              </div>
-            </div>
-            <NSlider
-              v-model:value="modelRef.maxTokens"
-              :min="256"
-              :max="tokenUpperLimit"
-              :default-value="defaultToken"
-              :step="16"
-              :tooltip="false"
-              class="config-slider"
-            />
-          </div>
-
-          <!-- N (only for GPT models) -->
-          <div v-if="modelRef.chatModel.startsWith('gpt') || modelRef.chatModel.includes('davinci')" class="slider-control">
-            <div class="slider-header">
-              <div class="slider-label-group">
-                <NIcon :component="PsychologyOutlined" size="16" />
-                <span class="slider-label">{{ $t('chat.N') }}</span>
-              </div>
-              <div class="slider-value">
-                {{ modelRef.n }}
-              </div>
-            </div>
-            <NSlider
-              v-model:value="modelRef.n"
-              :min="1"
-              :max="10"
-              :step="1"
-              :tooltip="false"
-              class="config-slider"
-            />
-          </div>
-
-          <!-- Debug Mode -->
-          <div class="debug-control">
-            <div class="debug-header">
-              <NIcon :component="BugReportOutlined" size="20" />
-              <div class="debug-info">
-                <div class="debug-label">
-                  {{ $t('chat.debug') }}
-                </div>
-                <div class="debug-description">
-                  {{ $t('chat.debugDescription') }}
-                </div>
-              </div>
-            </div>
-            <NSwitch v-model:value="modelRef.debug" data-testid="debug_mode" size="medium" />
           </div>
         </div>
       </NCollapseItem>
@@ -945,48 +843,5 @@ const defaultToken = computed(() => {
   width: 14px;
   height: 14px;
   border: 2px solid var(--n-primary-color);
-}
-
-/* Debug Control - Compact */
-.debug-control {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-  background: var(--n-color-modal);
-  border-radius: 8px;
-  border: 1px solid var(--n-border-color);
-  transition: all 0.2s ease;
-}
-
-.debug-control:hover {
-  border-color: var(--n-border-color-hover);
-}
-
-.debug-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.debug-header .n-icon {
-  color: #f56c6c;
-}
-
-.debug-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.debug-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--n-text-color-1);
-}
-
-.debug-description {
-  font-size: 11px;
-  color: var(--n-text-color-3);
 }
 </style>

@@ -100,22 +100,22 @@ type ChatMessage struct {
 }
 
 type ChatModel struct {
-	ID                     int32  `json:"id"`
-	Name                   string `json:"name"`
-	Label                  string `json:"label"`
-	IsDefault              bool   `json:"isDefault"`
-	Url                    string `json:"url"`
-	ApiAuthHeader          string `json:"apiAuthHeader"`
-	ApiAuthKey             string `json:"apiAuthKey"`
-	UserID                 int32  `json:"userId"`
-	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
-	MaxToken               int32  `json:"maxToken"`
-	DefaultToken           int32  `json:"defaultToken"`
-	OrderNumber            int32  `json:"orderNumber"`
-	HttpTimeOut            int32  `json:"httpTimeOut"`
-	IsEnable               bool   `json:"isEnable"`
-	ApiType                string `json:"apiType"`
-	IsTitleModel           bool   `json:"isTitleModel"`
+	ID                     int32         `json:"id"`
+	Name                   string        `json:"name"`
+	Label                  string        `json:"label"`
+	IsDefault              bool          `json:"isDefault"`
+	Url                    string        `json:"url"`
+	ApiAuthHeader          string        `json:"apiAuthHeader"`
+	ApiAuthKey             string        `json:"apiAuthKey"`
+	UserID                 int32         `json:"userId"`
+	EnablePerModeRatelimit bool          `json:"enablePerModeRatelimit"`
+	MaxToken               sql.NullInt32 `json:"maxToken"`
+	DefaultToken           sql.NullInt32 `json:"defaultToken"`
+	OrderNumber            int32         `json:"orderNumber"`
+	HttpTimeOut            int32         `json:"httpTimeOut"`
+	IsEnable               bool          `json:"isEnable"`
+	ApiType                string        `json:"apiType"`
+	IsTitleModel           bool          `json:"isTitleModel"`
 }
 
 type ChatPrompt struct {

@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -20,8 +21,6 @@ type CreateChatModelInput struct {
 	ApiAuthKey             string
 	UserID                 int32
 	EnablePerModeRatelimit bool
-	MaxToken               int32
-	DefaultToken           int32
 	OrderNumber            int32
 	HttpTimeOut            int32
 	ApiType                string
@@ -37,8 +36,8 @@ type UpdateChatModelInput struct {
 	ApiAuthKey             string
 	UserID                 int32
 	EnablePerModeRatelimit bool
-	MaxToken               int32
-	DefaultToken           int32
+	MaxToken               *int32
+	DefaultToken           *int32
 	OrderNumber            int32
 	HttpTimeOut            int32
 	IsEnable               bool
@@ -49,14 +48,22 @@ type ChatModel struct {
 	ID                                                         int32
 	Name, Label, URL, APIAuthHeader, APIAuthKey, APIType       string
 	IsDefault, IsEnable, IsTitleModel, EnablePerModelRateLimit bool
-	UserID, MaxToken, DefaultToken, OrderNumber, HTTPTimeout   int32
+	UserID, OrderNumber, HTTPTimeout                           int32
+	MaxToken, DefaultToken                                     *int32
 }
 
 func chatModelFromRecord(m sqlc_queries.ChatModel) ChatModel {
 	return ChatModel{ID: m.ID, Name: m.Name, Label: m.Label, URL: m.Url, APIAuthHeader: m.ApiAuthHeader,
 		APIAuthKey: m.ApiAuthKey, APIType: m.ApiType, IsDefault: m.IsDefault, IsEnable: m.IsEnable,
 		IsTitleModel: m.IsTitleModel, EnablePerModelRateLimit: m.EnablePerModeRatelimit, UserID: m.UserID,
-		MaxToken: m.MaxToken, DefaultToken: m.DefaultToken, OrderNumber: m.OrderNumber, HTTPTimeout: m.HttpTimeOut}
+		MaxToken: nullableInt32(m.MaxToken), DefaultToken: nullableInt32(m.DefaultToken), OrderNumber: m.OrderNumber, HTTPTimeout: m.HttpTimeOut}
+}
+
+func nullableInt32(value sql.NullInt32) *int32 {
+	if !value.Valid {
+		return nil
+	}
+	return &value.Int32
 }
 
 type ChatModelWithUsage struct {
@@ -97,7 +104,19 @@ func (s *ChatModelService) Create(ctx context.Context, input CreateChatModelInpu
 }
 
 func (s *ChatModelService) Update(ctx context.Context, input UpdateChatModelInput) (ChatModel, error) {
-	m, err := s.q.UpdateChatModel(ctx, sqlc_queries.UpdateChatModelParams(input))
+	params := sqlc_queries.UpdateChatModelParams{
+		ID: input.ID, Name: input.Name, Label: input.Label, IsDefault: input.IsDefault, Url: input.Url,
+		ApiAuthHeader: input.ApiAuthHeader, ApiAuthKey: input.ApiAuthKey, UserID: input.UserID,
+		EnablePerModeRatelimit: input.EnablePerModeRatelimit, OrderNumber: input.OrderNumber,
+		HttpTimeOut: input.HttpTimeOut, IsEnable: input.IsEnable, ApiType: input.ApiType,
+	}
+	if input.MaxToken != nil {
+		params.MaxToken = sql.NullInt32{Int32: *input.MaxToken, Valid: true}
+	}
+	if input.DefaultToken != nil {
+		params.DefaultToken = sql.NullInt32{Int32: *input.DefaultToken, Valid: true}
+	}
+	m, err := s.q.UpdateChatModel(ctx, params)
 	return chatModelFromRecord(m), err
 }
 

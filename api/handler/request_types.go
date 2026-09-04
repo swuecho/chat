@@ -23,8 +23,8 @@ type createChatModelRequest struct {
 	APIAuthHeader           string `json:"apiAuthHeader"`
 	APIAuthKey              string `json:"apiAuthKey"`
 	EnablePerModelRateLimit bool   `json:"enablePerModeRatelimit"`
-	MaxToken                int32  `json:"maxToken"`
-	DefaultToken            int32  `json:"defaultToken"`
+	MaxToken                *int32 `json:"maxToken,omitempty"`
+	DefaultToken            *int32 `json:"defaultToken,omitempty"`
 	OrderNumber             int32  `json:"orderNumber"`
 	HTTPTimeout             int32  `json:"httpTimeOut"`
 	APIType                 string `json:"apiType"`
@@ -303,13 +303,17 @@ func (r *createChatModelRequest) Validate() error {
 	if err := validation.ModelName("name", r.Name, true); err != nil {
 		return err
 	}
-	if err := validation.TokenCount("maxToken", r.MaxToken, true); err != nil {
-		return err
+	if r.MaxToken != nil {
+		if err := validation.TokenCount("maxToken", *r.MaxToken, true); err != nil {
+			return err
+		}
 	}
-	if err := validation.TokenCount("defaultToken", r.DefaultToken, true); err != nil {
-		return err
+	if r.DefaultToken != nil {
+		if err := validation.TokenCount("defaultToken", *r.DefaultToken, true); err != nil {
+			return err
+		}
 	}
-	if r.DefaultToken > 0 && r.MaxToken > 0 && r.DefaultToken > r.MaxToken {
+	if r.DefaultToken != nil && r.MaxToken != nil && *r.DefaultToken > *r.MaxToken {
 		return fmt.Errorf("defaultToken must not exceed maxToken")
 	}
 	return nil
@@ -361,8 +365,8 @@ func (r *createBotAnswerHistoryRequest) Validate() error {
 func (r createChatModelRequest) createInput(userID int32, apiType string) svc.CreateChatModelInput {
 	return svc.CreateChatModelInput{Name: r.Name, Label: r.Label, IsDefault: r.IsDefault, Url: r.URL,
 		ApiAuthHeader: r.APIAuthHeader, ApiAuthKey: r.APIAuthKey, UserID: userID,
-		EnablePerModeRatelimit: r.EnablePerModelRateLimit, MaxToken: 4096, DefaultToken: 2048,
-		OrderNumber: r.OrderNumber, HttpTimeOut: 120, ApiType: apiType}
+		EnablePerModeRatelimit: r.EnablePerModelRateLimit,
+		OrderNumber:            r.OrderNumber, HttpTimeOut: 120, ApiType: apiType}
 }
 
 func (r createChatModelRequest) updateInput(id, userID int32, apiType string) svc.UpdateChatModelInput {

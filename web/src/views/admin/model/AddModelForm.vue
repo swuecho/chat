@@ -20,8 +20,6 @@ interface FormData {
   enablePerModeRatelimit: boolean
   isEnable: boolean
   orderNumber: number
-  defaultToken: number
-  maxToken: number
   apiType: ApiType
 }
 
@@ -37,8 +35,6 @@ const defaultFormData: FormData = {
   enablePerModeRatelimit: false,
   isEnable: true,
   orderNumber: 0,
-  defaultToken: 0,
-  maxToken: 0,
   apiType: API_TYPES.OPENAI,
 }
 
@@ -68,7 +64,7 @@ function populateFromJson() {
       throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
 
     // Validate number fields
-    const numberFields = ['orderNumber', 'defaultToken', 'maxToken']
+    const numberFields = ['orderNumber']
     numberFields.forEach((field) => {
       if (jsonData[field] && isNaN(jsonData[field]))
         throw new Error(`${field} must be a number`)
@@ -79,8 +75,6 @@ function populateFromJson() {
       ...defaultFormData, // Reset to defaults first
       ...jsonData, // Override with JSON values
       orderNumber: jsonData.orderNumber || 0,
-      defaultToken: jsonData.defaultToken || 0,
-      maxToken: jsonData.maxToken || 0,
     }
 
     ms_ui.success('Form populated successfully from JSON')

@@ -7,6 +7,7 @@ package sqlc_queries
 
 import (
 	"context"
+	"database/sql"
 )
 
 const chatModelByID = `-- name: ChatModelByID :one
@@ -66,8 +67,8 @@ func (q *Queries) ChatModelByName(ctx context.Context, name string) (ChatModel, 
 }
 
 const createChatModel = `-- name: CreateChatModel :one
-INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, api_type )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+INSERT INTO chat_model (name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, order_number, http_time_out, api_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model
 `
 
@@ -80,8 +81,6 @@ type CreateChatModelParams struct {
 	ApiAuthKey             string `json:"apiAuthKey"`
 	UserID                 int32  `json:"userId"`
 	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
-	MaxToken               int32  `json:"maxToken"`
-	DefaultToken           int32  `json:"defaultToken"`
 	OrderNumber            int32  `json:"orderNumber"`
 	HttpTimeOut            int32  `json:"httpTimeOut"`
 	ApiType                string `json:"apiType"`
@@ -97,8 +96,6 @@ func (q *Queries) CreateChatModel(ctx context.Context, arg CreateChatModelParams
 		arg.ApiAuthKey,
 		arg.UserID,
 		arg.EnablePerModeRatelimit,
-		arg.MaxToken,
-		arg.DefaultToken,
 		arg.OrderNumber,
 		arg.HttpTimeOut,
 		arg.ApiType,
@@ -346,40 +343,41 @@ func (q *Queries) SetTitleChatModel(ctx context.Context, arg SetTitleChatModelPa
 }
 
 const updateChatModel = `-- name: UpdateChatModel :one
-UPDATE chat_model SET name = $2, label = $3, is_default = $4, url = $5, api_auth_header = $6, api_auth_key = $7, enable_per_mode_ratelimit = $9,
-max_token = $10, default_token = $11, order_number = $12, http_time_out = $13, is_enable = $14, api_type = $15
-WHERE id = $1 and user_id = $8
+UPDATE chat_model SET name = $1, label = $2, is_default = $3,
+url = $4, api_auth_header = $5, api_auth_key = $6,
+enable_per_mode_ratelimit = $7,
+max_token = COALESCE($8::integer, max_token), default_token = COALESCE($9::integer, default_token),
+order_number = $10, http_time_out = $11, is_enable = $12, api_type = $13
+WHERE id = $14 and user_id = $15
 RETURNING id, name, label, is_default, url, api_auth_header, api_auth_key, user_id, enable_per_mode_ratelimit, max_token, default_token, order_number, http_time_out, is_enable, api_type, is_title_model
 `
 
 type UpdateChatModelParams struct {
-	ID                     int32  `json:"id"`
-	Name                   string `json:"name"`
-	Label                  string `json:"label"`
-	IsDefault              bool   `json:"isDefault"`
-	Url                    string `json:"url"`
-	ApiAuthHeader          string `json:"apiAuthHeader"`
-	ApiAuthKey             string `json:"apiAuthKey"`
-	UserID                 int32  `json:"userId"`
-	EnablePerModeRatelimit bool   `json:"enablePerModeRatelimit"`
-	MaxToken               int32  `json:"maxToken"`
-	DefaultToken           int32  `json:"defaultToken"`
-	OrderNumber            int32  `json:"orderNumber"`
-	HttpTimeOut            int32  `json:"httpTimeOut"`
-	IsEnable               bool   `json:"isEnable"`
-	ApiType                string `json:"apiType"`
+	Name                   string        `json:"name"`
+	Label                  string        `json:"label"`
+	IsDefault              bool          `json:"isDefault"`
+	Url                    string        `json:"url"`
+	ApiAuthHeader          string        `json:"apiAuthHeader"`
+	ApiAuthKey             string        `json:"apiAuthKey"`
+	EnablePerModeRatelimit bool          `json:"enablePerModeRatelimit"`
+	MaxToken               sql.NullInt32 `json:"maxToken"`
+	DefaultToken           sql.NullInt32 `json:"defaultToken"`
+	OrderNumber            int32         `json:"orderNumber"`
+	HttpTimeOut            int32         `json:"httpTimeOut"`
+	IsEnable               bool          `json:"isEnable"`
+	ApiType                string        `json:"apiType"`
+	ID                     int32         `json:"id"`
+	UserID                 int32         `json:"userId"`
 }
 
 func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams) (ChatModel, error) {
 	row := q.db.QueryRowContext(ctx, updateChatModel,
-		arg.ID,
 		arg.Name,
 		arg.Label,
 		arg.IsDefault,
 		arg.Url,
 		arg.ApiAuthHeader,
 		arg.ApiAuthKey,
-		arg.UserID,
 		arg.EnablePerModeRatelimit,
 		arg.MaxToken,
 		arg.DefaultToken,
@@ -387,6 +385,8 @@ func (q *Queries) UpdateChatModel(ctx context.Context, arg UpdateChatModelParams
 		arg.HttpTimeOut,
 		arg.IsEnable,
 		arg.ApiType,
+		arg.ID,
+		arg.UserID,
 	)
 	var i ChatModel
 	err := row.Scan(

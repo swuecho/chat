@@ -11,17 +11,6 @@ const test_email = randomEmail();
 
 const pool = new Pool(db_config);
 
-async function waitForDebugSetting(userId: number, timeout = 10000) {
-  const deadline = Date.now() + timeout;
-  while (Date.now() < deadline) {
-    const sessions = await selectChatSessionsByUserId(pool, userId);
-    if (sessions[0]?.debug)
-      return sessions[0];
-    await new Promise(resolve => setTimeout(resolve, 250));
-  }
-  return (await selectChatSessionsByUserId(pool, userId))[0];
-}
-
 test('test', async ({ page }) => {
   await page.goto('/');
   await page.getByTitle('signuptab').click();
@@ -53,10 +42,8 @@ test('test', async ({ page }) => {
   await page.getByTestId('collapse-advanced').click();
   // wait for the section to expand
   await page.waitForTimeout(300);
-  // click the debug switch
-  await page.getByTestId('debug_mode').click();
-  const new_sesion_2 = await waitForDebugSetting(user.id);
-  expect(new_sesion_2.temperature).toBe(1);
-  expect(new_sesion_2.n).toBe(1);
-  expect(new_sesion_2.debug).toBe(true);
+  await expect(page.getByTestId('debug_mode')).toHaveCount(0);
+  await expect(page.getByText(/Top P/i)).toHaveCount(0);
+  await expect(page.getByText(/Max Tokens/i)).toHaveCount(0);
+  await expect(page.getByText(/Number of results/i)).toHaveCount(0);
 });

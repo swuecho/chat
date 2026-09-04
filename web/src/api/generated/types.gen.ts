@@ -234,8 +234,8 @@ export type ChatModelHttpResponse = {
     apiAuthKey: string;
     userId: number;
     enablePerModeRatelimit: boolean;
-    maxToken: number;
-    defaultToken: number;
+    maxToken?: number;
+    defaultToken?: number;
     orderNumber: number;
     httpTimeOut: number;
     isEnable: boolean;
@@ -298,8 +298,8 @@ export type CreateChatModelRequest = {
     apiAuthHeader: string;
     apiAuthKey: string;
     enablePerModeRatelimit: boolean;
-    maxToken: number;
-    defaultToken: number;
+    maxToken?: number;
+    defaultToken?: number;
     orderNumber: number;
     httpTimeOut: number;
     apiType: string;
@@ -1345,8 +1345,8 @@ export type ListChatModelsResponses = {
         apiAuthKey: string;
         userId: number;
         enablePerModeRatelimit: boolean;
-        maxToken: number;
-        defaultToken: number;
+        maxToken?: number;
+        defaultToken?: number;
         orderNumber: number;
         httpTimeOut: number;
         isEnable: boolean;

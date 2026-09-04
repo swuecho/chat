@@ -130,7 +130,14 @@ func updateFirstRecord(t *testing.T, router *mux.Router, chatModelID int32, admi
 	rec.Name = "Test API 1 Updated"
 	rec.Label = "Test Label 1 Updated"
 
-	updateBytes, err := json.Marshal(rec)
+	updatePayload := map[string]any{}
+	recordBytes, err := json.Marshal(rec)
+	if err == nil {
+		err = json.Unmarshal(recordBytes, &updatePayload)
+	}
+	delete(updatePayload, "maxToken")
+	delete(updatePayload, "defaultToken")
+	updateBytes, err := json.Marshal(updatePayload)
 	if err != nil {
 		t.Errorf("Error marshaling update payload: %s", err.Error())
 	}
