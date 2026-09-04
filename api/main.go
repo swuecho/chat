@@ -257,6 +257,7 @@ func (s *server) registerRoutes(apiRouter, adminRouter, userRouter *mux.Router) 
 
 	// Messages
 	handler.NewChatMessageHandler(app.Messages, app.Sessions, app.Conversations, app.Chat.SuggestionGenerator()).Register(userRouter, s.apiContract)
+	handler.NewArtifactHandler(app.Artifacts).Register(userRouter, s.apiContract)
 
 	// Snapshots
 	handler.NewChatSnapshotHandler(app.Snapshots).Register(userRouter, s.apiContract)

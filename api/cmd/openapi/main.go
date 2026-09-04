@@ -23,6 +23,7 @@ func main() {
 	// router is assembled, so generation has no database dependency.
 	handler.NewChatSessionHandler(nil).Register(router, registry)
 	handler.NewChatMessageHandler(nil, nil, nil, nil).Register(router, registry)
+	handler.NewArtifactHandler(nil).Register(router, registry)
 	handler.NewChatPromptHandler(nil).Register(router, registry)
 	handler.NewUserActiveChatSessionHandler(nil, nil).Register(router, registry)
 	handler.NewChatWorkspaceHandler(nil).Register(router, registry)

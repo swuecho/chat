@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue'
-import { NBadge, NButton, NCard, NInput, NModal, NSelect, useDialog, useMessage } from 'naive-ui'
+import { NBadge, NButton, NCard, NInput, NModal, NPagination, NSelect, NSpin, useDialog, useMessage } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import ArtifactViewer from './Message/ArtifactViewer.vue'
 import ArtifactEditor from './Message/ArtifactEditor.vue'
 import { useMessageStore, useSessionStore } from '@/store'
-import { updateChatData } from '@/api/content'
+import { deleteArtifact as deleteArtifactRequest, duplicateArtifact as duplicateArtifactRequest, listArtifacts, updateArtifact } from '@/api/generated_client'
 
 interface ArtifactRecord {
   uuid: string
@@ -35,6 +35,10 @@ const searchQuery = ref('')
 const selectedType = ref('')
 const selectedLanguage = ref('')
 const selectedSession = ref('')
+const currentPage = ref(1)
+const pageSize = 24
+const totalArtifacts = ref(0)
+const loading = ref(false)
 
 const artifacts = ref<ArtifactRecord[]>([])
 const previewingArtifact = ref<ArtifactRecord | null>(null)
@@ -44,12 +48,12 @@ const originalArtifact = ref<ArtifactRecord | null>(null)
 
 const typeOptions = computed(() => [
   { label: 'All Types', value: '' },
-  ...[...new Set(artifacts.value.map(artifact => artifact.type))].map(type => ({ label: type, value: type })),
+  ...['code', 'html', 'svg', 'mermaid', 'json', 'markdown'].map(type => ({ label: type, value: type })),
 ])
 
 const languageOptions = computed(() => [
   { label: 'All Languages', value: '' },
-  ...[...new Set(artifacts.value.map(artifact => artifact.language).filter(Boolean))].map(language => ({
+  ...['javascript', 'typescript', 'python', 'html', 'svg', 'mermaid', 'json', 'markdown', 'text'].map(language => ({
     label: language,
     value: language,
   })),
@@ -57,34 +61,14 @@ const languageOptions = computed(() => [
 
 const sessionOptions = computed(() => [
   { label: 'All Sessions', value: '' },
-  ...[...new Set(artifacts.value.map(artifact => artifact.sessionTitle).filter(Boolean))].map(sessionTitle => ({
-    label: sessionTitle,
-    value: sessionTitle,
+  ...sessionStore.getAllSessions().map(session => ({
+    label: session.title,
+    value: session.uuid,
   })),
 ])
 
 const filteredArtifacts = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-
-  return artifacts.value.filter((artifact) => {
-    if (selectedType.value && artifact.type !== selectedType.value)
-      return false
-    if (selectedLanguage.value && artifact.language !== selectedLanguage.value)
-      return false
-    if (selectedSession.value && artifact.sessionTitle !== selectedSession.value)
-      return false
-
-    if (!query)
-      return true
-
-    return [
-      artifact.title,
-      artifact.content,
-      artifact.type,
-      artifact.language || '',
-      artifact.sessionTitle || '',
-    ].some(value => value.toLowerCase().includes(query))
-  })
+  return artifacts.value
 })
 
 const getTypeIcon = (type: string) => {
@@ -120,6 +104,12 @@ const toViewerArtifact = (artifact: ArtifactRecord): Chat.Artifact => ({
   language: artifact.language,
 })
 
+const getSourceMessage = (artifact: ArtifactRecord) => {
+  if (!artifact.sessionUuid || !artifact.messageUuid)
+    return undefined
+  return messageStore.getChatSessionDataByUuid(artifact.sessionUuid)?.find(entry => entry.uuid === artifact.messageUuid)
+}
+
 const previewArtifact = (artifact: ArtifactRecord) => {
   previewingArtifact.value = artifact
   showPreviewModal.value = true
@@ -139,25 +129,22 @@ const editArtifact = (artifact: ArtifactRecord) => {
 }
 
 const duplicateArtifact = async (artifact: ArtifactRecord) => {
-  if (!artifact.sessionUuid || !artifact.messageUuid)
-    return
-  const sessionMessages = messageStore.getChatSessionDataByUuid(artifact.sessionUuid)
-  const targetMessage = sessionMessages?.find(entry => entry.uuid === artifact.messageUuid)
-  if (!targetMessage)
-    return
-  const duplicate: Chat.Artifact = {
-    ...artifact,
-    uuid: `${artifact.uuid}-copy-${Date.now()}`,
-    title: `${artifact.title} (Copy)`,
-  }
-  targetMessage.artifacts = [...(targetMessage.artifacts || []), duplicate]
   try {
-    await updateChatData(targetMessage)
-    loadArtifacts()
+    const result = await duplicateArtifactRequest({ path: { uuid: artifact.uuid } })
+    const targetMessage = getSourceMessage(artifact)
+    if (targetMessage) {
+      targetMessage.artifacts = [...(targetMessage.artifacts || []), {
+        uuid: result.uuid,
+        type: artifact.type,
+        title: `${artifact.title} (Copy)`,
+        content: artifact.content,
+        language: artifact.language,
+      }]
+    }
+    await loadArtifacts()
     message.success('Artifact duplicated successfully')
   }
   catch {
-    targetMessage.artifacts = targetMessage.artifacts.filter(entry => entry.uuid !== duplicate.uuid)
     message.error('Failed to duplicate artifact')
   }
 }
@@ -169,25 +156,17 @@ const deleteArtifact = (artifact: ArtifactRecord) => {
     positiveText: 'Delete',
     negativeText: 'Cancel',
     onPositiveClick: async () => {
-      if (artifact.sessionUuid && artifact.messageUuid) {
-        const sessionMessages = messageStore.getChatSessionDataByUuid(artifact.sessionUuid)
-        const targetMessage = sessionMessages?.find(entry => entry.uuid === artifact.messageUuid)
-        if (targetMessage?.artifacts) {
-          const previousArtifacts = targetMessage.artifacts
+      try {
+        await deleteArtifactRequest({ path: { uuid: artifact.uuid } })
+        const targetMessage = getSourceMessage(artifact)
+        if (targetMessage?.artifacts)
           targetMessage.artifacts = targetMessage.artifacts.filter(entry => entry.uuid !== artifact.uuid)
-          try {
-            await updateChatData(targetMessage)
-          }
-          catch {
-            targetMessage.artifacts = previousArtifacts
-            message.error('Failed to delete artifact')
-            return
-          }
-        }
+        await loadArtifacts()
+        message.success('Artifact deleted successfully')
       }
-
-      artifacts.value = artifacts.value.filter(entry => entry.id !== artifact.id)
-      message.success('Artifact deleted successfully')
+      catch {
+        message.error('Failed to delete artifact')
+      }
     },
   })
 }
@@ -196,24 +175,26 @@ const saveEdit = async () => {
   if (!editingArtifact.value || !originalArtifact.value)
     return
 
-  if (editingArtifact.value.sessionUuid && editingArtifact.value.messageUuid) {
-    const sessionMessages = messageStore.getChatSessionDataByUuid(editingArtifact.value.sessionUuid)
-    const targetMessage = sessionMessages?.find(entry => entry.uuid === editingArtifact.value?.messageUuid)
+  try {
+    await updateArtifact({
+      path: { uuid: editingArtifact.value.uuid },
+      body: {
+        title: editingArtifact.value.title,
+        content: editingArtifact.value.content,
+        language: editingArtifact.value.language || '',
+      },
+    })
+    const targetMessage = getSourceMessage(editingArtifact.value)
     const targetArtifact = targetMessage?.artifacts?.find(entry => entry.uuid === editingArtifact.value?.uuid)
     if (targetArtifact) {
-      const previous = { ...targetArtifact }
       targetArtifact.title = editingArtifact.value.title
       targetArtifact.content = editingArtifact.value.content
       targetArtifact.language = editingArtifact.value.language
-      try {
-        await updateChatData(targetMessage!)
-      }
-      catch {
-        Object.assign(targetArtifact, previous)
-        message.error('Failed to save artifact')
-        return
-      }
     }
+  }
+  catch {
+    message.error('Failed to save artifact')
+    return
   }
 
   Object.assign(originalArtifact.value, {
@@ -224,7 +205,7 @@ const saveEdit = async () => {
   showEditModal.value = false
   editingArtifact.value = null
   originalArtifact.value = null
-  loadArtifacts()
+  await loadArtifacts()
   message.success('Artifact saved successfully')
 }
 
@@ -239,46 +220,62 @@ const exportArtifacts = () => {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = `artifacts_${new Date().toISOString().split('T')[0]}.json`
+  anchor.download = `artifacts_page_${currentPage.value}_${new Date().toISOString().split('T')[0]}.json`
   anchor.click()
   URL.revokeObjectURL(url)
 }
 
-const loadArtifacts = () => {
-  const nextArtifacts: ArtifactRecord[] = []
-
-  sessionStore.getAllSessions().forEach((session) => {
-    const messages = messageStore.getChatSessionDataByUuid(session.uuid) || []
-    messages.forEach((chatMessage) => {
-      chatMessage.artifacts?.forEach((artifact) => {
-        nextArtifacts.push({
-          uuid: artifact.uuid,
-          id: artifact.uuid,
-          title: artifact.title || 'Untitled Artifact',
-          content: artifact.content,
-          type: artifact.type,
-          language: artifact.language,
-          createdAt: chatMessage.dateTime,
-          updatedAt: chatMessage.dateTime,
-          sessionUuid: session.uuid,
-          messageUuid: chatMessage.uuid,
-          sessionTitle: session.title,
-        })
-      })
+const loadArtifacts = async () => {
+  loading.value = true
+  try {
+    const result = await listArtifacts({
+      query: {
+        search: searchQuery.value.trim() || undefined,
+        type: selectedType.value || undefined,
+        language: selectedLanguage.value || undefined,
+        sessionUuid: selectedSession.value || undefined,
+        limit: pageSize,
+        offset: (currentPage.value - 1) * pageSize,
+      },
     })
-  })
-
-  artifacts.value = nextArtifacts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    if (result.total > 0 && result.items.length === 0 && currentPage.value > 1) {
+      currentPage.value--
+      return
+    }
+    totalArtifacts.value = result.total
+    artifacts.value = result.items.map(artifact => ({ ...artifact, id: artifact.uuid }))
+  }
+  catch {
+    message.error('Failed to load artifacts')
+  }
+  finally {
+    loading.value = false
+  }
 }
 
 watch(
-  () => [
-    sessionStore.getAllSessions().length,
-    Object.values(messageStore.chat).reduce((sum, entries) => sum + entries.length, 0),
-  ],
+  currentPage,
   loadArtifacts,
   { immediate: true },
 )
+
+watch([selectedType, selectedLanguage, selectedSession], () => {
+  if (currentPage.value !== 1)
+    currentPage.value = 1
+  else
+    loadArtifacts()
+})
+
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(searchQuery, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    if (currentPage.value !== 1)
+      currentPage.value = 1
+    else
+      loadArtifacts()
+  }, 250)
+})
 </script>
 
 <template>
@@ -287,7 +284,7 @@ watch(
       <div class="gallery-title">
         <Icon icon="ri:gallery-line" class="gallery-icon" />
         <h2>Artifact Gallery</h2>
-        <NBadge :value="filteredArtifacts.length" type="info" />
+        <NBadge :value="totalArtifacts" type="info" />
       </div>
       <div class="gallery-actions">
         <NButton size="small" @click="showFilters = !showFilters">
@@ -300,7 +297,7 @@ watch(
           <template #icon>
             <Icon icon="ri:download-line" />
           </template>
-          Export
+          Export Page
         </NButton>
       </div>
     </div>
@@ -318,61 +315,67 @@ watch(
       </div>
     </div>
 
-    <div v-if="filteredArtifacts.length === 0" class="empty-state">
-      <Icon icon="ri:folder-open-line" class="empty-icon" />
-      <h3>No artifacts found</h3>
-      <p>Artifacts created in chat messages will appear here.</p>
-    </div>
+    <NSpin :show="loading">
+      <div v-if="filteredArtifacts.length === 0" class="empty-state">
+        <Icon icon="ri:folder-open-line" class="empty-icon" />
+        <h3>No artifacts found</h3>
+        <p>Artifacts created in chat messages will appear here.</p>
+      </div>
 
-    <div v-else class="artifact-grid">
-      <div v-for="artifact in filteredArtifacts" :key="artifact.id" class="artifact-card">
-        <div class="card-header">
-          <div class="card-type">
-            <Icon :icon="getTypeIcon(artifact.type)" class="type-icon" />
-            <span>{{ artifact.type }}</span>
+      <div v-else class="artifact-grid">
+        <div v-for="artifact in filteredArtifacts" :key="artifact.id" class="artifact-card">
+          <div class="card-header">
+            <div class="card-type">
+              <Icon :icon="getTypeIcon(artifact.type)" class="type-icon" />
+              <span>{{ artifact.type }}</span>
+            </div>
+            <div class="card-actions">
+              <NButton size="tiny" circle @click="previewArtifact(artifact)">
+                <template #icon>
+                  <Icon icon="ri:eye-line" />
+                </template>
+              </NButton>
+              <NButton v-if="isViewableArtifact(artifact)" size="tiny" circle @click="viewArtifact(artifact)">
+                <template #icon>
+                  <Icon icon="ri:external-link-line" />
+                </template>
+              </NButton>
+              <NButton size="tiny" circle @click="editArtifact(artifact)">
+                <template #icon>
+                  <Icon icon="ri:edit-line" />
+                </template>
+              </NButton>
+              <NButton size="tiny" circle @click="duplicateArtifact(artifact)">
+                <template #icon>
+                  <Icon icon="ri:file-copy-line" />
+                </template>
+              </NButton>
+              <NButton size="tiny" circle type="error" @click="deleteArtifact(artifact)">
+                <template #icon>
+                  <Icon icon="ri:delete-bin-line" />
+                </template>
+              </NButton>
+            </div>
           </div>
-          <div class="card-actions">
-            <NButton size="tiny" circle @click="previewArtifact(artifact)">
-              <template #icon>
-                <Icon icon="ri:eye-line" />
-              </template>
-            </NButton>
-            <NButton v-if="isViewableArtifact(artifact)" size="tiny" circle @click="viewArtifact(artifact)">
-              <template #icon>
-                <Icon icon="ri:external-link-line" />
-              </template>
-            </NButton>
-            <NButton size="tiny" circle @click="editArtifact(artifact)">
-              <template #icon>
-                <Icon icon="ri:edit-line" />
-              </template>
-            </NButton>
-            <NButton size="tiny" circle @click="duplicateArtifact(artifact)">
-              <template #icon>
-                <Icon icon="ri:file-copy-line" />
-              </template>
-            </NButton>
-            <NButton size="tiny" circle type="error" @click="deleteArtifact(artifact)">
-              <template #icon>
-                <Icon icon="ri:delete-bin-line" />
-              </template>
-            </NButton>
-          </div>
-        </div>
 
-        <div class="card-content">
-          <h4 class="artifact-title">
-            {{ artifact.title || 'Untitled' }}
-          </h4>
-          <div class="artifact-meta">
-            <span>{{ formatDate(artifact.createdAt) }}</span>
-            <span v-if="artifact.language">{{ artifact.language }}</span>
-            <span v-if="artifact.sessionTitle">{{ artifact.sessionTitle }}</span>
+          <div class="card-content">
+            <h4 class="artifact-title">
+              {{ artifact.title || 'Untitled' }}
+            </h4>
+            <div class="artifact-meta">
+              <span>{{ formatDate(artifact.createdAt) }}</span>
+              <span v-if="artifact.language">{{ artifact.language }}</span>
+              <span v-if="artifact.sessionTitle">{{ artifact.sessionTitle }}</span>
+            </div>
+            <pre class="artifact-preview">{{ truncateCode(artifact.content, 180) }}</pre>
           </div>
-          <pre class="artifact-preview">{{ truncateCode(artifact.content, 180) }}</pre>
         </div>
       </div>
-    </div>
+
+      <div v-if="totalArtifacts > pageSize" class="pagination-row">
+        <NPagination v-model:page="currentPage" :page-size="pageSize" :item-count="totalArtifacts" />
+      </div>
+    </NSpin>
 
     <NModal v-model:show="showPreviewModal" :mask-closable="false">
       <NCard style="width: 90vw; max-width: 1200px; max-height: 90vh" :title="previewingArtifact?.title || 'Artifact Preview'">
@@ -510,6 +513,12 @@ watch(
   text-align: center;
   padding: 4rem 1rem;
   color: #6b7280;
+}
+
+.pagination-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.25rem;
 }
 
 .empty-icon,

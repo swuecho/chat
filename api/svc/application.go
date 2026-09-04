@@ -14,6 +14,7 @@ type ApplicationServices struct {
 	ActiveSessions  *UserActiveChatSessionService
 	Workspaces      *ChatWorkspaceService
 	Messages        *ChatMessageService
+	Artifacts       *ArtifactService
 	Conversations   *SessionConversationService
 	Snapshots       *ChatSnapshotService
 	Chat            *ChatService
@@ -51,7 +52,7 @@ func NewApplicationServices(q *sqlc_queries.Queries, openAIKey, openAIProxy, jwt
 		AuthUsers: NewAuthUserService(q, jwtSecret, rateLimit), AdminSessions: NewSessionAdminQueryService(q),
 		Prompts: NewChatPromptService(q), Sessions: NewChatSessionService(q),
 		ActiveSessions: NewUserActiveChatSessionService(q), Workspaces: NewChatWorkspaceService(q),
-		Messages: NewChatMessageService(q), Conversations: NewSessionConversationService(q),
+		Messages: NewChatMessageService(q), Artifacts: NewArtifactService(q), Conversations: NewSessionConversationService(q),
 		Snapshots: NewChatSnapshotService(q), Chat: NewChatService(q, openAIKey, openAIProxy),
 		RateLimits: NewSessionRateLimitService(q), SnapshotQueries: NewSessionSnapshotQueryService(q),
 		RuntimeModels: NewSessionModelService(q), BotHistory: NewSessionBotHistoryService(q),

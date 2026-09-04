@@ -162,6 +162,24 @@ export type ActiveSessionRequest = {
     chatSessionUuid: string;
 };
 
+export type ArtifactPageHttpResponse = {
+    items: Array<{
+        uuid: string;
+        type: string;
+        title: string;
+        content: string;
+        language: string;
+        messageUuid: string;
+        sessionUuid: string;
+        sessionTitle: string;
+        createdAt: string;
+        updatedAt: string;
+    }>;
+    total: number;
+    limit: number;
+    offset: number;
+};
+
 export type AuthUserHttpResponse = {
     id: number;
     lastLogin: string;
@@ -489,6 +507,12 @@ export type SnapshotListHttpResponse = {
 export type SuggestionsHttpResponse = {
     newSuggestions: Array<string>;
     allSuggestions: Array<string>;
+};
+
+export type UpdateArtifactRequest = {
+    title: string;
+    content: string;
+    language: string;
 };
 
 export type UpdateAuthUserRequest = {
@@ -1044,6 +1068,115 @@ export type UpdateAdminUserResponses = {
 };
 
 export type UpdateAdminUserResponse = UpdateAdminUserResponses[keyof UpdateAdminUserResponses];
+
+export type ListArtifactsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        search?: string;
+        type?: string;
+        language?: string;
+        sessionUuid?: string;
+        limit?: number;
+        offset?: number;
+    };
+    url: '/api/artifacts';
+};
+
+export type ListArtifactsErrors = {
+    /**
+     * API error
+     */
+    default: ApiError;
+};
+
+export type ListArtifactsError = ListArtifactsErrors[keyof ListArtifactsErrors];
+
+export type ListArtifactsResponses = {
+    /**
+     * OK
+     */
+    200: ArtifactPageHttpResponse;
+};
+
+export type ListArtifactsResponse = ListArtifactsResponses[keyof ListArtifactsResponses];
+
+export type DeleteArtifactData = {
+    body?: never;
+    path: {
+        uuid: string;
+    };
+    query?: never;
+    url: '/api/artifacts/{uuid}';
+};
+
+export type DeleteArtifactErrors = {
+    /**
+     * API error
+     */
+    default: ApiError;
+};
+
+export type DeleteArtifactError = DeleteArtifactErrors[keyof DeleteArtifactErrors];
+
+export type DeleteArtifactResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type UpdateArtifactData = {
+    body: UpdateArtifactRequest;
+    path: {
+        uuid: string;
+    };
+    query?: never;
+    url: '/api/artifacts/{uuid}';
+};
+
+export type UpdateArtifactErrors = {
+    /**
+     * API error
+     */
+    default: ApiError;
+};
+
+export type UpdateArtifactError = UpdateArtifactErrors[keyof UpdateArtifactErrors];
+
+export type UpdateArtifactResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type DuplicateArtifactData = {
+    body?: never;
+    path: {
+        uuid: string;
+    };
+    query?: never;
+    url: '/api/artifacts/{uuid}/duplicate';
+};
+
+export type DuplicateArtifactErrors = {
+    /**
+     * API error
+     */
+    default: ApiError;
+};
+
+export type DuplicateArtifactError = DuplicateArtifactErrors[keyof DuplicateArtifactErrors];
+
+export type DuplicateArtifactResponses = {
+    /**
+     * OK
+     */
+    200: UuidHttpResponse;
+};
+
+export type DuplicateArtifactResponse = DuplicateArtifactResponses[keyof DuplicateArtifactResponses];
 
 export type RefreshAccessTokenData = {
     body?: never;
