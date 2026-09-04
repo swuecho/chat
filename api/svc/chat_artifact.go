@@ -86,39 +86,6 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 		artifacts = append(artifacts, artifact)
 	}
 
-	// Pattern for executable code artifacts
-	// Example: ```javascript <!-- executable: Calculator -->
-	executableArtifactRegex := regexp.MustCompile(`(?is)` + "```" + `([\w+-]+)?\s*<!--\s*executable:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n` + "```")
-	executableMatches := executableArtifactRegex.FindAllStringSubmatch(content, -1)
-
-	for _, match := range executableMatches {
-		language := strings.ToLower(match[1])
-		title := strings.TrimSpace(match[2])
-		artifactContent := strings.TrimSpace(match[3])
-
-		// Skip if already processed as HTML, SVG, Mermaid, or JSON
-		if language == "html" || language == "svg" || language == "mermaid" || language == "json" {
-			continue
-		}
-
-		if language == "" {
-			language = "javascript" // Default to JavaScript for executable code
-		}
-
-		// Execution is intentionally out of scope. Preserve legacy executable
-		// markers as ordinary code artifacts so they always remain viewable.
-		if isExecutableLanguage(language) {
-			artifact := domain.Artifact{
-				UUID:     newID(),
-				Type:     "code",
-				Title:    title,
-				Content:  artifactContent,
-				Language: language,
-			}
-			artifacts = append(artifacts, artifact)
-		}
-	}
-
 	// Pattern for general code artifacts (exclude html and svg which are handled above)
 	// Example: ```javascript <!-- artifact: React Component -->
 	codeArtifactRegex := regexp.MustCompile(`(?is)` + "```" + `([\w+-]+)?\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n` + "```")
@@ -129,7 +96,7 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 		title := strings.TrimSpace(match[2])
 		artifactContent := strings.TrimSpace(match[3])
 
-		// Skip if already processed as HTML, SVG, Mermaid, JSON, or executable
+		// Skip formats handled by their specialized renderers.
 		if language == "html" || language == "svg" || language == "mermaid" || language == "json" {
 			continue
 		}
@@ -149,59 +116,4 @@ func extractArtifacts(content string, newID func() string) []domain.Artifact {
 	}
 
 	return artifacts
-}
-
-// isExecutableLanguage checks if a language is supported for code execution
-func isExecutableLanguage(language string) bool {
-	executableLanguages := []string{
-		"javascript", "js", "typescript", "ts",
-		"python", "py",
-	}
-
-	language = strings.ToLower(strings.TrimSpace(language))
-	for _, execLang := range executableLanguages {
-		if language == execLang {
-			return true
-		}
-	}
-	return false
-}
-
-// containsExecutablePatterns checks if code contains patterns that suggest it should be executable
-func containsExecutablePatterns(content string) bool {
-	// Patterns that suggest the code is meant to be executed
-	executablePatterns := []string{
-
-		// JavaScript patterns
-		"console.log",
-		"console.error",
-		"console.warn",
-		"function",
-		"const ",
-		"let ",
-		"var ",
-		"=>",
-		"if (",
-		"for (",
-		"while (",
-		"return ",
-
-		// Python patterns
-		"print(",
-		"import ",
-		"from ",
-		"def ",
-		"if __name__",
-		"class ",
-		"for ",
-		"while ",
-	}
-
-	contentLower := strings.ToLower(content)
-	for _, pattern := range executablePatterns {
-		if strings.Contains(contentLower, pattern) {
-			return true
-		}
-	}
-	return false
 }

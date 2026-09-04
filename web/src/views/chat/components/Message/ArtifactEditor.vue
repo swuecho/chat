@@ -1010,11 +1010,6 @@ onMounted(() => {
   align-items: center;
 }
 
-.execution-time {
-  font-size: 11px;
-  color: var(--text-color-secondary);
-}
-
 .history-tags {
   display: flex;
   flex-direction: column;

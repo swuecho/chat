@@ -1,12 +1,8 @@
 import { type Ref, ref } from 'vue'
 import { useDialog, useMessage } from 'naive-ui'
-import { v4 as uuidv4 } from 'uuid'
 import { createChatBot, createChatSnapshot } from '@/api/generated_client'
 import { useAppStore, useMessageStore, useSessionStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useChat } from '@/views/chat/hooks/useChat'
-import { nowISO } from '@/utils/date'
-import { extractArtifacts } from '@/utils/artifacts'
 import { t } from '@/locales'
 
 export function useChatActions(sessionUuidRef: Ref<string>) {
@@ -16,7 +12,6 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
   const messageStore = useMessageStore()
   const appStore = useAppStore()
   const { isMobile } = useBasicLayout()
-  const { addChat } = useChat()
 
   const snapshotLoading = ref<boolean>(false)
   const botLoading = ref<boolean>(false)
@@ -115,54 +110,6 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
     showArtifactGallery.value = !showArtifactGallery.value
   }
 
-  const handleVFSFileUploaded = (fileInfo: any) => {
-    nui_msg.success(`📁 File uploaded: ${fileInfo.filename}`)
-  }
-
-  const handleCodeExampleAdded = async (codeInfo: any, streamResponse: any) => {
-    const sessionUuid = sessionUuidRef.value
-    if (!sessionUuid) {
-      nui_msg.error('No active session selected.')
-      return
-    }
-
-    const exampleMessage = `📁 **Files uploaded successfully!**
-
-**Python example:**
-\`\`\`python <!-- executable: Python code to use the uploaded files -->
-${codeInfo.python}
-\`\`\`
-
-**JavaScript example:**
-\`\`\`javascript <!-- executable: JavaScript code to use the uploaded files -->
-${codeInfo.javascript}
-\`\`\`
-
-Your files are now available in the Virtual File System! 🚀`
-
-    const chatUuid = uuidv4()
-    addChat(
-      sessionUuid,
-      {
-        uuid: chatUuid,
-        dateTime: nowISO(),
-        text: exampleMessage,
-        inversion: true,
-        error: false,
-        loading: false,
-        artifacts: extractArtifacts(exampleMessage),
-      },
-    )
-
-    try {
-      await streamResponse(chatUuid, exampleMessage)
-      nui_msg.success('Files uploaded! Code examples added to chat.')
-    }
-    catch (error) {
-      console.error('Failed to stream code example response:', error)
-    }
-  }
-
   return {
     snapshotLoading,
     botLoading,
@@ -174,7 +121,5 @@ Your files are now available in the Virtual File System! 🚀`
     handleCreateBot,
     handleClear,
     toggleArtifactGallery,
-    handleVFSFileUploaded,
-    handleCodeExampleAdded,
   }
 }

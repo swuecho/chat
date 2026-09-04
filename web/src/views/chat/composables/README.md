@@ -70,12 +70,10 @@ Contains various chat-related actions and utilities.
 - Snapshot and bot creation functionality
 - File upload handling
 - Gallery and modal management
-- VFS (Virtual File System) integration
 
 **Key Functions:**
 - `handleSnapshot()` - Creates chat snapshots
 - `handleCreateBot()` - Bot creation functionality
-- `handleVFSFileUploaded()` - File upload handling
 - `toggleArtifactGallery()` - UI state management
 
 ### Utility Composables

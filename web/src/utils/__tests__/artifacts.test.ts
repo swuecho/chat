@@ -11,14 +11,10 @@ describe('extractArtifacts', () => {
     expect(updated[0].content).toBe('<p>two</p>')
   })
 
-  it('treats legacy executable markers as static code', () => {
+  it('ignores legacy executable markers', () => {
     const artifacts = extractArtifacts('```python <!-- executable: Report -->\nprint("hello")\n```')
 
-    expect(artifacts).toMatchObject([{
-      type: 'code',
-      language: 'python',
-      title: 'Report',
-    }])
+    expect(artifacts).toEqual([])
   })
 
   it('accepts case-insensitive languages and CRLF fences', () => {

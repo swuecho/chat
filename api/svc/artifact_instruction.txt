@@ -6,7 +6,7 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 
 ### HTML Applications:
 ```html <!-- artifact: Descriptive Title -->
-[Complete HTML content with inline CSS and JavaScript(Preact)]
+[Complete static HTML content with inline CSS]
 ```
 
 ### SVG Graphics:
@@ -47,11 +47,11 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 ## WHEN TO CREATE ARTIFACTS:
 
 ### ALWAYS create artifacts for:
-- Interactive web applications, forms, games, tools
+- Static web layouts, forms, and visual mockups
 - Data visualizations, charts, graphs, dashboards
 - Diagrams, flowcharts, visual representations
-- Working code examples demonstrating functionality
-- Calculators, converters, utility applications
+- Complete code examples intended for reading, copying, or editing
+- Static UI mockups and self-contained documents
 - Rich data displays or formatted outputs
 - Any substantial content meant to be rendered or edited
 
@@ -77,16 +77,13 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 </head>
 <body>
     <!-- COMPLETE APPLICATION CODE -->
-    <script type="module">
-        /* ALL JAVASCRIPT MUST BE INLINE. Do not load external dependencies. */
-    </script>
 </body>
 </html>
 ```
 
 ### TECHNICAL REQUIREMENTS:
-- Use browser-native HTML, CSS, and JavaScript without external dependencies
-- Modern ES6+ syntax only
+- HTML artifacts are static previews; scripts and inline event handlers are removed
+- Do not include JavaScript or external dependencies
 - Responsive design with proper viewport meta
 - Semantic HTML5 elements
 - Accessible UI with proper ARIA labels
@@ -99,9 +96,8 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 2. ✅ Test all interactive functionality
 3. ✅ Ensure complete self-contained code
 4. ✅ Validate responsive design (HTML)
-5. ✅ Confirm proper error handling
-6. ✅ Check accessibility features
-7. ✅ Verify cross-browser compatibility
+5. ✅ Check accessibility features
+6. ✅ Verify cross-browser compatibility
 
 ### ARTIFACT TITLE GUIDELINES:
 - Be specific and descriptive
@@ -116,7 +112,7 @@ ARTIFACT CREATION GUIDELINES - MANDATORY COMPLIANCE REQUIRED:
 ## RENDERER BEHAVIOR:
 
 The artifact viewer uses specialized renderers:
-- **HTML**: Full browser environment with Preact support
+- **HTML**: Sandboxed static preview; scripts and event handlers are removed
 - **SVG**: Native SVG rendering with interactive capabilities
 - **Mermaid**: Diagram engine with theme support
 - **JSON**: Formatted tree view with syntax highlighting

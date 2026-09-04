@@ -14,6 +14,7 @@ const props = defineProps<Props>()
 const mdi = new MarkdownIt()
 
 const renderedMarkdown = computed(() => sanitizeHtml(mdi.render(props.artifact.content)))
+const sanitizedHtml = computed(() => sanitizeHtml(props.artifact.content))
 const sanitizedSvg = computed(() => sanitizeSvg(props.artifact.content))
 const mermaidContent = ref<HTMLElement>()
 const mermaidError = ref('')
@@ -53,14 +54,14 @@ const formatJson = (jsonString: string) => {
 
 <template>
   <div class="artifact-content">
-    <div v-if="artifact.type === 'code' || artifact.type === 'executable-code'" class="code-artifact">
+    <div v-if="artifact.type === 'code'" class="code-artifact">
       <div class="code-display">
         <pre><code :class="`language-${artifact.language || 'text'}`">{{ artifact.content }}</code></pre>
       </div>
     </div>
 
     <div v-else-if="artifact.type === 'html'" class="html-artifact">
-      <iframe :srcdoc="artifact.content" class="html-iframe" sandbox="allow-scripts" />
+      <iframe :srcdoc="sanitizedHtml" class="html-iframe" sandbox title="HTML artifact preview" />
     </div>
 
     <div v-else-if="artifact.type === 'svg'" class="svg-artifact">

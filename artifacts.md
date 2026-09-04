@@ -165,9 +165,9 @@ func extractArtifacts(content string) []Artifact {
 tection
 
 2. **HTML Artifacts**
-   - Live HTML preview
-   - Sandboxed iframe execution
-   - CSS/JS support
+   - Sanitized static HTML preview
+   - Script-disabled sandbox
+   - Inline CSS support
 
 3. **SVG Artifacts**
    - Vector graphics display
@@ -189,8 +189,6 @@ tection
 
   4. Advanced Artifact Features
 
-  // Interactive code execution
-  - **Code Runners**: Execute JavaScript, Python snippets safely
   - **Live Editing**: Edit artifacts inline with syntax highlighting
 
   5. Enhanced Visualization
@@ -234,7 +232,6 @@ tection
 
 - [x] HTML artifact component with sandboxing
 - [x] SVG artifact viewer
-- [] CSS/JS execution in sandbox
 
 #### Phase 4: Advanced Features
 
@@ -250,7 +247,7 @@ tection
 
 #### Security
 
-- Sandbox HTML/JS execution to prevent XSS
+- Disable scripts and event handlers in HTML previews
 - Validate and sanitize artifact content
 - Limit artifact size and complexity
 

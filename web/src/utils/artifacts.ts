@@ -82,27 +82,6 @@ export function extractArtifacts(content: string, previousArtifacts: Artifact[] 
     })
   }
 
-  // Backward-compatible parsing for legacy executable markers.
-  const executableArtifactRegex = /```([\w+-]+)?\s*<!--\s*executable:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n```/gsi
-  const executableMatches = content.matchAll(executableArtifactRegex)
-
-  for (const match of executableMatches) {
-    const language = (match[1] || 'javascript').toLowerCase()
-    const title = match[2].trim()
-    const artifactContent = match[3].trim()
-
-    // Skip if already processed as HTML, SVG, Mermaid, or JSON
-    if (language === 'html' || language === 'svg' || language === 'mermaid' || language === 'json')
-      continue
-
-    addArtifact({
-      type: 'code',
-      title,
-      content: artifactContent,
-      language,
-    })
-  }
-
   // Pattern for general code artifacts (exclude html, svg, mermaid, json which are handled above)
   const codeArtifactRegex = /```([\w+-]+)?\s*<!--\s*artifact:\s*([^>]+?)\s*-->\s*\r?\n(.*?)\r?\n```/gsi
   const codeMatches = content.matchAll(codeArtifactRegex)
@@ -112,7 +91,7 @@ export function extractArtifacts(content: string, previousArtifacts: Artifact[] 
     const title = match[2].trim()
     const artifactContent = match[3].trim()
 
-    // Skip if already processed as HTML, SVG, Mermaid, JSON, or executable
+    // Skip formats handled by their specialized renderers.
     if (language === 'html' || language === 'svg' || language === 'mermaid' || language === 'json')
       continue
 

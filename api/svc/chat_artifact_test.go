@@ -17,14 +17,11 @@ func TestExtractArtifactsUsesInjectedIDGenerator(t *testing.T) {
 	}
 }
 
-func TestExtractArtifactsTreatsLegacyExecutableMarkerAsStaticCode(t *testing.T) {
+func TestExtractArtifactsIgnoresLegacyExecutableMarker(t *testing.T) {
 	artifacts := extractArtifacts("```python <!-- executable: Report -->\nprint('hello')\n```", func() string { return "artifact-id" })
 
-	if len(artifacts) != 1 {
-		t.Fatalf("expected one artifact, got %d", len(artifacts))
-	}
-	if artifacts[0].Type != "code" || artifacts[0].Language != "python" {
-		t.Fatalf("expected static Python code artifact, got %#v", artifacts[0])
+	if len(artifacts) != 0 {
+		t.Fatalf("expected executable marker to be ignored, got %#v", artifacts)
 	}
 }
 
