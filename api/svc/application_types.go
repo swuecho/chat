@@ -32,7 +32,6 @@ type SimpleChatSession struct {
 	TopP            float64
 	N               int32
 	MaxTokens       int32
-	Debug           bool
 	Model           string
 	SummarizeMode   bool
 	ArtifactEnabled bool

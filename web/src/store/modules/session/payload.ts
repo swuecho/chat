@@ -17,7 +17,6 @@ export function toUpdateChatSessionPayload(session: Chat.Session): UpdateChatSes
     topP: session.topP ?? 1,
     n: session.n ?? 1,
     maxTokens: session.maxTokens,
-    debug: session.debug ?? false,
     summarizeMode: session.summarizeMode ?? false,
     exploreMode: session.exploreMode ?? false,
     artifactEnabled: session.artifactEnabled ?? false,

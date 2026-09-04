@@ -41,7 +41,6 @@ type ChatSession struct {
 	SummarizeMode   bool
 	WorkspaceID     *int32
 	ArtifactEnabled bool
-	Debug           bool
 	ExploreMode     bool
 }
 
@@ -92,7 +91,7 @@ func chatSessionFromRecord(s sqlc_queries.ChatSession) ChatSession {
 		CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt, Active: s.Active, Model: s.Model,
 		MaxLength: s.MaxLength, Temperature: s.Temperature, TopP: s.TopP,
 		MaxTokens: s.MaxTokens, N: s.N, SummarizeMode: s.SummarizeMode,
-		WorkspaceID: workspaceID, ArtifactEnabled: s.ArtifactEnabled, Debug: s.Debug,
+		WorkspaceID: workspaceID, ArtifactEnabled: s.ArtifactEnabled,
 		ExploreMode: s.ExploreMode}
 }
 
@@ -103,7 +102,7 @@ func (s ChatSession) ToRawMessage() *json.RawMessage {
 		"model": s.Model, "maxLength": s.MaxLength, "temperature": s.Temperature,
 		"topP": s.TopP, "maxTokens": s.MaxTokens, "n": s.N,
 		"summarizeMode": s.SummarizeMode, "workspaceId": s.WorkspaceID,
-		"artifactEnabled": s.ArtifactEnabled, "debug": s.Debug, "exploreMode": s.ExploreMode,
+		"artifactEnabled": s.ArtifactEnabled, "exploreMode": s.ExploreMode,
 	})
 	if err != nil {
 		return nil
@@ -127,7 +126,6 @@ type CreateOrUpdateChatSessionInput struct {
 	MaxTokens       int32
 	TopP            float64
 	N               int32
-	Debug           bool
 	SummarizeMode   bool
 	WorkspaceID     *int32
 	ExploreMode     bool
@@ -221,7 +219,6 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 			TopP:            float64(session.TopP),
 			N:               session.N,
 			MaxTokens:       session.MaxTokens,
-			Debug:           session.Debug,
 			Model:           session.Model,
 			SummarizeMode:   session.SummarizeMode,
 			ArtifactEnabled: session.ArtifactEnabled,
@@ -290,7 +287,7 @@ func (s *ChatSessionService) CreateOrUpdateChatSessionByUUID(ctx context.Context
 	session_u, err := s.q.CreateOrUpdateChatSessionByUUID(ctx, sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
 		Uuid: input.UUID, UserID: input.UserID, Topic: input.Topic,
 		MaxLength: input.MaxLength, Temperature: input.Temperature, Model: input.Model,
-		MaxTokens: input.MaxTokens, TopP: input.TopP, N: input.N, Debug: input.Debug,
+		MaxTokens: input.MaxTokens, TopP: input.TopP, N: input.N,
 		SummarizeMode: input.SummarizeMode, WorkspaceID: workspaceID,
 		ExploreMode: input.ExploreMode, ArtifactEnabled: input.ArtifactEnabled,
 	})

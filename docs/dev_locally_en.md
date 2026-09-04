@@ -10,7 +10,6 @@ go mod tidy
 # Set environment variables based on your environment
 export DATABASE_URL= postgres://user:pass@192.168.0.1:5432/db?sslmode=disable
 
-# Not required if using `debug` model
 # export OPENAI_API_KEY=sk-xxx
 # export OPENAI_RATELIMIT=100
 

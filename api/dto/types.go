@@ -45,7 +45,6 @@ type UpdateChatSessionRequest struct {
 	TopP            float64 `json:"topP" jsonschema:"minimum=0,maximum=1"`
 	N               int32   `json:"n" jsonschema:"minimum=1,maximum=128"`
 	MaxTokens       int32   `json:"maxTokens" jsonschema:"minimum=0,maximum=1000000"`
-	Debug           bool    `json:"debug"`
 	SummarizeMode   bool    `json:"summarizeMode"`
 	ArtifactEnabled bool    `json:"artifactEnabled"`
 	ExploreMode     bool    `json:"exploreMode"`
@@ -120,7 +119,6 @@ type SimpleChatSession struct {
 	TopP            float64 `json:"topP"`
 	N               int32   `json:"n"`
 	MaxTokens       int32   `json:"maxTokens"`
-	Debug           bool    `json:"debug"`
 	Model           string  `json:"model"`
 	SummarizeMode   bool    `json:"summarizeMode"`
 	ArtifactEnabled bool    `json:"artifactEnabled"`

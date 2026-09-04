@@ -1968,9 +1968,6 @@
                       "maxTokens": {
                         "type": "integer"
                       },
-                      "debug": {
-                        "type": "boolean"
-                      },
                       "model": {
                         "type": "string"
                       },
@@ -1995,7 +1992,6 @@
                       "topP",
                       "n",
                       "maxTokens",
-                      "debug",
                       "model",
                       "summarizeMode",
                       "artifactEnabled",
@@ -4506,9 +4502,6 @@
                       "n": {
                         "type": "integer"
                       },
-                      "debug": {
-                        "type": "boolean"
-                      },
                       "summarizeMode": {
                         "type": "boolean"
                       },
@@ -4538,7 +4531,6 @@
                       "maxTokens",
                       "topP",
                       "n",
-                      "debug",
                       "summarizeMode",
                       "exploreMode",
                       "artifactEnabled",
@@ -5175,9 +5167,6 @@
             "maximum": 1000000,
             "minimum": 0
           },
-          "debug": {
-            "type": "boolean"
-          },
           "summarizeMode": {
             "type": "boolean"
           },
@@ -5202,7 +5191,6 @@
           "topP",
           "n",
           "maxTokens",
-          "debug",
           "summarizeMode",
           "artifactEnabled",
           "exploreMode"
@@ -5834,9 +5822,6 @@
           "artifactEnabled": {
             "type": "boolean"
           },
-          "debug": {
-            "type": "boolean"
-          },
           "exploreMode": {
             "type": "boolean"
           },
@@ -5866,7 +5851,6 @@
           "summarizeMode",
           "workspaceId",
           "artifactEnabled",
-          "debug",
           "exploreMode",
           "createdAt",
           "updatedAt"

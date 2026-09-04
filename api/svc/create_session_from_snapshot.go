@@ -78,8 +78,8 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 			UUID: sessionUUID, UserID: command.UserID, Topic: snapshot.Title,
 			MaxLength: source.MaxLength, Temperature: source.Temperature,
 			Model: source.Model, MaxTokens: source.MaxTokens, TopP: source.TopP, N: 1,
-			Debug: source.Debug, SummarizeMode: source.SummarizeMode,
-			WorkspaceID: source.WorkspaceID, ExploreMode: source.ExploreMode,
+			SummarizeMode: source.SummarizeMode,
+			WorkspaceID:   source.WorkspaceID, ExploreMode: source.ExploreMode,
 			ArtifactEnabled: source.ArtifactEnabled,
 		})
 		if err != nil {

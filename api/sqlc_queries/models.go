@@ -164,7 +164,6 @@ type ChatSession struct {
 	SummarizeMode   bool          `json:"summarizeMode"`
 	WorkspaceID     sql.NullInt32 `json:"workspaceId"`
 	ArtifactEnabled bool          `json:"artifactEnabled"`
-	Debug           bool          `json:"debug"`
 	ExploreMode     bool          `json:"exploreMode"`
 }
 

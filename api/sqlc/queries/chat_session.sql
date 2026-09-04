@@ -1,5 +1,5 @@
 -- name: GetAllChatSessions :many
-SELECT * FROM chat_session 
+SELECT * FROM chat_session
 where active = true
 ORDER BY id;
 
@@ -14,14 +14,14 @@ WHERE id = $1
 RETURNING *;
 
 -- name: DeleteChatSession :exec
-DELETE FROM chat_session 
+DELETE FROM chat_session
 WHERE id = $1;
 
 -- name: GetChatSessionByID :one
 SELECT * FROM chat_session WHERE id = $1;
 
 -- name: GetChatSessionByUUID :one
-SELECT * FROM chat_session 
+SELECT * FROM chat_session
 WHERE active = true and uuid = $1
 order by updated_at;
 
@@ -30,7 +30,7 @@ SELECT * FROM chat_session
 WHERE active = true AND uuid = $1 AND user_id = $2;
 
 -- name: GetChatSessionByUUIDWithInActive :one
-SELECT * FROM chat_session 
+SELECT * FROM chat_session
 WHERE uuid = $1
 order by updated_at;
 
@@ -45,14 +45,13 @@ WHERE uuid = $1
 RETURNING *;
 
 -- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, debug, summarize_mode, workspace_id, explore_mode, artifact_enabled)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-ON CONFLICT (uuid) 
+INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, summarize_mode, workspace_id, explore_mode, artifact_enabled)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+ON CONFLICT (uuid)
 DO UPDATE SET
-max_length = EXCLUDED.max_length, 
-debug = EXCLUDED.debug,
+max_length = EXCLUDED.max_length,
 max_tokens = EXCLUDED.max_tokens,
-temperature = EXCLUDED.temperature, 
+temperature = EXCLUDED.temperature,
 top_p = EXCLUDED.top_p,
 n= EXCLUDED.n,
 model = EXCLUDED.model,
@@ -68,9 +67,9 @@ returning *;
 -- name: UpdateChatSessionTopicByUUID :one
 INSERT INTO chat_session(uuid, user_id, topic)
 VALUES ($1, $2, $3)
-ON CONFLICT (uuid) 
+ON CONFLICT (uuid)
 DO UPDATE SET
-topic = EXCLUDED.topic, 
+topic = EXCLUDED.topic,
 updated_at = now()
 returning *;
 
@@ -88,7 +87,7 @@ LEFT JOIN (
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.user_id = $1 AND cs.active = true
-ORDER BY 
+ORDER BY
     cm.latest_message_time DESC,
     cs.id DESC;
 
@@ -118,7 +117,7 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: UpdateSessionWorkspace :one
-UPDATE chat_session 
+UPDATE chat_session
 SET workspace_id = $2, updated_at = now()
 WHERE uuid = $1
 RETURNING *;
@@ -132,12 +131,12 @@ LEFT JOIN (
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.workspace_id = $1 AND cs.active = true
-ORDER BY 
+ORDER BY
     cm.latest_message_time DESC,
     cs.id DESC;
 
 -- name: GetSessionsGroupedByWorkspace :many
-SELECT 
+SELECT
     cs.*,
     w.uuid as workspace_uuid,
     w.name as workspace_name,
@@ -151,16 +150,16 @@ LEFT JOIN (
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.user_id = $1 AND cs.active = true
-ORDER BY 
+ORDER BY
     w.order_position ASC,
     cm.latest_message_time DESC,
     cs.id DESC;
 
 -- name: MigrateSessionsToDefaultWorkspace :exec
-UPDATE chat_session 
+UPDATE chat_session
 SET workspace_id = $2
 WHERE user_id = $1 AND workspace_id IS NULL;
 
 -- name: GetSessionsWithoutWorkspace :many
-SELECT * FROM chat_session 
+SELECT * FROM chat_session
 WHERE user_id = $1 AND workspace_id IS NULL AND active = true;

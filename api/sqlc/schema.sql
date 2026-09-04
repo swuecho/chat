@@ -56,7 +56,6 @@ VALUES  ('gpt-3.5-turbo', 'gpt-3.5-turbo(chatgpt)', true, 'https://api.openai.co
         ('gpt-4-32k', 'gpt-4-32k(chatgpt)', false, 'https://api.openai.com/v1/chat/completions', 'Authorization', 'OPENAI_API_KEY',  9192, 2048, 6),
         ('text-davinci-003', 'text-davinci-003', false, 'https://api.openai.com/v1/completions', 'Authorization', 'OPENAI_API_KEY', 4096, 2048, 7),
         ('echo','echo',false,'https://bestqa_workerd.bestqa.workers.dev/echo','Authorization','ECHO_API_KEY', 40960, 20480, 8),
-        ('debug','debug',false,'https://bestqa_workerd.bestqa.workers.dev/debug','Authorization','ECHO_API_KEY', 40960, 2048, 9),
         ('deepseek-reasoner','deepseek-reasoner',false,'https://api.deepseek.com/v1/chat/completions','Authorization','DEEPSEEK API KEY', 8192, 8192, 2)
 ON CONFLICT(name) DO NOTHING;
 
@@ -71,7 +70,8 @@ UPDATE chat_model SET api_type = 'openai' WHERE name LIKE 'gpt-%' OR name LIKE '
 UPDATE chat_model SET api_type = 'claude' WHERE name LIKE 'claude-%';
 UPDATE chat_model SET api_type = 'gemini' WHERE name LIKE 'gemini-%';
 UPDATE chat_model SET api_type = 'ollama' WHERE name LIKE 'ollama-%';
-UPDATE chat_model SET api_type = 'custom' WHERE name LIKE 'custom-%' OR name IN ('echo', 'debug');
+UPDATE chat_model SET api_type = 'custom' WHERE name LIKE 'custom-%' OR name = 'echo';
+DELETE FROM chat_model WHERE name = 'debug';
 -- create index on name
 CREATE INDEX IF NOT EXISTS jwt_secrets_name_idx ON jwt_secrets (name);
 
@@ -269,7 +269,7 @@ ALTER TABLE chat_session DROP COLUMN IF EXISTS code_runner_enabled;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS temperature float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS top_p float DEFAULT 1.0 NOT NULL;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS max_tokens int DEFAULT 4096 NOT NULL; 
-ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS debug boolean DEFAULT false NOT NULL;
+ALTER TABLE chat_session DROP COLUMN IF EXISTS debug;
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS explore_mode boolean DEFAULT false NOT NULL; 
 ALTER TABlE chat_session ADD COLUMN IF NOT EXISTS model character varying(255) NOT NULL DEFAULT 'gpt-3.5-turbo';
 ALTER TABLE chat_session ADD COLUMN IF NOT EXISTS n INTEGER DEFAULT 1 NOT NULL;

@@ -34,7 +34,6 @@ test('test', async ({ page }) => {
   const sessions = await selectChatSessionsByUserId(pool, user.id);
   expect(sessions.length).toBe(1);
   const new_sesion = sessions[0]
-  expect(new_sesion.debug).toBe(false);
   expect(new_sesion.temperature).toBe(1);
   // click the chat settings button to open the modal
   await page.getByTestId('chat-settings-button').click();
@@ -42,7 +41,6 @@ test('test', async ({ page }) => {
   await page.getByTestId('collapse-advanced').click();
   // wait for the section to expand
   await page.waitForTimeout(300);
-  await expect(page.getByTestId('debug_mode')).toHaveCount(0);
   await expect(page.getByText(/Top P/i)).toHaveCount(0);
   await expect(page.getByText(/Max Tokens/i)).toHaveCount(0);
   await expect(page.getByText(/Number of results/i)).toHaveCount(0);

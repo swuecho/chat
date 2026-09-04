@@ -117,7 +117,6 @@ interface ModelType {
   maxTokens: number
   topP: number
   n: number
-  debug: boolean
   summarizeMode: boolean
   artifactEnabled: boolean
   exploreMode: boolean
@@ -142,7 +141,6 @@ const modelRef: Ref<ModelType> = ref({
   maxTokens: session.value?.maxTokens ?? 2048,
   topP: session.value?.topP ?? 1.0,
   n: session.value?.n ?? 1,
-  debug: session.value?.debug ?? false,
   exploreMode: session.value?.exploreMode ?? false,
   artifactEnabled: session.value?.artifactEnabled ?? false,
 })
@@ -167,7 +165,6 @@ const debouneUpdate = debounce(async (model: ModelType) => {
     maxTokens: model.maxTokens,
     topP: model.topP,
     n: model.n,
-    debug: model.debug,
     model: model.chatModel,
     summarizeMode: model.summarizeMode,
     artifactEnabled: model.artifactEnabled,
@@ -191,7 +188,6 @@ watch(session, (newSession) => {
       maxTokens: newSession.maxTokens ?? 2048,
       topP: newSession.topP ?? 1.0,
       n: newSession.n ?? 1,
-      debug: newSession.debug ?? false,
       exploreMode: newSession.exploreMode ?? false,
       artifactEnabled: newSession.artifactEnabled ?? false,
     }

@@ -147,7 +147,6 @@ type workspaceSessionHTTPResponse struct {
 	MaxTokens       int32   `json:"maxTokens"`
 	TopP            float64 `json:"topP"`
 	N               int32   `json:"n"`
-	Debug           bool    `json:"debug"`
 	SummarizeMode   bool    `json:"summarizeMode"`
 	ExploreMode     bool    `json:"exploreMode"`
 	ArtifactEnabled bool    `json:"artifactEnabled"`
@@ -170,7 +169,6 @@ type chatSessionHTTPResponse struct {
 	SummarizeMode   bool      `json:"summarizeMode"`
 	WorkspaceID     *int32    `json:"workspaceId"`
 	ArtifactEnabled bool      `json:"artifactEnabled"`
-	Debug           bool      `json:"debug"`
 	ExploreMode     bool      `json:"exploreMode"`
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
@@ -181,7 +179,7 @@ func chatSessionResponse(session svc.ChatSession) chatSessionHTTPResponse {
 		Topic: session.Topic, Active: session.Active, Model: session.Model, MaxLength: session.MaxLength,
 		Temperature: session.Temperature, TopP: session.TopP, MaxTokens: session.MaxTokens, N: session.N,
 		SummarizeMode: session.SummarizeMode, WorkspaceID: session.WorkspaceID,
-		ArtifactEnabled: session.ArtifactEnabled, Debug: session.Debug, ExploreMode: session.ExploreMode,
+		ArtifactEnabled: session.ArtifactEnabled, ExploreMode: session.ExploreMode,
 		CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt}
 }
 

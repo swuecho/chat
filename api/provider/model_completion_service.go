@@ -107,10 +107,6 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 		delta := response.Choices[0].Text
 		TextBuffer.AppendByIndex(textIdx, delta)
 
-		if chatSession.Debug {
-			slog.Info("completion chunk", "index", textIdx, "delta", delta)
-		}
-
 		if answerID == "" {
 			answerID = response.ID
 		}

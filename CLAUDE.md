@@ -166,7 +166,6 @@ OPENAI_RATELIMIT=100  # Calls per 10 minutes (default: 100)
 JWT_SECRET=...         # For JWT token signing
 ```
 
-**Note**: The "debug" model doesn't require API keys for testing.
 
 ## Key Features & Patterns
 

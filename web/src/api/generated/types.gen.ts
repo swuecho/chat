@@ -104,7 +104,6 @@ export type UpdateChatSessionRequest = {
     topP: number;
     n: number;
     maxTokens: number;
-    debug: boolean;
     summarizeMode: boolean;
     artifactEnabled: boolean;
     exploreMode: boolean;
@@ -273,7 +272,6 @@ export type ChatSessionHttpResponse = {
     summarizeMode: boolean;
     workspaceId: number;
     artifactEnabled: boolean;
-    debug: boolean;
     exploreMode: boolean;
     createdAt: string;
     updatedAt: string;
@@ -1592,7 +1590,6 @@ export type ListChatSessionsResponses = {
         topP: number;
         n: number;
         maxTokens: number;
-        debug: boolean;
         model: string;
         summarizeMode: boolean;
         artifactEnabled: boolean;
@@ -2919,7 +2916,6 @@ export type ListWorkspaceSessionsResponses = {
         maxTokens: number;
         topP: number;
         n: number;
-        debug: boolean;
         summarizeMode: boolean;
         exploreMode: boolean;
         artifactEnabled: boolean;

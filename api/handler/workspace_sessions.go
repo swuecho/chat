@@ -57,7 +57,7 @@ func (h *ChatWorkspaceHandler) getSessionsByWorkspace(r *http.Request, _ apicont
 	for _, s := range sessions {
 		responses = append(responses, workspaceSessionHTTPResponse{UUID: s.UUID, Title: s.Topic, Model: s.Model,
 			WorkspaceUUID: workspaceUUID, MaxLength: s.MaxLength, Temperature: s.Temperature,
-			MaxTokens: s.MaxTokens, TopP: s.TopP, N: s.N, Debug: s.Debug, SummarizeMode: s.SummarizeMode,
+			MaxTokens: s.MaxTokens, TopP: s.TopP, N: s.N, SummarizeMode: s.SummarizeMode,
 			ExploreMode: s.ExploreMode, ArtifactEnabled: s.ArtifactEnabled,
 			CreatedAt: s.CreatedAt.Format("2006-01-02T15:04:05Z"), UpdatedAt: s.UpdatedAt.Format("2006-01-02T15:04:05Z")})
 	}

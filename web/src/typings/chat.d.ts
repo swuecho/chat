@@ -38,7 +38,6 @@ declare namespace Chat {
 		topP?: number
 		n?: number
 		maxTokens?: number
-		debug?: boolean
 		summarizeMode?: boolean
 		exploreMode?: boolean
 		artifactEnabled?: boolean

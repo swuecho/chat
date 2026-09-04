@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/swuecho/chat_backend/models"
 )
@@ -18,7 +17,6 @@ func NewTestChatModel(h Handler) *TestChatModel {
 }
 
 func (m *TestChatModel) Stream(ctx context.Context, input Request) (<-chan StreamChunk, error) {
-	session, messages, chatFiles := input.Session, input.Messages, input.Files
 	chatUuid, regenerate := input.ChatUUID, input.Regenerate
 
 	answerID := generateAnswerID(chatUuid, regenerate, input.NewID)
@@ -29,14 +27,6 @@ func (m *TestChatModel) Stream(ctx context.Context, input Request) (<-chan Strea
 		defer close(ch)
 		if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: answer}) {
 			return
-		}
-
-		if session.Debug {
-			openaiReq := NewChatCompletionRequest(session, messages, chatFiles, false)
-			reqJ, _ := json.Marshal(openaiReq)
-			if !emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: "\n" + string(reqJ)}) {
-				return
-			}
 		}
 
 		emitChunk(ctx, ch, StreamChunk{

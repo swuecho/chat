@@ -25,7 +25,6 @@ type Session struct {
 	Temperature float64
 	TopP        float64
 	N           int32
-	Debug       bool
 }
 
 // ModelConfig describes an upstream model endpoint without exposing a
