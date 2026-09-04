@@ -7,6 +7,7 @@ import Button from './Button.vue'
 interface Props {
   tooltip?: string
   placement?: PopoverPlacement
+  ariaLabel?: string
 }
 
 interface Emit {
@@ -31,7 +32,7 @@ function handleClick() {
   <div v-if="showTooltip">
     <NTooltip :placement="placement" trigger="hover">
       <template #trigger>
-        <Button @click="handleClick">
+        <Button :aria-label="ariaLabel || tooltip" @click="handleClick">
           <slot />
         </Button>
       </template>
@@ -39,7 +40,7 @@ function handleClick() {
     </NTooltip>
   </div>
   <div v-else>
-    <Button @click="handleClick">
+    <Button :aria-label="ariaLabel || tooltip" @click="handleClick">
       <slot />
     </Button>
   </div>

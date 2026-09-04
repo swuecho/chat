@@ -78,8 +78,7 @@ const renderedContent = computed(() => {
 const shouldShowCollapse = computed(() => {
   if (!props.options.enableCollapsible)
     return false
-  const lines = props.content.content.split('\n').length
-  return lines > (props.options.maxLines || 20)
+  return props.content.content.trim().length > 0
 })
 
 const toggleExpanded = () => {
@@ -112,9 +111,6 @@ function highlightBlock(str: string, lang?: string) {
       <div class="flex items-center space-x-2">
         <span class="text-sm font-medium text-gray-600 dark:text-gray-400">
           💭 Thinking
-        </span>
-        <span v-if="content.createdAt" class="text-xs text-gray-500 dark:text-gray-500">
-          {{ new Date(content.createdAt).toLocaleTimeString() }}
         </span>
       </div>
 
@@ -159,7 +155,7 @@ function highlightBlock(str: string, lang?: string) {
     <div
       class="markdown-body thinking-content"
       :class="{
-        'max-h-48 overflow-hidden': !isExpanded && shouldShowCollapse,
+        'hidden': !isExpanded && shouldShowCollapse,
         'line-clamp-none': isExpanded || !shouldShowCollapse,
       }"
       v-html="renderedContent"

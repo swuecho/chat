@@ -207,6 +207,7 @@
     "presencePenalty": "Presence Penalty",
     "sessionConfig": "Conversation Settings:",
     "snapshotSuccess": "Snapshot successful, please view in a new tab",
+    "send": "Send message",
     "stopAnswer": "Stop Answering",
     "suggestedQuestions": "Suggested Questions",
     "summarize_mode": "Summary mode (supports longer context 20+)",

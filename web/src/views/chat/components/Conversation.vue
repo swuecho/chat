@@ -220,7 +220,7 @@ function handleUseQuestion(question: string) {
           <NSpin size="large" />
         </div>
         <div
-          v-else-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-screen-xl mx-auto dark:bg-[#101014]"
+          v-else-if="!showArtifactGallery" id="image-wrapper" class="w-full max-w-[860px] mx-auto dark:bg-[#101014]"
           :class="[isMobile ? 'p-2' : 'p-4']"
         >
           <template v-if="!dataSources.length">
@@ -249,8 +249,8 @@ function handleUseQuestion(question: string) {
       </div>
     </main>
     <footer :class="footerClass">
-      <div class="w-full max-w-screen-xl m-auto">
-        <div class="flex items-end justify-between gap-1">
+      <div class="w-full max-w-[860px] m-auto">
+        <div class="flex items-end gap-1.5">
           <HoverButton data-testid="clear-conversation-button" :tooltip="$t('chat.clearChat')" @click="handleClear">
             <span class="text-xl text-[#4b9e5f] dark:text-white">
               <SvgIcon icon="icon-park-outline:clear" />
@@ -296,27 +296,32 @@ function handleUseQuestion(question: string) {
               <SvgIcon icon="teenyicons:adjust-horizontal-solid" />
             </span>
           </HoverButton>
-          <NAutoComplete
-            v-model:value="prompt" :options="searchOptions" :render-label="renderOption"
-            :on-select="handleSelectAutoComplete"
-          >
-            <template #default="{ handleInput, handleBlur, handleFocus }">
-              <NInput
-                id="message_textarea" ref="searchInputRef" :value="prompt" type="textarea"
-                :placeholder="placeholder" data-testid="message_textarea"
-                :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
-                @blur="handleBlur" @keydown="handleEnter"
-              />
-            </template>
-          </NAutoComplete>
-          <button class="!-ml-8 z-10 pb-1" @click="showUploadModal = true">
-            <span class="text-xl text-[#4b9e5f]">
-              <SvgIcon icon="clarity:attachment-line" />
-            </span>
-          </button>
+          <div class="relative flex-1 min-w-0 composer-input">
+            <NAutoComplete
+              v-model:value="prompt" class="w-full" :options="searchOptions" :render-label="renderOption"
+              :on-select="handleSelectAutoComplete"
+            >
+              <template #default="{ handleInput, handleBlur, handleFocus }">
+                <NInput
+                  id="message_textarea" ref="searchInputRef" :value="prompt" type="textarea"
+                  :placeholder="placeholder" data-testid="message_textarea" :aria-label="placeholder"
+                  :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
+                  @blur="handleBlur" @keydown="handleEnter"
+                />
+              </template>
+            </NAutoComplete>
+            <button
+              type="button" class="absolute right-2 bottom-1.5 z-10 flex items-center justify-center w-8 h-8 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              :aria-label="$t('chat.uploadFiles')" :title="$t('chat.uploadFiles')" @click="showUploadModal = true"
+            >
+              <span class="text-xl text-[#4b9e5f]">
+                <SvgIcon icon="clarity:attachment-line" />
+              </span>
+            </button>
+          </div>
           <NButton
             v-if="!loading" id="send_message_button" class="!ml-4" data-testid="send_message_button" type="primary"
-            :disabled="sendButtonDisabled" @click="handleSubmit"
+            :aria-label="$t('chat.send')" :title="$t('chat.send')" :disabled="sendButtonDisabled" @click="handleSubmit"
           >
             <template #icon>
               <span class="dark:text-black">
@@ -326,7 +331,7 @@ function handleUseQuestion(question: string) {
           </NButton>
           <NButton
             v-else id="stop_stream_button" class="!ml-4" data-testid="stop_stream_button" type="error"
-            @click="handleStopStream"
+            :aria-label="$t('chat.stopAnswer')" :title="$t('chat.stopAnswer')" @click="handleStopStream"
           >
             <template #icon>
               <span class="dark:text-white">
@@ -341,6 +346,10 @@ function handleUseQuestion(question: string) {
 </template>
 
 <style scoped>
+.composer-input :deep(textarea) {
+  padding-right: 2.75rem;
+}
+
 /* Custom scrollbar styling */
 #scrollRef {
   scrollbar-width: thin;

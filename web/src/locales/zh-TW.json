@@ -202,6 +202,7 @@
     "presencePenalty": "存在懲罰",
     "sessionConfig": "會話配置",
     "snapshotSuccess": "快照成功，請在新標籤頁中查看",
+    "send": "傳送訊息",
     "stopAnswer": "停止回答",
     "suggestedQuestions": "建議問題",
     "summarize_mode": "總結模式(可以支持更長的上下文20+)",
