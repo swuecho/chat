@@ -30,8 +30,11 @@ test('workspace management - create workspace and manage sessions', async ({ pag
   await page.getByText('Create workspace').click(); // Based on t('workspace.create')
   
   // Fill workspace form in modal
-  await page.locator('input[placeholder*="workspace name"], input[placeholder*="Name"]').fill('test_workspace_1');
-  await page.getByRole('button', { name: /create|save/i }).click();
+  const workspaceDialog = page.getByRole('dialog');
+  await expect(workspaceDialog).toBeVisible();
+  await workspaceDialog.locator('input[placeholder*="workspace name"], input[placeholder*="Name"]').fill('test_workspace_1');
+  await workspaceDialog.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(workspaceDialog).toBeHidden();
   
   await page.waitForTimeout(1000);
 
