@@ -83,8 +83,8 @@ func (h *ChatHandler) ChatBotCompletionHandler(w http.ResponseWriter, r *http.Re
 		return dto.ErrResourceNotFound("Chat snapshot").WithDebugInfo(err.Error())
 	}
 
-	var session svc.ChatSession
-	if err := json.Unmarshal(chatSnapshot.Session, &session); err != nil {
+	session, err := decodeSnapshotSession(chatSnapshot.Session)
+	if err != nil {
 		return dto.ErrInternalUnexpected.WithDetail("Failed to deserialize chat session").WithDebugInfo(err.Error())
 	}
 
