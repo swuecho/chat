@@ -200,15 +200,20 @@ func genBotAnswer(ctx context.Context, h *ChatHandler, w http.ResponseWriter, se
 	answer, err := useCase.Execute(ctx, svc.GenerateBotAnswerCommand{Session: session, Messages: msgs,
 		SnapshotUUID: snapshotUuid, Question: question, UserID: userID, Stream: streamOutput})
 	if err != nil {
+		apiErr := dto.ToAPIError(err)
 		if streamOutput {
 			eventType := provider.AnswerEventFailed
 			if errors.Is(err, context.Canceled) {
 				eventType = provider.AnswerEventCanceled
 			}
-			_ = events.Emit(provider.AnswerEvent{Type: eventType, Code: "generation_failed", Message: "Failed to generate bot answer"})
+			code := "generation_failed"
+			if apiErr.Code == dto.ErrChatModelNotFound.Code {
+				code = "model_unavailable"
+			}
+			_ = events.Emit(provider.AnswerEvent{Type: eventType, Code: code, Message: apiErr.Message})
 			return
 		}
-		dto.RespondWithAPIError(w, dto.WrapError(err, "Failed to generate answer"))
+		dto.RespondWithAPIError(w, apiErr)
 		return
 	}
 

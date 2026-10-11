@@ -2,11 +2,28 @@ package dto
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/swuecho/chat_backend/domain"
 )
+
+func TestUnavailableModelErrors(t *testing.T) {
+	for _, err := range []error{
+		&domain.Error{Kind: domain.KindNotFound, Resource: "Chat model", Message: "Model old-model is no longer available. Please select an available model in the bot settings."},
+		domain.NewProviderHTTPFailure("openai", "complete", http.StatusNotFound, errors.New("private upstream error")),
+	} {
+		apiErr := ToAPIError(fmt.Errorf("generate bot answer: %w", err))
+		if apiErr.HTTPCode != http.StatusNotFound || apiErr.Code != ErrChatModelNotFound.Code || !strings.Contains(apiErr.Message, "select an available model") {
+			t.Fatalf("unexpected error: %+v", apiErr)
+		}
+		if strings.Contains(apiErr.Message, "private upstream") {
+			t.Fatal("exposed upstream details")
+		}
+	}
+}
 
 func TestToAPIErrorMapsDomainErrors(t *testing.T) {
 	tests := []struct {

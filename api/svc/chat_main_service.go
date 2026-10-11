@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -40,7 +42,12 @@ func (s *ChatService) SuggestionGenerator() SuggestionGenerator { return s.sugge
 func (s *ChatService) AuditLogger() ChatAuditLogger             { return s.audit }
 
 func (s *ChatService) ProviderModel(ctx context.Context, name string) (provider.ModelConfig, error) {
-	return s.modelCatalog.get(ctx, name)
+	model, err := s.modelCatalog.get(ctx, name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return provider.ModelConfig{}, &domain.Error{Kind: domain.KindNotFound, Resource: "Chat model",
+			Message: fmt.Sprintf("Model %q is no longer available. Please select an available model in the bot or chat settings.", name), Err: err}
+	}
+	return model, err
 }
 
 func (s *ChatService) ProviderRequest(ctx context.Context, session ChatSession, messages []models.Message, chatUUID string, regenerate, stream bool) (provider.Request, error) {
