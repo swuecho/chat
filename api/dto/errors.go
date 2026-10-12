@@ -316,6 +316,9 @@ func ToAPIError(err error) APIError {
 
 	if failure, ok := domain.AsProviderFailure(err); ok {
 		var apiErr APIError
+		if failure.StatusCode == http.StatusNotFound {
+			return ErrChatModelNotFound.WithMessage("The provider could not find the selected model or endpoint. Please select an available model in the bot or chat settings.").WithDebugInfo(failure.Error())
+		}
 		switch failure.Kind {
 		case domain.ProviderFailureInvalidRequest:
 			apiErr = ErrValidationInvalidInput("Provider rejected the request")

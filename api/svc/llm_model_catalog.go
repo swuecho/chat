@@ -53,6 +53,9 @@ func (c *llmModelCatalog) refresh(ctx context.Context) error {
 	}
 	models := make(map[string]provider.ModelConfig, len(rows))
 	for _, row := range rows {
+		if !row.IsEnable {
+			continue
+		}
 		models[row.Name] = providerModel(row)
 	}
 	c.mu.Lock()

@@ -16,14 +16,14 @@ import (
 )
 
 // chooseChatModel returns the appropriate ChatModel implementation based on session config.
-func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSession, msgs []models.Message) provider.ChatModel {
+func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSession, msgs []models.Message) (provider.ChatModel, error) {
 	if isTest(msgs) {
-		return provider.NewTestChatModel(h)
+		return provider.NewTestChatModel(h), nil
 	}
 
 	chatModel, err := h.service.ProviderModel(ctx, session.Model)
 	if err != nil {
-		return provider.NewOpenAIChatModel(h) // fallback
+		return nil, err
 	}
 
 	completionModels := mapset.NewSet[string]()
@@ -31,26 +31,26 @@ func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSessi
 
 	switch chatModel.APIType {
 	case "claude":
-		return provider.NewClaude3ChatModel(h)
+		return provider.NewClaude3ChatModel(h), nil
 	case "ollama":
-		return provider.NewOllamaChatModel(h)
+		return provider.NewOllamaChatModel(h), nil
 	case "gemini":
-		return provider.NewGeminiChatModel(h)
+		return provider.NewGeminiChatModel(h), nil
 	case "custom":
-		return provider.NewCustomChatModel(h)
+		return provider.NewCustomChatModel(h), nil
 	case "openai":
 		if isCompletion {
-			return provider.NewCompletionChatModel(h)
+			return provider.NewCompletionChatModel(h), nil
 		}
-		return provider.NewOpenAIChatModel(h)
+		return provider.NewOpenAIChatModel(h), nil
 	default:
-		return provider.NewOpenAIChatModel(h)
+		return provider.NewOpenAIChatModel(h), nil
 	}
 }
 
 // SelectModel implements svc.ModelSelector for chat-generation use cases.
 func (h *ChatHandler) SelectModel(ctx context.Context, session svc.ChatSession, msgs []models.Message) (provider.ChatModel, error) {
-	return h.chooseChatModel(ctx, session, msgs), nil
+	return h.chooseChatModel(ctx, session, msgs)
 }
 
 // isTest returns true if any message starts with the test demo prefix.
