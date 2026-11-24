@@ -1509,12 +1509,6 @@
                       "enablePerModeRatelimit": {
                         "type": "boolean"
                       },
-                      "maxToken": {
-                        "type": "integer"
-                      },
-                      "defaultToken": {
-                        "type": "integer"
-                      },
                       "orderNumber": {
                         "type": "integer"
                       },
@@ -1965,9 +1959,6 @@
                       "n": {
                         "type": "integer"
                       },
-                      "maxTokens": {
-                        "type": "integer"
-                      },
                       "model": {
                         "type": "string"
                       },
@@ -1991,7 +1982,6 @@
                       "temperature",
                       "topP",
                       "n",
-                      "maxTokens",
                       "model",
                       "summarizeMode",
                       "artifactEnabled",
@@ -4493,9 +4483,6 @@
                       "temperature": {
                         "type": "number"
                       },
-                      "maxTokens": {
-                        "type": "integer"
-                      },
                       "topP": {
                         "type": "number"
                       },
@@ -4528,7 +4515,6 @@
                       "workspaceUuid",
                       "maxLength",
                       "temperature",
-                      "maxTokens",
                       "topP",
                       "n",
                       "summarizeMode",
@@ -5162,11 +5148,6 @@
             "maximum": 128,
             "minimum": 1
           },
-          "maxTokens": {
-            "type": "integer",
-            "maximum": 1000000,
-            "minimum": 0
-          },
           "summarizeMode": {
             "type": "boolean"
           },
@@ -5190,7 +5171,6 @@
           "model",
           "topP",
           "n",
-          "maxTokens",
           "summarizeMode",
           "artifactEnabled",
           "exploreMode"
@@ -5682,12 +5662,6 @@
           "enablePerModeRatelimit": {
             "type": "boolean"
           },
-          "maxToken": {
-            "type": "integer"
-          },
-          "defaultToken": {
-            "type": "integer"
-          },
           "orderNumber": {
             "type": "integer"
           },
@@ -5807,9 +5781,6 @@
           "topP": {
             "type": "number"
           },
-          "maxTokens": {
-            "type": "integer"
-          },
           "n": {
             "type": "integer"
           },
@@ -5846,7 +5817,6 @@
           "maxLength",
           "temperature",
           "topP",
-          "maxTokens",
           "n",
           "summarizeMode",
           "workspaceId",
@@ -5916,12 +5886,6 @@
           },
           "enablePerModeRatelimit": {
             "type": "boolean"
-          },
-          "maxToken": {
-            "type": "integer"
-          },
-          "defaultToken": {
-            "type": "integer"
           },
           "orderNumber": {
             "type": "integer"

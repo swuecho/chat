@@ -14,8 +14,6 @@ const (
 	ChatMessageRoleTool      = "tool"
 )
 
-const chatCompletionsSuffix = "/chat/completions"
-
 var (
 	ErrChatCompletionInvalidModel       = errors.New("this model is not supported with this method, please use CreateCompletion client method instead") //nolint:lll
 	ErrChatCompletionStreamNotSupported = errors.New("streaming is not supported with this method, please use CreateChatCompletionStream")              //nolint:lll
@@ -299,9 +297,6 @@ type FunctionDefinition struct {
 	// consider another specialized library if you require more complex schemas.
 	Parameters any `json:"parameters"`
 }
-
-// Deprecated: use FunctionDefinition instead.
-type FunctionDefine = FunctionDefinition
 
 type TopLogProbs struct {
 	Token   string  `json:"token"`

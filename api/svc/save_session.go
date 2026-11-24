@@ -17,7 +17,6 @@ type SaveSessionCommand struct {
 	Model               string
 	MaxLength           int32
 	Temperature         float64
-	MaxTokens           int32
 	TopP                float64
 	N                   int32
 	SummarizeMode       bool
@@ -60,7 +59,7 @@ func (s *ChatSessionService) SaveSession(ctx context.Context, command SaveSessio
 		saved, err = uow.CreateOrUpdateSession(ctx, CreateOrUpdateChatSessionInput{
 			UUID: command.SessionUUID, UserID: command.UserID, Topic: command.Topic,
 			MaxLength: command.MaxLength, Temperature: command.Temperature, Model: command.Model,
-			MaxTokens: command.MaxTokens, TopP: command.TopP, N: command.N,
+			TopP: command.TopP, N: command.N,
 			SummarizeMode: command.SummarizeMode, WorkspaceID: &workspaceID,
 			ExploreMode: command.ExploreMode, ArtifactEnabled: command.ArtifactEnabled,
 		})

@@ -24,7 +24,7 @@ func TestDecodeSnapshotSession(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if s.UUID != "session" || s.Model != "test" || s.Temperature != 0.7 || s.MaxTokens != 123 {
+			if s.UUID != "session" || s.Model != "test" || s.Temperature != 0.7 {
 				t.Fatalf("lost session settings: %+v", s)
 			}
 			if (s.WorkspaceID != nil) != tt.wantID {

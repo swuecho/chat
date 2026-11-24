@@ -2,7 +2,6 @@ package svc
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -36,8 +35,6 @@ type UpdateChatModelInput struct {
 	ApiAuthKey             string
 	UserID                 int32
 	EnablePerModeRatelimit bool
-	MaxToken               *int32
-	DefaultToken           *int32
 	OrderNumber            int32
 	HttpTimeOut            int32
 	IsEnable               bool
@@ -49,21 +46,13 @@ type ChatModel struct {
 	Name, Label, URL, APIAuthHeader, APIAuthKey, APIType       string
 	IsDefault, IsEnable, IsTitleModel, EnablePerModelRateLimit bool
 	UserID, OrderNumber, HTTPTimeout                           int32
-	MaxToken, DefaultToken                                     *int32
 }
 
 func chatModelFromRecord(m sqlc_queries.ChatModel) ChatModel {
 	return ChatModel{ID: m.ID, Name: m.Name, Label: m.Label, URL: m.Url, APIAuthHeader: m.ApiAuthHeader,
 		APIAuthKey: m.ApiAuthKey, APIType: m.ApiType, IsDefault: m.IsDefault, IsEnable: m.IsEnable,
 		IsTitleModel: m.IsTitleModel, EnablePerModelRateLimit: m.EnablePerModeRatelimit, UserID: m.UserID,
-		MaxToken: nullableInt32(m.MaxToken), DefaultToken: nullableInt32(m.DefaultToken), OrderNumber: m.OrderNumber, HTTPTimeout: m.HttpTimeOut}
-}
-
-func nullableInt32(value sql.NullInt32) *int32 {
-	if !value.Valid {
-		return nil
-	}
-	return &value.Int32
+		OrderNumber: m.OrderNumber, HTTPTimeout: m.HttpTimeOut}
 }
 
 type ChatModelWithUsage struct {
@@ -109,12 +98,6 @@ func (s *ChatModelService) Update(ctx context.Context, input UpdateChatModelInpu
 		ApiAuthHeader: input.ApiAuthHeader, ApiAuthKey: input.ApiAuthKey, UserID: input.UserID,
 		EnablePerModeRatelimit: input.EnablePerModeRatelimit, OrderNumber: input.OrderNumber,
 		HttpTimeOut: input.HttpTimeOut, IsEnable: input.IsEnable, ApiType: input.ApiType,
-	}
-	if input.MaxToken != nil {
-		params.MaxToken = sql.NullInt32{Int32: *input.MaxToken, Valid: true}
-	}
-	if input.DefaultToken != nil {
-		params.DefaultToken = sql.NullInt32{Int32: *input.DefaultToken, Valid: true}
 	}
 	m, err := s.q.UpdateChatModel(ctx, params)
 	return chatModelFromRecord(m), err

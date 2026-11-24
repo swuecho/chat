@@ -21,14 +21,8 @@ RETURNING *;
 UPDATE chat_model SET name = sqlc.arg(name), label = sqlc.arg(label), is_default = sqlc.arg(is_default),
 url = sqlc.arg(url), api_auth_header = sqlc.arg(api_auth_header), api_auth_key = sqlc.arg(api_auth_key),
 enable_per_mode_ratelimit = sqlc.arg(enable_per_mode_ratelimit),
-max_token = COALESCE(sqlc.narg(max_token)::integer, max_token), default_token = COALESCE(sqlc.narg(default_token)::integer, default_token),
 order_number = sqlc.arg(order_number), http_time_out = sqlc.arg(http_time_out), is_enable = sqlc.arg(is_enable), api_type = sqlc.arg(api_type)
 WHERE id = sqlc.arg(id) and user_id = sqlc.arg(user_id)
-RETURNING *;
-
--- name: UpdateChatModelKey :one
-UPDATE chat_model SET api_auth_key = $2
-WHERE id = $1
 RETURNING *;
 
 -- name: DeleteChatModel :exec

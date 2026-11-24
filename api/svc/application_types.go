@@ -31,7 +31,6 @@ type SimpleChatSession struct {
 	Temperature     float64
 	TopP            float64
 	N               int32
-	MaxTokens       int32
 	Model           string
 	SummarizeMode   bool
 	ArtifactEnabled bool

@@ -93,16 +93,6 @@ func (s *ChatPromptService) CreateChatPrompt(ctx context.Context, input CreateCh
 	return chatPromptFromRecord(prompt), nil
 }
 
-func (s *ChatPromptService) CreateChatPromptWithUUID(ctx context.Context, uuid string, role, content string) (ChatPrompt, error) {
-	params := sqlc_queries.CreateChatPromptParams{
-		ChatSessionUuid: uuid,
-		Role:            role,
-		Content:         content,
-	}
-	prompt, err := s.q.CreateChatPrompt(ctx, params)
-	return chatPromptFromRecord(prompt), err
-}
-
 // GetChatPromptByID returns a chat prompt by ID.
 func (s *ChatPromptService) GetChatPromptByID(ctx context.Context, id, userID int32) (ChatPrompt, error) {
 	prompt, err := s.q.GetChatPromptByID(ctx, sqlc_queries.GetChatPromptByIDParams{ID: id, UserID: userID})

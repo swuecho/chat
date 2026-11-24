@@ -37,7 +37,7 @@ func decodeSnapshotSession(data json.RawMessage) (svc.ChatSession, error) {
 	return svc.ChatSession{ID: s.ID, UserID: s.UserID, UUID: s.UUID,
 		Topic: s.Topic, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt,
 		Active: s.Active, Model: s.Model, MaxLength: s.MaxLength,
-		Temperature: s.Temperature, TopP: s.TopP, MaxTokens: s.MaxTokens,
+		Temperature: s.Temperature, TopP: s.TopP,
 		N: s.N, SummarizeMode: s.SummarizeMode, WorkspaceID: workspaceID,
 		ArtifactEnabled: s.ArtifactEnabled, ExploreMode: s.ExploreMode}, nil
 }

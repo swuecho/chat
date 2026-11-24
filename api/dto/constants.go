@@ -15,7 +15,6 @@ const (
 	TestDemoPrefix             = "test_demo_bestqa"
 	DefaultMaxLength           = 10
 	DefaultTemperature         = 0.7
-	DefaultMaxTokens           = 4096
 	DefaultTopP                = 1.0
 	DefaultN                   = 1
 	RequestTimeoutSeconds      = 10

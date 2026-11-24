@@ -26,19 +26,6 @@ func (r Role) String() string {
 	}
 }
 
-func StringToRole(s string) (Role, error) {
-	switch s {
-	case "system":
-		return System, nil
-	case "user":
-		return User, nil
-	case "assistant":
-		return Assistant, nil
-	default:
-		return 0, fmt.Errorf("invalid role string: %s", s)
-	}
-}
-
 func (r *Role) UnmarshalJSON(data []byte) error {
 	var roleStr string
 	err := json.Unmarshal(data, &roleStr)

@@ -59,7 +59,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 	jsonData := map[string]any{
 		"prompt":               prompt,
 		"model":                chatSession.Model,
-		"max_tokens_to_sample": chatSession.MaxTokens,
+		"max_tokens_to_sample": chatSession.OutputTokens(),
 		"temperature":          chatSession.Temperature,
 		"stop_sequences":       []string{"\n\nHuman:"},
 		"stream":               true,

@@ -24,7 +24,7 @@ func createSnapshotFixture(t *testing.T, suffix string) (*sqlc_queries.Queries, 
 	sourceUUID := "snapshot-source-" + suffix
 	_, err = q.CreateOrUpdateChatSessionByUUID(ctx, sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
 		Uuid: sourceUUID, UserID: user.ID, Topic: "Source", Model: "test-model",
-		MaxLength: 12, Temperature: .4, TopP: .9, MaxTokens: 1024, N: 1,
+		MaxLength: 12, Temperature: .4, TopP: .9, N: 1,
 	})
 	if err != nil {
 		t.Fatal(err)

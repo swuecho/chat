@@ -3,7 +3,6 @@ package httpx
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -187,8 +186,4 @@ type PageResponse[T any] struct {
 
 func Invalid(detail string) error {
 	return domain.Invalid(detail)
-}
-
-func IsResponseWriteError(err error) bool {
-	return err != nil && (errors.Is(err, http.ErrHandlerTimeout) || errors.Is(err, http.ErrAbortHandler))
 }

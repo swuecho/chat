@@ -34,23 +34,17 @@ SELECT * FROM chat_session
 WHERE uuid = $1
 order by updated_at;
 
--- name: CreateChatSessionByUUID :one
-INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length, model)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING *;
-
 -- name: UpdateChatSessionByUUID :one
 UPDATE chat_session SET user_id = $2, topic = $3, updated_at = now()
 WHERE uuid = $1
 RETURNING *;
 
 -- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, summarize_mode, workspace_id, explore_mode, artifact_enabled)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, top_p, n, summarize_mode, workspace_id, explore_mode, artifact_enabled)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 ON CONFLICT (uuid)
 DO UPDATE SET
 max_length = EXCLUDED.max_length,
-max_tokens = EXCLUDED.max_tokens,
 temperature = EXCLUDED.temperature,
 top_p = EXCLUDED.top_p,
 n= EXCLUDED.n,
@@ -91,18 +85,10 @@ ORDER BY
     cm.latest_message_time DESC,
     cs.id DESC;
 
-
 -- SELECT cs.*
 -- FROM chat_session cs
 -- WHERE cs.user_id = $1 and cs.active = true
 -- ORDER BY cs.updated_at DESC;
-
--- name: HasChatSessionPermission :one
-SELECT COUNT(*) > 0 as has_permission
-FROM chat_session cs
-INNER JOIN auth_user au ON cs.user_id = au.id
-WHERE cs.id = $1 AND (cs.user_id = $2 OR au.is_superuser);
-
 
 -- name: UpdateSessionMaxLength :one
 UPDATE chat_session
@@ -114,12 +100,6 @@ RETURNING *;
 -- name: CreateChatSessionInWorkspace :one
 INSERT INTO chat_session (user_id, uuid, topic, created_at, active, max_length, model, workspace_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING *;
-
--- name: UpdateSessionWorkspace :one
-UPDATE chat_session
-SET workspace_id = $2, updated_at = now()
-WHERE uuid = $1
 RETURNING *;
 
 -- name: GetSessionsByWorkspaceID :many

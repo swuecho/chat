@@ -10,7 +10,6 @@ The application never executes artifact code.
 - HTML is sanitized and shown in a sandboxed preview. Scripts, inline event handlers, embedded frames, objects, and unsafe URLs are removed.
 - SVG is sanitized before rendering.
 - Mermaid diagrams use Mermaid's strict security mode.
-- Legacy `executable` markers are ignored.
 
 ## Supported formats
 

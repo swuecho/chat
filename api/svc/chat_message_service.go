@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/rotisserie/eris"
-	"github.com/swuecho/chat_backend/ai"
 	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -186,21 +185,6 @@ func (s *ChatMessageService) GetLatestMessagesBySessionID(ctx context.Context, q
 
 func (s *ChatMessageService) GetFirstMessageBySessionUUID(ctx context.Context, chatSessionUuid string) (ChatMessage, error) {
 	msg, err := s.q.GetFirstMessageBySessionUUID(ctx, chatSessionUuid)
-	if err != nil {
-		return ChatMessage{}, err
-	}
-	return chatMessageFromRecord(msg), nil
-}
-
-func (s *ChatMessageService) AddMessage(ctx context.Context, chatSessionUuid string, uuid string, role ai.Role, content string, raw []byte) (ChatMessage, error) {
-	params := sqlc_queries.CreateChatMessageParams{
-		ChatSessionUuid: chatSessionUuid,
-		Uuid:            uuid,
-		Role:            role.String(),
-		Content:         content,
-		Raw:             json.RawMessage(raw),
-	}
-	msg, err := s.q.CreateChatMessage(ctx, params)
 	if err != nil {
 		return ChatMessage{}, err
 	}

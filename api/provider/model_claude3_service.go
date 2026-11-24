@@ -61,7 +61,7 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 		"system":      chatCompletionMessages[0].Content,
 		"model":       chatSession.Model,
 		"messages":    messages,
-		"max_tokens":  chatSession.MaxTokens,
+		"max_tokens":  chatSession.OutputTokens(),
 		"temperature": chatSession.Temperature,
 		"top_p":       chatSession.TopP,
 		"stream":      stream,

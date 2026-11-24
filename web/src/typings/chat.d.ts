@@ -37,7 +37,6 @@ declare namespace Chat {
 		model?: string
 		topP?: number
 		n?: number
-		maxTokens?: number
 		summarizeMode?: boolean
 		exploreMode?: boolean
 		artifactEnabled?: boolean

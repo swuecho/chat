@@ -56,55 +56,6 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 	return i, err
 }
 
-const createChatSessionByUUID = `-- name: CreateChatSessionByUUID :one
-INSERT INTO chat_session (user_id, uuid, topic, created_at, active,  max_length, model)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, artifact_enabled, explore_mode
-`
-
-type CreateChatSessionByUUIDParams struct {
-	UserID    int32     `json:"userId"`
-	Uuid      string    `json:"uuid"`
-	Topic     string    `json:"topic"`
-	CreatedAt time.Time `json:"createdAt"`
-	Active    bool      `json:"active"`
-	MaxLength int32     `json:"maxLength"`
-	Model     string    `json:"model"`
-}
-
-func (q *Queries) CreateChatSessionByUUID(ctx context.Context, arg CreateChatSessionByUUIDParams) (ChatSession, error) {
-	row := q.db.QueryRowContext(ctx, createChatSessionByUUID,
-		arg.UserID,
-		arg.Uuid,
-		arg.Topic,
-		arg.CreatedAt,
-		arg.Active,
-		arg.MaxLength,
-		arg.Model,
-	)
-	var i ChatSession
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Uuid,
-		&i.Topic,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Active,
-		&i.Model,
-		&i.MaxLength,
-		&i.Temperature,
-		&i.TopP,
-		&i.MaxTokens,
-		&i.N,
-		&i.SummarizeMode,
-		&i.WorkspaceID,
-		&i.ArtifactEnabled,
-		&i.ExploreMode,
-	)
-	return i, err
-}
-
 const createChatSessionInWorkspace = `-- name: CreateChatSessionInWorkspace :one
 INSERT INTO chat_session (user_id, uuid, topic, created_at, active, max_length, model, workspace_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -157,12 +108,11 @@ func (q *Queries) CreateChatSessionInWorkspace(ctx context.Context, arg CreateCh
 }
 
 const createOrUpdateChatSessionByUUID = `-- name: CreateOrUpdateChatSessionByUUID :one
-INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, max_tokens, top_p, n, summarize_mode, workspace_id, explore_mode, artifact_enabled)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+INSERT INTO chat_session(uuid, user_id, topic, max_length, temperature, model, top_p, n, summarize_mode, workspace_id, explore_mode, artifact_enabled)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 ON CONFLICT (uuid)
 DO UPDATE SET
 max_length = EXCLUDED.max_length,
-max_tokens = EXCLUDED.max_tokens,
 temperature = EXCLUDED.temperature,
 top_p = EXCLUDED.top_p,
 n= EXCLUDED.n,
@@ -184,7 +134,6 @@ type CreateOrUpdateChatSessionByUUIDParams struct {
 	MaxLength       int32         `json:"maxLength"`
 	Temperature     float64       `json:"temperature"`
 	Model           string        `json:"model"`
-	MaxTokens       int32         `json:"maxTokens"`
 	TopP            float64       `json:"topP"`
 	N               int32         `json:"n"`
 	SummarizeMode   bool          `json:"summarizeMode"`
@@ -201,7 +150,6 @@ func (q *Queries) CreateOrUpdateChatSessionByUUID(ctx context.Context, arg Creat
 		arg.MaxLength,
 		arg.Temperature,
 		arg.Model,
-		arg.MaxTokens,
 		arg.TopP,
 		arg.N,
 		arg.SummarizeMode,
@@ -680,30 +628,6 @@ func (q *Queries) GetSessionsWithoutWorkspace(ctx context.Context, userID int32)
 	return items, nil
 }
 
-const hasChatSessionPermission = `-- name: HasChatSessionPermission :one
-
-SELECT COUNT(*) > 0 as has_permission
-FROM chat_session cs
-INNER JOIN auth_user au ON cs.user_id = au.id
-WHERE cs.id = $1 AND (cs.user_id = $2 OR au.is_superuser)
-`
-
-type HasChatSessionPermissionParams struct {
-	ID     int32 `json:"id"`
-	UserID int32 `json:"userId"`
-}
-
-// SELECT cs.*
-// FROM chat_session cs
-// WHERE cs.user_id = $1 and cs.active = true
-// ORDER BY cs.updated_at DESC;
-func (q *Queries) HasChatSessionPermission(ctx context.Context, arg HasChatSessionPermissionParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, hasChatSessionPermission, arg.ID, arg.UserID)
-	var has_permission bool
-	err := row.Scan(&has_permission)
-	return has_permission, err
-}
-
 const migrateSessionsToDefaultWorkspace = `-- name: MigrateSessionsToDefaultWorkspace :exec
 UPDATE chat_session
 SET workspace_id = $2
@@ -842,6 +766,7 @@ func (q *Queries) UpdateChatSessionTopicByUUID(ctx context.Context, arg UpdateCh
 }
 
 const updateSessionMaxLength = `-- name: UpdateSessionMaxLength :one
+
 UPDATE chat_session
 SET max_length = $2,
     updated_at = now()
@@ -855,45 +780,12 @@ type UpdateSessionMaxLengthParams struct {
 	UserID    int32  `json:"userId"`
 }
 
+// SELECT cs.*
+// FROM chat_session cs
+// WHERE cs.user_id = $1 and cs.active = true
+// ORDER BY cs.updated_at DESC;
 func (q *Queries) UpdateSessionMaxLength(ctx context.Context, arg UpdateSessionMaxLengthParams) (ChatSession, error) {
 	row := q.db.QueryRowContext(ctx, updateSessionMaxLength, arg.Uuid, arg.MaxLength, arg.UserID)
-	var i ChatSession
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Uuid,
-		&i.Topic,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Active,
-		&i.Model,
-		&i.MaxLength,
-		&i.Temperature,
-		&i.TopP,
-		&i.MaxTokens,
-		&i.N,
-		&i.SummarizeMode,
-		&i.WorkspaceID,
-		&i.ArtifactEnabled,
-		&i.ExploreMode,
-	)
-	return i, err
-}
-
-const updateSessionWorkspace = `-- name: UpdateSessionWorkspace :one
-UPDATE chat_session
-SET workspace_id = $2, updated_at = now()
-WHERE uuid = $1
-RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, artifact_enabled, explore_mode
-`
-
-type UpdateSessionWorkspaceParams struct {
-	Uuid        string        `json:"uuid"`
-	WorkspaceID sql.NullInt32 `json:"workspaceId"`
-}
-
-func (q *Queries) UpdateSessionWorkspace(ctx context.Context, arg UpdateSessionWorkspaceParams) (ChatSession, error) {
-	row := q.db.QueryRowContext(ctx, updateSessionWorkspace, arg.Uuid, arg.WorkspaceID)
 	var i ChatSession
 	err := row.Scan(
 		&i.ID,

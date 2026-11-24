@@ -15,9 +15,6 @@ SELECT * FROM user_chat_model_privilege
 WHERE user_id = $1
 ORDER BY id;
 
--- name: UserChatModelPrivilegeByID :one
-SELECT * FROM user_chat_model_privilege WHERE id = $1;
-
 -- name: CreateUserChatModelPrivilege :one
 INSERT INTO user_chat_model_privilege (user_id, chat_model_id, rate_limit, created_by, updated_by)
 VALUES ($1, $2, $3, $4, $5)
@@ -30,9 +27,6 @@ RETURNING *;
 
 -- name: DeleteUserChatModelPrivilege :exec
 DELETE FROM user_chat_model_privilege WHERE id = $1;
-
--- name: UserChatModelPrivilegeByUserAndModelID :one
-SELECT * FROM user_chat_model_privilege WHERE user_id = $1 AND chat_model_id = $2;
 
 -- name: RateLimiteByUserAndSessionUUID :one
 SELECT ucmp.rate_limit, cm.name AS chat_model_name

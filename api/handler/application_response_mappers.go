@@ -12,9 +12,9 @@ func chatModelResponse(model svc.ChatModel) chatModelHTTPResponse {
 	return chatModelHTTPResponse{ID: model.ID, Name: model.Name, Label: model.Label,
 		IsDefault: model.IsDefault, URL: model.URL, APIAuthHeader: model.APIAuthHeader,
 		APIAuthKey: model.APIAuthKey, UserID: model.UserID,
-		EnablePerModelRateLimit: model.EnablePerModelRateLimit, MaxToken: model.MaxToken,
-		DefaultToken: model.DefaultToken, OrderNumber: model.OrderNumber,
-		HTTPTimeout: model.HTTPTimeout, IsEnable: model.IsEnable, APIType: model.APIType,
+		EnablePerModelRateLimit: model.EnablePerModelRateLimit,
+		OrderNumber:             model.OrderNumber,
+		HTTPTimeout:             model.HTTPTimeout, IsEnable: model.IsEnable, APIType: model.APIType,
 		IsTitleModel: model.IsTitleModel}
 }
 

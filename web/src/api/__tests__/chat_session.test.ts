@@ -12,7 +12,6 @@ describe('toUpdateChatSessionPayload', () => {
       model: 'test-model',
       topP: 0,
       n: 1,
-      maxTokens: 2048,
       summarizeMode: true,
       exploreMode: true,
       artifactEnabled: true,
@@ -27,7 +26,6 @@ describe('toUpdateChatSessionPayload', () => {
       model: 'test-model',
       topP: 0,
       n: 1,
-      maxTokens: 2048,
       summarizeMode: true,
       exploreMode: true,
       artifactEnabled: true,
@@ -35,6 +33,7 @@ describe('toUpdateChatSessionPayload', () => {
     })
     expect(payload).not.toHaveProperty('title')
     expect(payload).not.toHaveProperty('isEdit')
+    expect(payload).not.toHaveProperty('maxTokens')
   })
 
   it('preserves valid zero values and supplies defaults only when absent', () => {
@@ -45,7 +44,6 @@ describe('toUpdateChatSessionPayload', () => {
       temperature: 0,
       model: 'test-model',
       topP: 0,
-      maxTokens: 1024,
     })
 
     expect(payload.temperature).toBe(0)

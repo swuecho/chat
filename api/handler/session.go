@@ -87,7 +87,7 @@ func (h *ChatSessionHandler) createChatSessionByUUID(r *http.Request, req create
 	session, err := h.service.SaveSession(ctx, svc.SaveSessionCommand{
 		SessionUUID: req.UUID, UserID: userID, Topic: req.Topic,
 		MaxLength: dto.DefaultMaxLength, Temperature: dto.DefaultTemperature,
-		Model: req.Model, MaxTokens: dto.DefaultMaxTokens, TopP: dto.DefaultTopP, N: dto.DefaultN,
+		Model: req.Model, TopP: dto.DefaultTopP, N: dto.DefaultN,
 		SummarizeMode: false, ExploreMode: false, ArtifactEnabled: false,
 		EnsureSystemPrompt: true, DefaultSystemPrompt: req.DefaultSystemPrompt, ActivateGlobally: true,
 	})
@@ -116,7 +116,6 @@ func (h *ChatSessionHandler) createOrUpdateChatSessionByUUID(r *http.Request, se
 		SessionUUID: sessionReq.Uuid, UserID: userID, Topic: sessionReq.Topic,
 		MaxLength: sessionReq.MaxLength, Temperature: sessionReq.Temperature,
 		Model: sessionReq.Model, TopP: sessionReq.TopP, N: sessionReq.N,
-		MaxTokens:     sessionReq.MaxTokens,
 		SummarizeMode: sessionReq.SummarizeMode, ArtifactEnabled: sessionReq.ArtifactEnabled,
 		ExploreMode: sessionReq.ExploreMode, WorkspaceUUID: sessionReq.WorkspaceUUID,
 	}
@@ -155,7 +154,7 @@ func (h *ChatSessionHandler) getSimpleChatSessionsByUserID(r *http.Request, _ ap
 		response = append(response, dto.SimpleChatSession{
 			Uuid: session.UUID, IsEdit: false, Title: session.Title,
 			MaxLength: session.MaxLength, Temperature: session.Temperature,
-			TopP: session.TopP, N: session.N, MaxTokens: session.MaxTokens,
+			TopP: session.TopP, N: session.N,
 			Model:         session.Model,
 			SummarizeMode: session.SummarizeMode, ArtifactEnabled: session.ArtifactEnabled,
 			WorkspaceUuid: session.WorkspaceUUID,

@@ -36,7 +36,6 @@ type ChatSession struct {
 	MaxLength       int32
 	Temperature     float64
 	TopP            float64
-	MaxTokens       int32
 	N               int32
 	SummarizeMode   bool
 	WorkspaceID     *int32
@@ -90,7 +89,7 @@ func chatSessionFromRecord(s sqlc_queries.ChatSession) ChatSession {
 	return ChatSession{ID: s.ID, UserID: s.UserID, UUID: s.Uuid, Topic: s.Topic,
 		CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt, Active: s.Active, Model: s.Model,
 		MaxLength: s.MaxLength, Temperature: s.Temperature, TopP: s.TopP,
-		MaxTokens: s.MaxTokens, N: s.N, SummarizeMode: s.SummarizeMode,
+		N: s.N, SummarizeMode: s.SummarizeMode,
 		WorkspaceID: workspaceID, ArtifactEnabled: s.ArtifactEnabled,
 		ExploreMode: s.ExploreMode}
 }
@@ -100,7 +99,7 @@ func (s ChatSession) ToRawMessage() *json.RawMessage {
 		"id": s.ID, "userId": s.UserID, "uuid": s.UUID, "topic": s.Topic,
 		"createdAt": s.CreatedAt, "updatedAt": s.UpdatedAt, "active": s.Active,
 		"model": s.Model, "maxLength": s.MaxLength, "temperature": s.Temperature,
-		"topP": s.TopP, "maxTokens": s.MaxTokens, "n": s.N,
+		"topP": s.TopP, "n": s.N,
 		"summarizeMode": s.SummarizeMode, "workspaceId": s.WorkspaceID,
 		"artifactEnabled": s.ArtifactEnabled, "exploreMode": s.ExploreMode,
 	})
@@ -123,7 +122,6 @@ type CreateOrUpdateChatSessionInput struct {
 	MaxLength       int32
 	Temperature     float64
 	Model           string
-	MaxTokens       int32
 	TopP            float64
 	N               int32
 	SummarizeMode   bool
@@ -218,7 +216,6 @@ func (s *ChatSessionService) GetSimpleChatSessionsByUserID(ctx context.Context, 
 			Temperature:     float64(session.Temperature),
 			TopP:            float64(session.TopP),
 			N:               session.N,
-			MaxTokens:       session.MaxTokens,
 			Model:           session.Model,
 			SummarizeMode:   session.SummarizeMode,
 			ArtifactEnabled: session.ArtifactEnabled,
@@ -287,7 +284,7 @@ func (s *ChatSessionService) CreateOrUpdateChatSessionByUUID(ctx context.Context
 	session_u, err := s.q.CreateOrUpdateChatSessionByUUID(ctx, sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
 		Uuid: input.UUID, UserID: input.UserID, Topic: input.Topic,
 		MaxLength: input.MaxLength, Temperature: input.Temperature, Model: input.Model,
-		MaxTokens: input.MaxTokens, TopP: input.TopP, N: input.N,
+		TopP: input.TopP, N: input.N,
 		SummarizeMode: input.SummarizeMode, WorkspaceID: workspaceID,
 		ExploreMode: input.ExploreMode, ArtifactEnabled: input.ArtifactEnabled,
 	})

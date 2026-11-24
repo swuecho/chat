@@ -114,7 +114,6 @@ interface ModelType {
   chatModel: string
   contextCount: number
   temperature: number
-  maxTokens: number
   topP: number
   n: number
   summarizeMode: boolean
@@ -138,7 +137,6 @@ const modelRef: Ref<ModelType> = ref({
   summarizeMode: session.value?.summarizeMode ?? false,
   contextCount: session.value?.maxLength ?? 10,
   temperature: session.value?.temperature ?? 1.0,
-  maxTokens: session.value?.maxTokens ?? 2048,
   topP: session.value?.topP ?? 1.0,
   n: session.value?.n ?? 1,
   exploreMode: session.value?.exploreMode ?? false,
@@ -162,7 +160,6 @@ const debouneUpdate = debounce(async (model: ModelType) => {
   sessionStore.updateSession(props.uuid, {
     maxLength: model.contextCount,
     temperature: model.temperature,
-    maxTokens: model.maxTokens,
     topP: model.topP,
     n: model.n,
     model: model.chatModel,
@@ -185,7 +182,6 @@ watch(session, (newSession) => {
       summarizeMode: newSession.summarizeMode ?? false,
       contextCount: newSession.maxLength ?? 10,
       temperature: newSession.temperature ?? 1.0,
-      maxTokens: newSession.maxTokens ?? 2048,
       topP: newSession.topP ?? 1.0,
       n: newSession.n ?? 1,
       exploreMode: newSession.exploreMode ?? false,

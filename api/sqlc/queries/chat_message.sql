@@ -12,21 +12,9 @@ ORDER BY cm.id
 OFFSET $2
 LIMIT $3;
 
-
--- name: GetChatMessageBySessionUUID :one
-SELECT cm.*
-FROM chat_message cm
-INNER JOIN chat_session cs ON cm.chat_session_uuid = cs.uuid
-WHERE cm.is_deleted = false and cs.active = true and cs.uuid = $1 
-ORDER BY cm.id 
-OFFSET $2
-LIMIT $1;
-
-
 -- name: GetChatMessageByID :one
 SELECT * FROM chat_message 
 WHERE is_deleted = false and id = $1 and user_id = $2;
-
 
 -- name: CreateChatMessage :one
 INSERT INTO chat_message (chat_session_uuid, uuid, role, content, reasoning_content,  model, token_count, score, user_id, created_by, updated_by, llm_summary, raw, artifacts, suggested_questions)
@@ -44,13 +32,11 @@ RETURNING *;
 UPDATE chat_message set is_deleted = true, updated_at = now()
 WHERE id = $1 and user_id = $2;
 
-
 ---- UUID ----
 
 -- name: GetChatMessageByUUID :one
 SELECT * FROM chat_message 
 WHERE is_deleted = false and uuid = $1 and user_id = $2;
-
 
 -- name: UpdateChatMessageByUUID :one
 UPDATE chat_message SET content = $2, is_pin = $3, token_count = $4, artifacts = $5, suggested_questions = $6, updated_at = now() 
@@ -60,15 +46,6 @@ RETURNING *;
 -- name: DeleteChatMessageByUUID :execrows
 UPDATE chat_message SET is_deleted = true, updated_at = now()
 WHERE uuid = $1 and user_id = $2;
-
-
--- name: HasChatMessagePermission :one
-SELECT COUNT(*) > 0 as has_permission
-FROM chat_message cm
-INNER JOIN chat_session cs ON cm.chat_session_uuid = cs.uuid
-INNER JOIN auth_user au ON cs.user_id = au.id
-WHERE cm.is_deleted = false and  cm.id = $1 AND (cs.user_id = $2 OR au.is_superuser) and cs.active = true;
-
 
 -- name: GetLatestMessagesBySessionUUID :many
 SELECT *
@@ -88,7 +65,6 @@ Where chat_message.id in
     )
 )
 ORDER BY created_at;
-
 
 -- name: GetFirstMessageBySessionUUID :one
 SELECT *
@@ -117,7 +93,6 @@ WHERE chat_message.id in (
 ) 
 ORDER BY created_at;
 
-
 -- name: UpdateChatMessageContent :execrows
 UPDATE chat_message
 SET content = $2, updated_at = now(), token_count = $3
@@ -134,14 +109,12 @@ UPDATE chat_message
 SET is_deleted = true, updated_at = now()
 WHERE is_deleted = false and is_pin = false and chat_session_uuid = $1 and user_id = $2;
 
-
 -- name: GetChatMessagesCount :one
 -- Get total chat message count for user in last 10 minutes
 SELECT COUNT(*)
 FROM chat_message
 WHERE user_id = $1
 AND created_at >= NOW() - INTERVAL '10 minutes';
-
 
 -- name: GetChatMessagesCountByUserAndModel :one
 -- Get total chat message count for user of model in last 10 minutes
@@ -151,7 +124,6 @@ JOIN chat_session cs ON (cm.chat_session_uuid = cs.uuid AND cs.user_id = cm.user
 WHERE cm.user_id = $1
 AND cs.model = $2 
 AND cm.created_at >= NOW() - INTERVAL '10 minutes';
-
 
 -- name: GetLatestUsageTimeOfModel :many
 SELECT 

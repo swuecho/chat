@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -120,18 +119,4 @@ func ValidateToken(tokenString string, secret string, expectedTokenType string) 
 	}
 
 	return int32(i), nil
-}
-
-func GetExpireSecureCookie(value string, isHttps bool) *http.Cookie {
-	utcOffset := time.Now().UTC().Add(-24 * time.Hour)
-	options := &http.Cookie{
-		Name:     "jwt",
-		Value:    value,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   isHttps,
-		SameSite: http.SameSiteStrictMode,
-		Expires:  utcOffset,
-	}
-	return options
 }

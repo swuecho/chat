@@ -29,12 +29,6 @@ type PartString struct {
 	Text string `json:"text"`
 }
 
-func TextData(text string) PartString {
-	return PartString{
-		Text: text,
-	}
-}
-
 func (p *PartString) toPart() string {
 	return p.Text
 }
@@ -109,28 +103,6 @@ type PromptFeedback struct {
 type ResponseBody struct {
 	Candidates     []Candidate    `json:"candidates"`
 	PromptFeedback PromptFeedback `json:"promptFeedback"`
-}
-
-func ParseRespLine(line []byte, answer string) string {
-	var resp ResponseBody
-	if err := json.Unmarshal(line, &resp); err != nil {
-		fmt.Println("Failed to parse request body:", err)
-	}
-
-	for _, candidate := range resp.Candidates {
-		for idx, part := range candidate.Content.Parts {
-			if idx > 0 {
-				answer += "\n\n"
-			}
-			if part.Thought {
-				answer += ("<think>" + part.Text + "<think>")
-			} else {
-				answer += part.Text
-			}
-		}
-
-	}
-	return answer
 }
 
 // ParseRespLineDelta extracts only the delta content from a response line without accumulating

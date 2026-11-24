@@ -23,7 +23,7 @@ export function example() {
 ```
 ````
 
-Only the `artifact` marker is supported. Executable markers are ignored.
+Only the `artifact` marker is supported.
 
 ## Gallery actions
 

@@ -5,8 +5,6 @@ import type { UpdateChatSessionRequest } from '@/api/generated_client'
 export function toUpdateChatSessionPayload(session: Chat.Session): UpdateChatSessionRequest {
   if (!session.model)
     throw new Error('Cannot update a session without a model')
-  if (session.maxTokens == null || session.maxTokens < 1)
-    throw new Error('Cannot update a session without a positive maxTokens value')
 
   return {
     uuid: session.uuid,
@@ -16,7 +14,6 @@ export function toUpdateChatSessionPayload(session: Chat.Session): UpdateChatSes
     model: session.model,
     topP: session.topP ?? 1,
     n: session.n ?? 1,
-    maxTokens: session.maxTokens,
     summarizeMode: session.summarizeMode ?? false,
     exploreMode: session.exploreMode ?? false,
     artifactEnabled: session.artifactEnabled ?? false,

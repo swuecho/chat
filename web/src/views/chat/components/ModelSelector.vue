@@ -23,7 +23,8 @@ const formatTimestamp = (timestamp?: string) => {
     return 'Never used'
 
   const date = new Date(timestamp)
-  if (Number.isNaN(date.getTime()))
+  // The backend sends Go's zero time (0001-01-01T00:00:00Z) for unused models.
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() <= 1)
     return 'Never used'
 
   const days = differenceInDays(new Date(), date)
@@ -104,12 +105,10 @@ const defaultModel = computed(() => {
 const selectedModel = ref<string | undefined>(undefined)
 const initialized = ref(false)
 const isUpdating = ref(false)
-const programmaticValue = ref<string | undefined>(undefined)
 
+// NSelect only emits update:value for user picks, so programmatic changes
+// never reach handleUserUpdate and need no guard.
 const setSelectedProgrammatically = (value: string | undefined) => {
-  if (selectedModel.value === value)
-    return
-  programmaticValue.value = value
   selectedModel.value = value
 }
 
@@ -128,11 +127,6 @@ watch([chatSession, defaultModel], ([session, defaultModelValue]) => {
 }, { immediate: true })
 
 const handleUserUpdate = async (newModel: string | undefined) => {
-  if (newModel === programmaticValue.value) {
-    programmaticValue.value = undefined
-    return
-  }
-
   if (!initialized.value || !newModel)
     return
 

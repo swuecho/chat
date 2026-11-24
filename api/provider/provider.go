@@ -15,12 +15,27 @@ import (
 	"github.com/swuecho/chat_backend/models"
 )
 
+// DefaultOutputTokens is sent to APIs that require an output limit when the
+// caller sets none. Every current Claude model accepts 64K output tokens.
+const DefaultOutputTokens int32 = 64000
+
+// OutputTokens returns the caller's limit, or DefaultOutputTokens when unset.
+func (s Session) OutputTokens() int32 {
+	if s.MaxTokens > 0 {
+		return s.MaxTokens
+	}
+	return DefaultOutputTokens
+}
+
 // Session contains only the chat settings needed by an LLM provider. It is
 // intentionally independent of the database representation of a chat session.
 type Session struct {
-	UUID        string
-	UserID      int32
-	Model       string
+	UUID   string
+	UserID int32
+	Model  string
+	// MaxTokens caps output only for internal callers that want short replies
+	// (titles, suggestions). Zero means "no app-level limit": providers that
+	// require a value use DefaultOutputTokens, the rest omit it.
 	MaxTokens   int32
 	Temperature float64
 	TopP        float64

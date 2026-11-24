@@ -1,12 +1,8 @@
 -- name: GetAllAuthUsers :many
 SELECT * FROM auth_user ORDER BY id;
 
--- name: ListAuthUsers :many
-SELECT * FROM auth_user ORDER BY id LIMIT $1 OFFSET $2;
-
 -- name: GetAuthUserByID :one
 SELECT * FROM auth_user WHERE id = $1;
-
 
 -- name: GetAuthUserByEmail :one
 SELECT * FROM auth_user WHERE email = $1;
@@ -37,7 +33,6 @@ UPDATE auth_user SET "password" = $2 WHERE email = $1;
 
 -- name: GetTotalActiveUserCount :one
 SELECT COUNT(*) FROM auth_user WHERE is_active = true;
-
 
 -- name: UpdateAuthUserRateLimitByEmail :one
 INSERT INTO auth_user_management (user_id, rate_limit, created_at, updated_at)

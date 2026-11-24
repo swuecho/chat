@@ -510,30 +510,6 @@ func (q *Queries) TouchVirtualAPIKey(ctx context.Context, id int64) error {
 	return err
 }
 
-const virtualAPIKeyByHash = `-- name: VirtualAPIKeyByHash :one
-SELECT id, user_id, name, key_prefix, key_hash, status, requests_per_minute, expires_at, last_used_at, created_at, revoked_at FROM virtual_api_key
-WHERE key_hash = $1
-`
-
-func (q *Queries) VirtualAPIKeyByHash(ctx context.Context, keyHash string) (VirtualApiKey, error) {
-	row := q.db.QueryRowContext(ctx, virtualAPIKeyByHash, keyHash)
-	var i VirtualApiKey
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Name,
-		&i.KeyPrefix,
-		&i.KeyHash,
-		&i.Status,
-		&i.RequestsPerMinute,
-		&i.ExpiresAt,
-		&i.LastUsedAt,
-		&i.CreatedAt,
-		&i.RevokedAt,
-	)
-	return i, err
-}
-
 const virtualAPIKeyByIDAndUser = `-- name: VirtualAPIKeyByIDAndUser :one
 SELECT id, user_id, name, key_prefix, key_hash, status, requests_per_minute, expires_at, last_used_at, created_at, revoked_at FROM virtual_api_key
 WHERE id = $1 AND user_id = $2

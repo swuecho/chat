@@ -33,13 +33,6 @@ FROM chat_prompt
 WHERE user_id = $1 and is_deleted = false
 ORDER BY id;
 
--- name: GetChatPromptsBysession_uuid :many
-SELECT *
-FROM chat_prompt 
-WHERE chat_session_uuid = $1 and is_deleted = false
-ORDER BY id;
-
-
 -- name: GetChatPromptsBySessionUUID :many
 SELECT *
 FROM chat_prompt 
@@ -53,21 +46,10 @@ WHERE chat_session_uuid = $1 and is_deleted = false
 ORDER BY id
 LIMIT 1;
 
-
-
-
--- name: HasChatPromptPermission :one
-SELECT COUNT(*) > 0 as has_permission
-FROM chat_prompt cp
-INNER JOIN auth_user au ON cp.user_id = au.id
-WHERE cp.id = $1 AND (cp.user_id = $2 OR au.is_superuser) AND cp.is_deleted = false;
-
-
 -- name: DeleteChatPromptByUUID :execrows
 UPDATE chat_prompt
 SET is_deleted = true, updated_at = now()
 WHERE uuid = $1 and user_id = $2;
-
 
 -- name: GetChatPromptByUUID :one
 SELECT * FROM chat_prompt
