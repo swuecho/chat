@@ -17,11 +17,6 @@ type ConversationRequest struct {
 	ParentMessageID string `json:"parentMessageId,omitempty"`
 }
 
-type RequestOption struct {
-	Prompt  string              `json:"prompt,omitempty"`
-	Options ConversationRequest `json:"options,omitempty"`
-}
-
 type ChatRequest struct {
 	Prompt      string `json:"prompt"`
 	SessionUuid string `json:"sessionUuid"`
@@ -44,7 +39,6 @@ type UpdateChatSessionRequest struct {
 	Model           string  `json:"model" jsonschema:"required,minLength=1,maxLength=200"`
 	TopP            float64 `json:"topP" jsonschema:"minimum=0,maximum=1"`
 	N               int32   `json:"n" jsonschema:"minimum=1,maximum=128"`
-	MaxTokens       int32   `json:"maxTokens" jsonschema:"minimum=0,maximum=1000000"`
 	SummarizeMode   bool    `json:"summarizeMode"`
 	ArtifactEnabled bool    `json:"artifactEnabled"`
 	ExploreMode     bool    `json:"exploreMode"`
@@ -76,7 +70,7 @@ func (r *UpdateChatSessionRequest) Validate() error {
 	if r.N < 1 || r.N > 128 {
 		return fmt.Errorf("n must be between 1 and 128")
 	}
-	return validation.TokenCount("maxTokens", r.MaxTokens, false)
+	return nil
 }
 
 // --- Response types ---
@@ -118,25 +112,10 @@ type SimpleChatSession struct {
 	Temperature     float64 `json:"temperature"`
 	TopP            float64 `json:"topP"`
 	N               int32   `json:"n"`
-	MaxTokens       int32   `json:"maxTokens"`
 	Model           string  `json:"model"`
 	SummarizeMode   bool    `json:"summarizeMode"`
 	ArtifactEnabled bool    `json:"artifactEnabled"`
 	WorkspaceUuid   string  `json:"workspaceUuid"`
-}
-
-type ChatMessageResponse struct {
-	Uuid            string     `json:"uuid"`
-	ChatSessionUuid string     `json:"chatSessionUuid"`
-	Role            string     `json:"role"`
-	Content         string     `json:"content"`
-	Score           float64    `json:"score"`
-	UserID          int32      `json:"userId"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	UpdatedAt       time.Time  `json:"updatedAt"`
-	CreatedBy       int32      `json:"createdBy"`
-	UpdatedBy       int32      `json:"updatedBy"`
-	Artifacts       []Artifact `json:"artifacts,omitempty"`
 }
 
 type ChatSessionResponse struct {
@@ -160,25 +139,6 @@ func (p *Pagination) Offset() int32 {
 }
 
 // --- Workspace types ---
-
-type CreateWorkspaceRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Color       string `json:"color"`
-	Icon        string `json:"icon"`
-	IsDefault   bool   `json:"isDefault"`
-}
-
-type UpdateWorkspaceRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Color       string `json:"color"`
-	Icon        string `json:"icon"`
-}
-
-type UpdateWorkspaceOrderRequest struct {
-	OrderPosition int32 `json:"orderPosition"`
-}
 
 type WorkspaceResponse struct {
 	Uuid          string `json:"uuid"`

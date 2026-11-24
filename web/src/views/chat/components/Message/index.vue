@@ -141,9 +141,6 @@ function handleNextSuggestionsBatch() {
         </div>
         <div v-if="!isPrompt" class="flex" :class="[inversion ? 'justify-end' : 'justify-start']">
           <div class="flex items-center">
-            <!--
-            <AudioPlayer :text="text || ''" :right="inversion" class="mr-2" />
-          -->
             <HoverButton
               :tooltip="$t('common.delete')"
               class="transition text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"

@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 
-	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/domain"
 )
 
 // TestChatModel implements ChatModel for testing.
@@ -32,7 +32,7 @@ func (m *TestChatModel) Stream(ctx context.Context, input Request) (<-chan Strea
 		emitChunk(ctx, ch, StreamChunk{
 			ID:          answerID,
 			Done:        true,
-			FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID},
+			FinalAnswer: &domain.LLMAnswer{Answer: answer, AnswerId: answerID},
 		})
 	}()
 	return ch, nil

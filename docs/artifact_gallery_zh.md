@@ -23,7 +23,7 @@ export function example() {
 ```
 ````
 
-仅支持 `artifact` 标记；可执行标记会被忽略。
+仅支持 `artifact` 标记。
 
 ## 画廊操作
 

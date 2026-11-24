@@ -198,11 +198,6 @@ var (
 	}
 
 	// Model errors
-	ErrSystemMessageError = APIError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrModel + "_001",
-		Message:  "Usage error, system message input, not user input",
-	}
 	ErrClaudeStreamFailed = APIError{
 		HTTPCode: http.StatusInternalServerError,
 		Code:     ErrModel + "_002",
@@ -529,7 +524,6 @@ var ErrorCatalog = map[string]APIError{
 	ErrInternalUnexpected.Code:            ErrInternalUnexpected,
 	ErrChatStreamFailed.Code:              ErrChatStreamFailed,
 	ErrChatRequestFailed.Code:             ErrChatRequestFailed,
-	ErrSystemMessageError.Code:            ErrSystemMessageError,
 	ErrClaudeStreamFailed.Code:            ErrClaudeStreamFailed,
 	ErrClaudeRequestFailed.Code:           ErrClaudeRequestFailed,
 	ErrClaudeInvalidResponse.Code:         ErrClaudeInvalidResponse,

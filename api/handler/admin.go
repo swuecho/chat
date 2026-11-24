@@ -128,13 +128,6 @@ func (h *AdminHandler) UserAnalysisHandler(w http.ResponseWriter, r *http.Reques
 	return respondJSON(w, http.StatusOK, analysisData)
 }
 
-type SessionHistoryResponse struct {
-	Data  []svc.SessionHistoryInfo `json:"data"`
-	Total int64                    `json:"total"`
-	Page  int32                    `json:"page"`
-	Size  int32                    `json:"size"`
-}
-
 func (h *AdminHandler) UserSessionHistoryHandler(w http.ResponseWriter, r *http.Request) error {
 	email := mux.Vars(r)["email"]
 	if email == "" {

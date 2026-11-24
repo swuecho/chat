@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/domain"
 )
 
 // ConsumeStream supervises one provider stream. It cancels the producer when
 // delivery fails or a terminal value arrives and rejects malformed lifecycles.
-func ConsumeStream(ctx context.Context, model ChatModel, request Request, onChunk func(StreamChunk) error) (*models.LLMAnswer, error) {
+func ConsumeStream(ctx context.Context, model ChatModel, request Request, onChunk func(StreamChunk) error) (*domain.LLMAnswer, error) {
 	streamCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 

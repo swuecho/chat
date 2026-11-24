@@ -14,9 +14,7 @@ import (
 	"time"
 
 	"github.com/swuecho/chat_backend/domain"
-	"github.com/swuecho/chat_backend/dto"
 	claude "github.com/swuecho/chat_backend/llm/claude"
-	"github.com/swuecho/chat_backend/models"
 )
 
 // ClaudeResponse represents the response structure from Claude API
@@ -45,14 +43,14 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 	chatUuid, regenerate, stream := input.ChatUUID, input.Regenerate, input.Stream
 	chatModel, chatFiles := input.Model, input.Files
 
-	var claudeMessages []models.Message
+	var claudeMessages []domain.Message
 	if len(chatCompletionMessages) > 1 {
 		claudeMessages = chatCompletionMessages[1:]
 		if len(claudeMessages) > 0 && claudeMessages[0].Role == "assistant" {
 			claudeMessages = claudeMessages[1:]
 		}
 	} else {
-		return nil, dto.ErrSystemMessageError
+		return nil, domain.Invalid(systemMessageOnlyMessage)
 	}
 
 	messages := messagesToOpenAIMesages(claudeMessages, chatFiles)
@@ -61,7 +59,7 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 		"system":      chatCompletionMessages[0].Content,
 		"model":       chatSession.Model,
 		"messages":    messages,
-		"max_tokens":  chatSession.MaxTokens,
+		"max_tokens":  chatSession.OutputTokens(),
 		"temperature": chatSession.Temperature,
 		"top_p":       chatSession.TopP,
 		"stream":      stream,
@@ -69,7 +67,7 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 
 	jsonValue, err := json.Marshal(jsonData)
 	if err != nil {
-		return nil, dto.ErrValidationInvalidInputGeneric.WithDetail("failed to marshal request payload").WithDebugInfo(err.Error())
+		return nil, domain.Internal("failed to marshal request payload", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", chatModel.URL, bytes.NewBuffer(jsonValue))
@@ -105,7 +103,7 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 			emitChunk(ctx, ch, StreamChunk{
 				ID:   llmAnswer.AnswerId,
 				Done: true,
-				FinalAnswer: &models.LLMAnswer{
+				FinalAnswer: &domain.LLMAnswer{
 					Answer:   llmAnswer.Answer,
 					AnswerId: llmAnswer.AnswerId,
 				},
@@ -124,7 +122,7 @@ func (m *Claude3ChatModel) Stream(ctx context.Context, input Request) (<-chan St
 	return ch, nil
 }
 
-func doGenerateClaude3(ctx context.Context, client http.Client, req *http.Request) (*models.LLMAnswer, error) {
+func doGenerateClaude3(ctx context.Context, client http.Client, req *http.Request) (*domain.LLMAnswer, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, normalizeFailure("claude", "complete", err)
@@ -142,7 +140,7 @@ func doGenerateClaude3(ctx context.Context, client http.Client, req *http.Reques
 	}
 	firstMessage := message.Content[0].Text
 
-	return &models.LLMAnswer{
+	return &domain.LLMAnswer{
 		AnswerId: message.ID,
 		Answer:   firstMessage,
 	}, nil
@@ -229,7 +227,7 @@ func chatStreamClaude3(ctx context.Context, ch chan<- StreamChunk, req *http.Req
 	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
-		FinalAnswer: &models.LLMAnswer{
+		FinalAnswer: &domain.LLMAnswer{
 			Answer:   answer,
 			AnswerId: answerID,
 		},

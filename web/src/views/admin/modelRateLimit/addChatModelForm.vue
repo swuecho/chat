@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { NButton, NForm, NFormItem, NInput, NSelect } from 'naive-ui'
-import { onMounted, ref } from 'vue'
-import { createUserChatModelPrivilege, listChatModels } from '@/api/generated_client'
+import { computed, ref } from 'vue'
+import { createUserChatModelPrivilege } from '@/api/generated_client'
+import { useChatModels } from '@/hooks/useChatModels'
 
 interface ChatModelPrivilege {
   chatModelName: string
@@ -39,16 +40,10 @@ async function addRow(form: ChatModelPrivilege) {
   return chatModel
 }
 
-const limitEnabledModels = ref<SelectOption[]>([])
-onMounted(async () => {
-  limitEnabledModels.value = (await listChatModels()).filter((x: any) => x.enablePerModeRatelimit)
-    .map((x: any) => {
-      return {
-        value: x.name,
-        label: x.label,
-      }
-    })
-})
+const modelsQuery = useChatModels().useChatModelsQuery()
+const limitEnabledModels = computed<SelectOption[]>(() => (modelsQuery.data.value ?? [])
+  .filter(model => model.enablePerModeRatelimit)
+  .map(model => ({ value: model.name, label: model.label })))
 </script>
 
 <template>

@@ -505,50 +505,6 @@ func (q *Queries) GetUserStats(ctx context.Context, arg GetUserStatsParams) ([]G
 	return items, nil
 }
 
-const listAuthUsers = `-- name: ListAuthUsers :many
-SELECT id, password, last_login, is_superuser, username, first_name, last_name, email, is_staff, is_active, date_joined FROM auth_user ORDER BY id LIMIT $1 OFFSET $2
-`
-
-type ListAuthUsersParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
-}
-
-func (q *Queries) ListAuthUsers(ctx context.Context, arg ListAuthUsersParams) ([]AuthUser, error) {
-	rows, err := q.db.QueryContext(ctx, listAuthUsers, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []AuthUser
-	for rows.Next() {
-		var i AuthUser
-		if err := rows.Scan(
-			&i.ID,
-			&i.Password,
-			&i.LastLogin,
-			&i.IsSuperuser,
-			&i.Username,
-			&i.FirstName,
-			&i.LastName,
-			&i.Email,
-			&i.IsStaff,
-			&i.IsActive,
-			&i.DateJoined,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const updateAuthUser = `-- name: UpdateAuthUser :one
 UPDATE auth_user SET first_name = $2, last_name= $3, last_login = now() 
 WHERE id = $1

@@ -13,7 +13,9 @@ env:
 
 jobs:
   build_chat:
-    runs-on: ubuntu-latest
+    # Pinned: Playwright 1.47's --with-deps package list targets Ubuntu 24.04
+    # and fails on 26.04 (ubuntu-latest). Unpin after upgrading Playwright.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 

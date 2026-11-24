@@ -12,11 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
 	"github.com/swuecho/chat_backend/domain"
-	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/llm/gemini"
-	"github.com/swuecho/chat_backend/models"
 )
 
 // GeminiClient handles communication with the Gemini API
@@ -90,7 +87,7 @@ func (m *GeminiChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 		emitChunk(ctx, ch, StreamChunk{
 			ID:   answerID,
 			Done: true,
-			FinalAnswer: &models.LLMAnswer{
+			FinalAnswer: &domain.LLMAnswer{
 				Answer:   llmAnswer.Answer,
 				AnswerId: answerID,
 			},
@@ -101,10 +98,10 @@ func (m *GeminiChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 
 func GenerateChatTitle(ctx context.Context, model ModelConfig, chatText string) (string, error) {
 	if strings.TrimSpace(chatText) == "" {
-		return "", dto.ErrValidationInvalidInput("chat text cannot be empty")
+		return "", domain.Invalid("chat text cannot be empty")
 	}
 
-	messages := []models.Message{
+	messages := []domain.Message{
 		{
 			Role:    "system",
 			Content: `Generate a short title (3-6 words) for this conversation. Output ONLY the title text, no quotes, no markdown, no prefixes like "Title:". Example: "Python list comprehension guide"`,
@@ -115,60 +112,12 @@ func GenerateChatTitle(ctx context.Context, model ModelConfig, chatText string) 
 		},
 	}
 
-	h := newTitleGenerationHandler()
-	var titleModel ChatModel
-	switch model.APIType {
-	case "claude":
-		titleModel = NewClaude3ChatModel(h)
-	case "gemini":
-		titleModel = NewGeminiChatModel(h)
-	case "ollama":
-		titleModel = NewOllamaChatModel(h)
-	case "custom":
-		titleModel = NewCustomChatModel(h)
-	default:
-		if strings.HasSuffix(strings.TrimSuffix(model.URL, "/"), "/completions") &&
-			!strings.HasSuffix(strings.TrimSuffix(model.URL, "/"), "/chat/completions") {
-			titleModel = NewCompletionChatModel(h)
-		} else {
-			titleModel = NewOpenAIChatModel(h)
-		}
-	}
-
-	exponential := backoff.NewExponentialBackOff(
-		backoff.WithInitialInterval(200*time.Millisecond),
-		backoff.WithMaxInterval(2*time.Second),
-		backoff.WithMultiplier(2),
-		backoff.WithRandomizationFactor(0.2),
-		backoff.WithMaxElapsedTime(0),
-	)
-	retryBackoff := backoff.WithContext(backoff.WithMaxRetries(exponential, 2), ctx)
-	answer, err := backoff.RetryWithData(func() (string, error) {
-		stream, err := titleModel.Stream(ctx, Request{
-			Session: Session{Model: model.Name, MaxTokens: 64, Temperature: 0.2, TopP: 1, N: 1},
-			Model:   model, Messages: messages, ChatUUID: "title-generation",
-		})
-		if err != nil {
-			return "", stopRetryingUnlessProviderFailureIsRetryable(err)
-		}
-		var value string
-		for chunk := range stream {
-			if chunk.Err != nil {
-				return "", stopRetryingUnlessProviderFailureIsRetryable(chunk.Err)
-			}
-			if chunk.FinalAnswer != nil {
-				value = chunk.FinalAnswer.Answer
-			} else if chunk.Content != "" {
-				value += chunk.Content
-			}
-		}
-		return value, nil
-	}, retryBackoff)
+	answer, err := Complete(ctx, model, messages, CompleteOptions{MaxTokens: 64, Temperature: 0.2, ChatUUID: "title-generation"})
 	if err != nil {
 		return "", err
 	}
 	if strings.TrimSpace(answer) == "" {
-		return "", dto.ErrInternalUnexpected.WithMessage("Empty response from title generation model")
+		return "", domain.Internal("Empty response from title generation model", nil)
 	}
 
 	title := strings.TrimSpace(answer)
@@ -185,7 +134,7 @@ func GenerateChatTitle(ctx context.Context, model ModelConfig, chatText string) 
 		title = strings.TrimSpace(title)
 	}
 	if title == "" {
-		return "", dto.ErrInternalUnexpected.WithMessage("Invalid title generated")
+		return "", domain.Internal("Invalid title generated", nil)
 	}
 
 	return FirstN(title, 100), nil
@@ -234,7 +183,7 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- St
 				emitChunk(ctx, ch, StreamChunk{
 					ID:          answerID,
 					Done:        true,
-					FinalAnswer: &models.LLMAnswer{Answer: answer, AnswerId: answerID},
+					FinalAnswer: &domain.LLMAnswer{Answer: answer, AnswerId: answerID},
 				})
 				return
 			}
@@ -261,7 +210,7 @@ func (m *GeminiChatModel) handleStreamResponse(ctx context.Context, ch chan<- St
 	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
-		FinalAnswer: &models.LLMAnswer{
+		FinalAnswer: &domain.LLMAnswer{
 			AnswerId: answerID,
 			Answer:   answer,
 		},

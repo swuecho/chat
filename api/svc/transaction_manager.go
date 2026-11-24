@@ -160,7 +160,7 @@ func (u *sqlcUnitOfWork) CreateOrUpdateSession(ctx context.Context, input Create
 	}
 	r, err := u.q.CreateOrUpdateChatSessionByUUID(ctx, sqlc_queries.CreateOrUpdateChatSessionByUUIDParams{
 		Uuid: input.UUID, UserID: input.UserID, Topic: input.Topic, MaxLength: input.MaxLength,
-		Temperature: input.Temperature, Model: input.Model, MaxTokens: input.MaxTokens,
+		Temperature: input.Temperature, Model: input.Model,
 		TopP: input.TopP, N: input.N, SummarizeMode: input.SummarizeMode,
 		WorkspaceID: workspaceID, ExploreMode: input.ExploreMode, ArtifactEnabled: input.ArtifactEnabled,
 	})

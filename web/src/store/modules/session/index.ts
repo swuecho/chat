@@ -194,8 +194,8 @@ export const useSessionStore = defineStore('session-store', {
         let sessionModel = model
         if (!sessionModel) {
           try {
-            const { fetchDefaultChatModel } = await import('@/api/chat_model')
-            const defaultModel = await fetchDefaultChatModel()
+            const { fetchDefaultChatModelCached } = await import('@/hooks/useChatModels')
+            const defaultModel = await fetchDefaultChatModelCached()
             sessionModel = defaultModel.name
           }
           catch (error) {

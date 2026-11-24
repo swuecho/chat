@@ -1,10 +1,7 @@
 package dto
 
-import "time"
-
 // API and request constants
 const (
-	DefaultRequestTimeout      = 5 * time.Minute
 	MaxStreamingLoopIterations = 10000
 	SmallAnswerThreshold       = 200
 	FlushCharacterThreshold    = 500
@@ -15,7 +12,6 @@ const (
 	TestDemoPrefix             = "test_demo_bestqa"
 	DefaultMaxLength           = 10
 	DefaultTemperature         = 0.7
-	DefaultMaxTokens           = 4096
 	DefaultTopP                = 1.0
 	DefaultN                   = 1
 	RequestTimeoutSeconds      = 10
@@ -26,10 +22,9 @@ const (
 
 // Error message constants
 const (
-	ErrorStreamUnsupported = "Streaming unsupported by client"
-	ErrorNoContent         = "no content in answer"
-	ErrorEndOfStream       = "End of stream reached"
-	ErrorDoneBreak         = "DONE break"
+	ErrorNoContent   = "no content in answer"
+	ErrorEndOfStream = "End of stream reached"
+	ErrorDoneBreak   = "DONE break"
 )
 
 // HTTP constants

@@ -224,49 +224,6 @@ func (q *Queries) GetChatMessageByID(ctx context.Context, arg GetChatMessageByID
 	return i, err
 }
 
-const getChatMessageBySessionUUID = `-- name: GetChatMessageBySessionUUID :one
-SELECT cm.id, cm.uuid, cm.chat_session_uuid, cm.role, cm.content, cm.reasoning_content, cm.model, cm.llm_summary, cm.score, cm.user_id, cm.created_at, cm.updated_at, cm.created_by, cm.updated_by, cm.is_deleted, cm.is_pin, cm.token_count, cm.raw, cm.artifacts, cm.suggested_questions
-FROM chat_message cm
-INNER JOIN chat_session cs ON cm.chat_session_uuid = cs.uuid
-WHERE cm.is_deleted = false and cs.active = true and cs.uuid = $1 
-ORDER BY cm.id 
-OFFSET $2
-LIMIT $1
-`
-
-type GetChatMessageBySessionUUIDParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
-}
-
-func (q *Queries) GetChatMessageBySessionUUID(ctx context.Context, arg GetChatMessageBySessionUUIDParams) (ChatMessage, error) {
-	row := q.db.QueryRowContext(ctx, getChatMessageBySessionUUID, arg.Limit, arg.Offset)
-	var i ChatMessage
-	err := row.Scan(
-		&i.ID,
-		&i.Uuid,
-		&i.ChatSessionUuid,
-		&i.Role,
-		&i.Content,
-		&i.ReasoningContent,
-		&i.Model,
-		&i.LlmSummary,
-		&i.Score,
-		&i.UserID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.CreatedBy,
-		&i.UpdatedBy,
-		&i.IsDeleted,
-		&i.IsPin,
-		&i.TokenCount,
-		&i.Raw,
-		&i.Artifacts,
-		&i.SuggestedQuestions,
-	)
-	return i, err
-}
-
 const getChatMessageByUUID = `-- name: GetChatMessageByUUID :one
 
 SELECT id, uuid, chat_session_uuid, role, content, reasoning_content, model, llm_summary, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, is_pin, token_count, raw, artifacts, suggested_questions FROM chat_message 
@@ -721,26 +678,6 @@ func (q *Queries) GetLatestUsageTimeOfModel(ctx context.Context, timeInterval st
 		return nil, err
 	}
 	return items, nil
-}
-
-const hasChatMessagePermission = `-- name: HasChatMessagePermission :one
-SELECT COUNT(*) > 0 as has_permission
-FROM chat_message cm
-INNER JOIN chat_session cs ON cm.chat_session_uuid = cs.uuid
-INNER JOIN auth_user au ON cs.user_id = au.id
-WHERE cm.is_deleted = false and  cm.id = $1 AND (cs.user_id = $2 OR au.is_superuser) and cs.active = true
-`
-
-type HasChatMessagePermissionParams struct {
-	ID     int32 `json:"id"`
-	UserID int32 `json:"userId"`
-}
-
-func (q *Queries) HasChatMessagePermission(ctx context.Context, arg HasChatMessagePermissionParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, hasChatMessagePermission, arg.ID, arg.UserID)
-	var has_permission bool
-	err := row.Scan(&has_permission)
-	return has_permission, err
 }
 
 const updateChatMessage = `-- name: UpdateChatMessage :one

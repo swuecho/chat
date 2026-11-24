@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
 type ChatAuditLogger interface {
-	LogChat(context.Context, ChatSession, []models.Message, string) error
+	LogChat(context.Context, ChatSession, []domain.Message, string) error
 }
 
 type SQLChatAuditLogger struct{ q *sqlc_queries.Queries }
@@ -22,7 +22,7 @@ func NewSQLChatAuditLogger(q *sqlc_queries.Queries) *SQLChatAuditLogger {
 
 // logChat creates a chat log entry for analytics and debugging.
 // Logs the session, messages, and LLM response for audit purposes.
-func (s *SQLChatAuditLogger) LogChat(ctx context.Context, chatSession ChatSession, msgs []models.Message, answerText string) error {
+func (s *SQLChatAuditLogger) LogChat(ctx context.Context, chatSession ChatSession, msgs []domain.Message, answerText string) error {
 	// log chat
 	sessionRaw := chatSession.ToRawMessage()
 	if sessionRaw == nil {

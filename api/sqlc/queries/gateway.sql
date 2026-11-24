@@ -8,10 +8,6 @@ SELECT * FROM virtual_api_key
 WHERE user_id = $1
 ORDER BY created_at DESC;
 
--- name: VirtualAPIKeyByHash :one
-SELECT * FROM virtual_api_key
-WHERE key_hash = $1;
-
 -- name: VirtualAdminAPIKeyByHash :one
 SELECT vak.*
 FROM virtual_api_key vak

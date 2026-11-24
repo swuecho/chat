@@ -282,50 +282,6 @@ func (q *Queries) GetChatPromptsByUserID(ctx context.Context, userID int32) ([]C
 	return items, nil
 }
 
-const getChatPromptsBysession_uuid = `-- name: GetChatPromptsBysession_uuid :many
-SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, token_count
-FROM chat_prompt 
-WHERE chat_session_uuid = $1 and is_deleted = false
-ORDER BY id
-`
-
-func (q *Queries) GetChatPromptsBysession_uuid(ctx context.Context, chatSessionUuid string) ([]ChatPrompt, error) {
-	rows, err := q.db.QueryContext(ctx, getChatPromptsBysession_uuid, chatSessionUuid)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ChatPrompt
-	for rows.Next() {
-		var i ChatPrompt
-		if err := rows.Scan(
-			&i.ID,
-			&i.Uuid,
-			&i.ChatSessionUuid,
-			&i.Role,
-			&i.Content,
-			&i.Score,
-			&i.UserID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.CreatedBy,
-			&i.UpdatedBy,
-			&i.IsDeleted,
-			&i.TokenCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getOneChatPromptBySessionUUID = `-- name: GetOneChatPromptBySessionUUID :one
 SELECT id, uuid, chat_session_uuid, role, content, score, user_id, created_at, updated_at, created_by, updated_by, is_deleted, token_count
 FROM chat_prompt 
@@ -353,25 +309,6 @@ func (q *Queries) GetOneChatPromptBySessionUUID(ctx context.Context, chatSession
 		&i.TokenCount,
 	)
 	return i, err
-}
-
-const hasChatPromptPermission = `-- name: HasChatPromptPermission :one
-SELECT COUNT(*) > 0 as has_permission
-FROM chat_prompt cp
-INNER JOIN auth_user au ON cp.user_id = au.id
-WHERE cp.id = $1 AND (cp.user_id = $2 OR au.is_superuser) AND cp.is_deleted = false
-`
-
-type HasChatPromptPermissionParams struct {
-	ID     int32 `json:"id"`
-	UserID int32 `json:"userId"`
-}
-
-func (q *Queries) HasChatPromptPermission(ctx context.Context, arg HasChatPromptPermissionParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, hasChatPromptPermission, arg.ID, arg.UserID)
-	var has_permission bool
-	err := row.Scan(&has_permission)
-	return has_permission, err
 }
 
 const updateChatPrompt = `-- name: UpdateChatPrompt :one

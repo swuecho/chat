@@ -20,14 +20,6 @@ func TestExtractArtifactsUsesInjectedIDGenerator(t *testing.T) {
 	}
 }
 
-func TestExtractArtifactsIgnoresLegacyExecutableMarker(t *testing.T) {
-	artifacts := extractArtifacts("```python <!-- executable: Report -->\nprint('hello')\n```", func() string { return "artifact-id" })
-
-	if len(artifacts) != 0 {
-		t.Fatalf("expected executable marker to be ignored, got %#v", artifacts)
-	}
-}
-
 func TestExtractArtifactsAcceptsCaseInsensitiveLanguageAndCRLF(t *testing.T) {
 	artifacts := extractArtifacts("```HTML <!-- artifact: Demo -->\r\n<p>Hello</p>\r\n```", func() string { return "artifact-id" })
 

@@ -11,31 +11,6 @@ import (
 	"time"
 )
 
-const chatSnapshotByID = `-- name: ChatSnapshotByID :one
-SELECT id, typ, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector FROM chat_snapshot WHERE id = $1
-`
-
-func (q *Queries) ChatSnapshotByID(ctx context.Context, id int32) (ChatSnapshot, error) {
-	row := q.db.QueryRowContext(ctx, chatSnapshotByID, id)
-	var i ChatSnapshot
-	err := row.Scan(
-		&i.ID,
-		&i.Typ,
-		&i.Uuid,
-		&i.UserID,
-		&i.Title,
-		&i.Summary,
-		&i.Model,
-		&i.Tags,
-		&i.Session,
-		&i.Conversation,
-		&i.CreatedAt,
-		&i.Text,
-		&i.SearchVector,
-	)
-	return i, err
-}
-
 const chatSnapshotByUUID = `-- name: ChatSnapshotByUUID :one
 SELECT id, typ, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector FROM chat_snapshot WHERE uuid = $1
 `
@@ -341,47 +316,6 @@ func (q *Queries) DeleteChatSnapshot(ctx context.Context, arg DeleteChatSnapshot
 	return i, err
 }
 
-const listChatSnapshots = `-- name: ListChatSnapshots :many
-SELECT id, typ, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector FROM chat_snapshot ORDER BY id
-`
-
-func (q *Queries) ListChatSnapshots(ctx context.Context) ([]ChatSnapshot, error) {
-	rows, err := q.db.QueryContext(ctx, listChatSnapshots)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ChatSnapshot
-	for rows.Next() {
-		var i ChatSnapshot
-		if err := rows.Scan(
-			&i.ID,
-			&i.Typ,
-			&i.Uuid,
-			&i.UserID,
-			&i.Title,
-			&i.Summary,
-			&i.Model,
-			&i.Tags,
-			&i.Session,
-			&i.Conversation,
-			&i.CreatedAt,
-			&i.Text,
-			&i.SearchVector,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const updateChatBotModel = `-- name: UpdateChatBotModel :one
 UPDATE chat_snapshot
 SET model = $1,
@@ -460,54 +394,6 @@ func (q *Queries) UpdateChatBotSettings(ctx context.Context, arg UpdateChatBotSe
 		arg.InputModel,
 		arg.Uuid,
 		arg.BotUserID,
-	)
-	var i ChatSnapshot
-	err := row.Scan(
-		&i.ID,
-		&i.Typ,
-		&i.Uuid,
-		&i.UserID,
-		&i.Title,
-		&i.Summary,
-		&i.Model,
-		&i.Tags,
-		&i.Session,
-		&i.Conversation,
-		&i.CreatedAt,
-		&i.Text,
-		&i.SearchVector,
-	)
-	return i, err
-}
-
-const updateChatSnapshot = `-- name: UpdateChatSnapshot :one
-UPDATE chat_snapshot
-SET uuid = $2, user_id = $3, title = $4, summary = $5, tags = $6, conversation = $7, created_at = $8
-WHERE id = $1
-RETURNING id, typ, uuid, user_id, title, summary, model, tags, session, conversation, created_at, text, search_vector
-`
-
-type UpdateChatSnapshotParams struct {
-	ID           int32           `json:"id"`
-	Uuid         string          `json:"uuid"`
-	UserID       int32           `json:"userId"`
-	Title        string          `json:"title"`
-	Summary      string          `json:"summary"`
-	Tags         json.RawMessage `json:"tags"`
-	Conversation json.RawMessage `json:"conversation"`
-	CreatedAt    time.Time       `json:"createdAt"`
-}
-
-func (q *Queries) UpdateChatSnapshot(ctx context.Context, arg UpdateChatSnapshotParams) (ChatSnapshot, error) {
-	row := q.db.QueryRowContext(ctx, updateChatSnapshot,
-		arg.ID,
-		arg.Uuid,
-		arg.UserID,
-		arg.Title,
-		arg.Summary,
-		arg.Tags,
-		arg.Conversation,
-		arg.CreatedAt,
 	)
 	var i ChatSnapshot
 	err := row.Scan(

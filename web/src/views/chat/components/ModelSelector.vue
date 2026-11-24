@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, h, ref, watch } from 'vue'
 import { NForm, NSelect, useMessage } from 'naive-ui'
-import { differenceInDays, formatDistanceToNow } from 'date-fns'
+import { formatLastUsed } from '@/utils/date'
 import { useSessionStore } from '@/store'
 import { useChatModels } from '@/hooks/useChatModels'
 import type { ChatModelHttpResponse as ChatModel } from '@/api/generated_client'
@@ -18,26 +18,11 @@ const { useChatModelsQuery } = useChatModels()
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(props.uuid))
 const { data, isLoading, isError } = useChatModelsQuery()
 
-const formatTimestamp = (timestamp?: string) => {
-  if (!timestamp)
-    return 'Never used'
-
-  const date = new Date(timestamp)
-  if (Number.isNaN(date.getTime()))
-    return 'Never used'
-
-  const days = differenceInDays(new Date(), date)
-  if (days > 30)
-    return 'a month ago'
-
-  return formatDistanceToNow(date, { addSuffix: true })
-}
-
 const optionFromModel = (model: ChatModel) => ({
   label: () => h('div', {}, [
     model.label,
     h('span', { style: 'color: #999; font-size: 0.8rem; margin-left: 4px' },
-      `- ${formatTimestamp(model.lastUsageTime)}`),
+      `- ${formatLastUsed(model.lastUsageTime)}`),
   ]),
   value: model.name,
 })
@@ -104,12 +89,10 @@ const defaultModel = computed(() => {
 const selectedModel = ref<string | undefined>(undefined)
 const initialized = ref(false)
 const isUpdating = ref(false)
-const programmaticValue = ref<string | undefined>(undefined)
 
+// NSelect only emits update:value for user picks, so programmatic changes
+// never reach handleUserUpdate and need no guard.
 const setSelectedProgrammatically = (value: string | undefined) => {
-  if (selectedModel.value === value)
-    return
-  programmaticValue.value = value
   selectedModel.value = value
 }
 
@@ -128,11 +111,6 @@ watch([chatSession, defaultModel], ([session, defaultModelValue]) => {
 }, { immediate: true })
 
 const handleUserUpdate = async (newModel: string | undefined) => {
-  if (newModel === programmaticValue.value) {
-    programmaticValue.value = undefined
-    return
-  }
-
   if (!initialized.value || !newModel)
     return
 

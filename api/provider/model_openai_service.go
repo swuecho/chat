@@ -12,9 +12,6 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chat_backend/domain"
-	"github.com/swuecho/chat_backend/dto"
-	llm_openai "github.com/swuecho/chat_backend/llm/openai"
-	"github.com/swuecho/chat_backend/models"
 )
 
 // OpenAI ChatModel implementation
@@ -50,7 +47,7 @@ func (m *OpenAIChatModel) Stream(ctx context.Context, input Request) (<-chan Str
 	openaiReq := NewChatCompletionRequest(chatSession, chatCompletionMessages, input.Files, streamOutput)
 	openaiReq.Model = NormalizeOpenAIModelName(chatModel, openaiReq.Model)
 	if len(openaiReq.Messages) <= 1 {
-		return nil, dto.ErrSystemMessageError
+		return nil, domain.Invalid(systemMessageOnlyMessage)
 	}
 	slog.Info("OpenAI request prepared", "model", openaiReq.Model, "messageCount", len(openaiReq.Messages), "temperature", openaiReq.Temperature)
 	client := openai.NewClientWithConfig(config)
@@ -82,7 +79,7 @@ func handleRegularResponse(ctx context.Context, ch chan<- StreamChunk, client *o
 		ID:      completion.ID,
 		Content: completion.Choices[0].Message.Content,
 		Done:    true,
-		FinalAnswer: &models.LLMAnswer{
+		FinalAnswer: &domain.LLMAnswer{
 			Answer:   completion.Choices[0].Message.Content,
 			AnswerId: completion.ID,
 		},
@@ -126,7 +123,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 		select {
 		case <-ctx.Done():
 			slog.Info("Stream cancelled by client", "error", ctx.Err())
-			llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answerID}
+			llmAnswer := domain.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answerID}
 			if hasReason {
 				llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 			}
@@ -144,7 +141,7 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 					emitChunk(ctx, ch, StreamChunk{Err: classifiedFailure("openai", "read stream", domain.ProviderFailureInvalidResponse, false, errors.New(errMsg))})
 					return
 				}
-				llmAnswer := models.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answerID}
+				llmAnswer := domain.LLMAnswer{Answer: TextBuffer.String("\n"), AnswerId: answerID}
 				if hasReason {
 					llmAnswer.ReasoningContent = reasonBuffer.String("\n")
 				}
@@ -156,9 +153,13 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 			return
 		}
 
-		response := llm_openai.ChatCompletionStreamResponse{}
+		response := openAIStreamChunk{}
 		if err := json.Unmarshal(rawLine, &response); err != nil {
 			slog.Info("Could not unmarshal response", "error", err)
+			continue
+		}
+		if len(response.Choices) == 0 {
+			// Usage-only and keep-alive chunks carry no choices.
 			continue
 		}
 
@@ -186,8 +187,24 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 	}
 }
 
+// openAIStreamChunk is the subset of an OpenAI-compatible stream chunk the
+// stream loop reads. go-openai's own type lacks reasoning_content, which
+// DeepSeek and other reasoning models send.
+type openAIStreamChunk struct {
+	ID      string `json:"id"`
+	Choices []struct {
+		Index int               `json:"index"`
+		Delta openAIStreamDelta `json:"delta"`
+	} `json:"choices"`
+}
+
+type openAIStreamDelta struct {
+	Content          string `json:"content,omitempty"`
+	ReasoningContent string `json:"reasoning_content,omitempty"`
+}
+
 // processDelta handles the logic for processing delta content with thinking tags
-func processDelta(delta llm_openai.ChatCompletionStreamChoiceDelta, reasonTagOpened *bool, reasonTagClosed *bool, hasReason bool) string {
+func processDelta(delta openAIStreamDelta, reasonTagOpened *bool, reasonTagClosed *bool, hasReason bool) string {
 	var deltaToSend string
 
 	if len(delta.ReasoningContent) > 0 {
@@ -213,7 +230,7 @@ func NewUserMessage(content string) openai.ChatCompletionMessage {
 }
 
 // NewChatCompletionRequest creates an OpenAI chat completion request from session and messages
-func NewChatCompletionRequest(chatSession Session, chatCompletionMessages []models.Message, chatFiles []File, streamOutput bool) openai.ChatCompletionRequest {
+func NewChatCompletionRequest(chatSession Session, chatCompletionMessages []domain.Message, chatFiles []File, streamOutput bool) openai.ChatCompletionRequest {
 	openaiMessages := messagesToOpenAIMesages(chatCompletionMessages, chatFiles)
 
 	for _, m := range openaiMessages {

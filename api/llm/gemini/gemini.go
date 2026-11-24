@@ -12,7 +12,8 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
-	models "github.com/swuecho/chat_backend/models"
+
+	"github.com/swuecho/chat_backend/domain"
 )
 
 type File struct {
@@ -27,12 +28,6 @@ type Part interface {
 
 type PartString struct {
 	Text string `json:"text"`
-}
-
-func TextData(text string) PartString {
-	return PartString{
-		Text: text,
-	}
 }
 
 func (p *PartString) toPart() string {
@@ -111,28 +106,6 @@ type ResponseBody struct {
 	PromptFeedback PromptFeedback `json:"promptFeedback"`
 }
 
-func ParseRespLine(line []byte, answer string) string {
-	var resp ResponseBody
-	if err := json.Unmarshal(line, &resp); err != nil {
-		fmt.Println("Failed to parse request body:", err)
-	}
-
-	for _, candidate := range resp.Candidates {
-		for idx, part := range candidate.Content.Parts {
-			if idx > 0 {
-				answer += "\n\n"
-			}
-			if part.Thought {
-				answer += ("<think>" + part.Text + "<think>")
-			} else {
-				answer += part.Text
-			}
-		}
-
-	}
-	return answer
-}
-
 // ParseRespLineDelta extracts only the delta content from a response line without accumulating
 func ParseRespLineDelta(line []byte) string {
 	var resp ResponseBody
@@ -182,7 +155,7 @@ func SupportedMimeTypes() mapset.Set[string] {
 	)
 }
 
-func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []File) ([]byte, error) {
+func GenGemminPayload(chat_compeletion_messages []domain.Message, chatFiles []File) ([]byte, error) {
 	payload := GeminPayload{
 		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
 	}
@@ -242,7 +215,7 @@ type HTTPError struct {
 func (e *HTTPError) Error() string       { return e.Message }
 func (e *HTTPError) HTTPStatusCode() int { return e.Status }
 
-func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAnswer, error) {
+func HandleRegularResponse(client http.Client, req *http.Request) (*domain.LLMAnswer, error) {
 	// Make the request
 	resp, err := client.Do(req)
 	if err != nil {
@@ -293,7 +266,7 @@ func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAn
 		return nil, fmt.Errorf("empty response from Gemini")
 	}
 
-	return &models.LLMAnswer{
+	return &domain.LLMAnswer{
 		Answer:   answer.String(),
 		AnswerId: "", // Gemini doesn't provide an ID
 	}, nil

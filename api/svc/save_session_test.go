@@ -13,7 +13,7 @@ import (
 func saveSessionTestCommand(userID int32, workspaceUUID, sessionUUID string) SaveSessionCommand {
 	return SaveSessionCommand{UserID: userID, WorkspaceUUID: workspaceUUID, SessionUUID: sessionUUID,
 		Topic: "Saved session", Model: "test-model", MaxLength: 10, Temperature: 0.7,
-		MaxTokens: 1000, TopP: 1, N: 1, EnsureSystemPrompt: true,
+		TopP: 1, N: 1, EnsureSystemPrompt: true,
 		DefaultSystemPrompt: "Be precise", ActivateGlobally: true}
 }
 

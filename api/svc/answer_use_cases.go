@@ -6,13 +6,13 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/provider"
 )
 
 type GenerateBotAnswerCommand struct {
 	Session      ChatSession
-	Messages     []models.Message
+	Messages     []domain.Message
 	SnapshotUUID string
 	Question     string
 	UserID       int32
@@ -42,31 +42,31 @@ func NewGenerateBotAnswerUseCase(chat *ChatService, models ModelSelector, chunks
 	return &GenerateBotAnswerUseCase{chat: chat, models: models, chunks: chunks, logPolicy: logPolicy, history: history, audit: audit}
 }
 
-func (u *GenerateBotAnswerUseCase) Execute(ctx context.Context, command GenerateBotAnswerCommand) (models.LLMAnswer, error) {
+func (u *GenerateBotAnswerUseCase) Execute(ctx context.Context, command GenerateBotAnswerCommand) (domain.LLMAnswer, error) {
 	if u.models == nil || u.history == nil {
-		return models.LLMAnswer{}, errors.New("bot answer dependencies are incomplete")
+		return domain.LLMAnswer{}, errors.New("bot answer dependencies are incomplete")
 	}
-	messages := append(append([]models.Message(nil), command.Messages...), models.Message{Role: "user", Content: command.Question})
+	messages := append(append([]domain.Message(nil), command.Messages...), domain.Message{Role: "user", Content: command.Question})
 	request, err := u.chat.ProviderRequest(ctx, command.Session, messages, "", false, command.Stream)
 	if err != nil {
-		return models.LLMAnswer{}, err
+		return domain.LLMAnswer{}, err
 	}
 	model, err := u.models.SelectModel(ctx, command.Session, messages)
 	if err != nil {
-		return models.LLMAnswer{}, err
+		return domain.LLMAnswer{}, err
 	}
 	answer, err := provider.ConsumeStream(ctx, model, request, func(chunk provider.StreamChunk) error {
 		return u.chunks.WriteAnswerChunk(ctx, chunk)
 	})
 	if err != nil {
-		return models.LLMAnswer{}, err
+		return domain.LLMAnswer{}, err
 	}
 	if answer == nil {
-		return models.LLMAnswer{}, errors.New("provider returned no final answer")
+		return domain.LLMAnswer{}, errors.New("provider returned no final answer")
 	}
 	if err := u.history.Save(ctx, CreateBotAnswerHistoryInput{BotUUID: command.SnapshotUUID, UserID: command.UserID,
 		Prompt: command.Question, Answer: answer.Answer, Model: command.Session.Model, TokensUsed: int32(len(answer.Answer)) / tokenEstimateRatio}); err != nil {
-		return models.LLMAnswer{}, err
+		return domain.LLMAnswer{}, err
 	}
 	if u.logPolicy.ShouldLogChat(messages) && u.audit != nil {
 		if err := u.audit.LogChat(ctx, command.Session, messages, answer.Answer); err != nil {
@@ -84,7 +84,7 @@ type RegenerateAnswerCommand struct {
 }
 
 type RegenerateAnswerResult struct {
-	Answer             models.LLMAnswer
+	Answer             domain.LLMAnswer
 	SuggestedQuestions json.RawMessage
 }
 

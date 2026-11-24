@@ -2,7 +2,6 @@
 package util
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,10 +13,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkoukk/tiktoken-go"
-	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/middleware"
-	"github.com/swuecho/chat_backend/requestctx"
 )
+
+// ErrStreamUnsupported is returned when the ResponseWriter cannot flush.
+var ErrStreamUnsupported = errors.New("streaming unsupported by client")
 
 // NewUUID generates a new UUID v7 string.
 func NewUUID() string {
@@ -62,7 +61,7 @@ func SetupSSE(w http.ResponseWriter) (http.Flusher, error) {
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		return nil, errors.New(dto.ErrorStreamUnsupported)
+		return nil, ErrStreamUnsupported
 	}
 	return flusher, nil
 }
@@ -159,24 +158,4 @@ func DecodeJSON(r *http.Request, target any) error {
 	}
 
 	return nil
-}
-
-// UserID extracts the authenticated user ID from the request context.
-func UserID(ctx context.Context) (int32, error) {
-	if userID, err := requestctx.UserID(ctx); err == nil {
-		return userID, nil
-	}
-	val := ctx.Value(middleware.UserContextKey)
-	if val == nil {
-		return 0, fmt.Errorf("no user ID in context")
-	}
-	userIDStr, ok := val.(string)
-	if !ok {
-		return 0, fmt.Errorf("user ID in context is not a string")
-	}
-	userIDInt, err := strconv.ParseInt(userIDStr, 10, 32)
-	if err != nil {
-		return 0, fmt.Errorf("invalid user ID: %s", userIDStr)
-	}
-	return int32(userIDInt), nil
 }

@@ -17,8 +17,6 @@ type chatModelHTTPResponse struct {
 	APIAuthKey              string `json:"apiAuthKey"`
 	UserID                  int32  `json:"userId"`
 	EnablePerModelRateLimit bool   `json:"enablePerModeRatelimit"`
-	MaxToken                *int32 `json:"maxToken,omitempty"`
-	DefaultToken            *int32 `json:"defaultToken,omitempty"`
 	OrderNumber             int32  `json:"orderNumber"`
 	HTTPTimeout             int32  `json:"httpTimeOut"`
 	IsEnable                bool   `json:"isEnable"`
@@ -83,23 +81,6 @@ type fileMetaHTTPResponse struct {
 	Name string `json:"name"`
 }
 
-type paginatedHTTPResponse[T any] struct {
-	Items      []T   `json:"items"`
-	TotalPages int64 `json:"totalPages"`
-	TotalCount int64 `json:"totalCount"`
-}
-
-func newPaginatedHTTPResponse[T any](items []T, totalPages, totalCount int64) paginatedHTTPResponse[T] {
-	return paginatedHTTPResponse[T]{Items: items, TotalPages: totalPages, TotalCount: totalCount}
-}
-
-type snapshotPageHTTPResponse struct {
-	Data     []snapshotSummaryHTTPResponse `json:"data"`
-	Page     int32                         `json:"page"`
-	PageSize int32                         `json:"page_size"`
-	Total    int64                         `json:"total"`
-}
-
 type snapshotListHTTPResponse struct {
 	Items  []snapshotSummaryHTTPResponse `json:"items"`
 	Total  int64                         `json:"total"`
@@ -144,7 +125,6 @@ type workspaceSessionHTTPResponse struct {
 	WorkspaceUUID   string  `json:"workspaceUuid"`
 	MaxLength       int32   `json:"maxLength"`
 	Temperature     float64 `json:"temperature"`
-	MaxTokens       int32   `json:"maxTokens"`
 	TopP            float64 `json:"topP"`
 	N               int32   `json:"n"`
 	SummarizeMode   bool    `json:"summarizeMode"`
@@ -164,7 +144,6 @@ type chatSessionHTTPResponse struct {
 	MaxLength       int32     `json:"maxLength"`
 	Temperature     float64   `json:"temperature"`
 	TopP            float64   `json:"topP"`
-	MaxTokens       int32     `json:"maxTokens"`
 	N               int32     `json:"n"`
 	SummarizeMode   bool      `json:"summarizeMode"`
 	WorkspaceID     *int32    `json:"workspaceId"`
@@ -177,7 +156,7 @@ type chatSessionHTTPResponse struct {
 func chatSessionResponse(session svc.ChatSession) chatSessionHTTPResponse {
 	return chatSessionHTTPResponse{ID: session.ID, UserID: session.UserID, UUID: session.UUID,
 		Topic: session.Topic, Active: session.Active, Model: session.Model, MaxLength: session.MaxLength,
-		Temperature: session.Temperature, TopP: session.TopP, MaxTokens: session.MaxTokens, N: session.N,
+		Temperature: session.Temperature, TopP: session.TopP, N: session.N,
 		SummarizeMode: session.SummarizeMode, WorkspaceID: session.WorkspaceID,
 		ArtifactEnabled: session.ArtifactEnabled, ExploreMode: session.ExploreMode,
 		CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt}

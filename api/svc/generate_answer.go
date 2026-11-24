@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/provider"
 )
 
@@ -23,7 +23,7 @@ type GenerateAnswerCommand struct {
 // ModelSelector resolves the provider implementation for an application
 // request. Implementations may enforce access and rate-limit policy.
 type ModelSelector interface {
-	SelectModel(context.Context, ChatSession, []models.Message) (provider.ChatModel, error)
+	SelectModel(context.Context, ChatSession, []domain.Message) (provider.ChatModel, error)
 }
 
 // AnswerChunkSink receives provider chunks without coupling the application
@@ -35,7 +35,7 @@ type AnswerChunkSink interface {
 // ChatLogPolicy decides whether a conversation should be written to the audit
 // log (for example, demo/test conversations are excluded).
 type ChatLogPolicy interface {
-	ShouldLogChat([]models.Message) bool
+	ShouldLogChat([]domain.Message) bool
 }
 
 type discardAnswerChunks struct{}
@@ -44,7 +44,7 @@ func (discardAnswerChunks) WriteAnswerChunk(context.Context, provider.StreamChun
 
 type allowChatLogs struct{}
 
-func (allowChatLogs) ShouldLogChat([]models.Message) bool { return true }
+func (allowChatLogs) ShouldLogChat([]domain.Message) bool { return true }
 
 // GenerateAnswerUseCase owns the provider-to-persistence lifecycle.
 type GenerateAnswerUseCase struct {
@@ -67,8 +67,8 @@ func NewGenerateAnswerUseCase(chat *ChatService, models ModelSelector, chunks An
 }
 
 type GenerateAnswerResult struct {
-	Answer             models.LLMAnswer
-	Messages           []models.Message
+	Answer             domain.LLMAnswer
+	Messages           []domain.Message
 	SuggestedQuestions json.RawMessage
 }
 

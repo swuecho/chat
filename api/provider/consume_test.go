@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/domain"
 )
 
 type streamModelFunc func(context.Context, Request) (<-chan StreamChunk, error)
@@ -53,7 +53,7 @@ func TestConsumeStreamRequiresOneFinalAnswer(t *testing.T) {
 
 	valid := streamModelFunc(func(context.Context, Request) (<-chan StreamChunk, error) {
 		ch := make(chan StreamChunk, 1)
-		ch <- StreamChunk{Done: true, FinalAnswer: &models.LLMAnswer{AnswerId: "a", Answer: "ok"}}
+		ch <- StreamChunk{Done: true, FinalAnswer: &domain.LLMAnswer{AnswerId: "a", Answer: "ok"}}
 		close(ch)
 		return ch, nil
 	})

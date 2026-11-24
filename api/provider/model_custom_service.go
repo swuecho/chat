@@ -14,7 +14,6 @@ import (
 
 	"github.com/swuecho/chat_backend/domain"
 	claude "github.com/swuecho/chat_backend/llm/claude"
-	"github.com/swuecho/chat_backend/models"
 )
 
 // CustomModelResponse represents the response structure for custom models
@@ -59,7 +58,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 	jsonData := map[string]any{
 		"prompt":               prompt,
 		"model":                chatSession.Model,
-		"max_tokens_to_sample": chatSession.MaxTokens,
+		"max_tokens_to_sample": chatSession.OutputTokens(),
 		"temperature":          chatSession.Temperature,
 		"stop_sequences":       []string{"\n\nHuman:"},
 		"stream":               true,
@@ -163,7 +162,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
-		FinalAnswer: &models.LLMAnswer{
+		FinalAnswer: &domain.LLMAnswer{
 			Answer:   answer,
 			AnswerId: answerID,
 		},

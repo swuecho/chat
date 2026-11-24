@@ -103,7 +103,6 @@ export type UpdateChatSessionRequest = {
     model: string;
     topP: number;
     n: number;
-    maxTokens: number;
     summarizeMode: boolean;
     artifactEnabled: boolean;
     exploreMode: boolean;
@@ -233,8 +232,6 @@ export type ChatModelHttpResponse = {
     apiAuthKey: string;
     userId: number;
     enablePerModeRatelimit: boolean;
-    maxToken?: number;
-    defaultToken?: number;
     orderNumber: number;
     httpTimeOut: number;
     isEnable: boolean;
@@ -267,7 +264,6 @@ export type ChatSessionHttpResponse = {
     maxLength: number;
     temperature: number;
     topP: number;
-    maxTokens: number;
     n: number;
     summarizeMode: boolean;
     workspaceId: number;
@@ -296,8 +292,6 @@ export type CreateChatModelRequest = {
     apiAuthHeader: string;
     apiAuthKey: string;
     enablePerModeRatelimit: boolean;
-    maxToken?: number;
-    defaultToken?: number;
     orderNumber: number;
     httpTimeOut: number;
     apiType: string;
@@ -1343,8 +1337,6 @@ export type ListChatModelsResponses = {
         apiAuthKey: string;
         userId: number;
         enablePerModeRatelimit: boolean;
-        maxToken?: number;
-        defaultToken?: number;
         orderNumber: number;
         httpTimeOut: number;
         isEnable: boolean;
@@ -1589,7 +1581,6 @@ export type ListChatSessionsResponses = {
         temperature: number;
         topP: number;
         n: number;
-        maxTokens: number;
         model: string;
         summarizeMode: boolean;
         artifactEnabled: boolean;
@@ -2913,7 +2904,6 @@ export type ListWorkspaceSessionsResponses = {
         workspaceUuid: string;
         maxLength: number;
         temperature: number;
-        maxTokens: number;
         topP: number;
         n: number;
         summarizeMode: boolean;

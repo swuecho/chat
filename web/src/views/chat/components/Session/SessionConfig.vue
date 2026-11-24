@@ -23,9 +23,10 @@ import {
 } from '@vicons/material'
 import { debounce, isEqual } from 'lodash-es'
 import { useQuery } from '@tanstack/vue-query'
-import { differenceInDays, formatDistanceToNow } from 'date-fns'
 import { useSessionStore } from '@/store'
-import { getChatInstructions, listChatModels } from '@/api/generated_client'
+import { formatLastUsed } from '@/utils/date'
+import { getChatInstructions } from '@/api/generated_client'
+import { useChatModels } from '@/hooks/useChatModels'
 
 import { API_TYPES, API_TYPE_DISPLAY_NAMES } from '@/constants/apiTypes'
 import type { ChatModelHttpResponse as ChatModel } from '@/api/generated_client'
@@ -34,21 +35,7 @@ const props = defineProps<{
   uuid: string
 }>()
 
-// format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now
-const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp)
-  const days = differenceInDays(new Date(), date)
-  if (days > 30)
-    return 'a month ago'
-
-  return formatDistanceToNow(date, { addSuffix: true })
-}
-
-const { data, isLoading } = useQuery({
-  queryKey: ['chat_models'],
-  queryFn: () => listChatModels(),
-  staleTime: 10 * 60 * 1000,
-})
+const { data, isLoading } = useChatModels().useChatModelsQuery()
 
 const { data: instructionData, isLoading: isInstructionLoading } = useQuery({
   queryKey: ['chat_instructions'],
@@ -114,7 +101,6 @@ interface ModelType {
   chatModel: string
   contextCount: number
   temperature: number
-  maxTokens: number
   topP: number
   n: number
   summarizeMode: boolean
@@ -138,7 +124,6 @@ const modelRef: Ref<ModelType> = ref({
   summarizeMode: session.value?.summarizeMode ?? false,
   contextCount: session.value?.maxLength ?? 10,
   temperature: session.value?.temperature ?? 1.0,
-  maxTokens: session.value?.maxTokens ?? 2048,
   topP: session.value?.topP ?? 1.0,
   n: session.value?.n ?? 1,
   exploreMode: session.value?.exploreMode ?? false,
@@ -162,7 +147,6 @@ const debouneUpdate = debounce(async (model: ModelType) => {
   sessionStore.updateSession(props.uuid, {
     maxLength: model.contextCount,
     temperature: model.temperature,
-    maxTokens: model.maxTokens,
     topP: model.topP,
     n: model.n,
     model: model.chatModel,
@@ -185,7 +169,6 @@ watch(session, (newSession) => {
       summarizeMode: newSession.summarizeMode ?? false,
       contextCount: newSession.maxLength ?? 10,
       temperature: newSession.temperature ?? 1.0,
-      maxTokens: newSession.maxTokens ?? 2048,
       topP: newSession.topP ?? 1.0,
       n: newSession.n ?? 1,
       exploreMode: newSession.exploreMode ?? false,
@@ -245,7 +228,7 @@ watch(session, (newSession) => {
                     {{ model.label }}
                   </div>
                   <div class="model-meta">
-                    <span class="model-timestamp">{{ formatTimestamp(model.lastUsageTime) }}</span>
+                    <span class="model-timestamp">{{ formatLastUsed(model.lastUsageTime) }}</span>
                   </div>
                 </div>
               </div>

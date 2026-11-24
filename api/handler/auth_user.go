@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,7 +15,6 @@ import (
 	"github.com/swuecho/chat_backend/httpx"
 	"github.com/swuecho/chat_backend/middleware"
 	"github.com/swuecho/chat_backend/svc"
-	"log/slog"
 )
 
 // Token lifetime constants.

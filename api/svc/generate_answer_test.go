@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
@@ -16,7 +16,7 @@ type generateAnswerModel struct {
 
 type generateAnswerModelSelector struct{ model provider.ChatModel }
 
-func (s generateAnswerModelSelector) SelectModel(context.Context, ChatSession, []models.Message) (provider.ChatModel, error) {
+func (s generateAnswerModelSelector) SelectModel(context.Context, ChatSession, []domain.Message) (provider.ChatModel, error) {
 	return s.model, nil
 }
 
@@ -29,7 +29,7 @@ func (s generateAnswerChunkSink) WriteAnswerChunk(_ context.Context, chunk provi
 
 type noChatLogs struct{}
 
-func (noChatLogs) ShouldLogChat([]models.Message) bool { return false }
+func (noChatLogs) ShouldLogChat([]domain.Message) bool { return false }
 
 func (m generateAnswerModel) Stream(ctx context.Context, _ provider.Request) (<-chan provider.StreamChunk, error) {
 	ch := make(chan provider.StreamChunk, len(m.chunks))
@@ -96,7 +96,7 @@ func TestGenerateAnswerPersistsBeforeReturningSuccess(t *testing.T) {
 	useCase := NewGenerateAnswerUseCase(service, generateAnswerModelSelector{model: generateAnswerModel{chunks: []provider.StreamChunk{
 		{ID: "generate-answer-response", Content: "durable "},
 		{ID: "generate-answer-response", Content: "answer"},
-		{Done: true, FinalAnswer: &models.LLMAnswer{AnswerId: "generate-answer-response", Answer: "durable answer"}},
+		{Done: true, FinalAnswer: &domain.LLMAnswer{AnswerId: "generate-answer-response", Answer: "durable answer"}},
 	}}}, generateAnswerChunkSink{delivered: &delivered}, noChatLogs{}, nil)
 	result, err := useCase.Execute(ctx, GenerateAnswerCommand{
 		Session: chatSessionFromRecord(sessionRecord), RequestUUID: "generate-answer-request", UserID: user.ID,

@@ -77,7 +77,7 @@ func (s *ChatSessionService) CreateSessionFromSnapshot(ctx context.Context, comm
 		session, err := uow.CreateOrUpdateSession(ctx, CreateOrUpdateChatSessionInput{
 			UUID: sessionUUID, UserID: command.UserID, Topic: snapshot.Title,
 			MaxLength: source.MaxLength, Temperature: source.Temperature,
-			Model: source.Model, MaxTokens: source.MaxTokens, TopP: source.TopP, N: 1,
+			Model: source.Model, TopP: source.TopP, N: 1,
 			SummarizeMode: source.SummarizeMode,
 			WorkspaceID:   source.WorkspaceID, ExploreMode: source.ExploreMode,
 			ArtifactEnabled: source.ArtifactEnabled,
