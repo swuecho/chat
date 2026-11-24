@@ -13,7 +13,6 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
-	llm_openai "github.com/swuecho/chat_backend/llm/openai"
 	"github.com/swuecho/chat_backend/models"
 )
 
@@ -156,9 +155,13 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 			return
 		}
 
-		response := llm_openai.ChatCompletionStreamResponse{}
+		response := openAIStreamChunk{}
 		if err := json.Unmarshal(rawLine, &response); err != nil {
 			slog.Info("Could not unmarshal response", "error", err)
+			continue
+		}
+		if len(response.Choices) == 0 {
+			// Usage-only and keep-alive chunks carry no choices.
 			continue
 		}
 
@@ -186,8 +189,24 @@ func doChatStream(ctx context.Context, ch chan<- StreamChunk, client *openai.Cli
 	}
 }
 
+// openAIStreamChunk is the subset of an OpenAI-compatible stream chunk the
+// stream loop reads. go-openai's own type lacks reasoning_content, which
+// DeepSeek and other reasoning models send.
+type openAIStreamChunk struct {
+	ID      string `json:"id"`
+	Choices []struct {
+		Index int               `json:"index"`
+		Delta openAIStreamDelta `json:"delta"`
+	} `json:"choices"`
+}
+
+type openAIStreamDelta struct {
+	Content          string `json:"content,omitempty"`
+	ReasoningContent string `json:"reasoning_content,omitempty"`
+}
+
 // processDelta handles the logic for processing delta content with thinking tags
-func processDelta(delta llm_openai.ChatCompletionStreamChoiceDelta, reasonTagOpened *bool, reasonTagClosed *bool, hasReason bool) string {
+func processDelta(delta openAIStreamDelta, reasonTagOpened *bool, reasonTagClosed *bool, hasReason bool) string {
 	var deltaToSend string
 
 	if len(delta.ReasoningContent) > 0 {

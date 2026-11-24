@@ -157,8 +157,7 @@ Key tables:
 chat/
 ├── api/                     # Go backend
 │   ├── main.go             # Application entry point
-│   ├── llm/                # LLM wire-format clients
-│   │   ├── openai/         # OpenAI integration
+│   ├── llm/                # LLM wire-format clients (OpenAI uses the go-openai SDK)
 │   │   ├── claude/         # Claude integration
 │   │   └── gemini/         # Gemini integration
 │   ├── apicontract/        # Typed route registration and OpenAPI contracts

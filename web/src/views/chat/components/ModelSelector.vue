@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, h, ref, watch } from 'vue'
 import { NForm, NSelect, useMessage } from 'naive-ui'
-import { differenceInDays, formatDistanceToNow } from 'date-fns'
+import { formatLastUsed } from '@/utils/date'
 import { useSessionStore } from '@/store'
 import { useChatModels } from '@/hooks/useChatModels'
 import type { ChatModelHttpResponse as ChatModel } from '@/api/generated_client'
@@ -18,27 +18,11 @@ const { useChatModelsQuery } = useChatModels()
 const chatSession = computed(() => sessionStore.getChatSessionByUuid(props.uuid))
 const { data, isLoading, isError } = useChatModelsQuery()
 
-const formatTimestamp = (timestamp?: string) => {
-  if (!timestamp)
-    return 'Never used'
-
-  const date = new Date(timestamp)
-  // The backend sends Go's zero time (0001-01-01T00:00:00Z) for unused models.
-  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() <= 1)
-    return 'Never used'
-
-  const days = differenceInDays(new Date(), date)
-  if (days > 30)
-    return 'a month ago'
-
-  return formatDistanceToNow(date, { addSuffix: true })
-}
-
 const optionFromModel = (model: ChatModel) => ({
   label: () => h('div', {}, [
     model.label,
     h('span', { style: 'color: #999; font-size: 0.8rem; margin-left: 4px' },
-      `- ${formatTimestamp(model.lastUsageTime)}`),
+      `- ${formatLastUsed(model.lastUsageTime)}`),
   ]),
   value: model.name,
 })

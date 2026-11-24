@@ -23,8 +23,8 @@ import {
 } from '@vicons/material'
 import { debounce, isEqual } from 'lodash-es'
 import { useQuery } from '@tanstack/vue-query'
-import { differenceInDays, formatDistanceToNow } from 'date-fns'
 import { useSessionStore } from '@/store'
+import { formatLastUsed } from '@/utils/date'
 import { getChatInstructions, listChatModels } from '@/api/generated_client'
 
 import { API_TYPES, API_TYPE_DISPLAY_NAMES } from '@/constants/apiTypes'
@@ -33,16 +33,6 @@ import type { ChatModelHttpResponse as ChatModel } from '@/api/generated_client'
 const props = defineProps<{
   uuid: string
 }>()
-
-// format timestamp 2025-02-04T08:17:16.711644Z (string) as  to show time relative to now
-const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp)
-  const days = differenceInDays(new Date(), date)
-  if (days > 30)
-    return 'a month ago'
-
-  return formatDistanceToNow(date, { addSuffix: true })
-}
 
 const { data, isLoading } = useQuery({
   queryKey: ['chat_models'],
@@ -241,7 +231,7 @@ watch(session, (newSession) => {
                     {{ model.label }}
                   </div>
                   <div class="model-meta">
-                    <span class="model-timestamp">{{ formatTimestamp(model.lastUsageTime) }}</span>
+                    <span class="model-timestamp">{{ formatLastUsed(model.lastUsageTime) }}</span>
                   </div>
                 </div>
               </div>
