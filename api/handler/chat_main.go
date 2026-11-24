@@ -1,12 +1,12 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/time/rate"
-	"log/slog"
 
 	"github.com/swuecho/chat_backend/apicontract"
 	"github.com/swuecho/chat_backend/dto"

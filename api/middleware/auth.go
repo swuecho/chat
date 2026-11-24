@@ -24,15 +24,6 @@ import (
 	"github.com/swuecho/chat_backend/requestctx"
 )
 
-// Context keys for storing values in request context.
-type contextKey string
-
-const (
-	RoleContextKey contextKey = "role"
-	UserContextKey contextKey = "user"
-	GuidContextKey contextKey = "guid"
-)
-
 // ExtractBearerToken extracts the bearer token from an Authorization header.
 func ExtractBearerToken(r *http.Request) string {
 	bearerToken := r.Header.Get("Authorization")
@@ -50,9 +41,6 @@ func CreateUserContext(r *http.Request, userID, role string) *http.Request {
 		return r
 	}
 	ctx := requestctx.WithPrincipal(r.Context(), requestctx.Principal{UserID: int32(parsedUserID), Role: role})
-	// Retain legacy keys while callers migrate to requestctx.PrincipalFrom.
-	ctx = context.WithValue(ctx, UserContextKey, userID)
-	ctx = context.WithValue(ctx, RoleContextKey, role)
 	return r.WithContext(ctx)
 }
 
@@ -152,27 +140,6 @@ type AuthTokenResult struct {
 	Error     *dto.APIError
 }
 
-// GetUserID extracts the user ID from a request context.
-func GetUserID(ctx context.Context) (int32, error) {
-	if userID, err := requestctx.UserID(ctx); err == nil {
-		return userID, nil
-	}
-	userIdValue := ctx.Value(UserContextKey)
-	if userIdValue == nil {
-		return 0, fmt.Errorf("no user ID in context")
-	}
-	userIDStr, ok := userIdValue.(string)
-	if !ok {
-		return 0, fmt.Errorf("user ID in context is not a string")
-	}
-	return parseInt32(userIDStr)
-}
-
-func parseInt32(s string) (int32, error) {
-	n, err := strconv.ParseInt(s, 10, 32)
-	return int32(n), err
-}
-
 // AdminAuthMiddleware provides authentication + admin authorization.
 func AdminAuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -217,8 +184,8 @@ func UserAuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 // AdminOnlyHandler wraps a handler to require admin role.
 func AdminOnlyHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userRole, ok := r.Context().Value(RoleContextKey).(string)
-		if !ok || userRole != "admin" {
+		principal, err := requestctx.PrincipalFrom(r.Context())
+		if err != nil || principal.Role != "admin" {
 			apiErr := dto.ErrAuthAdminRequired
 			apiErr.Detail = "Admin privileges required"
 			dto.RespondWithAPIError(w, apiErr)

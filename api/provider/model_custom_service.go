@@ -14,7 +14,6 @@ import (
 
 	"github.com/swuecho/chat_backend/domain"
 	claude "github.com/swuecho/chat_backend/llm/claude"
-	"github.com/swuecho/chat_backend/models"
 )
 
 // CustomModelResponse represents the response structure for custom models
@@ -163,7 +162,7 @@ func (m *CustomChatModel) customChatStream(ctx context.Context, ch chan<- Stream
 	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
-		FinalAnswer: &models.LLMAnswer{
+		FinalAnswer: &domain.LLMAnswer{
 			Answer:   answer,
 			AnswerId: answerID,
 		},

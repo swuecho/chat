@@ -127,6 +127,8 @@ The main chat interface (`web/src/views/chat/`) is split into composables under 
 - Keep simple CRUD thin. Introduce a focused application use case when an operation coordinates multiple records, enforces business invariants, or requires a transaction.
 - Use conventional Go initialisms in application types and fields: `ID`, `UUID`, `API`, and `LLM`.
 - Add or update architecture tests when establishing a boundary so later changes cannot silently bypass it.
+- `api/architecture_test.go` lists the module packages each package may import. A new internal dependency must be added there deliberately.
+- App-initiated LLM calls (titles, suggestions) go through `provider.Complete`; services do not call `llm/*` clients directly.
 
 ### Database (PostgreSQL + SQLC)
 

@@ -12,7 +12,8 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
-	models "github.com/swuecho/chat_backend/models"
+
+	"github.com/swuecho/chat_backend/domain"
 )
 
 type File struct {
@@ -154,7 +155,7 @@ func SupportedMimeTypes() mapset.Set[string] {
 	)
 }
 
-func GenGemminPayload(chat_compeletion_messages []models.Message, chatFiles []File) ([]byte, error) {
+func GenGemminPayload(chat_compeletion_messages []domain.Message, chatFiles []File) ([]byte, error) {
 	payload := GeminPayload{
 		Contents: make([]GeminiMessage, len(chat_compeletion_messages)),
 	}
@@ -214,7 +215,7 @@ type HTTPError struct {
 func (e *HTTPError) Error() string       { return e.Message }
 func (e *HTTPError) HTTPStatusCode() int { return e.Status }
 
-func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAnswer, error) {
+func HandleRegularResponse(client http.Client, req *http.Request) (*domain.LLMAnswer, error) {
 	// Make the request
 	resp, err := client.Do(req)
 	if err != nil {
@@ -265,7 +266,7 @@ func HandleRegularResponse(client http.Client, req *http.Request) (*models.LLMAn
 		return nil, fmt.Errorf("empty response from Gemini")
 	}
 
-	return &models.LLMAnswer{
+	return &domain.LLMAnswer{
 		Answer:   answer.String(),
 		AnswerId: "", // Gemini doesn't provide an ID
 	}, nil

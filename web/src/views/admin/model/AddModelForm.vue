@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { NButton, NForm, NFormItem, NInput, NSelect, NSwitch, useMessage } from 'naive-ui'
-import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { createChatModel } from '@/api/generated_client'
+import { useChatModels } from '@/hooks/useChatModels'
 import { t } from '@/locales'
 import { API_TYPES, API_TYPE_OPTIONS, type ApiType } from '@/constants/apiTypes'
 
 const emit = defineEmits<Emit>()
-
-const queryClient = useQueryClient()
 
 interface FormData {
   name: string
@@ -89,12 +86,7 @@ interface Emit {
   (e: 'newRowAdded'): void
 }
 
-const createChatModelMutation = useMutation({
-  mutationFn: (formData: FormData) => createChatModel({ body: formData }),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['chat_models'] })
-  },
-})
+const createChatModelMutation = useChatModels().useCreateChatModelMutation()
 
 async function addRow() {
   // create a new chat model, the name is randon string

@@ -5,18 +5,18 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
-	mapset "github.com/deckarep/golang-set/v2"
 	"log/slog"
 
+	mapset "github.com/deckarep/golang-set/v2"
+
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/svc"
 )
 
 // chooseChatModel returns the appropriate ChatModel implementation based on session config.
-func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSession, msgs []models.Message) provider.ChatModel {
+func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSession, msgs []domain.Message) provider.ChatModel {
 	if isTest(msgs) {
 		return provider.NewTestChatModel(h)
 	}
@@ -49,12 +49,12 @@ func (h *ChatHandler) chooseChatModel(ctx context.Context, session svc.ChatSessi
 }
 
 // SelectModel implements svc.ModelSelector for chat-generation use cases.
-func (h *ChatHandler) SelectModel(ctx context.Context, session svc.ChatSession, msgs []models.Message) (provider.ChatModel, error) {
+func (h *ChatHandler) SelectModel(ctx context.Context, session svc.ChatSession, msgs []domain.Message) (provider.ChatModel, error) {
 	return h.chooseChatModel(ctx, session, msgs), nil
 }
 
 // isTest returns true if any message starts with the test demo prefix.
-func isTest(msgs []models.Message) bool {
+func isTest(msgs []domain.Message) bool {
 	for _, msg := range msgs {
 		if len(msg.Content) >= dto.TestPrefixLength && msg.Content[:dto.TestPrefixLength] == dto.TestDemoPrefix {
 			return true
@@ -64,7 +64,7 @@ func isTest(msgs []models.Message) bool {
 }
 
 // ShouldLogChat implements svc.ChatLogPolicy.
-func (h *ChatHandler) ShouldLogChat(msgs []models.Message) bool { return !isTest(msgs) }
+func (h *ChatHandler) ShouldLogChat(msgs []domain.Message) bool { return !isTest(msgs) }
 
 // CheckModelAccess verifies the user hasn't exceeded per-model rate limits.
 // Returns nil if access is allowed, or an error (dto.APIError) if denied.

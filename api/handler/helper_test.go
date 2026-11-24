@@ -4,10 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"os"
-	"strconv"
 	"testing"
 
-	"github.com/swuecho/chat_backend/middleware"
+	"github.com/swuecho/chat_backend/requestctx"
 	"github.com/swuecho/chat_backend/testutil"
 )
 
@@ -22,5 +21,5 @@ func TestMain(m *testing.M) {
 
 // getContextWithUser creates a background context with the given user ID.
 func getContextWithUser(userID int) context.Context {
-	return context.WithValue(context.Background(), middleware.UserContextKey, strconv.Itoa(userID))
+	return requestctx.WithPrincipal(context.Background(), requestctx.Principal{UserID: int32(userID), Role: "user"})
 }

@@ -3,15 +3,14 @@ package svc
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"encoding/json"
 	"log/slog"
 	"time"
 
-	_ "embed"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	"github.com/swuecho/chat_backend/domain"
-	models "github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/pkg/util"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/sqlc_queries"
@@ -33,7 +32,7 @@ var artifactInstructionText string
 // NewChatService creates a new ChatService with database queries and OpenAI configuration.
 func NewChatService(q *sqlc_queries.Queries, openAIKey, openAIProxy string) *ChatService {
 	return &ChatService{q: q, modelCatalog: newLLMModelCatalog(q), newID: util.NewUUID, openAIKey: openAIKey, openAIProxy: openAIProxy,
-		suggestions: NewLLMSuggestionGenerator(q, openAIKey, openAIProxy), audit: NewSQLChatAuditLogger(q)}
+		suggestions: NewLLMSuggestionGenerator(q, openAIProxy), audit: NewSQLChatAuditLogger(q)}
 }
 
 func (s *ChatService) SuggestionGenerator() SuggestionGenerator { return s.suggestions }
@@ -43,7 +42,7 @@ func (s *ChatService) ProviderModel(ctx context.Context, name string) (provider.
 	return s.modelCatalog.get(ctx, name)
 }
 
-func (s *ChatService) ProviderRequest(ctx context.Context, session ChatSession, messages []models.Message, chatUUID string, regenerate, stream bool) (provider.Request, error) {
+func (s *ChatService) ProviderRequest(ctx context.Context, session ChatSession, messages []domain.Message, chatUUID string, regenerate, stream bool) (provider.Request, error) {
 	model, err := s.ProviderModel(ctx, session.Model)
 	if err != nil {
 		return provider.Request{}, err
@@ -147,7 +146,7 @@ func LoadArtifactInstruction() (string, error) {
 	return artifactInstructionText, nil
 }
 
-func appendInstructionToSystemMessage(msgs []models.Message, instruction string) {
+func appendInstructionToSystemMessage(msgs []domain.Message, instruction string) {
 	if instruction == "" || len(msgs) == 0 {
 		return
 	}
@@ -176,7 +175,7 @@ func appendInstructionToSystemMessage(msgs []models.Message, instruction string)
 //   - regenerate: If true, excludes the target message from history
 //
 // Returns combined message array or error.
-func (s *ChatService) GetAskMessages(ctx context.Context, chatSession ChatSession, chatUuid string, regenerate bool) ([]models.Message, error) {
+func (s *ChatService) GetAskMessages(ctx context.Context, chatSession ChatSession, chatUuid string, regenerate bool) ([]domain.Message, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*requestTimeoutSeconds)
 	defer cancel()
 
@@ -210,13 +209,13 @@ func (s *ChatService) GetAskMessages(ctx context.Context, chatSession ChatSessio
 	if err != nil {
 		return nil, eris.Wrap(err, "fail to get messages: ")
 	}
-	chatPromptMsgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) models.Message {
-		msg := models.Message{Role: m.Role, Content: m.Content}
+	chatPromptMsgs := lo.Map(chat_prompts, func(m sqlc_queries.ChatPrompt, _ int) domain.Message {
+		msg := domain.Message{Role: m.Role, Content: m.Content}
 		msg.SetTokenCount(int32(m.TokenCount))
 		return msg
 	})
-	chatMessageMsgs := lo.Map(chatMessages, func(m sqlc_queries.ChatMessage, _ int) models.Message {
-		msg := models.Message{Role: m.Role, Content: m.Content}
+	chatMessageMsgs := lo.Map(chatMessages, func(m sqlc_queries.ChatMessage, _ int) domain.Message {
+		msg := domain.Message{Role: m.Role, Content: m.Content}
 		msg.SetTokenCount(int32(m.TokenCount))
 		return msg
 	})
@@ -319,7 +318,7 @@ func (s *ChatService) CreateChatMessageSimple(ctx context.Context, sessionUuid, 
 
 // CompleteChatRequestWithSuggestedQuestions atomically saves the assistant
 // message and marks its originating request completed.
-func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Context, requestUuid, sessionUuid, uuid, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode, exploreMode bool, messages []models.Message) (ChatMessage, error) {
+func (s *ChatService) CompleteChatRequestWithSuggestedQuestions(ctx context.Context, requestUuid, sessionUuid, uuid, content, reasoningContent, model string, userId int32, baseURL string, is_summarize_mode, exploreMode bool, messages []domain.Message) (ChatMessage, error) {
 	numTokens, err := provider.GetTokenCount(content)
 	if err != nil {
 		slog.Warn("Failed to get token count", "error", err)

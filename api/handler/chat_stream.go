@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	openai "github.com/sashabaranov/go-openai"
-	"log/slog"
 
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/provider"
 	"github.com/swuecho/chat_backend/svc"
 	"github.com/swuecho/chat_backend/validation"
@@ -268,14 +268,14 @@ func regenerateAnswer(h *ChatHandler, w http.ResponseWriter, ctx context.Context
 }
 
 // simpleChatMessagesToMessages converts SimpleChatMessage to LLM Message format.
-func simpleChatMessagesToMessages(simpleChatMessages []dto.SimpleChatMessage) []models.Message {
-	messages := make([]models.Message, len(simpleChatMessages))
+func simpleChatMessagesToMessages(simpleChatMessages []dto.SimpleChatMessage) []domain.Message {
+	messages := make([]domain.Message, len(simpleChatMessages))
 	for i, scm := range simpleChatMessages {
 		role := scm.GetRole()
 		if i == 0 {
 			role = "system"
 		}
-		messages[i] = models.Message{Role: role, Content: scm.Text}
+		messages[i] = domain.Message{Role: role, Content: scm.Text}
 	}
 	return messages
 }

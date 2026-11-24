@@ -1,19 +1,15 @@
 <script setup lang="ts">
 import { ref, toRaw, watch } from 'vue'
 import { NButton, NEmpty, NModal, NSkeleton } from 'naive-ui'
-import { useQuery } from '@tanstack/vue-query'
 import AddModelForm from './AddModelForm.vue'
-import { listChatModels } from '@/api/generated_client'
+import { useChatModels } from '@/hooks/useChatModels'
 import { SvgIcon } from '@/components/common'
 import { t } from '@/locales'
 import ModelCard from '@/components/admin/ModelCard.vue'
 
 const dialogVisible = ref(false)
 
-const modelQuery = useQuery({
-  queryKey: ['chat_models'],
-  queryFn: () => listChatModels(),
-})
+const modelQuery = useChatModels().useChatModelsQuery()
 
 const isLoading = modelQuery.isPending
 const data = ref<Chat.ChatModel[]>(toRaw(modelQuery.data.value))

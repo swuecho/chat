@@ -10,8 +10,6 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/swuecho/chat_backend/domain"
-	"github.com/swuecho/chat_backend/dto"
-	"github.com/swuecho/chat_backend/models"
 )
 
 // CompletionChatModel implements ChatModel interface for OpenAI completion models
@@ -67,7 +65,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 		Stream:      true,
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, dto.DefaultRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, completionRequestTimeout)
 	defer cancel()
 
 	stream, err := client.CreateCompletionStream(ctx, req)
@@ -92,7 +90,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			if len(answer) > 0 {
-				emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: answer, Done: true, FinalAnswer: &models.LLMAnswer{AnswerId: answerID, Answer: answer}})
+				emitChunk(ctx, ch, StreamChunk{ID: answerID, Content: answer, Done: true, FinalAnswer: &domain.LLMAnswer{AnswerId: answerID, Answer: answer}})
 				return
 			}
 			break
@@ -126,7 +124,7 @@ func (m *CompletionChatModel) completionStream(ctx context.Context, ch chan<- St
 	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
-		FinalAnswer: &models.LLMAnswer{
+		FinalAnswer: &domain.LLMAnswer{
 			AnswerId: answerID,
 			Answer:   answer,
 		},

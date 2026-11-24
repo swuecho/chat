@@ -28,7 +28,8 @@ import { t } from '@/locales'
 import { getCurrentDate } from '@/utils/date'
 import { useAuthStore, useSessionStore } from '@/store'
 import { generateAPIHelper } from '@/service/snapshot'
-import { type ChatModelHttpResponse as ChatModel, createChatSessionFromSnapshot, createLongLivedToken, getChatSnapshot, listChatModels, updateChatBotSettings } from '@/api/generated_client'
+import { createChatSessionFromSnapshot, createLongLivedToken, getChatSnapshot, updateChatBotSettings } from '@/api/generated_client'
+import { useChatModels } from '@/hooks/useChatModels'
 
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
@@ -48,11 +49,7 @@ const { data: snapshot_data, isLoading } = useQuery({
   queryFn: () => getChatSnapshot({ path: { uuid } }),
 })
 
-const { data: chatModels, isLoading: modelsLoading } = useQuery<ChatModel[]>({
-  queryKey: ['chat_models'],
-  queryFn: () => listChatModels(),
-  enabled: computed(() => Boolean(authStore.getToken)),
-})
+const { data: chatModels, isLoading: modelsLoading } = useChatModels().useChatModelsQuery()
 
 const currentUserId = computed(() => {
   if (!authStore.getToken)
@@ -135,6 +132,7 @@ const activeTab = ref('conversation')
 const apiToken = ref('')
 
 onMounted(async () => {
+  await authStore.initializeAuth()
   const data = await createLongLivedToken()
   apiToken.value = data.accessToken
 })

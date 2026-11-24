@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/swuecho/chat_backend/dto"
+	"github.com/swuecho/chat_backend/requestctx"
 	"github.com/swuecho/chat_backend/sqlc_queries"
 )
 
@@ -20,7 +21,7 @@ func RateLimitByUserID(q *sqlc_queries.Queries, defaultLimit int) func(http.Hand
 			}
 
 			ctx := r.Context()
-			userIDInt, err := GetUserID(ctx)
+			userIDInt, err := requestctx.UserID(ctx)
 			if err != nil {
 				apiErr := dto.ErrAuthInvalidCredentials
 				apiErr.Detail = "User identification required for rate limiting"

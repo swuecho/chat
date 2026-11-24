@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/swuecho/chat_backend/dto"
 	"golang.org/x/time/rate"
 )
 
@@ -156,6 +155,4 @@ func TestBuildStreamResponse(t *testing.T) {
 	}
 }
 
-// Ensure dto is referenced (used by provider code).
-var _ = dto.ErrInternalUnexpected
 var _ = context.Background

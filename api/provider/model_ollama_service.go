@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/swuecho/chat_backend/domain"
-	"github.com/swuecho/chat_backend/models"
 )
 
 // OllamaResponse represents the response structure from Ollama API
@@ -23,7 +22,7 @@ type OllamaResponse struct {
 	Model              string         `json:"model"`
 	CreatedAt          time.Time      `json:"created_at"`
 	Done               bool           `json:"done"`
-	Message            models.Message `json:"message"`
+	Message            domain.Message `json:"message"`
 	TotalDuration      int64          `json:"total_duration"`
 	LoadDuration       int64          `json:"load_duration"`
 	PromptEvalCount    int            `json:"prompt_eval_count"`
@@ -145,7 +144,7 @@ func chatOllamStream(ctx context.Context, ch chan<- StreamChunk, input Request) 
 	emitChunk(ctx, ch, StreamChunk{
 		ID:   answerID,
 		Done: true,
-		FinalAnswer: &models.LLMAnswer{
+		FinalAnswer: &domain.LLMAnswer{
 			Answer:   answer,
 			AnswerId: answerID,
 		},

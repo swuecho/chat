@@ -1,27 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { NCard, NSelect, useMessage } from 'naive-ui'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { getTitleChatModel, listChatModels, setTitleChatModel } from '@/api/generated_client'
+import { useChatModels } from '@/hooks/useChatModels'
 import { t } from '@/locales'
 
 const message = useMessage()
-const queryClient = useQueryClient()
+const { useChatModelsQuery, useTitleChatModelQuery, useSetTitleChatModelMutation } = useChatModels()
+const modelQuery = useChatModelsQuery()
+const titleModelQuery = useTitleChatModelQuery()
 
-const modelQuery = useQuery({ queryKey: ['chat_models'], queryFn: () => listChatModels() })
-const titleModelQuery = useQuery({
-  queryKey: ['title_chat_model'],
-  queryFn: () => getTitleChatModel(),
-  retry: false,
-})
-
-const updateMutation = useMutation({
-  mutationFn: (modelId: number) => setTitleChatModel({ body: { modelId } }),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['title_chat_model'] })
-    queryClient.invalidateQueries({ queryKey: ['chat_models'] })
-    message.success(t('admin.chat_model.title_model_update_success'))
-  },
+const updateMutation = useSetTitleChatModelMutation({
+  onSuccess: () => message.success(t('admin.chat_model.title_model_update_success')),
   onError: () => message.error(t('admin.chat_model.title_model_update_failed')),
 })
 

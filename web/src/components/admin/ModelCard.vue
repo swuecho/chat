@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { NBadge, NButton, NCard, NForm, NFormItem, NInput, NModal, NSelect, NSpin, NSwitch, useDialog, useMessage } from 'naive-ui'
-import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import copy from 'copy-to-clipboard'
 import { t } from '@/locales'
-import { deleteChatModel, updateChatModel } from '@/api/generated_client'
+import { useChatModels } from '@/hooks/useChatModels'
 import type { CreateChatModelRequest } from '@/api/generated_client'
 import { API_TYPE_DISPLAY_NAMES, API_TYPE_OPTIONS } from '@/constants/apiTypes'
 
@@ -12,7 +11,6 @@ const props = defineProps<{
   model: Chat.ChatModel
 }>()
 
-const queryClient = useQueryClient()
 const ms_ui = useMessage()
 const dialog = useDialog()
 const dialogVisible = ref(false)
@@ -58,24 +56,18 @@ const apiTypeBadgeType = computed(() => {
 // API Type options (imported from constants)
 const apiTypeOptions = API_TYPE_OPTIONS
 
-const chatModelMutation = useMutation({
-  mutationFn: (variables: { id: number; data: CreateChatModelRequest }) => updateChatModel({ path: { id: variables.id }, body: variables.data }),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['chat_models'] })
-    ms_ui.success(t('admin.chat_model.update_success'))
-  },
+const { useUpdateChatModelMutation, useDeleteChatModelMutation } = useChatModels()
+
+const chatModelMutation = useUpdateChatModelMutation({
+  onSuccess: () => ms_ui.success(t('admin.chat_model.update_success')),
   onError: (error) => {
     console.error('Failed to update model:', error)
     ms_ui.error(t('admin.chat_model.update_failed'))
   },
 })
 
-const deteteModelMutation = useMutation({
-  mutationFn: (id: number) => deleteChatModel({ path: { id } }),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['chat_models'] })
-    ms_ui.success(t('admin.chat_model.delete_success'))
-  },
+const deteteModelMutation = useDeleteChatModelMutation({
+  onSuccess: () => ms_ui.success(t('admin.chat_model.delete_success')),
   onError: (error) => {
     console.error('Failed to delete model:', error)
     ms_ui.error(t('admin.chat_model.delete_failed'))

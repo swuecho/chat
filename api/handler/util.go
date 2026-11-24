@@ -7,6 +7,7 @@ import (
 
 	"github.com/swuecho/chat_backend/httpx"
 	"github.com/swuecho/chat_backend/pkg/util"
+	"github.com/swuecho/chat_backend/requestctx"
 )
 
 // Re-exported from pkg/util for convenient use within the handler package.
@@ -36,16 +37,10 @@ func respondStatus(w http.ResponseWriter, status int) error {
 }
 func authenticatedUserID(r *http.Request) (int32, error) {
 	principal, err := httpx.Principal(r)
-	if err == nil {
-		return principal.UserID, nil
-	}
-	// Compatibility for package tests and callers that still construct the
-	// legacy context directly. Production auth middleware always sets Principal.
-	userID, legacyErr := getUserID(r.Context())
-	if legacyErr != nil {
+	if err != nil {
 		return 0, err
 	}
-	return userID, nil
+	return principal.UserID, nil
 }
 func positiveInt32Param(r *http.Request, name string) (int32, error) {
 	return httpx.Int32Param(r, name)
@@ -58,5 +53,5 @@ func pageResponse[T any](items []T, total int64, page httpx.Page) httpx.PageResp
 }
 
 func getTokenCount(content string) (int, error)                  { return util.TokenCount(content) }
-func getUserID(ctx context.Context) (int32, error)               { return util.UserID(ctx) }
+func getUserID(ctx context.Context) (int32, error)               { return requestctx.UserID(ctx) }
 func setupSSEStream(w http.ResponseWriter) (http.Flusher, error) { return util.SetupSSE(w) }

@@ -25,7 +25,8 @@ import { debounce, isEqual } from 'lodash-es'
 import { useQuery } from '@tanstack/vue-query'
 import { useSessionStore } from '@/store'
 import { formatLastUsed } from '@/utils/date'
-import { getChatInstructions, listChatModels } from '@/api/generated_client'
+import { getChatInstructions } from '@/api/generated_client'
+import { useChatModels } from '@/hooks/useChatModels'
 
 import { API_TYPES, API_TYPE_DISPLAY_NAMES } from '@/constants/apiTypes'
 import type { ChatModelHttpResponse as ChatModel } from '@/api/generated_client'
@@ -34,11 +35,7 @@ const props = defineProps<{
   uuid: string
 }>()
 
-const { data, isLoading } = useQuery({
-  queryKey: ['chat_models'],
-  queryFn: () => listChatModels(),
-  staleTime: 10 * 60 * 1000,
-})
+const { data, isLoading } = useChatModels().useChatModelsQuery()
 
 const { data: instructionData, isLoading: isInstructionLoading } = useQuery({
   queryKey: ['chat_instructions'],

@@ -9,9 +9,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/swuecho/chat_backend/apicontract"
+	"github.com/swuecho/chat_backend/domain"
 	"github.com/swuecho/chat_backend/dto"
 	"github.com/swuecho/chat_backend/httpx"
-	"github.com/swuecho/chat_backend/models"
 	"github.com/swuecho/chat_backend/svc"
 	"github.com/swuecho/chat_backend/validation"
 )
@@ -305,9 +305,9 @@ func (h *ChatMessageHandler) GenerateMoreSuggestions(r *http.Request, _ apicontr
 		return suggestionsHTTPResponse{}, dto.WrapError(dto.MapDatabaseError(err), "Failed to get conversation context")
 	}
 
-	var msgs []models.Message
+	var msgs []domain.Message
 	for _, msg := range contextMessages {
-		msgs = append(msgs, models.Message{
+		msgs = append(msgs, domain.Message{
 			Role:    msg.Role,
 			Content: msg.Content,
 		})

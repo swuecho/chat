@@ -13,7 +13,8 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
 	openai "github.com/sashabaranov/go-openai"
-	models "github.com/swuecho/chat_backend/models"
+
+	"github.com/swuecho/chat_backend/domain"
 )
 
 func SupportedMimeTypes() mapset.Set[string] {
@@ -41,8 +42,8 @@ func SupportedMimeTypes() mapset.Set[string] {
 	)
 }
 
-func messagesToOpenAIMesages(messages []models.Message, chatFiles []File) []openai.ChatCompletionMessage {
-	open_ai_msgs := lo.Map(messages, func(m models.Message, _ int) openai.ChatCompletionMessage {
+func messagesToOpenAIMesages(messages []domain.Message, chatFiles []File) []openai.ChatCompletionMessage {
+	open_ai_msgs := lo.Map(messages, func(m domain.Message, _ int) openai.ChatCompletionMessage {
 		return openai.ChatCompletionMessage{Role: m.Role, Content: m.Content}
 	})
 	if len(chatFiles) == 0 {

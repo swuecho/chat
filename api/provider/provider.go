@@ -9,10 +9,11 @@ package provider
 
 import (
 	"context"
+	"time"
 
 	"golang.org/x/time/rate"
 
-	"github.com/swuecho/chat_backend/models"
+	"github.com/swuecho/chat_backend/domain"
 )
 
 // DefaultOutputTokens is sent to APIs that require an output limit when the
@@ -66,19 +67,26 @@ type Request struct {
 	Session    Session
 	Model      ModelConfig
 	Files      []File
-	Messages   []models.Message
+	Messages   []domain.Message
 	ChatUUID   string
 	Regenerate bool
 	Stream     bool
 	NewID      func() string
 }
 
+// systemMessageOnlyMessage is returned when a request has no user input
+// beyond the system prompt.
+const systemMessageOnlyMessage = "Usage error, system message input, not user input"
+
+// completionRequestTimeout bounds non-streaming completion requests.
+const completionRequestTimeout = 5 * time.Minute
+
 // StreamChunk represents a single chunk in a streaming LLM response.
 type StreamChunk struct {
 	ID          string            // answer ID
 	Content     string            // delta text content
 	Done        bool              // true for the terminal chunk
-	FinalAnswer *models.LLMAnswer // set on Done (nil on error)
+	FinalAnswer *domain.LLMAnswer // set on Done (nil on error)
 	Err         error             // non-nil if a stream error occurred
 }
 
