@@ -222,7 +222,8 @@ export function useConversationFlow(
         try {
           // Streaming extraction is provisional. Reload the persisted message so
           // server-generated artifact IDs and content are authoritative.
-          await messageStore.syncChatMessages(sessionUuid)
+          // Silent: don't flash the session loading spinner and remount the list.
+          await messageStore.syncChatMessages(sessionUuid, { silent: true })
         }
         catch (error) {
           console.error('Failed to reconcile persisted artifacts:', error)

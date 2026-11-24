@@ -52,11 +52,15 @@ export const useMessageStore = defineStore('message-store', {
   },
 
   actions: {
-    async syncChatMessages(sessionUuid: string) {
+    // `silent` refreshes messages in the background without toggling the
+    // session loading state (which would replace the conversation with a spinner).
+    async syncChatMessages(sessionUuid: string, options: { silent?: boolean } = {}) {
       if (!sessionUuid)
         return
 
-      this.isLoading[sessionUuid] = true
+      const { silent = false } = options
+      if (!silent)
+        this.isLoading[sessionUuid] = true
 
       try {
         const messageData = await getChatHistory({ path: { uuid: sessionUuid } })
@@ -136,7 +140,8 @@ export const useMessageStore = defineStore('message-store', {
         throw error
       }
       finally {
-        this.isLoading[sessionUuid] = false
+        if (!silent)
+          this.isLoading[sessionUuid] = false
       }
     },
 
