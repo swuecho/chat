@@ -126,6 +126,8 @@
     "uploadFiles": "上传文件",
     "createBot": "创建机器人",
     "snapshotSuccess": "快照成功, 请在新标签页中查看, 链接任何人都可以打开, 谨慎分享",
+    "botSuccess": "机器人创建成功，已在新标签页中打开",
+    "botFailed": "创建机器人失败",
     "adjustParameters": "调整参数",
     "exportImageConfirm": "是否将会话保存为图片?",
     "exportMD": "保存会话到Markdown",

@@ -67,9 +67,8 @@ export function useChatActions(sessionUuidRef: Ref<string>) {
 
     botLoading.value = true
     try {
-      const snapshot = await createChatBot({ path: { uuid: sessionUuid } })
-      const snapshot_uuid = snapshot.uuid
-      window.open(`#/snapshot/${snapshot_uuid}`, '_blank')
+      const bot = await createChatBot({ path: { uuid: sessionUuid } })
+      window.open(`#/bot/${bot.uuid}`, '_blank')
       nui_msg.success(t('chat.botSuccess'))
     }
     catch (error) {

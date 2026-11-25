@@ -70,8 +70,8 @@ FROM chat_snapshot
 WHERE user_id = $1 AND ($2::text = '' OR typ = $2);
 
 -- name: ChatSnapshotSearch :many
-SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery(@search), 1) as rank
+SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery('simple', @search), 1) as rank
 FROM chat_snapshot
-WHERE search_vector @@ websearch_to_tsquery(@search) AND user_id = $1
+WHERE search_vector @@ websearch_to_tsquery('simple', @search) AND user_id = $1
 ORDER BY rank DESC
 LIMIT 20;

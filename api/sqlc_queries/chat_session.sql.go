@@ -57,8 +57,8 @@ func (q *Queries) CreateChatSession(ctx context.Context, arg CreateChatSessionPa
 }
 
 const createChatSessionInWorkspace = `-- name: CreateChatSessionInWorkspace :one
-INSERT INTO chat_session (user_id, uuid, topic, created_at, active, max_length, model, workspace_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO chat_session (user_id, uuid, topic, active, max_length, model, workspace_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id, user_id, uuid, topic, created_at, updated_at, active, model, max_length, temperature, top_p, max_tokens, n, summarize_mode, workspace_id, artifact_enabled, explore_mode
 `
 
@@ -66,7 +66,6 @@ type CreateChatSessionInWorkspaceParams struct {
 	UserID      int32         `json:"userId"`
 	Uuid        string        `json:"uuid"`
 	Topic       string        `json:"topic"`
-	CreatedAt   time.Time     `json:"createdAt"`
 	Active      bool          `json:"active"`
 	MaxLength   int32         `json:"maxLength"`
 	Model       string        `json:"model"`
@@ -78,7 +77,6 @@ func (q *Queries) CreateChatSessionInWorkspace(ctx context.Context, arg CreateCh
 		arg.UserID,
 		arg.Uuid,
 		arg.Topic,
-		arg.CreatedAt,
 		arg.Active,
 		arg.MaxLength,
 		arg.Model,
@@ -388,11 +386,12 @@ FROM chat_session cs
 LEFT JOIN (
     SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
     FROM chat_message
+    WHERE is_deleted = false
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.user_id = $1 AND cs.active = true
 ORDER BY
-    cm.latest_message_time DESC,
+    COALESCE(cm.latest_message_time, cs.created_at) DESC,
     cs.id DESC
 `
 
@@ -443,11 +442,12 @@ FROM chat_session cs
 LEFT JOIN (
     SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
     FROM chat_message
+    WHERE is_deleted = false
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.workspace_id = $1 AND cs.active = true
 ORDER BY
-    cm.latest_message_time DESC,
+    COALESCE(cm.latest_message_time, cs.created_at) DESC,
     cs.id DESC
 `
 
@@ -504,12 +504,13 @@ LEFT JOIN chat_workspace w ON cs.workspace_id = w.id
 LEFT JOIN (
     SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
     FROM chat_message
+    WHERE is_deleted = false
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.user_id = $1 AND cs.active = true
 ORDER BY
     w.order_position ASC,
-    cm.latest_message_time DESC,
+    COALESCE(cm.latest_message_time, cs.created_at) DESC,
     cs.id DESC
 `
 

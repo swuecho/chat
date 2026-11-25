@@ -143,9 +143,9 @@ func (q *Queries) ChatSnapshotMetaByUserID(ctx context.Context, arg ChatSnapshot
 }
 
 const chatSnapshotSearch = `-- name: ChatSnapshotSearch :many
-SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery($2), 1) as rank
+SELECT uuid, title, ts_rank(search_vector, websearch_to_tsquery('simple', $2), 1) as rank
 FROM chat_snapshot
-WHERE search_vector @@ websearch_to_tsquery($2) AND user_id = $1
+WHERE search_vector @@ websearch_to_tsquery('simple', $2) AND user_id = $1
 ORDER BY rank DESC
 LIMIT 20
 `
