@@ -78,11 +78,12 @@ FROM chat_session cs
 LEFT JOIN (
     SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
     FROM chat_message
+    WHERE is_deleted = false
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.user_id = $1 AND cs.active = true
 ORDER BY
-    cm.latest_message_time DESC,
+    COALESCE(cm.latest_message_time, cs.created_at) DESC,
     cs.id DESC;
 
 -- SELECT cs.*
@@ -98,8 +99,8 @@ WHERE uuid = $1 AND user_id = $3
 RETURNING *;
 
 -- name: CreateChatSessionInWorkspace :one
-INSERT INTO chat_session (user_id, uuid, topic, created_at, active, max_length, model, workspace_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO chat_session (user_id, uuid, topic, active, max_length, model, workspace_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetSessionsByWorkspaceID :many
@@ -108,11 +109,12 @@ FROM chat_session cs
 LEFT JOIN (
     SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
     FROM chat_message
+    WHERE is_deleted = false
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.workspace_id = $1 AND cs.active = true
 ORDER BY
-    cm.latest_message_time DESC,
+    COALESCE(cm.latest_message_time, cs.created_at) DESC,
     cs.id DESC;
 
 -- name: GetSessionsGroupedByWorkspace :many
@@ -127,12 +129,13 @@ LEFT JOIN chat_workspace w ON cs.workspace_id = w.id
 LEFT JOIN (
     SELECT chat_session_uuid, MAX(created_at) AS latest_message_time
     FROM chat_message
+    WHERE is_deleted = false
     GROUP BY chat_session_uuid
 ) cm ON cs.uuid = cm.chat_session_uuid
 WHERE cs.user_id = $1 AND cs.active = true
 ORDER BY
     w.order_position ASC,
-    cm.latest_message_time DESC,
+    COALESCE(cm.latest_message_time, cs.created_at) DESC,
     cs.id DESC;
 
 -- name: MigrateSessionsToDefaultWorkspace :exec

@@ -207,6 +207,8 @@
     "presencePenalty": "Presence Penalty",
     "sessionConfig": "Conversation Settings:",
     "snapshotSuccess": "Snapshot successful, please view in a new tab",
+    "botSuccess": "Bot created. It opens in a new tab.",
+    "botFailed": "Failed to create bot",
     "send": "Send message",
     "stopAnswer": "Stop Answering",
     "suggestedQuestions": "Suggested Questions",

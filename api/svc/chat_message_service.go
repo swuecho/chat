@@ -234,16 +234,18 @@ func (s *ChatMessageService) GetChatMessagesBySessionUUID(ctx context.Context, q
 	return chatMessagesFromRecords(message), nil
 }
 
-// DeleteChatMessagesBySessionUUID deletes chat messages by session UUID.
+// DeleteChatMessagesBySessionUUID soft-deletes the unpinned messages in a session.
+// Clearing a session with nothing left to clear (empty, or only pinned messages)
+// succeeds; a session the user does not own is reported as not found.
 func (s *ChatMessageService) DeleteChatMessagesBySessionUUID(ctx context.Context, command DeleteSessionMessagesCommand) error {
-	rows, err := s.q.DeleteChatMessagesBySesionUUID(ctx, sqlc_queries.DeleteChatMessagesBySesionUUIDParams{ChatSessionUuid: command.SessionUUID, UserID: command.UserID})
-	if err != nil {
+	if _, err := s.q.GetChatSessionByUUIDForUser(ctx, sqlc_queries.GetChatSessionByUUIDForUserParams{Uuid: command.SessionUUID, UserID: command.UserID}); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.NotFound("Chat session", err)
+		}
 		return err
 	}
-	if rows == 0 {
-		return domain.NotFound("Chat messages", sql.ErrNoRows)
-	}
-	return nil
+	_, err := s.q.DeleteChatMessagesBySesionUUID(ctx, sqlc_queries.DeleteChatMessagesBySesionUUIDParams{ChatSessionUuid: command.SessionUUID, UserID: command.UserID})
+	return err
 }
 
 func (s *ChatMessageService) GetChatMessagesCount(ctx context.Context, userID int32) (int32, error) {

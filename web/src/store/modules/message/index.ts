@@ -204,12 +204,9 @@ export const useMessageStore = defineStore('message-store', {
     async clearSessionMessages(sessionUuid: string) {
       try {
         await deleteChatHistory({ path: { uuid: sessionUuid } })
-        // Keep the first message (system prompt) and clear the rest
+        // Keep the system prompt and pinned messages; the server clears only the rest.
         const messages = this.chat[sessionUuid] || []
-        if (messages.length > 0)
-          this.chat[sessionUuid] = [messages[0]] // Keep only the first message
-        else
-          this.chat[sessionUuid] = []
+        this.chat[sessionUuid] = messages.filter((message, index) => index === 0 || message.isPin)
       }
       catch (error) {
         console.error(`Failed to clear messages for session ${sessionUuid}:`, error)

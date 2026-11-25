@@ -31,7 +31,7 @@ func TestActiveSessionFromRecordKeepsWorkspaceOptional(t *testing.T) {
 func createActiveSessionTestChatSession(t *testing.T, q *sqlc_queries.Queries, userID, workspaceID int32, uuid string) {
 	t.Helper()
 	_, err := q.CreateChatSessionInWorkspace(context.Background(), sqlc_queries.CreateChatSessionInWorkspaceParams{
-		UserID: userID, Uuid: uuid, Topic: uuid, CreatedAt: time.Now(), Active: true,
+		UserID: userID, Uuid: uuid, Topic: uuid, Active: true,
 		MaxLength: 10, Model: "test-model", WorkspaceID: sql.NullInt32{Int32: workspaceID, Valid: true},
 	})
 	if err != nil {

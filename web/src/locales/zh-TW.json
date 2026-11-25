@@ -202,6 +202,8 @@
     "presencePenalty": "存在懲罰",
     "sessionConfig": "會話配置",
     "snapshotSuccess": "快照成功，請在新標籤頁中查看",
+    "botSuccess": "機器人建立成功，已在新分頁中開啟",
+    "botFailed": "建立機器人失敗",
     "send": "傳送訊息",
     "stopAnswer": "停止回答",
     "suggestedQuestions": "建議問題",
